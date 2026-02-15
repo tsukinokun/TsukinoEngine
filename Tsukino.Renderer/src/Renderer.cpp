@@ -84,11 +84,17 @@ namespace Tsukino::Renderer {
     //! @brief 描画処理
     //------------------------------------------------------------
     void Renderer::Render() {
-        // 黒でクリア
-        const float clearColor[4] = {0.0f, 0.0f, 0.0f, 1.0f};
-        m_context->ClearRenderTargetView(m_rtv.Get(), clearColor);
+        // 設定されたクリアカラーで画面をクリア
+        m_context->ClearRenderTargetView(m_rtv.Get(), m_clearColor.data());
 
         // 表示
         m_swapChain->Present(1, 0);
+    }
+
+    //------------------------------------------------------------
+    //! @brief クリアカラー設定
+    //------------------------------------------------------------
+    void Renderer::SetClearColor(float r, float g, float b, float a) {
+        m_clearColor = {r, g, b, a};
     }
 }    // namespace Tsukino::Renderer
