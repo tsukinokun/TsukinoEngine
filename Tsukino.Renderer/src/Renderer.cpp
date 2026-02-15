@@ -42,30 +42,29 @@ namespace Tsukino::Renderer {
                                                    _countof(featureLevels),
                                                    D3D11_SDK_VERSION,
                                                    &scDesc,
-                                                   &m_swapChain,
-                                                   &m_device,
+                                                   m_swapChain.GetAddressOf(),
+                                                   m_device.GetAddressOf(),
                                                    &createdLevel,
-                                                   &m_context);
+                                                   m_context.GetAddressOf());
         if(FAILED(hr)) {
             return false;
         }
 
         // バックバッファ取得
-        ID3D11Texture2D* backBuffer = nullptr;
-        hr                          = m_swapChain->GetBuffer(0, __uuidof(ID3D11Texture2D), reinterpret_cast<void**>(&backBuffer));
+        ComPtr<ID3D11Texture2D> backBuffer;
+        hr = m_swapChain->GetBuffer(0, __uuidof(ID3D11Texture2D), reinterpret_cast<void**>(backBuffer.GetAddressOf()));
         if(FAILED(hr)) {
             return false;
         }
 
         // RTV 作成
-        hr = m_device->CreateRenderTargetView(backBuffer, nullptr, &m_rtv);
-        backBuffer->Release();    // Release 忘れ注意
+        hr = m_device->CreateRenderTargetView(backBuffer.Get(), nullptr, m_rtv.GetAddressOf());
         if(FAILED(hr)) {
             return false;
         }
 
         // レンダーターゲット設定
-        m_context->OMSetRenderTargets(1, &m_rtv, nullptr);
+        m_context->OMSetRenderTargets(1, m_rtv.GetAddressOf(), nullptr);
 
         // ビューポート設定
         D3D11_VIEWPORT vp{};
@@ -87,31 +86,9 @@ namespace Tsukino::Renderer {
     void Renderer::Render() {
         // 黒でクリア
         const float clearColor[4] = {0.0f, 0.0f, 0.0f, 1.0f};
-        m_context->ClearRenderTargetView(m_rtv, clearColor);
+        m_context->ClearRenderTargetView(m_rtv.Get(), clearColor);
 
         // 表示
         m_swapChain->Present(1, 0);
-    }
-
-    //------------------------------------------------------------
-    //! @brief 終了処理
-    //------------------------------------------------------------
-    void Renderer::Destroy() {
-        if(m_rtv) {
-            m_rtv->Release();
-            m_rtv = nullptr;
-        }
-        if(m_swapChain) {
-            m_swapChain->Release();
-            m_swapChain = nullptr;
-        }
-        if(m_context) {
-            m_context->Release();
-            m_context = nullptr;
-        }
-        if(m_device) {
-            m_device->Release();
-            m_device = nullptr;
-        }
     }
 }    // namespace Tsukino::Renderer
