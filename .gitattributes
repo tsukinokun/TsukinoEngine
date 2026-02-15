@@ -1,0 +1,2 @@
+*.fbx !text !filter !merge !diff
+*.otf !text !filter !merge !diff
