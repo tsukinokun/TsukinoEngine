@@ -1,41 +1,25 @@
-# Prerequisites
-*.d
+# Build results
+[Bb]in/
+[Oo]bj/
+x64/
+Debug/
+Release/
 
-# Compiled Object files
-*.slo
-*.lo
-*.o
-*.obj
+# Visual Studio cache
+.vs/
 
-# Precompiled Headers
-*.gch
+# Precompiled headers
 *.pch
-
-# Linker files
-*.ilk
-
-# Debugger Files
 *.pdb
+*.ipch
 
-# Compiled Dynamic libraries
-*.so
-*.dylib
+# Logs
+*.log
+
+# DLL / EXE
 *.dll
-
-# Fortran module files
-*.mod
-*.smod
-
-# Compiled Static libraries
-*.lai
-*.la
-*.a
-*.lib
-
-# Executables
 *.exe
-*.out
-*.app
 
-# debug information files
-*.dwo
+# DirectX shader cache
+*.cso
+*.pso
