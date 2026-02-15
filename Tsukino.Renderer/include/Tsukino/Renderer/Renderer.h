@@ -4,12 +4,11 @@
 //! @author 山﨑愛
 //------------------------------------------------------------
 #pragma once
+#include <wrl/client.h>    // ComPtrの依存関係を明示
+#include <d3d11.h>         // 依存関係を明示
+#include <dxgi.h>          // 依存関係を明示
 
-// DirectX の型を前方宣言する
-struct ID3D11Device;
-struct ID3D11DeviceContext;
-struct IDXGISwapChain;
-struct ID3D11RenderTargetView;
+using Microsoft::WRL::ComPtr;    // ComPtr を使用するための using 宣言
 
 // 名前空間 : Tsukino::Renderer
 namespace Tsukino::Renderer {
@@ -45,16 +44,11 @@ namespace Tsukino::Renderer {
         //------------------------------------------------------------
         void Render();
 
-        //------------------------------------------------------------
-        //! @brief 終了処理
-        //------------------------------------------------------------
-        void Destroy();
-
     private:
         // DirectX 11の主要なインターフェース
-        ID3D11Device*           m_device    = nullptr;    // 描画デバイス
-        ID3D11DeviceContext*    m_context   = nullptr;    // 描画コンテキスト
-        IDXGISwapChain*         m_swapChain = nullptr;    // スワップチェーン
-        ID3D11RenderTargetView* m_rtv       = nullptr;    // レンダーターゲットビュー
+        ComPtr<ID3D11Device>           m_device    = nullptr;    // 描画デバイス
+        ComPtr<ID3D11DeviceContext>    m_context   = nullptr;    // 描画コンテキスト
+        ComPtr<IDXGISwapChain>         m_swapChain = nullptr;    // スワップチェーン
+        ComPtr<ID3D11RenderTargetView> m_rtv       = nullptr;    // レンダーターゲットビュー
     };
 }    // namespace Tsukino::Renderer
