@@ -5,7 +5,7 @@
 //! @author 山﨑愛
 //------------------------------------------------------------
 #pragma once
-
+#define NOMINMAX
 // Windows API
 #include <Windows.h>    // Windows APIの基本的な機能を提供するヘッダーファイル
 
