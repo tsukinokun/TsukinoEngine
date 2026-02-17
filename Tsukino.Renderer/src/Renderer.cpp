@@ -201,6 +201,22 @@ namespace Tsukino::Renderer {
         // 設定されたクリアカラーで画面をクリア
         m_context->ClearRenderTargetView(m_rtv.Get(), m_clearColor.data());
 
+        //------------------------------------------------------------
+        // 定数バッファの更新
+        //------------------------------------------------------------
+        CBufferTransform cb{};
+        cb.mvp = DirectX::XMMatrixIdentity();    // とりあえず単位行列
+
+        //------------------------------------------------------------
+        // 定数バッファの更新
+        //------------------------------------------------------------
+        m_context->UpdateSubresource(m_constantBuffer.Get(), 0, nullptr, &cb, 0, 0);
+
+        //------------------------------------------------------------
+        // 定数バッファを頂点シェーダにバインド
+        //------------------------------------------------------------
+        m_context->VSSetConstantBuffers(0, 1, m_constantBuffer.GetAddressOf());
+
         UINT stride = sizeof(float) * 7;    // Vertex のサイズ
         UINT offset = 0;
         m_context->IASetVertexBuffers(0, 1, m_vertexBuffer.GetAddressOf(), &stride, &offset);
