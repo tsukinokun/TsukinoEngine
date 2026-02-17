@@ -21,6 +21,12 @@
     <ClInclude Include="include\Tsukino\Renderer\Renderer.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
+    <ClInclude Include="include\Tsukino\Renderer\ShaderLoader.h">
+      <Filter>ヘッダー ファイル</Filter>
+    </ClInclude>
+    <ClInclude Include="include\Tsukino\Renderer\Shader.h">
+      <Filter>ヘッダー ファイル</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="pch.cpp">
@@ -29,5 +35,15 @@
     <ClCompile Include="src\Renderer.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
+    <ClCompile Include="src\ShaderLoader.cpp">
+      <Filter>ソース ファイル</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Shader.cpp">
+      <Filter>ソース ファイル</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <FxCompile Include="include\Tsukino\Renderer\Shaders\TriangleVS.hlsl" />
+    <FxCompile Include="include\Tsukino\Renderer\Shaders\TrianglePS.hlsl" />
   </ItemGroup>
 </Project>
