@@ -25,9 +25,9 @@ namespace Tsukino::Core {
 
         //--------------------------------------------------------------
         // ウィンドウ生成
-        //! @param title ウィンドウタイトル
-        //! @param width ウィンドウ幅
-        //! @param height ウィンドウ高さ
+        //! @param title  [in] ウィンドウタイトル
+        //! @param width  [in] ウィンドウ幅
+        //! @param height [in] ウィンドウ高さ
         //--------------------------------------------------------------
         bool Create(const std::string& title, int width, int height);
 
@@ -38,7 +38,7 @@ namespace Tsukino::Core {
         bool ProcessMessages();
 
         //--------------------------------------------------------------
-        // Renderer が必要とする HWND
+        // Rendererが必要とする HWND
         //--------------------------------------------------------------
         HWND GetHWND() const { return m_hWnd; }
 
@@ -57,10 +57,10 @@ namespace Tsukino::Core {
     private:
         //--------------------------------------------------------------
         // Win32 のウィンドウプロシージャ
-        //! @param hwnd ウィンドウハンドル
-        //! @param msg メッセージコード
-        //! @param wParam メッセージの追加情報（通常はイベントの種類など）
-        //! @param lParam メッセージの追加情報（通常はイベントの座標など）
+        //! @param hwnd   [in]ウィンドウハンドル
+        //! @param msg    [in]メッセージコード
+        //! @param wParam [in] メッセージの追加情報（通常はイベントの種類など）
+        //! @param lParam [in] メッセージの追加情報（通常はイベントの座標など）
         //! @return メッセージ処理の結果（通常は0）
         //--------------------------------------------------------------
         static LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);

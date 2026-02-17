@@ -4,6 +4,9 @@
 //! @author 山﨑愛
 //------------------------------------------------------------
 #include "Tsukino/Renderer/Renderer.h"
+#include "Tsukino/Renderer/ShaderLoader.h"
+#include <cassert>
+
 // 名前空間 : Tsukino::Renderer
 namespace Tsukino::Renderer {
     //------------------------------------------------------------
@@ -77,6 +80,91 @@ namespace Tsukino::Renderer {
 
         m_context->RSSetViewports(1, &vp);
 
+        //------------------------------------------------------------
+        // 三角形描画の準備を追加
+        //------------------------------------------------------------
+        // 頂点構造体
+        struct Vertex {
+            float x, y, z;       // 頂点の位置
+            float r, g, b, a;    // 頂点の色
+        };
+
+        // 三角形の頂点データ
+        Vertex vertices[] = {
+            {0.0f,  0.5f,  0.0f, 1, 0, 0, 1}, // 上（赤）
+            {0.5f,  -0.5f, 0.0f, 0, 1, 0, 1}, // 右（緑）
+            {-0.5f, -0.5f, 0.0f, 0, 0, 1, 1}, // 左（青）
+        };
+
+        D3D11_BUFFER_DESC bd{};                                                                      // バッファの説明
+        bd.Usage     = D3D11_USAGE_DEFAULT;                                                          // 使用方法
+        bd.ByteWidth = sizeof(vertices);                                                             // バッファのサイズ
+        bd.BindFlags = D3D11_BIND_VERTEX_BUFFER;                                                     // 頂点バッファとして使用
+        D3D11_SUBRESOURCE_DATA initData{};                                                           // 初期データ
+        initData.pSysMem = vertices;                                                                 // 頂点データのポインタ
+        hr               = m_device->CreateBuffer(&bd, &initData, m_vertexBuffer.GetAddressOf());    // バッファの作成
+
+        if(FAILED(hr))
+            return false;
+
+        // シェーダーブロブとエラーブロブ
+        ComPtr<ID3DBlob> vsBlob;       // 頂点シェーダーブロブ
+        ComPtr<ID3DBlob> psBlob;       // ピクセルシェーダーブロブ
+        ComPtr<ID3DBlob> errorBlob;    // エラーブロブ
+
+        // 頂点シェーダーをコンパイル
+        hr = D3DCompileFromFile(L"../../Tsukino.Renderer/include/Tsukino/Renderer/Shaders/TriangleVS.hlsl",
+                                nullptr,
+                                nullptr,
+                                "VSMain",
+                                "vs_5_0",
+                                0,
+                                0,
+                                vsBlob.GetAddressOf(),
+                                errorBlob.GetAddressOf());
+        // コンパイル失敗時
+        if(FAILED(hr)) {
+            if(errorBlob) {
+                OutputDebugStringA((char*)errorBlob->GetBufferPointer());
+                errorBlob->Release();
+            }
+            assert(false && "VS compile failed: check file path or syntax");
+        }
+        // 頂点シェーダー作成
+        hr = m_device->CreateVertexShader(vsBlob->GetBufferPointer(), vsBlob->GetBufferSize(), nullptr, m_vertexShader.GetAddressOf());
+        assert(SUCCEEDED(hr));
+
+        // ピクセルシェーダー
+        hr = D3DCompileFromFile(L"../../Tsukino.Renderer/include/Tsukino/Renderer/Shaders/TrianglePS.hlsl",
+                                nullptr,
+                                nullptr,
+                                "PSMain",
+                                "ps_5_0",
+                                0,
+                                0,
+                                psBlob.GetAddressOf(),
+                                errorBlob.GetAddressOf());
+        // コンパイル失敗時
+        if(FAILED(hr)) {
+            if(errorBlob) {
+                OutputDebugStringA((char*)errorBlob->GetBufferPointer());
+                errorBlob->Release();
+            }
+            assert(false && "PS compile failed: check file path or syntax");
+        }
+        // ピクセルシェーダー作成
+        hr = m_device->CreatePixelShader(psBlob->GetBufferPointer(), psBlob->GetBufferSize(), nullptr, m_pixelShader.GetAddressOf());
+        assert(SUCCEEDED(hr));
+
+        // 入力レイアウト（POSITION: float3, COLOR: float4）
+        D3D11_INPUT_ELEMENT_DESC layout[] = {
+            {"POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT,    0, 0,                       D3D11_INPUT_PER_VERTEX_DATA, 0},
+            {"COLOR",    0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, UINT(3 * sizeof(float)), D3D11_INPUT_PER_VERTEX_DATA, 0},
+        };
+        // 入力レイアウト作成
+        hr = m_device->CreateInputLayout(layout, ARRAYSIZE(layout), vsBlob->GetBufferPointer(), vsBlob->GetBufferSize(), m_inputLayout.GetAddressOf());
+        assert(SUCCEEDED(hr));
+
         return true;
     }
 
@@ -86,6 +174,19 @@ namespace Tsukino::Renderer {
     void Renderer::Render() {
         // 設定されたクリアカラーで画面をクリア
         m_context->ClearRenderTargetView(m_rtv.Get(), m_clearColor.data());
+
+        UINT stride = sizeof(float) * 7;    // Vertex のサイズ
+        UINT offset = 0;
+        m_context->IASetVertexBuffers(0, 1, m_vertexBuffer.GetAddressOf(), &stride, &offset);
+
+        m_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+
+        m_context->IASetInputLayout(m_inputLayout.Get());
+        m_context->VSSetShader(m_vertexShader.Get(), nullptr, 0);
+        m_context->PSSetShader(m_pixelShader.Get(), nullptr, 0);
+
+        // シェーダと入力レイアウトをセット（後で追加）
+        m_context->Draw(3, 0);
 
         // 表示
         m_swapChain->Present(1, 0);
