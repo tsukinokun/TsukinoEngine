@@ -20,6 +20,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="include\Tsukino\Core\Log.h" />
+    <ClInclude Include="include\Tsukino\Core\typedef.h" />
     <ClInclude Include="include\Tsukino\Core\Window.h" />
     <ClInclude Include="pch.h" />
   </ItemGroup>
