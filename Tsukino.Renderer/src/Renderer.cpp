@@ -5,8 +5,9 @@
 //------------------------------------------------------------
 #include "Tsukino/Renderer/Renderer.h"
 #include "Tsukino/Renderer/ShaderLoader.h"
+#include "Tsukino/Renderer/ConstantBuffer.h"
+#include "Tsukino/Core/Log.h"
 #include <cassert>
-
 // 名前空間 : Tsukino::Renderer
 namespace Tsukino::Renderer {
     //------------------------------------------------------------
@@ -96,6 +97,7 @@ namespace Tsukino::Renderer {
             {-0.5f, -0.5f, 0.0f, 0, 0, 1, 1}, // 左（青）
         };
 
+        // 頂点バッファの作成
         D3D11_BUFFER_DESC bd{};                                                                      // バッファの説明
         bd.Usage     = D3D11_USAGE_DEFAULT;                                                          // 使用方法
         bd.ByteWidth = sizeof(vertices);                                                             // バッファのサイズ
@@ -165,6 +167,30 @@ namespace Tsukino::Renderer {
         hr = m_device->CreateInputLayout(layout, ARRAYSIZE(layout), vsBlob->GetBufferPointer(), vsBlob->GetBufferSize(), m_inputLayout.GetAddressOf());
         assert(SUCCEEDED(hr));
 
+        //------------------------------------------------------------
+        // 定数バッファの作成
+        //------------------------------------------------------------
+        if(!CreateConstantBuffer())
+            return false;    // 定数バッファの作成に失敗した場合は false を返す
+
+        return true;
+    }
+
+    //------------------------------------------------------------
+    //! @brief 定数バッファの作成
+    //------------------------------------------------------------
+    bool Renderer::CreateConstantBuffer() {
+        D3D11_BUFFER_DESC desc = {};
+        desc.ByteWidth         = sizeof(Tsukino::Renderer::CBufferTransform);
+        desc.Usage             = D3D11_USAGE_DEFAULT;
+        desc.BindFlags         = D3D11_BIND_CONSTANT_BUFFER;
+
+        HRESULT hr = m_device->CreateBuffer(&desc, nullptr, m_constantBuffer.GetAddressOf());
+        // 定数バッファの作成に失敗した場合はエラーログを出力
+        if(FAILED(hr)) {
+            Tsukino::Core::Log::Error("Failed to create constant buffer.");
+            return false;
+        }
         return true;
     }
 

@@ -38,7 +38,15 @@ namespace Tsukino::Renderer {
         //! @param height [in] 描画領域の高さ
         //! @return true: [in] 初期化成功, false: 初期化失敗
         //------------------------------------------------------------
+        [[nodiscard]]
         bool Initialize(HWND hwnd, uint32_t width, uint32_t height);
+
+        //------------------------------------------------------------
+        // 定数バッファの作成
+        //! @return true: 定数バッファの作成成功, false: 定数バッファの作成失敗
+        //------------------------------------------------------------
+        [[nodiscard]]
+        bool CreateConstantBuffer();
 
         //------------------------------------------------------------
         // 描画処理
@@ -56,14 +64,15 @@ namespace Tsukino::Renderer {
 
     private:
         // DirectX 11の主要なインターフェース
-        ComPtr<ID3D11Device>           m_device;          // 描画デバイス
-        ComPtr<ID3D11DeviceContext>    m_context;         // 描画コンテキスト
-        ComPtr<IDXGISwapChain>         m_swapChain;       // スワップチェーン
-        ComPtr<ID3D11RenderTargetView> m_rtv;             // レンダーターゲットビュー
-        ComPtr<ID3D11Buffer>           m_vertexBuffer;    // 頂点バッファ
-        ComPtr<ID3D11VertexShader>     m_vertexShader;    // 頂点シェーダ
-        ComPtr<ID3D11PixelShader>      m_pixelShader;     // ピクセルシェーダ
-        ComPtr<ID3D11InputLayout>      m_inputLayout;     // 入力レイアウト
+        ComPtr<ID3D11Device>           m_device;            // 描画デバイス
+        ComPtr<ID3D11DeviceContext>    m_context;           // 描画コンテキスト
+        ComPtr<IDXGISwapChain>         m_swapChain;         // スワップチェーン
+        ComPtr<ID3D11RenderTargetView> m_rtv;               // レンダーターゲットビュー
+        ComPtr<ID3D11Buffer>           m_vertexBuffer;      // 頂点バッファ
+        ComPtr<ID3D11VertexShader>     m_vertexShader;      // 頂点シェーダ
+        ComPtr<ID3D11PixelShader>      m_pixelShader;       // ピクセルシェーダ
+        ComPtr<ID3D11InputLayout>      m_inputLayout;       // 入力レイアウト
+        ComPtr<ID3D11Buffer>           m_constantBuffer;    // 定数バッファ
         std::array<float, 4>           m_clearColor = {0.5f, 0.5f, 0.5f, 1.0f};
     };
 }    // namespace Tsukino::Renderer
