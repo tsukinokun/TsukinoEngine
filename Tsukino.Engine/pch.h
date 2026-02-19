@@ -14,3 +14,4 @@
 #include <functional>
 #include <filesystem>
 #include <optional>
+#include <hlsl++.h>
