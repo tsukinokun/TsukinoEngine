@@ -159,10 +159,10 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClInclude Include="include\Tsukino\Renderer\ConstantBuffer.h" />
-    <ClInclude Include="include\Tsukino\Renderer\Renderer.h" />
-    <ClInclude Include="include\Tsukino\Renderer\Shader.h" />
-    <ClInclude Include="include\Tsukino\Renderer\ShaderLoader.h" />
+    <ClInclude Include="include\Tsukino\Renderer\ConstantBuffer.hpp" />
+    <ClInclude Include="include\Tsukino\Renderer\Renderer.hpp" />
+    <ClInclude Include="include\Tsukino\Renderer\Shader.hpp" />
+    <ClInclude Include="include\Tsukino\Renderer\ShaderLoader.hpp" />
     <ClInclude Include="pch.h" />
   </ItemGroup>
   <ItemGroup>

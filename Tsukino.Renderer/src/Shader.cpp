@@ -3,7 +3,7 @@
 //! @brief  Shader クラスの実装（VS/PS + InputLayout のバインド）
 //! @author 山﨑愛
 //------------------------------------------------------------
-#include "Tsukino/Renderer/Shader.h"
+#include "Tsukino/Renderer/Shader.hpp"
 // 名前空間 : Tsukino::Renderer
 namespace Tsukino::Renderer {
 

@@ -1,11 +1,11 @@
 //-------------------------------------------------------------
-//! @file   Transform.h
+//! @file   Transform.hpp
 //! @brief  Transformクラスの宣言
 //! @author 山﨑愛
 //-------------------------------------------------------------
 #pragma once
 #include <hlsl++.h>
-#include <Tsukino/Core/Math/Matrix.h>
+#include <Tsukino/Core/Math/Matrix.hpp>
 // 名前空間 : Tsukino::Engine
 namespace Tsukino::Engine {
     //-------------------------------------------------------------

@@ -1,5 +1,5 @@
 //------------------------------------------------------------
-//! @file   ShaderLoader.h
+//! @file   ShaderLoader.hpp
 //! @brief  HLSLシェーダを読み込み、コンパイルし、Shaderオブジェクトを構築するクラス
 //! @author 山﨑愛
 //------------------------------------------------------------
@@ -8,8 +8,7 @@
 #include <wrl/client.h>
 #include <d3d11.h>
 #include <d3dcompiler.h>
-
-#include "Shader.h"    // Shader クラスを利用する
+#include "Shader.hpp"    // Shader クラスを利用する
 
 // 名前空間 : Tsukino::Renderer
 namespace Tsukino::Renderer {

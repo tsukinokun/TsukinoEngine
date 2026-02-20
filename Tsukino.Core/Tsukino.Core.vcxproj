@@ -19,10 +19,10 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="include\Tsukino\Core\Log.h" />
-    <ClInclude Include="include\Tsukino\Core\Math\Matrix.h" />
-    <ClInclude Include="include\Tsukino\Core\typedef.h" />
-    <ClInclude Include="include\Tsukino\Core\Window.h" />
+    <ClInclude Include="include\Tsukino\Core\Log.hpp" />
+    <ClInclude Include="include\Tsukino\Core\Math\Matrix.hpp" />
+    <ClInclude Include="include\Tsukino\Core\typedef.hpp" />
+    <ClInclude Include="include\Tsukino\Core\Window.hpp" />
     <ClInclude Include="pch.h" />
   </ItemGroup>
   <ItemGroup>

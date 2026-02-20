@@ -3,10 +3,10 @@
 //! @brief  レンダラークラスの実装
 //! @author 山﨑愛
 //------------------------------------------------------------
-#include "Tsukino/Renderer/Renderer.h"
-#include "Tsukino/Renderer/ShaderLoader.h"
-#include "Tsukino/Renderer/ConstantBuffer.h"
-#include "Tsukino/Core/Log.h"
+#include "Tsukino/Renderer/Renderer.hpp"
+#include "Tsukino/Renderer/ShaderLoader.hpp"
+#include "Tsukino/Renderer/ConstantBuffer.hpp"
+#include "Tsukino/Core/Log.hpp"
 #include <cassert>
 // 名前空間 : Tsukino::Renderer
 namespace Tsukino::Renderer {
