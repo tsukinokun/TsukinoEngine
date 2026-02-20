@@ -3,7 +3,7 @@
 //! @brief  Transformクラスの実装
 //! @author 山﨑愛
 //-------------------------------------------------------------
-#include <Tsukino/Engine/Transform.h>
+#include <Tsukino/Engine/Transform.hpp>
 // 名前空間 : Tsukino::Engine
 namespace Tsukino::Engine {
     //-------------------------------------------------------------

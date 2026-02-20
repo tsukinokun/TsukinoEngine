@@ -3,7 +3,7 @@
 //! @brief  ウィンドウ管理クラスの実装
 //! @author 山﨑愛
 //--------------------------------------------------------------
-#include "Tsukino/Core/Window.h"
+#include "Tsukino/Core/Window.hpp"
 // 名前空間 : Tsukino::Core
 namespace Tsukino::Core {
     //--------------------------------------------------------------

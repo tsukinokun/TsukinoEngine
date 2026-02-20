@@ -2,7 +2,7 @@
 //! @file   ShaderLoader.cpp
 //! @brief  HLSLシェーダを読み込み、コンパイルし、Shaderオブジェクトを構築するクラス
 //------------------------------------------------------------
-#include "Tsukino/Renderer/ShaderLoader.h"
+#include "Tsukino/Renderer/ShaderLoader.hpp"
 #include <fstream>
 // 名前空間 : Tsukino::Renderer
 namespace Tsukino::Renderer {

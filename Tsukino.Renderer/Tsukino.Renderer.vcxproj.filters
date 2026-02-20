@@ -18,16 +18,16 @@
     <ClInclude Include="pch.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
-    <ClInclude Include="include\Tsukino\Renderer\Renderer.h">
+    <ClInclude Include="include\Tsukino\Renderer\Renderer.hpp">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
-    <ClInclude Include="include\Tsukino\Renderer\ShaderLoader.h">
+    <ClInclude Include="include\Tsukino\Renderer\ShaderLoader.hpp">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
-    <ClInclude Include="include\Tsukino\Renderer\Shader.h">
+    <ClInclude Include="include\Tsukino\Renderer\Shader.hpp">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
-    <ClInclude Include="include\Tsukino\Renderer\ConstantBuffer.h">
+    <ClInclude Include="include\Tsukino\Renderer\ConstantBuffer.hpp">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
   </ItemGroup>

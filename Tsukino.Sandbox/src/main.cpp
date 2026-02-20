@@ -4,8 +4,8 @@
 //! @author 山﨑愛
 //--------------------------------------------------------------
 #include <Windows.h>
-#include "Tsukino/Core/Window.h"
-#include "Tsukino/Renderer/Renderer.h"
+#include "Tsukino/Core/Window.hpp"
+#include "Tsukino/Renderer/Renderer.hpp"
 //--------------------------------------------------------------
 // アプリケーションのエントリポイント
 //! @param hInstance アプリケーションインスタンス

@@ -1,5 +1,5 @@
 //------------------------------------------------------------
-//! @file    Shader.h
+//! @file    Shader.hpp
 //! @brief   DirectX11シェーダ（VS/PS + InputLayout）を保持するクラス
 //! @details Rendererからは Bind() だけを呼べばよい。
 //!          読み込み・コンパイルは ShaderLoader が担当する。
