@@ -5,7 +5,7 @@
 //--------------------------------------------------------------------
 #pragma once
 #include <entt/entt.hpp>
-#include "Entity.hpp"
+#include <Tsukino/Core/ECS/Entity/Entity.hpp>
 // 名前空間 : Tsukino::ECS
 namespace Tsukino::ECS {
     //--------------------------------------------------------------------

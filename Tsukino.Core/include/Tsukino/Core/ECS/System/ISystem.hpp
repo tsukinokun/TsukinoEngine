@@ -4,9 +4,9 @@
 //! @author 山﨑愛
 //-------------------------------------------------------------
 #pragma once
-#include <Tsukino/Core/ECS/Registry.hpp>
-// 名前空間 : Tsukino::Engine::ECS
-namespace Tsukino::Engine::ECS {
+#include <Tsukino/Core/ECS/Registry/Registry.hpp>
+// 名前空間 : Tsukino::ECS
+namespace Tsukino::ECS {
     //-------------------------------------------------------------
     //! @class  ISystem
     //! @brief  システムインターフェース
@@ -26,4 +26,4 @@ namespace Tsukino::Engine::ECS {
         virtual void Update(Tsukino::ECS::Registry& registry, float deltaTime) = 0;
     };
 
-}    // namespace Tsukino::Engine::ECS
+}    // namespace Tsukino::ECS

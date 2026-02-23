@@ -19,7 +19,10 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="include\Tsukino\Core\ECS\Registry.hpp" />
+    <ClInclude Include="include\Tsukino\Core\ECS\Component\TransformComponent.hpp" />
+    <ClInclude Include="include\Tsukino\Core\ECS\Registry\Registry.hpp" />
+    <ClInclude Include="include\Tsukino\Core\ECS\System\ISystem.hpp" />
+    <ClInclude Include="include\Tsukino\Core\ECS\System\TransformSystem.hpp" />
     <ClInclude Include="include\Tsukino\Core\Log.hpp" />
     <ClInclude Include="include\Tsukino\Core\Math\Matrix.hpp" />
     <ClInclude Include="include\Tsukino\Core\typedef.hpp" />
@@ -27,13 +30,14 @@
     <ClInclude Include="pch.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="include\Tsukino\Core\ECS\Entity.hpp" />
+    <ClCompile Include="include\Tsukino\Core\ECS\Entity\Entity.hpp" />
     <ClCompile Include="pch.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
     </ClCompile>
+    <ClCompile Include="src\ECS\System\TransformSystem.cpp" />
     <ClCompile Include="src\Log.cpp" />
     <ClCompile Include="src\Math\Matrix.cpp" />
     <ClCompile Include="src\Window.cpp" />
