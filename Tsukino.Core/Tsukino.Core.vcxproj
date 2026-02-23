@@ -19,6 +19,7 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="include\Tsukino\Core\ECS\Registry.hpp" />
     <ClInclude Include="include\Tsukino\Core\Log.hpp" />
     <ClInclude Include="include\Tsukino\Core\Math\Matrix.hpp" />
     <ClInclude Include="include\Tsukino\Core\typedef.hpp" />
