@@ -148,7 +148,7 @@
       <PrecompiledHeader>Use</PrecompiledHeader>
       <ForcedIncludeFiles>$(ProjectDir)pch.h;%(ForcedIncludeFiles)</ForcedIncludeFiles>
       <LanguageStandard>stdcpp20</LanguageStandard>
-      <AdditionalIncludeDirectories>$(ProjectDir)include;$(SolutionDir)Tsukino.Renderer\include;$(SolutionDir)Tsukino.Engine\include;$(ProjectDir)..\External\hlslpp\include;$(ProjectDir)..\External\entt\single_include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)include;$(ProjectDir)..\External\hlslpp\include;$(ProjectDir)..\External\entt\single_include</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>

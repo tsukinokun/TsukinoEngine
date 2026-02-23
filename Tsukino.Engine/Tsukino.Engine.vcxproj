@@ -112,7 +112,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(ProjectDir)include;$(ProjectDir)..\External\hlslpp\include;$(ProjectDir)..\Tsukino.Core\include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)include;$(ProjectDir)..\External\hlslpp\include;$(ProjectDir)..\Tsukino.Core\include;$(ProjectDir)..\External\entt\single_include</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp20</LanguageStandard>
       <PrecompiledHeader>Use</PrecompiledHeader>
       <PrecompiledHeaderFile>$(ProjectDir)pch.h</PrecompiledHeaderFile>
@@ -143,6 +143,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="include\Tsukino\Engine\ECS\ISystem.hpp" />
     <ClInclude Include="include\Tsukino\Engine\Transform.hpp" />
     <ClInclude Include="pch.h" />
   </ItemGroup>
