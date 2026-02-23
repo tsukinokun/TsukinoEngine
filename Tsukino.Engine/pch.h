@@ -14,4 +14,9 @@
 #include <functional>
 #include <filesystem>
 #include <optional>
+
+// hlslpp
 #include <hlsl++.h>
+
+// entt
+#include <entt/entt.hpp>
