@@ -23,6 +23,7 @@
     <ClInclude Include="include\Tsukino\Core\ECS\Registry\Registry.hpp" />
     <ClInclude Include="include\Tsukino\Core\ECS\System\ISystem.hpp" />
     <ClInclude Include="include\Tsukino\Core\ECS\System\TransformSystem.hpp" />
+    <ClInclude Include="include\Tsukino\Core\IO\FileSystem.hpp" />
     <ClInclude Include="include\Tsukino\Core\Log.hpp" />
     <ClInclude Include="include\Tsukino\Core\Math\Matrix.hpp" />
     <ClInclude Include="include\Tsukino\Core\typedef.hpp" />
@@ -38,6 +39,7 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="src\ECS\System\TransformSystem.cpp" />
+    <ClCompile Include="src\IO\FileSystem.cpp" />
     <ClCompile Include="src\Log.cpp" />
     <ClCompile Include="src\Math\Matrix.cpp" />
     <ClCompile Include="src\Window.cpp" />
