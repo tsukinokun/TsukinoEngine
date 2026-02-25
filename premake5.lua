@@ -25,3 +25,28 @@ project "Tsukino.Core"
         "External/hlslpp/include", 
         "External/entt/single_include"
     }
+
+project "Tsukino.Engine"
+    location ".build/Tsukino.Engine"
+    kind "StaticLib"
+    language "C++"
+    cppdialect "C++20"
+
+    targetdir ("bin/%{cfg.buildcfg}")
+    objdir ("bin-int/%{cfg.buildcfg}")
+
+    files {
+        "Tsukino.Engine/src/**.cpp",
+        "Tsukino.Engine/include/**.hpp"
+    }
+
+    includedirs {
+        "Tsukino.Engine/include",
+        "Tsukino.Core/include",
+        "External/hlslpp/include", 
+        "External/entt/single_include"
+    }
+
+    links {
+        "Tsukino.Core"
+    }
