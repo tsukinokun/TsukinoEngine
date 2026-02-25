@@ -7,4 +7,4 @@ if %errorlevel% neq 0 (
     exit /b %errorlevel%
 )
 
-start "" "TsukinoEngine.sln"
+start "" ".build/TsukinoEngine.sln"
