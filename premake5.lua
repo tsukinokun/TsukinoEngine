@@ -160,5 +160,8 @@ project "Tsukino.Sandbox"
         "Tsukino.Engine",
         "Tsukino.Renderer",
         --"Tsukino.Physics",
-        "Tsukino.Core"
+        "Tsukino.Core",
+        "d3d11", 
+        "dxgi",
+        "d3dcompiler"
     }
