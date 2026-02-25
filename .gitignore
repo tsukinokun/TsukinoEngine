@@ -1,5 +1,6 @@
 # Build results
 [Bb]in/
+bin-int/
 [Oo]bj/
 x64/
 Debug/
@@ -7,6 +8,9 @@ Release/
 
 # Visual Studio cache
 .vs/
+
+# Premake generated project files
+.build/
 
 # Precompiled headers
 *.pch
