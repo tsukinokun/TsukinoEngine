@@ -99,3 +99,35 @@ project "Tsukino.Physics"
     links {
         "Tsukino.Core"
     }
+
+    -- サンドボックス（実行ファイル）
+project "Tsukino.Sandbox"
+    location ".build/Tsukino.Sandbox"
+    kind "WindowedApp"   
+    language "C++"
+    cppdialect "C++20"
+
+    targetdir ("bin/%{cfg.buildcfg}")
+    objdir ("bin-int/%{cfg.buildcfg}")
+
+    files {
+        "Tsukino.Sandbox/src/**.cpp",
+        "Tsukino.Sandbox/include/**.hpp"
+    }
+
+    includedirs {
+        "Tsukino.Sandbox/include",
+        "Tsukino.Engine/include",
+        "Tsukino.Renderer/include",
+        "Tsukino.Physics/include",
+        "Tsukino.Core/include",
+        "External/hlslpp/include",
+        "External/entt/single_include"
+    }
+
+    links {
+        "Tsukino.Engine",
+        "Tsukino.Renderer",
+        "Tsukino.Physics",
+        "Tsukino.Core"
+    }
