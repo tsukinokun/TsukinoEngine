@@ -75,3 +75,27 @@ project "Tsukino.Renderer"
     links {
         "Tsukino.Core"
     }
+
+-- 物理プロジェクト
+project "Tsukino.Physics"
+    location ".build/Tsukino.Physics"
+    kind "StaticLib"
+    language "C++"
+    cppdialect "C++20"
+
+    targetdir ("bin/%{cfg.buildcfg}")
+    objdir ("bin-int/%{cfg.buildcfg}")
+
+    files {
+        "Tsukino.Physics/src/**.cpp",
+        "Tsukino.Physics/include/**.hpp"
+    }
+
+    includedirs {
+        "Tsukino.Physics/include",
+        "Tsukino.Core/include",
+    }
+
+    links {
+        "Tsukino.Core"
+    }
