@@ -7,6 +7,7 @@
 #include <string>
 #include <vector>
 #include <cstdint>
+#include <Tsukino/Core/Path.hpp>
 // 名前空間 : Tsukino::IO
 namespace Tsukino::IO {
     //-------------------------------------------------------------
@@ -21,7 +22,7 @@ namespace Tsukino::IO {
         //! @return 読み込んだバイト列（失敗時は空）
         //---------------------------------------------------------
         [[nodiscard]]
-        static std::vector<std::uint8_t> ReadBinary(const std::string& path) noexcept;
+        static std::vector<std::uint8_t> ReadBinary(const Tsukino::Core::Path& path) noexcept;
 
         //---------------------------------------------------------
         //! @brief  テキストファイルを読み込む
@@ -29,14 +30,14 @@ namespace Tsukino::IO {
         //! @return 読み込んだ文字列（失敗時は空）
         //---------------------------------------------------------
         [[nodiscard]]
-        static std::string ReadText(const std::string& path) noexcept;
+        static std::string ReadText(const Tsukino::Core::Path& path) noexcept;
 
         //---------------------------------------------------------
         //! @brief  ファイルが存在するか確認する
         //! @param  path [in] 確認するファイルパス
         //---------------------------------------------------------
         [[nodiscard]]
-        static bool Exists(const std::string& path) noexcept;
+        static bool Exists(const Tsukino::Core::Path& path) noexcept;
     };
 
 }    // namespace Tsukino::IO
