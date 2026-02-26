@@ -9,6 +9,7 @@
 #include <memory>
 
 #include <Tsukino/Core/Path.hpp>
+#include <Tsukino/Core/Memory.hpp>
 #include <Tsukino/Engine/Asset/AssetHandle.hpp>
 #include <Tsukino/Engine/Asset/IAsset.hpp>
 #include <Tsukino/Engine/Asset/AssetType.hpp>
@@ -22,12 +23,12 @@ namespace Tsukino::Asset {
     class AssetManager {
     public:
         //--------------------------------------------------------------
-        //! @brief  AssetManager を初期化する関数
+        // AssetManager を初期化する関数
         //--------------------------------------------------------------
         static void Initialize();
 
         //--------------------------------------------------------------
-        //! @brief  AssetManagerをシャットダウンする関数
+        // AssetManagerをシャットダウンする関数
         //--------------------------------------------------------------
         static void Destroy();
 
@@ -42,9 +43,9 @@ namespace Tsukino::Asset {
         //--------------------------------------------------------------
         // ハンドルからアセットを取得する関数
         //! @param  handle [in] 取得するアセットのハンドル
-        //! @return 取得したアセットの生ポインタ
+        //! @return 取得したアセットのshared_ptr
         //--------------------------------------------------------------
-        static IAsset* Get(AssetHandle handle);
+        static Tsukino::Core::Ref<IAsset> Get(AssetHandle handle);
 
         //--------------------------------------------------------------
         //! @brief  ハンドルから、アセットが存在するか確認する関数
@@ -56,15 +57,15 @@ namespace Tsukino::Asset {
     private:
         //--------------------------------------------------------------
         //! @brief  ローダーを登録する関数
-        //! @param  loader [in] 登録するローダーのユニークポインタ
+        //! @param  loader [in] 登録するローダーのshared_ptr
         //--------------------------------------------------------------
-        static void RegisterLoader(std::unique_ptr<IAssetLoader> loader);
+        static void RegisterLoader(Tsukino::Core::Ref<IAssetLoader> loader);
 
-        // AssetManagerがアセットの唯一の所有者
-        static std::unordered_map<u64, std::unique_ptr<IAsset>> s_Assets;
+        // AssetManagerがアセットの共有所有者
+        static std::unordered_map<u64, Tsukino::Core::Ref<IAsset>> s_Assets;
 
-        // LoaderもAssetManagerが所有
-        static std::vector<std::unique_ptr<IAssetLoader>> s_Loaders;
+        // LoaderもAssetManagerが共有所有
+        static std::vector<Tsukino::Core::Ref<IAssetLoader>> s_Loaders;
     };
 
 }    // namespace Tsukino::Asset
