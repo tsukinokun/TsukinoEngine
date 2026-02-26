@@ -3,7 +3,8 @@
 //! @brief  ログ出力クラスの実装
 //! @author 山﨑愛
 //--------------------------------------------------------------
-#include "Tsukino/Core/Log.hpp"
+#include <Tsukino/Core/Log.hpp>
+#include <windows.h>
 // 名前空間 : Tsukino::Core
 namespace Tsukino::Core {
 

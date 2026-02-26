@@ -4,6 +4,8 @@
 //! @author ŽRú±ˆ¤
 //--------------------------------------------------------------
 #pragma once
+#include <windows.h>
+#include <string>
 // –¼‘O‹óŠÔ : Tsukino::Core
 namespace Tsukino::Core {
     //--------------------------------------------------------------
