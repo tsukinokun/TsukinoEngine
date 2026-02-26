@@ -13,6 +13,7 @@
 #include <Tsukino/Engine/Asset/AssetHandle.hpp>
 #include <Tsukino/Engine/Asset/IAsset.hpp>
 #include <Tsukino/Engine/Asset/AssetType.hpp>
+#include <Tsukino/Engine/Asset/AssetMap.hpp>
 // 名前空間 : Tsukino::Asset
 namespace Tsukino::Asset {
     class IAssetLoader;    // 前方宣言
@@ -62,7 +63,7 @@ namespace Tsukino::Asset {
         static void RegisterLoader(Tsukino::Core::Ref<IAssetLoader> loader);
 
         // AssetManagerがアセットの共有所有者
-        static std::unordered_map<u64, Tsukino::Core::Ref<IAsset>> s_Assets;
+        static AssetMap s_Assets;
 
         // LoaderもAssetManagerが共有所有
         static std::vector<Tsukino::Core::Ref<IAssetLoader>> s_Loaders;
