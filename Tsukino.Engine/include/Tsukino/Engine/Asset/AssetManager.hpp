@@ -1,0 +1,70 @@
+//--------------------------------------------------------------
+//! @file   AssetManager.hpp
+//! @brief  アセット管理クラスの宣言
+//! @author 山﨑愛
+//--------------------------------------------------------------
+#pragma once
+#include <unordered_map>
+#include <vector>
+#include <memory>
+
+#include <Tsukino/Core/Path.hpp>
+#include <Tsukino/Engine/Asset/AssetHandle.hpp>
+#include <Tsukino/Engine/Asset/IAsset.hpp>
+#include <Tsukino/Engine/Asset/AssetType.hpp>
+// 名前空間 : Tsukino::Asset
+namespace Tsukino::Asset {
+    class IAssetLoader;    // 前方宣言
+    //--------------------------------------------------------------
+    //! @class  AssetManager
+    //! @brief  アセットのロード、管理を行うクラス
+    //--------------------------------------------------------------
+    class AssetManager {
+    public:
+        //--------------------------------------------------------------
+        //! @brief  AssetManager を初期化する関数
+        //--------------------------------------------------------------
+        static void Initialize();
+
+        //--------------------------------------------------------------
+        //! @brief  AssetManagerをシャットダウンする関数
+        //--------------------------------------------------------------
+        static void Destroy();
+
+        //--------------------------------------------------------------
+        // アセットをロードする関数
+        //! @param  path [in] ロードするアセットのパス
+        //! @param  type [in] ロードするアセットの種類
+        //! @return ロードしたアセットのハンドル
+        //--------------------------------------------------------------
+        static AssetHandle Load(const Tsukino::Core::Path& path, AssetType type);
+
+        //--------------------------------------------------------------
+        // ハンドルからアセットを取得する関数
+        //! @param  handle [in] 取得するアセットのハンドル
+        //! @return 取得したアセットの生ポインタ
+        //--------------------------------------------------------------
+        static IAsset* Get(AssetHandle handle);
+
+        //--------------------------------------------------------------
+        //! @brief  ハンドルから、アセットが存在するか確認する関数
+        //! @param  handle [in] 確認するアセットのハンドル
+        //! @return 存在する場合は true、存在しない場合は false
+        //--------------------------------------------------------------
+        static bool Exists(AssetHandle handle);
+
+    private:
+        //--------------------------------------------------------------
+        //! @brief  ローダーを登録する関数
+        //! @param  loader [in] 登録するローダーのユニークポインタ
+        //--------------------------------------------------------------
+        static void RegisterLoader(std::unique_ptr<IAssetLoader> loader);
+
+        // AssetManagerがアセットの唯一の所有者
+        static std::unordered_map<u64, std::unique_ptr<IAsset>> s_Assets;
+
+        // LoaderもAssetManagerが所有
+        static std::vector<std::unique_ptr<IAssetLoader>> s_Loaders;
+    };
+
+}    // namespace Tsukino::Asset
