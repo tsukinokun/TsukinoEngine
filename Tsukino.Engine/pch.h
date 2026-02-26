@@ -14,6 +14,7 @@
 #include <functional>
 #include <filesystem>
 #include <optional>
+#include <random>
 
 // hlslpp
 #include <hlsl++.h>
