@@ -23,26 +23,26 @@ namespace Tsukino::Asset {
         //! @param value [in] ハンドルの値
         //--------------------------------------------------------------
         explicit AssetHandle(u64 value)
-            : m_Value(value) {}
+            : m_value(value) {}
 
         //--------------------------------------------------------------
         //! @brief  値を取得する関数
         //! @return ハンドルの値
         //--------------------------------------------------------------
-        u64  Value() const { return m_Value; }
+        u64  Value() const { return m_value; }
 
         //--------------------------------------------------------------
         //! @brief  ハンドルが有効か確認する関数
         //! @return true: 有効, false: 無効
         //--------------------------------------------------------------
-        bool          IsValid() const { return m_Value != 0; }
+        bool          IsValid() const { return m_value != 0; }
 
         //--------------------------------------------------------------
         //! @brief  同一のハンドルか比較する演算子オーバーロード
         //! @param  other [in] 比較対象のハンドル
         //! @return true: 同一, false: 異なる
         //--------------------------------------------------------------
-        bool operator==(const AssetHandle& other) const { return m_Value == other.m_Value; }
+        bool operator==(const AssetHandle& other) const { return m_value == other.m_value; }
         
         //--------------------------------------------------------------
         //! @brief  異なるハンドルか比較する演算子オーバーロード
@@ -52,7 +52,7 @@ namespace Tsukino::Asset {
         bool operator!=(const AssetHandle& other) const { return !(*this == other); }
 
     private:
-        u64 m_Value = 0;    // ハンドルの値
+        u64 m_value = 0;    // ハンドルの値
     };
 
 }    // namespace Tsukino::Asset
