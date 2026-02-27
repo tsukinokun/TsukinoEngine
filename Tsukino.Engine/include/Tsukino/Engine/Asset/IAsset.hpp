@@ -23,12 +23,14 @@ namespace Tsukino::Asset {
         //! @brief  アセットのハンドルを取得する関数
         //! @return アセットのハンドル
         //--------------------------------------------------------------
+        [[nodiscard]]
         virtual AssetHandle GetHandle() const = 0;
 
         //--------------------------------------------------------------
         //! @brief  アセットの種類を取得する関数
         //! @return アセットの種類
         //--------------------------------------------------------------
+        [[nodiscard]]
         virtual AssetType GetType() const = 0;
     };
 }    // namespace Tsukino::Asset

@@ -18,6 +18,7 @@ namespace Tsukino::Asset {
         //! @brief  アセットハンドルを生成する関数
         //! @return 生成されたアセットハンドル
         //--------------------------------------------------------------
+        [[nodiscard]]
         static AssetHandle Generate() {
             static std::random_device                 rd;           // ランダムデバイスの初期化
             static std::mt19937_64                    gen(rd());    // メルセンヌ・ツイスターの64ビット版の初期化
