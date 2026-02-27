@@ -26,4 +26,10 @@ namespace Tsukino::Asset {
         return it != s_Assets.end() ? it->second : nullptr;
     }
 
+    //--------------------------------------------------------------
+    //! @brief ローダーを登録する関数
+    //--------------------------------------------------------------
+    void AssetManager::RegisterLoader(Tsukino::Core::Ref<IAssetLoader> loader) {
+        s_Loaders.push_back(loader);
+    }
 }    // namespace Tsukino::Asset
