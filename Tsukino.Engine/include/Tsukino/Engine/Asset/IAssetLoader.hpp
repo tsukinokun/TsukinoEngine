@@ -22,6 +22,7 @@ namespace Tsukino::Asset {
         //! @param extension [in] ".png" や ".shader" などの拡張子
         //! @return 対応している場合 true
         //--------------------------------------------------------------
+        [[nodiscard]]
         virtual bool CanLoad(const std::string& extension) const = 0;
 
         //--------------------------------------------------------------
@@ -29,6 +30,7 @@ namespace Tsukino::Asset {
         //! @param path [in] ロード対象のパス
         //! @return ロードされたアセット（失敗時は nullptr）
         //--------------------------------------------------------------
+        [[nodiscard]]
         virtual Tsukino::Core::Ref<IAsset> Load(const Tsukino::Core::Path& path) = 0;
     };
 

@@ -29,12 +29,14 @@ namespace Tsukino::Asset {
         //! @brief  値を取得する関数
         //! @return ハンドルの値
         //--------------------------------------------------------------
+        [[nodiscard]]
         u64  Value() const { return m_value; }
 
         //--------------------------------------------------------------
         //! @brief  ハンドルが有効か確認する関数
         //! @return true: 有効, false: 無効
         //--------------------------------------------------------------
+        [[nodiscard]]
         bool          IsValid() const { return m_value != 0; }
 
         //--------------------------------------------------------------
@@ -50,6 +52,13 @@ namespace Tsukino::Asset {
         //! @return true: 異なる, false: 同一
         //--------------------------------------------------------------
         bool operator!=(const AssetHandle& other) const { return !(*this == other); }
+
+        //--------------------------------------------------------------
+        //! @brief  無効なハンドルを取得する関数
+        //! @return 無効なハンドル
+        //--------------------------------------------------------------
+        [[nodiscard]]
+        static AssetHandle Invalid() { return AssetHandle(0); }
 
     private:
         u64 m_value = 0;    // ハンドルの値

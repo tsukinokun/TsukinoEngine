@@ -44,6 +44,13 @@ namespace Tsukino::Core {
         //--------------------------------------------------------------
         std::string filename() const { return std::filesystem::path(m_path).filename().string(); }
 
+        //--------------------------------------------------------------
+        //! @brief  パスの拡張子を取得する関数
+        //! @return 拡張子（例: ".png"）
+        //--------------------------------------------------------------
+        std::string extension() const { return std::filesystem::path(m_path).extension().string(); }
+
+        
         //-----------------------------------------------------------
         //! @brief  パスを結合する演算子
         //! @param  rhs [in] 結合するパス要素

@@ -11,11 +11,10 @@
 #include <Tsukino/Core/Path.hpp>
 #include <Tsukino/Core/Memory.hpp>
 #include <Tsukino/Engine/Asset/AssetHandle.hpp>
-#include <Tsukino/Engine/Asset/IAsset.hpp>
-#include <Tsukino/Engine/Asset/AssetType.hpp>
 #include <Tsukino/Engine/Asset/AssetMap.hpp>
 // 名前空間 : Tsukino::Asset
 namespace Tsukino::Asset {
+    class IAsset;          // 前方宣言
     class IAssetLoader;    // 前方宣言
     //--------------------------------------------------------------
     //! @class  AssetManager
@@ -36,16 +35,17 @@ namespace Tsukino::Asset {
         //--------------------------------------------------------------
         // アセットをロードする関数
         //! @param  path [in] ロードするアセットのパス
-        //! @param  type [in] ロードするアセットの種類
         //! @return ロードしたアセットのハンドル
         //--------------------------------------------------------------
-        static AssetHandle Load(const Tsukino::Core::Path& path, AssetType type);
+        [[nodiscard]]
+        static AssetHandle Load(const Tsukino::Core::Path& path);
 
         //--------------------------------------------------------------
         // ハンドルからアセットを取得する関数
         //! @param  handle [in] 取得するアセットのハンドル
         //! @return 取得したアセットのshared_ptr
         //--------------------------------------------------------------
+        [[nodiscard]]
         static Tsukino::Core::Ref<IAsset> Get(AssetHandle handle);
 
         //--------------------------------------------------------------
@@ -53,6 +53,7 @@ namespace Tsukino::Asset {
         //! @param  handle [in] 確認するアセットのハンドル
         //! @return 存在する場合は true、存在しない場合は false
         //--------------------------------------------------------------
+        [[nodiscard]]
         static bool Exists(AssetHandle handle);
 
     private:
