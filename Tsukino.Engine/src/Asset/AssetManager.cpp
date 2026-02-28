@@ -7,11 +7,27 @@
 #include <Tsukino/Engine/Asset/IAsset.hpp>
 #include <Tsukino/Engine/Asset/IAssetLoader.hpp>
 #include <Tsukino/Engine/Asset/Util/AssetHandleGenerator.hpp>
+#include <Tsukino/Engine/Asset/Shader/ShaderLoader.hpp>
 // 名前空間 : Tsukino::Asset
 namespace Tsukino::Asset {
     // staticメンバ変数の実体
     AssetMap                                      AssetManager::s_Assets;
     std::vector<Tsukino::Core::Ref<IAssetLoader>> AssetManager::s_Loaders;
+
+    //--------------------------------------------------------------
+    //! @brief AssetManagerを初期化する関数
+    //--------------------------------------------------------------
+    void AssetManager::Initialize() {
+        RegisterLoader(Tsukino::Core::CreateRef<ShaderLoader>());    // シェーダローダーを登録
+    }
+
+    //--------------------------------------------------------------
+    //! @brief AssetManagerを後処理する関数
+    //--------------------------------------------------------------
+    void AssetManager::Destroy() {
+        s_Assets.clear();     // AssetMapをクリア
+        s_Loaders.clear();    // ローダーリストをクリア
+    }
 
     //--------------------------------------------------------------
     //! @brief アセットをロードする関数
