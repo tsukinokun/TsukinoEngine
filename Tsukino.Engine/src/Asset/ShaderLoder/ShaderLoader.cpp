@@ -6,6 +6,7 @@
 #include <Tsukino/Engine/Asset/Shader/ShaderLoader.hpp>
 #include <fstream>
 #include <sstream>
+#include <iostream>
 // 名前空間 Tsukino::Asset
 namespace Tsukino::Asset {
     //--------------------------------------------------------------
@@ -22,7 +23,9 @@ namespace Tsukino::Asset {
         //--------------------------------------------------------------
         // ファイルを開く
         //--------------------------------------------------------------
-        std::ifstream file(path.string());
+        std::string           filePath = path.string();    // パスオブジェクトから文字列を取得
+        std::ifstream         file(filePath);
+        std::filesystem::path cd = std::filesystem::current_path();
 
         // ファイルが開けなかった場合は nullptr を返す
         if(!file.is_open()) {
@@ -38,9 +41,9 @@ namespace Tsukino::Asset {
         //--------------------------------------------------------------
         // ShaderAssetを生成
         //--------------------------------------------------------------
-        auto asset      = Tsukino::Core::CreateRef<ShaderAsset>();    // ShaderAssetを生成
-        asset->source   = ss.str();                                   // 読み込んだ内容をセット
-        asset->filePath = path.string();                              // 元ファイルのパスもセット
+        Tsukino::Core::Ref<ShaderAsset> asset = Tsukino::Core::CreateRef<ShaderAsset>();    // ShaderAssetを生成
+        asset->source                         = ss.str();                                   // 読み込んだ内容をセット
+        asset->filePath                       = path.string();                              // 元ファイルのパスもセット
 
         // アセットを返す
         return asset;
