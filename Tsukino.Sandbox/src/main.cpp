@@ -1,11 +1,14 @@
 //--------------------------------------------------------------
 //! @file	main.cpp
-//! @brief	Sandbox(DLL)のエントリポイント
+//! @brief	Sandboxのエントリポイント
 //! @author 山﨑愛
 //--------------------------------------------------------------
 #include <Windows.h>
-#include "Tsukino/Core/Window.hpp"
-#include "Tsukino/Renderer/Renderer.hpp"
+#include <Tsukino/Core/Window.hpp>
+#include <Tsukino/Renderer/Renderer.hpp>
+#include <Tsukino/Engine/Asset/AssetManager.hpp>
+#include <Tsukino/Engine/Asset/Shader/ShaderAsset.hpp>
+#include <Tsukino/Core/Path.hpp>
 //--------------------------------------------------------------
 // アプリケーションのエントリポイント
 //! @param hInstance アプリケーションインスタンス
@@ -15,6 +18,28 @@
 //! @return 終了コード（通常は0）
 //--------------------------------------------------------------
 int WINAPI WinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ LPSTR, _In_ int) {
+    //--------------------------------------------------------------
+    // AssetManager 初期化
+    //--------------------------------------------------------------
+    Tsukino::Asset::AssetManager::Initialize();
+
+    //--------------------------------------------------------------
+    // テストシェーダーをロード
+    //--------------------------------------------------------------
+    Tsukino::Core::Path         path("Assets/Shaders/test.hlsl");                     //パスオブジェクトを作成
+    Tsukino::Asset::AssetHandle handle = Tsukino::Asset::AssetManager::Load(path);    // シェーダーアセットをロード
+
+    // ロードに失敗した場合はエラーメッセージを表示
+    if(!Tsukino::Asset::AssetManager::Exists(handle)) {
+        MessageBoxA(nullptr, "Failed to load shader.", "Error", MB_OK);
+    } else {
+        Tsukino::Core::Ref<Tsukino::Asset::ShaderAsset> asset =
+            std::static_pointer_cast<Tsukino::Asset::ShaderAsset>(Tsukino::Asset::AssetManager::Get(handle));
+        OutputDebugStringA("=== Shader Loaded ===\n");
+        OutputDebugStringA(asset->source.c_str());
+        OutputDebugStringA("\n=====================\n");
+    }
+
     //--------------------------------------------------------------
     // ウィンドウ生成
     //--------------------------------------------------------------
@@ -37,6 +62,11 @@ int WINAPI WinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ LPSTR, _In_ int) {
     while(window.ProcessMessages()) {
         renderer.Render();
     }
+
+    //--------------------------------------------------------------
+    // AssetManager 終了処理
+    //--------------------------------------------------------------
+    Tsukino::Asset::AssetManager::Destroy();
 
     //--------------------------------------------------------------
     // ウィンドウは自動的に破棄される

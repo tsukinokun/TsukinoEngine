@@ -10,9 +10,8 @@
 #include <Tsukino/Engine/Asset/Shader/ShaderLoader.hpp>
 // 名前空間 : Tsukino::Asset
 namespace Tsukino::Asset {
-    // staticメンバ変数の実体
-    AssetMap                                      AssetManager::s_Assets;
-    std::vector<Tsukino::Core::Ref<IAssetLoader>> AssetManager::s_Loaders;
+    AssetMap                                      AssetManager::s_Assets;     // アセットマップの定義
+    std::vector<Tsukino::Core::Ref<IAssetLoader>> AssetManager::s_Loaders;    // ローダーリストの定義
 
     //--------------------------------------------------------------
     //! @brief AssetManagerを初期化する関数
@@ -62,11 +61,12 @@ namespace Tsukino::Asset {
         if(!asset) {
             return AssetHandle::Invalid();    // 無効なハンドルを返す
         }
+
         //--------------------------------------------------------------
         // AssetMapに登録
         //--------------------------------------------------------------
-        AssetHandle handle = AssetHandleGenerator::Generate();    // ハンドルを生成
-        s_Assets.insert({handle.Value(), asset});                 // ハンドルとアセットをAssetMapに登録
+        AssetHandle handle = AssetHandleGenerator::Generate();    
+        s_Assets.insert({handle.Value(), asset});                 
 
         //--------------------------------------------------------------
         // ハンドルを返す

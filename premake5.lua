@@ -5,7 +5,16 @@ workspace "TsukinoEngine"                   -- ソリューション名
     startproject "Sandbox"                  -- スタートアッププロジェクト
     location ".build"                       -- ビルドファイルの出力先 
     forceincludes { "pch.h" }               -- 全プロジェクト共通の強制インクルード
-
+    
+    filter "configurations:Debug" 
+        optimize "Off" 
+        symbols "On" 
+    
+    filter "configurations:Release"
+        optimize "Full"
+        symbols "On" 
+        
+    filter {}
 ----------------------------------------
 -- コアプロジェクト
 ----------------------------------------
@@ -136,6 +145,7 @@ project "Tsukino.Sandbox"
 
     pchheader "pch.h"
     pchsource "Tsukino.Sandbox/pch.cpp"
+    debugdir "%{cfg.targetdir}"
 
     targetdir ("bin/%{cfg.buildcfg}")
     objdir ("bin-int/%{cfg.buildcfg}")
@@ -164,4 +174,8 @@ project "Tsukino.Sandbox"
         "d3d11", 
         "dxgi",
         "d3dcompiler"
+    }
+
+    postbuildcommands {
+    "{COPYDIR} %{wks.location}/../Tsukino.Sandbox/Assets %{cfg.targetdir}/Assets"
     }

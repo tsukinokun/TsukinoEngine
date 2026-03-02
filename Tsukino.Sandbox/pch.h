@@ -8,4 +8,6 @@
 #include <Windows.h>    // Windows APIの基本的な機能を提供するヘッダーファイル
 #include <cstdint>      // 固定幅整数型を使用するための標準ライブラリ
 #include <string>       // 文字列操作のための標準ライブラリ
+#include <unordered_map>
+#include <vector>
 #include <memory>       // スマートポインタを使用するための標準ライブラリ
