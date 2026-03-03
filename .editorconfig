@@ -1,0 +1,25 @@
+root = true
+
+# C++ ソースコード（UTF-8 BOM）
+[*.{cpp,h,hpp,inl}]
+charset = utf-8-bom
+end_of_line = lf
+indent_style = space
+indent_size = 4
+insert_final_newline = true
+
+# HLSL（UTF-8 BOM なし）
+[*.hlsl]
+charset = utf-8
+end_of_line = lf
+indent_style = space
+indent_size = 4
+insert_final_newline = true
+
+# Premake（Lua）
+[*.lua]
+charset = utf-8
+end_of_line = lf
+indent_style = space
+indent_size = 4
+insert_final_newline = true
