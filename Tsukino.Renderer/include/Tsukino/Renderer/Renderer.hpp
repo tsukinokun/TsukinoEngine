@@ -1,78 +1,78 @@
-//------------------------------------------------------------
+ï»¿//------------------------------------------------------------
 //! @file	Renderer.hpp
-//! @brief	ƒŒƒ“ƒ_ƒ‰[ƒNƒ‰ƒX‚ÌéŒ¾
-//! @author Rú±ˆ¤
+//! @brief	ãƒ¬ãƒ³ãƒ€ãƒ©ãƒ¼ã‚¯ãƒ©ã‚¹ã®å®£è¨€
+//! @author å±±ï¨‘æ„›
 //------------------------------------------------------------
 #pragma once
-#include <wrl/client.h>    // ComPtr‚ÌˆË‘¶ŠÖŒW‚ğ–¾¦
-#include <d3d11.h>         // ˆË‘¶ŠÖŒW‚ğ–¾¦
-#include <dxgi.h>          // ˆË‘¶ŠÖŒW‚ğ–¾¦
-#include <array>           // std::array ‚ğg—p‚·‚é‚½‚ß‚Ìƒwƒbƒ_[ƒtƒ@ƒCƒ‹A–¾¦“I‚É‘‚­
+#include <wrl/client.h>    // ComPtrã®ä¾å­˜é–¢ä¿‚ã‚’æ˜ç¤º
+#include <d3d11.h>         // ä¾å­˜é–¢ä¿‚ã‚’æ˜ç¤º
+#include <dxgi.h>          // ä¾å­˜é–¢ä¿‚ã‚’æ˜ç¤º
+#include <array>           // std::array ã‚’ä½¿ç”¨ã™ã‚‹ãŸã‚ã®ãƒ˜ãƒƒãƒ€ãƒ¼ãƒ•ã‚¡ã‚¤ãƒ«ã€æ˜ç¤ºçš„ã«æ›¸ã
 
-using Microsoft::WRL::ComPtr;    // ComPtr ‚ğg—p‚·‚é‚½‚ß‚Ì using éŒ¾
+using Microsoft::WRL::ComPtr;    // ComPtr ã‚’ä½¿ç”¨ã™ã‚‹ãŸã‚ã® using å®£è¨€
 
-// –¼‘O‹óŠÔ : Tsukino::Renderer
+// åå‰ç©ºé–“ : Tsukino::Renderer
 namespace Tsukino::Renderer {
 
     //------------------------------------------------------------
     //! @class	 Renderer
-    //! @brief	 ƒŒƒ“ƒ_ƒ‰[ƒNƒ‰ƒX
-    //! @details DirectX11‚ğg—p‚µ‚ÄƒEƒBƒ“ƒhƒE‚É•`‰æ‚ğs‚¤ƒNƒ‰ƒX
+    //! @brief	 ãƒ¬ãƒ³ãƒ€ãƒ©ãƒ¼ã‚¯ãƒ©ã‚¹
+    //! @details DirectX11ã‚’ä½¿ç”¨ã—ã¦ã‚¦ã‚£ãƒ³ãƒ‰ã‚¦ã«æç”»ã‚’è¡Œã†ã‚¯ãƒ©ã‚¹
     //------------------------------------------------------------
     class Renderer {
     public:
         //------------------------------------------------------------
-        //! @brief ƒRƒ“ƒXƒgƒ‰ƒNƒ^
+        //! @brief ã‚³ãƒ³ã‚¹ãƒˆãƒ©ã‚¯ã‚¿
         //------------------------------------------------------------
         Renderer() = default;
 
         //------------------------------------------------------------
-        //! @brief ƒfƒXƒgƒ‰ƒNƒ^
+        //! @brief ãƒ‡ã‚¹ãƒˆãƒ©ã‚¯ã‚¿
         //------------------------------------------------------------
         ~Renderer() = default;
 
         //------------------------------------------------------------
-        // ƒŒƒ“ƒ_ƒ‰[‚Ì‰Šú‰»
-        //! @param hwnd   [in] •`‰ææ‚ÌƒEƒBƒ“ƒhƒEƒnƒ“ƒhƒ‹
-        //! @param width  [in] •`‰æ—Ìˆæ‚Ì•
-        //! @param height [in] •`‰æ—Ìˆæ‚Ì‚‚³
-        //! @return true: [in] ‰Šú‰»¬Œ÷, false: ‰Šú‰»¸”s
+        // ãƒ¬ãƒ³ãƒ€ãƒ©ãƒ¼ã®åˆæœŸåŒ–
+        //! @param hwnd   [in] æç”»å…ˆã®ã‚¦ã‚£ãƒ³ãƒ‰ã‚¦ãƒãƒ³ãƒ‰ãƒ«
+        //! @param width  [in] æç”»é ˜åŸŸã®å¹…
+        //! @param height [in] æç”»é ˜åŸŸã®é«˜ã•
+        //! @return true: [in] åˆæœŸåŒ–æˆåŠŸ, false: åˆæœŸåŒ–å¤±æ•—
         //------------------------------------------------------------
         [[nodiscard]]
         bool Initialize(HWND hwnd, uint32_t width, uint32_t height);
 
         //------------------------------------------------------------
-        // ’è”ƒoƒbƒtƒ@‚Ìì¬
-        //! @return true: ’è”ƒoƒbƒtƒ@‚Ìì¬¬Œ÷, false: ’è”ƒoƒbƒtƒ@‚Ìì¬¸”s
+        // å®šæ•°ãƒãƒƒãƒ•ã‚¡ã®ä½œæˆ
+        //! @return true: å®šæ•°ãƒãƒƒãƒ•ã‚¡ã®ä½œæˆæˆåŠŸ, false: å®šæ•°ãƒãƒƒãƒ•ã‚¡ã®ä½œæˆå¤±æ•—
         //------------------------------------------------------------
         [[nodiscard]]
         bool CreateConstantBuffer();
 
         //------------------------------------------------------------
-        // •`‰æˆ—
+        // æç”»å‡¦ç†
         //------------------------------------------------------------
         void Render();
 
         //------------------------------------------------------------
-        // •`‰æ—Ìˆæ‚ÌƒNƒŠƒAƒJƒ‰[‚ğİ’è
-        //! @param r [in] Ô¬•ª (0.0f - 1.0f)
-        //! @param g [in] —Î¬•ª (0.0f - 1.0
-        //! @param b [in] Â¬•ª (0.0f - 1.0f)
-        //! @param a [in] ƒAƒ‹ƒtƒ@¬•ª (0.0f - 1.0f)
+        // æç”»é ˜åŸŸã®ã‚¯ãƒªã‚¢ã‚«ãƒ©ãƒ¼ã‚’è¨­å®š
+        //! @param r [in] èµ¤æˆåˆ† (0.0f - 1.0f)
+        //! @param g [in] ç·‘æˆåˆ† (0.0f - 1.0
+        //! @param b [in] é’æˆåˆ† (0.0f - 1.0f)
+        //! @param a [in] ã‚¢ãƒ«ãƒ•ã‚¡æˆåˆ† (0.0f - 1.0f)
         //------------------------------------------------------------
         void SetClearColor(float r, float g, float b, float a);
 
     private:
-        // DirectX 11‚Ìå—v‚ÈƒCƒ“ƒ^[ƒtƒF[ƒX
-        ComPtr<ID3D11Device>           m_device;            // •`‰æƒfƒoƒCƒX
-        ComPtr<ID3D11DeviceContext>    m_context;           // •`‰æƒRƒ“ƒeƒLƒXƒg
-        ComPtr<IDXGISwapChain>         m_swapChain;         // ƒXƒƒbƒvƒ`ƒF[ƒ“
-        ComPtr<ID3D11RenderTargetView> m_rtv;               // ƒŒƒ“ƒ_[ƒ^[ƒQƒbƒgƒrƒ…[
-        ComPtr<ID3D11Buffer>           m_vertexBuffer;      // ’¸“_ƒoƒbƒtƒ@
-        ComPtr<ID3D11VertexShader>     m_vertexShader;      // ’¸“_ƒVƒF[ƒ_
-        ComPtr<ID3D11PixelShader>      m_pixelShader;       // ƒsƒNƒZƒ‹ƒVƒF[ƒ_
-        ComPtr<ID3D11InputLayout>      m_inputLayout;       // “ü—ÍƒŒƒCƒAƒEƒg
-        ComPtr<ID3D11Buffer>           m_constantBuffer;    // ’è”ƒoƒbƒtƒ@
+        // DirectX 11ã®ä¸»è¦ãªã‚¤ãƒ³ã‚¿ãƒ¼ãƒ•ã‚§ãƒ¼ã‚¹
+        ComPtr<ID3D11Device>           m_device;            // æç”»ãƒ‡ãƒã‚¤ã‚¹
+        ComPtr<ID3D11DeviceContext>    m_context;           // æç”»ã‚³ãƒ³ãƒ†ã‚­ã‚¹ãƒˆ
+        ComPtr<IDXGISwapChain>         m_swapChain;         // ã‚¹ãƒ¯ãƒƒãƒ—ãƒã‚§ãƒ¼ãƒ³
+        ComPtr<ID3D11RenderTargetView> m_rtv;               // ãƒ¬ãƒ³ãƒ€ãƒ¼ã‚¿ãƒ¼ã‚²ãƒƒãƒˆãƒ“ãƒ¥ãƒ¼
+        ComPtr<ID3D11Buffer>           m_vertexBuffer;      // é ‚ç‚¹ãƒãƒƒãƒ•ã‚¡
+        ComPtr<ID3D11VertexShader>     m_vertexShader;      // é ‚ç‚¹ã‚·ã‚§ãƒ¼ãƒ€
+        ComPtr<ID3D11PixelShader>      m_pixelShader;       // ãƒ”ã‚¯ã‚»ãƒ«ã‚·ã‚§ãƒ¼ãƒ€
+        ComPtr<ID3D11InputLayout>      m_inputLayout;       // å…¥åŠ›ãƒ¬ã‚¤ã‚¢ã‚¦ãƒˆ
+        ComPtr<ID3D11Buffer>           m_constantBuffer;    // å®šæ•°ãƒãƒƒãƒ•ã‚¡
         std::array<float, 4>           m_clearColor = {0.5f, 0.5f, 0.5f, 1.0f};
     };
 }    // namespace Tsukino::Renderer

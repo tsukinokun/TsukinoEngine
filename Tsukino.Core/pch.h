@@ -1,15 +1,15 @@
-//------------------------------------------------------------
+﻿//------------------------------------------------------------
 //! @file	pch.h
-//! @brief  �v���R���p�C���ς݃w�b�_�[�t�@�C��
-//! @note   Tsukino.Core�v���W�F�N�g�̃r���h���Ԃ�Z�k�p
-//! @author �R����
+//! @brief  プリコンパイル済みヘッダーファイル
+//! @note   Tsukino.Coreプロジェクトのビルド時間を短縮用
+//! @author 山﨑愛
 //------------------------------------------------------------
 #pragma once
 #define NOMINMAX
-#include <Windows.h>     // Windows API�̊�{�I�ȋ@�\��񋟂���w�b�_�[�t�@�C��
-#include <string>        // �����񑀍�̂��߂̕W�����C�u����
-#include <vector>        // ���I�z����g�p���邽�߂̕W�����C�u����
-#include <filesystem>    // �t�@�C���V�X�e������̂��߂̕W�����C�u����
+#include <Windows.h>     // Windows APIの基本的な機能を提供するヘッダーファイル
+#include <string>        // 文字列操作のための標準ライブラリ
+#include <vector>        // 動的配列を使用するための標準ライブラリ
+#include <filesystem>    // ファイルシステム操作のための標準ライブラリ
 
 // hlslpp
 #include <hlsl++.h>

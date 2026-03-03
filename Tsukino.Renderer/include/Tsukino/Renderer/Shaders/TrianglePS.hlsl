@@ -1,23 +1,23 @@
 //------------------------------
 //! @file TrianglePS.hlsl
-//! @brief �O�p�`�`��p�s�N�Z���V�F�[�_�[
+//! @brief 三角形描画用ピクセルシェーダー
 //------------------------------
 
 //--------------------------------
-// ���_�V�F�[�_�[����󂯎�������̍\����
+// 頂点シェーダーから受け取った情報の構造体
 //--------------------------------
 struct VSOutput
 {
-    float4 position : SV_POSITION; // ��ʂɌ����Ă̍ŏI�ʒu 
-    float4 color : COLOR; // �s�N�Z���֓n���J���[
+    float4 position : SV_POSITION; // 画面に向けての最終位置 
+    float4 color : COLOR; // ピクセルへ渡すカラー
 };
 
 //--------------------------------
-//! @brief �O�p�`�`��p�s�N�Z���V�F�[�_�[
-//! @param IN [in] ���_�V�F�[�_�[����̏o��
-//! @return �s�N�Z���J���[
+//! @brief 三角形描画用ピクセルシェーダー
+//! @param IN [in] 頂点シェーダーからの出力
+//! @return ピクセルカラー
 //--------------------------------
 float4 PSMain(VSOutput IN) : SV_TARGET
 {
-    return IN.color; // ��Ԃ��ꂽ�F�������Ă���
+    return IN.color; // 補間された色が入ってくる
 }

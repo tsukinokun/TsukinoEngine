@@ -1,28 +1,28 @@
-//-------------------------------------------------------------
+ï»¿//-------------------------------------------------------------
 //! @file   TransformComponent.hpp
-//! @brief  TransformComponentƒNƒ‰ƒX‚ÌéŒ¾
-//! @author Rú±ˆ¤
+//! @brief  TransformComponentã‚¯ãƒ©ã‚¹ã®å®£è¨€
+//! @author å±±ï¨‘æ„›
 //-------------------------------------------------------------
 #pragma once
 #include <hlsl++.h>
 #include <Tsukino/Core/Math/Matrix.hpp>
 #include <Tsukino/Core/ECS/Entity/Entity.hpp>
-// –¼‘O‹óŠÔ : Tsukino::ECS
+// åå‰ç©ºé–“ : Tsukino::ECS
 namespace Tsukino::ECS {
     //-------------------------------------------------------------
     //! @class  TransformComponent
-    //! @brief  ˆÊ’uA‰ñ“]AƒXƒP[ƒ‹‚ğŠÇ—‚·‚éƒNƒ‰ƒX
+    //! @brief  ä½ç½®ã€å›è»¢ã€ã‚¹ã‚±ãƒ¼ãƒ«ã‚’ç®¡ç†ã™ã‚‹ã‚¯ãƒ©ã‚¹
     //-------------------------------------------------------------
     struct TransformComponent {
-        hlslpp::float3     position;    // ˆÊ’u
-        hlslpp::quaternion rotation;    // ‰ñ“]
-        hlslpp::float3     scale;       // ƒXƒP[ƒ‹
+        hlslpp::float3     position;    // ä½ç½®
+        hlslpp::quaternion rotation;    // å›è»¢
+        hlslpp::float3     scale;       // ã‚¹ã‚±ãƒ¼ãƒ«
 
-        Tsukino::Core::Math::matrix localMatrix;    // ƒ[ƒJƒ‹s—ñ
-        Tsukino::Core::Math::matrix worldMatrix;    // ƒ[ƒ‹ƒhs—ñ
+        Tsukino::Core::Math::matrix localMatrix;    // ãƒ­ãƒ¼ã‚«ãƒ«è¡Œåˆ—
+        Tsukino::Core::Math::matrix worldMatrix;    // ãƒ¯ãƒ¼ãƒ«ãƒ‰è¡Œåˆ—
 
-        Tsukino::ECS::Entity parent;           // eƒGƒ“ƒeƒBƒeƒB
-        bool                 dirty = false;    // ƒ[ƒ‹ƒhs—ñ‚ªXV‚³‚ê‚Ä‚¢‚é‚©
+        Tsukino::ECS::Entity parent;           // è¦ªã‚¨ãƒ³ãƒ†ã‚£ãƒ†ã‚£
+        bool                 dirty = false;    // ãƒ¯ãƒ¼ãƒ«ãƒ‰è¡Œåˆ—ãŒæ›´æ–°ã•ã‚Œã¦ã„ã‚‹ã‹
     };
 
 }    // Tsukino::ECS

@@ -1,30 +1,30 @@
-//--------------------------------------------------------------
+ï»¿//--------------------------------------------------------------
 //! @file   ShaderAsset.hpp
-//! @brief  ƒVƒF[ƒ_ƒAƒZƒbƒgƒNƒ‰ƒX‚ÌéŒ¾
-//! @author Rú±ˆ¤
+//! @brief  ã‚·ã‚§ãƒ¼ãƒ€ã‚¢ã‚»ãƒƒãƒˆã‚¯ãƒ©ã‚¹ã®å®£è¨€
+//! @author å±±ï¨‘æ„›
 //--------------------------------------------------------------
 #pragma once
 #include <string>
 #include <Tsukino/Engine/Asset/IAsset.hpp>
 #include <Tsukino/Engine/Asset/AssetType.hpp>
 #include <Tsukino/Engine/Asset/AssetHandle.hpp>
-// –¼‘O‹óŠÔ Tsukino::Asset
+// åå‰ç©ºé–“ Tsukino::Asset
 namespace Tsukino::Asset {
 
     //--------------------------------------------------------------
     //! @class  ShaderAsset
-    //! @brief  HLSL ƒVƒF[ƒ_ƒAƒZƒbƒgiCPU ‘¤ƒf[ƒ^j
+    //! @brief  HLSL ã‚·ã‚§ãƒ¼ãƒ€ã‚¢ã‚»ãƒƒãƒˆï¼ˆCPU å´ãƒ‡ãƒ¼ã‚¿ï¼‰
     //--------------------------------------------------------------
     class ShaderAsset : public IAsset {
     public:
         //--------------------------------------------------------------
-        //! @brief ƒfƒtƒHƒ‹ƒgƒRƒ“ƒXƒgƒ‰ƒNƒ^
+        //! @brief ãƒ‡ãƒ•ã‚©ãƒ«ãƒˆã‚³ãƒ³ã‚¹ãƒˆãƒ©ã‚¯ã‚¿
         //--------------------------------------------------------------
         ShaderAsset() = default;
 
         //--------------------------------------------------------------
-        //! @brief  ƒAƒZƒbƒg‚Ìƒnƒ“ƒhƒ‹‚ğæ“¾
-        //! @return ƒAƒZƒbƒg‚Ìƒnƒ“ƒhƒ‹
+        //! @brief  ã‚¢ã‚»ãƒƒãƒˆã®ãƒãƒ³ãƒ‰ãƒ«ã‚’å–å¾—
+        //! @return ã‚¢ã‚»ãƒƒãƒˆã®ãƒãƒ³ãƒ‰ãƒ«
         //--------------------------------------------------------------
         [[nodiscard]]
         AssetHandle GetHandle() const override {
@@ -32,8 +32,8 @@ namespace Tsukino::Asset {
         }
 
         //--------------------------------------------------------------
-        //! @brief  ƒAƒZƒbƒg‚Ìí—Ş‚ğæ“¾
-        //! @return ƒAƒZƒbƒg‚Ìí—Ş
+        //! @brief  ã‚¢ã‚»ãƒƒãƒˆã®ç¨®é¡ã‚’å–å¾—
+        //! @return ã‚¢ã‚»ãƒƒãƒˆã®ç¨®é¡
         //--------------------------------------------------------------
         [[nodiscard]]
         AssetType GetType() const override {
@@ -41,20 +41,20 @@ namespace Tsukino::Asset {
         }
 
         //--------------------------------------------------------------
-        //! @brief  ƒ[ƒ_[‘¤‚©‚çİ’è‚³‚ê‚éƒnƒ“ƒhƒ‹
-        //! @param handle [in] İ’è‚·‚éƒnƒ“ƒhƒ‹
+        //! @brief  ãƒ­ãƒ¼ãƒ€ãƒ¼å´ã‹ã‚‰è¨­å®šã•ã‚Œã‚‹ãƒãƒ³ãƒ‰ãƒ«
+        //! @param handle [in] è¨­å®šã™ã‚‹ãƒãƒ³ãƒ‰ãƒ«
         //--------------------------------------------------------------
         void SetHandle(AssetHandle handle) { m_handle = handle; }
 
-        // ƒGƒ“ƒgƒŠ[ƒ|ƒCƒ“ƒg–¼
+        // ã‚¨ãƒ³ãƒˆãƒªãƒ¼ãƒã‚¤ãƒ³ãƒˆå
         std::string entryVS = "VSMain";
         std::string entryPS = "PSMain";
 
-        std::string source;      // HLSL ƒ\[ƒXƒR[ƒh
-        std::string filePath;    // Œ³ƒtƒ@ƒCƒ‹‚ÌƒpƒX
+        std::string source;      // HLSL ã‚½ãƒ¼ã‚¹ã‚³ãƒ¼ãƒ‰
+        std::string filePath;    // å…ƒãƒ•ã‚¡ã‚¤ãƒ«ã®ãƒ‘ã‚¹
 
     private:
-        AssetHandle m_handle = AssetHandle::Invalid();    // ƒAƒZƒbƒg‚Ìƒnƒ“ƒhƒ‹
+        AssetHandle m_handle = AssetHandle::Invalid();    // ã‚¢ã‚»ãƒƒãƒˆã®ãƒãƒ³ãƒ‰ãƒ«
     };
 
 }    // namespace Tsukino::Asset

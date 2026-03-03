@@ -1,46 +1,46 @@
-//------------------------------------------------------------
+ï»¿//------------------------------------------------------------
 //! @file    Shader.hpp
-//! @brief   DirectX11ƒVƒF[ƒ_iVS/PS + InputLayoutj‚ğ•Û‚·‚éƒNƒ‰ƒX
-//! @details Renderer‚©‚ç‚Í Bind() ‚¾‚¯‚ğŒÄ‚×‚Î‚æ‚¢B
-//!          “Ç‚İ‚İEƒRƒ“ƒpƒCƒ‹‚Í ShaderLoader ‚ª’S“–‚·‚éB
-//! @author  Rú±ˆ¤
+//! @brief   DirectX11ã‚·ã‚§ãƒ¼ãƒ€ï¼ˆVS/PS + InputLayoutï¼‰ã‚’ä¿æŒã™ã‚‹ã‚¯ãƒ©ã‚¹
+//! @details Rendererã‹ã‚‰ã¯ Bind() ã ã‘ã‚’å‘¼ã¹ã°ã‚ˆã„ã€‚
+//!          èª­ã¿è¾¼ã¿ãƒ»ã‚³ãƒ³ãƒ‘ã‚¤ãƒ«ã¯ ShaderLoader ãŒæ‹…å½“ã™ã‚‹ã€‚
+//! @author  å±±ï¨‘æ„›
 //------------------------------------------------------------
 #pragma once
 #include <wrl/client.h>
 #include <d3d11.h>
-using Microsoft::WRL::ComPtr;    // ComPtr ‚ğg—p‚·‚é‚½‚ß‚Ì using éŒ¾
-// –¼‘O‹óŠÔ : Tsukino::Renderer
+using Microsoft::WRL::ComPtr;    // ComPtr ã‚’ä½¿ç”¨ã™ã‚‹ãŸã‚ã® using å®£è¨€
+// åå‰ç©ºé–“ : Tsukino::Renderer
 namespace Tsukino::Renderer {
     //------------------------------------------------------------
     //! @class Shader
-    //! @brief 1‚Â‚Ì’¸“_ƒVƒF[ƒ_ + ƒsƒNƒZƒ‹ƒVƒF[ƒ_ + “ü—ÍƒŒƒCƒAƒEƒg‚ğ•\‚·
+    //! @brief 1ã¤ã®é ‚ç‚¹ã‚·ã‚§ãƒ¼ãƒ€ + ãƒ”ã‚¯ã‚»ãƒ«ã‚·ã‚§ãƒ¼ãƒ€ + å…¥åŠ›ãƒ¬ã‚¤ã‚¢ã‚¦ãƒˆã‚’è¡¨ã™
     //------------------------------------------------------------
     class Shader {
     public:
         //------------------------------------------------------------
-        //! @brief ƒRƒ“ƒXƒgƒ‰ƒNƒ^
+        //! @brief ã‚³ãƒ³ã‚¹ãƒˆãƒ©ã‚¯ã‚¿
         //------------------------------------------------------------
         Shader() = default;
 
         //------------------------------------------------------------
-        //! @brief ƒfƒXƒgƒ‰ƒNƒ^
+        //! @brief ãƒ‡ã‚¹ãƒˆãƒ©ã‚¯ã‚¿
         //------------------------------------------------------------
         ~Shader() = default;
 
         //------------------------------------------------------------
-        // ƒVƒF[ƒ_‚ğƒpƒCƒvƒ‰ƒCƒ“‚ÉƒoƒCƒ“ƒh‚·‚é
-        //! @param context [in] ƒfƒoƒCƒXƒRƒ“ƒeƒLƒXƒg
+        // ã‚·ã‚§ãƒ¼ãƒ€ã‚’ãƒ‘ã‚¤ãƒ—ãƒ©ã‚¤ãƒ³ã«ãƒã‚¤ãƒ³ãƒ‰ã™ã‚‹
+        //! @param context [in] ãƒ‡ãƒã‚¤ã‚¹ã‚³ãƒ³ãƒ†ã‚­ã‚¹ãƒˆ
         //------------------------------------------------------------
         void Bind(ID3D11DeviceContext* context);
 
     private:
-        // ShaderLoader ‚ª“à•”ƒƒ“ƒo‚ÖƒAƒNƒZƒX‚Å‚«‚é‚æ‚¤‚É‚·‚é
+        // ShaderLoader ãŒå†…éƒ¨ãƒ¡ãƒ³ãƒã¸ã‚¢ã‚¯ã‚»ã‚¹ã§ãã‚‹ã‚ˆã†ã«ã™ã‚‹
         friend class ShaderLoader;
 
-        // GPU ƒŠƒ\[ƒX
-        ComPtr<ID3D11VertexShader> m_vertexShader;    // ’¸“_ƒVƒF[ƒ_
-        ComPtr<ID3D11PixelShader>  m_pixelShader;     // ƒsƒNƒZƒ‹ƒVƒF[ƒ_
-        ComPtr<ID3D11InputLayout>  m_inputLayout;     // “ü—ÍƒŒƒCƒAƒEƒg
+        // GPU ãƒªã‚½ãƒ¼ã‚¹
+        ComPtr<ID3D11VertexShader> m_vertexShader;    // é ‚ç‚¹ã‚·ã‚§ãƒ¼ãƒ€
+        ComPtr<ID3D11PixelShader>  m_pixelShader;     // ãƒ”ã‚¯ã‚»ãƒ«ã‚·ã‚§ãƒ¼ãƒ€
+        ComPtr<ID3D11InputLayout>  m_inputLayout;     // å…¥åŠ›ãƒ¬ã‚¤ã‚¢ã‚¦ãƒˆ
     };
 
 }    // namespace Tsukino::Renderer

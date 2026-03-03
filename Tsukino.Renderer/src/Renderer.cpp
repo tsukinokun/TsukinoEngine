@@ -1,20 +1,20 @@
-//------------------------------------------------------------
+ï»¿//------------------------------------------------------------
 //! @file   Renderer.cpp
-//! @brief  ƒŒƒ“ƒ_ƒ‰[ƒNƒ‰ƒX‚ÌÀ‘•
-//! @author Rú±ˆ¤
+//! @brief  ãƒ¬ãƒ³ãƒ€ãƒ©ãƒ¼ã‚¯ãƒ©ã‚¹ã®å®Ÿè£…
+//! @author å±±ï¨‘æ„›
 //------------------------------------------------------------
 #include "Tsukino/Renderer/Renderer.hpp"
 #include "Tsukino/Renderer/ShaderLoader.hpp"
 #include "Tsukino/Renderer/ConstantBuffer.hpp"
 #include "Tsukino/Core/Log.hpp"
 #include <cassert>
-// –¼‘O‹óŠÔ : Tsukino::Renderer
+// åå‰ç©ºé–“ : Tsukino::Renderer
 namespace Tsukino::Renderer {
     //------------------------------------------------------------
-    //! @brief ƒŒƒ“ƒ_ƒ‰[‚Ì‰Šú‰»
+    //! @brief ãƒ¬ãƒ³ãƒ€ãƒ©ãƒ¼ã®åˆæœŸåŒ–
     //------------------------------------------------------------
     bool Renderer::Initialize(HWND hwnd, uint32_t width, uint32_t height) {
-        // ƒXƒƒbƒvƒ`ƒFƒCƒ“İ’è
+        // ã‚¹ãƒ¯ãƒƒãƒ—ãƒã‚§ã‚¤ãƒ³è¨­å®š
         DXGI_SWAP_CHAIN_DESC scDesc{};
         scDesc.BufferCount       = 1;
         scDesc.BufferDesc.Width  = width;
@@ -37,7 +37,7 @@ namespace Tsukino::Renderer {
         };
         D3D_FEATURE_LEVEL createdLevel{};
 
-        // ƒfƒoƒCƒXEƒRƒ“ƒeƒLƒXƒgEƒXƒƒbƒvƒ`ƒFƒCƒ“ì¬
+        // ãƒ‡ãƒã‚¤ã‚¹ãƒ»ã‚³ãƒ³ãƒ†ã‚­ã‚¹ãƒˆãƒ»ã‚¹ãƒ¯ãƒƒãƒ—ãƒã‚§ã‚¤ãƒ³ä½œæˆ
         HRESULT hr = D3D11CreateDeviceAndSwapChain(nullptr,
                                                    D3D_DRIVER_TYPE_HARDWARE,
                                                    nullptr,
@@ -54,23 +54,23 @@ namespace Tsukino::Renderer {
             return false;
         }
 
-        // ƒoƒbƒNƒoƒbƒtƒ@æ“¾
+        // ãƒãƒƒã‚¯ãƒãƒƒãƒ•ã‚¡å–å¾—
         ComPtr<ID3D11Texture2D> backBuffer;
         hr = m_swapChain->GetBuffer(0, __uuidof(ID3D11Texture2D), reinterpret_cast<void**>(backBuffer.GetAddressOf()));
         if(FAILED(hr)) {
             return false;
         }
 
-        // RTV ì¬
+        // RTV ä½œæˆ
         hr = m_device->CreateRenderTargetView(backBuffer.Get(), nullptr, m_rtv.GetAddressOf());
         if(FAILED(hr)) {
             return false;
         }
 
-        // ƒŒƒ“ƒ_[ƒ^[ƒQƒbƒgİ’è
+        // ãƒ¬ãƒ³ãƒ€ãƒ¼ã‚¿ãƒ¼ã‚²ãƒƒãƒˆè¨­å®š
         m_context->OMSetRenderTargets(1, m_rtv.GetAddressOf(), nullptr);
 
-        // ƒrƒ…[ƒ|[ƒgİ’è
+        // ãƒ“ãƒ¥ãƒ¼ãƒãƒ¼ãƒˆè¨­å®š
         D3D11_VIEWPORT vp{};
         vp.TopLeftX = 0.0f;
         vp.TopLeftY = 0.0f;
@@ -82,39 +82,39 @@ namespace Tsukino::Renderer {
         m_context->RSSetViewports(1, &vp);
 
         //------------------------------------------------------------
-        // OŠpŒ`•`‰æ‚Ì€”õ‚ğ’Ç‰Á
+        // ä¸‰è§’å½¢æç”»ã®æº–å‚™ã‚’è¿½åŠ 
         //------------------------------------------------------------
-        // ’¸“_\‘¢‘Ì
+        // é ‚ç‚¹æ§‹é€ ä½“
         struct Vertex {
-            float x, y, z;       // ’¸“_‚ÌˆÊ’u
-            float r, g, b, a;    // ’¸“_‚ÌF
+            float x, y, z;       // é ‚ç‚¹ã®ä½ç½®
+            float r, g, b, a;    // é ‚ç‚¹ã®è‰²
         };
 
-        // OŠpŒ`‚Ì’¸“_ƒf[ƒ^
+        // ä¸‰è§’å½¢ã®é ‚ç‚¹ãƒ‡ãƒ¼ã‚¿
         Vertex vertices[] = {
-            {0.0f,  0.5f,  0.0f, 1, 0, 0, 1}, // ãiÔj
-            {0.5f,  -0.5f, 0.0f, 0, 1, 0, 1}, // ‰Ei—Îj
-            {-0.5f, -0.5f, 0.0f, 0, 0, 1, 1}, // ¶iÂj
+            {0.0f,  0.5f,  0.0f, 1, 0, 0, 1}, // ä¸Šï¼ˆèµ¤ï¼‰
+            {0.5f,  -0.5f, 0.0f, 0, 1, 0, 1}, // å³ï¼ˆç·‘ï¼‰
+            {-0.5f, -0.5f, 0.0f, 0, 0, 1, 1}, // å·¦ï¼ˆé’ï¼‰
         };
 
-        // ’¸“_ƒoƒbƒtƒ@‚Ìì¬
-        D3D11_BUFFER_DESC bd{};                                                                      // ƒoƒbƒtƒ@‚Ìà–¾
-        bd.Usage     = D3D11_USAGE_DEFAULT;                                                          // g—p•û–@
-        bd.ByteWidth = sizeof(vertices);                                                             // ƒoƒbƒtƒ@‚ÌƒTƒCƒY
-        bd.BindFlags = D3D11_BIND_VERTEX_BUFFER;                                                     // ’¸“_ƒoƒbƒtƒ@‚Æ‚µ‚Äg—p
-        D3D11_SUBRESOURCE_DATA initData{};                                                           // ‰Šúƒf[ƒ^
-        initData.pSysMem = vertices;                                                                 // ’¸“_ƒf[ƒ^‚Ìƒ|ƒCƒ“ƒ^
-        hr               = m_device->CreateBuffer(&bd, &initData, m_vertexBuffer.GetAddressOf());    // ƒoƒbƒtƒ@‚Ìì¬
+        // é ‚ç‚¹ãƒãƒƒãƒ•ã‚¡ã®ä½œæˆ
+        D3D11_BUFFER_DESC bd{};                                                                      // ãƒãƒƒãƒ•ã‚¡ã®èª¬æ˜
+        bd.Usage     = D3D11_USAGE_DEFAULT;                                                          // ä½¿ç”¨æ–¹æ³•
+        bd.ByteWidth = sizeof(vertices);                                                             // ãƒãƒƒãƒ•ã‚¡ã®ã‚µã‚¤ã‚º
+        bd.BindFlags = D3D11_BIND_VERTEX_BUFFER;                                                     // é ‚ç‚¹ãƒãƒƒãƒ•ã‚¡ã¨ã—ã¦ä½¿ç”¨
+        D3D11_SUBRESOURCE_DATA initData{};                                                           // åˆæœŸãƒ‡ãƒ¼ã‚¿
+        initData.pSysMem = vertices;                                                                 // é ‚ç‚¹ãƒ‡ãƒ¼ã‚¿ã®ãƒã‚¤ãƒ³ã‚¿
+        hr               = m_device->CreateBuffer(&bd, &initData, m_vertexBuffer.GetAddressOf());    // ãƒãƒƒãƒ•ã‚¡ã®ä½œæˆ
 
         if(FAILED(hr))
             return false;
 
-        // ƒVƒF[ƒ_[ƒuƒƒu‚ÆƒGƒ‰[ƒuƒƒu
-        ComPtr<ID3DBlob> vsBlob;       // ’¸“_ƒVƒF[ƒ_[ƒuƒƒu
-        ComPtr<ID3DBlob> psBlob;       // ƒsƒNƒZƒ‹ƒVƒF[ƒ_[ƒuƒƒu
-        ComPtr<ID3DBlob> errorBlob;    // ƒGƒ‰[ƒuƒƒu
+        // ã‚·ã‚§ãƒ¼ãƒ€ãƒ¼ãƒ–ãƒ­ãƒ–ã¨ã‚¨ãƒ©ãƒ¼ãƒ–ãƒ­ãƒ–
+        ComPtr<ID3DBlob> vsBlob;       // é ‚ç‚¹ã‚·ã‚§ãƒ¼ãƒ€ãƒ¼ãƒ–ãƒ­ãƒ–
+        ComPtr<ID3DBlob> psBlob;       // ãƒ”ã‚¯ã‚»ãƒ«ã‚·ã‚§ãƒ¼ãƒ€ãƒ¼ãƒ–ãƒ­ãƒ–
+        ComPtr<ID3DBlob> errorBlob;    // ã‚¨ãƒ©ãƒ¼ãƒ–ãƒ­ãƒ–
 
-        // ’¸“_ƒVƒF[ƒ_[‚ğƒRƒ“ƒpƒCƒ‹
+        // é ‚ç‚¹ã‚·ã‚§ãƒ¼ãƒ€ãƒ¼ã‚’ã‚³ãƒ³ãƒ‘ã‚¤ãƒ«
         hr = D3DCompileFromFile(L"../../Tsukino.Renderer/include/Tsukino/Renderer/Shaders/TriangleVS.hlsl",
                                 nullptr,
                                 nullptr,
@@ -124,7 +124,7 @@ namespace Tsukino::Renderer {
                                 0,
                                 vsBlob.GetAddressOf(),
                                 errorBlob.GetAddressOf());
-        // ƒRƒ“ƒpƒCƒ‹¸”s
+        // ã‚³ãƒ³ãƒ‘ã‚¤ãƒ«å¤±æ•—æ™‚
         if(FAILED(hr)) {
             if(errorBlob) {
                 OutputDebugStringA((char*)errorBlob->GetBufferPointer());
@@ -132,11 +132,11 @@ namespace Tsukino::Renderer {
             }
             assert(false && "VS compile failed: check file path or syntax");
         }
-        // ’¸“_ƒVƒF[ƒ_[ì¬
+        // é ‚ç‚¹ã‚·ã‚§ãƒ¼ãƒ€ãƒ¼ä½œæˆ
         hr = m_device->CreateVertexShader(vsBlob->GetBufferPointer(), vsBlob->GetBufferSize(), nullptr, m_vertexShader.GetAddressOf());
         assert(SUCCEEDED(hr));
 
-        // ƒsƒNƒZƒ‹ƒVƒF[ƒ_[
+        // ãƒ”ã‚¯ã‚»ãƒ«ã‚·ã‚§ãƒ¼ãƒ€ãƒ¼
         hr = D3DCompileFromFile(L"../../Tsukino.Renderer/include/Tsukino/Renderer/Shaders/TrianglePS.hlsl",
                                 nullptr,
                                 nullptr,
@@ -146,7 +146,7 @@ namespace Tsukino::Renderer {
                                 0,
                                 psBlob.GetAddressOf(),
                                 errorBlob.GetAddressOf());
-        // ƒRƒ“ƒpƒCƒ‹¸”s
+        // ã‚³ãƒ³ãƒ‘ã‚¤ãƒ«å¤±æ•—æ™‚
         if(FAILED(hr)) {
             if(errorBlob) {
                 OutputDebugStringA((char*)errorBlob->GetBufferPointer());
@@ -154,30 +154,30 @@ namespace Tsukino::Renderer {
             }
             assert(false && "PS compile failed: check file path or syntax");
         }
-        // ƒsƒNƒZƒ‹ƒVƒF[ƒ_[ì¬
+        // ãƒ”ã‚¯ã‚»ãƒ«ã‚·ã‚§ãƒ¼ãƒ€ãƒ¼ä½œæˆ
         hr = m_device->CreatePixelShader(psBlob->GetBufferPointer(), psBlob->GetBufferSize(), nullptr, m_pixelShader.GetAddressOf());
         assert(SUCCEEDED(hr));
 
-        // “ü—ÍƒŒƒCƒAƒEƒgiPOSITION: float3, COLOR: float4j
+        // å…¥åŠ›ãƒ¬ã‚¤ã‚¢ã‚¦ãƒˆï¼ˆPOSITION: float3, COLOR: float4ï¼‰
         D3D11_INPUT_ELEMENT_DESC layout[] = {
             {"POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT,    0, 0,                       D3D11_INPUT_PER_VERTEX_DATA, 0},
             {"COLOR",    0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, UINT(3 * sizeof(float)), D3D11_INPUT_PER_VERTEX_DATA, 0},
         };
-        // “ü—ÍƒŒƒCƒAƒEƒgì¬
+        // å…¥åŠ›ãƒ¬ã‚¤ã‚¢ã‚¦ãƒˆä½œæˆ
         hr = m_device->CreateInputLayout(layout, ARRAYSIZE(layout), vsBlob->GetBufferPointer(), vsBlob->GetBufferSize(), m_inputLayout.GetAddressOf());
         assert(SUCCEEDED(hr));
 
         //------------------------------------------------------------
-        // ’è”ƒoƒbƒtƒ@‚Ìì¬
+        // å®šæ•°ãƒãƒƒãƒ•ã‚¡ã®ä½œæˆ
         //------------------------------------------------------------
         if(!CreateConstantBuffer())
-            return false;    // ’è”ƒoƒbƒtƒ@‚Ìì¬‚É¸”s‚µ‚½ê‡‚Í false ‚ğ•Ô‚·
+            return false;    // å®šæ•°ãƒãƒƒãƒ•ã‚¡ã®ä½œæˆã«å¤±æ•—ã—ãŸå ´åˆã¯ false ã‚’è¿”ã™
 
         return true;
     }
 
     //------------------------------------------------------------
-    //! @brief ’è”ƒoƒbƒtƒ@‚Ìì¬
+    //! @brief å®šæ•°ãƒãƒƒãƒ•ã‚¡ã®ä½œæˆ
     //------------------------------------------------------------
     bool Renderer::CreateConstantBuffer() {
         D3D11_BUFFER_DESC desc = {};
@@ -186,7 +186,7 @@ namespace Tsukino::Renderer {
         desc.BindFlags         = D3D11_BIND_CONSTANT_BUFFER;
 
         HRESULT hr = m_device->CreateBuffer(&desc, nullptr, m_constantBuffer.GetAddressOf());
-        // ’è”ƒoƒbƒtƒ@‚Ìì¬‚É¸”s‚µ‚½ê‡‚ÍƒGƒ‰[ƒƒO‚ğo—Í
+        // å®šæ•°ãƒãƒƒãƒ•ã‚¡ã®ä½œæˆã«å¤±æ•—ã—ãŸå ´åˆã¯ã‚¨ãƒ©ãƒ¼ãƒ­ã‚°ã‚’å‡ºåŠ›
         if(FAILED(hr)) {
             Tsukino::Core::Log::Error("Failed to create constant buffer.");
             return false;
@@ -195,29 +195,29 @@ namespace Tsukino::Renderer {
     }
 
     //------------------------------------------------------------
-    //! @brief •`‰æˆ—
+    //! @brief æç”»å‡¦ç†
     //------------------------------------------------------------
     void Renderer::Render() {
-        // İ’è‚³‚ê‚½ƒNƒŠƒAƒJƒ‰[‚Å‰æ–Ê‚ğƒNƒŠƒA
+        // è¨­å®šã•ã‚ŒãŸã‚¯ãƒªã‚¢ã‚«ãƒ©ãƒ¼ã§ç”»é¢ã‚’ã‚¯ãƒªã‚¢
         m_context->ClearRenderTargetView(m_rtv.Get(), m_clearColor.data());
 
         //------------------------------------------------------------
-        // ’è”ƒoƒbƒtƒ@‚ÌXV
+        // å®šæ•°ãƒãƒƒãƒ•ã‚¡ã®æ›´æ–°
         //------------------------------------------------------------
         CBufferTransform cb{};
-        cb.mvp = DirectX::XMMatrixIdentity();    // ‚Æ‚è‚ ‚¦‚¸’PˆÊs—ñ
+        cb.mvp = DirectX::XMMatrixIdentity();    // ã¨ã‚Šã‚ãˆãšå˜ä½è¡Œåˆ—
 
         //------------------------------------------------------------
-        // ’è”ƒoƒbƒtƒ@‚ÌXV
+        // å®šæ•°ãƒãƒƒãƒ•ã‚¡ã®æ›´æ–°
         //------------------------------------------------------------
         m_context->UpdateSubresource(m_constantBuffer.Get(), 0, nullptr, &cb, 0, 0);
 
         //------------------------------------------------------------
-        // ’è”ƒoƒbƒtƒ@‚ğ’¸“_ƒVƒF[ƒ_‚ÉƒoƒCƒ“ƒh
+        // å®šæ•°ãƒãƒƒãƒ•ã‚¡ã‚’é ‚ç‚¹ã‚·ã‚§ãƒ¼ãƒ€ã«ãƒã‚¤ãƒ³ãƒ‰
         //------------------------------------------------------------
         m_context->VSSetConstantBuffers(0, 1, m_constantBuffer.GetAddressOf());
 
-        UINT stride = sizeof(float) * 7;    // Vertex ‚ÌƒTƒCƒY
+        UINT stride = sizeof(float) * 7;    // Vertex ã®ã‚µã‚¤ã‚º
         UINT offset = 0;
         m_context->IASetVertexBuffers(0, 1, m_vertexBuffer.GetAddressOf(), &stride, &offset);
 
@@ -227,15 +227,15 @@ namespace Tsukino::Renderer {
         m_context->VSSetShader(m_vertexShader.Get(), nullptr, 0);
         m_context->PSSetShader(m_pixelShader.Get(), nullptr, 0);
 
-        // ƒVƒF[ƒ_‚Æ“ü—ÍƒŒƒCƒAƒEƒg‚ğƒZƒbƒgiŒã‚Å’Ç‰Áj
+        // ã‚·ã‚§ãƒ¼ãƒ€ã¨å…¥åŠ›ãƒ¬ã‚¤ã‚¢ã‚¦ãƒˆã‚’ã‚»ãƒƒãƒˆï¼ˆå¾Œã§è¿½åŠ ï¼‰
         m_context->Draw(3, 0);
 
-        // •\¦
+        // è¡¨ç¤º
         m_swapChain->Present(1, 0);
     }
 
     //------------------------------------------------------------
-    //! @brief ƒNƒŠƒAƒJƒ‰[İ’è
+    //! @brief ã‚¯ãƒªã‚¢ã‚«ãƒ©ãƒ¼è¨­å®š
     //------------------------------------------------------------
     void Renderer::SetClearColor(float r, float g, float b, float a) {
         m_clearColor = {r, g, b, a};

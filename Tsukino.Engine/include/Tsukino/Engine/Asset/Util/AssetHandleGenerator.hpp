@@ -1,29 +1,29 @@
-//--------------------------------------------------------------
+ï»¿//--------------------------------------------------------------
 //! @file   AssetHandleGenerator.hpp
-//! @brief  ƒAƒZƒbƒgƒnƒ“ƒhƒ‹¶¬ƒwƒ‹ƒp[
-//! @author Rú±ˆ¤
+//! @brief  ã‚¢ã‚»ãƒƒãƒˆãƒãƒ³ãƒ‰ãƒ«ç”Ÿæˆãƒ˜ãƒ«ãƒ‘ãƒ¼
+//! @author å±±ï¨‘æ„›
 //--------------------------------------------------------------
 #pragma once
 #include <random>
 #include <Tsukino/Engine/Asset/AssetHandle.hpp>
-// –¼‘O‹óŠÔ : Tsukino::Asset
+// åå‰ç©ºé–“ : Tsukino::Asset
 namespace Tsukino::Asset {
     //--------------------------------------------------------------
     //! @class  AssetHandleGenerator
-    //! @brief  ƒAƒZƒbƒgƒnƒ“ƒhƒ‹¶¬ƒNƒ‰ƒX
+    //! @brief  ã‚¢ã‚»ãƒƒãƒˆãƒãƒ³ãƒ‰ãƒ«ç”Ÿæˆã‚¯ãƒ©ã‚¹
     //--------------------------------------------------------------
     class AssetHandleGenerator {
     public:
         //--------------------------------------------------------------
-        //! @brief  ƒAƒZƒbƒgƒnƒ“ƒhƒ‹‚ğ¶¬‚·‚éŠÖ”
-        //! @return ¶¬‚³‚ê‚½ƒAƒZƒbƒgƒnƒ“ƒhƒ‹
+        //! @brief  ã‚¢ã‚»ãƒƒãƒˆãƒãƒ³ãƒ‰ãƒ«ã‚’ç”Ÿæˆã™ã‚‹é–¢æ•°
+        //! @return ç”Ÿæˆã•ã‚ŒãŸã‚¢ã‚»ãƒƒãƒˆãƒãƒ³ãƒ‰ãƒ«
         //--------------------------------------------------------------
         [[nodiscard]]
         static AssetHandle Generate() {
-            static std::random_device                 rd;           // ƒ‰ƒ“ƒ_ƒ€ƒfƒoƒCƒX‚Ì‰Šú‰»
-            static std::mt19937_64                    gen(rd());    // ƒƒ‹ƒZƒ“ƒkEƒcƒCƒXƒ^[‚Ì64ƒrƒbƒg”Å‚Ì‰Šú‰»
-            static std::uniform_int_distribution<u64> dist;         // 0‚©‚çÅ‘å‚Ìu64‚Ü‚Å‚Ìˆê—l•ª•z‚Ì‰Šú‰»
-            return AssetHandle(dist(gen));                          // ƒ‰ƒ“ƒ_ƒ€‚Èu64’l‚ğ¶¬‚µ‚ÄƒAƒZƒbƒgƒnƒ“ƒhƒ‹‚ğ•Ô‚·
+            static std::random_device                 rd;           // ãƒ©ãƒ³ãƒ€ãƒ ãƒ‡ãƒã‚¤ã‚¹ã®åˆæœŸåŒ–
+            static std::mt19937_64                    gen(rd());    // ãƒ¡ãƒ«ã‚»ãƒ³ãƒŒãƒ»ãƒ„ã‚¤ã‚¹ã‚¿ãƒ¼ã®64ãƒ“ãƒƒãƒˆç‰ˆã®åˆæœŸåŒ–
+            static std::uniform_int_distribution<u64> dist;         // 0ã‹ã‚‰æœ€å¤§ã®u64ã¾ã§ã®ä¸€æ§˜åˆ†å¸ƒã®åˆæœŸåŒ–
+            return AssetHandle(dist(gen));                          // ãƒ©ãƒ³ãƒ€ãƒ ãªu64å€¤ã‚’ç”Ÿæˆã—ã¦ã‚¢ã‚»ãƒƒãƒˆãƒãƒ³ãƒ‰ãƒ«ã‚’è¿”ã™
         }
     };
 }    // namespace Tsukino::Asset

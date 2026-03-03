@@ -1,25 +1,25 @@
-//------------------------------------------------------------
+ï»¿//------------------------------------------------------------
 //! @file   ShaderLoader.cpp
-//! @brief  HLSLƒVƒF[ƒ_‚ğ“Ç‚İ‚İAƒRƒ“ƒpƒCƒ‹‚µAShaderƒIƒuƒWƒFƒNƒg‚ğ\’z‚·‚éƒNƒ‰ƒX
+//! @brief  HLSLã‚·ã‚§ãƒ¼ãƒ€ã‚’èª­ã¿è¾¼ã¿ã€ã‚³ãƒ³ãƒ‘ã‚¤ãƒ«ã—ã€Shaderã‚ªãƒ–ã‚¸ã‚§ã‚¯ãƒˆã‚’æ§‹ç¯‰ã™ã‚‹ã‚¯ãƒ©ã‚¹
 //------------------------------------------------------------
 #include "Tsukino/Renderer/ShaderLoader.hpp"
 #include <fstream>
-// –¼‘O‹óŠÔ : Tsukino::Renderer
+// åå‰ç©ºé–“ : Tsukino::Renderer
 namespace Tsukino::Renderer {
     //------------------------------------------------------------
-    //! @brief HLSL ‚ğƒRƒ“ƒpƒCƒ‹‚·‚é“à•”ŠÖ”
+    //! @brief HLSL ã‚’ã‚³ãƒ³ãƒ‘ã‚¤ãƒ«ã™ã‚‹å†…éƒ¨é–¢æ•°
     //------------------------------------------------------------
     bool ShaderLoader::CompileShader(const std::wstring& filePath, const char* entryPoint, const char* target, Microsoft::WRL::ComPtr<ID3DBlob>& outBlob) {
-        UINT flags = D3DCOMPILE_ENABLE_STRICTNESS;    // Œµ–§‚ÈƒRƒ“ƒpƒCƒ‹‚ğ—LŒø‚É‚·‚éƒtƒ‰ƒO
+        UINT flags = D3DCOMPILE_ENABLE_STRICTNESS;    // å³å¯†ãªã‚³ãƒ³ãƒ‘ã‚¤ãƒ«ã‚’æœ‰åŠ¹ã«ã™ã‚‹ãƒ•ãƒ©ã‚°
 
 #if defined(_DEBUG)
-        flags |= D3DCOMPILE_DEBUG;    // ƒfƒoƒbƒOî•ñ‚ğ–„‚ß‚Şƒtƒ‰ƒOiƒfƒoƒbƒOƒrƒ‹ƒh‚Ì‚İj
+        flags |= D3DCOMPILE_DEBUG;    // ãƒ‡ãƒãƒƒã‚°æƒ…å ±ã‚’åŸ‹ã‚è¾¼ã‚€ãƒ•ãƒ©ã‚°ï¼ˆãƒ‡ãƒãƒƒã‚°ãƒ“ãƒ«ãƒ‰ã®ã¿ï¼‰
 #endif
-        // ƒRƒ“ƒpƒCƒ‹ƒGƒ‰[‚Ìo—Í—pƒoƒbƒtƒ@
+        // ã‚³ãƒ³ãƒ‘ã‚¤ãƒ«ã‚¨ãƒ©ãƒ¼ã®å‡ºåŠ›ç”¨ãƒãƒƒãƒ•ã‚¡
         Microsoft::WRL::ComPtr<ID3DBlob> errorBlob;
-        // HLSL ƒtƒ@ƒCƒ‹‚ğƒRƒ“ƒpƒCƒ‹
+        // HLSL ãƒ•ã‚¡ã‚¤ãƒ«ã‚’ã‚³ãƒ³ãƒ‘ã‚¤ãƒ«
         HRESULT hr = D3DCompileFromFile(filePath.c_str(), nullptr, D3D_COMPILE_STANDARD_FILE_INCLUDE, entryPoint, target, flags, 0, &outBlob, &errorBlob);
-        // ƒRƒ“ƒpƒCƒ‹¸”s‚ÍƒGƒ‰[ƒƒbƒZ[ƒW‚ğo—Í‚µ‚Ä false ‚ğ•Ô‚·
+        // ã‚³ãƒ³ãƒ‘ã‚¤ãƒ«å¤±æ•—æ™‚ã¯ã‚¨ãƒ©ãƒ¼ãƒ¡ãƒƒã‚»ãƒ¼ã‚¸ã‚’å‡ºåŠ›ã—ã¦ false ã‚’è¿”ã™
         if(FAILED(hr)) {
             if(errorBlob) {
                 OutputDebugStringA((char*)errorBlob->GetBufferPointer());
@@ -31,11 +31,11 @@ namespace Tsukino::Renderer {
     }
 
     //------------------------------------------------------------
-    //! @brief HLSLƒtƒ@ƒCƒ‹‚©‚çVS/PS ‚ğ“Ç‚İ‚İAShader ‚ğ\’z‚·‚é
+    //! @brief HLSLãƒ•ã‚¡ã‚¤ãƒ«ã‹ã‚‰VS/PS ã‚’èª­ã¿è¾¼ã¿ã€Shader ã‚’æ§‹ç¯‰ã™ã‚‹
     //------------------------------------------------------------
     bool ShaderLoader::LoadFromFile(ID3D11Device* device, const std::wstring& vsPath, const std::wstring& psPath, Shader& outShader) {
         //------------------------------------------------------------
-        // VSƒRƒ“ƒpƒCƒ‹
+        // VSã‚³ãƒ³ãƒ‘ã‚¤ãƒ«
         //------------------------------------------------------------
         Microsoft::WRL::ComPtr<ID3DBlob> vsBlob;
         if(!CompileShader(vsPath, "VSMain", "vs_5_0", vsBlob)) {
@@ -44,7 +44,7 @@ namespace Tsukino::Renderer {
         }
 
         //------------------------------------------------------------
-        // PSƒRƒ“ƒpƒCƒ‹
+        // PSã‚³ãƒ³ãƒ‘ã‚¤ãƒ«
         //------------------------------------------------------------
         Microsoft::WRL::ComPtr<ID3DBlob> psBlob;
         if(!CompileShader(psPath, "PSMain", "ps_5_0", psBlob)) {
@@ -53,27 +53,27 @@ namespace Tsukino::Renderer {
         }
 
         //------------------------------------------------------------
-        // VSì¬
+        // VSä½œæˆ
         //------------------------------------------------------------
         HRESULT hr = device->CreateVertexShader(vsBlob->GetBufferPointer(), vsBlob->GetBufferSize(), nullptr, outShader.m_vertexShader.GetAddressOf());
         if(FAILED(hr))
             return false;
 
         //------------------------------------------------------------
-        // PSì¬
+        // PSä½œæˆ
         //------------------------------------------------------------
         hr = device->CreatePixelShader(psBlob->GetBufferPointer(), psBlob->GetBufferSize(), nullptr, outShader.m_pixelShader.GetAddressOf());
         if(FAILED(hr))
             return false;
 
         //------------------------------------------------------------
-        // “ü—ÍƒŒƒCƒAƒEƒgì¬iPOSITION + COLOR ‚Ì—áj
+        // å…¥åŠ›ãƒ¬ã‚¤ã‚¢ã‚¦ãƒˆä½œæˆï¼ˆPOSITION + COLOR ã®ä¾‹ï¼‰
         //------------------------------------------------------------
         D3D11_INPUT_ELEMENT_DESC layout[] = {
             {"POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT,    0, 0,  D3D11_INPUT_PER_VERTEX_DATA, 0},
             {"COLOR",    0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, 12, D3D11_INPUT_PER_VERTEX_DATA, 0}
         };
-        // “ü—ÍƒŒƒCƒAƒEƒg‚ğì¬
+        // å…¥åŠ›ãƒ¬ã‚¤ã‚¢ã‚¦ãƒˆã‚’ä½œæˆ
         hr = device->CreateInputLayout(layout, _countof(layout), vsBlob->GetBufferPointer(), vsBlob->GetBufferSize(), outShader.m_inputLayout.GetAddressOf());
         if(FAILED(hr))
             return false;
