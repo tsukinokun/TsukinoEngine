@@ -9,6 +9,10 @@ workspace "TsukinoEngine"                   -- ソリューション名
     filter "configurations:Debug" 
         optimize "Off" 
         symbols "On" 
+
+    filter "action:vs*" 
+        buildoptions { "/utf-8" }
+    filter {}
     
     filter "configurations:Release"
         optimize "Full"
