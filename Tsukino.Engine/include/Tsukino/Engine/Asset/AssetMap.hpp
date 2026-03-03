@@ -1,16 +1,16 @@
-//--------------------------------------------------------------
+ï»¿//--------------------------------------------------------------
 //! @file	AssetMap.hpp
-//! @brief  ƒAƒZƒbƒg‚ÌŠi”[êŠ‚ÌƒGƒCƒŠƒAƒX‚ğ’è‹`
-//! @author Rú±ˆ¤
+//! @brief  ã‚¢ã‚»ãƒƒãƒˆã®æ ¼ç´å ´æ‰€ã®ã‚¨ã‚¤ãƒªã‚¢ã‚¹ã‚’å®šç¾©
+//! @author å±±ï¨‘æ„›
 //--------------------------------------------------------------
 #pragma once
 #include <unordered_map>
 #include <vector>
 #include <Tsukino/Core/typedef.hpp>
 #include <Tsukino/Core/Memory.hpp>
-// –¼‘O‹óŠÔ : Tsukino::Asset
+// åå‰ç©ºé–“ : Tsukino::Asset
 namespace Tsukino::Asset {
-    class IAsset;    // ‘O•ûéŒ¾
-    // ƒAƒZƒbƒg‚ÌŠi”[êŠ
+    class IAsset;    // å‰æ–¹å®£è¨€
+    // ã‚¢ã‚»ãƒƒãƒˆã®æ ¼ç´å ´æ‰€
     using AssetMap = std::unordered_map<u64, Tsukino::Core::Ref<IAsset>>;
 }

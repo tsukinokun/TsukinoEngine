@@ -1,51 +1,51 @@
-//--------------------------------------------------------------
+ï»¿//--------------------------------------------------------------
 //! @file   ShaderLoader.cpp
-//! @brief  ƒVƒF[ƒ_ƒAƒZƒbƒgƒ[ƒ_[‚ÌÀ‘•
-//! @author Rú±ˆ¤
+//! @brief  ã‚·ã‚§ãƒ¼ãƒ€ã‚¢ã‚»ãƒƒãƒˆãƒ­ãƒ¼ãƒ€ãƒ¼ã®å®Ÿè£…
+//! @author å±±ï¨‘æ„›
 //--------------------------------------------------------------
 #include <Tsukino/Engine/Asset/Shader/ShaderLoader.hpp>
 #include <fstream>
 #include <sstream>
 #include <iostream>
-// –¼‘O‹óŠÔ Tsukino::Asset
+// åå‰ç©ºé–“ Tsukino::Asset
 namespace Tsukino::Asset {
     //--------------------------------------------------------------
-    //! @brief ‘Î‰‚·‚éŠg’£q‚©”»’è‚·‚éŠÖ”
+    //! @brief å¯¾å¿œã™ã‚‹æ‹¡å¼µå­ã‹åˆ¤å®šã™ã‚‹é–¢æ•°
     //--------------------------------------------------------------
     bool ShaderLoader::CanLoad(const std::string& ext) const {
         return ext == ".shader" || ext == ".hlsl";
     }
 
     //--------------------------------------------------------------
-    //! @brief ƒVƒF[ƒ_ƒtƒ@ƒCƒ‹‚ğ“Ç‚İ‚İShaderAsset‚ğ¶¬‚·‚éŠÖ”
+    //! @brief ã‚·ã‚§ãƒ¼ãƒ€ãƒ•ã‚¡ã‚¤ãƒ«ã‚’èª­ã¿è¾¼ã¿ShaderAssetã‚’ç”Ÿæˆã™ã‚‹é–¢æ•°
     //--------------------------------------------------------------
     Tsukino::Core::Ref<IAsset> ShaderLoader::Load(const Tsukino::Core::Path& path) {
         //--------------------------------------------------------------
-        // ƒtƒ@ƒCƒ‹‚ğŠJ‚­
+        // ãƒ•ã‚¡ã‚¤ãƒ«ã‚’é–‹ã
         //--------------------------------------------------------------
-        std::string           filePath = path.string();    // ƒpƒXƒIƒuƒWƒFƒNƒg‚©‚ç•¶š—ñ‚ğæ“¾
+        std::string           filePath = path.string();    // ãƒ‘ã‚¹ã‚ªãƒ–ã‚¸ã‚§ã‚¯ãƒˆã‹ã‚‰æ–‡å­—åˆ—ã‚’å–å¾—
         std::ifstream         file(filePath);
         std::filesystem::path cd = std::filesystem::current_path();
 
-        // ƒtƒ@ƒCƒ‹‚ªŠJ‚¯‚È‚©‚Á‚½ê‡‚Í nullptr ‚ğ•Ô‚·
+        // ãƒ•ã‚¡ã‚¤ãƒ«ãŒé–‹ã‘ãªã‹ã£ãŸå ´åˆã¯ nullptr ã‚’è¿”ã™
         if(!file.is_open()) {
             return nullptr;
         }
 
         //--------------------------------------------------------------
-        // ƒtƒ@ƒCƒ‹‚Ì“à—e‚ğ•¶š—ñ‚É“Ç‚İ‚Ş
+        // ãƒ•ã‚¡ã‚¤ãƒ«ã®å†…å®¹ã‚’æ–‡å­—åˆ—ã«èª­ã¿è¾¼ã‚€
         //--------------------------------------------------------------
         std::stringstream ss;
-        ss << file.rdbuf();    //ƒoƒbƒtƒ@‚ğ‚¤‚Â‚·
+        ss << file.rdbuf();    //ãƒãƒƒãƒ•ã‚¡ã‚’ã†ã¤ã™
 
         //--------------------------------------------------------------
-        // ShaderAsset‚ğ¶¬
+        // ShaderAssetã‚’ç”Ÿæˆ
         //--------------------------------------------------------------
-        Tsukino::Core::Ref<ShaderAsset> asset = Tsukino::Core::CreateRef<ShaderAsset>();    // ShaderAsset‚ğ¶¬
-        asset->source                         = ss.str();                                   // “Ç‚İ‚ñ‚¾“à—e‚ğƒZƒbƒg
-        asset->filePath                       = path.string();                              // Œ³ƒtƒ@ƒCƒ‹‚ÌƒpƒX‚àƒZƒbƒg
+        Tsukino::Core::Ref<ShaderAsset> asset = Tsukino::Core::CreateRef<ShaderAsset>();    // ShaderAssetã‚’ç”Ÿæˆ
+        asset->source                         = ss.str();                                   // èª­ã¿è¾¼ã‚“ã å†…å®¹ã‚’ã‚»ãƒƒãƒˆ
+        asset->filePath                       = path.string();                              // å…ƒãƒ•ã‚¡ã‚¤ãƒ«ã®ãƒ‘ã‚¹ã‚‚ã‚»ãƒƒãƒˆ
 
-        // ƒAƒZƒbƒg‚ğ•Ô‚·
+        // ã‚¢ã‚»ãƒƒãƒˆã‚’è¿”ã™
         return asset;
     }
 

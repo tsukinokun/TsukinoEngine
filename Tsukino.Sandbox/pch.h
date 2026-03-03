@@ -1,13 +1,13 @@
-//------------------------------------------------------------
+﻿//------------------------------------------------------------
 //! @file	pch.h
-//! @brief  �v���R���p�C���ς݃w�b�_�[�t�@�C��
-//! @note   Tsukino.Sandbox�v���W�F�N�g�̃r���h���Ԃ�Z�k�p
-//! @author �R����
+//! @brief  プリコンパイル済みヘッダーファイル
+//! @note   Tsukino.Sandboxプロジェクトのビルド時間を短縮用
+//! @author 山﨑愛
 //------------------------------------------------------------
 #pragma once
-#include <Windows.h>    // Windows API�̊�{�I�ȋ@�\��񋟂���w�b�_�[�t�@�C��
-#include <cstdint>      // �Œ蕝�����^���g�p���邽�߂̕W�����C�u����
-#include <string>       // �����񑀍�̂��߂̕W�����C�u����
+#include <Windows.h>    // Windows APIの基本的な機能を提供するヘッダーファイル
+#include <cstdint>      // 固定幅整数型を使用するための標準ライブラリ
+#include <string>       // 文字列操作のための標準ライブラリ
 #include <unordered_map>
 #include <vector>
-#include <memory>       // �X�}�[�g�|�C���^���g�p���邽�߂̕W�����C�u����
+#include <memory>       // スマートポインタを使用するための標準ライブラリ

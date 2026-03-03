@@ -1,7 +1,7 @@
-//--------------------------------------------------------------
+ï»¿//--------------------------------------------------------------
 //! @file	main.cpp
-//! @brief	Sandbox‚ÌƒGƒ“ƒgƒŠƒ|ƒCƒ“ƒg
-//! @author Rú±ˆ¤
+//! @brief	Sandboxã®ã‚¨ãƒ³ãƒˆãƒªãƒã‚¤ãƒ³ãƒˆ
+//! @author å±±ï¨‘æ„›
 //--------------------------------------------------------------
 #include <Windows.h>
 #include <Tsukino/Core/Window.hpp>
@@ -10,26 +10,26 @@
 #include <Tsukino/Engine/Asset/Shader/ShaderAsset.hpp>
 #include <Tsukino/Core/Path.hpp>
 //--------------------------------------------------------------
-// ƒAƒvƒŠƒP[ƒVƒ‡ƒ“‚ÌƒGƒ“ƒgƒŠƒ|ƒCƒ“ƒg
-//! @param hInstance ƒAƒvƒŠƒP[ƒVƒ‡ƒ“ƒCƒ“ƒXƒ^ƒ“ƒX
-//! @param hPrevInstance ”ñ„§ií‚ÉNULLj
-//! @param lpCmdLine ƒRƒ}ƒ“ƒhƒ‰ƒCƒ“ˆø”
-//! @param nCmdShow ƒEƒBƒ“ƒhƒE•\¦ó‘Ôi—áFSW_SHOWj
-//! @return I—¹ƒR[ƒhi’Êí‚Í0j
+// ã‚¢ãƒ—ãƒªã‚±ãƒ¼ã‚·ãƒ§ãƒ³ã®ã‚¨ãƒ³ãƒˆãƒªãƒã‚¤ãƒ³ãƒˆ
+//! @param hInstance ã‚¢ãƒ—ãƒªã‚±ãƒ¼ã‚·ãƒ§ãƒ³ã‚¤ãƒ³ã‚¹ã‚¿ãƒ³ã‚¹
+//! @param hPrevInstance éæ¨å¥¨ï¼ˆå¸¸ã«NULLï¼‰
+//! @param lpCmdLine ã‚³ãƒãƒ³ãƒ‰ãƒ©ã‚¤ãƒ³å¼•æ•°
+//! @param nCmdShow ã‚¦ã‚£ãƒ³ãƒ‰ã‚¦è¡¨ç¤ºçŠ¶æ…‹ï¼ˆä¾‹ï¼šSW_SHOWï¼‰
+//! @return çµ‚äº†ã‚³ãƒ¼ãƒ‰ï¼ˆé€šå¸¸ã¯0ï¼‰
 //--------------------------------------------------------------
 int WINAPI WinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ LPSTR, _In_ int) {
     //--------------------------------------------------------------
-    // AssetManager ‰Šú‰»
+    // AssetManager åˆæœŸåŒ–
     //--------------------------------------------------------------
     Tsukino::Asset::AssetManager::Initialize();
 
     //--------------------------------------------------------------
-    // ƒeƒXƒgƒVƒF[ƒ_[‚ğƒ[ƒh
+    // ãƒ†ã‚¹ãƒˆã‚·ã‚§ãƒ¼ãƒ€ãƒ¼ã‚’ãƒ­ãƒ¼ãƒ‰
     //--------------------------------------------------------------
-    Tsukino::Core::Path         path("Assets/Shaders/test.hlsl");                     //ƒpƒXƒIƒuƒWƒFƒNƒg‚ğì¬
-    Tsukino::Asset::AssetHandle handle = Tsukino::Asset::AssetManager::Load(path);    // ƒVƒF[ƒ_[ƒAƒZƒbƒg‚ğƒ[ƒh
+    Tsukino::Core::Path         path("Assets/Shaders/test.hlsl");                     //ãƒ‘ã‚¹ã‚ªãƒ–ã‚¸ã‚§ã‚¯ãƒˆã‚’ä½œæˆ
+    Tsukino::Asset::AssetHandle handle = Tsukino::Asset::AssetManager::Load(path);    // ã‚·ã‚§ãƒ¼ãƒ€ãƒ¼ã‚¢ã‚»ãƒƒãƒˆã‚’ãƒ­ãƒ¼ãƒ‰
 
-    // ƒ[ƒh‚É¸”s‚µ‚½ê‡‚ÍƒGƒ‰[ƒƒbƒZ[ƒW‚ğ•\¦
+    // ãƒ­ãƒ¼ãƒ‰ã«å¤±æ•—ã—ãŸå ´åˆã¯ã‚¨ãƒ©ãƒ¼ãƒ¡ãƒƒã‚»ãƒ¼ã‚¸ã‚’è¡¨ç¤º
     if(!Tsukino::Asset::AssetManager::Exists(handle)) {
         MessageBoxA(nullptr, "Failed to load shader.", "Error", MB_OK);
     } else {
@@ -41,7 +41,7 @@ int WINAPI WinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ LPSTR, _In_ int) {
     }
 
     //--------------------------------------------------------------
-    // ƒEƒBƒ“ƒhƒE¶¬
+    // ã‚¦ã‚£ãƒ³ãƒ‰ã‚¦ç”Ÿæˆ
     //--------------------------------------------------------------
     Tsukino::Core::Window window;
     if(!window.Create("TsukinoEngine", 1280, 720)) {
@@ -49,7 +49,7 @@ int WINAPI WinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ LPSTR, _In_ int) {
     }
 
     //--------------------------------------------------------------
-    // ƒŒƒ“ƒ_ƒ‰[¶¬
+    // ãƒ¬ãƒ³ãƒ€ãƒ©ãƒ¼ç”Ÿæˆ
     //--------------------------------------------------------------
     Tsukino::Renderer::Renderer renderer;
     if(!renderer.Initialize(window.GetHWND(), window.GetWidth(), window.GetHeight())) {
@@ -57,19 +57,19 @@ int WINAPI WinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ LPSTR, _In_ int) {
     }
 
     //--------------------------------------------------------------
-    // ƒƒCƒ“ƒ‹[ƒv
+    // ãƒ¡ã‚¤ãƒ³ãƒ«ãƒ¼ãƒ—
     //--------------------------------------------------------------
     while(window.ProcessMessages()) {
         renderer.Render();
     }
 
     //--------------------------------------------------------------
-    // AssetManager I—¹ˆ—
+    // AssetManager çµ‚äº†å‡¦ç†
     //--------------------------------------------------------------
     Tsukino::Asset::AssetManager::Destroy();
 
     //--------------------------------------------------------------
-    // ƒEƒBƒ“ƒhƒE‚Í©“®“I‚É”jŠü‚³‚ê‚é
+    // ã‚¦ã‚£ãƒ³ãƒ‰ã‚¦ã¯è‡ªå‹•çš„ã«ç ´æ£„ã•ã‚Œã‚‹
     //--------------------------------------------------------------
     return 0;
 }

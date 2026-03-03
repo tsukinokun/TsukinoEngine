@@ -1,23 +1,23 @@
-//------------------------------------------------------------
+ï»¿//------------------------------------------------------------
 //! @file   Shader.cpp
-//! @brief  Shader ƒNƒ‰ƒX‚ÌŽÀ‘•iVS/PS + InputLayout ‚ÌƒoƒCƒ“ƒhj
-//! @author ŽRú±ˆ¤
+//! @brief  Shader ã‚¯ãƒ©ã‚¹ã®å®Ÿè£…ï¼ˆVS/PS + InputLayout ã®ãƒã‚¤ãƒ³ãƒ‰ï¼‰
+//! @author å±±ï¨‘æ„›
 //------------------------------------------------------------
 #include "Tsukino/Renderer/Shader.hpp"
-// –¼‘O‹óŠÔ : Tsukino::Renderer
+// åå‰ç©ºé–“ : Tsukino::Renderer
 namespace Tsukino::Renderer {
 
     //------------------------------------------------------------
-    //! @brief ƒVƒF[ƒ_‚ðƒpƒCƒvƒ‰ƒCƒ“‚ÉƒoƒCƒ“ƒh‚·‚é
+    //! @brief ã‚·ã‚§ãƒ¼ãƒ€ã‚’ãƒ‘ã‚¤ãƒ—ãƒ©ã‚¤ãƒ³ã«ãƒã‚¤ãƒ³ãƒ‰ã™ã‚‹
     //------------------------------------------------------------
     void Shader::Bind(ID3D11DeviceContext* context) {
-        // “ü—ÍƒŒƒCƒAƒEƒg‚ðƒZƒbƒg
+        // å…¥åŠ›ãƒ¬ã‚¤ã‚¢ã‚¦ãƒˆã‚’ã‚»ãƒƒãƒˆ
         context->IASetInputLayout(m_inputLayout.Get());
 
-        // ’¸“_ƒVƒF[ƒ_[‚ðƒZƒbƒg
+        // é ‚ç‚¹ã‚·ã‚§ãƒ¼ãƒ€ãƒ¼ã‚’ã‚»ãƒƒãƒˆ
         context->VSSetShader(m_vertexShader.Get(), nullptr, 0);
 
-        // ƒsƒNƒZƒ‹ƒVƒF[ƒ_[‚ðƒZƒbƒg
+        // ãƒ”ã‚¯ã‚»ãƒ«ã‚·ã‚§ãƒ¼ãƒ€ãƒ¼ã‚’ã‚»ãƒƒãƒˆ
         context->PSSetShader(m_pixelShader.Get(), nullptr, 0);
     }
 

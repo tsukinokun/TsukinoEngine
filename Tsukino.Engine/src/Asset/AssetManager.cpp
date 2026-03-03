@@ -1,4 +1,4 @@
-//--------------------------------------------------------------
+﻿//--------------------------------------------------------------
 //! @file   AssetManager.cpp
 //! @brief  アセット管理クラスの実装
 //! @author 山﨑愛
@@ -65,8 +65,8 @@ namespace Tsukino::Asset {
         //--------------------------------------------------------------
         // AssetMapに登録
         //--------------------------------------------------------------
-        AssetHandle handle = AssetHandleGenerator::Generate();    
-        s_Assets.insert({handle.Value(), asset});                 
+        AssetHandle handle = AssetHandleGenerator::Generate();    // ハンドルを生成
+        s_Assets.insert({handle.Value(), asset});                 // ハンドルとアセットをAssetMapに登録
 
         //--------------------------------------------------------------
         // ハンドルを返す

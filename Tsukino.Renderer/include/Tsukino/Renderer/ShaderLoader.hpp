@@ -1,42 +1,42 @@
-//------------------------------------------------------------
+ï»¿//------------------------------------------------------------
 //! @file   ShaderLoader.hpp
-//! @brief  HLSLƒVƒF[ƒ_‚ğ“Ç‚İ‚İAƒRƒ“ƒpƒCƒ‹‚µAShaderƒIƒuƒWƒFƒNƒg‚ğ\’z‚·‚éƒNƒ‰ƒX
-//! @author Rú±ˆ¤
+//! @brief  HLSLã‚·ã‚§ãƒ¼ãƒ€ã‚’èª­ã¿è¾¼ã¿ã€ã‚³ãƒ³ãƒ‘ã‚¤ãƒ«ã—ã€Shaderã‚ªãƒ–ã‚¸ã‚§ã‚¯ãƒˆã‚’æ§‹ç¯‰ã™ã‚‹ã‚¯ãƒ©ã‚¹
+//! @author å±±ï¨‘æ„›
 //------------------------------------------------------------
 #pragma once
 #include <string>
 #include <wrl/client.h>
 #include <d3d11.h>
 #include <d3dcompiler.h>
-#include "Shader.hpp"    // Shader ƒNƒ‰ƒX‚ğ—˜—p‚·‚é
+#include "Shader.hpp"    // Shader ã‚¯ãƒ©ã‚¹ã‚’åˆ©ç”¨ã™ã‚‹
 
-// –¼‘O‹óŠÔ : Tsukino::Renderer
+// åå‰ç©ºé–“ : Tsukino::Renderer
 namespace Tsukino::Renderer {
 
     //------------------------------------------------------------
     //! @class  ShaderLoader
-    //! @brief  HLSL ƒtƒ@ƒCƒ‹‚ğ“Ç‚İ‚İAShader ‚ğ\’z‚·‚éƒ†[ƒeƒBƒŠƒeƒBƒNƒ‰ƒX
+    //! @brief  HLSL ãƒ•ã‚¡ã‚¤ãƒ«ã‚’èª­ã¿è¾¼ã¿ã€Shader ã‚’æ§‹ç¯‰ã™ã‚‹ãƒ¦ãƒ¼ãƒ†ã‚£ãƒªãƒ†ã‚£ã‚¯ãƒ©ã‚¹
     //------------------------------------------------------------
     class ShaderLoader {
     public:
         //------------------------------------------------------------
-        // HLSLƒtƒ@ƒCƒ‹‚©‚çVS/PS ‚ğ“Ç‚İ‚İAShader ‚ğ\’z‚·‚é
-        //! @param device    [in] DirectX11 ƒfƒoƒCƒX
-        //! @param vsPath    [in] ’¸“_ƒVƒF[ƒ_[i.hlslj‚Ö‚ÌƒpƒX
-        //! @param psPath    [in] ƒsƒNƒZƒ‹ƒVƒF[ƒ_[i.hlslj‚Ö‚ÌƒpƒX
-        //! @param outShader [in] o—Íæ‚Ì Shader ƒIƒuƒWƒFƒNƒg
-        //! @return true: ¬Œ÷, false: ¸”s
+        // HLSLãƒ•ã‚¡ã‚¤ãƒ«ã‹ã‚‰VS/PS ã‚’èª­ã¿è¾¼ã¿ã€Shader ã‚’æ§‹ç¯‰ã™ã‚‹
+        //! @param device    [in] DirectX11 ãƒ‡ãƒã‚¤ã‚¹
+        //! @param vsPath    [in] é ‚ç‚¹ã‚·ã‚§ãƒ¼ãƒ€ãƒ¼ï¼ˆ.hlslï¼‰ã¸ã®ãƒ‘ã‚¹
+        //! @param psPath    [in] ãƒ”ã‚¯ã‚»ãƒ«ã‚·ã‚§ãƒ¼ãƒ€ãƒ¼ï¼ˆ.hlslï¼‰ã¸ã®ãƒ‘ã‚¹
+        //! @param outShader [in] å‡ºåŠ›å…ˆã® Shader ã‚ªãƒ–ã‚¸ã‚§ã‚¯ãƒˆ
+        //! @return true: æˆåŠŸ, false: å¤±æ•—
         //------------------------------------------------------------
         static bool LoadFromFile(ID3D11Device* device, const std::wstring& vsPath, const std::wstring& psPath, Shader& outShader);
 
     private:
         //------------------------------------------------------------
-        // HLSL ‚ğƒRƒ“ƒpƒCƒ‹‚·‚é“à•”ŠÖ”
-        //! @param filePath   [in] HLSL ƒtƒ@ƒCƒ‹ƒpƒX
-        //! @param entryPoint [in] ƒGƒ“ƒgƒŠ[ƒ|ƒCƒ“ƒgi—á: "main"j
-        //! @param target     [in]ƒ^[ƒQƒbƒgƒvƒƒtƒ@ƒCƒ‹i—á: "vs_5_0"j
-        //! @param outBlob    [in]ƒRƒ“ƒpƒCƒ‹Œ‹‰Ê‚ÌƒoƒCƒgƒR[ƒh
-        //! @return true: ¬Œ÷, false: ¸”s
+        // HLSL ã‚’ã‚³ãƒ³ãƒ‘ã‚¤ãƒ«ã™ã‚‹å†…éƒ¨é–¢æ•°
+        //! @param filePath   [in] HLSL ãƒ•ã‚¡ã‚¤ãƒ«ãƒ‘ã‚¹
+        //! @param entryPoint [in] ã‚¨ãƒ³ãƒˆãƒªãƒ¼ãƒã‚¤ãƒ³ãƒˆï¼ˆä¾‹: "main"ï¼‰
+        //! @param target     [in]ã‚¿ãƒ¼ã‚²ãƒƒãƒˆãƒ—ãƒ­ãƒ•ã‚¡ã‚¤ãƒ«ï¼ˆä¾‹: "vs_5_0"ï¼‰
+        //! @param outBlob    [in]ã‚³ãƒ³ãƒ‘ã‚¤ãƒ«çµæœã®ãƒã‚¤ãƒˆã‚³ãƒ¼ãƒ‰
+        //! @return true: æˆåŠŸ, false: å¤±æ•—
         //------------------------------------------------------------
         static bool CompileShader(const std::wstring& filePath, const char* entryPoint, const char* target, Microsoft::WRL::ComPtr<ID3DBlob>& outBlob);
     };

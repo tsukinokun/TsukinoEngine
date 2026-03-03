@@ -1,124 +1,124 @@
-//--------------------------------------------------------------
+ï»¿//--------------------------------------------------------------
 //! @file   Matrix.hpp
-//! @brief  s—ñƒNƒ‰ƒX‚Ì’è‹`
-//! @author Rú±ˆ¤
+//! @brief  è¡Œåˆ—ã‚¯ãƒ©ã‚¹ã®å®šç¾©
+//! @author å±±ï¨‘æ„›
 //--------------------------------------------------------------
 #pragma once
 #include <hlsl++.h>
-// –¼‘O‹óŠÔ : Tsukino::Core::Math
+// åå‰ç©ºé–“ : Tsukino::Core::Math
 namespace Tsukino::Core::Math {
     //--------------------------------------------------------------
     //! @class  matrix
-    //! @brief  s—ñƒNƒ‰ƒX
+    //! @brief  è¡Œåˆ—ã‚¯ãƒ©ã‚¹
     //--------------------------------------------------------------
     class matrix : public hlslpp::float4x4 {
     public:
         //--------------------------------------------------------------
-        //@brief  Œp³ƒRƒ“ƒXƒgƒ‰ƒNƒ^
+        //@brief  ç¶™æ‰¿ã‚³ãƒ³ã‚¹ãƒˆãƒ©ã‚¯ã‚¿
         //--------------------------------------------------------------
         using hlslpp::float4x4::float4x4;
 
         //--------------------------------------------------------------
-        //@brief  ƒRƒ“ƒXƒgƒ‰ƒNƒ^
+        //@brief  ã‚³ãƒ³ã‚¹ãƒˆãƒ©ã‚¯ã‚¿
         //--------------------------------------------------------------
         matrix(const hlslpp::float4x4& m)
             : hlslpp::float4x4(m) {}
 
         //----------------------------------------------------------
-        //! @name   s—ñì¬
+        //! @name   è¡Œåˆ—ä½œæˆ
         //----------------------------------------------------------
         //@{
 
         //--------------------------------------------------------------
-        //@brief  ’PˆÊs—ñ
+        //@brief  å˜ä½è¡Œåˆ—
         //--------------------------------------------------------------
         static [[nodiscard]] matrix identity();
 
         //--------------------------------------------------------------
-        // •½sˆÚ“®s—ñ
-        //! @param  [in]    v   ˆÚ“®ƒxƒNƒgƒ‹
+        // å¹³è¡Œç§»å‹•è¡Œåˆ—
+        //! @param  [in]    v   ç§»å‹•ãƒ™ã‚¯ãƒˆãƒ«
         //--------------------------------------------------------------
         static [[nodiscard]] matrix translate(const hlslpp::float3& v);
         static [[nodiscard]] matrix translate(float x, float y, float z);
 
         //--------------------------------------------------------------
-        // ƒXƒP[ƒ‹s—ñ
-        //! @param  [in]    s   ƒXƒP[ƒ‹’l
+        // ã‚¹ã‚±ãƒ¼ãƒ«è¡Œåˆ—
+        //! @param  [in]    s   ã‚¹ã‚±ãƒ¼ãƒ«å€¤
         //--------------------------------------------------------------
         static [[nodiscard]] matrix scale(const hlslpp::float3& s);
         static [[nodiscard]] matrix scale(float sx, float sy, float sz);
         static [[nodiscard]] matrix scale(float s);
 
         //--------------------------------------------------------------
-        // X²’†S‚Ì‰ñ“]s—ñ
-        //! @param  [in]    radian  ‰ñ“]Šp“x
+        // Xè»¸ä¸­å¿ƒã®å›è»¢è¡Œåˆ—
+        //! @param  [in]    radian  å›è»¢è§’åº¦
         //! @see https://ja.wikipedia.org/wiki/%E5%9B%9E%E8%BB%A2%E8%A1%8C%E5%88%97
         //--------------------------------------------------------------
         static [[nodiscard]] matrix rotateX(float radian);
 
         //--------------------------------------------------------------
-        // Y²’†S‚Ì‰ñ“]s—ñ
-        //! @param  [in]    radian  ‰ñ“]Šp“x
+        // Yè»¸ä¸­å¿ƒã®å›è»¢è¡Œåˆ—
+        //! @param  [in]    radian  å›è»¢è§’åº¦
         //--------------------------------------------------------------
         static [[nodiscard]] matrix rotateY(float radian);
 
         //--------------------------------------------------------------
-        // Z²’†S‚Ì‰ñ“]s—ñ
-        //! @param  [in]    radian  ‰ñ“]Šp“x
+        // Zè»¸ä¸­å¿ƒã®å›è»¢è¡Œåˆ—
+        //! @param  [in]    radian  å›è»¢è§’åº¦
         //--------------------------------------------------------------
         static [[nodiscard]] matrix rotateZ(float radian);
 
         //--------------------------------------------------------------
-        // ”CˆÓ²’†S‚Ì‰ñ“]s—ñ
-        //! @param  [in]    axis    ‰ñ“]‚Ì’†S²
-        //! @param  [in]    radian  ‰ñ“]Šp“x
+        // ä»»æ„è»¸ä¸­å¿ƒã®å›è»¢è¡Œåˆ—
+        //! @param  [in]    axis    å›è»¢ã®ä¸­å¿ƒè»¸
+        //! @param  [in]    radian  å›è»¢è§’åº¦
         //--------------------------------------------------------------
         static [[nodiscard]] matrix rotateAxis(const hlslpp::float3& axis, float radian);
 
         //--------------------------------------------------------------
-        // [¶èÀ•WŒn] ƒrƒ…[s—ñ
-        //! @param  [in]    eye         ‹“_À•W
-        //! @param  [in]    look_at     ’‹“_
-        //! @param  [in]    world_up    ¢ŠE‚Ìã•ûŒü‚ÌƒxƒNƒgƒ‹(default:(0.0f, 1.0f, 0.0f))
+        // [å·¦æ‰‹åº§æ¨™ç³»] ãƒ“ãƒ¥ãƒ¼è¡Œåˆ—
+        //! @param  [in]    eye         è¦–ç‚¹åº§æ¨™
+        //! @param  [in]    look_at     æ³¨è¦–ç‚¹
+        //! @param  [in]    world_up    ä¸–ç•Œã®ä¸Šæ–¹å‘ã®ãƒ™ã‚¯ãƒˆãƒ«(default:(0.0f, 1.0f, 0.0f))
         //--------------------------------------------------------------
         static [[nodiscard]] matrix lookAtLH(const hlslpp::float3& eye,
                                              const hlslpp::float3& look_at,
                                              const hlslpp::float3& world_up = hlslpp::float3(0.0f, 1.0f, 0.0f));
 
         //--------------------------------------------------------------
-        // [¶èÀ•WŒn] “Š‰es—ñ
-        //! @param  [in]    fovy            ‰æŠp(’PˆÊ:radian)
-        //! @param  [in]    aspect_ratio    ƒAƒXƒyƒNƒg”ä
-        //! @param  [in]    near_z          ‹ßƒNƒŠƒbƒvZ’l
-        //! @param  [in]    far_z           ‰“ƒNƒŠƒbƒvZ’l
-        //! @note InverseZ‚É‚µ‚½‚¢ê‡‚ÍnearZ‚Ì’l‚ÆfarZ‚Ì’l‚ğŒğŠ·‚µ‚Äw’èB
+        // [å·¦æ‰‹åº§æ¨™ç³»] æŠ•å½±è¡Œåˆ—
+        //! @param  [in]    fovy            ç”»è§’(å˜ä½:radian)
+        //! @param  [in]    aspect_ratio    ã‚¢ã‚¹ãƒšã‚¯ãƒˆæ¯”
+        //! @param  [in]    near_z          è¿‘ã‚¯ãƒªãƒƒãƒ—Zå€¤
+        //! @param  [in]    far_z           é ã‚¯ãƒªãƒƒãƒ—Zå€¤
+        //! @note InverseZã«ã—ãŸã„å ´åˆã¯nearZã®å€¤ã¨farZã®å€¤ã‚’äº¤æ›ã—ã¦æŒ‡å®šã€‚
         //--------------------------------------------------------------
         static [[nodiscard]] matrix perspectiveFovLH(float fovy, float aspect_ratio, float near_z, float far_z);
 
         //--------------------------------------------------------------
-        // [¶èÀ•WŒn] –³ŒÀ‰““Š‰es—ñ
+        // [å·¦æ‰‹åº§æ¨™ç³»] ç„¡é™é æŠ•å½±è¡Œåˆ—
         //!
-        //! ‰“ƒNƒŠƒbƒv–Ê‚ğ”p~‚µ‚Ä–³ŒÀ‰“‚Ü‚Å•`‰æ‰Â”\‚É‚·‚és—ñB
-        //! •‚“®¬”“_‚ÌŠÛ‚ßŒë·‚ğ’áŒ¸BZ=0.0f‚Å•`‰æ‚·‚é‚Æ–³ŒÀ‰“B
+        //! é ã‚¯ãƒªãƒƒãƒ—é¢ã‚’å»ƒæ­¢ã—ã¦ç„¡é™é ã¾ã§æç”»å¯èƒ½ã«ã™ã‚‹è¡Œåˆ—ã€‚
+        //! æµ®å‹•å°æ•°ç‚¹ã®ä¸¸ã‚èª¤å·®ã‚’ä½æ¸›ã€‚Z=0.0fã§æç”»ã™ã‚‹ã¨ç„¡é™é ã€‚
         //!
-        //! @param  [in]    fovy         ‰æŠp(’PˆÊ:radian)
-        //! @param  [in]    aspect_ratio ƒAƒXƒyƒNƒg”ä
-        //! @param  [in]    near_z       ‹ßƒNƒŠƒbƒvZ’l
+        //! @param  [in]    fovy         ç”»è§’(å˜ä½:radian)
+        //! @param  [in]    aspect_ratio ã‚¢ã‚¹ãƒšã‚¯ãƒˆæ¯”
+        //! @param  [in]    near_z       è¿‘ã‚¯ãƒªãƒƒãƒ—Zå€¤
         //!
-        //! @see GDC'07 uProjection Matrix Tricksv
-        //! @attention InverseZ‘O’ñ‚Ì“Š‰e‚É‚É‚È‚é‚½‚ß’ˆÓB
+        //! @see GDC'07 ã€ŒProjection Matrix Tricksã€
+        //! @attention InverseZå‰æã®æŠ•å½±ã«ã«ãªã‚‹ãŸã‚æ³¨æ„ã€‚
         //--------------------------------------------------------------
         static [[nodiscard]] matrix perspectiveFovInfiniteFarPlaneLH(float fovy, float aspect_ratio, float near_z);
 
         //--------------------------------------------------------------
-        // [¶èÀ•WŒn] •½s“Š‰es—ñ
-        //! @param  [in]    left        ¶‘¤‚Ì•
-        //! @param  [in]    right       ‰E‘¤‚Ì•
-        //! @param  [in]    bottom      ‰º‘¤‚Ì•
-        //! @param  [in]    top         ã‘¤‚Ì•
-        //! @param  [in]    near_z      ‹ßƒNƒŠƒbƒvZ’l
-        //! @param  [in]    far_z       ‰“ƒNƒŠƒbƒvZ’l
-        //! @note InverseZ‚É‚µ‚½‚¢ê‡‚ÍnearZ‚Ì’l‚ÆfarZ‚Ì’l‚ğŒğŠ·‚µ‚Äw’èB
+        // [å·¦æ‰‹åº§æ¨™ç³»] å¹³è¡ŒæŠ•å½±è¡Œåˆ—
+        //! @param  [in]    left        å·¦å´ã®å¹…
+        //! @param  [in]    right       å³å´ã®å¹…
+        //! @param  [in]    bottom      ä¸‹å´ã®å¹…
+        //! @param  [in]    top         ä¸Šå´ã®å¹…
+        //! @param  [in]    near_z      è¿‘ã‚¯ãƒªãƒƒãƒ—Zå€¤
+        //! @param  [in]    far_z       é ã‚¯ãƒªãƒƒãƒ—Zå€¤
+        //! @note InverseZã«ã—ãŸã„å ´åˆã¯nearZã®å€¤ã¨farZã®å€¤ã‚’äº¤æ›ã—ã¦æŒ‡å®šã€‚
         //--------------------------------------------------------------
         static [[nodiscard]] matrix orthographicOffCenterLH(float left, float right, float bottom, float top, float near_z, float far_z);
         //@}
