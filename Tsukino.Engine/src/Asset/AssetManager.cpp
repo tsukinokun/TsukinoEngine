@@ -8,6 +8,8 @@
 #include <Tsukino/Engine/Asset/IAssetLoader.hpp>
 #include <Tsukino/Engine/Asset/Util/AssetHandleGenerator.hpp>
 #include <Tsukino/Engine/Asset/Shader/ShaderLoader.hpp>
+
+#include <Tsukino/Core/Log.hpp>
 // 名前空間 : Tsukino::Asset
 namespace Tsukino::Asset {
     AssetMap                                      AssetManager::s_Assets;     // アセットマップの定義
@@ -75,6 +77,14 @@ namespace Tsukino::Asset {
     }
 
     //--------------------------------------------------------------
+    //! @brief 任意のアセットハンドルからアセットを取得する関数
+    //--------------------------------------------------------------
+    Tsukino::Core::Ref<IAsset> AssetManager::Get(AssetHandle handle) {
+        auto it = s_Assets.find(handle.Value());
+        return it != s_Assets.end() ? it->second : nullptr;
+    }
+
+    //--------------------------------------------------------------
     //! @brief アセットハンドルが存在するか確認する関数
     //--------------------------------------------------------------
     bool AssetManager::Exists(AssetHandle handle) {
@@ -82,11 +92,25 @@ namespace Tsukino::Asset {
     }
 
     //--------------------------------------------------------------
-    //! @brief 任意のアセットハンドルからアセットを取得する関数
+    //! @brief インポーターを登録する関数
     //--------------------------------------------------------------
-    Tsukino::Core::Ref<IAsset> AssetManager::Get(AssetHandle handle) {
-        auto it = s_Assets.find(handle.Value());
-        return it != s_Assets.end() ? it->second : nullptr;
+    void AssetManager::RegisterImporter(AssetType type, Tsukino::Core::Ref<IAssetImporter> importer) {
+        // インポーターが null でないことを確認
+        if(!importer) {
+            Tsukino::Core::Log::Error(std::format("AssetManager::RegisterImporter - Importer is null for AssetType {}", (int)type));
+            return;
+        }
+
+        // すでに同じAssetTypeのインポーターが登録されている場合は警告を出す
+        if(s_Importers.contains(type)) {
+            Tsukino::Core::Log::Warn(std::format("AssetManager::RegisterImporter - Importer for AssetType {} is already registered. Overwriting.", (int)type));
+        }
+
+        // インポーターを登録
+        s_Importers[type] = importer;
+
+        // ログ出力
+        Tsukino::Core::Log::Info(std::format("Registered importer for AssetType {}", (int)type));
     }
 
     //--------------------------------------------------------------
