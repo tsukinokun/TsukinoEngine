@@ -3,7 +3,7 @@
 //! @brief  テクスチャのインポータークラスの実装
 //! @author 山﨑愛
 //--------------------------------------------------------------
-#include <Tsukino/Engine/Asset/Import/TextureImporter.hpp>
+#include <Tsukino/Engine/Asset/Texture/TextureImporter.hpp>
 // 名前空間 : Tsukino::Asset
 namespace Tsukino::Asset {
     //--------------------------------------------------------------

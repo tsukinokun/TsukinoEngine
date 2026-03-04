@@ -7,7 +7,7 @@
 #include <Tsukino/Engine/Asset/AssetType.hpp>
 #include <Tsukino/Engine/Asset/AssetHandle.hpp>
 #include <Tsukino/Engine/Asset/AssetMap.hpp>
-#include <Tsukino/Engine/Asset/Import/IAssetImporter.hpp>
+#include <Tsukino/Engine/Asset/IAssetImporter.hpp>
 
 #include <Tsukino/Core/Path.hpp>
 #include <Tsukino/Core/Memory.hpp>
