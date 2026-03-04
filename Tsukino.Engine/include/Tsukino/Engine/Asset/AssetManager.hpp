@@ -78,6 +78,9 @@ namespace Tsukino::Asset {
 
         // LoaderもAssetManagerが共有所有
         static std::vector<Tsukino::Core::Ref<IAssetLoader>> s_Loaders;
+
+        // ImporterもAssetManagerが共有所有
+        static std::unordered_map<AssetType, Tsukino::Core::Ref<IAssetImporter>> s_Importers;
     };
 
 }    // namespace Tsukino::Asset
