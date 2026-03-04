@@ -4,14 +4,17 @@
 //! @author 山﨑愛
 //--------------------------------------------------------------
 #pragma once
-#include <unordered_map>
-#include <vector>
-#include <memory>
+#include <Tsukino/Engine/Asset/AssetType.hpp>
+#include <Tsukino/Engine/Asset/AssetHandle.hpp>
+#include <Tsukino/Engine/Asset/AssetMap.hpp>
+#include <Tsukino/Engine/Asset/Import/IAssetImporter.hpp>
 
 #include <Tsukino/Core/Path.hpp>
 #include <Tsukino/Core/Memory.hpp>
-#include <Tsukino/Engine/Asset/AssetHandle.hpp>
-#include <Tsukino/Engine/Asset/AssetMap.hpp>
+
+#include <unordered_map>
+#include <vector>
+#include <memory>
 // 名前空間 : Tsukino::Asset
 namespace Tsukino::Asset {
     class IAsset;          // 前方宣言
@@ -55,6 +58,13 @@ namespace Tsukino::Asset {
         //--------------------------------------------------------------
         [[nodiscard]]
         static bool Exists(AssetHandle handle);
+
+        //--------------------------------------------------------------
+        //! @brief  インポーターを登録する関数
+        //! @param  type     [in] 登録するインポーターが対応するアセットの種類
+        //! @param  importer [in] 登録するインポーターのshared_ptr
+        //--------------------------------------------------------------
+        static void RegisterImporter(AssetType type, Tsukino::Core::Ref<IAssetImporter> importer);
 
     private:
         //--------------------------------------------------------------
