@@ -4,7 +4,7 @@
 //! @author 山﨑愛
 //--------------------------------------------------------------
 #pragma once
-#include <Tsukino/Engine/Asset/Import/IAssetImporter.hpp>
+#include <Tsukino/Engine/Asset/IAssetImporter.hpp>
 // 名前空間 : Tsukino::Asset
 namespace Tsukino::Asset {
     //--------------------------------------------------------------
