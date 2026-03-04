@@ -4,7 +4,6 @@ workspace "TsukinoEngine"                   -- ソリューション名
 
     startproject "Sandbox"                  -- スタートアッププロジェクト
     location ".build"                       -- ビルドファイルの出力先 
-    forceincludes { "pch.h" }               -- 全プロジェクト共通の強制インクルード
     
     filter "configurations:Debug" 
         optimize "Off" 
@@ -28,14 +27,32 @@ project "DirectXTex"
     language "C++"
     cppdialect "C++17"
 
+    -- PCH も一旦やめて、素の状態にする
+    flags { "NoPCH" }
+
     files {
         "External/DirectXTex/DirectXTex/*.h",
-        "External/DirectXTex/DirectXTex/*.cpp"
+        "External/DirectXTex/DirectXTex/*.inl",
+        "External/DirectXTex/DirectXTex/*.cpp",
+        "External/DirectXTex/Common/*.h",
+    }
+
+    -- GPU / Compute Shader 関連は全部切る
+    removefiles {
+        "External/DirectXTex/DirectXTex/BCDirectCompute.cpp",
+        "External/DirectXTex/DirectXTex/DirectXTexCompressGPU.cpp",
+        "External/DirectXTex/DirectXTex/DirectXTexD3D12.cpp"
     }
 
     includedirs {
-        "External/DirectXTex"
+        "External/DirectXTex/DirectXTex",
+        "External/DirectXTex/Common",
     }
+
+    filter "system:windows"
+        defines { "WIN32", "_WIN32_WINNT=0x0A00" }
+    filter {}
+
 
 ----------------------------------------
 -- コアプロジェクト
@@ -45,6 +62,8 @@ project "Tsukino.Core"
     kind "StaticLib"
     language "C++"
     cppdialect "C++20"
+    forceincludes { "pch.h" }               -- 強制インクルード
+
 
     pchheader "pch.h" 
     pchsource "Tsukino.Core/pch.cpp"
@@ -72,6 +91,7 @@ project "Tsukino.Engine"
     kind "StaticLib"
     language "C++"
     cppdialect "C++20"
+    forceincludes { "pch.h" }               -- 強制インクルード
 
     pchheader "pch.h" 
     pchsource "Tsukino.Engine/pch.cpp"
@@ -106,6 +126,7 @@ project "Tsukino.Renderer"
     kind "StaticLib"
     language "C++"
     cppdialect "C++20"
+    forceincludes { "pch.h" }               -- 強制インクルード
 
     pchheader "pch.h" 
     pchsource "Tsukino.Renderer/pch.cpp"
@@ -136,6 +157,7 @@ project "Tsukino.Physics"
     kind "StaticLib"
     language "C++"
     cppdialect "C++20"
+    forceincludes { "pch.h" }               -- 強制インクルード
 
     pchheader "pch.h"
     pchsource "Tsukino.Physics/pch.cpp"
@@ -166,6 +188,7 @@ project "Tsukino.Sandbox"
     kind "WindowedApp"   
     language "C++"
     cppdialect "C++20"
+    forceincludes { "pch.h" }               -- 強制インクルード
 
     pchheader "pch.h"
     pchsource "Tsukino.Sandbox/pch.cpp"

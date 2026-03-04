@@ -50,7 +50,12 @@ namespace Tsukino::Core {
         //--------------------------------------------------------------
         std::string extension() const { return std::filesystem::path(m_path).extension().string(); }
 
-        
+        //--------------------------------------------------------------
+        //! @brief  パスをwide string (UTF-16) に変換して取得する関数
+        //! @return UTF-16 のパス文字列
+        //--------------------------------------------------------------
+        std::wstring ToWString() const { return std::filesystem::path(m_path).wstring(); }
+
         //-----------------------------------------------------------
         //! @brief  パスを結合する演算子
         //! @param  rhs [in] 結合するパス要素
