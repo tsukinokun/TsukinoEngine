@@ -19,6 +19,24 @@ workspace "TsukinoEngine"                   -- ソリューション名
         symbols "On" 
         
     filter {}
+
+----------------------------------------
+-- DirectXTexプロジェクトを追加
+----------------------------------------
+project "DirectXTex"
+    kind "StaticLib"
+    language "C++"
+    cppdialect "C++17"
+
+    files {
+        "External/DirectXTex/DirectXTex/*.h",
+        "External/DirectXTex/DirectXTex/*.cpp"
+    }
+
+    includedirs {
+        "External/DirectXTex"
+    }
+
 ----------------------------------------
 -- コアプロジェクト
 ----------------------------------------
@@ -71,11 +89,13 @@ project "Tsukino.Engine"
         "Tsukino.Engine/include",
         "Tsukino.Core/include",
         "External/hlslpp/include", 
-        "External/entt/single_include"
+        "External/entt/single_include",
+        "External/DirectXTex"
     }
 
     links {
-        "Tsukino.Core"
+        "Tsukino.Core",
+        "DirectXTex"
     }
 
 ----------------------------------------
