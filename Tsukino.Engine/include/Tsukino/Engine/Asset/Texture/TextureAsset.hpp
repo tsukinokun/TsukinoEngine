@@ -1,45 +1,34 @@
 ﻿//--------------------------------------------------------------
-//! @file   ShaderAsset.hpp
-//! @brief  シェーダアセットクラスの宣言
+//! @file   TextureAsset.hpp
+//! @brief  テクスチャアセットクラスの宣言
 //! @author 山﨑愛
 //--------------------------------------------------------------
 #pragma once
 #include <Tsukino/Engine/Asset/IAsset.hpp>
-#include <Tsukino/Engine/Asset/AssetType.hpp>
-#include <Tsukino/Engine/Asset/AssetHandle.hpp>
 
-#include <string>
+#include <dxgiformat.h>
+
+#include <vector>
+#include <cstdint>
 // 名前空間 Tsukino::Asset
 namespace Tsukino::Asset {
-
     //--------------------------------------------------------------
-    //! @class  ShaderAsset
-    //! @brief  HLSL シェーダアセット（CPU 側データ）
+    //! @class  TextureAsset
+    //! @brief  テクスチャアセット
     //--------------------------------------------------------------
-    class ShaderAsset : public IAsset {
+    class TextureAsset : public IAsset {
     public:
         //--------------------------------------------------------------
-        //! @brief デフォルトコンストラクタ
-        //--------------------------------------------------------------
-        ShaderAsset() = default;
-
-        //--------------------------------------------------------------
-        //! @brief  アセットのハンドルを取得
+        //! @brief ハンドルを取得する関数
         //! @return アセットのハンドル
         //--------------------------------------------------------------
-        [[nodiscard]]
-        AssetHandle GetHandle() const override {
-            return m_handle;
-        }
+        AssetHandle GetHandle() const override { return m_handle; }
 
         //--------------------------------------------------------------
-        //! @brief  アセットの種類を取得
+        //! @brief アセットの種類を取得する関数
         //! @return アセットの種類
         //--------------------------------------------------------------
-        [[nodiscard]]
-        AssetType GetType() const override {
-            return AssetType::Shader;
-        }
+        AssetType GetType() const override { return AssetType::Texture; }
 
         //--------------------------------------------------------------
         //! @brief  ローダー側から設定されるハンドル
@@ -47,12 +36,10 @@ namespace Tsukino::Asset {
         //--------------------------------------------------------------
         void SetHandle(AssetHandle handle) { m_handle = handle; }
 
-        // エントリーポイント名
-        std::string entryVS = "VSMain";
-        std::string entryPS = "PSMain";
-
-        std::string source;      // HLSL ソースコード
-        std::string filePath;    // 元ファイルのパス
+        uint32_t             width  = 0;                      // テクスチャの幅
+        uint32_t             height = 0;                      // テクスチャの高さ
+        DXGI_FORMAT          format = DXGI_FORMAT_UNKNOWN;    // テクスチャのフォーマット
+        std::vector<uint8_t> pixels;                          // テクスチャのピクセルデータ（RGBA8 形式など）
 
     private:
         AssetHandle m_handle = AssetHandle::Invalid();    // アセットのハンドル
