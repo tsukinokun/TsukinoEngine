@@ -23,6 +23,7 @@ workspace "TsukinoEngine"                   -- ソリューション名
 -- DirectXTexプロジェクトを追加
 ----------------------------------------
 project "DirectXTex"
+    location ".build/DirectXTex"
     kind "StaticLib"
     language "C++"
     cppdialect "C++17"
