@@ -8,18 +8,28 @@
 #include <Tsukino/Engine/Asset/IAssetLoader.hpp>
 #include <Tsukino/Engine/Asset/Util/AssetHandleGenerator.hpp>
 #include <Tsukino/Engine/Asset/Shader/ShaderLoader.hpp>
+#include <Tsukino/Engine/Asset/Texture/TextureImporter.hpp>
 
 #include <Tsukino/Core/Log.hpp>
 // 名前空間 : Tsukino::Asset
 namespace Tsukino::Asset {
-    AssetMap                                      AssetManager::s_Assets;     // アセットマップの定義
-    std::vector<Tsukino::Core::Ref<IAssetLoader>> AssetManager::s_Loaders;    // ローダーリストの定義
+    AssetMap                                                          AssetManager::s_Assets;       // アセットマップの定義
+    std::vector<Tsukino::Core::Ref<IAssetLoader>>                     AssetManager::s_Loaders;      // ローダーリストの定義
+    std::unordered_map<AssetType, Tsukino::Core::Ref<IAssetImporter>> AssetManager::s_Importers;    // インポーターの定義
 
     //--------------------------------------------------------------
     //! @brief AssetManagerを初期化する関数
     //--------------------------------------------------------------
     void AssetManager::Initialize() {
+        //--------------------------------------------------------------
+        // ローダー登録
+        //--------------------------------------------------------------
         RegisterLoader(Tsukino::Core::CreateRef<ShaderLoader>());    // シェーダローダーを登録
+
+        //--------------------------------------------------------------
+        // インポーター登録
+        //--------------------------------------------------------------
+        RegisterImporter(AssetType::Texture, Tsukino::Core::CreateRef<TextureImporter>());    // テクスチャインポーターを登録
     }
 
     //--------------------------------------------------------------
@@ -39,6 +49,21 @@ namespace Tsukino::Asset {
         //--------------------------------------------------------------
         std::string ext = path.extension();                                // 拡張子を取得
         std::transform(ext.begin(), ext.end(), ext.begin(), ::tolower);    //拡張子を小文字化
+
+        //--------------------------------------------------------------
+        // インポーター探索
+        //--------------------------------------------------------------
+        ImporterMap::iterator importerIt = s_Importers.find(GetAssetTypeFromExtension(ext));    // 拡張子からアセットの種類を取得してインポーターを検索
+        // 対応するインポーターが見つかった場合はインポーターを使ってインポートを試みる
+        if(importerIt != s_Importers.end()) {
+            Tsukino::Core::Ref<IAssetImporter> importer = importerIt->second;
+            Tsukino::Core::Ref<IAsset>         asset    = importer->Import(path);
+            if(asset) {
+                AssetHandle handle = AssetHandleGenerator::Generate();
+                s_Assets.insert({handle.Value(), asset});
+                return handle;
+            }
+        }
 
         //--------------------------------------------------------------
         // ローダー探索
@@ -118,5 +143,44 @@ namespace Tsukino::Asset {
     //--------------------------------------------------------------
     void AssetManager::RegisterLoader(Tsukino::Core::Ref<IAssetLoader> loader) {
         s_Loaders.push_back(loader);
+    }
+
+    //--------------------------------------------------------------
+    //! @brief  拡張子からアセットの種類を取得する関数
+    //--------------------------------------------------------------
+    AssetType AssetManager::GetAssetTypeFromExtension(const std::string& ext) {
+        // 拡張子とアセットの種類のテーブル
+        static const std::unordered_map<std::string, AssetType> extensionToAssetType = {
+            // Texture
+            {".png",    AssetType::Texture},
+            {".jpg",    AssetType::Texture},
+            {".jpeg",   AssetType::Texture},
+            {".bmp",    AssetType::Texture},
+            {".tga",    AssetType::Texture},
+            {".dds",    AssetType::Texture},
+
+            // Shader
+            {".shader", AssetType::Shader },
+            {".hlsl",   AssetType::Shader },
+
+            // Mesh
+            {".obj",    AssetType::Mesh   },
+            {".fbx",    AssetType::Mesh   },
+            {".gltf",   AssetType::Mesh   },
+            {".glb",    AssetType::Mesh   },
+
+            // Audio
+            {".wav",    AssetType::Audio  },
+            {".mp3",    AssetType::Audio  },
+            {".ogg",    AssetType::Audio  },
+            {".flac",   AssetType::Audio  },
+        };
+
+        // テーブルから拡張子に対応するアセットの種類を取得
+        if(auto it = extensionToAssetType.find(ext); it != extensionToAssetType.end())
+            return it->second;
+
+        // 対応する種類がない場合はNoneを返す
+        return AssetType::None;
     }
 }    // namespace Tsukino::Asset

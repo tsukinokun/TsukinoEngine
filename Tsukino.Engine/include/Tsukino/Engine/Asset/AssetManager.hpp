@@ -73,14 +73,25 @@ namespace Tsukino::Asset {
         //--------------------------------------------------------------
         static void RegisterLoader(Tsukino::Core::Ref<IAssetLoader> loader);
 
+        //--------------------------------------------------------------
+        //! @brief  拡張子からアセットの種類を取得する関数
+        //! @param  ext [in] 拡張子
+        //! @return 拡張子に対応するアセットの種類。
+        //! @note   対応する種類がない場合は AssetType::None を返す。
+        //--------------------------------------------------------------
+        static AssetType GetAssetTypeFromExtension(const std::string& ext);
+
         // AssetManagerがアセットの共有所有者
         static AssetMap s_Assets;
 
         // LoaderもAssetManagerが共有所有
         static std::vector<Tsukino::Core::Ref<IAssetLoader>> s_Loaders;
 
+        // AssetTypeごとにインポーターを管理するマップのエイリアス
+        using ImporterMap = std::unordered_map<AssetType, Tsukino::Core::Ref<IAssetImporter>>;
+
         // ImporterもAssetManagerが共有所有
-        static std::unordered_map<AssetType, Tsukino::Core::Ref<IAssetImporter>> s_Importers;
+        static ImporterMap s_Importers;
     };
 
 }    // namespace Tsukino::Asset
