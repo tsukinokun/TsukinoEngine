@@ -15,10 +15,11 @@ namespace Tsukino::Asset {
     public:
         //--------------------------------------------------------------
         //! @brief  テクスチャアセットをインポートする関数
-        //! @param  path [in] インポートするテクスチャアセットのパス
+        //! @param  path            [in] インポートするテクスチャアセットのパス
+        //! @param  outPutDirectory [in] 出力先ディレクトリ
         //! @return インポートされたテクスチャアセットの参照
         //--------------------------------------------------------------
-        Tsukino::Core::Ref<IAsset> Import(const Tsukino::Core::Path& path) override;
+        bool Import(const Tsukino::Core::Path& inPutPath, const Tsukino::Core::Path& outPutDirectory) override;
     };
 
 }    // namespace Tsukino::Asset
