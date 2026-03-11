@@ -14,72 +14,13 @@ namespace Tsukino::Renderer {
     //! @brief レンダラーの初期化
     //------------------------------------------------------------
     bool Renderer::Initialize(HWND hwnd, uint32_t width, uint32_t height) {
-        // スワップチェイン設定
-        DXGI_SWAP_CHAIN_DESC scDesc{};
-        scDesc.BufferCount       = 1;
-        scDesc.BufferDesc.Width  = width;
-        scDesc.BufferDesc.Height = height;
-        scDesc.BufferDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
-        scDesc.BufferUsage       = DXGI_USAGE_RENDER_TARGET_OUTPUT;
-        scDesc.OutputWindow      = hwnd;
-        scDesc.SampleDesc.Count  = 1;
-        scDesc.Windowed          = TRUE;
-        scDesc.SwapEffect        = DXGI_SWAP_EFFECT_DISCARD;
-
-        UINT flags = 0;
-#if defined(_DEBUG)
-        flags |= D3D11_CREATE_DEVICE_DEBUG;
-#endif
-
-        D3D_FEATURE_LEVEL featureLevels[] = {
-            D3D_FEATURE_LEVEL_11_0,
-            D3D_FEATURE_LEVEL_10_0,
-        };
-        D3D_FEATURE_LEVEL createdLevel{};
-
-        // デバイス・コンテキスト・スワップチェイン作成
-        HRESULT hr = D3D11CreateDeviceAndSwapChain(nullptr,
-                                                   D3D_DRIVER_TYPE_HARDWARE,
-                                                   nullptr,
-                                                   flags,
-                                                   featureLevels,
-                                                   _countof(featureLevels),
-                                                   D3D11_SDK_VERSION,
-                                                   &scDesc,
-                                                   m_swapChain.GetAddressOf(),
-                                                   m_device.GetAddressOf(),
-                                                   &createdLevel,
-                                                   m_context.GetAddressOf());
-        if(FAILED(hr)) {
+        // グラフィックスコンテキストの初期化
+        if(!m_graphicsContext.Initialize(hwnd, width, height)) {
             return false;
         }
 
-        // バックバッファ取得
-        ComPtr<ID3D11Texture2D> backBuffer;
-        hr = m_swapChain->GetBuffer(0, __uuidof(ID3D11Texture2D), reinterpret_cast<void**>(backBuffer.GetAddressOf()));
-        if(FAILED(hr)) {
-            return false;
-        }
-
-        // RTV 作成
-        hr = m_device->CreateRenderTargetView(backBuffer.Get(), nullptr, m_rtv.GetAddressOf());
-        if(FAILED(hr)) {
-            return false;
-        }
-
-        // レンダーターゲット設定
-        m_context->OMSetRenderTargets(1, m_rtv.GetAddressOf(), nullptr);
-
-        // ビューポート設定
-        D3D11_VIEWPORT vp{};
-        vp.TopLeftX = 0.0f;
-        vp.TopLeftY = 0.0f;
-        vp.Width    = static_cast<float>(width);
-        vp.Height   = static_cast<float>(height);
-        vp.MinDepth = 0.0f;
-        vp.MaxDepth = 1.0f;
-
-        m_context->RSSetViewports(1, &vp);
+        ID3D11Device*        device  = m_graphicsContext.GetDevice();     // DirectXのDevice
+        ID3D11DeviceContext* context = m_graphicsContext.GetContext();    // DirectXのDeviceContext
 
         //------------------------------------------------------------
         // 三角形描画の準備を追加
@@ -98,13 +39,16 @@ namespace Tsukino::Renderer {
         };
 
         // 頂点バッファの作成
-        D3D11_BUFFER_DESC bd{};                                                                      // バッファの説明
-        bd.Usage     = D3D11_USAGE_DEFAULT;                                                          // 使用方法
-        bd.ByteWidth = sizeof(vertices);                                                             // バッファのサイズ
-        bd.BindFlags = D3D11_BIND_VERTEX_BUFFER;                                                     // 頂点バッファとして使用
-        D3D11_SUBRESOURCE_DATA initData{};                                                           // 初期データ
-        initData.pSysMem = vertices;                                                                 // 頂点データのポインタ
-        hr               = m_device->CreateBuffer(&bd, &initData, m_vertexBuffer.GetAddressOf());    // バッファの作成
+        D3D11_BUFFER_DESC bd{};                     // バッファの説明
+        bd.Usage     = D3D11_USAGE_DEFAULT;         // 使用方法
+        bd.ByteWidth = sizeof(vertices);            // バッファのサイズ
+        bd.BindFlags = D3D11_BIND_VERTEX_BUFFER;    // 頂点バッファとして使用
+        D3D11_SUBRESOURCE_DATA initData{};          // 初期データ
+        initData.pSysMem = vertices;                // 頂点データのポインタ
+
+        HRESULT hr;    // 結果コード
+
+        hr = device->CreateBuffer(&bd, &initData, m_vertexBuffer.GetAddressOf());    // バッファの作成
 
         if(FAILED(hr))
             return false;
@@ -128,12 +72,11 @@ namespace Tsukino::Renderer {
         if(FAILED(hr)) {
             if(errorBlob) {
                 OutputDebugStringA((char*)errorBlob->GetBufferPointer());
-                errorBlob->Release();
             }
             assert(false && "VS compile failed: check file path or syntax");
         }
         // 頂点シェーダー作成
-        hr = m_device->CreateVertexShader(vsBlob->GetBufferPointer(), vsBlob->GetBufferSize(), nullptr, m_vertexShader.GetAddressOf());
+        hr = device->CreateVertexShader(vsBlob->GetBufferPointer(), vsBlob->GetBufferSize(), nullptr, m_vertexShader.GetAddressOf());
         assert(SUCCEEDED(hr));
 
         // ピクセルシェーダー
@@ -155,7 +98,7 @@ namespace Tsukino::Renderer {
             assert(false && "PS compile failed: check file path or syntax");
         }
         // ピクセルシェーダー作成
-        hr = m_device->CreatePixelShader(psBlob->GetBufferPointer(), psBlob->GetBufferSize(), nullptr, m_pixelShader.GetAddressOf());
+        hr = device->CreatePixelShader(psBlob->GetBufferPointer(), psBlob->GetBufferSize(), nullptr, m_pixelShader.GetAddressOf());
         assert(SUCCEEDED(hr));
 
         // 入力レイアウト（POSITION: float3, COLOR: float4）
@@ -164,7 +107,7 @@ namespace Tsukino::Renderer {
             {"COLOR",    0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, UINT(3 * sizeof(float)), D3D11_INPUT_PER_VERTEX_DATA, 0},
         };
         // 入力レイアウト作成
-        hr = m_device->CreateInputLayout(layout, ARRAYSIZE(layout), vsBlob->GetBufferPointer(), vsBlob->GetBufferSize(), m_inputLayout.GetAddressOf());
+        hr = device->CreateInputLayout(layout, ARRAYSIZE(layout), vsBlob->GetBufferPointer(), vsBlob->GetBufferSize(), m_inputLayout.GetAddressOf());
         assert(SUCCEEDED(hr));
 
         //------------------------------------------------------------
@@ -180,12 +123,14 @@ namespace Tsukino::Renderer {
     //! @brief 定数バッファの作成
     //------------------------------------------------------------
     bool Renderer::CreateConstantBuffer() {
+        ID3D11Device* device = m_graphicsContext.GetDevice();    // DirectXのDevice
+
         D3D11_BUFFER_DESC desc = {};
         desc.ByteWidth         = sizeof(Tsukino::Renderer::CBufferTransform);
         desc.Usage             = D3D11_USAGE_DEFAULT;
         desc.BindFlags         = D3D11_BIND_CONSTANT_BUFFER;
 
-        HRESULT hr = m_device->CreateBuffer(&desc, nullptr, m_constantBuffer.GetAddressOf());
+        HRESULT hr = device->CreateBuffer(&desc, nullptr, m_constantBuffer.GetAddressOf());
         // 定数バッファの作成に失敗した場合はエラーログを出力
         if(FAILED(hr)) {
             Tsukino::Core::Log::Error("Failed to create constant buffer.");
@@ -199,7 +144,9 @@ namespace Tsukino::Renderer {
     //------------------------------------------------------------
     void Renderer::Render() {
         // 設定されたクリアカラーで画面をクリア
-        m_context->ClearRenderTargetView(m_rtv.Get(), m_clearColor.data());
+        m_graphicsContext.BeginFrame(m_clearColor[0], m_clearColor[1], m_clearColor[2], m_clearColor[3]);
+
+        ID3D11DeviceContext* context = m_graphicsContext.GetContext();
 
         //------------------------------------------------------------
         // 定数バッファの更新
@@ -210,28 +157,28 @@ namespace Tsukino::Renderer {
         //------------------------------------------------------------
         // 定数バッファの更新
         //------------------------------------------------------------
-        m_context->UpdateSubresource(m_constantBuffer.Get(), 0, nullptr, &cb, 0, 0);
+        context->UpdateSubresource(m_constantBuffer.Get(), 0, nullptr, &cb, 0, 0);
 
         //------------------------------------------------------------
         // 定数バッファを頂点シェーダにバインド
         //------------------------------------------------------------
-        m_context->VSSetConstantBuffers(0, 1, m_constantBuffer.GetAddressOf());
+        context->VSSetConstantBuffers(0, 1, m_constantBuffer.GetAddressOf());
 
         UINT stride = sizeof(float) * 7;    // Vertex のサイズ
         UINT offset = 0;
-        m_context->IASetVertexBuffers(0, 1, m_vertexBuffer.GetAddressOf(), &stride, &offset);
+        context->IASetVertexBuffers(0, 1, m_vertexBuffer.GetAddressOf(), &stride, &offset);
 
-        m_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+        context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
-        m_context->IASetInputLayout(m_inputLayout.Get());
-        m_context->VSSetShader(m_vertexShader.Get(), nullptr, 0);
-        m_context->PSSetShader(m_pixelShader.Get(), nullptr, 0);
+        context->IASetInputLayout(m_inputLayout.Get());
+        context->VSSetShader(m_vertexShader.Get(), nullptr, 0);
+        context->PSSetShader(m_pixelShader.Get(), nullptr, 0);
 
         // シェーダと入力レイアウトをセット（後で追加）
-        m_context->Draw(3, 0);
+        context->Draw(3, 0);
 
         // 表示
-        m_swapChain->Present(1, 0);
+        m_graphicsContext.EndFrame();
     }
 
     //------------------------------------------------------------
