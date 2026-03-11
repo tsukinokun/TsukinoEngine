@@ -51,6 +51,12 @@ namespace Tsukino::Core {
         std::string extension() const { return std::filesystem::path(m_path).extension().string(); }
 
         //--------------------------------------------------------------
+        //! @brief  拡張子を除いたファイル名を取得する関数
+        //! @return 拡張子なしのファイル名
+        //--------------------------------------------------------------
+        std::string stem() const { return std::filesystem::path(m_path).stem().string(); }
+
+        //--------------------------------------------------------------
         //! @brief  パスをwide string (UTF-16) に変換して取得する関数
         //! @return UTF-16 のパス文字列
         //--------------------------------------------------------------

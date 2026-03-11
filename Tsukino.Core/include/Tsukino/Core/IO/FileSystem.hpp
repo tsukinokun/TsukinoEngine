@@ -11,7 +11,7 @@
 // 名前空間 : Tsukino::IO
 namespace Tsukino::IO {
     //-------------------------------------------------------------
-    //! @class  FileSystem 
+    //! @class  FileSystem
     //! @brief  ファイルシステムクラス
     //-------------------------------------------------------------
     class FileSystem final {
@@ -38,6 +38,14 @@ namespace Tsukino::IO {
         //---------------------------------------------------------
         [[nodiscard]]
         static bool Exists(const Tsukino::Core::Path& path) noexcept;
+
+        //---------------------------------------------------------
+        //! @brief  ディレクトリを作成する
+        //! @param  path [in] 作成するディレクトリのパス
+        //! @return ディレクトリの作成に成功した場合は true、すでに存在する場合も true、失敗した場合は false
+        //---------------------------------------------------------
+        [[nodiscard]]
+        static bool CreateDirectories(const Tsukino::Core::Path& path);
     };
 
 }    // namespace Tsukino::IO

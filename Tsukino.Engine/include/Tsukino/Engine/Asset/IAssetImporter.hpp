@@ -22,9 +22,10 @@ namespace Tsukino::Asset {
 
         //--------------------------------------------------------------
         //! @brief  アセットをインポートする関数
-        //! @param  path [in] インポートするアセットのパス
+        //! @param  path            [in] インポートするアセットのパス
+        //! @param  outPutDirectory [in] インポートされたアセットの出力先ディレクトリ
         //! @return インポートされたアセットの参照
         //--------------------------------------------------------------
-        virtual Tsukino::Core::Ref<IAsset> Import(const Tsukino::Core::Path& path) = 0;
+        virtual bool Import(const Tsukino::Core::Path& inPutPath, const Tsukino::Core::Path& outPutDirectory) = 0;
     };
 }    // namespace Tsukino::Asset

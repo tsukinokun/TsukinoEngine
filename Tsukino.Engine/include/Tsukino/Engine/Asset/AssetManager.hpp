@@ -52,7 +52,7 @@ namespace Tsukino::Asset {
         static Tsukino::Core::Ref<IAsset> Get(AssetHandle handle);
 
         //--------------------------------------------------------------
-        //! @brief  ハンドルから、アセットが存在するか確認する関数
+        // ハンドルから、アセットが存在するか確認する関数
         //! @param  handle [in] 確認するアセットのハンドル
         //! @return 存在する場合は true、存在しない場合は false
         //--------------------------------------------------------------
@@ -60,7 +60,7 @@ namespace Tsukino::Asset {
         static bool Exists(AssetHandle handle);
 
         //--------------------------------------------------------------
-        //! @brief  インポーターを登録する関数
+        // インポーターを登録する関数
         //! @param  type     [in] 登録するインポーターが対応するアセットの種類
         //! @param  importer [in] 登録するインポーターのshared_ptr
         //--------------------------------------------------------------
@@ -68,18 +68,26 @@ namespace Tsukino::Asset {
 
     private:
         //--------------------------------------------------------------
-        //! @brief  ローダーを登録する関数
+        // ローダーを登録する関数
         //! @param  loader [in] 登録するローダーのshared_ptr
         //--------------------------------------------------------------
         static void RegisterLoader(Tsukino::Core::Ref<IAssetLoader> loader);
 
         //--------------------------------------------------------------
-        //! @brief  拡張子からアセットの種類を取得する関数
+        // 拡張子からアセットの種類を取得する関数
         //! @param  ext [in] 拡張子
         //! @return 拡張子に対応するアセットの種類。
         //! @note   対応する種類がない場合は AssetType::None を返す。
         //--------------------------------------------------------------
         static AssetType GetAssetTypeFromExtension(const std::string& ext);
+
+        //--------------------------------------------------------------
+        // ソースパスからキャッシュパスに変換する関数
+        //! @param  sourcePath [in] ソースパス
+        //! @return キャッシュパス
+        //--------------------------------------------------------------
+        [[nodiscard]]
+        static Tsukino::Core::Path ConvertToCachePath(const Tsukino::Core::Path& sourcePath);
 
         // AssetManagerがアセットの共有所有者
         static AssetMap s_Assets;

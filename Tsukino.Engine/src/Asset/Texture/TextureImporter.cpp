@@ -7,6 +7,7 @@
 #include <Tsukino/Engine/Asset/Texture/TextureAsset.hpp>
 
 #include <Tsukino/Core/Log.hpp>
+#include <Tsukino/Core/IO/FileSystem.hpp>
 
 #include <DirectXTex/DirectXTex.h>
 // 名前空間 Tsukino::Asset
@@ -14,32 +15,40 @@ namespace Tsukino::Asset {
     //--------------------------------------------------------------
     //! @brief  テクスチャのインポート関数
     //--------------------------------------------------------------
-    Tsukino::Core::Ref<IAsset> TextureImporter::Import(const Tsukino::Core::Path& path) {
-        DirectX::ScratchImage image;       // ピクセルデータを格納するオブジェクト
-        DirectX::TexMetadata  metadata;    // 画像のメタデータを格納するオブジェクト
+    bool TextureImporter::Import(const Tsukino::Core::Path& inputPath, const Tsukino::Core::Path& outputDirectory) {
+        DirectX::ScratchImage image;
+        DirectX::TexMetadata  metadata;
 
-        // 画像ファイルを読み込む（PNG/JPG/TGA など WIC 対応フォーマット）
-        HRESULT hr = DirectX::LoadFromWICFile(path.ToWString().c_str(), DirectX::WIC_FLAGS_NONE, &metadata, image);
+        HRESULT hr = DirectX::LoadFromWICFile(inputPath.ToWString().c_str(), DirectX::WIC_FLAGS_NONE, &metadata, image);
 
         if(FAILED(hr)) {
-            // 読み込み失敗
-            Tsukino::Core::Log::Error("Failed to load texture: " + path.string());
-            return nullptr;
+            Tsukino::Core::Log::Error("Failed to load texture: " + inputPath.string());
+            return false;
         }
 
-        // TextureAsset を生成
-        auto asset    = Tsukino::Core::CreateRef<TextureAsset>();    // TextureAssetを生成
-        asset->width  = static_cast<uint32_t>(metadata.width);       // 画像の幅をTextureAssetにセット
-        asset->height = static_cast<uint32_t>(metadata.height);      // 画像の高さをTextureAssetにセット
-        asset->format = metadata.format;                             // 画像のフォーマットをTextureAssetにセット
+        // 出力DDSパス
+        auto                name       = inputPath.stem();
+        Tsukino::Core::Path outputPath = outputDirectory / (name + ".dds");
 
-        // ピクセルデータをコピー
-        const uint8_t* src  = image.GetPixels();        // ピクセルデータの先頭アドレス
-        size_t         size = image.GetPixelsSize();    // ピクセルデータのサイズ（バイト単位）
-        asset->pixels.assign(src, src + size);          // ピクセルデータをTextureAssetのpixelsベクターにコピー
+        bool isCreteDir = Tsukino::IO::FileSystem::CreateDirectories(outputDirectory);    // 出力ディレクトリが存在しない場合は作成
 
-        // アセットを返す
-        return asset;
+        if(!isCreteDir) {
+            Tsukino::Core::Log::Warn("Failed to create Directory: " + outputDirectory.string());
+        }
+
+        // DDSファイルとして保存
+        hr = DirectX::SaveToDDSFile(image.GetImages(), image.GetImageCount(), metadata, DirectX::DDS_FLAGS_NONE, outputPath.ToWString().c_str());
+
+        // 保存に失敗した場合はエラーログを出力して false を返す
+        if(FAILED(hr)) {
+            Tsukino::Core::Log::Error("Failed to save DDS: " + outputPath.string());
+            return false;
+        }
+
+        // 成功した場合は情報ログを出力して true を返す
+        Tsukino::Core::Log::Info("Texture imported: " + outputPath.string());
+
+        return true;
     }
 
 }    // namespace Tsukino::Asset
