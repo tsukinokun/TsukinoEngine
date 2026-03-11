@@ -4,6 +4,8 @@
 //! @author 山﨑愛
 //------------------------------------------------------------
 #pragma once
+#include <Tsukino/Renderer/DX11/GraphicsContext.hpp>
+
 #include <wrl/client.h>    // ComPtrの依存関係を明示
 #include <d3d11.h>         // 依存関係を明示
 #include <dxgi.h>          // 依存関係を明示
@@ -64,15 +66,12 @@ namespace Tsukino::Renderer {
 
     private:
         // DirectX 11の主要なインターフェース
-        ComPtr<ID3D11Device>           m_device;            // 描画デバイス
-        ComPtr<ID3D11DeviceContext>    m_context;           // 描画コンテキスト
-        ComPtr<IDXGISwapChain>         m_swapChain;         // スワップチェーン
-        ComPtr<ID3D11RenderTargetView> m_rtv;               // レンダーターゲットビュー
-        ComPtr<ID3D11Buffer>           m_vertexBuffer;      // 頂点バッファ
-        ComPtr<ID3D11VertexShader>     m_vertexShader;      // 頂点シェーダ
-        ComPtr<ID3D11PixelShader>      m_pixelShader;       // ピクセルシェーダ
-        ComPtr<ID3D11InputLayout>      m_inputLayout;       // 入力レイアウト
-        ComPtr<ID3D11Buffer>           m_constantBuffer;    // 定数バッファ
-        std::array<float, 4>           m_clearColor = {0.5f, 0.5f, 0.5f, 1.0f};
+        GraphicsContext            m_graphicsContext;    // グラフィックスコンテキスト（Device, DeviceContext, SwapChainを管理）
+        ComPtr<ID3D11Buffer>       m_vertexBuffer;       // 頂点バッファ
+        ComPtr<ID3D11VertexShader> m_vertexShader;       // 頂点シェーダ
+        ComPtr<ID3D11PixelShader>  m_pixelShader;        // ピクセルシェーダ
+        ComPtr<ID3D11InputLayout>  m_inputLayout;        // 入力レイアウト
+        ComPtr<ID3D11Buffer>       m_constantBuffer;     // 定数バッファ
+        std::array<float, 4>       m_clearColor = {0.5f, 0.5f, 0.5f, 1.0f};
     };
 }    // namespace Tsukino::Renderer
