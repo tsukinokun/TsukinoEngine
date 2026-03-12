@@ -9,6 +9,7 @@
 #include <Tsukino/Engine/Asset/Util/AssetHandleGenerator.hpp>
 #include <Tsukino/Engine/Asset/Shader/ShaderLoader.hpp>
 #include <Tsukino/Engine/Asset/Texture/TextureImporter.hpp>
+#include <Tsukino/Engine/Asset/Shader/ShaderImporter.hpp>
 
 #include <Tsukino/Core/Log.hpp>
 // 名前空間 : Tsukino::Asset
@@ -29,6 +30,7 @@ namespace Tsukino::Asset {
         //--------------------------------------------------------------
         // インポーター登録
         //--------------------------------------------------------------
+        RegisterImporter(AssetType::Shader, Tsukino::Core::CreateRef<ShaderImporter>());      // シェーダーインポーターの登録
         RegisterImporter(AssetType::Texture, Tsukino::Core::CreateRef<TextureImporter>());    // テクスチャインポーターを登録
     }
 
