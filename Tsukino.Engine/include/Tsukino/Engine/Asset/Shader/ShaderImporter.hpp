@@ -19,6 +19,7 @@ namespace Tsukino::Asset {
         //! @param  outPutDirectory [in] 出力先ディレクトリ
         //! @return インポートされたシェーダーアセットの参照
         //--------------------------------------------------------------
+        [[nodiscard]]
         bool Import(const Tsukino::Core::Path& inPutPath, const Tsukino::Core::Path& outPutDirectory) override;
     };
 

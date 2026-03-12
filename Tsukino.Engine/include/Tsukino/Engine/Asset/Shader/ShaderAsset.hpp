@@ -7,6 +7,7 @@
 #include <Tsukino/Engine/Asset/IAsset.hpp>
 #include <Tsukino/Engine/Asset/AssetType.hpp>
 #include <Tsukino/Engine/Asset/AssetHandle.hpp>
+#include <Tsukino/Engine/Asset/Shader/ShaderStage.hpp>
 
 #include <string>
 // 名前空間 Tsukino::Asset
@@ -47,12 +48,12 @@ namespace Tsukino::Asset {
         //--------------------------------------------------------------
         void SetHandle(AssetHandle handle) { m_handle = handle; }
 
-        // エントリーポイント名
-        std::string entryVS = "VSMain";
-        std::string entryPS = "PSMain";
-
-        std::string source;      // HLSL ソースコード
-        std::string filePath;    // 元ファイルのパス
+        Tsukino::Shader::ShaderStage shaderStage;    // シェーダーステージ
+        std::string                  entryPoint;     // エントリーポイント名
+        std::string                  profile;        // シェーダープロファイル（例: "vs_5_0","ps_5_0"）
+        std::string                  source;         // HLSL ソースコード
+        std::vector<u8>              binary;         // コンパイルされたバイナリデータ
+        std::string                  filePath;       // 元ファイルのパス
 
     private:
         AssetHandle m_handle = AssetHandle::Invalid();    // アセットのハンドル

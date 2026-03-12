@@ -35,6 +35,14 @@ namespace Tsukino::Asset {
         //--------------------------------------------------------------
         [[nodiscard]]
         Tsukino::Core::Ref<IAsset> Load(const Tsukino::Core::Path& path) override;
+
+        //--------------------------------------------------------------
+        //! @brief  シェーダーステージをファイルパスから推測する関数
+        //! @param  path [in] シェーダファイルのパス
+        //! @return 推測されたシェーダーステージ
+        //--------------------------------------------------------------
+        [[nodiscard]]
+        static Tsukino::Shader::ShaderStage DetectStage(const Tsukino::Core::Path& path);
     };
 
 }    // namespace Tsukino::Asset

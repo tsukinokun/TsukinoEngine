@@ -61,7 +61,7 @@ namespace Tsukino::IO {
     //---------------------------------------------------------
     //! @brief  ディレクトリを作成する
     //---------------------------------------------------------
-    bool FileSystem::CreateDirectories(const Tsukino::Core::Path& path) {
+    bool FileSystem::CreateDirectories(const Tsukino::Core::Path& path) noexcept {
         // path.string() を使用
         try {
             return std::filesystem::create_directories(path.string());

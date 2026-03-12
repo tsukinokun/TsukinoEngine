@@ -45,7 +45,7 @@ namespace Tsukino::IO {
         //! @return ディレクトリの作成に成功した場合は true、すでに存在する場合も true、失敗した場合は false
         //---------------------------------------------------------
         [[nodiscard]]
-        static bool CreateDirectories(const Tsukino::Core::Path& path);
+        static bool CreateDirectories(const Tsukino::Core::Path& path) noexcept;
     };
 
 }    // namespace Tsukino::IO
