@@ -18,14 +18,17 @@ namespace Tsukino::Asset {
         //------------------------------------------------
         // シェーダー種別を拡張子から判定
         //------------------------------------------------
-        std::string ext = inputPath.extension();
+        std::string ext = inputPath.string();
         std::string target;
+        std::string entrypoint;    // エントリポイント名
 
         // 拡張子に基づいてシェーダーのターゲットを決定
-        if(ext == ".vs.hlsl") {
-            target = "vs_5_0";
-        } else if(ext == ".ps.hlsl") {
-            target = "ps_5_0";
+        if(ext.ends_with(".vs.hlsl")) {
+            target     = "vs_5_0";
+            entrypoint = "VSMain";    // 頂点シェーダーのエントリポイント名
+        } else if(ext.ends_with(".ps.hlsl")) {
+            target     = "ps_5_0";
+            entrypoint = "PSMain";    // ピクセルシェーダーのエントリポイント名
         } else {
             Tsukino::Core::Log::Error("Unknown shader type: " + ext);
             return false;
@@ -34,9 +37,7 @@ namespace Tsukino::Asset {
         //------------------------------------------------
         // 出力パス
         //------------------------------------------------
-        auto name = inputPath.stem();    // xxx.vs になるので注意
-        // stem() は ".vs.hlsl" の ".vs" までしか取れないので修正
-        name = name.substr(0, name.find_last_of('.'));
+        auto name = inputPath.stem();    // xxx.vs + .cso
 
         Tsukino::Core::Path outputPath = outputDirectory / (name + ".cso");
 
@@ -49,7 +50,7 @@ namespace Tsukino::Asset {
         HRESULT hr = D3DCompileFromFile(inputPath.ToWString().c_str(),
                                         nullptr,
                                         D3D_COMPILE_STANDARD_FILE_INCLUDE,
-                                        "main",
+                                        entrypoint.c_str(),
                                         target.c_str(),    // ← 自動判別したターゲット
                                         D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION,
                                         0,
