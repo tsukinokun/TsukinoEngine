@@ -33,6 +33,25 @@ int WINAPI WinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ LPSTR, _In_ int) {
     Tsukino::Asset::AssetManager::Initialize();
 
     //--------------------------------------------------------------
+    // テスト用シェーダーをインポート
+    //--------------------------------------------------------------
+    {
+        Tsukino::Core::Path path("Assets/Shaders/Triangle.ps.hlsl");    //パスオブジェクトを作成
+        Tsukino::Asset::AssetHandle handle = Tsukino::Asset::AssetManager::Load(path);    // シェーダーアセットをロード
+
+                // ロードに失敗した場合はエラーメッセージを表示
+        if(!Tsukino::Asset::AssetManager::Exists(handle)) {
+            MessageBoxA(nullptr, "Failed to import shader.", "Error", MB_OK);
+        } else {
+            Tsukino::Core::Ref<Tsukino::Asset::ShaderAsset> asset =
+                std::static_pointer_cast<Tsukino::Asset::ShaderAsset>(Tsukino::Asset::AssetManager::Get(handle));
+            OutputDebugStringA("=== Shader Loaded ===\n");
+            OutputDebugStringA(asset->source.c_str());
+            OutputDebugStringA("\n=====================\n");
+        }
+    }
+
+    //--------------------------------------------------------------
     // テストシェーダーをロード
     //--------------------------------------------------------------
     {
