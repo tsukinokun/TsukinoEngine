@@ -68,8 +68,9 @@ namespace Tsukino::Asset {
         // Loader
         //------------------------------------------------
 
-        Tsukino::Core::Path loadPath = ConvertToCachePath(path);
+        Tsukino::Core::Path loadPath = ConvertToCachePath(path);    // ロードしたパスを元に、キャッシュのパスを生成
 
+        // ローダーリストを順番にチェックして、対応するローダーでロードを試みる
         for(auto& loader : s_Loaders) {
             if(loader->CanLoad(loadPath.extension())) {
                 Tsukino::Core::Ref<IAsset> asset = loader->Load(loadPath);
