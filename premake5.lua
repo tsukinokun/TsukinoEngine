@@ -85,6 +85,31 @@ project "Tsukino.Core"
     }
 
 ----------------------------------------
+-- 描画関係の共通モジュール
+----------------------------------------
+project "Tsukino.GraphicsCommon"
+    kind "StaticLib"
+    language "C++"
+    cppdialect "C++20"
+    forceincludes { "pch.h" }               -- 強制インクルード
+
+    targetdir ("bin/%{cfg.buildcfg}")
+    objdir ("bin-int/%{cfg.buildcfg}")
+
+    -- 共通モジュールのソース
+    files {
+        "Tsukino.GraphicsCommon/src/**.cpp",
+        "Tsukino.GraphicsCommon/include/**.hpp",
+        "Tsukino.GraphicsCommon/pch.cpp"
+    }
+
+    -- インクルードパス（他モジュールから参照される前提）
+    includedirs {
+        "Tsukino.GraphicsCommon",
+    }
+ 
+
+----------------------------------------
 -- エンジンプロジェクト
 ----------------------------------------
 project "Tsukino.Engine"
