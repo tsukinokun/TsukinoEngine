@@ -54,6 +54,48 @@ project "DirectXTex"
         defines { "WIN32", "_WIN32_WINNT=0x0A00" }
     filter {}
 
+----------------------------------------
+-- Assimpプロジェクトを追加
+----------------------------------------
+project "assimp"
+    location ".build/assimp"
+    kind "StaticLib"
+    language "C++"
+    cppdialect "C++17"
+    staticruntime "on"
+
+    targetdir ("%{wks.location}/bin/%{cfg.buildcfg}")
+    objdir ("%{wks.location}/bin-int/%{cfg.buildcfg}")
+
+    files {
+        "External/assimp/code/**.cpp",
+        "External/assimp/code/**.h",
+        "External/assimp/include/**.h"
+    }
+
+    includedirs {
+        "External/assimp/include",
+        "External/assimp/code"
+    }
+
+    defines {
+        "ASSIMP_BUILD_NO_EXPORT",
+        "ASSIMP_BUILD_NO_OWN_ZLIB",
+        "ASSIMP_BUILD_NO_IFC_IMPORTER",     -- 不要なら削る
+        "ASSIMP_BUILD_NO_OGRE_IMPORTER"     -- 不要なら削る
+    }
+
+    filter "system:windows"
+        defines { "_CRT_SECURE_NO_WARNINGS" }
+
+    filter "configurations:Debug"
+        runtime "Debug"
+        symbols "on"
+
+    filter "configurations:Release"
+        runtime "Release"
+        optimize "on"
+
 
 ----------------------------------------
 -- コアプロジェクト
@@ -189,10 +231,10 @@ project "Tsukino.Physics"
     kind "StaticLib"
     language "C++"
     cppdialect "C++20"
-    forceincludes { "pch.h" }               -- 強制インクルード
+    --forceincludes { "pch.h" }               -- 強制インクルード
 
-    pchheader "pch.h"
-    pchsource "Tsukino.Physics/pch.cpp"
+    --pchheader "pch.h"
+    --pchsource "Tsukino.Physics/pch.cpp"
 
     targetdir ("bin/%{cfg.buildcfg}")
     objdir ("bin-int/%{cfg.buildcfg}")
