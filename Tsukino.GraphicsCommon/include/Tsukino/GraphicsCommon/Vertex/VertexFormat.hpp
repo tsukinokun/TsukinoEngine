@@ -1,11 +1,11 @@
 ﻿//--------------------------------------------------------------
-//! @file       VertexFormat.hpp
-//! @brief      GPU に渡す頂点フォーマットの種類を定義
-//! @author     山﨑愛
+//! @file   VertexFormat.hpp
+//! @brief  GPU に渡す頂点フォーマットの種類を定義
+//! @author 山﨑愛
 //--------------------------------------------------------------
 #pragma once
-// 名前空間 : Tsukino::Renderer
-namespace Tsukino::Renderer {
+// 名前空間 : Tsukino::GraphicsCommon
+namespace Tsukino::GraphicsCommon {
     //--------------------------------------------------------------
     //! @enum  VertexFormat
     //! @brief 頂点フォーマットの種類を定義する列挙型
@@ -18,4 +18,4 @@ namespace Tsukino::Renderer {
         Particle,            // パーティクルなど
     };
 
-}    // namespace Tsukino::Renderer
+}    // namespace Tsukino::GraphicsCommon
