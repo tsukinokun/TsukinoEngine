@@ -46,7 +46,6 @@ int WINAPI WinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ LPSTR, _In_ int) {
             Tsukino::Core::Ref<Tsukino::Asset::ShaderAsset> asset =
                 std::static_pointer_cast<Tsukino::Asset::ShaderAsset>(Tsukino::Asset::AssetManager::Get(handle));
             OutputDebugStringA("=== Shader Loaded ===\n");
-            OutputDebugStringA(asset->source.c_str());
             OutputDebugStringA("\n=====================\n");
         }
     }
