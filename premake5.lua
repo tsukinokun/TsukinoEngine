@@ -105,7 +105,8 @@ project "Tsukino.GraphicsCommon"
 
     -- インクルードパス（他モジュールから参照される前提）
     includedirs {
-        "Tsukino.GraphicsCommon",
+        "Tsukino.Core/include",
+        "Tsukino.GraphicsCommon/include"
     }
  
 
