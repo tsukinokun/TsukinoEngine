@@ -108,7 +108,10 @@ project "Tsukino.GraphicsCommon"
         "Tsukino.Core/include",
         "Tsukino.GraphicsCommon/include"
     }
- 
+
+    links {
+        "Tsukino.Core"
+    }
 
 ----------------------------------------
 -- エンジンプロジェクト
@@ -134,6 +137,7 @@ project "Tsukino.Engine"
 
     includedirs {
         "Tsukino.Engine/include",
+        "Tsukino.GraphicsCommon/include",
         "Tsukino.Core/include",
         "External/hlslpp/include", 
         "External/entt/single_include",
@@ -142,6 +146,7 @@ project "Tsukino.Engine"
 
     links {
         "Tsukino.Core",
+        "Tsukino.GraphicsCommon",
         "DirectXTex"
     }
 
