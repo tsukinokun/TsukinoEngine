@@ -280,7 +280,8 @@ project "Tsukino.Sandbox"
     files {
         "Tsukino.Sandbox/src/**.cpp",
         "Tsukino.Sandbox/include/**.hpp",
-        "Tsukino.Sandbox/pch.cpp"
+        "Tsukino.Sandbox/pch.cpp",
+        "Tsukino.Sandbox/Assets/**.hlsl"
     }
 
     includedirs {
