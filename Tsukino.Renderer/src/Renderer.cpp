@@ -3,10 +3,14 @@
 //! @brief  レンダラークラスの実装
 //! @author 山﨑愛
 //------------------------------------------------------------
-#include "Tsukino/Renderer/Renderer.hpp"
-#include "Tsukino/Renderer/ShaderLoader.hpp"
-#include "Tsukino/Renderer/ConstantBuffer.hpp"
-#include "Tsukino/Core/Log.hpp"
+#include <Tsukino/Renderer/Renderer.hpp>
+#include <Tsukino/Renderer/ShaderLoader.hpp>
+#include <Tsukino/Renderer/ConstantBuffer.hpp>
+
+#include <Tsukino/GraphicsCommon/Mesh/MeshPrimitives.hpp>
+
+#include <Tsukino/Core/Log.hpp>
+
 #include <cassert>
 // 名前空間 : Tsukino::Renderer
 namespace Tsukino::Renderer {
@@ -21,6 +25,12 @@ namespace Tsukino::Renderer {
 
         ID3D11Device*        device  = m_graphicsContext.GetDevice();     // DirectXのDevice
         ID3D11DeviceContext* context = m_graphicsContext.GetContext();    // DirectXのDeviceContext
+
+        //------------------------------------------------------------
+        // メッシュバッファの作成
+        //------------------------------------------------------------
+        if(!CreatePrimitiveMeshes())
+            return false;    // メッシュバッファの作成に失敗した場合は false を返す
 
         //------------------------------------------------------------
         // 三角形描画の準備を追加
@@ -136,6 +146,25 @@ namespace Tsukino::Renderer {
             Tsukino::Core::Log::Error("Failed to create constant buffer.");
             return false;
         }
+        return true;
+    }
+
+    //------------------------------------------------------------
+    //! @brief プリミティブメッシュの作成
+    //------------------------------------------------------------
+    bool Renderer::CreatePrimitiveMeshes() {
+        using namespace Tsukino::GraphicsCommon;
+
+        for(size_t i = 0; i < (size_t)PrimitiveType::Count; ++i) {
+            PrimitiveType type = static_cast<PrimitiveType>(i);
+
+            // CPU 側で形状生成
+            MeshData meshData = Tsukino::GraphicsCommon::CreatePrimitiveMeshData(type);
+
+            // GPU にアップロード
+            m_primitiveMeshes[i] = CreateMeshBuffer(m_graphicsContext.GetDevice(), meshData);
+        }
+
         return true;
     }
 

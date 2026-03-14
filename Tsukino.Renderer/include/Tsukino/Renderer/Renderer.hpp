@@ -5,6 +5,7 @@
 //------------------------------------------------------------
 #pragma once
 #include <Tsukino/Renderer/DX11/GraphicsContext.hpp>
+#include <Tsukino/Renderer/DX11/MeshBuffer.hpp>
 
 #include <Tsukino/GraphicsCommon/Mesh/PrimitiveType.hpp>
 #include <Tsukino/GraphicsCommon/Mesh/MeshData.hpp>
@@ -54,6 +55,13 @@ namespace Tsukino::Renderer {
         bool CreateConstantBuffer();
 
         //------------------------------------------------------------
+        // プリミティブメッシュの作成
+        //! @return true: プリミティブメッシュの作成成功, false:作成失敗
+        //------------------------------------------------------------
+        [[nodiscard]]
+        bool CreatePrimitiveMeshes();
+
+        //------------------------------------------------------------
         // 描画処理
         //------------------------------------------------------------
         void Render();
@@ -69,12 +77,14 @@ namespace Tsukino::Renderer {
 
     private:
         // DirectX 11の主要なインターフェース
-        GraphicsContext            m_graphicsContext;    // グラフィックスコンテキスト（Device, DeviceContext, SwapChainを管理）
-        ComPtr<ID3D11Buffer>       m_vertexBuffer;       // 頂点バッファ
-        ComPtr<ID3D11VertexShader> m_vertexShader;       // 頂点シェーダ
-        ComPtr<ID3D11PixelShader>  m_pixelShader;        // ピクセルシェーダ
-        ComPtr<ID3D11InputLayout>  m_inputLayout;        // 入力レイアウト
-        ComPtr<ID3D11Buffer>       m_constantBuffer;     // 定数バッファ
-        std::array<float, 4>       m_clearColor = {0.5f, 0.5f, 0.5f, 1.0f};
-        };
+        GraphicsContext            m_graphicsContext;                          // グラフィックスコンテキスト（Device, DeviceContext, SwapChainを管理）
+        ComPtr<ID3D11Buffer>       m_vertexBuffer;                             // 頂点バッファ
+        ComPtr<ID3D11VertexShader> m_vertexShader;                             // 頂点シェーダ
+        ComPtr<ID3D11PixelShader>  m_pixelShader;                              // ピクセルシェーダ
+        ComPtr<ID3D11InputLayout>  m_inputLayout;                              // 入力レイアウト
+        ComPtr<ID3D11Buffer>       m_constantBuffer;                           // 定数バッファ
+        std::array<float, 4>       m_clearColor = {0.5f, 0.5f, 0.5f, 1.0f};    // 描画領域のクリアカラー (デフォルトはグレー)
+
+        std::array<MeshBuffer, (size_t)Tsukino::GraphicsCommon::PrimitiveType::Count> m_primitiveMeshes;
+    };
 }    // namespace Tsukino::Renderer

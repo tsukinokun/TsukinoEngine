@@ -12,11 +12,11 @@ namespace Tsukino::GraphicsCommon {
     //! @brief  プリミティブの種類を表す列挙型
     //--------------------------------------------------------------
     enum class PrimitiveType {
-        Quad,              // 四角形
-        FullscreenQuad,    // 全画面四角形
-        Cube,              // 立方体
-        Sphere,            // 球
-        Count              // 列挙型の要素数を表す
+        Quad,    // 四角形
+        //FullscreenQuad,    // 全画面四角形
+        //Cube,              // 立方体
+        //Sphere,            // 球
+        Count    // 列挙型の要素数を表す
     };
 
 }    // namespace Tsukino::GraphicsCommon
