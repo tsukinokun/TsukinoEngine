@@ -219,11 +219,14 @@ project "Tsukino.Renderer"
 
     includedirs {
         "Tsukino.Renderer/include",
+        "Tsukino.GraphicsCommon/include",
         "Tsukino.Core/include",
     }
 
     links {
-        "Tsukino.Core"
+        "Tsukino.Core",
+        "Tsukino.GraphicsCommon",
+
     }
 
 ----------------------------------------
