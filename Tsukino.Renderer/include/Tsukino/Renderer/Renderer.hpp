@@ -76,5 +76,5 @@ namespace Tsukino::Renderer {
         ComPtr<ID3D11InputLayout>  m_inputLayout;        // 入力レイアウト
         ComPtr<ID3D11Buffer>       m_constantBuffer;     // 定数バッファ
         std::array<float, 4>       m_clearColor = {0.5f, 0.5f, 0.5f, 1.0f};
-    };
+        };
 }    // namespace Tsukino::Renderer

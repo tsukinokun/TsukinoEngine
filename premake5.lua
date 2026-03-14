@@ -285,6 +285,7 @@ project "Tsukino.Sandbox"
 
     includedirs {
         "Tsukino.Sandbox/include",
+        "Tsukino.GraphicsCommon/include",
         "Tsukino.Engine/include",
         "Tsukino.Renderer/include",
         --"Tsukino.Physics/include",
@@ -296,6 +297,7 @@ project "Tsukino.Sandbox"
     links {
         "Tsukino.Engine",
         "Tsukino.Renderer",
+        "Tsukino.GraphicsCommon",
         --"Tsukino.Physics",
         "Tsukino.Core",
         "d3d11", 
