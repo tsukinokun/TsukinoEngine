@@ -9,6 +9,27 @@
 // 名前空間 Tsukino::GraphicsCommon
 namespace Tsukino::GraphicsCommon {
     //--------------------------------------------------------------
+    //! @brief  プリミティブの種類を指定してメッシュデータを生成する関数
+    //--------------------------------------------------------------
+    MeshData CreatePrimitiveMeshData(PrimitiveType type) {
+        // プリミティブの種類に対応するメッシュデータ生成関数の型エイリアス
+        using PrimitiveCreator = MeshData (*)();
+
+        // プリミティブの種類に対応するメッシュデータ生成関数の配列(ディスパッチテーブル)
+        static constexpr PrimitiveCreator creators[(size_t)PrimitiveType::Count] = {
+            CreateQuadMeshData,
+        };
+
+        // 列挙型の値を配列のインデックスとして使用
+        size_t index = (size_t)type;
+        if(index >= (size_t)PrimitiveType::Count)
+            return {};
+
+        // 対応するメッシュデータ生成関数を呼び出して結果を返す
+        return creators[index]();
+    }
+
+    //--------------------------------------------------------------
     //! @brief 四角形のメッシュデータを生成する関数
     //--------------------------------------------------------------
     MeshData CreateQuadMeshData() {
