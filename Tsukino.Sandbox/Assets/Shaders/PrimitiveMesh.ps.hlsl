@@ -1,24 +1,27 @@
 //--------------------------------------------------------------
-//! @file   Triangle.ps.hlsl
-//! @brief  三角形描画用ピクセルシェーダー
+//! @file   PrimitiveMeshPS.hlsl
+//! @brief  プリミティブメッシュ用 ピクセルシェーダ
 //! @author 山﨑愛
 //--------------------------------------------------------------
+
+Texture2D u_Texture : register(t0); // テクスチャ
+SamplerState u_Sampler : register(s0); // サンプラー
 
 //--------------------------------------------------------------
 // 頂点シェーダーから受け取った情報の構造体
 //--------------------------------------------------------------
-struct VSOutput
+struct PSInput
 {
-    float4 position : SV_POSITION; // 画面に向けての最終位置 
-    float4 color : COLOR; // ピクセルへ渡すカラー
+    float4 position : SV_POSITION;
+    float2 uv : TEXCOORD0;
 };
 
 //--------------------------------------------------------------
-//! @brief 三角形描画用ピクセルシェーダー
-//! @param IN [in] 頂点シェーダーからの出力
+//! @brief プリミティブメッシュ用ピクセルシェーダー
+//! @param input [in] 頂点シェーダーからの出力
 //! @return ピクセルカラー
 //--------------------------------------------------------------
-float4 PSMain(VSOutput IN) : SV_TARGET
+float4 PSMain(PSInput input) : SV_TARGET
 {
-    return IN.color; // 補間された色が入ってくる
+    return u_Texture.Sample(u_Sampler, input.uv);
 }
