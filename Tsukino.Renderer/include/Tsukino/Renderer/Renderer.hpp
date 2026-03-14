@@ -6,6 +6,9 @@
 #pragma once
 #include <Tsukino/Renderer/DX11/GraphicsContext.hpp>
 
+#include <Tsukino/GraphicsCommon/Mesh/PrimitiveType.hpp>
+#include <Tsukino/GraphicsCommon/Mesh/MeshData.hpp>
+
 #include <wrl/client.h>    // ComPtrの依存関係を明示
 #include <d3d11.h>         // 依存関係を明示
 #include <dxgi.h>          // 依存関係を明示
