@@ -135,6 +135,9 @@ project "Tsukino.GraphicsCommon"
     cppdialect "C++20"
     forceincludes { "pch.h" }               -- 強制インクルード
 
+    pchheader "pch.h" 
+    pchsource "Tsukino.GraphicsCommon/pch.cpp"
+
     targetdir ("bin/%{cfg.buildcfg}")
     objdir ("bin-int/%{cfg.buildcfg}")
 
