@@ -284,6 +284,11 @@ project "Tsukino.Sandbox"
         "Tsukino.Sandbox/Assets/**.hlsl"
     }
 
+    -- .hlslはビルド対象から除外
+    filter  "files:**.hlsl" 
+        buildaction "None"
+    filter {}
+
     includedirs {
         "Tsukino.Sandbox/include",
         "Tsukino.GraphicsCommon/include",
