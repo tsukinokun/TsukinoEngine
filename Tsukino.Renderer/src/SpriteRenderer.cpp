@@ -13,8 +13,9 @@ namespace Tsukino::Renderer {
     //! @brief sprite描画を行う関数
     //------------------------------------------------------------
     void SpriteRenderer::Draw(GraphicsContext* gfx, Material* material, MeshBuffer* mesh) {
-        gfx->SetMaterial(*material);
+        gfx->SetMaterial(*material);    // マテリアルのセット
 
+        // 頂点バッファとインデックスバッファのセット
         UINT          stride = mesh->stride;
         UINT          offset = 0;
         ID3D11Buffer* vb     = mesh->vertexBuffer.Get();
