@@ -6,6 +6,7 @@
 #pragma once
 #include <Tsukino/Renderer/DX11/GraphicsContext.hpp>
 #include <Tsukino/Renderer/DX11/MeshBuffer.hpp>
+#include <Tsukino/Renderer/SpriteRenderer.hpp>
 
 #include <Tsukino/GraphicsCommon/Mesh/PrimitiveType.hpp>
 #include <Tsukino/GraphicsCommon/Mesh/MeshData.hpp>
@@ -85,6 +86,7 @@ namespace Tsukino::Renderer {
         ComPtr<ID3D11Buffer>       m_constantBuffer;                           // 定数バッファ
         std::array<float, 4>       m_clearColor = {0.5f, 0.5f, 0.5f, 1.0f};    // 描画領域のクリアカラー (デフォルトはグレー)
 
-        std::array<MeshBuffer, (size_t)Tsukino::GraphicsCommon::PrimitiveType::Count> m_primitiveMeshes;
+        std::array<MeshBuffer, (size_t)Tsukino::GraphicsCommon::PrimitiveType::Count> m_primitiveMeshes;    // プリミティブメッシュバッファの配列
+        SpriteRenderer                                                                m_spriteRenderer;     // スプライト描画クラスのインスタンス
     };
 }    // namespace Tsukino::Renderer
