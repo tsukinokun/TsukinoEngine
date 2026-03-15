@@ -11,6 +11,7 @@
 // 名前空間 : Tsukino::Renderer
 namespace Tsukino::Renderer {
     struct PipelineState;    // 前方宣言
+    class Material;          // 前方宣言
 
     //--------------------------------------------------------------
     //! @class  GraphicsContext
@@ -65,6 +66,12 @@ namespace Tsukino::Renderer {
         //! @param state [in] セットするパイプラインステート
         //--------------------------------------------------------------
         void SetPipelineState(const PipelineState& state);
+
+        //--------------------------------------------------------------
+        // マテリアルをセット
+        //! @param mat [in] セットするマテリアル
+        //--------------------------------------------------------------
+        void SetMaterial(const Material& mat);
 
     private:
         Microsoft::WRL::ComPtr<ID3D11Device> m_device;
