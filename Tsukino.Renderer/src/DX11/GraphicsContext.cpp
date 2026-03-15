@@ -4,6 +4,8 @@
 //! @author 山﨑愛
 //--------------------------------------------------------------
 #include <Tsukino/Renderer/DX11/GraphicsContext.hpp>
+
+#include <Tsukino/Renderer/DX11/PipelineState.hpp>
 // 名前空間 : Tsukino::Renderer
 namespace Tsukino::Renderer {
     //--------------------------------------------------------------
@@ -102,5 +104,22 @@ namespace Tsukino::Renderer {
     void GraphicsContext::EndFrame() {
         // SwapChain表示
         m_swapChain->Present(1, 0);
+    }
+
+    //--------------------------------------------------------------
+    //! @brief  パイプラインステートをセット
+    //--------------------------------------------------------------
+    void GraphicsContext::SetPipelineState(const PipelineState& state) {
+        auto ctx = m_context.Get();    // コンテキストの生ポインタを取得
+
+        ctx->IASetInputLayout(state.inputLayout);       // 入力レイアウト設定
+        ctx->IASetPrimitiveTopology(state.topology);    // プリミティブトポロジー設定
+
+        ctx->VSSetShader(state.vs, nullptr, 0);    // 頂点シェーダー設定
+        ctx->PSSetShader(state.ps, nullptr, 0);    // ピクセルシェーダー設定
+
+        ctx->RSSetState(state.rasterizer);                         // ラスタライザーステート設定
+        ctx->OMSetBlendState(state.blend, nullptr, 0xffffffff);    // ブレンドステート設定
+        ctx->OMSetDepthStencilState(state.depth, 0);               // デプスステンシルステート設定
     }
 }    // namespace Tsukino::Renderer

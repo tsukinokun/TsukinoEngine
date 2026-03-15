@@ -10,6 +10,8 @@
 #include <wrl/client.h>
 // 名前空間 : Tsukino::Renderer
 namespace Tsukino::Renderer {
+    struct PipelineState;    // 前方宣言
+
     //--------------------------------------------------------------
     //! @class  GraphicsContext
     //! @brief  DirectX11のグラフィックスコンテキストクラス
@@ -57,6 +59,12 @@ namespace Tsukino::Renderer {
         ID3D11DeviceContext* GetContext() const noexcept {
             return m_context.Get();
         }
+
+        //--------------------------------------------------------------
+        // パイプラインステートをセット
+        //! @param state [in] セットするパイプラインステート
+        //--------------------------------------------------------------
+        void SetPipelineState(const PipelineState& state);
 
     private:
         Microsoft::WRL::ComPtr<ID3D11Device> m_device;
