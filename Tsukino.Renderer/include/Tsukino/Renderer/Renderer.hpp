@@ -7,6 +7,7 @@
 #include <Tsukino/Renderer/DX11/GraphicsContext.hpp>
 #include <Tsukino/Renderer/DX11/MeshBuffer.hpp>
 #include <Tsukino/Renderer/SpriteRenderer.hpp>
+#include <Tsukino/Renderer/DrawCommandQueue.hpp>
 
 #include <Tsukino/GraphicsCommon/Mesh/PrimitiveType.hpp>
 #include <Tsukino/GraphicsCommon/Mesh/MeshData.hpp>
@@ -49,20 +50,6 @@ namespace Tsukino::Renderer {
         bool Initialize(HWND hwnd, uint32_t width, uint32_t height);
 
         //------------------------------------------------------------
-        // 定数バッファの作成
-        //! @return true: 定数バッファの作成成功, false: 定数バッファの作成失敗
-        //------------------------------------------------------------
-        [[nodiscard]]
-        bool CreateConstantBuffer();
-
-        //------------------------------------------------------------
-        // プリミティブメッシュの作成
-        //! @return true: プリミティブメッシュの作成成功, false:作成失敗
-        //------------------------------------------------------------
-        [[nodiscard]]
-        bool CreatePrimitiveMeshes();
-
-        //------------------------------------------------------------
         // 描画処理
         //------------------------------------------------------------
         void Render();
@@ -77,6 +64,27 @@ namespace Tsukino::Renderer {
         void SetClearColor(float r, float g, float b, float a);
 
     private:
+        //------------------------------------------------------------
+        // 定数バッファの作成
+        //! @return true: 定数バッファの作成成功, false: 定数バッファの作成失敗
+        //------------------------------------------------------------
+        [[nodiscard]]
+        bool CreateConstantBuffer();
+
+        //------------------------------------------------------------
+        // プリミティブメッシュの作成
+        //! @return true: プリミティブメッシュの作成成功, false:作成失敗
+        //------------------------------------------------------------
+        [[nodiscard]]
+        bool CreatePrimitiveMeshes();
+
+        //------------------------------------------------------------
+        // 描画コマンドを実行
+        //! @param cmd [in] 実行する描画コマンド
+        //------------------------------------------------------------
+        void ExecuteDrawCommand(const DrawCommand& cmd);
+
+    private:
         // DirectX 11の主要なインターフェース
         GraphicsContext            m_graphicsContext;                          // グラフィックスコンテキスト（Device, DeviceContext, SwapChainを管理）
         ComPtr<ID3D11Buffer>       m_vertexBuffer;                             // 頂点バッファ
@@ -88,5 +96,6 @@ namespace Tsukino::Renderer {
 
         std::array<MeshBuffer, (size_t)Tsukino::GraphicsCommon::PrimitiveType::Count> m_primitiveMeshes;    // プリミティブメッシュバッファの配列
         SpriteRenderer                                                                m_spriteRenderer;     // スプライト描画クラスのインスタンス
+        DrawCommandQueue                                                              m_drawQueue;          // 描画コマンドキュー
     };
 }    // namespace Tsukino::Renderer

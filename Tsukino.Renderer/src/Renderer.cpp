@@ -175,36 +175,52 @@ namespace Tsukino::Renderer {
         // 設定されたクリアカラーで画面をクリア
         m_graphicsContext.BeginFrame(m_clearColor[0], m_clearColor[1], m_clearColor[2], m_clearColor[3]);
 
-        ID3D11DeviceContext* context = m_graphicsContext.GetContext();
+        //------------------------------------------------------------
+        // テスト用三角形描画
+        //------------------------------------------------------------
+        {
+            ID3D11DeviceContext* context = m_graphicsContext.GetContext();
+
+            //------------------------------------------------------------
+            // 定数バッファの更新
+            //------------------------------------------------------------
+            CBufferTransform cb{};
+            cb.mvp = DirectX::XMMatrixIdentity();    // とりあえず単位行列
+
+            //------------------------------------------------------------
+            // 定数バッファの更新
+            //------------------------------------------------------------
+            context->UpdateSubresource(m_constantBuffer.Get(), 0, nullptr, &cb, 0, 0);
+
+            //------------------------------------------------------------
+            // 定数バッファを頂点シェーダにバインド
+            //------------------------------------------------------------
+            context->VSSetConstantBuffers(0, 1, m_constantBuffer.GetAddressOf());
+
+            UINT stride = sizeof(float) * 7;    // Vertex のサイズ
+            UINT offset = 0;
+            context->IASetVertexBuffers(0, 1, m_vertexBuffer.GetAddressOf(), &stride, &offset);
+
+            context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+
+            context->IASetInputLayout(m_inputLayout.Get());
+            context->VSSetShader(m_vertexShader.Get(), nullptr, 0);
+            context->PSSetShader(m_pixelShader.Get(), nullptr, 0);
+
+            // シェーダと入力レイアウトをセット（後で追加）
+            context->Draw(3, 0);
+        }
 
         //------------------------------------------------------------
-        // 定数バッファの更新
+        // 描画コマンドの実行
         //------------------------------------------------------------
-        CBufferTransform cb{};
-        cb.mvp = DirectX::XMMatrixIdentity();    // とりあえず単位行列
+        const auto& commands = m_drawQueue.GetCommands();
+        for(const auto& cmd : commands) {
+            ExecuteDrawCommand(cmd);
+        }
 
-        //------------------------------------------------------------
-        // 定数バッファの更新
-        //------------------------------------------------------------
-        context->UpdateSubresource(m_constantBuffer.Get(), 0, nullptr, &cb, 0, 0);
-
-        //------------------------------------------------------------
-        // 定数バッファを頂点シェーダにバインド
-        //------------------------------------------------------------
-        context->VSSetConstantBuffers(0, 1, m_constantBuffer.GetAddressOf());
-
-        UINT stride = sizeof(float) * 7;    // Vertex のサイズ
-        UINT offset = 0;
-        context->IASetVertexBuffers(0, 1, m_vertexBuffer.GetAddressOf(), &stride, &offset);
-
-        context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-
-        context->IASetInputLayout(m_inputLayout.Get());
-        context->VSSetShader(m_vertexShader.Get(), nullptr, 0);
-        context->PSSetShader(m_pixelShader.Get(), nullptr, 0);
-
-        // シェーダと入力レイアウトをセット（後で追加）
-        context->Draw(3, 0);
+        // 描画コマンドのクリア
+        m_drawQueue.Clear();
 
         // 表示
         m_graphicsContext.EndFrame();
@@ -216,4 +232,41 @@ namespace Tsukino::Renderer {
     void Renderer::SetClearColor(float r, float g, float b, float a) {
         m_clearColor = {r, g, b, a};
     }
+
+    //------------------------------------------------------------
+    //! @brief 描画コマンドの実行
+    //------------------------------------------------------------
+    void Renderer::ExecuteDrawCommand(const DrawCommand& cmd) {
+        // デバイスコンテキストを取得
+        ID3D11DeviceContext* context = m_graphicsContext.GetContext();
+
+        //------------------------------------------------------
+        // Transform を定数バッファに書き込む
+        //------------------------------------------------------
+        CBufferTransform cb{};
+        cb.mvp = cmd.transform;
+        context->UpdateSubresource(m_constantBuffer.Get(), 0, nullptr, &cb, 0, 0);
+        context->VSSetConstantBuffers(0, 1, m_constantBuffer.GetAddressOf());
+
+        //------------------------------------------------------
+        // Material を適用
+        //------------------------------------------------------
+        m_graphicsContext.SetMaterial(*cmd.material);
+
+        //------------------------------------------------------
+        // MeshBuffer をセット
+        //------------------------------------------------------
+        UINT          stride = cmd.mesh->stride;
+        UINT          offset = 0;
+        ID3D11Buffer* vb     = cmd.mesh->vertexBuffer.Get();
+
+        context->IASetVertexBuffers(0, 1, &vb, &stride, &offset);
+        context->IASetIndexBuffer(cmd.mesh->indexBuffer.Get(), DXGI_FORMAT_R32_UINT, 0);
+
+        //------------------------------------------------------
+        // 描画
+        //------------------------------------------------------
+        context->DrawIndexed(cmd.mesh->indexCount, 0, 0);
+    }
+
 }    // namespace Tsukino::Renderer
