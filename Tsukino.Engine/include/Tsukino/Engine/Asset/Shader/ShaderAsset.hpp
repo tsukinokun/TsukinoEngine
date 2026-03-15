@@ -10,6 +10,7 @@
 #include <Tsukino/Engine/Asset/Shader/ShaderStage.hpp>
 
 #include <string>
+#include <vector>
 // 名前空間 Tsukino::Asset
 namespace Tsukino::Asset {
 

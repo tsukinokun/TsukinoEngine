@@ -113,15 +113,15 @@ namespace Tsukino::Renderer {
     void GraphicsContext::SetPipelineState(const PipelineState& state) {
         ID3D11DeviceContext* ctx = m_context.Get();    // コンテキストの生ポインタを取得
 
-        ctx->IASetInputLayout(state.inputLayout);       // 入力レイアウト設定
-        ctx->IASetPrimitiveTopology(state.topology);    // プリミティブトポロジー設定
+        ctx->IASetInputLayout(state.inputLayout.Get());    // 入力レイアウト設定
+        ctx->IASetPrimitiveTopology(state.topology);       // プリミティブトポロジー設定
 
-        ctx->VSSetShader(state.vs, nullptr, 0);    // 頂点シェーダー設定
-        ctx->PSSetShader(state.ps, nullptr, 0);    // ピクセルシェーダー設定
+        ctx->VSSetShader(state.vs.Get(), nullptr, 0);    // 頂点シェーダー設定
+        ctx->PSSetShader(state.ps.Get(), nullptr, 0);    // ピクセルシェーダー設定
 
-        ctx->RSSetState(state.rasterizer);                         // ラスタライザーステート設定
-        ctx->OMSetBlendState(state.blend, nullptr, 0xffffffff);    // ブレンドステート設定
-        ctx->OMSetDepthStencilState(state.depth, 0);               // デプスステンシルステート設定
+        ctx->RSSetState(state.rasterizer.Get());                   // ラスタライザーステート設定
+        ctx->OMSetBlendState(state.blend.Get(), nullptr, 0xffffffff);    // ブレンドステート設定
+        ctx->OMSetDepthStencilState(state.depth.Get(), 0);               // デプスステンシルステート設定
     }
 
     //--------------------------------------------------------------
