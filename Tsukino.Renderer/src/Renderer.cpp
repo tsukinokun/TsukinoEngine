@@ -234,6 +234,13 @@ namespace Tsukino::Renderer {
     }
 
     //------------------------------------------------------------
+    //! @brief 描画コマンドの追加
+    //------------------------------------------------------------
+    void Renderer::PushDrawCommand(const DrawCommand& cmd) {
+        m_drawQueue.Push(cmd);
+    }
+
+    //------------------------------------------------------------
     //! @brief 描画コマンドの実行
     //------------------------------------------------------------
     void Renderer::ExecuteDrawCommand(const DrawCommand& cmd) {
