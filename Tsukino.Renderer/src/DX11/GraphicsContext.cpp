@@ -6,6 +6,7 @@
 #include <Tsukino/Renderer/DX11/GraphicsContext.hpp>
 
 #include <Tsukino/Renderer/DX11/PipelineState.hpp>
+#include <Tsukino/Renderer/DX11/Material.hpp>
 // 名前空間 : Tsukino::Renderer
 namespace Tsukino::Renderer {
     //--------------------------------------------------------------
@@ -110,7 +111,7 @@ namespace Tsukino::Renderer {
     //! @brief  パイプラインステートをセット
     //--------------------------------------------------------------
     void GraphicsContext::SetPipelineState(const PipelineState& state) {
-        auto ctx = m_context.Get();    // コンテキストの生ポインタを取得
+        ID3D11DeviceContext* ctx = m_context.Get();    // コンテキストの生ポインタを取得
 
         ctx->IASetInputLayout(state.inputLayout);       // 入力レイアウト設定
         ctx->IASetPrimitiveTopology(state.topology);    // プリミティブトポロジー設定
@@ -121,5 +122,20 @@ namespace Tsukino::Renderer {
         ctx->RSSetState(state.rasterizer);                         // ラスタライザーステート設定
         ctx->OMSetBlendState(state.blend, nullptr, 0xffffffff);    // ブレンドステート設定
         ctx->OMSetDepthStencilState(state.depth, 0);               // デプスステンシルステート設定
+    }
+
+    //--------------------------------------------------------------
+    //! @brief  マテリアルをセット
+    //--------------------------------------------------------------
+    void GraphicsContext::SetMaterial(const Material& mat) {
+        SetPipelineState(*mat.GetPipeline());    // マテリアルからパイプラインステートを取得してセット
+
+        ID3D11DeviceContext* ctx = m_context.Get();    // コンテキストの生ポインタを取得
+
+        ID3D11ShaderResourceView* srv = mat.GetTexture();    // マテリアルからテクスチャを取得
+        ctx->PSSetShaderResources(0, 1, &srv);               // ピクセルシェーダーのスロット0にテクスチャをセット
+
+        ID3D11SamplerState* sampler = mat.GetSampler();    // マテリアルからサンプラーを取得
+        ctx->PSSetSamplers(0, 1, &sampler);                // ピクセルシェーダーのスロット0にサンプラーをセット
     }
 }    // namespace Tsukino::Renderer
