@@ -10,12 +10,12 @@ namespace Tsukino::Renderer {
     //--------------------------------------------------------------
     //! @brief  パイプラインステートを作成する関数
     //--------------------------------------------------------------
-    PipelineState* PipelineFactory::Create(const Tsukino::Asset::ShaderAsset& vs,
+    std::shared_ptr<PipelineState> PipelineFactory::Create(const Tsukino::Asset::ShaderAsset& vs,
                                            const Tsukino::Asset::ShaderAsset& ps,
                                            const D3D11_INPUT_ELEMENT_DESC*    layout,
                                            UINT                               layoutCount) {
         // 新しいパイプラインステートを作成
-        PipelineState* p = new PipelineState();
+        std::shared_ptr<PipelineState> p = std::make_shared<PipelineState>();
 
         // VS
         m_device->CreateVertexShader(vs.binary.data(), vs.binary.size(), nullptr, p->vs.GetAddressOf());

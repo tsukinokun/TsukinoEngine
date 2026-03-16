@@ -21,7 +21,6 @@
 //! @return 終了コード（通常は0）
 //--------------------------------------------------------------
 int WINAPI WinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ LPSTR, _In_ int) {
-
     //--------------------------------------------------------------
     // COM初期化
     //--------------------------------------------------------------
@@ -32,23 +31,46 @@ int WINAPI WinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ LPSTR, _In_ int) {
     //--------------------------------------------------------------
     Tsukino::Asset::AssetManager::Initialize();
 
+    // シェーダーアセットを格納する変数
+    Tsukino::Core::Ref<Tsukino::Asset::ShaderAsset> psShader;
+    Tsukino::Core::Ref<Tsukino::Asset::ShaderAsset> vsShader;
+
     //--------------------------------------------------------------
-    // テスト用シェーダーをインポート
+    // テスト用シPSェーダーをインポート
     //--------------------------------------------------------------
     {
-        Tsukino::Core::Path path("Assets/Shaders/Triangle.ps.hlsl");    //パスオブジェクトを作成
+        Tsukino::Core::Path         path("Assets/Shaders/PrimitiveMesh.ps.hlsl");         //パスオブジェクトを作成
         Tsukino::Asset::AssetHandle handle = Tsukino::Asset::AssetManager::Load(path);    // シェーダーアセットをロード
 
-                // ロードに失敗した場合はエラーメッセージを表示
+        // ロードに失敗した場合はエラーメッセージを表示
         if(!Tsukino::Asset::AssetManager::Exists(handle)) {
             MessageBoxA(nullptr, "Failed to import shader.", "Error", MB_OK);
         } else {
-            Tsukino::Core::Ref<Tsukino::Asset::ShaderAsset> asset =
-                std::static_pointer_cast<Tsukino::Asset::ShaderAsset>(Tsukino::Asset::AssetManager::Get(handle));
+            psShader = std::static_pointer_cast<Tsukino::Asset::ShaderAsset>(Tsukino::Asset::AssetManager::Get(handle));
             OutputDebugStringA("=== Shader Loaded ===\n");
             OutputDebugStringA("\n=====================\n");
         }
     }
+
+    //--------------------------------------------------------------
+    // テスト用シVSェーダーをインポート
+    //--------------------------------------------------------------
+    {
+        Tsukino::Core::Path         path("Assets/Shaders/PrimitiveMesh.vs.hlsl");         //パスオブジェクトを作成
+        Tsukino::Asset::AssetHandle handle = Tsukino::Asset::AssetManager::Load(path);    // シェーダーアセットをロード
+
+        // ロードに失敗した場合はエラーメッセージを表示
+        if(!Tsukino::Asset::AssetManager::Exists(handle)) {
+            MessageBoxA(nullptr, "Failed to import shader.", "Error", MB_OK);
+        } else {
+            vsShader = std::static_pointer_cast<Tsukino::Asset::ShaderAsset>(Tsukino::Asset::AssetManager::Get(handle));
+            OutputDebugStringA("=== Shader Loaded ===\n");
+            OutputDebugStringA("\n=====================\n");
+        }
+    }
+
+    // テクスチャの格納庫
+    Tsukino::Core::Ref<Tsukino::Asset::TextureAsset> testTexture;
 
     //--------------------------------------------------------------
     // テストテクスチャをロード
@@ -56,6 +78,7 @@ int WINAPI WinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ LPSTR, _In_ int) {
     {
         Tsukino::Core::Path         path("Assets/Textures/test.jpg");    //パスオブジェクトを作成
         Tsukino::Asset::AssetHandle tex_handle = Tsukino::Asset::AssetManager::Load(path);
+        testTexture                            = std::static_pointer_cast<Tsukino::Asset::TextureAsset>(Tsukino::Asset::AssetManager::Get(tex_handle));
     }
 
     //--------------------------------------------------------------
