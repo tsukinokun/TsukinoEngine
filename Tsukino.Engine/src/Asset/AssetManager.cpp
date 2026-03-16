@@ -7,6 +7,7 @@
 #include <Tsukino/Engine/Asset/IAsset.hpp>
 #include <Tsukino/Engine/Asset/IAssetLoader.hpp>
 #include <Tsukino/Engine/Asset/Util/AssetHandleGenerator.hpp>
+#include <Tsukino/Engine/Asset/Texture/TextureLoder.hpp>
 #include <Tsukino/Engine/Asset/Shader/ShaderLoader.hpp>
 #include <Tsukino/Engine/Asset/Texture/TextureImporter.hpp>
 #include <Tsukino/Engine/Asset/Shader/ShaderImporter.hpp>
@@ -25,7 +26,8 @@ namespace Tsukino::Asset {
         //--------------------------------------------------------------
         // ローダー登録
         //--------------------------------------------------------------
-        RegisterLoader(Tsukino::Core::CreateRef<ShaderLoader>());    // シェーダローダーを登録
+        RegisterLoader(Tsukino::Core::CreateRef<ShaderLoader>());     // シェーダローダーを登録
+        RegisterLoader(Tsukino::Core::CreateRef<TextureLoader>());    // テクスチャローダーを登録
 
         //--------------------------------------------------------------
         // インポーター登録

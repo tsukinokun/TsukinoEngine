@@ -26,6 +26,7 @@ namespace Tsukino::Asset {
         //! @param  outPutDirectory [in] インポートされたアセットの出力先ディレクトリ
         //! @return インポートされたアセットの参照
         //--------------------------------------------------------------
+        [[nodiscard]]
         virtual bool Import(const Tsukino::Core::Path& inPutPath, const Tsukino::Core::Path& outPutDirectory) = 0;
     };
 }    // namespace Tsukino::Asset
