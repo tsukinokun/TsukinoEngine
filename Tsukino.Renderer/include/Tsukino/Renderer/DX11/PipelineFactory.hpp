@@ -6,6 +6,8 @@
 #pragma once
 #include <Tsukino/Renderer/DX11/PipelineState.hpp>
 
+#include <memory>
+
 namespace Tsukino::Asset {
     class ShaderAsset;    // 前方宣言
 }
@@ -34,10 +36,10 @@ namespace Tsukino::Renderer {
         //! @return パイプラインステートのポインタ
         //--------------------------------------------------------------
         [[nodiscard]]
-        PipelineState* Create(const Tsukino::Asset::ShaderAsset& vs,
-                              const Tsukino::Asset::ShaderAsset& ps,
-                              const D3D11_INPUT_ELEMENT_DESC*    layout,
-                              UINT                               layoutCount);
+        std::shared_ptr<PipelineState> Create(const Tsukino::Asset::ShaderAsset& vs,
+                                              const Tsukino::Asset::ShaderAsset& ps,
+                                              const D3D11_INPUT_ELEMENT_DESC*    layout,
+                                              UINT                               layoutCount);
 
     private:
         ID3D11Device* m_device = nullptr;    // DirectXのデバイス
