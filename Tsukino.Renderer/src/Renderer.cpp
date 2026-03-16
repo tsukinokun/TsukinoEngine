@@ -26,6 +26,9 @@ namespace Tsukino::Renderer {
         ID3D11Device*        device  = m_graphicsContext.GetDevice();     // DirectXのDevice
         ID3D11DeviceContext* context = m_graphicsContext.GetContext();    // DirectXのDeviceContext
 
+        // デバイスが準備できたので、Factoryを構築してoptionalに代入（遅延DI）
+        m_pipelineFactory.emplace(device);
+
         //------------------------------------------------------------
         // メッシュバッファの作成
         //------------------------------------------------------------

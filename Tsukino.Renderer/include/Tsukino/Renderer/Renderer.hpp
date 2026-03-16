@@ -6,6 +6,7 @@
 #pragma once
 #include <Tsukino/Renderer/DX11/GraphicsContext.hpp>
 #include <Tsukino/Renderer/DX11/MeshBuffer.hpp>
+#include <Tsukino/Renderer/DX11/PipelineFactory.hpp>    // ヘッダーを追加
 #include <Tsukino/Renderer/SpriteRenderer.hpp>
 #include <Tsukino/Renderer/DrawCommandQueue.hpp>
 
@@ -15,7 +16,8 @@
 #include <wrl/client.h>    // ComPtrの依存関係を明示
 #include <d3d11.h>         // 依存関係を明示
 #include <dxgi.h>          // 依存関係を明示
-#include <array>           // std::array を使用するためのヘッダーファイル、明示的に書く
+#include <array>
+#include <optional>
 
 using Microsoft::WRL::ComPtr;    // ComPtr を使用するための using 宣言
 
@@ -69,6 +71,15 @@ namespace Tsukino::Renderer {
         //------------------------------------------------------------
         void PushDrawCommand(const DrawCommand& cmd);
 
+        //------------------------------------------------------------
+        // PipelineFactoryを使うためのGetterを公開
+        //! @return PipelineFactoryのポインタ
+        //------------------------------------------------------------
+        [[nodiscard]]
+        PipelineFactory* GetPipelineFactory() {
+            return &m_pipelineFactory.value();
+        }
+
     private:
         //------------------------------------------------------------
         // 定数バッファの作成
@@ -101,6 +112,7 @@ namespace Tsukino::Renderer {
         std::array<float, 4>       m_clearColor = {0.5f, 0.5f, 0.5f, 1.0f};    // 描画領域のクリアカラー (デフォルトはグレー)
 
         std::array<MeshBuffer, (size_t)Tsukino::GraphicsCommon::PrimitiveType::Count> m_primitiveMeshes;    // プリミティブメッシュバッファの配列
+        std::optional<PipelineFactory>                                                m_pipelineFactory;    // メンバとして持たせる
         SpriteRenderer                                                                m_spriteRenderer;     // スプライト描画クラスのインスタンス
         DrawCommandQueue                                                              m_drawQueue;          // 描画コマンドキュー
     };

@@ -4,6 +4,8 @@
 //! @author 山﨑愛
 //--------------------------------------------------------------
 #include <Tsukino/Renderer/Renderer.hpp>
+#include <Tsukino/Renderer/DX11/PipelineFactory.hpp>
+#include <Tsukino/Renderer/DX11/PipelineState.hpp>
 #include <Tsukino/Engine/Asset/AssetManager.hpp>
 #include <Tsukino/Engine/Asset/Shader/ShaderAsset.hpp>
 #include <Tsukino/Engine/Asset/Texture/TextureAsset.hpp>
@@ -95,6 +97,13 @@ int WINAPI WinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ LPSTR, _In_ int) {
     Tsukino::Renderer::Renderer renderer;
     if(!renderer.Initialize(window.GetHWND(), window.GetWidth(), window.GetHeight())) {
         return -1;
+    }
+
+    //--------------------------------------------------------------
+    // パイプラインを作成
+    //--------------------------------------------------------------
+    {
+        Tsukino::Renderer::PipelineFactory* pipelineFactory = renderer.GetPipelineFactory();
     }
 
     //--------------------------------------------------------------
