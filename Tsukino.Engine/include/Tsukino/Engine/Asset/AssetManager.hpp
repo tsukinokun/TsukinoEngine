@@ -26,14 +26,19 @@ namespace Tsukino::Asset {
     class AssetManager {
     public:
         //--------------------------------------------------------------
-        // AssetManager を初期化する関数
+        // デフォルトコンストラクタ
         //--------------------------------------------------------------
-        static void Initialize();
+        AssetManager() = default;
 
         //--------------------------------------------------------------
-        // AssetManagerをシャットダウンする関数
+        // デストラクタ
         //--------------------------------------------------------------
-        static void Destroy();
+        ~AssetManager();
+
+        //--------------------------------------------------------------
+        // AssetManager を初期化する関数
+        //--------------------------------------------------------------
+        void Initialize();
 
         //--------------------------------------------------------------
         // アセットをロードする関数
@@ -41,7 +46,7 @@ namespace Tsukino::Asset {
         //! @return ロードしたアセットのハンドル
         //--------------------------------------------------------------
         [[nodiscard]]
-        static AssetHandle Load(const Tsukino::Core::Path& path);
+        AssetHandle Load(const Tsukino::Core::Path& path);
 
         //--------------------------------------------------------------
         // ハンドルからアセットを取得する関数
@@ -49,7 +54,7 @@ namespace Tsukino::Asset {
         //! @return 取得したアセットのshared_ptr
         //--------------------------------------------------------------
         [[nodiscard]]
-        static Tsukino::Core::Ref<IAsset> Get(AssetHandle handle);
+        Tsukino::Core::Ref<IAsset> Get(AssetHandle handle);
 
         //--------------------------------------------------------------
         // ハンドルから、アセットが存在するか確認する関数
@@ -57,21 +62,21 @@ namespace Tsukino::Asset {
         //! @return 存在する場合は true、存在しない場合は false
         //--------------------------------------------------------------
         [[nodiscard]]
-        static bool Exists(AssetHandle handle);
+        bool Exists(AssetHandle handle);
 
         //--------------------------------------------------------------
         // インポーターを登録する関数
         //! @param  type     [in] 登録するインポーターが対応するアセットの種類
         //! @param  importer [in] 登録するインポーターのshared_ptr
         //--------------------------------------------------------------
-        static void RegisterImporter(AssetType type, Tsukino::Core::Ref<IAssetImporter> importer);
+        void RegisterImporter(AssetType type, Tsukino::Core::Ref<IAssetImporter> importer);
 
     private:
         //--------------------------------------------------------------
         // ローダーを登録する関数
         //! @param  loader [in] 登録するローダーのshared_ptr
         //--------------------------------------------------------------
-        static void RegisterLoader(Tsukino::Core::Ref<IAssetLoader> loader);
+        void RegisterLoader(Tsukino::Core::Ref<IAssetLoader> loader);
 
         //--------------------------------------------------------------
         // 拡張子からアセットの種類を取得する関数
@@ -79,7 +84,7 @@ namespace Tsukino::Asset {
         //! @return 拡張子に対応するアセットの種類。
         //! @note   対応する種類がない場合は AssetType::None を返す。
         //--------------------------------------------------------------
-        static AssetType GetAssetTypeFromExtension(const std::string& ext);
+        AssetType GetAssetTypeFromExtension(const std::string& ext);
 
         //--------------------------------------------------------------
         // ソースパスからキャッシュパスに変換する関数
@@ -87,19 +92,19 @@ namespace Tsukino::Asset {
         //! @return キャッシュパス
         //--------------------------------------------------------------
         [[nodiscard]]
-        static Tsukino::Core::Path ConvertToCachePath(const Tsukino::Core::Path& sourcePath);
+        Tsukino::Core::Path ConvertToCachePath(const Tsukino::Core::Path& sourcePath);
 
         // AssetManagerがアセットの共有所有者
-        static AssetMap s_Assets;
+        AssetMap s_Assets;
 
         // LoaderもAssetManagerが共有所有
-        static std::vector<Tsukino::Core::Ref<IAssetLoader>> s_Loaders;
+        std::vector<Tsukino::Core::Ref<IAssetLoader>> s_Loaders;
 
         // AssetTypeごとにインポーターを管理するマップのエイリアス
         using ImporterMap = std::unordered_map<AssetType, Tsukino::Core::Ref<IAssetImporter>>;
 
         // ImporterもAssetManagerが共有所有
-        static ImporterMap s_Importers;
+        ImporterMap s_Importers;
     };
 
 }    // namespace Tsukino::Asset

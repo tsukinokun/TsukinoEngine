@@ -15,9 +15,13 @@
 #include <Tsukino/Core/Log.hpp>
 // 名前空間 : Tsukino::Asset
 namespace Tsukino::Asset {
-    AssetMap                                                          AssetManager::s_Assets;       // アセットマップの定義
-    std::vector<Tsukino::Core::Ref<IAssetLoader>>                     AssetManager::s_Loaders;      // ローダーリストの定義
-    std::unordered_map<AssetType, Tsukino::Core::Ref<IAssetImporter>> AssetManager::s_Importers;    // インポーターの定義
+    //--------------------------------------------------------------
+    //! @brief デストラクタ
+    //--------------------------------------------------------------
+    AssetManager::~AssetManager() {
+        s_Assets.clear();     // AssetMapをクリア
+        s_Loaders.clear();    // ローダーリストをクリア
+    }
 
     //--------------------------------------------------------------
     //! @brief AssetManagerを初期化する関数
@@ -34,14 +38,6 @@ namespace Tsukino::Asset {
         //--------------------------------------------------------------
         RegisterImporter(AssetType::Shader, Tsukino::Core::CreateRef<ShaderImporter>());      // シェーダーインポーターの登録
         RegisterImporter(AssetType::Texture, Tsukino::Core::CreateRef<TextureImporter>());    // テクスチャインポーターを登録
-    }
-
-    //--------------------------------------------------------------
-    //! @brief AssetManagerを後処理する関数
-    //--------------------------------------------------------------
-    void AssetManager::Destroy() {
-        s_Assets.clear();     // AssetMapをクリア
-        s_Loaders.clear();    // ローダーリストをクリア
     }
 
     //--------------------------------------------------------------
