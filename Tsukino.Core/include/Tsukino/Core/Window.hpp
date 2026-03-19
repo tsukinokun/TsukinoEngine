@@ -30,31 +30,44 @@ namespace Tsukino::Core {
         //! @param title  [in] ウィンドウタイトル
         //! @param width  [in] ウィンドウ幅
         //! @param height [in] ウィンドウ高さ
+        //! @return ウィンドウの生成に成功した場合は true、失敗した場合は false
         //--------------------------------------------------------------
+        [[nodiscard]]
         bool Create(const std::string& title, int width, int height);
 
         //--------------------------------------------------------------
         // メッセージ処理（false が返ればアプリ終了）
         //! @return true: 継続, false: 終了
         //--------------------------------------------------------------
+        [[nodiscard]]
         bool ProcessMessages();
 
         //--------------------------------------------------------------
-        // Rendererが必要とする HWND
+        // Rendererが必要とするHWND
+        //! @return ウィンドウのハンドル
         //--------------------------------------------------------------
-        HWND GetHWND() const { return m_hWnd; }
+        [[nodiscard]]
+        HWND GetHWND() const {
+            return m_hWnd;
+        }
 
         //--------------------------------------------------------------
         // ウィンドウの幅を取得する関数
         //! @return ウィンドウの幅
         //--------------------------------------------------------------
-        int GetWidth() const { return m_width; }
+        [[nodiscard]]
+        int GetWidth() const {
+            return m_width;
+        }
 
         //--------------------------------------------------------------
         // ウィンドウの高さを取得する関数
         //! @return ウィンドウの高さ
         //--------------------------------------------------------------
-        int GetHeight() const { return m_height; }
+        [[nodiscard]]
+        int GetHeight() const {
+            return m_height;
+        }
 
     private:
         //--------------------------------------------------------------
@@ -65,6 +78,7 @@ namespace Tsukino::Core {
         //! @param lParam [in] メッセージの追加情報（通常はイベントの座標など）
         //! @return メッセージ処理の結果（通常は0）
         //--------------------------------------------------------------
+        [[nodiscard]]
         static LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
         HWND m_hWnd;      // ウィンドウハンドル
