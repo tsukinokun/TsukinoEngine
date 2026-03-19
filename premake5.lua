@@ -228,7 +228,6 @@ project "Tsukino.Renderer"
         "Tsukino.Core",
         "Tsukino.Engine",
         "Tsukino.GraphicsCommon",
-
     }
 
 ----------------------------------------
@@ -260,6 +259,48 @@ project "Tsukino.Physics"
 
     links {
         "Tsukino.Core"
+    }
+
+----------------------------------------
+-- エンジン統合プロジェクト
+----------------------------------------
+project "Tsukino.EngineIntegration"
+    location ".build/Tsukino.EngineIntegration"
+    kind "StaticLib"
+    language "C++"
+    cppdialect "C++20"
+    forceincludes { "pch.h" }               -- 強制インクルード
+
+    pchheader "pch.h" 
+    pchsource "Tsukino.EngineIntegration/pch.cpp"
+
+    targetdir ("bin/%{cfg.buildcfg}")
+    objdir ("bin-int/%{cfg.buildcfg}")
+
+    files {
+        "Tsukino.EngineIntegration/src/**.cpp",
+        "Tsukino.EngineIntegration/include/**.hpp",
+        "Tsukino.EngineIntegration/pch.cpp"
+    }
+
+    includedirs {
+        "Tsukino.GraphicsCommon/include",
+        "Tsukino.Engine/include",
+        "Tsukino.Renderer/include",
+        "Tsukino.EngineIntegration/include",
+        --"Tsukino.Physics/include",
+        "External/hlslpp/include",
+        "External/entt/single_include"
+    }
+
+    links {
+        "Tsukino.Engine",
+        "Tsukino.Renderer",
+        "Tsukino.GraphicsCommon",
+        --"Tsukino.Physics",
+        "d3d11", 
+        "dxgi",
+        "d3dcompiler"
     }
 
 ----------------------------------------
@@ -296,6 +337,7 @@ project "Tsukino.Sandbox"
         "Tsukino.GraphicsCommon/include",
         "Tsukino.Engine/include",
         "Tsukino.Renderer/include",
+        "Tsukino.EngineIntegration/include",
         --"Tsukino.Physics/include",
         "Tsukino.Core/include",
         "External/hlslpp/include",
@@ -306,6 +348,7 @@ project "Tsukino.Sandbox"
         "Tsukino.Engine",
         "Tsukino.Renderer",
         "Tsukino.GraphicsCommon",
+        "Tsukino.EngineIntegration",
         --"Tsukino.Physics",
         "Tsukino.Core",
         "d3d11", 
