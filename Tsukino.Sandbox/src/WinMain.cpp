@@ -23,95 +23,13 @@
 //! @return 終了コード（通常は0）
 //--------------------------------------------------------------
 int WINAPI WinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ LPSTR, _In_ int) {
-    //--------------------------------------------------------------
-    // COM初期化
-    //--------------------------------------------------------------
-    CoInitializeEx(nullptr, COINIT_MULTITHREADED);
-
-    //--------------------------------------------------------------
-    // AssetManager 初期化
-    //--------------------------------------------------------------
-    Tsukino::Asset::AssetManager::Initialize();
-
-    // シェーダーアセットを格納する変数
-    Tsukino::Core::Ref<Tsukino::Asset::ShaderAsset> psShader;
-    Tsukino::Core::Ref<Tsukino::Asset::ShaderAsset> vsShader;
-
-    //--------------------------------------------------------------
-    // テスト用シPSェーダーをインポート
-    //--------------------------------------------------------------
-    {
-        Tsukino::Core::Path         path("Assets/Shaders/PrimitiveMesh.ps.hlsl");         //パスオブジェクトを作成
-        Tsukino::Asset::AssetHandle handle = Tsukino::Asset::AssetManager::Load(path);    // シェーダーアセットをロード
-
-        // ロードに失敗した場合はエラーメッセージを表示
-        if(!Tsukino::Asset::AssetManager::Exists(handle)) {
-            MessageBoxA(nullptr, "Failed to import shader.", "Error", MB_OK);
-        } else {
-            psShader = std::static_pointer_cast<Tsukino::Asset::ShaderAsset>(Tsukino::Asset::AssetManager::Get(handle));
-            OutputDebugStringA("=== Shader Loaded ===\n");
-            OutputDebugStringA("\n=====================\n");
-        }
-    }
-
-    //--------------------------------------------------------------
-    // テスト用シVSェーダーをインポート
-    //--------------------------------------------------------------
-    {
-        Tsukino::Core::Path         path("Assets/Shaders/PrimitiveMesh.vs.hlsl");         //パスオブジェクトを作成
-        Tsukino::Asset::AssetHandle handle = Tsukino::Asset::AssetManager::Load(path);    // シェーダーアセットをロード
-
-        // ロードに失敗した場合はエラーメッセージを表示
-        if(!Tsukino::Asset::AssetManager::Exists(handle)) {
-            MessageBoxA(nullptr, "Failed to import shader.", "Error", MB_OK);
-        } else {
-            vsShader = std::static_pointer_cast<Tsukino::Asset::ShaderAsset>(Tsukino::Asset::AssetManager::Get(handle));
-            OutputDebugStringA("=== Shader Loaded ===\n");
-            OutputDebugStringA("\n=====================\n");
-        }
-    }
-
-    // テクスチャの格納庫
-    Tsukino::Core::Ref<Tsukino::Asset::TextureAsset> testTexture;
-
-    //--------------------------------------------------------------
-    // テストテクスチャをロード
-    //--------------------------------------------------------------
-    {
-        Tsukino::Core::Path         path("Assets/Textures/test.jpg");    //パスオブジェクトを作成
-        Tsukino::Asset::AssetHandle tex_handle = Tsukino::Asset::AssetManager::Load(path);
-        testTexture                            = std::static_pointer_cast<Tsukino::Asset::TextureAsset>(Tsukino::Asset::AssetManager::Get(tex_handle));
-    }
-
-    //--------------------------------------------------------------
-    // ウィンドウ生成
-    //--------------------------------------------------------------
-    Tsukino::Core::Window window;
-    if(!window.Create("TsukinoEngine", 1280, 720)) {
-        return -1;
-    }
-
-    //--------------------------------------------------------------
-    // レンダラー生成
-    //--------------------------------------------------------------
-    Tsukino::Renderer::Renderer renderer;
-    if(!renderer.Initialize(window.GetHWND(), window.GetWidth(), window.GetHeight())) {
-        return -1;
-    }
-
-    //--------------------------------------------------------------
-    // パイプラインを作成
-    //--------------------------------------------------------------
-    {
-        Tsukino::Renderer::PipelineFactory* pipelineFactory = renderer.GetPipelineFactory();
-    }
 
     //--------------------------------------------------------------
     // メインループ
     //--------------------------------------------------------------
-    while(window.ProcessMessages()) {
-        renderer.Render();
-    }
+    //while(window.ProcessMessages()) {
+    //    renderer.Render();
+    //}
 
     //--------------------------------------------------------------
     // AssetManager 終了処理

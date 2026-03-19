@@ -27,15 +27,25 @@ namespace Tsukino::EngineIntegration {
         EngineIntegration();
 
         //------------------------------------------------------------
-        // デストラクタ
+        //! @brief デフォルトデストラクタ
         //------------------------------------------------------------
-        ~EngineIntegration();
+        ~EngineIntegration() = default;
+
+        //------------------------------------------------------------
+        // エンジンの初期化関数
+        //! @return true: 初期化成功, false: 初期化失敗
+        //------------------------------------------------------------
+        [[nodiscard]]
+        bool Initialize();
 
         //------------------------------------------------------------
         //! @brief  エンジン全体で共有されるクラスを初期化する関数
         //! @return クラスのポインタを集めた構造体
         //------------------------------------------------------------
-        EngineContext& GetContext() { return m_ctx; }
+        [[nodiscard]]
+        EngineContext& GetContext() {
+            return m_ctx;
+        }
 
     private:
         std::unique_ptr<Tsukino::Renderer::Renderer>  m_renderer;
