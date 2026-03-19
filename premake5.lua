@@ -260,6 +260,39 @@ project "Tsukino.Physics"
     links {
         "Tsukino.Core"
     }
+----------------------------------------
+-- 組み込みプロジェクト
+----------------------------------------
+project "Tsukino.BuildIn"
+    location ".build/Tsukino.BuildIn"
+    kind "StaticLib"
+    language "C++"
+    cppdialect "C++20"
+    forceincludes { "pch.h" }               -- 強制インクルード
+
+    pchheader "pch.h" 
+    pchsource "Tsukino.BuildIn/pch.cpp"
+
+    files {
+        "Tsukino.BuildIn/src/**.cpp",
+        "Tsukino.BuildIn/include/**.hpp",
+        "Tsukino.BuildIn/pch.cpp"
+    }
+
+    includedirs {
+        "Tsukino.BuildIn/include",
+        "Tsukino.Engine/include",
+        "Tsukino.Renderer/include",
+        "Tsukino.GraphicsCommon/include",
+        "Tsukino.Core/include",
+    }
+
+    links {
+        "Tsukino.Engine",
+        "Tsukino.Renderer",
+        "Tsukino.GraphicsCommon",
+        "Tsukino.Core",
+    }
 
 ----------------------------------------
 -- エンジン統合プロジェクト
@@ -287,6 +320,7 @@ project "Tsukino.EngineIntegration"
         "Tsukino.GraphicsCommon/include",
         "Tsukino.Engine/include",
         "Tsukino.Renderer/include",
+        "Tsukino.BuildIn",
         "Tsukino.EngineIntegration/include",
         --"Tsukino.Physics/include",
         "External/hlslpp/include",
@@ -297,6 +331,7 @@ project "Tsukino.EngineIntegration"
         "Tsukino.Engine",
         "Tsukino.Renderer",
         "Tsukino.GraphicsCommon",
+        "Tsukino.BuildIn",
         --"Tsukino.Physics",
         "d3d11", 
         "dxgi",
@@ -337,6 +372,7 @@ project "Tsukino.Sandbox"
         "Tsukino.GraphicsCommon/include",
         "Tsukino.Engine/include",
         "Tsukino.Renderer/include",
+        "Tsukino.BuildIn",
         "Tsukino.EngineIntegration/include",
         --"Tsukino.Physics/include",
         "Tsukino.Core/include",
@@ -348,6 +384,7 @@ project "Tsukino.Sandbox"
         "Tsukino.Engine",
         "Tsukino.Renderer",
         "Tsukino.GraphicsCommon",
+        "Tsukino.BuildIn",
         "Tsukino.EngineIntegration",
         --"Tsukino.Physics",
         "Tsukino.Core",
