@@ -119,7 +119,7 @@ namespace Tsukino::Renderer {
         ctx->VSSetShader(state.vs.Get(), nullptr, 0);    // 頂点シェーダー設定
         ctx->PSSetShader(state.ps.Get(), nullptr, 0);    // ピクセルシェーダー設定
 
-        ctx->RSSetState(state.rasterizer.Get());                   // ラスタライザーステート設定
+        ctx->RSSetState(state.rasterizer.Get());                         // ラスタライザーステート設定
         ctx->OMSetBlendState(state.blend.Get(), nullptr, 0xffffffff);    // ブレンドステート設定
         ctx->OMSetDepthStencilState(state.depth.Get(), 0);               // デプスステンシルステート設定
     }

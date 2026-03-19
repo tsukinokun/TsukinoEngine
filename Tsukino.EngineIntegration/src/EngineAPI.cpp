@@ -5,6 +5,10 @@
 //------------------------------------------------------------
 #include <Tsukino/Tsukino.EngineIntegration/EngineAPI.hpp>
 
+#include <Tsukino/Renderer/Renderer.hpp>
+
+#include <Tsukino/Core/Window.hpp>
+
 #include <memory>
 
 // 名前空間 : Tsukino::EngineIntegration
@@ -14,5 +18,19 @@ namespace Tsukino::EngineIntegration {
     //------------------------------------------------------------
     EngineAPI::EngineAPI(EngineContext& context)
         : m_context(context) {
+    }
+
+    //------------------------------------------------------------
+    //! @brief メッセージ処理関数
+    //------------------------------------------------------------
+    bool EngineAPI::ProcessMessages() {
+        return m_context.window->ProcessMessages();
+    }
+
+    //------------------------------------------------------------
+    //! @brief 描画関数
+    //------------------------------------------------------------
+    void EngineAPI::Render() {
+        m_context.renderer->Render();
     }
 }    // namespace Tsukino::EngineIntegration

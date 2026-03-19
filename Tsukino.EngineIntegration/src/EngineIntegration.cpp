@@ -39,7 +39,7 @@ namespace Tsukino::EngineIntegration {
         //--------------------------------------------------------------
         HRESULT hr = CoInitializeEx(nullptr, COINIT_MULTITHREADED);
         // COMの初期化に失敗した場合はエラーログを出力して終了
-        if(!hr) {
+        if(FAILED(hr)) {
             Tsukino::Core::Log::Error("Failed to initialize COM library.");
             return -1;
         }
@@ -52,16 +52,14 @@ namespace Tsukino::EngineIntegration {
         //--------------------------------------------------------------
         // ウィンドウ生成
         //--------------------------------------------------------------
-        Tsukino::Core::Window window;
-        if(!window.Create("TsukinoEngine", 1280, 720)) {
+        if(!m_window->Create("TsukinoEngine", 1280, 720)) {
             return -1;
         }
 
         //--------------------------------------------------------------
         // レンダラー生成
         //--------------------------------------------------------------
-        Tsukino::Renderer::Renderer renderer;
-        if(!renderer.Initialize(window.GetHWND(), window.GetWidth(), window.GetHeight())) {
+        if(!m_renderer->Initialize(m_window->GetHWND(), m_window->GetWidth(), m_window->GetHeight())) {
             return -1;
         }
 
