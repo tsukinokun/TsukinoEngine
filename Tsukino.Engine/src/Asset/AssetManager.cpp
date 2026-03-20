@@ -12,6 +12,7 @@
 #include <Tsukino/Engine/Asset/Texture/TextureImporter.hpp>
 #include <Tsukino/Engine/Asset/Shader/ShaderImporter.hpp>
 
+#include <Tsukino/Core/IO/FileSystem.hpp>
 #include <Tsukino/Core/Log.hpp>
 // 名前空間 : Tsukino::Asset
 namespace Tsukino::Asset {
@@ -58,6 +59,12 @@ namespace Tsukino::Asset {
         // インポーターが見つかった場合はインポート処理を実行
         if(importerIt != s_Importers.end()) {
             Tsukino::Core::Path cacheDir("Cache/");    // キャッシュディレクトリのパスを指定
+
+            bool isCreteDir = Tsukino::IO::FileSystem::CreateDirectories(cacheDir);    // 出力ディレクトリが存在しない場合は作成
+
+            if(!isCreteDir) {
+                Tsukino::Core::Log::Warn("Failed to create Directory: " + cacheDir.string());
+            }
 
             importerIt->second->Import(path, cacheDir);
         }

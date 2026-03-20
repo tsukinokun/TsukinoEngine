@@ -14,7 +14,7 @@ namespace Tsukino::BuiltIn {
     //! @brief ビルトインシェーダーの初期化関数
     //--------------------------------------------------------------
     void BuiltInShaders::Initialize(Tsukino::Asset::AssetManager* assetManager) {
-        spriteVS = assetManager->Load(Tsukino::Core::Path("BuiltIn/Shaders/SpriteVS.hlsl"));
-        spritePS = assetManager->Load(Tsukino::Core::Path("BuiltIn/Shaders/SpritePS.hlsl"));
+        spriteVS = assetManager->Load(Tsukino::Core::Path("Assets/Shaders/Sprite.vs.hlsl"));
+        spritePS = assetManager->Load(Tsukino::Core::Path("Assets/Shaders/Sprite.ps.hlsl"));
     }
 }    // namespace Tsukino::BuiltIn

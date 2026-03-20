@@ -130,6 +130,7 @@ project "Tsukino.Core"
 -- 描画関係の共通モジュール
 ----------------------------------------
 project "Tsukino.GraphicsCommon"
+    location ".build/Tsukino.GraphicsCommon"
     kind "StaticLib"
     language "C++"
     cppdialect "C++20"
@@ -268,16 +269,26 @@ project "Tsukino.BuiltIn"
     kind "StaticLib"
     language "C++"
     cppdialect "C++20"
+    debugdir "%{cfg.targetdir}"
     forceincludes { "pch.h" }               -- 強制インクルード
 
     pchheader "pch.h" 
     pchsource "Tsukino.BuiltIn/pch.cpp"
 
+    targetdir ("bin/%{cfg.buildcfg}")
+    objdir ("bin-int/%{cfg.buildcfg}")
+
     files {
         "Tsukino.BuiltIn/src/**.cpp",
         "Tsukino.BuiltIn/include/**.hpp",
+        "Tsukino.BuiltIn/Assets/**.hlsl",
         "Tsukino.BuiltIn/pch.cpp"
     }
+
+    -- .hlslはビルド対象から除外
+    filter  "files:**.hlsl" 
+        buildaction "None"
+    filter {}
 
     includedirs {
         "Tsukino.BuiltIn/include",
@@ -293,6 +304,11 @@ project "Tsukino.BuiltIn"
         "Tsukino.GraphicsCommon",
         "Tsukino.Core",
     }
+
+    postbuildcommands {
+        "{COPYDIR} %{wks.location}/../Tsukino.BuiltIn/Assets %{cfg.targetdir}/Assets"
+    }
+
 
 ----------------------------------------
 -- エンジン統合プロジェクト
@@ -374,7 +390,7 @@ project "Tsukino.Sandbox"
         "Tsukino.GraphicsCommon/include",
         "Tsukino.Engine/include",
         "Tsukino.Renderer/include",
-        "Tsukino.BuiltIn",
+        "Tsukino.BuiltIn/include",
         "Tsukino.EngineIntegration/include",
         --"Tsukino.Physics/include",
         "Tsukino.Core/include",

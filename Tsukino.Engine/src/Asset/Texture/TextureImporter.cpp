@@ -30,12 +30,6 @@ namespace Tsukino::Asset {
         auto                name       = inputPath.stem();
         Tsukino::Core::Path outputPath = outputDirectory / (name + ".dds");
 
-        bool isCreteDir = Tsukino::IO::FileSystem::CreateDirectories(outputDirectory);    // 出力ディレクトリが存在しない場合は作成
-
-        if(!isCreteDir) {
-            Tsukino::Core::Log::Warn("Failed to create Directory: " + outputDirectory.string());
-        }
-
         // DDSファイルとして保存
         hr = DirectX::SaveToDDSFile(image.GetImages(), image.GetImageCount(), metadata, DirectX::DDS_FLAGS_NONE, outputPath.ToWString().c_str());
 
