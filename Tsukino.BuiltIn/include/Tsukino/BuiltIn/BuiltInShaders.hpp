@@ -1,11 +1,10 @@
 ﻿//--------------------------------------------------------------
-//! @file   BuiltInAssets.hpp
-//! @brief  ビルトインアセット集約クラスの宣言
+//! @file   BuiltInShaders.hpp
+//! @brief  ビルトインシェーダー集約クラスの宣言
 //! @author 山﨑愛
 //--------------------------------------------------------------
 #pragma once
-#include <Tsukino/BuiltIn/BuiltInShaders.hpp>
-
+#include <Tsukino/Engine/Asset/AssetHandle.hpp>
 // 名前空間 : Tsukino::Asset
 namespace Tsukino::Asset {
     class AssetManager;    // 前方宣言
@@ -14,17 +13,18 @@ namespace Tsukino::Asset {
 // 名前空間 : Tsukino::BuiltIn
 namespace Tsukino::BuiltIn {
     //--------------------------------------------------------------
-    //! @class   BuiltInAssets
-    //! @brief   ビルトインアセット集約クラス
+    //! @class   BuiltInShaders
+    //! @brief   ビルトインシェーダー集約クラス
     //--------------------------------------------------------------
-    class BuiltInAssets {
+    class BuiltInShaders {
     public:
         //--------------------------------------------------------------
-        // ビルトインアセットの初期化関数
+        // ビルトインシェーダー集約初期化関数
         //! @param assetManager [in] アセットマネージャーへのポインタ
         //--------------------------------------------------------------
         void Initialize(Tsukino::Asset::AssetManager* assetManager);
 
-        BuiltInShaders shaders;    // ビルトインシェーダー集約クラスのインスタンス
+        Tsukino::Asset::AssetHandle spriteVS;    // スプライト用頂点シェーダーのハンドル
+        Tsukino::Asset::AssetHandle spritePS;     // スプライト用ピクセルシェーダーのハンドル
     };
 }    // namespace Tsukino::BuiltIn

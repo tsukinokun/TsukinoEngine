@@ -11,7 +11,7 @@ namespace Tsukino::BuiltIn {
     //--------------------------------------------------------------
     //! @brief ビルトインアセットの初期化関数
     //--------------------------------------------------------------
-    void BuiltInAssets::Initialize(Tsukino::Asset::AssetManager* assets) {
-
+    void BuiltInAssets::Initialize(Tsukino::Asset::AssetManager* assetManager) {
+        shaders.Initialize(assetManager);
     }
 }    // namespace Tsukino::BuiltIn
