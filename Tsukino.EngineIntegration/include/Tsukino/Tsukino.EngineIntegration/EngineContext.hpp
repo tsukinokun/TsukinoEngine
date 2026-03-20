@@ -9,11 +9,17 @@ namespace Tsukino {
     namespace Renderer {
         class Renderer;
     }
+
     namespace Core {
         class Window;
     }
+
     namespace Asset {
         class AssetManager;
+    }
+
+    namespace BuiltIn {
+        class BuiltInAssets;
     }
 }    // namespace Tsukino
 
@@ -24,8 +30,9 @@ namespace Tsukino::EngineIntegration {
     //! @brief   エンジン全体で共有されるクラスのポインタを集めた構造体
     //------------------------------------------------------------
     struct EngineContext {
-        Tsukino::Renderer::Renderer*  renderer = nullptr;
-        Tsukino::Core::Window*        window   = nullptr;
-        Tsukino::Asset::AssetManager* assets   = nullptr;
+        Tsukino::Renderer::Renderer*     renderer      = nullptr;
+        Tsukino::Core::Window*           window        = nullptr;
+        Tsukino::Asset::AssetManager*    assets        = nullptr;
+        Tsukino::BuiltIn::BuiltInAssets* builtinAssets = nullptr;
     };
 }    // namespace Tsukino::EngineIntegration

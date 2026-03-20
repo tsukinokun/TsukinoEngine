@@ -18,16 +18,18 @@ namespace Tsukino::EngineIntegration {
         //------------------------------------------------------------
         // ユニークポインタを作成して
         //------------------------------------------------------------
-        m_window       = std::make_unique<Tsukino::Core::Window>();
-        m_renderer     = std::make_unique<Tsukino::Renderer::Renderer>();
-        m_assetManager = std::make_unique<Tsukino::Asset::AssetManager>();
+        m_window        = std::make_unique<Tsukino::Core::Window>();
+        m_renderer      = std::make_unique<Tsukino::Renderer::Renderer>();
+        m_assetManager  = std::make_unique<Tsukino::Asset::AssetManager>();
+        m_builtinAssets = std::make_unique<Tsukino::BuiltIn::BuiltInAssets>();
 
         //------------------------------------------------------------
         // コンテキストにポインタをセット
         //------------------------------------------------------------
-        m_ctx.window   = m_window.get();
-        m_ctx.renderer = m_renderer.get();
-        m_ctx.assets   = m_assetManager.get();
+        m_ctx.window        = m_window.get();
+        m_ctx.renderer      = m_renderer.get();
+        m_ctx.assets        = m_assetManager.get();
+        m_ctx.builtinAssets = m_builtinAssets.get();
     }
 
     //------------------------------------------------------------
@@ -48,6 +50,11 @@ namespace Tsukino::EngineIntegration {
         // AssetManager 初期化
         //--------------------------------------------------------------
         m_assetManager->Initialize();
+
+        //--------------------------------------------------------------
+        // ビルトインアセットの初期化
+        //--------------------------------------------------------------
+        m_builtinAssets->Initialize(m_assetManager.get());
 
         //--------------------------------------------------------------
         // ウィンドウ生成
