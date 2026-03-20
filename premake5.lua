@@ -263,24 +263,24 @@ project "Tsukino.Physics"
 ----------------------------------------
 -- 組み込みプロジェクト
 ----------------------------------------
-project "Tsukino.BuildIn"
-    location ".build/Tsukino.BuildIn"
+project "Tsukino.BuiltIn"
+    location ".build/Tsukino.BuiltIn"
     kind "StaticLib"
     language "C++"
     cppdialect "C++20"
     forceincludes { "pch.h" }               -- 強制インクルード
 
     pchheader "pch.h" 
-    pchsource "Tsukino.BuildIn/pch.cpp"
+    pchsource "Tsukino.BuiltIn/pch.cpp"
 
     files {
-        "Tsukino.BuildIn/src/**.cpp",
-        "Tsukino.BuildIn/include/**.hpp",
-        "Tsukino.BuildIn/pch.cpp"
+        "Tsukino.BuiltIn/src/**.cpp",
+        "Tsukino.BuiltIn/include/**.hpp",
+        "Tsukino.BuiltIn/pch.cpp"
     }
 
     includedirs {
-        "Tsukino.BuildIn/include",
+        "Tsukino.BuiltIn/include",
         "Tsukino.Engine/include",
         "Tsukino.Renderer/include",
         "Tsukino.GraphicsCommon/include",
@@ -321,7 +321,7 @@ project "Tsukino.EngineIntegration"
         "Tsukino.Engine/include",
         "Tsukino.Renderer/include",
          "Tsukino.Core/include",
-        "Tsukino.BuildIn/include",
+        "Tsukino.BuiltIn/include",
         "Tsukino.EngineIntegration/include",
         --"Tsukino.Physics/include",
         "External/hlslpp/include",
@@ -332,7 +332,7 @@ project "Tsukino.EngineIntegration"
         "Tsukino.Engine",
         "Tsukino.Renderer",
         "Tsukino.GraphicsCommon",
-        "Tsukino.BuildIn",
+        "Tsukino.BuiltIn",
          "Tsukino.Core",
         --"Tsukino.Physics",
         "d3d11", 
@@ -374,7 +374,7 @@ project "Tsukino.Sandbox"
         "Tsukino.GraphicsCommon/include",
         "Tsukino.Engine/include",
         "Tsukino.Renderer/include",
-        "Tsukino.BuildIn",
+        "Tsukino.BuiltIn",
         "Tsukino.EngineIntegration/include",
         --"Tsukino.Physics/include",
         "Tsukino.Core/include",
@@ -386,7 +386,7 @@ project "Tsukino.Sandbox"
         "Tsukino.Engine",
         "Tsukino.Renderer",
         "Tsukino.GraphicsCommon",
-        "Tsukino.BuildIn",
+        "Tsukino.BuiltIn",
         "Tsukino.EngineIntegration",
         --"Tsukino.Physics",
         "Tsukino.Core",
