@@ -3,7 +3,7 @@
 //! @brief      エンジン全体で共有されるクラスを統合したクラスの定義
 //! @author     山﨑愛
 //------------------------------------------------------------
-#include <Tsukino/Tsukino.EngineIntegration/EngineContext.hpp>
+#include <Tsukino/EngineIntegration/EngineContext.hpp>
 
 #include <Tsukino/BuiltIn/BuiltInAssets.hpp>
 

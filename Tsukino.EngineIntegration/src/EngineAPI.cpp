@@ -3,11 +3,11 @@
 //! @brief      エンジンからAPIを提供するクラスの実装
 //! @author     山﨑愛
 //------------------------------------------------------------
-#include <Tsukino/Tsukino.EngineIntegration/EngineAPI.hpp>
+#include <Tsukino/EngineIntegration/EngineAPI.hpp>
 
 #include <Tsukino/Renderer/Renderer.hpp>
 
-#include <Tsukino/Tsukino.EngineIntegration/EngineContext.hpp>
+#include <Tsukino/EngineIntegration/EngineContext.hpp>
 
 #include <Tsukino/Core/Window.hpp>
 
