@@ -7,8 +7,8 @@
 #include <hlsl++.h>
 #include <Tsukino/Core/Math/Matrix.hpp>
 #include <Tsukino/Core/ECS/Entity/Entity.hpp>
-// 名前空間 : Tsukino::ECS
-namespace Tsukino::ECS {
+// 名前空間 : Tsukino::BuiltIn::ECS 
+namespace Tsukino::BuiltIn::ECS {
     //-------------------------------------------------------------
     //! @class  TransformComponent
     //! @brief  位置、回転、スケールを管理するクラス
