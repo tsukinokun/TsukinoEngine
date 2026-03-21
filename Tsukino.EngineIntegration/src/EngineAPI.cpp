@@ -7,6 +7,8 @@
 
 #include <Tsukino/Renderer/Renderer.hpp>
 
+#include <Tsukino/Tsukino.EngineIntegration/EngineContext.hpp>
+
 #include <Tsukino/Core/Window.hpp>
 
 #include <memory>
@@ -16,8 +18,9 @@ namespace Tsukino::EngineIntegration {
     //------------------------------------------------------------
     //! @brief コンストラクタ
     //------------------------------------------------------------
-    EngineAPI::EngineAPI(EngineContext& context)
-        : m_context(context) {
+    EngineAPI::EngineAPI(EngineContext& context, Tsukino::ECS::Registry& registry)
+        : m_context(context)
+        , m_registry(registry) {
     }
 
     //------------------------------------------------------------

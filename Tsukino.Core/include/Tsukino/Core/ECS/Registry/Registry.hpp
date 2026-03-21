@@ -18,6 +18,7 @@ namespace Tsukino::ECS {
         //! @brief  エンティティの作成
         //! @return 作成されたエンティティ
         //--------------------------------------------------------------------
+        [[nodiscard]]
         Entity CreateEntity() { return registry.create(); }
 
         //--------------------------------------------------------------------
@@ -34,6 +35,7 @@ namespace Tsukino::ECS {
         //! @param  args   [in] コンポーネントのコンストラクタ
         //--------------------------------------------------------------------
         template <typename T, typename... Args>
+        [[nodiscard]]
         T& AddComponent(Entity entity, Args&&... args) {
             return registry.emplace<T>(entity, std::forward<Args>(args)...);
         }
@@ -45,6 +47,7 @@ namespace Tsukino::ECS {
         //! @return コンポーネントの参照
         //--------------------------------------------------------------------
         template <typename T>
+        [[nodiscard]]
         T& GetComponent(Entity entity) {
             return registry.get<T>(entity);
         }
@@ -56,6 +59,7 @@ namespace Tsukino::ECS {
         //! @param  entity [in] コンポーネントがいるか否か
         //--------------------------------------------------------------------
         template <typename T>
+        [[nodiscard]]
         bool HasComponent(Entity entity) const {
             return registry.any_of<T>(entity);
         }
@@ -76,6 +80,7 @@ namespace Tsukino::ECS {
         //! @return 特定のコンポーネントのあるエンティティの列挙
         //--------------------------------------------------------------------
         template <typename... Components>
+        [[nodiscard]]
         auto View() {
             return registry.view<Components...>();
         }
@@ -88,6 +93,7 @@ namespace Tsukino::ECS {
         //! @return 構築されたコンテキスト変数への参照
         //--------------------------------------------------------------------
         template <typename T, typename... Args>
+        [[nodiscard]]
         T& SetContext(Args&&... args) {
             return registry.ctx().emplace<T>(std::forward<Args>(args)...);
         }
@@ -98,6 +104,7 @@ namespace Tsukino::ECS {
         //! @return コンテキスト変数への参照
         //--------------------------------------------------------------------
         template <typename T>
+        [[nodiscard]]
         T& GetContext() {
             return registry.ctx().get<T>();
         }
@@ -108,6 +115,7 @@ namespace Tsukino::ECS {
         //! @return コンテキスト変数が存在するか否か
         //--------------------------------------------------------------------
         template <typename T>
+        [[nodiscard]]
         bool HasContext() const {
             return registry.ctx().contains<T>();
         }
