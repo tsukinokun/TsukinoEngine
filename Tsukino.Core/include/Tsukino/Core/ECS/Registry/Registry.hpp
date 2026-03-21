@@ -80,6 +80,47 @@ namespace Tsukino::ECS {
             return registry.view<Components...>();
         }
 
+        //--------------------------------------------------------------------
+        //! @brief  コンテキスト変数の設定（グローバルデータの登録）
+        //! @tparam T コンテキストの型
+        //! @tparam Args コンストラクタ引数の型
+        //! @param  args コンストラクタ引数
+        //! @return 構築されたコンテキスト変数への参照
+        //--------------------------------------------------------------------
+        template <typename T, typename... Args>
+        T& SetContext(Args&&... args) {
+            return registry.ctx().emplace<T>(std::forward<Args>(args)...);
+        }
+
+        //--------------------------------------------------------------------
+        //! @brief  コンテキスト変数の取得
+        //! @tparam T コンテキストの型
+        //! @return コンテキスト変数への参照
+        //--------------------------------------------------------------------
+        template <typename T>
+        T& GetContext() {
+            return registry.ctx().get<T>();
+        }
+
+        //--------------------------------------------------------------------
+        //! @brief  コンテキスト変数の存在確認
+        //! @tparam T コンテキストの型
+        //! @return コンテキスト変数が存在するか否か
+        //--------------------------------------------------------------------
+        template <typename T>
+        bool HasContext() const {
+            return registry.ctx().contains<T>();
+        }
+
+        //--------------------------------------------------------------------
+        //! @brief  コンテキスト変数の削除
+        //! @tparam T コンテキストの型
+        //--------------------------------------------------------------------
+        template <typename T>
+        void RemoveContext() {
+            registry.ctx().erase<T>();
+        }
+
     private:
         entt::registry registry;    //!< 内部のレジストリ
     };
