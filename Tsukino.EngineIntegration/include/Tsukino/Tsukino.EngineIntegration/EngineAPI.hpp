@@ -4,7 +4,7 @@
 //! @author  山﨑愛
 //------------------------------------------------------------
 #pragma once
-#include <Tsukino/Tsukino.EngineIntegration/EngineContext.hpp>
+#include <Tsukino/Core/ECS/Registry/Registry.hpp>
 
 // 名前空間 : Tsukino::EngineIntegration
 namespace Tsukino::EngineIntegration {
@@ -20,7 +20,7 @@ namespace Tsukino::EngineIntegration {
         // コンストラクタ
         //! @param   context エンジン全体で共有されるクラスのポインタを集めた構造体への参照
         //------------------------------------------------------------
-        explicit EngineAPI(EngineContext& context);
+        explicit EngineAPI(EngineContext& context, Tsukino::ECS::Registry& registry);
 
         //------------------------------------------------------------
         // メッセージ処理関数
@@ -30,12 +30,22 @@ namespace Tsukino::EngineIntegration {
         bool ProcessMessages();
 
         //------------------------------------------------------------
+        //! @brief  現在のシーンの Registry (ECS) を取得する
+        //! @return Registry への参照
+        //------------------------------------------------------------
+        [[nodiscard]]
+        Tsukino::ECS::Registry& GetRegistry() {
+            return m_registry;
+        }
+
+        //------------------------------------------------------------
         // 描画関数
         //------------------------------------------------------------
         void Render();
 
     private:
-        EngineContext& m_context;    // コンテキストへの参照
+        EngineContext&          m_context;     // コンテキストへの参照
+        Tsukino::ECS::Registry& m_registry;    // ECSレジストリへの参照
     };
 
 }    // namespace Tsukino::EngineIntegration

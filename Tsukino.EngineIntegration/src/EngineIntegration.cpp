@@ -70,6 +70,11 @@ namespace Tsukino::EngineIntegration {
             return -1;
         }
 
+        //--------------------------------------------------------------
+        // RegistryにEngineContextをセット
+        //--------------------------------------------------------------
+        m_registry.SetContext<EngineContext*>(&m_ctx);
+
         return true;
     }
 }    // namespace Tsukino::EngineIntegration

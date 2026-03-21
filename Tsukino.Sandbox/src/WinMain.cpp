@@ -13,6 +13,7 @@
 //#include <Tsukino/Engine/Asset/Texture/TextureAsset.hpp>
 //#include <Tsukino/Core/Path.hpp>
 //#include <Tsukino/Core/Window.hpp>
+#include <Tsukino/Core/ECS/Registry/Registry.hpp>
 #include <Tsukino/Core/Log.hpp>
 
 #include <Windows.h>
@@ -34,8 +35,9 @@ int WINAPI WinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ LPSTR, _In_ int) {
         return false;
     }
 
-    Tsukino::EngineIntegration::EngineContext engineContext = engineIntegration.GetContext();
-    Tsukino::EngineIntegration::EngineAPI     engineAPI(engineContext);
+    Tsukino::EngineIntegration::EngineContext& engineContext = engineIntegration.GetContext();
+    Tsukino::ECS::Registry&                    registry      = engineIntegration.GetRegistry();
+    Tsukino::EngineIntegration::EngineAPI     engineAPI(engineContext, registry);
 
     //--------------------------------------------------------------
     // メインループ
