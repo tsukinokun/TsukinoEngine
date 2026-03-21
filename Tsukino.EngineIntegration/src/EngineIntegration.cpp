@@ -3,7 +3,7 @@
 //! @brief      エンジン全体で共有されるクラスを統合したクラスの実装
 //! @author     山﨑愛
 //------------------------------------------------------------
-#include <Tsukino/Tsukino.EngineIntegration/EngineIntegration.hpp>
+#include <Tsukino/EngineIntegration/EngineIntegration.hpp>
 
 #include <Tsukino/Core/Log.hpp>
 

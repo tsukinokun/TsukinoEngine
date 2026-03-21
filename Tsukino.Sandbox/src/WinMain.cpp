@@ -3,8 +3,8 @@
 //! @brief	Sandboxのエントリポイント
 //! @author 山﨑愛
 //--------------------------------------------------------------
-#include <Tsukino/Tsukino.EngineIntegration/EngineAPI.hpp>
-#include <Tsukino/Tsukino.EngineIntegration/EngineIntegration.hpp>
+#include <Tsukino/EngineIntegration/EngineAPI.hpp>
+#include <Tsukino/EngineIntegration/EngineIntegration.hpp>
 //#include <Tsukino/Renderer/Renderer.hpp>
 //#include <Tsukino/Renderer/DX11/PipelineFactory.hpp>
 //#include <Tsukino/Renderer/DX11/PipelineState.hpp>
