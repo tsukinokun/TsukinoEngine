@@ -296,6 +296,8 @@ project "Tsukino.BuiltIn"
         "Tsukino.Renderer/include",
         "Tsukino.GraphicsCommon/include",
         "Tsukino.Core/include",
+        "External/hlslpp/include",
+        "External/entt/single_include",
     }
 
     links {
