@@ -4,13 +4,13 @@
 //! @author 山﨑愛
 //--------------------------------------------------------------
 #pragma once
-#include <DirectXMath.h>
+#include <Tsukino/Core/Math/Matrix.hpp>
 // 名前空間 : Tsukino::Renderer
 namespace Tsukino::Renderer {
     //--------------------------------------------------------------
     //! @struct CBufferTransform
     //--------------------------------------------------------------
     struct CBufferTransform {
-        DirectX::XMMATRIX mvp;    // 16 バイトアラインメントされた 4×4 行列型（SIMD 最適化対応）
+        Tsukino::Core::Math::matrix mvp;
     };
 }    // namespace Tsukino::Renderer

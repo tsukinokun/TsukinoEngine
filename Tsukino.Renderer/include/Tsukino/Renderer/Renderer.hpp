@@ -4,9 +4,13 @@
 //! @author 山﨑愛
 //------------------------------------------------------------
 #pragma once
+#ifndef NOMINMAX
+#define NOMINMAX
+#endif
+
 #include <Tsukino/Renderer/DX11/GraphicsContext.hpp>
 #include <Tsukino/Renderer/DX11/MeshBuffer.hpp>
-#include <Tsukino/Renderer/DX11/PipelineFactory.hpp>    // ヘッダーを追加
+#include <Tsukino/Renderer/DX11/PipelineFactory.hpp>  
 #include <Tsukino/Renderer/SpriteRenderer.hpp>
 #include <Tsukino/Renderer/DrawCommandQueue.hpp>
 

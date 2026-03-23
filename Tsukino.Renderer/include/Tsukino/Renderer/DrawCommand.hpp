@@ -4,7 +4,7 @@
 //! @author 山﨑愛
 //------------------------------------------------------------
 #pragma once
-#include <DirectXMath.h>
+#include <Tsukino/Core/Math/Matrix.hpp>
 // 名前空間 Tsukino::Renderer
 namespace Tsukino::Renderer {
     // 前方宣言
@@ -17,6 +17,6 @@ namespace Tsukino::Renderer {
     struct DrawCommand {
         Material*         material;     // どう描くか（シェーダー、テクスチャ、ステート）
         MeshBuffer*       mesh;         // 何を描くか（Quad, Cube, Model Mesh など）
-        DirectX::XMMATRIX transform;    // どこに描くか（モデル行列）
+        Tsukino::Core::Math::matrix transform;    // どこに描くか（モデル行列）
     };
 }    // namespace Tsukino::Renderer

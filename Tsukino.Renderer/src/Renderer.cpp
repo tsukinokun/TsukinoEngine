@@ -188,7 +188,7 @@ namespace Tsukino::Renderer {
             // 定数バッファの更新
             //------------------------------------------------------------
             CBufferTransform cb{};
-            cb.mvp = DirectX::XMMatrixIdentity();    // とりあえず単位行列
+            cb.mvp = Tsukino::Core::Math::matrix::identity();    // とりあえず単位行列
 
             //------------------------------------------------------------
             // 定数バッファの更新
