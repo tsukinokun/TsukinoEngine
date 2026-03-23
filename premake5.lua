@@ -223,6 +223,7 @@ project "Tsukino.Renderer"
         "Tsukino.Renderer/include",
         "Tsukino.GraphicsCommon/include",
         "Tsukino.Core/include",
+        "External/hlslpp/include", 
     }
 
     links {
