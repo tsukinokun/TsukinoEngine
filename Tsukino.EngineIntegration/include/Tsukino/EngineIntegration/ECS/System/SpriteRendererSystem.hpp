@@ -5,6 +5,12 @@
 //-------------------------------------------------------------
 #pragma once
 #include <Tsukino/Core/ECS/System/ISystem.hpp>
+
+#include <memory>
+namespace Tsukino::Renderer {
+    struct PipelineState;    // 前方宣言
+}
+
 // 名前空間 : Tsukino::BuiltIn::ECS
 namespace Tsukino::BuiltIn::ECS {
     //-------------------------------------------------------------
@@ -29,5 +35,8 @@ namespace Tsukino::BuiltIn::ECS {
         //! @param  deltaTime   [in] 前フレームからの経過時間
         //-------------------------------------------------------------
         void Update(Tsukino::ECS::Registry& registry, float deltaTime) override;
+
+    private:
+        std::shared_ptr<Tsukino::Renderer::PipelineState> m_pipelineCache;    // パイプラインステートのキャッシュ
     };
 }    // namespace Tsukino::BuiltIn::ECS

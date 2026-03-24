@@ -7,6 +7,7 @@
 
 #include <Tsukino/EngineIntegration/EngineContext.hpp>
 
+#include <Tsukino/BuiltIn/BuiltInAssets.hpp>
 #include <Tsukino/BuiltIn/ECS/Component/TransformComponent.hpp>
 #include <Tsukino/BuiltIn/ECS/Component/SpriteComponent.hpp>
 
@@ -17,6 +18,7 @@
 
 #include <Tsukino/Engine/Asset/AssetManager.hpp>
 #include <Tsukino/Engine/Asset/Texture/TextureAsset.hpp>
+#include <Tsukino/Engine/Asset/Shader/ShaderAsset.hpp>
 
 #include <Tsukino/GraphicsCommon/Mesh/PrimitiveType.hpp>
 
@@ -33,6 +35,38 @@ namespace Tsukino::BuiltIn::ECS {
         Tsukino::EngineIntegration::EngineContext* ctx = registry.GetContext<Tsukino::EngineIntegration::EngineContext*>();
         if(!ctx || !ctx->renderer)
             return;
+
+        // 初回のみパイプラインを取得・生成する
+        if(!m_pipelineCache) {
+            //-------------------------------------------------------------
+            // VS
+            //-------------------------------------------------------------
+            std::shared_ptr<Tsukino::Asset::ShaderAsset> vsAsset =
+                std::static_pointer_cast<Tsukino::Asset::ShaderAsset>(ctx->assets->Get(ctx->builtinAssets->shaders.spriteVS));
+            
+            //-------------------------------------------------------------
+            // PS
+            //-------------------------------------------------------------
+            std::shared_ptr<Tsukino::Asset::ShaderAsset> psAsset =
+                std::static_pointer_cast<Tsukino::Asset::ShaderAsset>(ctx->assets->Get(ctx->builtinAssets->shaders.spritePS));
+
+            // シェーダーアセットが両方とも有効なら
+            if(vsAsset && psAsset) {
+                //-------------------------------------------------------------
+                // layout
+                //-------------------------------------------------------------
+                D3D11_INPUT_ELEMENT_DESC layout[] = {
+                    {"POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0},
+                    {"NORMAL",   0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0},
+                    {"TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT,    0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0},
+                };
+                // パイプラインを生成してキャッシュ
+                m_pipelineCache = ctx->renderer->GetPipelineFactory()->Create(*vsAsset, *psAsset, layout, ARRAYSIZE(layout));
+            }
+        }
+
+        if(!m_pipelineCache)
+            return;    // パイプラインが作れなければ描画しない
 
         // TransformComponent と SpriteComponent の両方を持つエンティティを取得
         auto view = registry.View<TransformComponent, SpriteComponent>();
@@ -56,12 +90,15 @@ namespace Tsukino::BuiltIn::ECS {
             //-------------------------------------------------------------
             // マテリアルの実体をローカル変数として作成
             Tsukino::Renderer::Material material;
+
             //-------------------------------------------------------------
             // サンプラー設定
             //-------------------------------------------------------------
             material.SetSampler(ctx->renderer->GetSampler(Tsukino::GraphicsCommon::SamplerType::LinearClamp));    // リニアフィルタを指定
 
+            //-------------------------------------------------------------
             // テクスチャ設定
+            //-------------------------------------------------------------
             Tsukino::Core::Ref<Tsukino::Asset::IAsset> asset = ctx->assets->Get(sprite.textureHandle);
             if(asset && asset->GetType() == Tsukino::Asset::AssetType::Texture) {
                 Tsukino::Core::Ref<Tsukino::Asset::TextureAsset> textureAsset = std::static_pointer_cast<Tsukino::Asset::TextureAsset>(asset);
@@ -70,6 +107,11 @@ namespace Tsukino::BuiltIn::ECS {
             } else {
                 material.SetTexture(nullptr);
             }
+
+            //-------------------------------------------------------------
+            // パイプライン設定
+            //-------------------------------------------------------------
+            material.SetPipeline(m_pipelineCache.get());
 
             // 実体のアドレスを DrawCommand に渡す
             cmd.material = &material;

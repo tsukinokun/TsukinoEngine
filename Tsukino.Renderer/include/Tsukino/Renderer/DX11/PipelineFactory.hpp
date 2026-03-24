@@ -6,7 +6,10 @@
 #pragma once
 #include <Tsukino/Renderer/DX11/PipelineState.hpp>
 
+#include <Tsukino/Core/typedef.hpp>
+
 #include <memory>
+#include <unordered_map>
 
 namespace Tsukino::Asset {
     class ShaderAsset;    // 前方宣言
@@ -14,6 +17,17 @@ namespace Tsukino::Asset {
 
 // 名前空間 : Tsukino::Renderer
 namespace Tsukino::Renderer {
+    //--------------------------------------------------------------
+    //! @struct PipelineHash
+    //! @brief パイプラインステートのハッシュ関数
+    //--------------------------------------------------------------
+    struct PipelineHash {
+        //--------------------------------------------------------------
+        //! @brief ハッシュ関数
+        //--------------------------------------------------------------
+        std::size_t operator()(const std::pair<u64, u64>& p) const { return std::hash<u64>()(p.first) ^ (std::hash<u64>()(p.second) << 1); }
+    };
+
     //--------------------------------------------------------------
     //! @class PipelineFactory
     //! @brief パイプラインファクトリークラス
@@ -42,7 +56,11 @@ namespace Tsukino::Renderer {
                                               UINT                               layoutCount);
 
     private:
-        ID3D11Device* m_device = nullptr;    // DirectXのデバイス
+        // DirectXのデバイス
+        ID3D11Device* m_device = nullptr;    
+
+        // キャッシュ用コンテナ (Key: <VSハンドル, PSハンドル>, Value: PipelineState)
+        std::unordered_map<std::pair<u64, u64>, std::shared_ptr<PipelineState>, PipelineHash> m_cache;
     };
 
 }    // namespace Tsukino::Renderer
