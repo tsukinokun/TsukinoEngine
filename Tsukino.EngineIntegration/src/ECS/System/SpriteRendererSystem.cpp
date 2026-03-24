@@ -3,7 +3,7 @@
 //! @brief  SpriteRenderSystemクラスの実装
 //! @author 山﨑愛
 //-------------------------------------------------------------
-#include <Tsukino/BuiltIn/ECS/System/SpriteRendererSystem.hpp>
+#include <Tsukino/EngineIntegration/ECS/System/SpriteRendererSystem.hpp>
 #include <Tsukino/BuiltIn/ECS/Component/TransformComponent.hpp>
 #include <Tsukino/BuiltIn/ECS/Component/SpriteComponent.hpp>
 
@@ -26,8 +26,10 @@ namespace Tsukino::BuiltIn::ECS {
         view.each([&](auto entity, const auto& transform, const auto& sprite) {
             Tsukino::Renderer::DrawCommand cmd;
 
-            // 変換なしで直接 Tsukino::Core::Math::matrix を渡す
+            // Tsukino::Core::Math::matrix を渡す
             cmd.transform = transform.worldMatrix;
+
+
 
             // cmd.material = ...; // sprite.textureHandleや色情報からマテリアルを構築/取得
             // cmd.mesh = ...;     // Quadメッシュの取得
