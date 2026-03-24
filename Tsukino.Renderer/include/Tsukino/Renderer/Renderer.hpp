@@ -13,22 +13,27 @@
 #include <Tsukino/Renderer/DX11/PipelineFactory.hpp>
 #include <Tsukino/Renderer/SpriteRenderer.hpp>
 #include <Tsukino/Renderer/DrawCommandQueue.hpp>
+#include <Tsukino/Renderer/DX11/Texture/DX11Texture2D.hpp>
 
 #include <Tsukino/GraphicsCommon/Mesh/PrimitiveType.hpp>
 #include <Tsukino/GraphicsCommon/Mesh/MeshData.hpp>
-#include <Tsukino/GraphicsCommon/State/SamplerType.hpp> 
+#include <Tsukino/GraphicsCommon/State/SamplerType.hpp>
 
 #include <wrl/client.h>    // ComPtrの依存関係を明示
 #include <d3d11.h>         // 依存関係を明示
 #include <dxgi.h>          // 依存関係を明示
 #include <array>
 #include <optional>
+#include <unordered_map>
 
 using Microsoft::WRL::ComPtr;    // ComPtr を使用するための using 宣言
 
+namespace Tsukino::Asset {
+    class TextureAsset;    // 前方宣言
+}
+
 // 名前空間 : Tsukino::Renderer
 namespace Tsukino::Renderer {
-
     //------------------------------------------------------------
     //! @class	 Renderer
     //! @brief	 レンダラークラス
@@ -105,6 +110,14 @@ namespace Tsukino::Renderer {
             return m_samplers[static_cast<size_t>(type)].Get();
         }
 
+        //------------------------------------------------------------
+        // テクスチャ（SRV）の取得（なければ生成してキャッシュ）
+        //! @param textureAsset [in] 取得元のテクスチャアセット
+        //! @return ID3D11ShaderResourceView へのポインタ
+        //------------------------------------------------------------
+        [[nodiscard]]
+        ID3D11ShaderResourceView* GetTextureSRV(const Tsukino::Asset::TextureAsset& textureAsset);
+
     private:
         //------------------------------------------------------------
         // 定数バッファの作成
@@ -145,8 +158,9 @@ namespace Tsukino::Renderer {
 
         std::array<MeshBuffer, (size_t)Tsukino::GraphicsCommon::PrimitiveType::Count> m_primitiveMeshes;    // プリミティブメッシュバッファの配列
         std::array<ComPtr<ID3D11SamplerState>, static_cast<size_t>(Tsukino::GraphicsCommon::SamplerType::Count)> m_samplers;
-        std::optional<PipelineFactory>                                                m_pipelineFactory;    // メンバとして持たせる
-        SpriteRenderer                                                                m_spriteRenderer;     // スプライト描画クラスのインスタンス
-        DrawCommandQueue                                                              m_drawQueue;          // 描画コマンドキュー
+        std::unordered_map<u64, std::unique_ptr<DX11Texture2D>> m_textureCache;       // Textureのキャッシュ (AssetHandle の Value(uint64_t) をキーにする)
+        std::optional<PipelineFactory>                          m_pipelineFactory;    // メンバとして持たせる
+        SpriteRenderer                                          m_spriteRenderer;     // スプライト描画クラスのインスタンス
+        DrawCommandQueue                                        m_drawQueue;          // 描画コマンドキュー
     };
 }    // namespace Tsukino::Renderer
