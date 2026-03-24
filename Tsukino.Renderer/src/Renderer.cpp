@@ -3,6 +3,8 @@
 //! @brief  レンダラークラスの実装
 //! @author 山﨑愛
 //------------------------------------------------------------
+#include <Tsukino/Engine/Asset/Texture/TextureAsset.hpp>
+
 #include <Tsukino/Renderer/Renderer.hpp>
 #include <Tsukino/Renderer/ShaderLoader.hpp>
 #include <Tsukino/Renderer/ConstantBuffer.hpp>
@@ -247,6 +249,32 @@ namespace Tsukino::Renderer {
     //------------------------------------------------------------
     void Renderer::PushDrawCommand(const DrawCommand& cmd) {
         m_drawQueue.Push(cmd);
+    }
+
+    //------------------------------------------------------------
+    //! @brief テクスチャ（SRV）の取得（なければ生成してキャッシュ）
+    //------------------------------------------------------------
+    ID3D11ShaderResourceView* Renderer::GetTextureSRV(const Tsukino::Asset::TextureAsset& textureAsset) {
+        uint64_t handleValue = textureAsset.GetHandle().Value();
+
+        // 1. すでにキャッシュにあるか探す
+        auto it = m_textureCache.find(handleValue);
+        if(it != m_textureCache.end()) {
+            return it->second->GetSRV();    // 既存のものを返す
+        }
+
+        // 2. なければ新しく作成する
+        ID3D11Device* device = m_graphicsContext.GetDevice();
+
+        std::unique_ptr<DX11Texture2D> texture =
+            std::make_unique<DX11Texture2D>(textureAsset.width, textureAsset.height, textureAsset.format, textureAsset.pixels.data(), device);
+
+        ID3D11ShaderResourceView* srv = texture->GetSRV();
+
+        // 3. キャッシュに保存
+        m_textureCache.emplace(handleValue, std::move(texture));
+
+        return srv;
     }
 
     //------------------------------------------------------------

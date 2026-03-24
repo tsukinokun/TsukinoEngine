@@ -51,6 +51,15 @@ namespace Tsukino::Renderer {
             return m_height;
         }
 
+        //--------------------------------------------------------------
+        //! @brief  SRVを取得
+        //! @return ID3D11ShaderResourceViewのポインタ
+        //--------------------------------------------------------------
+        [[nodiscard]]
+        ID3D11ShaderResourceView* GetSRV() const {
+            return m_srv.Get();
+        }
+
     private:
         u32 m_width  = 0;    // テクスチャの幅（ピクセル単位）
         u32 m_height = 0;    // テクスチャの高さ（ピクセル単位）
