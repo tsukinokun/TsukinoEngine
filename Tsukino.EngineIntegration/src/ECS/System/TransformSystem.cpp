@@ -3,7 +3,7 @@
 //! @brief  TransformSystemクラスの実装
 //! @author 山﨑愛
 //-------------------------------------------------------------
-#include <Tsukino/BuiltIn/ECS/System/TransformSystem.hpp>
+#include <Tsukino/EngineIntegration/ECS/System/TransformSystem.hpp>
 #include <Tsukino/BuiltIn/ECS/Component/TransformComponent.hpp>
 
 #include <hlsl++.h>

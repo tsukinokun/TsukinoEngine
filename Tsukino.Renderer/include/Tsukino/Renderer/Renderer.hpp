@@ -105,6 +105,16 @@ namespace Tsukino::Renderer {
         //------------------------------------------------------------
         void ExecuteDrawCommand(const DrawCommand& cmd);
 
+        //------------------------------------------------------------
+        // プリミティブメッシュの取得
+        //! @param type [in] 取得するプリミティブの種類
+        //! @return メッシュバッファへのポインタ
+        //------------------------------------------------------------
+        [[nodiscard]]
+        MeshBuffer* GetPrimitiveMesh(Tsukino::GraphicsCommon::PrimitiveType type) {
+            return &m_primitiveMeshes[static_cast<size_t>(type)];
+        }
+
     private:
         // DirectX 11の主要なインターフェース
         GraphicsContext            m_graphicsContext;                          // グラフィックスコンテキスト（Device, DeviceContext, SwapChainを管理）
