@@ -6,7 +6,13 @@
 #pragma once
 #include <Tsukino/Core/ECS/System/ISystem.hpp>
 
+#include <Tsukino/Renderer/DX11/Material.hpp>
+
+#include <Tsukino/Engine/Asset/AssetHandle.hpp>
+
 #include <memory>
+#include <deque>
+#include <unordered_map>
 namespace Tsukino::Renderer {
     struct PipelineState;    // 前方宣言
 }
@@ -38,5 +44,8 @@ namespace Tsukino::BuiltIn::ECS {
 
     private:
         std::shared_ptr<Tsukino::Renderer::PipelineState> m_pipelineCache;    // パイプラインステートのキャッシュ
+        std::deque<Tsukino::Renderer::Material> m_materialBuffer;    // 描画コマンド実行までポインタを維持しつつ、フレーム毎にリサイクルするためのバッファ
+        std::unordered_map<Tsukino::Asset::AssetHandle, ID3D11ShaderResourceView*>
+            m_textureCache;    // ハンドルをキーにしてテクスチャのSRVをキャッシュ（毎フレームのアセット検索を回避）
     };
 }    // namespace Tsukino::BuiltIn::ECS

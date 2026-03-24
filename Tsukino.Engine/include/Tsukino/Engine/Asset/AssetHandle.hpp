@@ -5,6 +5,8 @@
 //--------------------------------------------------------------
 #pragma once
 #include <Tsukino/Core/typedef.hpp>
+
+#include <functional>    // std::hash用
 // 名前空間 : Tsukino::Asset
 namespace Tsukino::Asset {
     //--------------------------------------------------------------
@@ -30,14 +32,18 @@ namespace Tsukino::Asset {
         //! @return ハンドルの値
         //--------------------------------------------------------------
         [[nodiscard]]
-        u64  Value() const { return m_value; }
+        u64 Value() const {
+            return m_value;
+        }
 
         //--------------------------------------------------------------
         //! @brief  ハンドルが有効か確認する関数
         //! @return true: 有効, false: 無効
         //--------------------------------------------------------------
         [[nodiscard]]
-        bool          IsValid() const { return m_value != 0; }
+        bool IsValid() const {
+            return m_value != 0;
+        }
 
         //--------------------------------------------------------------
         //! @brief  同一のハンドルか比較する演算子オーバーロード
@@ -45,7 +51,7 @@ namespace Tsukino::Asset {
         //! @return true: 同一, false: 異なる
         //--------------------------------------------------------------
         bool operator==(const AssetHandle& other) const { return m_value == other.m_value; }
-        
+
         //--------------------------------------------------------------
         //! @brief  異なるハンドルか比較する演算子オーバーロード
         //! @param  other [in] 比較対象のハンドル
@@ -58,10 +64,25 @@ namespace Tsukino::Asset {
         //! @return 無効なハンドル
         //--------------------------------------------------------------
         [[nodiscard]]
-        static AssetHandle Invalid() { return AssetHandle(0); }
+        static AssetHandle Invalid() {
+            return AssetHandle(0);
+        }
 
     private:
         u64 m_value = 0;    // ハンドルの値
     };
 
 }    // namespace Tsukino::Asset
+
+#include <functional>    // std::hash用
+
+namespace std {
+    template <>
+    struct hash<Tsukino::Asset::AssetHandle> {
+        size_t operator()(const Tsukino::Asset::AssetHandle& handle) const noexcept {
+            // 例: AssetHandle 内部に一意のIDが存在する場合
+            // handle.GetID() など、識別可能な値を用いてハッシュを計算して返す
+            return std::hash<u64>()(handle.Value());
+        }
+    };
+}    // namespace std

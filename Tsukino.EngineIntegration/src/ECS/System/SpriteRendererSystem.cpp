@@ -43,7 +43,7 @@ namespace Tsukino::BuiltIn::ECS {
             //-------------------------------------------------------------
             std::shared_ptr<Tsukino::Asset::ShaderAsset> vsAsset =
                 std::static_pointer_cast<Tsukino::Asset::ShaderAsset>(ctx->assets->Get(ctx->builtinAssets->shaders.spriteVS));
-            
+
             //-------------------------------------------------------------
             // PS
             //-------------------------------------------------------------
@@ -68,6 +68,9 @@ namespace Tsukino::BuiltIn::ECS {
         if(!m_pipelineCache)
             return;    // パイプラインが作れなければ描画しない
 
+        // 前フレームのマテリアルバッファをクリアして再利用
+        m_materialBuffer.clear();
+
         // TransformComponent と SpriteComponent の両方を持つエンティティを取得
         auto view = registry.View<TransformComponent, SpriteComponent>();
 
@@ -88,8 +91,8 @@ namespace Tsukino::BuiltIn::ECS {
             //-------------------------------------------------------------
             // マテリアルの構築
             //-------------------------------------------------------------
-            // マテリアルの実体をローカル変数として作成
-            Tsukino::Renderer::Material material;
+            // バッファに実体を作成し、参照を取得 (std::dequeによりポインタは安全に保たれる)
+            Tsukino::Renderer::Material& material = m_materialBuffer.emplace_back();
 
             //-------------------------------------------------------------
             // サンプラー設定
@@ -99,14 +102,20 @@ namespace Tsukino::BuiltIn::ECS {
             //-------------------------------------------------------------
             // テクスチャ設定
             //-------------------------------------------------------------
-            Tsukino::Core::Ref<Tsukino::Asset::IAsset> asset = ctx->assets->Get(sprite.textureHandle);
-            if(asset && asset->GetType() == Tsukino::Asset::AssetType::Texture) {
-                Tsukino::Core::Ref<Tsukino::Asset::TextureAsset> textureAsset = std::static_pointer_cast<Tsukino::Asset::TextureAsset>(asset);
-                ID3D11ShaderResourceView*                        srv          = ctx->renderer->GetTextureSRV(*textureAsset);
-                material.SetTexture(srv);
-            } else {
-                material.SetTexture(nullptr);
+            // ハンドルを取得
+            Tsukino::Asset::AssetHandle handleId = sprite.textureHandle;
+
+            // ハンドルがキャッシュにない場合はアセットマネージャーからテクスチャを取得してキャッシュに保存
+            if(m_textureCache.find(handleId) == m_textureCache.end()) {
+                Tsukino::Core::Ref<Tsukino::Asset::IAsset> asset = ctx->assets->Get(sprite.textureHandle);
+                if(asset && asset->GetType() == Tsukino::Asset::AssetType::Texture) {
+                    Tsukino::Core::Ref<Tsukino::Asset::TextureAsset> textureAsset = std::static_pointer_cast<Tsukino::Asset::TextureAsset>(asset);
+                    m_textureCache[handleId]                                      = ctx->renderer->GetTextureSRV(*textureAsset);
+                } else {
+                    m_textureCache[handleId] = nullptr;
+                }
             }
+            material.SetTexture(m_textureCache[handleId]);
 
             //-------------------------------------------------------------
             // パイプライン設定
