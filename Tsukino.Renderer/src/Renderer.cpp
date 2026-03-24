@@ -36,6 +36,12 @@ namespace Tsukino::Renderer {
             return false;    // メッシュバッファの作成に失敗した場合は false を返す
 
         //------------------------------------------------------------
+        // 共通ステートの作成
+        //------------------------------------------------------------
+        if(!CreateCommonStates())
+            return false;    // 共通ステートの作成に失敗した場合は false を返す
+
+        //------------------------------------------------------------
         // 三角形描画の準備を追加
         //------------------------------------------------------------
         // 頂点構造体
@@ -279,4 +285,72 @@ namespace Tsukino::Renderer {
         context->DrawIndexed(cmd.mesh->indexCount, 0, 0);
     }
 
+    //------------------------------------------------------------
+    //! @brief 共通ステート（サンプラー等）の作成
+    //------------------------------------------------------------
+    bool Renderer::CreateCommonStates() {
+        // デバイスを取得
+        ID3D11Device*      device = m_graphicsContext.GetDevice();
+        HRESULT            hr;
+        D3D11_SAMPLER_DESC desc{};
+
+        // 共通設定
+        desc.ComparisonFunc = D3D11_COMPARISON_NEVER;
+        desc.MinLOD         = 0;
+        desc.MaxLOD         = D3D11_FLOAT32_MAX;
+
+        // --- PointWrap ---
+        desc.Filter   = D3D11_FILTER_MIN_MAG_MIP_POINT;
+        desc.AddressU = D3D11_TEXTURE_ADDRESS_WRAP;
+        desc.AddressV = D3D11_TEXTURE_ADDRESS_WRAP;
+        desc.AddressW = D3D11_TEXTURE_ADDRESS_WRAP;
+        hr            = device->CreateSamplerState(&desc, m_samplers[static_cast<size_t>(Tsukino::GraphicsCommon::SamplerType::PointWrap)].GetAddressOf());
+        if(FAILED(hr))
+            return false;
+
+        // --- PointClamp ---
+        desc.AddressU = D3D11_TEXTURE_ADDRESS_CLAMP;
+        desc.AddressV = D3D11_TEXTURE_ADDRESS_CLAMP;
+        desc.AddressW = D3D11_TEXTURE_ADDRESS_CLAMP;
+        hr            = device->CreateSamplerState(&desc, m_samplers[static_cast<size_t>(Tsukino::GraphicsCommon::SamplerType::PointClamp)].GetAddressOf());
+        if(FAILED(hr))
+            return false;
+
+        // --- LinearWrap ---
+        desc.Filter   = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
+        desc.AddressU = D3D11_TEXTURE_ADDRESS_WRAP;
+        desc.AddressV = D3D11_TEXTURE_ADDRESS_WRAP;
+        desc.AddressW = D3D11_TEXTURE_ADDRESS_WRAP;
+        hr            = device->CreateSamplerState(&desc, m_samplers[static_cast<size_t>(Tsukino::GraphicsCommon::SamplerType::LinearWrap)].GetAddressOf());
+        if(FAILED(hr))
+            return false;
+
+        // --- LinearClamp ---
+        desc.AddressU = D3D11_TEXTURE_ADDRESS_CLAMP;
+        desc.AddressV = D3D11_TEXTURE_ADDRESS_CLAMP;
+        desc.AddressW = D3D11_TEXTURE_ADDRESS_CLAMP;
+        hr            = device->CreateSamplerState(&desc, m_samplers[static_cast<size_t>(Tsukino::GraphicsCommon::SamplerType::LinearClamp)].GetAddressOf());
+        if(FAILED(hr))
+            return false;
+
+        // --- AnisotropicWrap ---
+        desc.Filter        = D3D11_FILTER_ANISOTROPIC;
+        desc.AddressU      = D3D11_TEXTURE_ADDRESS_WRAP;
+        desc.AddressV      = D3D11_TEXTURE_ADDRESS_WRAP;
+        desc.AddressW      = D3D11_TEXTURE_ADDRESS_WRAP;
+        desc.MaxAnisotropy = 16;
+        hr = device->CreateSamplerState(&desc, m_samplers[static_cast<size_t>(Tsukino::GraphicsCommon::SamplerType::AnisotropicWrap)].GetAddressOf());
+        if(FAILED(hr))
+            return false;
+
+        // --- AnisotropicClamp ---
+        desc.AddressU = D3D11_TEXTURE_ADDRESS_CLAMP;
+        desc.AddressV = D3D11_TEXTURE_ADDRESS_CLAMP;
+        desc.AddressW = D3D11_TEXTURE_ADDRESS_CLAMP;
+        hr = device->CreateSamplerState(&desc, m_samplers[static_cast<size_t>(Tsukino::GraphicsCommon::SamplerType::AnisotropicClamp)].GetAddressOf());
+        if(FAILED(hr))
+            return false;
+
+        return true;
+    }
 }    // namespace Tsukino::Renderer
