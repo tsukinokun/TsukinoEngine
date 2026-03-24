@@ -10,12 +10,13 @@
 
 #include <Tsukino/Renderer/DX11/GraphicsContext.hpp>
 #include <Tsukino/Renderer/DX11/MeshBuffer.hpp>
-#include <Tsukino/Renderer/DX11/PipelineFactory.hpp>  
+#include <Tsukino/Renderer/DX11/PipelineFactory.hpp>
 #include <Tsukino/Renderer/SpriteRenderer.hpp>
 #include <Tsukino/Renderer/DrawCommandQueue.hpp>
 
 #include <Tsukino/GraphicsCommon/Mesh/PrimitiveType.hpp>
 #include <Tsukino/GraphicsCommon/Mesh/MeshData.hpp>
+#include <Tsukino/GraphicsCommon/State/SamplerType.hpp> 
 
 #include <wrl/client.h>    // ComPtrの依存関係を明示
 #include <d3d11.h>         // 依存関係を明示
@@ -84,6 +85,26 @@ namespace Tsukino::Renderer {
             return &m_pipelineFactory.value();
         }
 
+        //------------------------------------------------------------
+        // プリミティブメッシュの取得
+        //! @param type [in] 取得するプリミティブの種類
+        //! @return メッシュバッファへのポインタ
+        //------------------------------------------------------------
+        [[nodiscard]]
+        MeshBuffer* GetPrimitiveMesh(Tsukino::GraphicsCommon::PrimitiveType type) {
+            return &m_primitiveMeshes[static_cast<size_t>(type)];
+        }
+
+        //------------------------------------------------------------
+        // サンプラーの取得
+        //! @param type [in] 取得するサンプラーの種類
+        //! @return サンプラーステートへのポインタ
+        //------------------------------------------------------------
+        [[nodiscard]]
+        ID3D11SamplerState* GetSampler(Tsukino::GraphicsCommon::SamplerType type) const {
+            return m_samplers[static_cast<size_t>(type)].Get();
+        }
+
     private:
         //------------------------------------------------------------
         // 定数バッファの作成
@@ -106,14 +127,11 @@ namespace Tsukino::Renderer {
         void ExecuteDrawCommand(const DrawCommand& cmd);
 
         //------------------------------------------------------------
-        // プリミティブメッシュの取得
-        //! @param type [in] 取得するプリミティブの種類
-        //! @return メッシュバッファへのポインタ
+        // 共通ステート（サンプラーなど）の作成
+        //! @return true: 作成成功, false: 作成失敗
         //------------------------------------------------------------
         [[nodiscard]]
-        MeshBuffer* GetPrimitiveMesh(Tsukino::GraphicsCommon::PrimitiveType type) {
-            return &m_primitiveMeshes[static_cast<size_t>(type)];
-        }
+        bool CreateCommonStates();
 
     private:
         // DirectX 11の主要なインターフェース
@@ -126,6 +144,7 @@ namespace Tsukino::Renderer {
         std::array<float, 4>       m_clearColor = {0.5f, 0.5f, 0.5f, 1.0f};    // 描画領域のクリアカラー (デフォルトはグレー)
 
         std::array<MeshBuffer, (size_t)Tsukino::GraphicsCommon::PrimitiveType::Count> m_primitiveMeshes;    // プリミティブメッシュバッファの配列
+        std::array<ComPtr<ID3D11SamplerState>, static_cast<size_t>(Tsukino::GraphicsCommon::SamplerType::Count)> m_samplers;
         std::optional<PipelineFactory>                                                m_pipelineFactory;    // メンバとして持たせる
         SpriteRenderer                                                                m_spriteRenderer;     // スプライト描画クラスのインスタンス
         DrawCommandQueue                                                              m_drawQueue;          // 描画コマンドキュー
