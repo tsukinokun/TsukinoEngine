@@ -83,6 +83,23 @@ namespace Tsukino::Renderer {
 
         m_context->RSSetViewports(1, &vp);
 
+        // Depth buffer texture
+        Microsoft::WRL::ComPtr<ID3D11Texture2D> depthTex;
+
+        D3D11_TEXTURE2D_DESC depthDesc = {};
+        depthDesc.Width                = width;
+        depthDesc.Height               = height;
+        depthDesc.MipLevels            = 1;
+        depthDesc.ArraySize            = 1;
+        depthDesc.Format               = DXGI_FORMAT_D24_UNORM_S8_UINT;
+        depthDesc.SampleDesc.Count     = 1;
+        depthDesc.BindFlags            = D3D11_BIND_DEPTH_STENCIL;
+
+        m_device->CreateTexture2D(&depthDesc, nullptr, depthTex.GetAddressOf());
+
+        // DSV 作成
+        m_device->CreateDepthStencilView(depthTex.Get(), nullptr, m_dsv.GetAddressOf());
+
         return true;
     }
 
@@ -93,10 +110,13 @@ namespace Tsukino::Renderer {
         float clearColor[4] = {r, g, b, a};
 
         // RenderTarget設定
-        m_context->OMSetRenderTargets(1, m_rtv.GetAddressOf(), nullptr);
+        m_context->OMSetRenderTargets(1, m_rtv.GetAddressOf(), m_dsv.Get());
 
         // 画面クリア
         m_context->ClearRenderTargetView(m_rtv.Get(), clearColor);
+
+        // 深度ステンシルクリア
+        m_context->ClearDepthStencilView(m_dsv.Get(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
     }
 
     //--------------------------------------------------------------
