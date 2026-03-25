@@ -306,7 +306,7 @@ namespace Tsukino::Renderer {
 
         context->IASetVertexBuffers(0, 1, &vb, &stride, &offset);
         context->IASetIndexBuffer(cmd.mesh->indexBuffer.Get(), DXGI_FORMAT_R32_UINT, 0);
-
+        context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
         //------------------------------------------------------
         // 描画
         //------------------------------------------------------
