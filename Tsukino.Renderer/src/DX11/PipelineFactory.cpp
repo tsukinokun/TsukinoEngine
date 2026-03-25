@@ -11,13 +11,14 @@ namespace Tsukino::Renderer {
     //! @brief  パイプラインステートを作成する関数
     //--------------------------------------------------------------
     std::shared_ptr<PipelineState> PipelineFactory::Create(const Tsukino::Asset::ShaderAsset& vs,
-                                           const Tsukino::Asset::ShaderAsset& ps,
-                                           const D3D11_INPUT_ELEMENT_DESC*    layout,
-                                           UINT                               layoutCount) {
+                                                           const Tsukino::Asset::ShaderAsset& ps,
+                                                           const D3D11_INPUT_ELEMENT_DESC*    layout,
+                                                           UINT                               layoutCount,
+                                                           DepthMode                          depthMode) {
         //--------------------------------------------------------------
         // シェーダーのハンドル値を取り出してキーを作成
         //--------------------------------------------------------------
-        std::pair<u64, u64> key = std::make_pair(vs.GetHandle().Value(), ps.GetHandle().Value());
+        PipelineKey key = {vs.GetHandle().Value(), ps.GetHandle().Value(), depthMode};
 
         //--------------------------------------------------------------
         // キャッシュに存在する場合はそれを即座に返す（これによって毎フレームの生成コストをゼロ化）
@@ -39,6 +40,33 @@ namespace Tsukino::Renderer {
 
         // InputLayout
         m_device->CreateInputLayout(layout, layoutCount, vs.binary.data(), vs.binary.size(), p->inputLayout.GetAddressOf());
+
+        //--------------------------------------------------------------
+        // デプスステンシルステートの設定
+        //--------------------------------------------------------------
+        D3D11_DEPTH_STENCIL_DESC desc = {};    // デフォルト値で初期化
+        // DepthMode に応じて設定を変更
+        switch(depthMode) {
+        case DepthMode::None:
+            desc.DepthEnable    = FALSE;
+            desc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ZERO;
+            desc.DepthFunc      = D3D11_COMPARISON_ALWAYS;
+            break;
+
+        case DepthMode::ReadWrite:
+            desc.DepthEnable    = TRUE;
+            desc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ALL;
+            desc.DepthFunc      = D3D11_COMPARISON_LESS;
+            break;
+
+        case DepthMode::ReadOnly:
+            desc.DepthEnable    = TRUE;
+            desc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ZERO;
+            desc.DepthFunc      = D3D11_COMPARISON_LESS_EQUAL;
+            break;
+        }
+        // デプスステンシルステートの作成
+        m_device->CreateDepthStencilState(&desc, p->depth.GetAddressOf());
 
         // 4. キャッシュに保存してから返す
         m_cache[key] = p;
