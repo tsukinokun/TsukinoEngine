@@ -56,7 +56,7 @@ namespace Tsukino::GraphicsCommon {
         std::memcpy(mesh.vertexData.data(), vertices, sizeof(vertices));
 
         // インデックス
-        mesh.indices    = {0, 1, 2, 2, 3, 0};
+        mesh.indices    = {2, 1, 0, 3, 2, 0};
         mesh.indexCount = 6;
 
         return mesh;

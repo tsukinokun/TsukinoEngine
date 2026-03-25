@@ -5,16 +5,20 @@
 //--------------------------------------------------------------
 #include <Tsukino/EngineIntegration/EngineAPI.hpp>
 #include <Tsukino/EngineIntegration/EngineIntegration.hpp>
-//#include <Tsukino/Renderer/Renderer.hpp>
-//#include <Tsukino/Renderer/DX11/PipelineFactory.hpp>
-//#include <Tsukino/Renderer/DX11/PipelineState.hpp>
 #include <Tsukino/Engine/Asset/AssetManager.hpp>
-//#include <Tsukino/Engine/Asset/Shader/ShaderAsset.hpp>
-//#include <Tsukino/Engine/Asset/Texture/TextureAsset.hpp>
-//#include <Tsukino/Core/Path.hpp>
-//#include <Tsukino/Core/Window.hpp>
 #include <Tsukino/Core/ECS/Registry/Registry.hpp>
 #include <Tsukino/Core/Log.hpp>
+#include <Tsukino/Core/Path.hpp>
+
+// 必要なシステムとコンポーネントのインクルード
+#include <Tsukino/EngineIntegration/ECS/System/TransformSystem.hpp>
+#include <Tsukino/EngineIntegration/ECS/System/SpriteRendererSystem.hpp>
+#include <Tsukino/BuiltIn/ECS/Component/TransformComponent.hpp>
+#include <Tsukino/BuiltIn/ECS/Component/SpriteComponent.hpp>
+
+#include <Windows.h>
+#include <entt/entt.hpp>
+#include <hlsl++.h>
 
 #include <Windows.h>
 //--------------------------------------------------------------
@@ -37,12 +41,52 @@ int WINAPI WinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ LPSTR, _In_ int) {
 
     Tsukino::EngineIntegration::EngineContext& engineContext = engineIntegration.GetContext();
     Tsukino::ECS::Registry&                    registry      = engineIntegration.GetRegistry();
-    Tsukino::EngineIntegration::EngineAPI     engineAPI(engineContext, registry);
+    Tsukino::EngineIntegration::EngineAPI      engineAPI(engineContext, registry);
+
+    //--------------------------------------------------------------
+    // システムの生成
+    //--------------------------------------------------------------
+    Tsukino::BuiltIn::ECS::TransformSystem    transformSystem;
+    Tsukino::BuiltIn::ECS::SpriteRenderSystem spriteRenderSystem;
+
+    //--------------------------------------------------------------
+    // アセットのロードとエンティティの作成
+    //--------------------------------------------------------------
+    Tsukino::Asset::AssetHandle textureHandle = engineContext.assets->Load(Tsukino::Core::Path("Assets/Textures/test.jpg"));
+
+    // エンティティ生成
+    Tsukino::ECS::Entity entity = registry.CreateEntity();
+
+    // TransformComponent の追加と初期化
+    Tsukino::BuiltIn::ECS::TransformComponent& transform = registry.AddComponent<Tsukino::BuiltIn::ECS::TransformComponent>(entity);
+    transform.position = hlslpp::float3(0.0f, 0.0f, 0.0f);
+    transform.rotation = hlslpp::quaternion(0.0f, 0.0f, 0.0f, 1.0f);    // 無回転
+    transform.scale    = hlslpp::float3(1.0f, 1.0f, 1.0f);
+    transform.dirty    = true;          // 初回計算のためフラグを立てる
+    transform.parent   = entt::null;    // 親なし
+
+    // SpriteComponent の追加
+    Tsukino::BuiltIn::ECS::SpriteComponent& sprite = registry.AddComponent<Tsukino::BuiltIn::ECS::SpriteComponent>(entity);
+    sprite.textureHandle = textureHandle;
+    sprite.tintColor     = hlslpp::float4(1.0f, 1.0f, 1.0f, 1.0f);    // 白色
+    sprite.uvRect        = hlslpp::float4(0.0f, 0.0f, 1.0f, 1.0f);
+
+    //--------------------------------------------------------------
+    // メインループ
+    //--------------------------------------------------------------
+    // テスト用の固定デルタタイム
+    const float deltaTime = 1.0f / 60.0f;
 
     //--------------------------------------------------------------
     // メインループ
     //--------------------------------------------------------------
     while(engineAPI.ProcessMessages()) {
+        // コンポーネントの行列計算
+        transformSystem.Update(registry, deltaTime);
+
+        // スプライトの描画コマンド・生成
+        spriteRenderSystem.Update(registry, deltaTime);
+
         engineAPI.Render();
     }
 
