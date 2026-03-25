@@ -87,6 +87,9 @@ namespace Tsukino::Renderer {
         // RenderTarget
         // 描画先のバックバッファ
         Microsoft::WRL::ComPtr<ID3D11RenderTargetView> m_rtv;
+
+        // DepthStencilView
+        Microsoft::WRL::ComPtr<ID3D11DepthStencilView> m_dsv;
     };
 
 }    // namespace Tsukino::Renderer
