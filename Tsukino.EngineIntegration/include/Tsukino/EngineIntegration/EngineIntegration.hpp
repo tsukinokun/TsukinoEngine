@@ -12,7 +12,7 @@
 #include <Tsukino/Engine/Asset/AssetManager.hpp>
 
 #include <Tsukino/Core/ECS/Registry/Registry.hpp>
-#include <Tsukino/Core/ECS/System/SystemManager.hpp>
+#include <Tsukino/Engine/ECS/SystemManager.hpp>
 
 #include <Tsukino/Core/Window.hpp>
 
