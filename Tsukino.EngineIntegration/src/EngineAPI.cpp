@@ -10,6 +10,7 @@
 #include <Tsukino/EngineIntegration/EngineContext.hpp>
 
 #include <Tsukino/Core/Window.hpp>
+#include <Tsukino/Core/ECS/System/SystemManager.hpp>
 
 #include <memory>
 
@@ -28,6 +29,21 @@ namespace Tsukino::EngineIntegration {
     //------------------------------------------------------------
     bool EngineAPI::ProcessMessages() {
         return m_context.window->ProcessMessages();
+    }
+
+    //------------------------------------------------------------
+    //! @brief システムの追加関数
+    //------------------------------------------------------------
+    void EngineAPI::AddSystem(std::shared_ptr<Tsukino::ECS::ISystem> system, int priority) {
+        // 内部の SystemManager に委譲する
+        m_context.systemManager->AddSystem(std::move(system), priority);
+    }
+
+    //------------------------------------------------------------
+    // 更新関数
+    //------------------------------------------------------------
+    void EngineAPI::Update(float deltaTime) {
+        m_context.systemManager->Update(m_registry, deltaTime);
     }
 
     //------------------------------------------------------------
