@@ -5,6 +5,12 @@
 //------------------------------------------------------------
 #pragma once
 #include <Tsukino/Core/ECS/Registry/Registry.hpp>
+// 前方宣言
+namespace Tsukino {
+    namespace ECS {
+        class ISystem;
+    }
+}
 
 // 名前空間 : Tsukino::EngineIntegration
 namespace Tsukino::EngineIntegration {
@@ -37,6 +43,18 @@ namespace Tsukino::EngineIntegration {
         Tsukino::ECS::Registry& GetRegistry() {
             return m_registry;
         }
+
+        //------------------------------------------------------------
+        // システムの追加関数
+        //! @param  system      [in] 追加するシステム
+        //! @param  priority    [in] システムの優先度
+        //------------------------------------------------------------
+        void AddSystem(std::shared_ptr<Tsukino::ECS::ISystem> system, int priority);
+
+        //------------------------------------------------------------
+        // 更新関数
+        //------------------------------------------------------------
+        void Update(float deltaTime);
 
         //------------------------------------------------------------
         // 描画関数
