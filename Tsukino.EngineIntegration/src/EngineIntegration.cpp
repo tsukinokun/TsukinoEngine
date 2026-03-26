@@ -22,6 +22,7 @@ namespace Tsukino::EngineIntegration {
         m_renderer      = std::make_unique<Tsukino::Renderer::Renderer>();
         m_assetManager  = std::make_unique<Tsukino::Asset::AssetManager>();
         m_builtinAssets = std::make_unique<Tsukino::BuiltIn::BuiltInAssets>();
+        m_systemManager = std::make_unique<Tsukino::ECS::SystemManager>();
 
         //------------------------------------------------------------
         // コンテキストにポインタをセット
@@ -30,6 +31,7 @@ namespace Tsukino::EngineIntegration {
         m_ctx.renderer      = m_renderer.get();
         m_ctx.assets        = m_assetManager.get();
         m_ctx.builtinAssets = m_builtinAssets.get();
+        m_ctx.systemManager = m_systemManager.get();
     }
 
     //------------------------------------------------------------

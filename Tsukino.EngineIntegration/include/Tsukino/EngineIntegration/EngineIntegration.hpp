@@ -10,7 +10,9 @@
 #include <Tsukino/Renderer/Renderer.hpp>
 
 #include <Tsukino/Engine/Asset/AssetManager.hpp>
+
 #include <Tsukino/Core/ECS/Registry/Registry.hpp>
+#include <Tsukino/Core/ECS/System/SystemManager.hpp>
 
 #include <Tsukino/Core/Window.hpp>
 
@@ -64,6 +66,7 @@ namespace Tsukino::EngineIntegration {
         std::unique_ptr<Tsukino::Asset::AssetManager>    m_assetManager;
         std::unique_ptr<Tsukino::Core::Window>           m_window;
         std::unique_ptr<Tsukino::BuiltIn::BuiltInAssets> m_builtinAssets;
+        std::unique_ptr<Tsukino::ECS::SystemManager>     m_systemManager;
 
         EngineContext m_ctx;    // エンジン全体で共有されるクラスのポインタを集めた構造体
 
