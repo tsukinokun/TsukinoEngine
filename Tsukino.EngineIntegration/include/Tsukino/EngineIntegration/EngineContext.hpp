@@ -21,6 +21,10 @@ namespace Tsukino {
     namespace BuiltIn {
         class BuiltInAssets;
     }
+
+    namespace ECS {
+        class SystemManager;
+    }
 }    // namespace Tsukino
 
 // 名前空間 : Tsukino::EngineIntegration
@@ -34,5 +38,6 @@ namespace Tsukino::EngineIntegration {
         Tsukino::Core::Window*           window        = nullptr;
         Tsukino::Asset::AssetManager*    assets        = nullptr;
         Tsukino::BuiltIn::BuiltInAssets* builtinAssets = nullptr;
+        Tsukino::ECS::SystemManager*     systemManager = nullptr;
     };
 }    // namespace Tsukino::EngineIntegration
