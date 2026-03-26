@@ -3,7 +3,7 @@
 //! @brief  システムマネージャーの実装
 //! @author 山﨑愛
 //-------------------------------------------------------------
-#include <Tsukino/Core/ECS/System/SystemManager.hpp>
+#include <Tsukino/Engine/ECS/SystemManager.hpp>
 #include <Tsukino/Core/ECS/System/ISystem.hpp>
 #include <Tsukino/Core/ECS/Registry/Registry.hpp>
 

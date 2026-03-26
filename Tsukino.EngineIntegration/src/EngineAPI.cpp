@@ -10,7 +10,7 @@
 #include <Tsukino/EngineIntegration/EngineContext.hpp>
 
 #include <Tsukino/Core/Window.hpp>
-#include <Tsukino/Core/ECS/System/SystemManager.hpp>
+#include <Tsukino/Engine/ECS/SystemManager.hpp>
 
 #include <memory>
 
