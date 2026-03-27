@@ -4,10 +4,12 @@
 //! @author 山﨑愛
 //-------------------------------------------------------------
 #pragma once
-#include <hlsl++.h>
+#define NOMINMAX
 #include <Tsukino/Core/Math/Matrix.hpp>
 #include <Tsukino/Core/ECS/Entity/Entity.hpp>
-// 名前空間 : Tsukino::BuiltIn::ECS 
+
+#include <hlsl++.h>
+// 名前空間 : Tsukino::BuiltIn::ECS
 namespace Tsukino::BuiltIn::ECS {
     //-------------------------------------------------------------
     //! @class  TransformComponent
@@ -25,4 +27,4 @@ namespace Tsukino::BuiltIn::ECS {
         bool                 dirty = false;    // ワールド行列が更新されているか
     };
 
-}    // Tsukino::ECS
+}    // namespace Tsukino::BuiltIn::ECS
