@@ -8,6 +8,10 @@
 
 // 名前空間 : Tsukino::EngineIntegration
 namespace Tsukino::EngineIntegration {
+    //-------------------------------------------------------------
+    //! @brief コンストラクタ
+    //-------------------------------------------------------------
+    GameSceneManager::GameSceneManager() = default;
 
     //-------------------------------------------------------------
     //! @brief  デストラクタ
@@ -17,6 +21,13 @@ namespace Tsukino::EngineIntegration {
         if(m_currentScene) {
             m_currentScene->OnExit();
         }
+    }
+
+    //-------------------------------------------------------------
+    //! @brief 初期化
+    //-------------------------------------------------------------
+    void GameSceneManager::Initialize(EngineContext* context) {
+        m_context = context;
     }
 
     //-------------------------------------------------------------
@@ -40,7 +51,7 @@ namespace Tsukino::EngineIntegration {
             // 新しいシーンへ所有権を移動し初期化
             m_currentScene = std::move(m_nextScene);
             if(m_currentScene) {
-                m_currentScene->OnInitialize(api);
+                m_currentScene->Initialize(api, m_context);
             }
         }
 

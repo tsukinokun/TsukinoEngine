@@ -4,6 +4,7 @@
 //! @author     山﨑愛
 //------------------------------------------------------------
 #include <Tsukino/EngineIntegration/EngineContext.hpp>
+#include <Tsukino/EngineIntegration/Scene/GameSceneManager.hpp>
 
 #include <Tsukino/BuiltIn/BuiltInAssets.hpp>
 
@@ -12,7 +13,6 @@
 #include <Tsukino/Engine/Asset/AssetManager.hpp>
 
 #include <Tsukino/Core/ECS/Registry/Registry.hpp>
-#include <Tsukino/Engine/ECS/SystemManager.hpp>
 
 #include <Tsukino/Core/Window.hpp>
 
@@ -52,24 +52,13 @@ namespace Tsukino::EngineIntegration {
             return m_ctx;
         }
 
-        //------------------------------------------------------------
-        //! @brief  ECSレジストリへの参照を返す関数
-        //! @return ECSレジストリへの参照
-        //------------------------------------------------------------
-        [[nodiscard]]
-        Tsukino::ECS::Registry& GetRegistry() {
-            return m_registry;
-        }
-
     private:
         std::unique_ptr<Tsukino::Renderer::Renderer>     m_renderer;
         std::unique_ptr<Tsukino::Asset::AssetManager>    m_assetManager;
         std::unique_ptr<Tsukino::Core::Window>           m_window;
         std::unique_ptr<Tsukino::BuiltIn::BuiltInAssets> m_builtinAssets;
-        std::unique_ptr<Tsukino::ECS::SystemManager>     m_systemManager;
+        std::unique_ptr<GameSceneManager>                m_gameSceneManager;
 
         EngineContext m_ctx;    // エンジン全体で共有されるクラスのポインタを集めた構造体
-
-        Tsukino::ECS::Registry m_registry;
     };
 }    // namespace Tsukino::EngineIntegration
