@@ -5,6 +5,7 @@
 //! @author 山﨑愛
 //------------------------------------------------------------
 #pragma once
+#define WIN32_LEAN_AND_MEAN
 #define NOMINMAX
 #include <Windows.h>     // Windows APIの基本的な機能を提供するヘッダーファイル
 #include <string>        // 文字列操作のための標準ライブラリ

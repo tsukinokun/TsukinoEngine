@@ -111,6 +111,9 @@ project "Tsukino.Core"
     cppdialect "C++20"
     forceincludes { "pch.h" }               -- 強制インクルード
 
+    filter "action:vs*"
+        buildoptions { "/permissive-" }
+    filter {}
 
     pchheader "pch.h" 
     pchsource "Tsukino.Core/pch.cpp"
@@ -139,6 +142,10 @@ project "Tsukino.GraphicsCommon"
     language "C++"
     cppdialect "C++20"
     forceincludes { "pch.h" }               -- 強制インクルード
+
+    filter "action:vs*"
+        buildoptions { "/permissive-" }
+    filter {}
 
     pchheader "pch.h" 
     pchsource "Tsukino.GraphicsCommon/pch.cpp"
@@ -172,6 +179,10 @@ project "Tsukino.Engine"
     language "C++"
     cppdialect "C++20"
     forceincludes { "pch.h" }               -- 強制インクルード
+
+    filter "action:vs*"
+        buildoptions { "/permissive-" }
+    filter {}
 
     pchheader "pch.h" 
     pchsource "Tsukino.Engine/pch.cpp"
@@ -209,6 +220,10 @@ project "Tsukino.Renderer"
     language "C++"
     cppdialect "C++20"
     forceincludes { "pch.h" }               -- 強制インクルード
+
+    filter "action:vs*"
+        buildoptions { "/permissive-" }
+    filter {}
 
     pchheader "pch.h" 
     pchsource "Tsukino.Renderer/pch.cpp"
@@ -277,6 +292,10 @@ project "Tsukino.BuiltIn"
     debugdir "%{cfg.targetdir}"
     forceincludes { "pch.h" }               -- 強制インクルード
 
+    filter "action:vs*"
+        buildoptions { "/permissive-" }
+    filter {}
+
     pchheader "pch.h" 
     pchsource "Tsukino.BuiltIn/pch.cpp"
 
@@ -327,6 +346,10 @@ project "Tsukino.EngineIntegration"
     cppdialect "C++20"
     forceincludes { "pch.h" }               -- 強制インクルード
 
+    filter "action:vs*"
+        buildoptions { "/permissive-" }
+    filter {}
+
     pchheader "pch.h" 
     pchsource "Tsukino.EngineIntegration/pch.cpp"
 
@@ -372,6 +395,10 @@ project "Tsukino.Sandbox"
     language "C++"
     cppdialect "C++20"
     forceincludes { "pch.h" }               -- 強制インクルード
+
+    filter "action:vs*"
+        buildoptions { "/permissive-" }
+    filter {}
 
     pchheader "pch.h"
     pchsource "Tsukino.Sandbox/pch.cpp"
