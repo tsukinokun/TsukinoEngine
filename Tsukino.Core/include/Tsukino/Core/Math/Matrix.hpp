@@ -129,6 +129,18 @@ namespace Tsukino::Core::Math {
         //! @note InverseZにしたい場合はnearZの値とfarZの値を交換して指定。
         //--------------------------------------------------------------
         static [[nodiscard]] matrix orthographicOffCenterLH(float left, float right, float bottom, float top, float near_z, float far_z);
+
+        //--------------------------------------------------------------
+        // [左手座標系] クォータニオンからの回転行列
+        //! @param  [in]    q   クォータニオン
+        //--------------------------------------------------------------
+        static [[nodiscard]] matrix fromQuaternion(const hlslpp::quaternion& q);
+
+        //--------------------------------------------------------------
+        // [左手座標系] クォータニオンからの回転行列
+        //! @param  [in]    q   クォータニオン
+        //--------------------------------------------------------------
+        static [[nodiscard]] matrix rotate(const hlslpp::quaternion& q);
         //@}
     };
 }    // namespace Tsukino::Core::Math
