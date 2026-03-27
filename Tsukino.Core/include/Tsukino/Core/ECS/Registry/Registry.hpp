@@ -19,7 +19,9 @@ namespace Tsukino::ECS {
         //! @return 作成されたエンティティ
         //--------------------------------------------------------------------
         [[nodiscard]]
-        Entity CreateEntity() { return registry.create(); }
+        Entity CreateEntity() {
+            return registry.create();
+        }
 
         //--------------------------------------------------------------------
         //! @brief  エンティティの破棄
@@ -93,7 +95,6 @@ namespace Tsukino::ECS {
         //! @return 構築されたコンテキスト変数への参照
         //--------------------------------------------------------------------
         template <typename T, typename... Args>
-        [[nodiscard]]
         T& SetContext(Args&&... args) {
             return registry.ctx().emplace<T>(std::forward<Args>(args)...);
         }

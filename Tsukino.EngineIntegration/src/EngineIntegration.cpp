@@ -45,7 +45,7 @@ namespace Tsukino::EngineIntegration {
         // COMの初期化に失敗した場合はエラーログを出力して終了
         if(FAILED(hr)) {
             Tsukino::Core::Log::Error("Failed to initialize COM library.");
-            return -1;
+            return false;
         }
 
         //--------------------------------------------------------------
@@ -67,14 +67,14 @@ namespace Tsukino::EngineIntegration {
         // ウィンドウ生成
         //--------------------------------------------------------------
         if(!m_window->Create("TsukinoEngine", 1280, 720)) {
-            return -1;
+            return false;
         }
 
         //--------------------------------------------------------------
         // レンダラー生成
         //--------------------------------------------------------------
         if(!m_renderer->Initialize(m_window->GetHWND(), m_window->GetWidth(), m_window->GetHeight())) {
-            return -1;
+            return false;
         }
 
         return true;

@@ -22,21 +22,11 @@ namespace Tsukino::EngineIntegration {
         virtual ~GameSceneBase() = default;
 
         //-------------------------------------------------------------
-        //! @brief  シーンの初期化インターフェース（外部から呼ばれる非仮想関数）
+        // シーンの初期化インターフェース（外部から呼ばれる非仮想関数）
         //! @param  api     [in] エンジンから提供されるAPIへの参照
         //! @param  context [in] エンジンコンテキストへのポインタ
         //-------------------------------------------------------------
-        void Initialize(Tsukino::EngineIntegration::EngineAPI& api, Tsukino::EngineIntegration::EngineContext* context) {
-            //-------------------------------------------------------------
-            // コンテキストを設定する
-            //-------------------------------------------------------------
-            m_scene.GetRegistry().SetContext<Tsukino::EngineIntegration::EngineContext*>(context);
-
-            //-------------------------------------------------------------
-            // 各シーン固有の初期化処理を呼び出す
-            //-------------------------------------------------------------
-            OnInitialize(api);
-        }
+        void Initialize(Tsukino::EngineIntegration::EngineAPI& api, Tsukino::EngineIntegration::EngineContext* context);
 
         //-------------------------------------------------------------
         //! @brief  シーンの更新インターフェース

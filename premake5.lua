@@ -19,6 +19,10 @@ workspace "TsukinoEngine"                   -- ソリューション名
         
     filter {}
 
+    filter "configurations:*"
+        linkoptions { "/IGNORE:4006" }
+    filter {}
+
 ----------------------------------------
 -- DirectXTexプロジェクトを追加
 ----------------------------------------
