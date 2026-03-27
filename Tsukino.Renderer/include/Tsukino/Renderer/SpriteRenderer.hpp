@@ -7,9 +7,9 @@
 // 名前空間 : Tsukino::Renderer
 namespace Tsukino::Renderer {
     // 前方宣言
-    class GraphicsContext;    
-    class Material;          
-    class MeshBuffer;
+    class GraphicsContext;
+    class Material;
+    struct MeshBuffer;
     //------------------------------------------------------------
     //! @class  SpriteRenderer
     //! @brief  スプライト描画クラス
