@@ -20,7 +20,6 @@
 #include <entt/entt.hpp>
 #include <hlsl++.h>
 
-#include <Windows.h>
 //--------------------------------------------------------------
 // アプリケーションのエントリポイント
 //! @param hInstance アプリケーションインスタンス
