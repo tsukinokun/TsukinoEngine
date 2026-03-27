@@ -211,4 +211,18 @@ namespace Tsukino::Core::Math {
         };
         return matrix(m[0], m[1], m[2], m[3]);
     }
+
+    //--------------------------------------------------------------
+    //! [左手座標系] クォータニオンからの回転行列
+    //--------------------------------------------------------------
+    matrix matrix::fromQuaternion(const hlslpp::quaternion& q) {
+        return matrix(hlslpp::float4x4(q));
+    }
+
+    //--------------------------------------------------------------
+    //! [左手座標系] クォータニオンからの回転行列
+    //--------------------------------------------------------------
+    matrix matrix::rotate(const hlslpp::quaternion& q) {
+        return fromQuaternion(q);
+    }
 }    // namespace Tsukino::Core::Math
