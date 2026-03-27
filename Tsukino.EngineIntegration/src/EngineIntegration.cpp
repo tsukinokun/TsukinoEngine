@@ -18,20 +18,20 @@ namespace Tsukino::EngineIntegration {
         //------------------------------------------------------------
         // ユニークポインタを作成して
         //------------------------------------------------------------
-        m_window        = std::make_unique<Tsukino::Core::Window>();
-        m_renderer      = std::make_unique<Tsukino::Renderer::Renderer>();
-        m_assetManager  = std::make_unique<Tsukino::Asset::AssetManager>();
-        m_builtinAssets = std::make_unique<Tsukino::BuiltIn::BuiltInAssets>();
-        m_systemManager = std::make_unique<Tsukino::ECS::SystemManager>();
+        m_window           = std::make_unique<Tsukino::Core::Window>();
+        m_renderer         = std::make_unique<Tsukino::Renderer::Renderer>();
+        m_assetManager     = std::make_unique<Tsukino::Asset::AssetManager>();
+        m_builtinAssets    = std::make_unique<Tsukino::BuiltIn::BuiltInAssets>();
+        m_gameSceneManager = std::make_unique<GameSceneManager>();
 
         //------------------------------------------------------------
         // コンテキストにポインタをセット
         //------------------------------------------------------------
-        m_ctx.window        = m_window.get();
-        m_ctx.renderer      = m_renderer.get();
-        m_ctx.assets        = m_assetManager.get();
-        m_ctx.builtinAssets = m_builtinAssets.get();
-        m_ctx.systemManager = m_systemManager.get();
+        m_ctx.window           = m_window.get();
+        m_ctx.renderer         = m_renderer.get();
+        m_ctx.assets           = m_assetManager.get();
+        m_ctx.builtinAssets    = m_builtinAssets.get();
+        m_ctx.gameSceneManager = m_gameSceneManager.get();
     }
 
     //------------------------------------------------------------
@@ -59,6 +59,11 @@ namespace Tsukino::EngineIntegration {
         m_builtinAssets->Initialize(m_assetManager.get());
 
         //--------------------------------------------------------------
+        // コンテキストを渡してGameSceneManagerを初期化
+        //--------------------------------------------------------------
+        m_gameSceneManager->Initialize(&m_ctx);
+
+        //--------------------------------------------------------------
         // ウィンドウ生成
         //--------------------------------------------------------------
         if(!m_window->Create("TsukinoEngine", 1280, 720)) {
@@ -71,11 +76,6 @@ namespace Tsukino::EngineIntegration {
         if(!m_renderer->Initialize(m_window->GetHWND(), m_window->GetWidth(), m_window->GetHeight())) {
             return -1;
         }
-
-        //--------------------------------------------------------------
-        // RegistryにEngineContextをセット
-        //--------------------------------------------------------------
-        m_registry.SetContext<EngineContext*>(&m_ctx);
 
         return true;
     }

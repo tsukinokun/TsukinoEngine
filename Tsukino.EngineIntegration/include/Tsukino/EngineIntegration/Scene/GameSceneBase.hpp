@@ -9,6 +9,7 @@
 namespace Tsukino::EngineIntegration {
     // 前方宣言
     class EngineAPI;
+    struct EngineContext;
     //-------------------------------------------------------------
     //! @class   GameSceneBase
     //! @brief   ゲームシーンの基底クラス
@@ -21,10 +22,21 @@ namespace Tsukino::EngineIntegration {
         virtual ~GameSceneBase() = default;
 
         //-------------------------------------------------------------
-        //! @brief  シーンの初期化インターフェース
-        //! @param  api [in] エンジンから提供されるAPIへの参照
+        //! @brief  シーンの初期化インターフェース（外部から呼ばれる非仮想関数）
+        //! @param  api     [in] エンジンから提供されるAPIへの参照
+        //! @param  context [in] エンジンコンテキストへのポインタ
         //-------------------------------------------------------------
-        virtual void OnInitialize(Tsukino::EngineIntegration::EngineAPI& api) = 0;
+        void Initialize(Tsukino::EngineIntegration::EngineAPI& api, Tsukino::EngineIntegration::EngineContext* context) {
+            //-------------------------------------------------------------
+            // コンテキストを設定する
+            //-------------------------------------------------------------
+            m_scene.GetRegistry().SetContext<Tsukino::EngineIntegration::EngineContext*>(context);
+
+            //-------------------------------------------------------------
+            // 各シーン固有の初期化処理を呼び出す
+            //-------------------------------------------------------------
+            OnInitialize(api);
+        }
 
         //-------------------------------------------------------------
         //! @brief  シーンの更新インターフェース
@@ -43,6 +55,13 @@ namespace Tsukino::EngineIntegration {
         //! @return シーンへの参照
         //-------------------------------------------------------------
         Tsukino::ECS::Scene& GetScene() { return m_scene; }
+
+    protected:
+        //-------------------------------------------------------------
+        //! @brief  【派生クラスで実装】シーン固有の初期化処理
+        //! @param  api [in] エンジンから提供されるAPIへの参照
+        //-------------------------------------------------------------
+        virtual void OnInitialize(Tsukino::EngineIntegration::EngineAPI& api) = 0;
 
     protected:
         Tsukino::ECS::Scene m_scene;    // シーンのインスタンス

@@ -10,6 +10,8 @@ namespace Tsukino::EngineIntegration {
     // 前方宣言
     class GameSceneBase;
     class EngineAPI;
+    struct EngineContext;
+
     //-------------------------------------------------------------
     //! @class   GameSceneManager
     //! @brief   ゲームシーンの進行と切り替えを管理するクラス
@@ -17,9 +19,9 @@ namespace Tsukino::EngineIntegration {
     class GameSceneManager {
     public:
         //-------------------------------------------------------------
-        // デフォルトコンストラクタ
+        // コンストラクタ
         //-------------------------------------------------------------
-        GameSceneManager() = default;
+        GameSceneManager();
 
         //-------------------------------------------------------------
         // デストラクタ
@@ -33,6 +35,12 @@ namespace Tsukino::EngineIntegration {
         GameSceneManager& operator=(const GameSceneManager&) = delete;
         GameSceneManager(GameSceneManager&&)                 = delete;
         GameSceneManager& operator=(GameSceneManager&&)      = delete;
+
+        //-------------------------------------------------------------
+        // 初期化
+        //! @param context [in] エンジン全体で共有されるコンテキスト
+        //-------------------------------------------------------------
+        void Initialize(EngineContext* context);
 
         //-------------------------------------------------------------
         // 次のシーンへの遷移を予約する
@@ -54,7 +62,8 @@ namespace Tsukino::EngineIntegration {
         GameSceneBase* GetCurrentScene() const;
 
     private:
-        std::unique_ptr<GameSceneBase> m_currentScene;    // 現在のシーン
-        std::unique_ptr<GameSceneBase> m_nextScene;       // 次に遷移予約されたシーン
+        EngineContext*                 m_context = nullptr;    // エンジンコンテキストを保持
+        std::unique_ptr<GameSceneBase> m_currentScene;         // 現在のシーン
+        std::unique_ptr<GameSceneBase> m_nextScene;            // 次に遷移予約されたシーン
     };
 }    // namespace Tsukino::EngineIntegration

@@ -4,6 +4,7 @@
 //! @author     山﨑愛
 //------------------------------------------------------------
 #include <Tsukino/EngineIntegration/EngineAPI.hpp>
+#include <Tsukino/EngineIntegration/Scene/GameSceneManager.hpp>
 
 #include <Tsukino/Renderer/Renderer.hpp>
 
@@ -19,9 +20,18 @@ namespace Tsukino::EngineIntegration {
     //------------------------------------------------------------
     //! @brief コンストラクタ
     //------------------------------------------------------------
-    EngineAPI::EngineAPI(EngineContext& context, Tsukino::ECS::Registry& registry)
-        : m_context(context)
-        , m_registry(registry) {
+    EngineAPI::EngineAPI(EngineContext& context)
+        : m_context(context) {
+    }
+
+    //------------------------------------------------------------
+    //! @brief シーン遷移関数
+    //------------------------------------------------------------
+    void EngineAPI::ChangeScene(std::unique_ptr<GameSceneBase> newScene) {
+        // GameSceneManagerにシーン遷移を予約する
+        if(m_context.gameSceneManager) {
+            m_context.gameSceneManager->ChangeScene(std::move(newScene));
+        }
     }
 
     //------------------------------------------------------------
@@ -32,18 +42,10 @@ namespace Tsukino::EngineIntegration {
     }
 
     //------------------------------------------------------------
-    //! @brief システムの追加関数
-    //------------------------------------------------------------
-    void EngineAPI::AddSystem(std::shared_ptr<Tsukino::ECS::ISystem> system, int priority) {
-        // 内部の SystemManager に委譲する
-        m_context.systemManager->AddSystem(std::move(system), priority);
-    }
-
-    //------------------------------------------------------------
     // 更新関数
     //------------------------------------------------------------
     void EngineAPI::Update(float deltaTime) {
-        m_context.systemManager->Update(m_registry, deltaTime);
+        m_context.gameSceneManager->Update(*this, deltaTime);
     }
 
     //------------------------------------------------------------
