@@ -27,3 +27,6 @@ Release/
 # DirectX shader cache
 *.cso
 *.pso
+
+# Allow vendor executables
+!vendor/**/*.exe
