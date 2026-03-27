@@ -3,7 +3,8 @@
 //! @brief  行列クラスの実装
 //! @author 山﨑愛
 //--------------------------------------------------------------
-#include "Tsukino/Core/Math/Matrix.hpp"
+#include <Tsukino/Core/Math/Matrix.hpp>
+#include <cmath>
 // 名前空間 : Tsukino::Core::Math
 namespace Tsukino::Core::Math {
     //---------------------------------------------------------------------------
@@ -103,6 +104,13 @@ namespace Tsukino::Core::Math {
             {0.0f, 0.0f, 0.0f, 1.0f}
         };
         return matrix(m[0], m[1], m[2], m[3]);
+    }
+
+    //---------------------------------------------------------------------------
+    //! X軸、Y軸、Z軸中心の回転行列
+    //---------------------------------------------------------------------------
+    matrix matrix::rotateXYZ(float rx, float ry, float rz) {
+        return mul(rotateX(rx), mul(rotateY(ry), rotateZ(rz)));
     }
 
     //---------------------------------------------------------------------------
