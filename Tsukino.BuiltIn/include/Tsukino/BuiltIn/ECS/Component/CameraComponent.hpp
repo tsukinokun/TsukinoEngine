@@ -22,7 +22,7 @@ namespace Tsukino::BuiltIn::ECS {
         };
 
         // 投影タイプ
-        ProjectionType type = ProjectionType::Perspective;
+        ProjectionType projectionType = ProjectionType::Perspective;
 
         // Ortho用の表示幅(ウィンドウの縦ピクセル数)
         float orthoSize = 720.0f;
