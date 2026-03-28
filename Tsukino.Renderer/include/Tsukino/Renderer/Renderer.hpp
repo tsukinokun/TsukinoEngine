@@ -34,6 +34,7 @@ namespace Tsukino::Asset {
 
 // 名前空間 : Tsukino::Renderer
 namespace Tsukino::Renderer {
+    struct CBufferScene;    // 前方宣言
     //------------------------------------------------------------
     //! @class	 Renderer
     //! @brief	 レンダラークラス
@@ -146,15 +147,25 @@ namespace Tsukino::Renderer {
         [[nodiscard]]
         bool CreateCommonStates();
 
+        //------------------------------------------------------------
+        // シーン定数バッファの更新
+        //! @param sceneData [in] シーン定数バッファの値データ
+        //------------------------------------------------------------
+        void UpdateSceneBuffer(const CBufferScene& sceneData);
+
     private:
         // DirectX 11の主要なインターフェース
-        GraphicsContext            m_graphicsContext;                          // グラフィックスコンテキスト（Device, DeviceContext, SwapChainを管理）
-        ComPtr<ID3D11Buffer>       m_vertexBuffer;                             // 頂点バッファ
-        ComPtr<ID3D11VertexShader> m_vertexShader;                             // 頂点シェーダ
-        ComPtr<ID3D11PixelShader>  m_pixelShader;                              // ピクセルシェーダ
-        ComPtr<ID3D11InputLayout>  m_inputLayout;                              // 入力レイアウト
-        ComPtr<ID3D11Buffer>       m_constantBuffer;                           // 定数バッファ
-        std::array<float, 4>       m_clearColor = {0.5f, 0.5f, 0.5f, 1.0f};    // 描画領域のクリアカラー (デフォルトはグレー)
+        GraphicsContext            m_graphicsContext;    // グラフィックスコンテキスト（Device, DeviceContext, SwapChainを管理）
+        ComPtr<ID3D11Buffer>       m_vertexBuffer;       // 頂点バッファ
+        ComPtr<ID3D11VertexShader> m_vertexShader;       // 頂点シェーダ
+        ComPtr<ID3D11PixelShader>  m_pixelShader;        // ピクセルシェーダ
+        ComPtr<ID3D11InputLayout>  m_inputLayout;        // 入力レイアウト
+
+        // 定数バッファ
+        ComPtr<ID3D11Buffer> m_objectBuffer;    // オブジェクトデータ用定数バッファ
+        ComPtr<ID3D11Buffer> m_sceneBuffer;     // シーンデータ用定数バッファ
+
+        std::array<float, 4> m_clearColor = {0.5f, 0.5f, 0.5f, 1.0f};    // 描画領域のクリアカラー (デフォルトはグレー)
 
         std::array<MeshBuffer, (size_t)Tsukino::GraphicsCommon::PrimitiveType::Count> m_primitiveMeshes;    // プリミティブメッシュバッファの配列
         std::array<ComPtr<ID3D11SamplerState>, static_cast<size_t>(Tsukino::GraphicsCommon::SamplerType::Count)> m_samplers;

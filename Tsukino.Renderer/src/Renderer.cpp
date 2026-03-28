@@ -144,19 +144,34 @@ namespace Tsukino::Renderer {
     //! @brief 定数バッファの作成
     //------------------------------------------------------------
     bool Renderer::CreateConstantBuffer() {
-        ID3D11Device* device = m_graphicsContext.GetDevice();    // DirectXのDevice
+        //デバイスを取得
+        ID3D11Device* device = m_graphicsContext.GetDevice();
 
         D3D11_BUFFER_DESC desc = {};
-        desc.ByteWidth         = sizeof(Tsukino::Renderer::CBufferTransform);
         desc.Usage             = D3D11_USAGE_DEFAULT;
         desc.BindFlags         = D3D11_BIND_CONSTANT_BUFFER;
 
-        HRESULT hr = device->CreateBuffer(&desc, nullptr, m_constantBuffer.GetAddressOf());
-        // 定数バッファの作成に失敗した場合はエラーログを出力
+        //------------------------------------------------------------
+        // m_sceneBuffer (b0) の作成
+        //------------------------------------------------------------
+        desc.ByteWidth = sizeof(Tsukino::Renderer::CBufferScene);
+        HRESULT hr     = device->CreateBuffer(&desc, nullptr, m_sceneBuffer.GetAddressOf());
         if(FAILED(hr)) {
-            Tsukino::Core::Log::Error("Failed to create constant buffer.");
+            Tsukino::Core::Log::Error("Failed to create scene constant buffer.");
             return false;
         }
+
+        //------------------------------------------------------------
+        // m_objectBuffer (b1) の作成
+        //------------------------------------------------------------
+        desc.ByteWidth = sizeof(Tsukino::Renderer::CBufferTransform);
+        hr             = device->CreateBuffer(&desc, nullptr, m_objectBuffer.GetAddressOf());
+        if(FAILED(hr)) {
+            Tsukino::Core::Log::Error("Failed to create object constant buffer.");
+            return false;
+        }
+
+        // 成功
         return true;
     }
 
@@ -201,12 +216,12 @@ namespace Tsukino::Renderer {
             //------------------------------------------------------------
             // 定数バッファの更新
             //------------------------------------------------------------
-            context->UpdateSubresource(m_constantBuffer.Get(), 0, nullptr, &cb, 0, 0);
+            context->UpdateSubresource(m_objectBuffer.Get(), 0, nullptr, &cb, 0, 0);
 
             //------------------------------------------------------------
             // 定数バッファを頂点シェーダにバインド
             //------------------------------------------------------------
-            context->VSSetConstantBuffers(0, 1, m_constantBuffer.GetAddressOf());
+            context->VSSetConstantBuffers(0, 1, m_objectBuffer.GetAddressOf());
 
             UINT stride = sizeof(float) * 7;    // Vertex のサイズ
             UINT offset = 0;
@@ -289,8 +304,8 @@ namespace Tsukino::Renderer {
         //------------------------------------------------------
         CBufferTransform cb{};
         cb.world = cmd.transform;
-        context->UpdateSubresource(m_constantBuffer.Get(), 0, nullptr, &cb, 0, 0);
-        context->VSSetConstantBuffers(1, 1, m_constantBuffer.GetAddressOf());
+        context->UpdateSubresource(m_objectBuffer.Get(), 0, nullptr, &cb, 0, 0);
+        context->VSSetConstantBuffers(1, 1, m_objectBuffer.GetAddressOf());
 
         //------------------------------------------------------
         // Material を適用
@@ -380,5 +395,23 @@ namespace Tsukino::Renderer {
             return false;
 
         return true;
+    }
+
+    //------------------------------------------------------------
+    //! @brief シーン定数バッファの更新
+    //------------------------------------------------------------
+    void Renderer::UpdateSceneBuffer(const CBufferScene& sceneData) {
+        // デバイスコンテキストを取得
+        ID3D11DeviceContext* context = m_graphicsContext.GetContext();
+
+        //------------------------------------------------------------
+        // GPU上のバッファ（m_sceneBuffer）の中身を書き換える
+        //------------------------------------------------------------
+        context->UpdateSubresource(m_sceneBuffer.Get(), 0, nullptr, &sceneData, 0, 0);
+
+        //------------------------------------------------------------
+        // スロット0（b0）にバインドする
+        //------------------------------------------------------------
+        context->VSSetConstantBuffers(0, 1, m_sceneBuffer.GetAddressOf());
     }
 }    // namespace Tsukino::Renderer
