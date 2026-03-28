@@ -74,9 +74,30 @@ namespace Tsukino::BuiltIn::ECS {
         // TransformComponent と SpriteComponent の両方を持つエンティティを取得
         auto view = registry.View<TransformComponent, SpriteComponent>();
 
+        //-------------------------------------------------------------
         // 各エンティティから情報を抽出して描画コマンドを作成する
+        //-------------------------------------------------------------
         view.each([&](entt::entity, const Tsukino::BuiltIn::ECS::TransformComponent& transform, const Tsukino::BuiltIn::ECS::SpriteComponent& sprite) {
+            //-------------------------------------------------------------
+            // テクスチャアセットからピクセルサイズを取得
+            //-------------------------------------------------------------
+            auto textureAsset = std::static_pointer_cast<Tsukino::Asset::TextureAsset>(ctx->assets->Get(sprite.textureHandle));
+            if(!textureAsset)
+                return;
+
+            float texW = static_cast<float>(textureAsset->width);
+            float texH = static_cast<float>(textureAsset->height);
+
+            //-------------------------------------------------------------
+            // テクスチャサイズ分だけ引き伸ばす行列を作成
+            //-------------------------------------------------------------
+            const auto pixelScaleMatrix = Tsukino::Core::Math::matrix::scale(texW, texH, 1.0f);
+
             Tsukino::Renderer::DrawCommand cmd;
+
+            //TransformSystemが計算したworldMatrixの「手前」にピクセルスケールを噛ませる
+            // 順序：(モデル) -> ピクセル拡大 -> TransformSystemの計算(S*R*T) -> (ワールド)
+            cmd.transform = hlslpp::mul(transform.worldMatrix, pixelScaleMatrix);
 
             //-------------------------------------------------------------
             // Tsukino::Core::Math::matrix を渡す
