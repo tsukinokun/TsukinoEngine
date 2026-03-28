@@ -22,6 +22,6 @@ namespace Tsukino::Renderer {
     //! @brief  スロット1 (b1) 用：オブジェクトごとの固有データ
     //--------------------------------------------------------------
     struct CBufferTransform {
-        Tsukino::Core::Math::matrix mvp;
+        Tsukino::Core::Math::matrix world;
     };
 }    // namespace Tsukino::Renderer

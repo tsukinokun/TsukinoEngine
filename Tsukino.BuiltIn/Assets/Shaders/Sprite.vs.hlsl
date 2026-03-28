@@ -5,11 +5,21 @@
 //--------------------------------------------------------------
 
 //--------------------------------------------------------------
-// 定数バッファ：変換行列
+// 定数バッファ：シーン
+//--------------------------------------------------------------
+cbuffer CBufferScene : register(b0)
+{
+    matrix View;
+    matrix Projection;
+    matrix ViewProj;
+};
+
+//--------------------------------------------------------------
+// 定数バッファ：位置
 //--------------------------------------------------------------
 cbuffer TransformBuffer : register(b1)
 {
-    float4x4 u_MVP; // モデル × ビュー × プロジェクション行列
+    float4x4 World; // モデル × ビュー × プロジェクション行列
 };
 
 //--------------------------------------------------------------
@@ -37,8 +47,9 @@ struct VSOutput
 //--------------------------------------------------------------
 VSOutput VSMain(VSInput input)
 {
-    VSOutput output;
-    output.position = mul(float4(input.position, 1.0f), u_MVP);
-    output.uv = input.uv;
+    VSOutput output; // 出力構造体の宣言
+    // 頂点 * ワールド行列 * ビュープロジェクション行列
+    output.position = mul(float4(input.position, 1.0f), mul(World, ViewProj));
+    output.uv = input.uv; // UV座標はそのまま出力
     return output;
 }
