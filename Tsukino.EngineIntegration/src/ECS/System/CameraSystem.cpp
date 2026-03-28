@@ -9,6 +9,9 @@
 #include <Tsukino/BuiltIn/ECS/Component/TransformComponent.hpp>
 #include <Tsukino/BuiltIn/ECS/Component/CameraComponent.hpp>
 
+#include <Tsukino/Renderer/Renderer.hpp>
+#include <Tsukino/Renderer/ConstantBuffer.hpp>
+
 #include <Tsukino/Core/Window.hpp>
 #include <Tsukino/Core/Math/MathHelper.hpp>
 
@@ -87,6 +90,22 @@ namespace Tsukino::BuiltIn::ECS {
 
                 // 更新完了
                 camera.dirty = false;
+            }
+        });
+
+        //-------------------------------------------------------------
+        // viewを再度ループして、シーン定数バッファを更新
+        //-------------------------------------------------------------
+        view.each([&](entt::entity entity, const Tsukino::BuiltIn::ECS::TransformComponent& transform, const Tsukino::BuiltIn::ECS::CameraComponent& camera) {
+            // メインカメラのみシーン定数バッファに転送
+            if(camera.isPrimary) {
+                // メインカメラの行列をシーン定数バッファに転送
+                Tsukino::Renderer::CBufferScene sceneData;
+                sceneData.view       = camera.viewMatrix;
+                sceneData.projection = camera.projectionMatrix;
+                sceneData.viewProj   = camera.viewProjMatrix;
+                // シーン定数バッファを更新
+                ctx->renderer->UpdateSceneBuffer(sceneData);
             }
         });
     }

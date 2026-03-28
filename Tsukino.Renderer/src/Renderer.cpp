@@ -293,6 +293,24 @@ namespace Tsukino::Renderer {
     }
 
     //------------------------------------------------------------
+    //! @brief シーン定数バッファの更新
+    //------------------------------------------------------------
+    void Renderer::UpdateSceneBuffer(const CBufferScene& sceneData) {
+        // デバイスコンテキストを取得
+        ID3D11DeviceContext* context = m_graphicsContext.GetContext();
+
+        //------------------------------------------------------------
+        // GPU上のバッファ（m_sceneBuffer）の中身を書き換える
+        //------------------------------------------------------------
+        context->UpdateSubresource(m_sceneBuffer.Get(), 0, nullptr, &sceneData, 0, 0);
+
+        //------------------------------------------------------------
+        // スロット0（b0）にバインドする
+        //------------------------------------------------------------
+        context->VSSetConstantBuffers(0, 1, m_sceneBuffer.GetAddressOf());
+    }
+
+    //------------------------------------------------------------
     //! @brief 描画コマンドの実行
     //------------------------------------------------------------
     void Renderer::ExecuteDrawCommand(const DrawCommand& cmd) {
@@ -395,23 +413,5 @@ namespace Tsukino::Renderer {
             return false;
 
         return true;
-    }
-
-    //------------------------------------------------------------
-    //! @brief シーン定数バッファの更新
-    //------------------------------------------------------------
-    void Renderer::UpdateSceneBuffer(const CBufferScene& sceneData) {
-        // デバイスコンテキストを取得
-        ID3D11DeviceContext* context = m_graphicsContext.GetContext();
-
-        //------------------------------------------------------------
-        // GPU上のバッファ（m_sceneBuffer）の中身を書き換える
-        //------------------------------------------------------------
-        context->UpdateSubresource(m_sceneBuffer.Get(), 0, nullptr, &sceneData, 0, 0);
-
-        //------------------------------------------------------------
-        // スロット0（b0）にバインドする
-        //------------------------------------------------------------
-        context->VSSetConstantBuffers(0, 1, m_sceneBuffer.GetAddressOf());
     }
 }    // namespace Tsukino::Renderer

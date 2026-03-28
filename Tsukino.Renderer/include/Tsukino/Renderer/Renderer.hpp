@@ -119,6 +119,13 @@ namespace Tsukino::Renderer {
         [[nodiscard]]
         ID3D11ShaderResourceView* GetTextureSRV(const Tsukino::Asset::TextureAsset& textureAsset);
 
+        
+        //------------------------------------------------------------
+        // シーン定数バッファの更新
+        //! @param sceneData [in] シーン定数バッファの値データ
+        //------------------------------------------------------------
+        void UpdateSceneBuffer(const CBufferScene& sceneData);
+
     private:
         //------------------------------------------------------------
         // 定数バッファの作成
@@ -146,12 +153,6 @@ namespace Tsukino::Renderer {
         //------------------------------------------------------------
         [[nodiscard]]
         bool CreateCommonStates();
-
-        //------------------------------------------------------------
-        // シーン定数バッファの更新
-        //! @param sceneData [in] シーン定数バッファの値データ
-        //------------------------------------------------------------
-        void UpdateSceneBuffer(const CBufferScene& sceneData);
 
     private:
         // DirectX 11の主要なインターフェース
