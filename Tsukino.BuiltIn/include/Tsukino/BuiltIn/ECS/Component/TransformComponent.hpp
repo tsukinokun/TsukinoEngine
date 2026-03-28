@@ -4,11 +4,8 @@
 //! @author 山﨑愛
 //-------------------------------------------------------------
 #pragma once
-#define NOMINMAX
 #include <Tsukino/Core/Math/Matrix.hpp>
 #include <Tsukino/Core/ECS/Entity/Entity.hpp>
-
-#include <hlsl++.h>
 // 名前空間 : Tsukino::BuiltIn::ECS
 namespace Tsukino::BuiltIn::ECS {
     //-------------------------------------------------------------
