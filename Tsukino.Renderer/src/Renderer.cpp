@@ -290,7 +290,7 @@ namespace Tsukino::Renderer {
         CBufferTransform cb{};
         cb.mvp = cmd.transform;
         context->UpdateSubresource(m_constantBuffer.Get(), 0, nullptr, &cb, 0, 0);
-        context->VSSetConstantBuffers(0, 1, m_constantBuffer.GetAddressOf());
+        context->VSSetConstantBuffers(1, 1, m_constantBuffer.GetAddressOf());
 
         //------------------------------------------------------
         // Material を適用
