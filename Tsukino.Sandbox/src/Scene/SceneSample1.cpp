@@ -12,8 +12,10 @@
 
 // 必要なシステムとコンポーネントのインクルード
 #include <Tsukino/EngineIntegration/ECS/System/TransformSystem.hpp>
+#include <Tsukino/EngineIntegration/ECS/System/CameraSystem.hpp>
 #include <Tsukino/EngineIntegration/ECS/System/SpriteRendererSystem.hpp>
 #include <Tsukino/BuiltIn/ECS/Component/TransformComponent.hpp>
+#include <Tsukino/BuiltIn/ECS/Component/CameraComponent.hpp>
 #include <Tsukino/BuiltIn/ECS/Component/SpriteComponent.hpp>
 
 #include <entt/entt.hpp>
@@ -32,6 +34,8 @@ namespace Tsukino::Sandbox {
         //--------------------------------------------------------------
         // Transformは一番最初に計算する (優先度 0)
         m_scene.AddSystem(std::make_shared<Tsukino::BuiltIn::ECS::TransformSystem>(), 0);
+        // カメラは描画前に更新する (優先度 5)
+        m_scene.AddSystem(std::make_shared<Tsukino::BuiltIn::ECS::CameraSystem>(), 5);
         // スプライトなど描画用のコマンド生成は後で行う (優先度 10)
         m_scene.AddSystem(std::make_shared<Tsukino::BuiltIn::ECS::SpriteRenderSystem>(), 10);
 
@@ -40,15 +44,17 @@ namespace Tsukino::Sandbox {
         //--------------------------------------------------------------
         Tsukino::Asset::AssetHandle textureHandle = context->assets->Load(Tsukino::Core::Path("Assets/Textures/test.jpg"));
 
-        // エンティティ生成
+        //--------------------------------------------------------------
+        // スプライトエンティティ生成
+        //--------------------------------------------------------------
         Tsukino::ECS::Entity    entity   = m_scene.CreateEntity();
         Tsukino::ECS::Registry& registry = m_scene.GetRegistry();
 
         // TransformComponent の追加と初期化
         Tsukino::BuiltIn::ECS::TransformComponent& transform = registry.AddComponent<Tsukino::BuiltIn::ECS::TransformComponent>(entity);
-        transform.position                                   = hlslpp::float3(0.0f, 0.0f, 0.0f);
+        transform.position                                   = hlslpp::float3(1.0f, 0.0f, 0.0f);
         transform.rotation                                   = hlslpp::quaternion(0.0f, 0.0f, 0.0f, 1.0f);    // 無回転
-        transform.scale                                      = hlslpp::float3(1.0f, 1.0f, 1.0f);
+        transform.scale                                      = hlslpp::float3(0.5f, 0.5f, 1.0f);
         transform.dirty                                      = true;          // 初回計算のためフラグを立てる
         transform.parent                                     = entt::null;    // 親なし
 
@@ -57,6 +63,21 @@ namespace Tsukino::Sandbox {
         sprite.textureHandle                           = textureHandle;
         sprite.tintColor                               = hlslpp::float4(1.0f, 1.0f, 1.0f, 1.0f);    // 白色
         sprite.uvRect                                  = hlslpp::float4(0.0f, 0.0f, 1.0f, 1.0f);
+
+        //--------------------------------------------------------------
+        // カメラエンティティの生成
+        //--------------------------------------------------------------
+        Tsukino::ECS::Entity cameraEntity = m_scene.CreateEntity();
+
+        // TransformComponent (カメラの位置)
+        auto& camTransform    = registry.AddComponent<Tsukino::BuiltIn::ECS::TransformComponent>(cameraEntity);
+        camTransform.position = hlslpp::float3(0.0f, 0.0f, -10.0f);    // 手前に引く
+
+        // CameraComponent (投影設定)
+        auto& camera          = registry.AddComponent<Tsukino::BuiltIn::ECS::CameraComponent>(cameraEntity);
+        camera.projectionType = Tsukino::BuiltIn::ECS::CameraComponent::ProjectionType::Orthographic;
+        camera.orthoSize      = 720.0f;    // 画面の縦幅を 720 ユニットにする
+        camera.isPrimary      = true;      // これをメインカメラにする
     }
 
     //-------------------------------------------------------------

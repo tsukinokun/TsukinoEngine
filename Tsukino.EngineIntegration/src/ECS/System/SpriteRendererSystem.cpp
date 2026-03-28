@@ -100,11 +100,6 @@ namespace Tsukino::BuiltIn::ECS {
             cmd.transform = hlslpp::mul(transform.worldMatrix, pixelScaleMatrix);
 
             //-------------------------------------------------------------
-            // Tsukino::Core::Math::matrix を渡す
-            //-------------------------------------------------------------
-            cmd.transform = transform.worldMatrix;
-
-            //-------------------------------------------------------------
             // メッシュの指定
             //-------------------------------------------------------------
             cmd.mesh = ctx->renderer->GetPrimitiveMesh(Tsukino::GraphicsCommon::PrimitiveType::Quad);

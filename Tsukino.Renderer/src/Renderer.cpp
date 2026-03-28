@@ -202,42 +202,6 @@ namespace Tsukino::Renderer {
         m_graphicsContext.BeginFrame(m_clearColor[0], m_clearColor[1], m_clearColor[2], m_clearColor[3]);
 
         //------------------------------------------------------------
-        // テスト用三角形描画
-        //------------------------------------------------------------
-        {
-            ID3D11DeviceContext* context = m_graphicsContext.GetContext();
-
-            //------------------------------------------------------------
-            // 定数バッファの更新
-            //------------------------------------------------------------
-            CBufferTransform cb{};
-            cb.world = Tsukino::Core::Math::matrix::identity();    // とりあえず単位行列
-
-            //------------------------------------------------------------
-            // 定数バッファの更新
-            //------------------------------------------------------------
-            context->UpdateSubresource(m_objectBuffer.Get(), 0, nullptr, &cb, 0, 0);
-
-            //------------------------------------------------------------
-            // 定数バッファを頂点シェーダにバインド
-            //------------------------------------------------------------
-            context->VSSetConstantBuffers(0, 1, m_objectBuffer.GetAddressOf());
-
-            UINT stride = sizeof(float) * 7;    // Vertex のサイズ
-            UINT offset = 0;
-            context->IASetVertexBuffers(0, 1, m_vertexBuffer.GetAddressOf(), &stride, &offset);
-
-            context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-
-            context->IASetInputLayout(m_inputLayout.Get());
-            context->VSSetShader(m_vertexShader.Get(), nullptr, 0);
-            context->PSSetShader(m_pixelShader.Get(), nullptr, 0);
-
-            // シェーダと入力レイアウトをセット（後で追加）
-            context->Draw(3, 0);
-        }
-
-        //------------------------------------------------------------
         // 描画コマンドの実行
         //------------------------------------------------------------
         const auto& commands = m_drawQueue.GetCommands();
