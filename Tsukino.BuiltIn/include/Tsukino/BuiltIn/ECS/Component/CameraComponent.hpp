@@ -12,6 +12,21 @@ namespace Tsukino::BuiltIn::ECS {
     //! @brief  カメラの位置や投影パラメータを管理
     //-------------------------------------------------------------
     struct CameraComponent {
+        //-------------------------------------------------------------
+        //! @enum   投影タイプ
+        //! @brief  カメラの投影方法を指定 (Perspective: 3D用、Orthographic: 2D用)
+        //-------------------------------------------------------------
+        enum class ProjectionType {
+            Perspective,    // 3D用
+            Orthographic    // 2D用
+        };
+
+        // 投影タイプ
+        ProjectionType type = ProjectionType::Perspective;
+
+        // Ortho用の表示幅(ウィンドウの縦ピクセル数)
+        float orthoSize = 720.0f;
+
         // --- 投影パラメータ ---
         float fov         = 45.0f;           // 垂直画角
         float aspectRatio = 16.0f / 9.0f;    // 画面の幅と高さの比率
