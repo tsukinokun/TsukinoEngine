@@ -196,7 +196,7 @@ namespace Tsukino::Renderer {
             // 定数バッファの更新
             //------------------------------------------------------------
             CBufferTransform cb{};
-            cb.mvp = Tsukino::Core::Math::matrix::identity();    // とりあえず単位行列
+            cb.world = Tsukino::Core::Math::matrix::identity();    // とりあえず単位行列
 
             //------------------------------------------------------------
             // 定数バッファの更新
@@ -288,7 +288,7 @@ namespace Tsukino::Renderer {
         // Transform を定数バッファに書き込む
         //------------------------------------------------------
         CBufferTransform cb{};
-        cb.mvp = cmd.transform;
+        cb.world = cmd.transform;
         context->UpdateSubresource(m_constantBuffer.Get(), 0, nullptr, &cb, 0, 0);
         context->VSSetConstantBuffers(1, 1, m_constantBuffer.GetAddressOf());
 
