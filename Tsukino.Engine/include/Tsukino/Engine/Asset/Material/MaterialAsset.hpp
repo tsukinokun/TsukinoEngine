@@ -14,9 +14,38 @@ namespace Tsukino::Asset {
     //--------------------------------------------------------------
     class MaterialAsset : public IAsset {
     public:
-        AssetHandle    textureHandle;         // テクスチャアセットのID
-        AssetHandle    vertexShaderHandle;    // バーテックスシェーダーアセットのID
-        AssetHandle    pixelShaderHandle;     // ピクセルシェーダーアセットのID
-        hlslpp::float4 diffuseColor;          // 色データ
+        //--------------------------------------------------------------
+        //! @brief  ハンドルを取得する関数
+        //! @return アセットのハンドル
+        //--------------------------------------------------------------
+        [[nodiscard]]
+        AssetHandle GetHandle() const override {
+            return handle;
+        }
+
+        //--------------------------------------------------------------
+        //! @brief  アセットの種類を取得する関数
+        //! @return アセットの種類
+        //--------------------------------------------------------------
+        [[nodiscard]]
+        AssetType GetType() const override {
+            return AssetType::Material;
+        }
+
+        //--------------------------------------------------------------
+        //! @brief ハンドル設定用のセッター
+        //! @param h [in] 設定するハンドル
+        //--------------------------------------------------------------
+        void SetHandle(AssetHandle h) { handle = h; }
+
+        // テクスチャの配列
+        std::vector<AssetHandle> textureHandles;
+
+        AssetHandle    vertexShaderHandle;    // VS
+        AssetHandle    pixelShaderHandle;     // PS
+        hlslpp::float4 diffuseColor;          // 基本色
+
+    private:
+        AssetHandle handle;    // IAssetの実体となる識別子
     };
 }    // namespace Tsukino::Asset

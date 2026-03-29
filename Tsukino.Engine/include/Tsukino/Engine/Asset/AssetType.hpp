@@ -16,6 +16,7 @@ namespace Tsukino::Asset {
         Texture,     // テクスチャ
         Shader,      // シェーダー
         Mesh,        // メッシュ
+        Model,       // モデル
         Material,    // マテリアル
         Audio,       // オーディオ
     };
