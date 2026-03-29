@@ -4,6 +4,7 @@
 //! @author 山﨑愛
 //-------------------------------------------------------------
 #include <Tsukino/Core/IO/FileSystem.hpp>
+
 #include <fstream>
 #include <filesystem>
 // 名前空間 : Tsukino::IO
@@ -83,5 +84,20 @@ namespace Tsukino::IO {
         }
         // 失敗時は最小値を返す
         return std::filesystem::file_time_type::min();
+    }
+
+    //---------------------------------------------------------
+    //! @brief  アセットのルートパスを取得する
+    //---------------------------------------------------------
+    Tsukino::Core::Path FileSystem::GetAssetRootPath() {
+#ifdef _DEBUG
+        // デバッグ時はプロジェクトルート（Premakeのdebugdir設定に依存）
+        return Tsukino::Core::Path(std::filesystem::current_path().string());
+#else
+        // リリース時は実行ファイル (.exe) の場所を基準にする
+        wchar_t exePath[MAX_PATH];
+        GetModuleFileNameW(NULL, exePath, MAX_PATH);
+        return Tsukino::Core::Path(std::filesystem::path(exePath).parent_path().string());
+#endif
     }
 }    // namespace Tsukino::IO

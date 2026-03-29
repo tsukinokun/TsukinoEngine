@@ -6,6 +6,7 @@
 #include <Tsukino/Engine/Asset/Shader/ShaderImporter.hpp>
 
 #include <Tsukino/Core/Log.hpp>
+#include <Tsukino/Core/IO/FileSystem.hpp>
 
 #include <d3dcompiler.h>
 #include <fstream>
@@ -15,6 +16,23 @@ namespace Tsukino::Asset {
     //! @brief  シェーダーアセットをインポートする関数
     //--------------------------------------------------------------
     bool ShaderImporter::Import(const Tsukino::Core::Path& inputPath, const Tsukino::Core::Path& outputDirectory) {
+        //--------------------------------------------------------------
+        // 絶対パスの取得
+        //--------------------------------------------------------------
+        Tsukino::Core::Path baseDir           = Tsukino::IO::FileSystem::GetAssetRootPath();
+        Tsukino::Core::Path absoluteInputPath = baseDir / inputPath;
+
+        //--------------------------------------------------------------
+        // 出力パスの決定
+        //--------------------------------------------------------------
+        Tsukino::Core::Path outputPath = outputDirectory / inputPath;
+        outputPath.replace_extension(".cso");
+
+        //--------------------------------------------------------------
+        // 親ディレクトリ作成
+        //--------------------------------------------------------------
+        Tsukino::IO::FileSystem::CreateDirectories(outputPath.parent_path());
+
         //------------------------------------------------
         // シェーダー種別を拡張子から判定
         //------------------------------------------------
@@ -37,9 +55,17 @@ namespace Tsukino::Asset {
         //------------------------------------------------
         // 出力パス
         //------------------------------------------------
-        auto name = inputPath.stem();    // xxx.vs + .cso
+        std::string name = inputPath.stem();    // xxx.vs + .cso
 
-        Tsukino::Core::Path outputPath = outputDirectory / (name + ".cso");
+        //------------------------------------------------
+        // コンパイルフラグ
+        //------------------------------------------------
+        UINT flags = D3DCOMPILE_ENABLE_STRICTNESS;
+#ifdef _DEBUG
+        flags |= D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION;
+#else
+        flags |= D3DCOMPILE_OPTIMIZATION_LEVEL3;
+#endif
 
         //------------------------------------------------
         // シェーダーコンパイル
@@ -47,12 +73,12 @@ namespace Tsukino::Asset {
         ID3DBlob* shaderBlob = nullptr;
         ID3DBlob* errorBlob  = nullptr;
 
-        HRESULT hr = D3DCompileFromFile(inputPath.ToWString().c_str(),
+        HRESULT hr = D3DCompileFromFile(absoluteInputPath.ToWString().c_str(),
                                         nullptr,
                                         D3D_COMPILE_STANDARD_FILE_INCLUDE,
                                         entrypoint.c_str(),
-                                        target.c_str(),    // ← 自動判別したターゲット
-                                        D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION,
+                                        target.c_str(),
+                                        flags,
                                         0,
                                         &shaderBlob,
                                         &errorBlob);
@@ -68,13 +94,14 @@ namespace Tsukino::Asset {
         //------------------------------------------------
         // .cso 保存
         //------------------------------------------------
-        std::ofstream file(outputPath.string(), std::ios::binary);                         // 書き込むファイルを開く
-        file.write((char*)shaderBlob->GetBufferPointer(), shaderBlob->GetBufferSize());    // ファイルに内容を書き込む
-        file.close();
+        std::ofstream file(outputPath.string(), std::ios::binary);
+        if(!file)
+            return false;
+        file.write((char*)shaderBlob->GetBufferPointer(), shaderBlob->GetBufferSize());
 
         shaderBlob->Release();
 
-        Tsukino::Core::Log::Info("Shader imported: " + outputPath.string());
+        Tsukino::Core::Log::Info("Shader compiled: " + outputPath.string());
         return true;
     }
 

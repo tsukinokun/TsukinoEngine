@@ -16,21 +16,39 @@ namespace Tsukino::Asset {
     //! @brief  テクスチャのインポート関数
     //--------------------------------------------------------------
     bool TextureImporter::Import(const Tsukino::Core::Path& inputPath, const Tsukino::Core::Path& outputDirectory) {
+        //--------------------------------------------------------------
+        // ルートからの絶対パスで開く
+        //--------------------------------------------------------------
+        Tsukino::Core::Path baseDir           = Tsukino::IO::FileSystem::GetAssetRootPath();
+        Tsukino::Core::Path absoluteInputPath = baseDir / inputPath;
+
+        //--------------------------------------------------------------
+        // テクスチャをDirectXTexで読み込むための変数
+        //--------------------------------------------------------------
         DirectX::ScratchImage image;
         DirectX::TexMetadata  metadata;
 
-        HRESULT hr = DirectX::LoadFromWICFile(inputPath.ToWString().c_str(), DirectX::WIC_FLAGS_NONE, &metadata, image);
+        HRESULT hr = DirectX::LoadFromWICFile(absoluteInputPath.ToWString().c_str(), DirectX::WIC_FLAGS_NONE, &metadata, image);
 
         if(FAILED(hr)) {
-            Tsukino::Core::Log::Error("Failed to load texture: " + inputPath.string());
+            Tsukino::Core::Log::Error("Failed to load texture: " + absoluteInputPath.string());
             return false;
         }
 
-        // 出力DDSパス
-        auto                name       = inputPath.stem();
-        Tsukino::Core::Path outputPath = outputDirectory / (name + ".dds");
+        //--------------------------------------------------------------
+        // outputDirectory(Cache/) に inputPath(相対) を結合して階層を維持
+        //--------------------------------------------------------------
+        Tsukino::Core::Path outputPath = outputDirectory / inputPath;
+        outputPath.replace_extension(".dds");    // 拡張子をDDSに変更
 
+        //--------------------------------------------------------------
+        // 親ディレクトリの生成
+        //--------------------------------------------------------------
+        Tsukino::IO::FileSystem::CreateDirectories(outputPath.parent_path());
+
+        //--------------------------------------------------------------
         // DDSファイルとして保存
+        //--------------------------------------------------------------
         hr = DirectX::SaveToDDSFile(image.GetImages(), image.GetImageCount(), metadata, DirectX::DDS_FLAGS_NONE, outputPath.ToWString().c_str());
 
         // 保存に失敗した場合はエラーログを出力して false を返す

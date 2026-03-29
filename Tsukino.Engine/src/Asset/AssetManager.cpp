@@ -48,7 +48,8 @@ namespace Tsukino::Asset {
         std::string ext = path.extension();                                // 拡張子を取得
         std::transform(ext.begin(), ext.end(), ext.begin(), ::tolower);    // 拡張子を小文字に変換
 
-        AssetType type = GetAssetTypeFromExtension(ext);    // 拡張子からアセットの種類を取得
+        AssetType           type      = GetAssetTypeFromExtension(ext);    // 拡張子からアセットの種類を取得
+        Tsukino::Core::Path cachePath = ConvertToCachePath(path);          // ソースパスからキャッシュパスに変換
 
         //------------------------------------------------
         // Importer
@@ -58,35 +59,55 @@ namespace Tsukino::Asset {
 
         // インポーターが見つかった場合はインポート処理を実行
         if(importerIt != s_Importers.end()) {
-            Tsukino::Core::Path cacheDir("Cache/");    // キャッシュディレクトリのパスを指定
+            bool shouldImport = false;    // インポートが必要かどうかのフラグ
 
-            bool isCreteDir = Tsukino::IO::FileSystem::CreateDirectories(cacheDir);    // 出力ディレクトリが存在しない場合は作成
+            //------------------------------------------------
+            // キャッシュが存在しない
+            //------------------------------------------------
+            if(!Tsukino::IO::FileSystem::Exists(cachePath)) {
+                shouldImport = true;
+            } else {
+                //------------------------------------------------
+                // ソースの方が新しいかチェック
+                //------------------------------------------------
+                Tsukino::Core::Path             baseDir    = Tsukino::IO::FileSystem::GetAssetRootPath();
+                std::filesystem::file_time_type sourceTime = Tsukino::IO::FileSystem::GetLastWriteTime(baseDir / path);
+                std::filesystem::file_time_type cacheTime  = Tsukino::IO::FileSystem::GetLastWriteTime(cachePath);
 
-            if(!isCreteDir) {
-                Tsukino::Core::Log::Warn("Failed to create Directory: " + cacheDir.string());
+                if(sourceTime > cacheTime) {
+                    Tsukino::Core::Log::Info("Asset updated. Re-importing: " + path.string());
+                    shouldImport = true;
+                }
             }
 
-            importerIt->second->Import(path, cacheDir);
+            //------------------------------------------------
+            // キャッシュが存在しない、またはソースの方が新しい場合はインポートを実行
+            //------------------------------------------------
+            if(shouldImport) {
+                Tsukino::Core::Path cacheDir = Tsukino::IO::FileSystem::GetAssetRootPath() / "Cache";
+                // インポーターに相対パス(path)を渡すことで、インポーター側で階層を作ってもらう
+                importerIt->second->Import(path, cacheDir);
+            }
         }
 
         //------------------------------------------------
         // Loader
         //------------------------------------------------
-
-        Tsukino::Core::Path loadPath = ConvertToCachePath(path);    // ロードしたパスを元に、キャッシュのパスを生成
-
         // ローダーリストを順番にチェックして、対応するローダーでロードを試みる
         for(auto& loader : s_Loaders) {
-            if(loader->CanLoad(loadPath.extension())) {
-                Tsukino::Core::Ref<IAsset> asset = loader->Load(loadPath);
+            if(loader->CanLoad(cachePath.extension())) {
+                Tsukino::Core::Ref<IAsset> asset = loader->Load(cachePath);
+                if(!asset)
+                    continue;
 
+                // アセットが正常にロードできた場合はハンドルを生成してマップに登録し、ハンドルを返す
                 AssetHandle handle = AssetHandleGenerator::Generate();
                 s_Assets.insert({handle.Value(), asset});
-
                 return handle;
             }
         }
 
+        // 対応するローダーが見つからない、またはロードに失敗した場合はエラーログを出力して無効なハンドルを返す
         return AssetHandle::Invalid();
     }
 
@@ -177,29 +198,27 @@ namespace Tsukino::Asset {
     //! @brief  ソースパスからキャッシュパスに変換する関数
     //--------------------------------------------------------------
     Tsukino::Core::Path AssetManager::ConvertToCachePath(const Tsukino::Core::Path& sourcePath) {
-        std::string ext = sourcePath.extension();                          // 拡張子を取得
-        std::transform(ext.begin(), ext.end(), ext.begin(), ::tolower);    // 拡張子を小文字に変換
-
-        std::string name = sourcePath.stem();    // 拡張子を除いたファイル名を取得
-
-        Tsukino::Core::Path cacheDir("Cache");    // キャッシュディレクトリのパスを指定
+        //--------------------------------------------------------------
+        // インポーターと同様、Cacheディレクトリを基点にする
+        //--------------------------------------------------------------
+        Tsukino::Core::Path cachePath = Tsukino::IO::FileSystem::GetAssetRootPath() / "Cache" / sourcePath;
 
         //--------------------------------------------------------------
-        // テクスチャ
+        // 拡張子を小文字に変換して判定
         //--------------------------------------------------------------
-        if(ext == ".png" || ext == ".jpg" || ext == ".jpeg" || ext == ".tga") {
-            return cacheDir / (name + ".dds");
-        }
+        std::string ext = sourcePath.extension();
+        std::transform(ext.begin(), ext.end(), ext.begin(), ::tolower);
 
         //--------------------------------------------------------------
-        // シェーダー
+        // 拡張子をキャッシュ用に置換
         //--------------------------------------------------------------
         if(ext == ".hlsl" || ext == ".shader") {
-            return cacheDir / (name + ".cso");
+            cachePath.replace_extension(".cso");
+        } else if(ext == ".png" || ext == ".jpg" || ext == ".jpeg" || ext == ".tga" || ext == ".bmp") {
+            cachePath.replace_extension(".dds");
         }
 
-        // 対応する変換ルールがない場合は元のパスを返す
-        return sourcePath;
+        return cachePath;
     }
 
 }    // namespace Tsukino::Asset
