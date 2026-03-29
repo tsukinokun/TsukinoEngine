@@ -69,4 +69,19 @@ namespace Tsukino::IO {
             return false;
         }
     }
+
+    //---------------------------------------------------------
+    //! @brief  ファイルの最終更新日時を取得する
+    //---------------------------------------------------------
+    std::filesystem::file_time_type FileSystem::GetLastWriteTime(const Tsukino::Core::Path& path) noexcept {
+        try {
+            if(Exists(path)) {
+                return std::filesystem::last_write_time(path.string());
+            }
+        } catch(...) {
+            // エラー時はエポック（古い時間）を返すなどして、比較で「古い」と判定させる
+        }
+        // 失敗時は最小値を返す
+        return std::filesystem::file_time_type::min();
+    }
 }    // namespace Tsukino::IO
