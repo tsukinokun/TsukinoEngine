@@ -17,7 +17,7 @@ namespace Tsukino::IO {
     class FileSystem final {
     public:
         //---------------------------------------------------------
-        //! @brief  バイナリファイルを読み込む
+        // バイナリファイルを読み込む
         //! @param  path [in] 読み込むファイルパス
         //! @return 読み込んだバイト列（失敗時は空）
         //---------------------------------------------------------
@@ -25,7 +25,7 @@ namespace Tsukino::IO {
         static std::vector<std::uint8_t> ReadBinary(const Tsukino::Core::Path& path) noexcept;
 
         //---------------------------------------------------------
-        //! @brief  テキストファイルを読み込む
+        // テキストファイルを読み込む
         //! @param  path [in] 読み込むファイルパス
         //! @return 読み込んだ文字列（失敗時は空）
         //---------------------------------------------------------
@@ -33,19 +33,26 @@ namespace Tsukino::IO {
         static std::string ReadText(const Tsukino::Core::Path& path) noexcept;
 
         //---------------------------------------------------------
-        //! @brief  ファイルが存在するか確認する
+        // ファイルが存在するか確認する
         //! @param  path [in] 確認するファイルパス
         //---------------------------------------------------------
         [[nodiscard]]
         static bool Exists(const Tsukino::Core::Path& path) noexcept;
 
         //---------------------------------------------------------
-        //! @brief  ディレクトリを作成する
+        // ディレクトリを作成する
         //! @param  path [in] 作成するディレクトリのパス
         //! @return ディレクトリの作成に成功した場合は true、すでに存在する場合も true、失敗した場合は false
         //---------------------------------------------------------
         [[nodiscard]]
         static bool CreateDirectories(const Tsukino::Core::Path& path) noexcept;
+
+        //---------------------------------------------------------
+        // ファイルの最終更新日時を取得する
+        //! @param  path [in] 対象のファイルパス
+        //! @return ファイルの最終更新日時（失敗時はデフォルト)
+        //---------------------------------------------------------
+        std::filesystem::file_time_type GetLastWriteTime(const Tsukino::Core::Path& path) noexcept;
     };
 
 }    // namespace Tsukino::IO
