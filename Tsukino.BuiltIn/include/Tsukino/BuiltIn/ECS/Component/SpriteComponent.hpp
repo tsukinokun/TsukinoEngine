@@ -9,7 +9,6 @@
 #include <Tsukino/Core/typedef.hpp>
 // 名前空間 : Tsukino::BuiltIn::ECS
 namespace Tsukino::BuiltIn::ECS {
-
     //-------------------------------------------------------------
     //! @struct SpriteComponent
     //! @brief  スプライト（2D画像）描画に必要な情報を管理するコンポーネント

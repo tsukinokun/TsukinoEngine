@@ -289,7 +289,6 @@ project "Tsukino.BuiltIn"
     kind "StaticLib"
     language "C++"
     cppdialect "C++20"
-    debugdir "%{cfg.targetdir}"
     forceincludes { "pch.h" }               -- 強制インクルード
 
     filter "action:vs*"
@@ -301,6 +300,18 @@ project "Tsukino.BuiltIn"
 
     targetdir ("bin/%{cfg.buildcfg}")
     objdir ("bin-int/%{cfg.buildcfg}")
+
+    -- デバッグ時：ルートを参照、コピーもしない
+    filter "configurations:Debug"
+        debugdir "%{wks.location}/.."
+
+    -- リリース（配布）時：exeの場所を参照、アセットをコピーする
+    filter "configurations:Release"
+        debugdir "%{cfg.targetdir}"
+        postbuildcommands {
+            "{COPYDIR} %{wks.location}/../Tsukino.BuiltIn/Assets %{cfg.targetdir}/Assets"
+        }
+    filter {}
 
     files {
         "Tsukino.BuiltIn/src/**.cpp",
@@ -329,10 +340,6 @@ project "Tsukino.BuiltIn"
         "Tsukino.Renderer",
         "Tsukino.GraphicsCommon",
         "Tsukino.Core",
-    }
-
-    postbuildcommands {
-        "{COPYDIR} %{wks.location}/../Tsukino.BuiltIn/Assets %{cfg.targetdir}/Assets"
     }
 
 
@@ -402,10 +409,21 @@ project "Tsukino.Sandbox"
 
     pchheader "pch.h"
     pchsource "Tsukino.Sandbox/pch.cpp"
-    debugdir "%{cfg.targetdir}"
 
     targetdir ("bin/%{cfg.buildcfg}")
     objdir ("bin-int/%{cfg.buildcfg}")
+
+    -- デバッグ時：ルートを参照、コピーもしない
+    filter "configurations:Debug"
+        debugdir "%{wks.location}/.."
+
+    -- リリース（配布）時：exeの場所を参照、アセットをコピーする
+    filter "configurations:Release"
+        debugdir "%{cfg.targetdir}"
+        postbuildcommands {
+            "{COPYDIR} %{wks.location}/../Tsukino.Sandbox/Assets %{cfg.targetdir}/Assets",
+        }
+    filter {}
 
     files {
         "Tsukino.Sandbox/src/**.cpp",
@@ -443,8 +461,4 @@ project "Tsukino.Sandbox"
         "d3d11", 
         "dxgi",
         "d3dcompiler"
-    }
-
-    postbuildcommands {
-    "{COPYDIR} %{wks.location}/../Tsukino.Sandbox/Assets %{cfg.targetdir}/Assets"
     }

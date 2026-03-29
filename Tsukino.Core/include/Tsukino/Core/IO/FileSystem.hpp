@@ -52,7 +52,15 @@ namespace Tsukino::IO {
         //! @param  path [in] 対象のファイルパス
         //! @return ファイルの最終更新日時（失敗時はデフォルト)
         //---------------------------------------------------------
-        std::filesystem::file_time_type GetLastWriteTime(const Tsukino::Core::Path& path) noexcept;
+        [[nodiscard]]
+        static std::filesystem::file_time_type GetLastWriteTime(const Tsukino::Core::Path& path) noexcept;
+
+        //---------------------------------------------------------
+        // アセットのルートパスを取得する
+        //! @return アセットのルートパス
+        //---------------------------------------------------------
+        [[nodiscard]]
+        static Tsukino::Core::Path GetAssetRootPath();
     };
 
 }    // namespace Tsukino::IO
