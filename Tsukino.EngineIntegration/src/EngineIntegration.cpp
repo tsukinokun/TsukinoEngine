@@ -19,6 +19,7 @@ namespace Tsukino::EngineIntegration {
         // ユニークポインタを作成して
         //------------------------------------------------------------
         m_window           = std::make_unique<Tsukino::Core::Window>();
+        m_inputSystem      = std::make_unique<Tsukino::Input::InputSystem>();
         m_renderer         = std::make_unique<Tsukino::Renderer::Renderer>();
         m_assetManager     = std::make_unique<Tsukino::Asset::AssetManager>();
         m_builtinAssets    = std::make_unique<Tsukino::BuiltIn::BuiltInAssets>();
@@ -32,6 +33,7 @@ namespace Tsukino::EngineIntegration {
         m_ctx.assets           = m_assetManager.get();
         m_ctx.builtinAssets    = m_builtinAssets.get();
         m_ctx.gameSceneManager = m_gameSceneManager.get();
+        m_ctx.inputSystem      = m_inputSystem.get();
     }
 
     //------------------------------------------------------------
