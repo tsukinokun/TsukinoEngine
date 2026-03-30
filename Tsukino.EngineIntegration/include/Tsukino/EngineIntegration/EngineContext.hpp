@@ -14,6 +14,10 @@ namespace Tsukino {
         class Window;
     }
 
+    namespace Input {
+        class InputSystem;
+    }
+
     namespace Asset {
         class AssetManager;
     }
@@ -33,6 +37,7 @@ namespace Tsukino::EngineIntegration {
     struct EngineContext {
         Tsukino::Renderer::Renderer*     renderer         = nullptr;
         Tsukino::Core::Window*           window           = nullptr;
+        Tsukino::Input::InputSystem*     inputSystem      = nullptr;
         Tsukino::Asset::AssetManager*    assets           = nullptr;
         Tsukino::BuiltIn::BuiltInAssets* builtinAssets    = nullptr;
         GameSceneManager*                gameSceneManager = nullptr;

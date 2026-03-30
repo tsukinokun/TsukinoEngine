@@ -10,8 +10,10 @@
 
 #include <Tsukino/EngineIntegration/EngineContext.hpp>
 
-#include <Tsukino/Core/Window.hpp>
 #include <Tsukino/Engine/ECS/SystemManager.hpp>
+
+#include <Tsukino/Core/Window.hpp>
+#include <Tsukino/Core/Input/InputSystem.hpp>
 
 #include <memory>
 
@@ -45,7 +47,10 @@ namespace Tsukino::EngineIntegration {
     // 更新関数
     //------------------------------------------------------------
     void EngineAPI::Update(float deltaTime) {
+        // ゲームシーンの更新
         m_context.gameSceneManager->Update(*this, deltaTime);
+        // 入力システムの更新
+        m_context.inputSystem->Update();
     }
 
     //------------------------------------------------------------
