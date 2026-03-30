@@ -73,6 +73,37 @@ namespace Tsukino::EngineIntegration {
         }
 
         //--------------------------------------------------------------
+        // メッセージコールバックの設定
+        //--------------------------------------------------------------
+        m_window->SetMessageCallback([this](UINT msg, WPARAM wp, LPARAM lp) {
+            switch(msg) {
+            // --- キーボード入力 ---
+            case WM_KEYDOWN:
+            case WM_SYSKEYDOWN:    // Altキーなどを含める場合
+                m_inputSystem->SetKeyState(static_cast<Input::KeyCode>(wp), true);
+                break;
+
+            case WM_KEYUP:
+            case WM_SYSKEYUP:
+                m_inputSystem->SetKeyState(static_cast<Input::KeyCode>(wp), false);
+                break;
+
+            // --- マウス座標 ---
+            case WM_MOUSEMOVE:
+                // LOWORD, HIWORD で X, Y 座標を取り出す
+                m_inputSystem->SetMousePosition(static_cast<i32>(LOWORD(lp)), static_cast<i32>(HIWORD(lp)));
+                break;
+
+            // --- マウスホイール ---
+            case WM_MOUSEWHEEL:
+                // ホイールの回転量を取り出して加算（120単位で届くので割る）
+                float delta = static_cast<float>(GET_WHEEL_DELTA_WPARAM(wp)) / static_cast<float>(WHEEL_DELTA);
+                m_inputSystem->AddWheelDelta(delta);
+                break;
+            }
+        });
+
+        //--------------------------------------------------------------
         // レンダラー生成
         //--------------------------------------------------------------
         if(!m_renderer->Initialize(m_window->GetHWND(), m_window->GetWidth(), m_window->GetHeight())) {

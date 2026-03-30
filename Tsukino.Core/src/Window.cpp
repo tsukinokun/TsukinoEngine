@@ -62,7 +62,7 @@ namespace Tsukino::Core {
         // ウィンドウ作成
         //--------------------------------------------------------------
         m_hWnd = CreateWindowEx(
-            0, wc.lpszClassName, wTitle.c_str(), WS_OVERLAPPEDWINDOW, CW_USEDEFAULT, CW_USEDEFAULT, width, height, nullptr, nullptr, wc.hInstance, nullptr);
+            0, wc.lpszClassName, wTitle.c_str(), WS_OVERLAPPEDWINDOW, CW_USEDEFAULT, CW_USEDEFAULT, width, height, nullptr, nullptr, wc.hInstance, this);
 
         //--------------------------------------------------------------
         // ウィンドウの作成に失敗した場合はエラーメッセージを表示して終了
@@ -104,17 +104,39 @@ namespace Tsukino::Core {
     //! @brief Win32 ウィンドウプロシージャ
     //--------------------------------------------------------------
     LRESULT CALLBACK Window::WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
-        // メッセージコードに応じて処理を分岐
-        switch(msg) {
-            // ウィンドウが閉じられたときの処理
-        case WM_DESTROY:
-            // ウィンドウが破棄されたときにアプリケーションを終了する
+        Window* pWindow = nullptr;    // ウィンドウインスタンスへのポインタを格納する変数
+
+        //--------------------------------------------------------------
+        // インスタンスを覚えさせる
+        //--------------------------------------------------------------
+        if(msg == WM_NCCREATE) {
+            // 作成時に渡した 'this' を取り出して、HWNDのメモリに保存する
+            CREATESTRUCT* pCreate = reinterpret_cast<CREATESTRUCT*>(lParam);
+            pWindow               = reinterpret_cast<Window*>(pCreate->lpCreateParams);
+            SetWindowLongPtr(hwnd, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(pWindow));
+        } else {
+            // 保存しておいた 'this' を取り出す
+            pWindow = reinterpret_cast<Window*>(GetWindowLongPtr(hwnd, GWLP_USERDATA));
+        }
+
+        //--------------------------------------------------------------
+        // もし通知先 (m_callback) が登録されていれば、メッセージを投げる
+        //--------------------------------------------------------------
+        if(pWindow && pWindow->m_callback) {
+            // 入力に関係するメッセージだけをフィルタリングして通知
+            if((msg >= WM_KEYFIRST && msg <= WM_KEYLAST) || (msg >= WM_MOUSEFIRST && msg <= WM_MOUSELAST)) {
+                pWindow->m_callback(msg, wParam, lParam);
+            }
+        }
+
+        //--------------------------------------------------------------
+        // ウィンドウが破棄されたときの処理
+        //--------------------------------------------------------------
+        if(msg == WM_DESTROY) {
             PostQuitMessage(0);
             return 0;
-
-        default:
-            // デフォルトのメッセージ処理を行う
-            return DefWindowProc(hwnd, msg, wParam, lParam);
         }
+
+        return DefWindowProc(hwnd, msg, wParam, lParam);
     }
 }    // namespace Tsukino::Core

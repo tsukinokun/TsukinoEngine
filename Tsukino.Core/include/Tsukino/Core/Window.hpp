@@ -6,6 +6,7 @@
 #pragma once
 #include <windows.h>
 #include <string>
+#include <functional>
 // 名前空間 : Tsukino::Core
 namespace Tsukino::Core {
     //--------------------------------------------------------------
@@ -15,6 +16,11 @@ namespace Tsukino::Core {
     //--------------------------------------------------------------
     class Window {
     public:
+        //--------------------------------------------------------------
+        // メッセージコールバックの型エイリアス
+        //--------------------------------------------------------------
+        using MessageCallback = std::function<void(UINT, WPARAM, LPARAM)>;
+
         //--------------------------------------------------------------
         // コンストラクタ
         //--------------------------------------------------------------
@@ -41,6 +47,12 @@ namespace Tsukino::Core {
         //--------------------------------------------------------------
         [[nodiscard]]
         bool ProcessMessages();
+
+        //--------------------------------------------------------------
+        // メッセージコールバックを設定する関数
+        //! @param callback [in] メッセージコールバック関数
+        //--------------------------------------------------------------
+        void SetMessageCallback(MessageCallback callback) { m_callback = callback; }
 
         //--------------------------------------------------------------
         // Rendererが必要とするHWND
@@ -84,5 +96,7 @@ namespace Tsukino::Core {
         HWND m_hWnd;      // ウィンドウハンドル
         int  m_width;     // ウィンドウの幅
         int  m_height;    // ウィンドウの高さ
+
+        MessageCallback m_callback;    // 連絡先を保存しておく変数
     };
 }    // namespace Tsukino::Core
