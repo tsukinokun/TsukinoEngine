@@ -251,6 +251,8 @@ project "Tsukino.Renderer"
         "Tsukino.GraphicsCommon",
     }
 
+    nuget { "directxtk_desktop_win10:2026.4.1.1" }
+
 ----------------------------------------
 -- 物理プロジェクト
 ----------------------------------------
