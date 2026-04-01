@@ -6,7 +6,6 @@
 #pragma once
 #include <Tsukino/Engine/Asset/IAsset.hpp>
 
-#include <SpriteFont.h>
 #include <memory>
 #include <string>
 #include <d3d11.h>
@@ -36,7 +35,7 @@ namespace Tsukino::Asset {
         //--------------------------------------------------------------
         void SetHandle(AssetHandle h) { m_handle = h; }
 
-        std::unique_ptr<DirectX::SpriteFont> spriteFont;    // SpriteFontの情報を管理するスマートポインタ
+        std::vector<uint8_t> m_binaryData;    // フォントデータのバイナリ
 
     private:
         AssetHandle m_handle;    // アセットハンドル
