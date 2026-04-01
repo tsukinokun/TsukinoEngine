@@ -1,36 +1,34 @@
 ﻿//--------------------------------------------------------------
-//! @file   MaterialAsset.hpp
-//! @brief  マテリアルアセットの定義
-//! @author 山﨑愛
+//! @file       FontAsset.hpp
+//! @brief      DirectXTKのSpriteFontを管理するアセットクラス
+//! @author     山﨑愛
 //--------------------------------------------------------------
+#pragma once
 #include <Tsukino/Engine/Asset/IAsset.hpp>
 
-#include <hlsl++.h>
-// 名前空間 ：Tsukino::Asset
+#include <SpriteFont.h>
+#include <memory>
+#include <string>
+#include <d3d11.h>
+// Tsukino::Asset 名前空間
 namespace Tsukino::Asset {
     //--------------------------------------------------------------
-    //! @class  MaterialAsset
-    //! @brief  マテリアルアセットクラス
+    //! @class FontAsset
+    //! @brief DirectXTKのSpriteFontを管理するアセットクラス
     //--------------------------------------------------------------
-    class MaterialAsset : public IAsset {
+    class FontAsset : public IAsset {
     public:
         //--------------------------------------------------------------
-        //! @brief  ハンドルを取得する関数
+        //! @brief ハンドルを取得する関数
         //! @return アセットのハンドル
         //--------------------------------------------------------------
-        [[nodiscard]]
-        AssetHandle GetHandle() const override {
-            return m_handle;
-        }
+        [[nodiscard]] AssetHandle GetHandle() const override { return m_handle; }
 
         //--------------------------------------------------------------
-        //! @brief  アセットの種類を取得する関数
+        //! @brief タイプを取得する関数
         //! @return アセットの種類
         //--------------------------------------------------------------
-        [[nodiscard]]
-        AssetType GetType() const override {
-            return AssetType::Material;
-        }
+        [[nodiscard]] AssetType GetType() const override { return AssetType::Font; }
 
         //--------------------------------------------------------------
         //! @brief ハンドル設定用のセッター
@@ -38,14 +36,10 @@ namespace Tsukino::Asset {
         //--------------------------------------------------------------
         void SetHandle(AssetHandle h) { m_handle = h; }
 
-        // テクスチャの配列
-        std::vector<AssetHandle> textureHandles;
-
-        AssetHandle    vertexShaderHandle;    // VS
-        AssetHandle    pixelShaderHandle;     // PS
-        hlslpp::float4 diffuseColor;          // 基本色
+        std::unique_ptr<DirectX::SpriteFont> spriteFont;    // SpriteFontの情報を管理するスマートポインタ
 
     private:
-        AssetHandle m_handle;    // IAssetの実体となる識別子
+        AssetHandle m_handle;    // アセットハンドル
     };
+
 }    // namespace Tsukino::Asset
