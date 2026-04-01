@@ -18,6 +18,7 @@ namespace Tsukino::Asset {
         Mesh,        // メッシュ
         Model,       // モデル
         Material,    // マテリアル
+        Font,        // フォント
         Audio,       // オーディオ
     };
 
