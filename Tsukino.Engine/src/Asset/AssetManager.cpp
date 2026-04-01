@@ -9,8 +9,10 @@
 #include <Tsukino/Engine/Asset/Util/AssetHandleGenerator.hpp>
 #include <Tsukino/Engine/Asset/Texture/TextureLoder.hpp>
 #include <Tsukino/Engine/Asset/Shader/ShaderLoader.hpp>
+#include <Tsukino/Engine/Asset/Font/FontLoader.hpp>
 #include <Tsukino/Engine/Asset/Texture/TextureImporter.hpp>
 #include <Tsukino/Engine/Asset/Shader/ShaderImporter.hpp>
+#include <Tsukino/Engine/Asset/Font/FontImporter.hpp>
 
 #include <Tsukino/Core/IO/FileSystem.hpp>
 #include <Tsukino/Core/Log.hpp>
@@ -33,12 +35,14 @@ namespace Tsukino::Asset {
         //--------------------------------------------------------------
         RegisterLoader(Tsukino::Core::CreateRef<ShaderLoader>());     // シェーダローダーを登録
         RegisterLoader(Tsukino::Core::CreateRef<TextureLoader>());    // テクスチャローダーを登録
+        RegisterLoader(Tsukino::Core::CreateRef<FontLoader>());       // フォントローダーを登録
 
         //--------------------------------------------------------------
         // インポーター登録
         //--------------------------------------------------------------
         RegisterImporter(AssetType::Shader, Tsukino::Core::CreateRef<ShaderImporter>());      // シェーダーインポーターの登録
         RegisterImporter(AssetType::Texture, Tsukino::Core::CreateRef<TextureImporter>());    // テクスチャインポーターを登録
+        RegisterImporter(AssetType::Font, Tsukino::Core::CreateRef<FontImporter>());          // フォントインポーターの登録
     }
 
     //--------------------------------------------------------------
@@ -184,6 +188,10 @@ namespace Tsukino::Asset {
             {".mp3",    AssetType::Audio  },
             {".ogg",    AssetType::Audio  },
             {".flac",   AssetType::Audio  },
+
+            // Font
+            {".ttf",    AssetType::Font   },
+            {".otf",    AssetType::Font   },
         };
 
         // テーブルから拡張子に対応するアセットの種類を取得
@@ -199,7 +207,27 @@ namespace Tsukino::Asset {
     //--------------------------------------------------------------
     Tsukino::Core::Path AssetManager::ConvertToCachePath(const Tsukino::Core::Path& sourcePath) {
         //--------------------------------------------------------------
-        // インポーターと同様、Cacheディレクトリを基点にする
+        // ソース拡張子とキャッシュ拡張子のマッピング
+        //--------------------------------------------------------------
+        static const std::unordered_map<std::string, std::string> extensionMap = {
+            // シェーダー
+            {".hlsl",   ".cso"       },
+            {".shader", ".cso"       },
+
+            // テクスチャ
+            {".png",    ".dds"       },
+            {".jpg",    ".dds"       },
+            {".jpeg",   ".dds"       },
+            {".tga",    ".dds"       },
+            {".bmp",    ".dds"       },
+
+            // フォント
+            {".ttf",    ".spritefont"},
+            {".otf",    ".spritefont"}
+        };
+
+        //--------------------------------------------------------------
+        // Cacheディレクトリを基点にする
         //--------------------------------------------------------------
         Tsukino::Core::Path cachePath = Tsukino::IO::FileSystem::GetAssetRootPath() / "Cache" / sourcePath;
 
@@ -212,10 +240,9 @@ namespace Tsukino::Asset {
         //--------------------------------------------------------------
         // 拡張子をキャッシュ用に置換
         //--------------------------------------------------------------
-        if(ext == ".hlsl" || ext == ".shader") {
-            cachePath.replace_extension(".cso");
-        } else if(ext == ".png" || ext == ".jpg" || ext == ".jpeg" || ext == ".tga" || ext == ".bmp") {
-            cachePath.replace_extension(".dds");
+        // マップにあれば置換
+        if(auto it = extensionMap.find(ext); it != extensionMap.end()) {
+            cachePath.replace_extension(it->second);
         }
 
         return cachePath;
