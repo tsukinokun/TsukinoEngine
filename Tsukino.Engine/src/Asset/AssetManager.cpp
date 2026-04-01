@@ -192,6 +192,7 @@ namespace Tsukino::Asset {
             // Font
             {".ttf",    AssetType::Font   },
             {".otf",    AssetType::Font   },
+            {".ttc",    AssetType::Font   },
         };
 
         // テーブルから拡張子に対応するアセットの種類を取得
@@ -223,7 +224,8 @@ namespace Tsukino::Asset {
 
             // フォント
             {".ttf",    ".spritefont"},
-            {".otf",    ".spritefont"}
+            {".otf",    ".spritefont"},
+            {".ttc",    ".spritefont"},
         };
 
         //--------------------------------------------------------------

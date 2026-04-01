@@ -83,7 +83,7 @@ namespace Tsukino::Asset {
         std::string ext = inputPath.extension();
         std::transform(ext.begin(), ext.end(), ext.begin(), ::tolower);
 
-        if(ext != ".ttf" && ext != ".otf") {
+        if(ext != ".ttf" && ext != ".otf" && ext != ".ttc") {
             Tsukino::Core::Log::Error("Unsupported font source format: " + inputPath.string());
             return false;
         }
