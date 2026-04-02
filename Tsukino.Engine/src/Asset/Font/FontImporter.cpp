@@ -14,9 +14,20 @@
 #include <filesystem>
 #include <string>
 #include <vector>
+#include <map>
+#include <fstream>
 
 // 名前空間 Tsukino::Asset
 namespace Tsukino::Asset {
+    //--------------------------------------------------------------
+    //! @brief  文字列の前後の空白をトリムする関数
+    //--------------------------------------------------------------
+    std::wstring Trim(const std::wstring& s) {
+        auto start = s.find_first_not_of(L" \t\r\n");
+        auto end   = s.find_last_not_of(L" \t\r\n");
+        return (start == std::wstring::npos) ? L"" : s.substr(start, end - start + 1);
+    }
+
     //--------------------------------------------------------------
     //! @brief  外部プロセスを実行して終了コードを返す
     //--------------------------------------------------------------
@@ -61,47 +72,88 @@ namespace Tsukino::Asset {
     //--------------------------------------------------------------
     bool FontImporter::Import(const Tsukino::Core::Path& inputPath, const Tsukino::Core::Path& outputDirectory) {
         //--------------------------------------------------------------
-        // ルートからの絶対パスで開く
+        // 絶対パスを取得
         //--------------------------------------------------------------
         Tsukino::Core::Path baseDir           = Tsukino::IO::FileSystem::GetAssetRootPath();
         Tsukino::Core::Path absoluteInputPath = baseDir / inputPath;
 
         //--------------------------------------------------------------
-        // outputDirectory(Cache/) に inputPath(相対) を結合して階層を維持
-        //--------------------------------------------------------------
-        Tsukino::Core::Path outputPath = outputDirectory / inputPath;
-        outputPath.replace_extension(".spritefont");
-
-        //--------------------------------------------------------------
-        // 親ディレクトリの生成
-        //--------------------------------------------------------------
-        Tsukino::IO::FileSystem::CreateDirectories(outputPath.parent_path());
-
-        //--------------------------------------------------------------
-        // 入力拡張子チェック
+        // 拡張子チェック
         //--------------------------------------------------------------
         std::string ext = inputPath.extension();
         std::transform(ext.begin(), ext.end(), ext.begin(), ::tolower);
+        if(ext != ".font")
+            return false;
 
-        if(ext != ".ttf" && ext != ".otf" && ext != ".ttc") {
-            Tsukino::Core::Log::Error("Unsupported font source format: " + inputPath.string());
+        //--------------------------------------------------------------
+        // デフォルト設定の準備
+        //--------------------------------------------------------------
+        std::map<std::wstring, std::wstring> settings;
+        settings[L"FaceName"]        = L"Arial";
+        settings[L"Size"]            = L"24";
+        settings[L"Italic"]          = L"false";
+        settings[L"CharacterRegion"] = L"0x20-0x7E";    // デフォルトは英数字
+
+        //--------------------------------------------------------------
+        // .font ファイルの解析
+        //--------------------------------------------------------------
+        std::wifstream file(absoluteInputPath.ToWString());
+        if(!file.is_open()) {
+            Tsukino::Core::Log::Error("Failed to open .font file: " + absoluteInputPath.string());
             return false;
         }
 
+        std::wstring line;
+        while(std::getline(file, line)) {
+            if(line.empty() || line[0] == L'#')
+                continue;    // 空行とコメントをスキップ
+
+            auto pos = line.find(L'=');
+            if(pos != std::wstring::npos) {
+                std::wstring key   = Trim(line.substr(0, pos));
+                std::wstring value = Trim(line.substr(pos + 1));
+                settings[key]      = value;
+            }
+        }
+
         //--------------------------------------------------------------
-        // MakeSpriteFont.exe の存在確認
+        // 出力パスの決定
+        //--------------------------------------------------------------
+        Tsukino::Core::Path outputPath = outputDirectory / inputPath;
+        outputPath.replace_extension(".spritefont");
+        Tsukino::IO::FileSystem::CreateDirectories(outputPath.parent_path());
+
+        //--------------------------------------------------------------
+        // MakeSpriteFont.exe のパス
         //--------------------------------------------------------------
         Tsukino::Core::Path toolPath = baseDir / "Tools/MakeSpriteFont.exe";
-        if(!Tsukino::IO::FileSystem::Exists(toolPath)) {
-            Tsukino::Core::Log::Error("MakeSpriteFont.exe not found: " + toolPath.string());
-            return false;
+
+        //--------------------------------------------------------------
+        // オプションを連結
+        //--------------------------------------------------------------
+        std::wstring arguments = L"\"" + settings[L"FaceName"] + L"\" \"" + outputPath.ToWString() + L"\"";
+
+        // オプションを連結
+        arguments += L" /FontSize:" + settings[L"Size"];
+
+        if(settings[L"Italic"] == L"true") {
+            arguments += L" /FontStyle:Italic";
+        }
+
+        std::wstringstream ss(settings[L"CharacterRegion"]);
+        std::wstring       segment;
+        while(std::getline(ss, segment, L',')) {
+            std::wstring trimmed = Trim(segment);
+            if(!trimmed.empty()) {
+                // カンマ区切りの数だけ /CharacterRegion:32-126 ... と追加される
+                arguments += L" /CharacterRegion:" + trimmed;
+            }
         }
 
         //--------------------------------------------------------------
         // ttf/otf から .spritefont 変換
         // 引数形式: MakeSpriteFont.exe "<input>" "<output>"
         //--------------------------------------------------------------
-        const std::wstring arguments = L"\"" + absoluteInputPath.ToWString() + L"\" \"" + outputPath.ToWString() + L"\"";
         if(!RunProcess(toolPath, arguments, baseDir)) {
             Tsukino::Core::Log::Error("Failed to convert font: " + absoluteInputPath.string() + " -> " + outputPath.string());
             return false;
