@@ -6,7 +6,7 @@
 #pragma once
 #include <Tsukino/Engine/Asset/AssetHandle.hpp>
 
-#include <Tsukino/Core/typedef.hpp>
+#include <hlsl++.h>
 // 名前空間 : Tsukino::BuiltIn::ECS
 namespace Tsukino::BuiltIn::ECS {
     //-------------------------------------------------------------
