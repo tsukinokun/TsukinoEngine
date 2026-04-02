@@ -23,6 +23,7 @@
 #include <d3d11.h>         // 依存関係を明示
 #include <dxgi.h>          // 依存関係を明示
 #include <SpriteFont.h>
+#include <CommonStates.h>
 
 #include <array>
 #include <optional>
@@ -129,10 +130,22 @@ namespace Tsukino::Renderer {
 
         //------------------------------------------------------------
         // スプライトフォントの作成
-        //! @param data [in] フォントデータのバイナリ
-        //! @param size [in] フォントデータのサイズ
+        //! @param  data [in] フォントデータのバイナリ
+        //! @param  size [in] フォントデータのサイズ
+        //! @return SpriteFontのユニークポインタ
         //------------------------------------------------------------
         std::unique_ptr<DirectX::SpriteFont> CreateSpriteFont(const uint8_t* data, size_t size);
+
+        //------------------------------------------------------------
+        // スプライトバッチの作成
+        //! @return SpriteBatchのユニークポインタ
+        //------------------------------------------------------------
+        std::unique_ptr<DirectX::SpriteBatch> CreateSpriteBatch();
+
+        //------------------------------------------------------------
+        //! @brief 共通ステートの取得
+        //------------------------------------------------------------
+        DirectX::CommonStates* GetCommonStatesTK() const { return m_commonStatesTK.get(); }
 
     private:
         //------------------------------------------------------------
@@ -182,5 +195,7 @@ namespace Tsukino::Renderer {
         std::optional<PipelineFactory>                          m_pipelineFactory;    // メンバとして持たせる
         SpriteRenderer                                          m_spriteRenderer;     // スプライト描画クラスのインスタンス
         DrawCommandQueue                                        m_drawQueue;          // 描画コマンドキュー
+
+        std::unique_ptr<DirectX::CommonStates> m_commonStatesTK;
     };
 }    // namespace Tsukino::Renderer

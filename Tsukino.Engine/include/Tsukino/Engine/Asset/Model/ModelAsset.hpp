@@ -62,7 +62,7 @@ namespace Tsukino::Asset {
         //! @brief  ハンドルを設定する関数
         //! @param  handle  設定するハンドル
         //--------------------------------------------------------------
-        void SetHandle(AssetHandle handle) { m_handle = handle; }
+        void SetHandle(const AssetHandle& h) { m_handle = h; }
 
         // 全ノードのリスト（フラットに持っておくと更新処理が速い）
         std::vector<ModelNode> nodes;

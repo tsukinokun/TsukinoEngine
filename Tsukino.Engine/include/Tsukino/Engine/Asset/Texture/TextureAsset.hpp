@@ -34,7 +34,7 @@ namespace Tsukino::Asset {
         //! @brief  ローダー側から設定されるハンドル
         //! @param handle [in] 設定するハンドル
         //--------------------------------------------------------------
-        void SetHandle(AssetHandle handle) { m_handle = handle; }
+        void SetHandle(const AssetHandle& h) { m_handle = h; }
 
         uint32_t             width  = 0;                      // テクスチャの幅
         uint32_t             height = 0;                      // テクスチャの高さ

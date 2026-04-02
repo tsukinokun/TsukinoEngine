@@ -14,9 +14,12 @@
 #include <Tsukino/EngineIntegration/ECS/System/TransformSystem.hpp>
 #include <Tsukino/EngineIntegration/ECS/System/CameraSystem.hpp>
 #include <Tsukino/EngineIntegration/ECS/System/SpriteRendererSystem.hpp>
+#include <Tsukino/EngineIntegration/ECS/System/FontRendererSystem.hpp>
+
 #include <Tsukino/BuiltIn/ECS/Component/TransformComponent.hpp>
 #include <Tsukino/BuiltIn/ECS/Component/CameraComponent.hpp>
 #include <Tsukino/BuiltIn/ECS/Component/SpriteComponent.hpp>
+#include <Tsukino/BuiltIn/ECS/Component/FontComponent.hpp>
 
 #include <entt/entt.hpp>
 #include <hlsl++.h>
@@ -36,6 +39,8 @@ namespace Tsukino::Sandbox {
         m_scene.AddSystem(std::make_shared<Tsukino::BuiltIn::ECS::TransformSystem>(), 0);
         // カメラは描画前に更新する (優先度 5)
         m_scene.AddSystem(std::make_shared<Tsukino::BuiltIn::ECS::CameraSystem>(), 5);
+        // フォント描画 (優先度 9)
+        m_scene.AddSystem(std::make_shared<Tsukino::BuiltIn::ECS::FontRendererSystem>(), 9);
         // スプライトなど描画用のコマンド生成は後で行う (優先度 10)
         m_scene.AddSystem(std::make_shared<Tsukino::BuiltIn::ECS::SpriteRenderSystem>(), 10);
 
@@ -63,6 +68,23 @@ namespace Tsukino::Sandbox {
         sprite.textureHandle                           = textureHandle;
         sprite.tintColor                               = hlslpp::float4(1.0f, 1.0f, 1.0f, 1.0f);    // 白色
         sprite.uvRect                                  = hlslpp::float4(0.0f, 0.0f, 1.0f, 1.0f);
+
+        //--------------------------------------------------------------
+        // Fontエンティティ生成
+        //--------------------------------------------------------------
+        Tsukino::ECS::Entity fontEntity = m_scene.CreateEntity();
+
+        // TransformComponent の追加と初期化
+        Tsukino::BuiltIn::ECS::TransformComponent& fontTransform = registry.AddComponent<Tsukino::BuiltIn::ECS::TransformComponent>(fontEntity);
+        fontTransform.position                                   = hlslpp::float3(0.0f, 0.0f, 0.0f);
+        fontTransform.rotation                                   = hlslpp::quaternion(0.0f, 0.0f, 0.0f, 1.0f);    // 無回転
+        fontTransform.scale                                      = hlslpp::float3(1.0f, 1.0f, 1.0f);
+        fontTransform.dirty                                      = true;          // 初回計算のためフラグを立てる
+        fontTransform.parent                                     = entt::null;    // 親なし
+
+        // FontRendererComponent の追加
+        Tsukino::BuiltIn::ECS::FontComponent& font = registry.AddComponent<Tsukino::BuiltIn::ECS::FontComponent>(fontEntity);
+        font.text                                  = L"Hello, Tsukino!";    // 描画するテキスト
 
         //--------------------------------------------------------------
         // カメラエンティティの生成

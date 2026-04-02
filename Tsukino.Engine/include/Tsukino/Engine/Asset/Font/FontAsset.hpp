@@ -33,7 +33,7 @@ namespace Tsukino::Asset {
         //! @brief ハンドル設定用のセッター
         //! @param h [in] 設定するハンドル
         //--------------------------------------------------------------
-        void SetHandle(AssetHandle h) { m_handle = h; }
+        void SetHandle(const AssetHandle& h) override { m_handle = h; }
 
         std::vector<uint8_t> m_binaryData;    // フォントデータのバイナリ
 

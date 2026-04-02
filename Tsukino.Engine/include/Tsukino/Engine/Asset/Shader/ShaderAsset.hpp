@@ -47,7 +47,7 @@ namespace Tsukino::Asset {
         //! @brief  ローダー側から設定されるハンドル
         //! @param handle [in] 設定するハンドル
         //--------------------------------------------------------------
-        void SetHandle(AssetHandle handle) { m_handle = handle; }
+        void SetHandle(const AssetHandle& h) { m_handle = h; }
 
         Tsukino::Shader::ShaderStage shaderStage;    // シェーダーステージ
         std::string                  entryPoint;     // エントリーポイント名
