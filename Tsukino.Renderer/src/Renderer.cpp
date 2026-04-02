@@ -32,6 +32,11 @@ namespace Tsukino::Renderer {
         m_pipelineFactory.emplace(device);
 
         //------------------------------------------------------------
+        // DirectXTKの共通ステートの作成
+        //------------------------------------------------------------
+        m_commonStatesTK = std::make_unique<DirectX::CommonStates>(device);    // DirectXTKの共通ステートを作成
+
+        //------------------------------------------------------------
         // メッシュバッファの作成
         //------------------------------------------------------------
         if(!CreatePrimitiveMeshes())
@@ -117,7 +122,22 @@ namespace Tsukino::Renderer {
         // 描画コマンドの実行
         //------------------------------------------------------------
         const auto& commands = m_drawQueue.GetCommands();
+
+        //------------------------------------------------------------
+        // World パス
+        //------------------------------------------------------------
         for(const auto& cmd : commands) {
+            if(cmd.pass != RenderPass::World)
+                continue;
+            ExecuteDrawCommand(cmd);
+        }
+
+        //------------------------------------------------------------
+        // Overlayパス
+        //------------------------------------------------------------
+        for(const auto& cmd : commands) {
+            if(cmd.pass != RenderPass::Overlay)
+                continue;
             ExecuteDrawCommand(cmd);
         }
 
@@ -195,6 +215,15 @@ namespace Tsukino::Renderer {
     }
 
     //------------------------------------------------------------
+    //! @brief SpriteBatchの作成
+    //------------------------------------------------------------
+    std::unique_ptr<DirectX::SpriteBatch> Renderer::CreateSpriteBatch() {
+        // Rendererが持っている m_deviceContext (ID3D11DeviceContext*) を渡す
+        // ※内部で ComPtr を使っている場合は .Get() で生ポインタを渡します
+        return std::make_unique<DirectX::SpriteBatch>(m_graphicsContext.GetContext());
+    }
+
+    //------------------------------------------------------------
     //! @brief 描画コマンドの実行
     //------------------------------------------------------------
     void Renderer::ExecuteDrawCommand(const DrawCommand& cmd) {
@@ -208,6 +237,17 @@ namespace Tsukino::Renderer {
             cmd.customDraw(context);
             return;    // カスタム描画をしたのでここで終了
         }
+
+        //------------------------------------------------------------
+        // 無効なコマンドは何もしない
+        //------------------------------------------------------------
+        if(!cmd.material || !cmd.mesh)
+            return;
+
+        //------------------------------------------------------
+        // Scene (b0) を毎回再バインド（ステート汚染対策）
+        //------------------------------------------------------
+        context->VSSetConstantBuffers(0, 1, m_sceneBuffer.GetAddressOf());
 
         //------------------------------------------------------------
         // 通常描画

@@ -106,6 +106,7 @@ namespace Tsukino::Asset {
 
                 // アセットが正常にロードできた場合はハンドルを生成してマップに登録し、ハンドルを返す
                 AssetHandle handle = AssetHandleGenerator::Generate();
+                asset->SetHandle(handle);
                 s_Assets.insert({handle.Value(), asset});
                 return handle;
             }
@@ -190,7 +191,7 @@ namespace Tsukino::Asset {
             {".flac",   AssetType::Audio  },
 
             // Font
-            {".font",    AssetType::Font   },
+            {".font",   AssetType::Font   },
         };
 
         // テーブルから拡張子に対応するアセットの種類を取得
@@ -221,7 +222,7 @@ namespace Tsukino::Asset {
             {".bmp",    ".dds"       },
 
             // フォント
-            {".font",    ".spritefont"},
+            {".font",   ".spritefont"},
         };
 
         //--------------------------------------------------------------

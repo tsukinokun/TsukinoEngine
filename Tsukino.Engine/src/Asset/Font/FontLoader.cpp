@@ -46,6 +46,7 @@ namespace Tsukino::Asset {
         //--------------------------------------------------------------
         // バイナリデータをバッファに格納
         //--------------------------------------------------------------
+        file.seekg(0, std::ios::beg);    // 最初から読み直す
         std::vector<uint8_t> buffer(size);
         file.read(reinterpret_cast<char*>(buffer.data()), size);
 

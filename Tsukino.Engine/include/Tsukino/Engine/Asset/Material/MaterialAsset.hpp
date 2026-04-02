@@ -36,7 +36,7 @@ namespace Tsukino::Asset {
         //! @brief ハンドル設定用のセッター
         //! @param h [in] 設定するハンドル
         //--------------------------------------------------------------
-        void SetHandle(AssetHandle h) { m_handle = h; }
+        void SetHandle(const AssetHandle& h) { m_handle = h; }
 
         // テクスチャの配列
         std::vector<AssetHandle> textureHandles;
