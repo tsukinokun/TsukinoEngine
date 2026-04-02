@@ -190,9 +190,7 @@ namespace Tsukino::Asset {
             {".flac",   AssetType::Audio  },
 
             // Font
-            {".ttf",    AssetType::Font   },
-            {".otf",    AssetType::Font   },
-            {".ttc",    AssetType::Font   },
+            {".font",    AssetType::Font   },
         };
 
         // テーブルから拡張子に対応するアセットの種類を取得
@@ -223,9 +221,7 @@ namespace Tsukino::Asset {
             {".bmp",    ".dds"       },
 
             // フォント
-            {".ttf",    ".spritefont"},
-            {".otf",    ".spritefont"},
-            {".ttc",    ".spritefont"},
+            {".font",    ".spritefont"},
         };
 
         //--------------------------------------------------------------
