@@ -38,7 +38,7 @@ namespace Tsukino::EngineIntegration {
         Tsukino::Renderer::Renderer*     renderer         = nullptr;
         Tsukino::Core::Window*           window           = nullptr;
         Tsukino::Input::InputSystem*     inputSystem      = nullptr;
-        Tsukino::Asset::AssetManager*    assets           = nullptr;
+        Tsukino::Asset::AssetManager*    assetManager           = nullptr;
         Tsukino::BuiltIn::BuiltInAssets* builtinAssets    = nullptr;
         GameSceneManager*                gameSceneManager = nullptr;
     };

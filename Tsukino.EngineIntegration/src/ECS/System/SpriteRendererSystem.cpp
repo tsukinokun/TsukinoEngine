@@ -42,13 +42,13 @@ namespace Tsukino::BuiltIn::ECS {
             // VS
             //-------------------------------------------------------------
             std::shared_ptr<Tsukino::Asset::ShaderAsset> vsAsset =
-                std::static_pointer_cast<Tsukino::Asset::ShaderAsset>(ctx->assets->Get(ctx->builtinAssets->shaders.spriteVS));
+                std::static_pointer_cast<Tsukino::Asset::ShaderAsset>(ctx->assetManager->Get(ctx->builtinAssets->shaders.spriteVS));
 
             //-------------------------------------------------------------
             // PS
             //-------------------------------------------------------------
             std::shared_ptr<Tsukino::Asset::ShaderAsset> psAsset =
-                std::static_pointer_cast<Tsukino::Asset::ShaderAsset>(ctx->assets->Get(ctx->builtinAssets->shaders.spritePS));
+                std::static_pointer_cast<Tsukino::Asset::ShaderAsset>(ctx->assetManager->Get(ctx->builtinAssets->shaders.spritePS));
 
             // シェーダーアセットが両方とも有効なら
             if(vsAsset && psAsset) {
@@ -81,7 +81,8 @@ namespace Tsukino::BuiltIn::ECS {
             //-------------------------------------------------------------
             // テクスチャアセットからピクセルサイズを取得
             //-------------------------------------------------------------
-            auto textureAsset = std::static_pointer_cast<Tsukino::Asset::TextureAsset>(ctx->assets->Get(sprite.textureHandle));
+            std::shared_ptr<Tsukino::Asset::TextureAsset> textureAsset =
+                std::static_pointer_cast<Tsukino::Asset::TextureAsset>(ctx->assetManager->Get(sprite.textureHandle));
             if(!textureAsset)
                 return;
 
@@ -123,7 +124,7 @@ namespace Tsukino::BuiltIn::ECS {
 
             // ハンドルがキャッシュにない場合はアセットマネージャーからテクスチャを取得してキャッシュに保存
             if(m_textureCache.find(handleId) == m_textureCache.end()) {
-                Tsukino::Core::Ref<Tsukino::Asset::IAsset> asset = ctx->assets->Get(sprite.textureHandle);
+                Tsukino::Core::Ref<Tsukino::Asset::IAsset> asset = ctx->assetManager->Get(sprite.textureHandle);
                 if(asset && asset->GetType() == Tsukino::Asset::AssetType::Texture) {
                     Tsukino::Core::Ref<Tsukino::Asset::TextureAsset> textureAsset = std::static_pointer_cast<Tsukino::Asset::TextureAsset>(asset);
                     m_textureCache[handleId]                                      = ctx->renderer->GetTextureSRV(*textureAsset);

@@ -187,6 +187,14 @@ namespace Tsukino::Renderer {
     }
 
     //------------------------------------------------------------
+    //! @brief SpriteFontの作成
+    //------------------------------------------------------------
+    std::unique_ptr<DirectX::SpriteFont> Renderer::CreateSpriteFont(const uint8_t* data, size_t size) {
+        // ここで DirectX 11 のデバイスを使って、バイナリを「文字」として魂を吹き込む
+        return std::make_unique<DirectX::SpriteFont>(m_graphicsContext.GetDevice(), data, size);
+    }
+
+    //------------------------------------------------------------
     //! @brief 描画コマンドの実行
     //------------------------------------------------------------
     void Renderer::ExecuteDrawCommand(const DrawCommand& cmd) {

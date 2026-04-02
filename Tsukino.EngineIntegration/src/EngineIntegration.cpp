@@ -30,7 +30,7 @@ namespace Tsukino::EngineIntegration {
         //------------------------------------------------------------
         m_ctx.window           = m_window.get();
         m_ctx.renderer         = m_renderer.get();
-        m_ctx.assets           = m_assetManager.get();
+        m_ctx.assetManager     = m_assetManager.get();
         m_ctx.builtinAssets    = m_builtinAssets.get();
         m_ctx.gameSceneManager = m_gameSceneManager.get();
         m_ctx.inputSystem      = m_inputSystem.get();

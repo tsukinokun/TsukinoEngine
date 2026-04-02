@@ -42,7 +42,7 @@ namespace Tsukino::Sandbox {
         //--------------------------------------------------------------
         // アセットのロードとエンティティの作成
         //--------------------------------------------------------------
-        Tsukino::Asset::AssetHandle textureHandle = context->assets->Load(Tsukino::Core::Path("Tsukino.Sandbox/Assets/Textures/test.jpg"));
+        Tsukino::Asset::AssetHandle textureHandle = context->assetManager->Load(Tsukino::Core::Path("Tsukino.Sandbox/Assets/Textures/test.jpg"));
 
         //--------------------------------------------------------------
         // スプライトエンティティ生成
