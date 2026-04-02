@@ -243,6 +243,7 @@ project "Tsukino.Renderer"
         "Tsukino.GraphicsCommon/include",
         "Tsukino.Core/include",
         "External/hlslpp/include", 
+        ".build/packages/directxtk_desktop_win10.2026.4.1.1/include",
     }
 
     links {
@@ -344,7 +345,6 @@ project "Tsukino.BuiltIn"
         "Tsukino.Core",
     }
 
-
 ----------------------------------------
 -- エンジン統合プロジェクト
 ----------------------------------------
@@ -380,7 +380,9 @@ project "Tsukino.EngineIntegration"
         "Tsukino.EngineIntegration/include",
         --"Tsukino.Physics/include",
         "External/hlslpp/include",
-        "External/entt/single_include"
+        "External/entt/single_include",
+        ".build/packages/directxtk_desktop_win10.2026.4.1.1/include",
+
     }
 
     links {
@@ -394,6 +396,8 @@ project "Tsukino.EngineIntegration"
         "dxgi",
         "d3dcompiler"
     }
+
+    nuget { "directxtk_desktop_win10:2026.4.1.1" }
 
 ----------------------------------------
 -- サンドボックス（実行ファイル）
@@ -464,3 +468,5 @@ project "Tsukino.Sandbox"
         "dxgi",
         "d3dcompiler"
     }
+
+    nuget { "directxtk_desktop_win10:2026.4.1.1" }

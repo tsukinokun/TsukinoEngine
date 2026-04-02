@@ -22,6 +22,8 @@
 #include <wrl/client.h>    // ComPtrの依存関係を明示
 #include <d3d11.h>         // 依存関係を明示
 #include <dxgi.h>          // 依存関係を明示
+#include <SpriteFont.h>
+
 #include <array>
 #include <optional>
 #include <unordered_map>
@@ -119,12 +121,18 @@ namespace Tsukino::Renderer {
         [[nodiscard]]
         ID3D11ShaderResourceView* GetTextureSRV(const Tsukino::Asset::TextureAsset& textureAsset);
 
-        
         //------------------------------------------------------------
         // シーン定数バッファの更新
         //! @param sceneData [in] シーン定数バッファの値データ
         //------------------------------------------------------------
         void UpdateSceneBuffer(const CBufferScene& sceneData);
+
+        //------------------------------------------------------------
+        // スプライトフォントの作成
+        //! @param data [in] フォントデータのバイナリ
+        //! @param size [in] フォントデータのサイズ
+        //------------------------------------------------------------
+        std::unique_ptr<DirectX::SpriteFont> CreateSpriteFont(const uint8_t* data, size_t size);
 
     private:
         //------------------------------------------------------------
