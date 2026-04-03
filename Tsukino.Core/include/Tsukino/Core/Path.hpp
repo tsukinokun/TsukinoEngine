@@ -131,5 +131,38 @@ namespace Tsukino::Core {
         static std::string Normalize(const std::string& path) {
             return std::filesystem::path(path).generic_string();
         }
+
+        //--------------------------------------------------------------
+        //! @brief フラグメント（#以降）を除いたパスを取得する関数
+        //! @return フラグメントなしのパス
+        //--------------------------------------------------------------
+        [[nodiscard]]
+        Path GetBasePath() const {
+            size_t pos = m_path.find('#');
+            if(pos == std::string::npos)
+                return *this;
+            return Path(m_path.substr(0, pos));
+        }
+
+        //--------------------------------------------------------------
+        //! @brief フラグメント（#以降）を取得する関数
+        //! @return フラグメント文字列（#は含まない。ない場合は空文字）
+        //--------------------------------------------------------------
+        [[nodiscard]]
+        std::string GetFragment() const {
+            size_t pos = m_path.find('#');
+            if(pos == std::string::npos)
+                return "";
+            return m_path.substr(pos + 1);
+        }
+
+        //--------------------------------------------------------------
+        //! @brief フラグメントを無視して拡張子を取得する関数
+        //! @return 正規の拡張子（例: ".xwb"）
+        //--------------------------------------------------------------
+        [[nodiscard]]
+        std::string GetPureExtension() const {
+            return GetBasePath().extension();
+        }
     };
 }    // namespace Tsukino::Core
