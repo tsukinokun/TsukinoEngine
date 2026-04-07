@@ -119,6 +119,28 @@ namespace Tsukino::Core {
             m_path = p.generic_string();
         }
 
+        //--------------------------------------------------------------
+        //! @brief  フラグメントなしとフラグメントを分割して取得する関数
+        //! @return フラグメントなしのパスとフラグメントのペア
+        //--------------------------------------------------------------
+        [[nodiscard]]
+        static std::pair<std::string, std::string> SplitPathAndFragment(const std::string& rawPath) {
+            const size_t pos = rawPath.find('#');
+            if(pos == std::string::npos)
+                return {rawPath, ""};
+            return {rawPath.substr(0, pos), rawPath.substr(pos + 1)};
+        }
+
+        //--------------------------------------------------------------
+        //! @brief  パスを正規化して小文字に変換する関数
+        //! @param  path [in] 正規化して小文字に変換する
+        //--------------------------------------------------------------
+        [[nodiscard]]
+        static std::string ToLower(std::string value) {
+            std::transform(value.begin(), value.end(), value.begin(), [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
+            return value;
+        }
+
     private:
         std::string m_path;    // 正規化されたパス文字列
 
