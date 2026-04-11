@@ -1,6 +1,6 @@
 ﻿//--------------------------------------------------------------
 //! @file   AudioImporter.cpp
-//! @brief  フォントのインポータークラスの実装
+//! @brief  オーディオのインポータークラスの実装
 //! @author 山﨑愛
 //--------------------------------------------------------------
 #include <Tsukino/Engine/Asset/Audio/AudioImporter.hpp>
@@ -69,7 +69,7 @@ namespace Tsukino::Asset {
         //--------------------------------------------------------------
         std::string ext = baseInputPath.extension();
         std::transform(ext.begin(), ext.end(), ext.begin(), ::tolower);
-        if(ext != ".wav" && ext != ".mp3" && ext != ".ogg" && ext != ".flac")
+        if(ext != ".wav")
             return false;
 
         //--------------------------------------------------------------
@@ -97,15 +97,16 @@ namespace Tsukino::Asset {
         //--------------------------------------------------------------
         // 引数を作成して変換実行
         //--------------------------------------------------------------
-        std::wstring arguments = L"\"" + absoluteInputPath.ToWString() + L"\" \"" + outputPath.ToWString() + L"\"";
+        std::wstring arguments  = L"-nologo -y -nc -o ";
+        arguments              += L"\"" + outputPath.ToWString() + L"\" ";
+        arguments              += L"\"" + absoluteInputPath.ToWString() + L"\"";
+
         if(!RunProcess(toolPath, arguments, baseDir)) {
             Tsukino::Core::Log::Error("Failed to convert audio: " + absoluteInputPath.string() + " -> " + outputPath.string());
             return false;
         }
 
         Tsukino::Core::Log::Info("Audio imported: " + outputPath.string());
-        return true;
-
         return true;
     }
 

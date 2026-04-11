@@ -45,9 +45,11 @@ namespace Tsukino::Sandbox {
         m_scene.AddSystem(std::make_shared<Tsukino::BuiltIn::ECS::SpriteRenderSystem>(), 10);
 
         //--------------------------------------------------------------
-        // アセットのロードとエンティティの作成
+        // アセットのロード
         //--------------------------------------------------------------
         Tsukino::Asset::AssetHandle textureHandle = context->assetManager->Load(Tsukino::Core::Path("Tsukino.Sandbox/Assets/Textures/test.jpg"));
+
+        Tsukino::Asset::AssetHandle audioHandle = context->assetManager->Load(Tsukino::Core::Path("Tsukino.Sandbox/Assets/Sounds/cat1.wav"));
 
         //--------------------------------------------------------------
         // スプライトエンティティ生成

@@ -176,9 +176,6 @@ namespace Tsukino::Asset {
             {".glb",    AssetType::Mesh   },
 
             {".wav",    AssetType::Audio  },
-            {".mp3",    AssetType::Audio  },
-            {".ogg",    AssetType::Audio  },
-            {".flac",   AssetType::Audio  },
 
             {".font",   AssetType::Font   },
         };
@@ -207,9 +204,6 @@ namespace Tsukino::Asset {
 
             // Audio
             {".wav",    ".xwb"       },
-            {".mp3",    ".xwb"       },
-            {".ogg",    ".xwb"       },
-            {".flac",   ".xwb"       },
         };
 
         auto [sourceBase, sourceFragment] = Tsukino::Core::Path::SplitPathAndFragment(sourcePath.string());
