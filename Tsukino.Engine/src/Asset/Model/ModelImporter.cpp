@@ -37,6 +37,19 @@ namespace Tsukino::Asset {
     //! @brief  モデルアセットをインポートする関数
     //--------------------------------------------------------------
     bool ModelImporter::Import(const Tsukino::Core::Path& inputPath, const Tsukino::Core::Path& outputDirectory) {
+        //--------------------------------------------------------------
+        // 拡張子チェック
+        //--------------------------------------------------------------
+        std::string ext = inputPath.extension();
+        // 小文字に変換して判定しやすくする
+        std::transform(ext.begin(), ext.end(), ext.begin(), ::tolower);
+
+        // 主要な3Dモデル形式以外は弾く
+        if(ext != ".fbx" && ext != ".obj" && ext != ".gltf" && ext != ".glb" && ext != ".dae") {
+            Tsukino::Core::Log::Error("Unsupported model format");
+            return false;
+        }
+
         Assimp::Importer importer;
 
         //--------------------------------------------------------------
