@@ -286,6 +286,46 @@ project "Tsukino.Physics"
     links {
         "Tsukino.Core"
     }
+
+----------------------------------------
+-- オーディオプロジェクト
+----------------------------------------
+project "Tsukino.Audio"
+    location ".build/Tsukino.Audio"
+    kind "StaticLib"
+    language "C++"
+    cppdialect "C++20"
+    --forceincludes { "pch.h" }               -- 強制インクルード
+    --pchheader "pch.h"
+    --pchsource "Tsukino.Audio/pch.cpp"
+
+    filter "action:vs*"
+        buildoptions { "/permissive-" }
+    filter {}
+
+    targetdir ("bin/%{cfg.buildcfg}")
+    objdir ("bin-int/%{cfg.buildcfg}")
+
+    files {
+        "Tsukino.Audio/src/**.cpp",
+        "Tsukino.Audio/include/**.hpp",
+        --"Tsukino.Audio/pch.cpp"
+    }
+
+    includedirs {
+        "Tsukino.Audio/include",
+        "Tsukino.Core/include",
+        "Tsukino.Engine/include",
+        ".build/packages/directxtk_desktop_win10.2026.4.1.1/include",
+    }
+
+    links {
+        "Tsukino.Engine",
+        "Tsukino.Core",
+    }
+
+    nuget { "directxtk_desktop_win10:2026.4.1.1" }
+
 ----------------------------------------
 -- 組み込みプロジェクト
 ----------------------------------------
@@ -384,7 +424,6 @@ project "Tsukino.EngineIntegration"
         "External/hlslpp/include",
         "External/entt/single_include",
         ".build/packages/directxtk_desktop_win10.2026.4.1.1/include",
-
     }
 
     links {
