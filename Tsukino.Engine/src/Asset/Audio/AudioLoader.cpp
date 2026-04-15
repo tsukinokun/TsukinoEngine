@@ -218,7 +218,7 @@ namespace Tsukino::Asset {
         const u32 absoluteOffset = entryWaveDataSeg.offset + entry.playRegionOffset;
         const u32 dataLength     = entry.playRegionLength;
 
-        if(static_cast<uint64_t>(absoluteOffset) + static_cast<uint64_t>(dataLength) > buffer.size()) {
+        if(static_cast<u64>(absoluteOffset) + static_cast<u64>(dataLength) > buffer.size()) {
             Tsukino::Core::Log::Error("Invalid wave data range in wave bank: " + basePath);
             return nullptr;
         }
@@ -228,11 +228,11 @@ namespace Tsukino::Asset {
         //--------------------------------------------------------------
         const u32 miniFormat = entry.miniFormat;
 
-        const uint16_t formatTagBits = static_cast<uint16_t>(miniFormat & 0x3);
-        const uint16_t channels      = static_cast<uint16_t>(((miniFormat >> 2) & 0x7) + 1);
+        const u16 formatTagBits = static_cast<u16>(miniFormat & 0x3);
+        const u16 channels      = static_cast<u16>(((miniFormat >> 2) & 0x7) + 1);
         const u32 sampleRate    = (miniFormat >> 5) & 0x3FFFF;
 
-        uint16_t formatTag = 0;    // 1: PCM, 2: ADPCM, 3: WMA
+        u16 formatTag = 0;    // 1: PCM, 2: ADPCM, 3: WMA
         switch(formatTagBits) {
         case 0:
             formatTag = 0;
@@ -256,6 +256,7 @@ namespace Tsukino::Asset {
         //--------------------------------------------------------------
         Tsukino::Core::Ref<AudioAsset> asset = Tsukino::Core::CreateRef<AudioAsset>();
         asset->waveBankPath                  = basePath;
+        asset->waveIndex                     = targetIndex; // DirectXTKへの受け渡し用に追加
         asset->metadata.offset               = absoluteOffset;
         asset->metadata.length               = dataLength;
         asset->metadata.sampleRate           = sampleRate;
