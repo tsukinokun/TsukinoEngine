@@ -47,6 +47,7 @@ namespace Tsukino::Asset {
 
         XWBEntry    metadata;        // 音声データのオフセット、長さ、サンプルレート、チャンネル数、フォーマットタグなど
         std::string waveBankPath;    // どの .xwb ファイルに属しているか
+        u32         waveIndex = 0;   // WaveBank内のインデックス（DirectXTKの再生で利用）
 
     private:
         AssetHandle m_handle;    // アセットハンドル
