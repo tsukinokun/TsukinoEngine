@@ -25,6 +25,10 @@ namespace Tsukino {
     namespace BuiltIn {
         class BuiltInAssets;
     }
+
+    namespace Audio {
+        class AudioManager;
+    }
 }    // namespace Tsukino
 
 // 名前空間 : Tsukino::EngineIntegration
@@ -41,5 +45,6 @@ namespace Tsukino::EngineIntegration {
         Tsukino::Asset::AssetManager*    assetManager           = nullptr;
         Tsukino::BuiltIn::BuiltInAssets* builtinAssets    = nullptr;
         GameSceneManager*                gameSceneManager = nullptr;
+        Tsukino::Audio::AudioManager*    audioManager     = nullptr;
     };
 }    // namespace Tsukino::EngineIntegration

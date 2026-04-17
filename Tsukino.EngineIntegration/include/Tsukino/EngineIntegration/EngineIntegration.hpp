@@ -16,6 +16,7 @@
 
 #include <Tsukino/Core/Input/InputSystem.hpp>
 #include <Tsukino/Core/Window.hpp>
+#include <Tsukino/Audio/AudioManager.hpp>
 
 #include <memory>
 
@@ -60,6 +61,7 @@ namespace Tsukino::EngineIntegration {
         std::unique_ptr<Tsukino::BuiltIn::BuiltInAssets> m_builtinAssets;
         std::unique_ptr<GameSceneManager>                m_gameSceneManager;
         std::unique_ptr<Tsukino::Input::InputSystem>     m_inputSystem;
+        std::unique_ptr<Tsukino::Audio::AudioManager>    m_audioManager;
 
         EngineContext m_ctx;    // エンジン全体で共有されるクラスのポインタを集めた構造体
     };

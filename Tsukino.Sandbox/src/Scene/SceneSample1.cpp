@@ -15,11 +15,14 @@
 #include <Tsukino/EngineIntegration/ECS/System/CameraSystem.hpp>
 #include <Tsukino/EngineIntegration/ECS/System/SpriteRendererSystem.hpp>
 #include <Tsukino/EngineIntegration/ECS/System/FontRendererSystem.hpp>
+#include <Tsukino/EngineIntegration/ECS/System/AudioSystem.hpp>
 
 #include <Tsukino/BuiltIn/ECS/Component/TransformComponent.hpp>
 #include <Tsukino/BuiltIn/ECS/Component/CameraComponent.hpp>
 #include <Tsukino/BuiltIn/ECS/Component/SpriteComponent.hpp>
 #include <Tsukino/BuiltIn/ECS/Component/FontComponent.hpp>
+#include <Tsukino/BuiltIn/ECS/Component/AudioComponent.hpp>
+#include <Tsukino/EngineIntegration/ECS/System/AudioSystem.hpp>
 
 #include <entt/entt.hpp>
 #include <hlsl++.h>
@@ -43,6 +46,8 @@ namespace Tsukino::Sandbox {
         m_scene.AddSystem(std::make_shared<Tsukino::BuiltIn::ECS::FontRendererSystem>(), 9);
         // スプライトなど描画用のコマンド生成は後で行う (優先度 10)
         m_scene.AddSystem(std::make_shared<Tsukino::BuiltIn::ECS::SpriteRenderSystem>(), 10);
+        // オーディオの更新 (優先度 11)
+        m_scene.AddSystem(std::make_shared<Tsukino::BuiltIn::ECS::AudioSystem>(), 11);
 
         //--------------------------------------------------------------
         // アセットのロード
@@ -51,11 +56,21 @@ namespace Tsukino::Sandbox {
 
         Tsukino::Asset::AssetHandle audioHandle = context->assetManager->Load(Tsukino::Core::Path("Tsukino.Sandbox/Assets/Sounds/cat1.wav"));
 
+        Tsukino::ECS::Registry& registry = m_scene.GetRegistry();
+
+        //--------------------------------------------------------------
+        // オーディオエンティティの生成
+        //--------------------------------------------------------------
+        Tsukino::ECS::Entity audioEntity = m_scene.CreateEntity();
+
+        auto& audioComp = registry.AddComponent<Tsukino::BuiltIn::ECS::AudioComponent>(audioEntity);
+        audioComp.audioHandle = audioHandle;
+        audioComp.playOnAwake = true;
+
         //--------------------------------------------------------------
         // スプライトエンティティ生成
         //--------------------------------------------------------------
         Tsukino::ECS::Entity    entity   = m_scene.CreateEntity();
-        Tsukino::ECS::Registry& registry = m_scene.GetRegistry();
 
         // TransformComponent の追加と初期化
         Tsukino::BuiltIn::ECS::TransformComponent& transform = registry.AddComponent<Tsukino::BuiltIn::ECS::TransformComponent>(entity);
