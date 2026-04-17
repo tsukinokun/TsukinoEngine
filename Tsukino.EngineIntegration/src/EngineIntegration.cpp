@@ -24,6 +24,7 @@ namespace Tsukino::EngineIntegration {
         m_assetManager     = std::make_unique<Tsukino::Asset::AssetManager>();
         m_builtinAssets    = std::make_unique<Tsukino::BuiltIn::BuiltInAssets>();
         m_gameSceneManager = std::make_unique<GameSceneManager>();
+        m_audioManager     = std::make_unique<Tsukino::Audio::AudioManager>();
 
         //------------------------------------------------------------
         // コンテキストにポインタをセット
@@ -34,6 +35,7 @@ namespace Tsukino::EngineIntegration {
         m_ctx.builtinAssets    = m_builtinAssets.get();
         m_ctx.gameSceneManager = m_gameSceneManager.get();
         m_ctx.inputSystem      = m_inputSystem.get();
+        m_ctx.audioManager     = m_audioManager.get();
     }
 
     //------------------------------------------------------------
@@ -69,6 +71,14 @@ namespace Tsukino::EngineIntegration {
         // ウィンドウ生成
         //--------------------------------------------------------------
         if(!m_window->Create("TsukinoEngine", 1280, 720)) {
+            return false;
+        }
+
+        //--------------------------------------------------------------
+        // オーディオマネージャの初期化
+        //--------------------------------------------------------------
+        if (!m_audioManager->Initialize()) {
+            Tsukino::Core::Log::Error("Failed to initialize AudioManager.");
             return false;
         }
 

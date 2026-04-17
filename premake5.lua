@@ -372,6 +372,7 @@ project "Tsukino.BuiltIn"
 
     includedirs {
         "Tsukino.BuiltIn/include",
+        "Tsukino.Audio/include",
         "Tsukino.Engine/include",
         "Tsukino.Renderer/include",
         "Tsukino.GraphicsCommon/include",
@@ -382,10 +383,13 @@ project "Tsukino.BuiltIn"
 
     links {
         "Tsukino.Engine",
+        "Tsukino.Audio",
         "Tsukino.Renderer",
         "Tsukino.GraphicsCommon",
         "Tsukino.Core",
     }
+
+    nuget { "directxtk_desktop_win10:2026.4.1.1" }
 
 ----------------------------------------
 -- エンジン統合プロジェクト
@@ -415,9 +419,10 @@ project "Tsukino.EngineIntegration"
 
     includedirs {
         "Tsukino.GraphicsCommon/include",
+        "Tsukino.Audio/include",
         "Tsukino.Engine/include",
         "Tsukino.Renderer/include",
-         "Tsukino.Core/include",
+        "Tsukino.Core/include",
         "Tsukino.BuiltIn/include",
         "Tsukino.EngineIntegration/include",
         --"Tsukino.Physics/include",
@@ -428,6 +433,7 @@ project "Tsukino.EngineIntegration"
 
     links {
         "Tsukino.Engine",
+        "Tsukino.Audio",
         "Tsukino.Renderer",
         "Tsukino.GraphicsCommon",
         "Tsukino.BuiltIn",
@@ -486,6 +492,7 @@ project "Tsukino.Sandbox"
 
     includedirs {
         "Tsukino.Sandbox/include",
+        "Tsukino.Audio/include",
         "Tsukino.GraphicsCommon/include",
         "Tsukino.Engine/include",
         "Tsukino.Renderer/include",
@@ -501,6 +508,7 @@ project "Tsukino.Sandbox"
         "Tsukino.Engine",
         "Tsukino.Renderer",
         "Tsukino.GraphicsCommon",
+        "Tsukino.Audio",
         "Tsukino.BuiltIn",
         "Tsukino.EngineIntegration",
         --"Tsukino.Physics",

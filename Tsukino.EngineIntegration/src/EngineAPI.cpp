@@ -14,6 +14,7 @@
 
 #include <Tsukino/Core/Window.hpp>
 #include <Tsukino/Core/Input/InputSystem.hpp>
+#include <Tsukino/Audio/AudioManager.hpp>
 
 #include <memory>
 
@@ -51,6 +52,10 @@ namespace Tsukino::EngineIntegration {
         m_context.gameSceneManager->Update(*this, deltaTime);
         // 入力システムの更新
         m_context.inputSystem->Update();
+        // オーディオの更新
+        if (m_context.audioManager) {
+            m_context.audioManager->Update(deltaTime);
+        }
     }
 
     //------------------------------------------------------------
