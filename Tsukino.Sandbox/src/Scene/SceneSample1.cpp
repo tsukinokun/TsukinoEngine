@@ -33,7 +33,7 @@ namespace Tsukino::Sandbox {
     //-------------------------------------------------------------
     void SampleScene1::OnInitialize(Tsukino::EngineIntegration::EngineAPI& api) {
         // コンテキストをレジストリから取得
-        auto* context = m_scene.GetRegistry().GetContext<Tsukino::EngineIntegration::EngineContext*>();
+        Tsukino::EngineIntegration::EngineContext* context = m_scene.GetRegistry().GetContext<Tsukino::EngineIntegration::EngineContext*>();
 
         //--------------------------------------------------------------
         // システムの生成と追加
@@ -63,7 +63,7 @@ namespace Tsukino::Sandbox {
         //--------------------------------------------------------------
         Tsukino::ECS::Entity audioEntity = m_scene.CreateEntity();
 
-        auto& audioComp = registry.AddComponent<Tsukino::BuiltIn::ECS::AudioComponent>(audioEntity);
+        Tsukino::BuiltIn::ECS::AudioComponent& audioComp = registry.AddComponent<Tsukino::BuiltIn::ECS::AudioComponent>(audioEntity);
         audioComp.audioHandle = audioHandle;
         audioComp.playOnAwake = true;
 
@@ -109,11 +109,11 @@ namespace Tsukino::Sandbox {
         Tsukino::ECS::Entity cameraEntity = m_scene.CreateEntity();
 
         // TransformComponent (カメラの位置)
-        auto& camTransform    = registry.AddComponent<Tsukino::BuiltIn::ECS::TransformComponent>(cameraEntity);
+        Tsukino::BuiltIn::ECS::TransformComponent& camTransform    = registry.AddComponent<Tsukino::BuiltIn::ECS::TransformComponent>(cameraEntity);
         camTransform.position = hlslpp::float3(0.0f, 0.0f, -10.0f);    // 手前に引く
 
         // CameraComponent (投影設定)
-        auto& camera          = registry.AddComponent<Tsukino::BuiltIn::ECS::CameraComponent>(cameraEntity);
+        Tsukino::BuiltIn::ECS::CameraComponent& camera          = registry.AddComponent<Tsukino::BuiltIn::ECS::CameraComponent>(cameraEntity);
         camera.projectionType = Tsukino::BuiltIn::ECS::CameraComponent::ProjectionType::Orthographic;
         camera.orthoSize      = 720.0f;    // 画面の縦幅を 720 ユニットにする
         camera.isPrimary      = true;      // これをメインカメラにする
