@@ -22,7 +22,6 @@
 #include <Tsukino/BuiltIn/ECS/Component/SpriteComponent.hpp>
 #include <Tsukino/BuiltIn/ECS/Component/FontComponent.hpp>
 #include <Tsukino/BuiltIn/ECS/Component/AudioComponent.hpp>
-#include <Tsukino/EngineIntegration/ECS/System/AudioSystem.hpp>
 
 #include <entt/entt.hpp>
 #include <hlsl++.h>
@@ -56,6 +55,8 @@ namespace Tsukino::Sandbox {
 
         Tsukino::Asset::AssetHandle audioHandle = context->assetManager->Load(Tsukino::Core::Path("Tsukino.Sandbox/Assets/Sounds/cat1.wav"));
 
+        //Tsukino::Asset::AssetHandle modelHandle = context->assetManager->Load(Tsukino::Core::Path("Tsukino.Sandbox/Assets/Models/test.fbx"));
+
         Tsukino::ECS::Registry& registry = m_scene.GetRegistry();
 
         //--------------------------------------------------------------
@@ -64,13 +65,13 @@ namespace Tsukino::Sandbox {
         Tsukino::ECS::Entity audioEntity = m_scene.CreateEntity();
 
         Tsukino::BuiltIn::ECS::AudioComponent& audioComp = registry.AddComponent<Tsukino::BuiltIn::ECS::AudioComponent>(audioEntity);
-        audioComp.audioHandle = audioHandle;
-        audioComp.playOnAwake = true;
+        audioComp.audioHandle                            = audioHandle;
+        audioComp.playOnAwake                            = true;
 
         //--------------------------------------------------------------
         // スプライトエンティティ生成
         //--------------------------------------------------------------
-        Tsukino::ECS::Entity    entity   = m_scene.CreateEntity();
+        Tsukino::ECS::Entity entity = m_scene.CreateEntity();
 
         // TransformComponent の追加と初期化
         Tsukino::BuiltIn::ECS::TransformComponent& transform = registry.AddComponent<Tsukino::BuiltIn::ECS::TransformComponent>(entity);
@@ -109,14 +110,14 @@ namespace Tsukino::Sandbox {
         Tsukino::ECS::Entity cameraEntity = m_scene.CreateEntity();
 
         // TransformComponent (カメラの位置)
-        Tsukino::BuiltIn::ECS::TransformComponent& camTransform    = registry.AddComponent<Tsukino::BuiltIn::ECS::TransformComponent>(cameraEntity);
-        camTransform.position = hlslpp::float3(0.0f, 0.0f, -10.0f);    // 手前に引く
+        Tsukino::BuiltIn::ECS::TransformComponent& camTransform = registry.AddComponent<Tsukino::BuiltIn::ECS::TransformComponent>(cameraEntity);
+        camTransform.position                                   = hlslpp::float3(0.0f, 0.0f, -10.0f);    // 手前に引く
 
         // CameraComponent (投影設定)
-        Tsukino::BuiltIn::ECS::CameraComponent& camera          = registry.AddComponent<Tsukino::BuiltIn::ECS::CameraComponent>(cameraEntity);
-        camera.projectionType = Tsukino::BuiltIn::ECS::CameraComponent::ProjectionType::Orthographic;
-        camera.orthoSize      = 720.0f;    // 画面の縦幅を 720 ユニットにする
-        camera.isPrimary      = true;      // これをメインカメラにする
+        Tsukino::BuiltIn::ECS::CameraComponent& camera = registry.AddComponent<Tsukino::BuiltIn::ECS::CameraComponent>(cameraEntity);
+        camera.projectionType                          = Tsukino::BuiltIn::ECS::CameraComponent::ProjectionType::Orthographic;
+        camera.orthoSize                               = 720.0f;    // 画面の縦幅を 720 ユニットにする
+        camera.isPrimary                               = true;      // これをメインカメラにする
     }
 
     //-------------------------------------------------------------

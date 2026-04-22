@@ -121,7 +121,8 @@ project "Tsukino.GraphicsCommon"
     -- インクルードパス（他モジュールから参照される前提）
     includedirs {
         "Tsukino.Core/include",
-        "Tsukino.GraphicsCommon/include"
+        "Tsukino.GraphicsCommon/include",
+        "External/cereal/include",
     }
 
     links {
@@ -160,7 +161,8 @@ project "Tsukino.Engine"
         "Tsukino.Core/include",
         "External/hlslpp/include", 
         "External/entt/single_include",
-        "External/DirectXTex"
+        "External/DirectXTex",
+        "External/cereal/include",
     }
 
     links {
