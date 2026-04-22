@@ -11,10 +11,13 @@
 #include <Tsukino/Engine/Asset/Shader/ShaderLoader.hpp>
 #include <Tsukino/Engine/Asset/Font/FontLoader.hpp>
 #include <Tsukino/Engine/Asset/Audio/AudioLoader.hpp>
+#include <Tsukino/Engine/Asset/Model/ModelLoader.hpp>
+
 #include <Tsukino/Engine/Asset/Texture/TextureImporter.hpp>
 #include <Tsukino/Engine/Asset/Shader/ShaderImporter.hpp>
 #include <Tsukino/Engine/Asset/Font/FontImporter.hpp>
 #include <Tsukino/Engine/Asset/Audio/AudioImporter.hpp>
+#include <Tsukino/Engine/Asset/Model/ModelImporter.hpp>
 
 #include <Tsukino/Core/IO/FileSystem.hpp>
 #include <Tsukino/Core/Log.hpp>
@@ -40,6 +43,7 @@ namespace Tsukino::Asset {
         RegisterLoader(Tsukino::Core::CreateRef<TextureLoader>());    // テクスチャローダーを登録
         RegisterLoader(Tsukino::Core::CreateRef<FontLoader>());       // フォントローダーを登録
         RegisterLoader(Tsukino::Core::CreateRef<AudioLoader>());      // オーディオローダーを登録
+        RegisterLoader(Tsukino::Core::CreateRef<ModelLoader>());      // モデルローダーを登録
 
         //--------------------------------------------------------------
         // インポーター登録
@@ -48,6 +52,7 @@ namespace Tsukino::Asset {
         RegisterImporter(AssetType::Texture, Tsukino::Core::CreateRef<TextureImporter>());    // テクスチャインポーターを登録
         RegisterImporter(AssetType::Font, Tsukino::Core::CreateRef<FontImporter>());          // フォントインポーターの登録
         RegisterImporter(AssetType::Audio, Tsukino::Core::CreateRef<AudioImporter>());        // オーディオインポーターの登録
+        RegisterImporter(AssetType::Model, Tsukino::Core::CreateRef<ModelImporter>());        // モデルインポーターの登録
     }
 
     //--------------------------------------------------------------
@@ -170,10 +175,10 @@ namespace Tsukino::Asset {
             {".shader", AssetType::Shader },
             {".hlsl",   AssetType::Shader },
 
-            {".obj",    AssetType::Mesh   },
-            {".fbx",    AssetType::Mesh   },
-            {".gltf",   AssetType::Mesh   },
-            {".glb",    AssetType::Mesh   },
+            {".obj",    AssetType::Model   },
+            {".fbx",    AssetType::Model  },
+            {".gltf",   AssetType::Model  },
+            {".glb",    AssetType::Model  },
 
             {".wav",    AssetType::Audio  },
 

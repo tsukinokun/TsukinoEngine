@@ -478,4 +478,6 @@ project "Tsukino.Sandbox"
         "d3dcompiler"
     }
 
-    nuget { "directxtk_desktop_win10:2026.4.1.1" }
+    nuget { "directxtk_desktop_win10:2026.4.1.1",
+            "AssimpCpp:5.0.1.6",
+    }

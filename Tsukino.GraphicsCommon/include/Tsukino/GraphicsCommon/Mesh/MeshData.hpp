@@ -25,6 +25,16 @@ namespace Tsukino::GraphicsCommon {
         u32 indexCount   = 0;    // 頂点インデックスの総数
 
         VertexFormat format = VertexFormat::Unknown;    // 頂点のフォーマット
+
+        //--------------------------------------------------------------
+        //! @brief  シリアライズ関数
+        //! @tparam Archive シリアライズアーカイブの型
+        //! @param  ar [in,out] シリアライズアーカイブ
+        //--------------------------------------------------------------
+        template <class Archive>
+        void serialize(Archive& ar) {
+            ar(vertexData, indices, vertexStride, vertexCount, indexCount, format);
+        }
     };
 
 }    // namespace Tsukino::GraphicsCommon
