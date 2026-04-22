@@ -7,3 +7,6 @@
 [submodule "External/DirectXTex"]
 	path = External/DirectXTex
 	url = https://github.com/microsoft/DirectXTex.git
+[submodule "External/cereal"]
+	path = External/cereal
+	url = https://github.com/USCiLab/cereal.git
