@@ -123,6 +123,7 @@ project "Tsukino.GraphicsCommon"
         "Tsukino.Core/include",
         "Tsukino.GraphicsCommon/include",
         "External/cereal/include",
+	"External/hlslpp/include",
     }
 
     links {
