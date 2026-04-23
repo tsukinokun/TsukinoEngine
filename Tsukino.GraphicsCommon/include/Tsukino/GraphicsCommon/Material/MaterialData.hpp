@@ -22,10 +22,10 @@ namespace Tsukino::GraphicsCommon {
     };
 
     //--------------------------------------------------------------
-    //! @struct Material
+    //! @struct MaterialData
     //! @brief  マテリアルデータの構造体
     //--------------------------------------------------------------
-    struct Material {
+    struct MaterialData {
         std::string  name;
         ShadingModel shadingModel = ShadingModel::PBR;
 
