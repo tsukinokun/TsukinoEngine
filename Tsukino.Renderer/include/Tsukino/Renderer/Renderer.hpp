@@ -73,7 +73,7 @@ namespace Tsukino::Renderer {
         //------------------------------------------------------------
         // 描画領域のクリアカラーを設定
         //! @param r [in] 赤成分 (0.0f - 1.0f)
-        //! @param g [in] 緑成分 (0.0f - 1.0
+        //! @param g [in] 緑成分 (0.0f - 1.0f)
         //! @param b [in] 青成分 (0.0f - 1.0f)
         //! @param a [in] アルファ成分 (0.0f - 1.0f)
         //------------------------------------------------------------
@@ -92,6 +92,15 @@ namespace Tsukino::Renderer {
         [[nodiscard]]
         PipelineFactory* GetPipelineFactory() {
             return &m_pipelineFactory.value();
+        }
+
+        //------------------------------------------------------------
+        // デバイスの取得を公開
+        //! @return ID3D11Deviceのポインタ
+        //------------------------------------------------------------
+        [[nodiscard]]
+        ID3D11Device* GetDevice() const {
+            return m_graphicsContext.GetDevice();
         }
 
         //------------------------------------------------------------
@@ -186,6 +195,7 @@ namespace Tsukino::Renderer {
         // 定数バッファ
         ComPtr<ID3D11Buffer> m_objectBuffer;    // オブジェクトデータ用定数バッファ
         ComPtr<ID3D11Buffer> m_sceneBuffer;     // シーンデータ用定数バッファ
+        ComPtr<ID3D11Buffer> m_materialBuffer;  // マテリアルデータ用定数バッファ
 
         std::array<float, 4> m_clearColor = {0.5f, 0.5f, 0.5f, 1.0f};    // 描画領域のクリアカラー (デフォルトはグレー)
 

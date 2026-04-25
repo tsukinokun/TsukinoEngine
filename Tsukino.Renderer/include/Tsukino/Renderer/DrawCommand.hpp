@@ -11,6 +11,7 @@ namespace Tsukino::Renderer {
     // 前方宣言
     class Material;
     struct MeshBuffer;
+    struct CBufferMaterial;
 
     //------------------------------------------------------------
     //! @enum RenderPass
@@ -31,5 +32,6 @@ namespace Tsukino::Renderer {
         std::function<void(ID3D11DeviceContext*)> customDraw;                  // カスタム描画関数（nullptr なら通常描画）
         Tsukino::Core::Math::matrix               transform;                   // どこに描くか（モデル行列）
         RenderPass                                pass = RenderPass::World;    // 描画パス
+        CBufferMaterial*                          materialData = nullptr;      // マテリアルの定数データ（存在すれば）
     };
 }    // namespace Tsukino::Renderer

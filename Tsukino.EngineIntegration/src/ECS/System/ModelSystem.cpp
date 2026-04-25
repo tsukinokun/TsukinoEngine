@@ -1,0 +1,144 @@
+﻿//-------------------------------------------------------------
+//! @file   ModelSystem.cpp
+//! @brief  モデル描画システムの実装
+//! @author 山﨑愛
+//-------------------------------------------------------------
+#define NOMINMAX
+
+#include <Tsukino/EngineIntegration/ECS/System/ModelSystem.hpp>
+#include <Tsukino/EngineIntegration/EngineContext.hpp>
+#include <Tsukino/BuiltIn/BuiltInAssets.hpp>
+#include <Tsukino/BuiltIn/ECS/Component/ModelComponent.hpp>
+#include <Tsukino/BuiltIn/ECS/Component/TransformComponent.hpp>
+#include <Tsukino/Engine/Asset/AssetManager.hpp>
+#include <Tsukino/Engine/Asset/Model/ModelAsset.hpp>
+#include <Tsukino/Engine/Asset/Shader/ShaderAsset.hpp>
+#include <Tsukino/Renderer/Renderer.hpp>
+#include <Tsukino/Renderer/DX11/MeshBuffer.hpp>
+#include <Tsukino/GraphicsCommon/Model/ModelData.hpp>
+
+#include <Tsukino/Core/Math/Matrix.hpp>
+
+#include <entt/entt.hpp>
+#include <unordered_map>
+
+// メッシュキャッシュ
+static std::unordered_map<uint64_t, std::vector<Tsukino::Renderer::MeshBuffer>> s_modelMeshCache;
+
+namespace Tsukino::BuiltIn::ECS {
+
+    //-------------------------------------------------------------
+    //! @brief システムの更新
+    //-------------------------------------------------------------
+    void ModelSystem::Update(Tsukino::ECS::Registry& registry, float deltaTime) {
+        Tsukino::EngineIntegration::EngineContext* ctx = registry.GetContext<Tsukino::EngineIntegration::EngineContext*>();
+        if(!ctx || !ctx->renderer)
+            return;
+
+        // 初回のみパイプライン生成
+        if(!m_pipelineCache) {
+            std::shared_ptr<Tsukino::Asset::ShaderAsset> vsAsset =
+                std::static_pointer_cast<Tsukino::Asset::ShaderAsset>(ctx->assetManager->Get(ctx->builtinAssets->shaders.modelVS));
+            std::shared_ptr<Tsukino::Asset::ShaderAsset> psAsset =
+                std::static_pointer_cast<Tsukino::Asset::ShaderAsset>(ctx->assetManager->Get(ctx->builtinAssets->shaders.modelPS));
+
+            if(vsAsset && psAsset) {
+                D3D11_INPUT_ELEMENT_DESC layout[] = {
+                    {"POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0},
+                    {"NORMAL",   0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0},
+                    {"TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT,    0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0},
+                };
+                m_pipelineCache =
+                    ctx->renderer->GetPipelineFactory()->Create(*vsAsset, *psAsset, layout, ARRAYSIZE(layout), Tsukino::Renderer::DepthMode::ReadWrite);
+            }
+        }
+
+        if(!m_pipelineCache)
+            return;
+
+        m_materialBuffer.clear();
+        m_cbufferMaterialBuffer.clear();
+
+        auto view = registry.View<TransformComponent, ModelComponent>();
+
+        view.each([&](entt::entity, const TransformComponent& transform, const ModelComponent& modelComp) {
+            if(!modelComp.visible)
+                return;
+
+            auto asset = ctx->assetManager->Get(modelComp.modelHandle);
+            if(!asset || asset->GetType() != Tsukino::Asset::AssetType::Model)
+                return;
+
+            auto modelAsset = std::static_pointer_cast<Tsukino::Asset::ModelAsset>(asset);
+            auto handleVal  = modelComp.modelHandle.Value();
+
+            // メッシュバッファがキャッシュされていなければ作成する
+            if(s_modelMeshCache.find(handleVal) == s_modelMeshCache.end()) {
+                std::vector<Tsukino::Renderer::MeshBuffer> buffers;
+                for(const auto& mesh : modelAsset->modelData.meshes) {
+                    buffers.push_back(Tsukino::Renderer::CreateMeshBuffer(ctx->renderer->GetDevice(), mesh));
+                }
+                s_modelMeshCache[handleVal] = std::move(buffers);
+            }
+
+            const auto& meshBuffers = s_modelMeshCache[handleVal];
+
+            for(const auto& node : modelAsset->modelData.nodes) {
+                if(node.meshIndex < 0 || node.meshIndex >= meshBuffers.size())
+                    continue;
+
+                const auto& meshData         = modelAsset->modelData.meshes[node.meshIndex];
+                const auto& targetMeshBuffer = meshBuffers[node.meshIndex];
+
+                Tsukino::Core::Math::matrix scaleMat = Tsukino::Core::Math::matrix::scale(hlslpp::float3(node.scale.x, node.scale.y, node.scale.z));
+                Tsukino::Core::Math::matrix rotMat =
+                    Tsukino::Core::Math::matrix::rotate(hlslpp::quaternion(node.rotation.x, node.rotation.y, node.rotation.z, node.rotation.w));
+                Tsukino::Core::Math::matrix transMat =
+                    Tsukino::Core::Math::matrix::translate(hlslpp::float3(node.translation.x, node.translation.y, node.translation.z));
+                Tsukino::Core::Math::matrix nodeTransform  = hlslpp::mul(hlslpp::mul(scaleMat, rotMat), transMat);
+                Tsukino::Core::Math::matrix finalTransform = hlslpp::mul(nodeTransform, transform.worldMatrix);
+
+                Tsukino::Renderer::CBufferMaterial cbMat{};
+                cbMat.baseColor = hlslpp::float4(1.0f, 1.0f, 1.0f, 1.0f);
+                cbMat.emissive  = hlslpp::float3(0.0f, 0.0f, 0.0f);
+                cbMat.metallic  = 0.0f;
+                cbMat.roughness = 0.5f;
+
+                ID3D11ShaderResourceView* srv = nullptr;
+
+                // MeshData doesn't have materialIndex, load fallback for now
+                // if materials vector has at least one mat, use the first
+                if(!modelAsset->modelData.materials.empty()) {
+                    const auto& matData = modelAsset->modelData.materials[0];
+                    cbMat.baseColor     = hlslpp::float4(matData.baseColor.x, matData.baseColor.y, matData.baseColor.z, matData.baseColor.w);
+                    cbMat.emissive      = hlslpp::float3(matData.emissive.x, matData.emissive.y, matData.emissive.z);
+                    cbMat.metallic      = matData.metallic;
+                    cbMat.roughness     = matData.roughness;
+
+                    // TODO: Load Texture if albedo map exists.
+                }
+
+                m_cbufferMaterialBuffer.push_back(cbMat);
+                Tsukino::Renderer::CBufferMaterial* pCbMat = &m_cbufferMaterialBuffer.back();
+
+                Tsukino::Renderer::Material mat{};
+                mat.SetPipeline(m_pipelineCache.get());
+                mat.SetSampler(ctx->renderer->GetSampler(Tsukino::GraphicsCommon::SamplerType::LinearClamp));
+                if(srv)
+                    mat.SetTexture(srv);
+
+                m_materialBuffer.push_back(mat);
+
+                Tsukino::Renderer::DrawCommand cmd{};
+                cmd.material     = &m_materialBuffer.back();
+                cmd.mesh         = const_cast<Tsukino::Renderer::MeshBuffer*>(&targetMeshBuffer);
+                cmd.transform    = finalTransform;
+                cmd.pass         = Tsukino::Renderer::RenderPass::World;
+                cmd.materialData = pCbMat;
+
+                ctx->renderer->PushDrawCommand(cmd);
+            }
+        });
+    }
+
+}    // namespace Tsukino::BuiltIn::ECS

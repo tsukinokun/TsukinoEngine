@@ -88,6 +88,16 @@ namespace Tsukino::Renderer {
             return false;
         }
 
+        //------------------------------------------------------------
+        // m_materialBuffer (b2) の作成
+        //------------------------------------------------------------
+        desc.ByteWidth = sizeof(Tsukino::Renderer::CBufferMaterial);
+        hr             = device->CreateBuffer(&desc, nullptr, m_materialBuffer.GetAddressOf());
+        if(FAILED(hr)) {
+            Tsukino::Core::Log::Error("Failed to create material constant buffer.");
+            return false;
+        }
+
         // 成功
         return true;
     }
@@ -265,6 +275,11 @@ namespace Tsukino::Renderer {
         // Material を適用
         //------------------------------------------------------
         m_graphicsContext.SetMaterial(*cmd.material);
+
+        if (cmd.materialData) {
+            context->UpdateSubresource(m_materialBuffer.Get(), 0, nullptr, cmd.materialData, 0, 0);
+            context->PSSetConstantBuffers(2, 1, m_materialBuffer.GetAddressOf());
+        }
 
         //------------------------------------------------------
         // MeshBuffer をセット
