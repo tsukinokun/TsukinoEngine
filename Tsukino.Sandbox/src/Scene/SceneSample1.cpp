@@ -1,7 +1,7 @@
-ï»¿//-------------------------------------------------------------
+//-------------------------------------------------------------
 //! @file    SceneSample1.cpp
-//! @brief   ã‚µãƒ³ãƒ—ãƒ«ã‚·ãƒ¼ãƒ³1ã®å®Ÿè£…
-//! @author  å±±ï¨‘æ„›
+//! @brief   ƒTƒ“ƒvƒ‹ƒV[ƒ“1‚ÌÀ‘•
+//! @author  Rú±ˆ¤
 //-------------------------------------------------------------
 #include <Tsukino/Sandbox/Scene/SampleScene1.hpp>
 
@@ -10,7 +10,7 @@
 #include <Tsukino/Engine/Asset/AssetManager.hpp>
 #include <Tsukino/Core/Path.hpp>
 
-// å¿…è¦ãªã‚·ã‚¹ãƒ†ãƒ ã¨ã‚³ãƒ³ãƒãƒ¼ãƒãƒ³ãƒˆã®ã‚¤ãƒ³ã‚¯ãƒ«ãƒ¼ãƒ‰
+// •K—v‚ÈƒVƒXƒeƒ€‚ÆƒRƒ“ƒ|[ƒlƒ“ƒg‚ÌƒCƒ“ƒNƒ‹[ƒh
 #include <Tsukino/EngineIntegration/ECS/System/TransformSystem.hpp>
 #include <Tsukino/EngineIntegration/ECS/System/CameraSystem.hpp>
 #include <Tsukino/EngineIntegration/ECS/System/SpriteRendererSystem.hpp>
@@ -22,34 +22,36 @@
 #include <Tsukino/BuiltIn/ECS/Component/SpriteComponent.hpp>
 #include <Tsukino/BuiltIn/ECS/Component/FontComponent.hpp>
 #include <Tsukino/BuiltIn/ECS/Component/AudioComponent.hpp>
+#include <Tsukino/EngineIntegration/ECS/System/ModelSystem.hpp>
+#include <Tsukino/BuiltIn/ECS/Component/ModelComponent.hpp>
 
 #include <entt/entt.hpp>
 #include <hlsl++.h>
-// åå‰ç©ºé–“ : Tsukino::Sandbox
+// –¼‘O‹óŠÔ : Tsukino::Sandbox
 namespace Tsukino::Sandbox {
     //-------------------------------------------------------------
-    //! @brief  ã‚·ãƒ¼ãƒ³å›ºæœ‰ã®åˆæœŸåŒ–å‡¦ç†
+    //! @brief  ƒV[ƒ“ŒÅ—L‚Ì‰Šú‰»ˆ—
     //-------------------------------------------------------------
     void SampleScene1::OnInitialize(Tsukino::EngineIntegration::EngineAPI& api) {
-        // ã‚³ãƒ³ãƒ†ã‚­ã‚¹ãƒˆã‚’ãƒ¬ã‚¸ã‚¹ãƒˆãƒªã‹ã‚‰å–å¾—
+        // ƒRƒ“ƒeƒLƒXƒg‚ğƒŒƒWƒXƒgƒŠ‚©‚çæ“¾
         Tsukino::EngineIntegration::EngineContext* context = m_scene.GetRegistry().GetContext<Tsukino::EngineIntegration::EngineContext*>();
 
         //--------------------------------------------------------------
-        // ã‚·ã‚¹ãƒ†ãƒ ã®ç”Ÿæˆã¨è¿½åŠ 
+        // ƒVƒXƒeƒ€‚Ì¶¬‚Æ’Ç‰Á
         //--------------------------------------------------------------
-        // Transformã¯ä¸€ç•ªæœ€åˆã«è¨ˆç®—ã™ã‚‹ (å„ªå…ˆåº¦ 0)
+        // Transform‚Íˆê”ÔÅ‰‚ÉŒvZ‚·‚é (—Dæ“x 0)
         m_scene.AddSystem(std::make_shared<Tsukino::BuiltIn::ECS::TransformSystem>(), 0);
-        // ã‚«ãƒ¡ãƒ©ã¯æç”»å‰ã«æ›´æ–°ã™ã‚‹ (å„ªå…ˆåº¦ 5)
+        // ƒJƒƒ‰‚Í•`‰æ‘O‚ÉXV‚·‚é (—Dæ“x 5)
         m_scene.AddSystem(std::make_shared<Tsukino::BuiltIn::ECS::CameraSystem>(), 5);
-        // ãƒ•ã‚©ãƒ³ãƒˆæç”» (å„ªå…ˆåº¦ 9)
+        // ƒtƒHƒ“ƒg•`‰æ (—Dæ“x 9)
         m_scene.AddSystem(std::make_shared<Tsukino::BuiltIn::ECS::FontRendererSystem>(), 9);
-        // ã‚¹ãƒ—ãƒ©ã‚¤ãƒˆãªã©æç”»ç”¨ã®ã‚³ãƒãƒ³ãƒ‰ç”Ÿæˆã¯å¾Œã§è¡Œã† (å„ªå…ˆåº¦ 10)
+        // ƒXƒvƒ‰ƒCƒg‚È‚Ç•`‰æ—p‚ÌƒRƒ}ƒ“ƒh¶¬‚ÍŒã‚Ås‚¤ (—Dæ“x 10)
         m_scene.AddSystem(std::make_shared<Tsukino::BuiltIn::ECS::SpriteRenderSystem>(), 10);
-        // ã‚ªãƒ¼ãƒ‡ã‚£ã‚ªã®æ›´æ–° (å„ªå…ˆåº¦ 11)
+        // ƒI[ƒfƒBƒI‚ÌXV (—Dæ“x 11)
         m_scene.AddSystem(std::make_shared<Tsukino::BuiltIn::ECS::AudioSystem>(), 11);
 
         //--------------------------------------------------------------
-        // ã‚¢ã‚»ãƒƒãƒˆã®ãƒ­ãƒ¼ãƒ‰
+        // ƒAƒZƒbƒg‚Ìƒ[ƒh
         //--------------------------------------------------------------
         Tsukino::Asset::AssetHandle textureHandle = context->assetManager->Load(Tsukino::Core::Path("Tsukino.Sandbox/Assets/Textures/test.jpg"));
 
@@ -60,7 +62,7 @@ namespace Tsukino::Sandbox {
         Tsukino::ECS::Registry& registry = m_scene.GetRegistry();
 
         //--------------------------------------------------------------
-        // ã‚ªãƒ¼ãƒ‡ã‚£ã‚ªã‚¨ãƒ³ãƒ†ã‚£ãƒ†ã‚£ã®ç”Ÿæˆ
+        // ƒI[ƒfƒBƒIƒGƒ“ƒeƒBƒeƒB‚Ì¶¬
         //--------------------------------------------------------------
         Tsukino::ECS::Entity audioEntity = m_scene.CreateEntity();
 
@@ -69,69 +71,70 @@ namespace Tsukino::Sandbox {
         audioComp.playOnAwake                            = true;
 
         //--------------------------------------------------------------
-        // ã‚¹ãƒ—ãƒ©ã‚¤ãƒˆã‚¨ãƒ³ãƒ†ã‚£ãƒ†ã‚£ç”Ÿæˆ
+        // ƒXƒvƒ‰ƒCƒgƒGƒ“ƒeƒBƒeƒB¶¬
         //--------------------------------------------------------------
         Tsukino::ECS::Entity entity = m_scene.CreateEntity();
 
-        // TransformComponent ã®è¿½åŠ ã¨åˆæœŸåŒ–
+        // TransformComponent ‚Ì’Ç‰Á‚Æ‰Šú‰»
         Tsukino::BuiltIn::ECS::TransformComponent& transform = registry.AddComponent<Tsukino::BuiltIn::ECS::TransformComponent>(entity);
         transform.position                                   = hlslpp::float3(1.0f, 0.0f, 0.0f);
-        transform.rotation                                   = hlslpp::quaternion(0.0f, 0.0f, 0.0f, 1.0f);    // ç„¡å›è»¢
+        transform.rotation                                   = hlslpp::quaternion(0.0f, 0.0f, 0.0f, 1.0f);    // –³‰ñ“]
         transform.scale                                      = hlslpp::float3(0.5f, 0.5f, 1.0f);
-        transform.dirty                                      = true;          // åˆå›è¨ˆç®—ã®ãŸã‚ãƒ•ãƒ©ã‚°ã‚’ç«‹ã¦ã‚‹
-        transform.parent                                     = entt::null;    // è¦ªãªã—
+        transform.dirty                                      = true;          // ‰‰ñŒvZ‚Ì‚½‚ßƒtƒ‰ƒO‚ğ—§‚Ä‚é
+        transform.parent                                     = entt::null;    // e‚È‚µ
 
-        // SpriteComponent ã®è¿½åŠ 
+        // SpriteComponent ‚Ì’Ç‰Á
         Tsukino::BuiltIn::ECS::SpriteComponent& sprite = registry.AddComponent<Tsukino::BuiltIn::ECS::SpriteComponent>(entity);
         sprite.textureHandle                           = textureHandle;
-        sprite.tintColor                               = hlslpp::float4(1.0f, 1.0f, 1.0f, 1.0f);    // ç™½è‰²
+        sprite.tintColor                               = hlslpp::float4(1.0f, 1.0f, 1.0f, 1.0f);    // ”’F
         sprite.uvRect                                  = hlslpp::float4(0.0f, 0.0f, 1.0f, 1.0f);
 
         //--------------------------------------------------------------
-        // Fontã‚¨ãƒ³ãƒ†ã‚£ãƒ†ã‚£ç”Ÿæˆ
+        // FontƒGƒ“ƒeƒBƒeƒB¶¬
         //--------------------------------------------------------------
         Tsukino::ECS::Entity fontEntity = m_scene.CreateEntity();
 
-        // TransformComponent ã®è¿½åŠ ã¨åˆæœŸåŒ–
+        // TransformComponent ‚Ì’Ç‰Á‚Æ‰Šú‰»
         Tsukino::BuiltIn::ECS::TransformComponent& fontTransform = registry.AddComponent<Tsukino::BuiltIn::ECS::TransformComponent>(fontEntity);
         fontTransform.position                                   = hlslpp::float3(0.0f, 0.0f, 0.0f);
-        fontTransform.rotation                                   = hlslpp::quaternion(0.0f, 0.0f, 0.0f, 1.0f);    // ç„¡å›è»¢
+        fontTransform.rotation                                   = hlslpp::quaternion(0.0f, 0.0f, 0.0f, 1.0f);    // –³‰ñ“]
         fontTransform.scale                                      = hlslpp::float3(1.0f, 1.0f, 1.0f);
-        fontTransform.dirty                                      = true;          // åˆå›è¨ˆç®—ã®ãŸã‚ãƒ•ãƒ©ã‚°ã‚’ç«‹ã¦ã‚‹
-        fontTransform.parent                                     = entt::null;    // è¦ªãªã—
+        fontTransform.dirty                                      = true;          // ‰‰ñŒvZ‚Ì‚½‚ßƒtƒ‰ƒO‚ğ—§‚Ä‚é
+        fontTransform.parent                                     = entt::null;    // e‚È‚µ
 
-        // FontRendererComponent ã®è¿½åŠ 
+        // FontRendererComponent ‚Ì’Ç‰Á
         Tsukino::BuiltIn::ECS::FontComponent& font = registry.AddComponent<Tsukino::BuiltIn::ECS::FontComponent>(fontEntity);
-        font.text                                  = L"Hello, Tsukino!";    // æç”»ã™ã‚‹ãƒ†ã‚­ã‚¹ãƒˆ
+        font.text                                  = L"Hello, Tsukino!";    // •`‰æ‚·‚éƒeƒLƒXƒg
 
         //--------------------------------------------------------------
-        // ã‚«ãƒ¡ãƒ©ã‚¨ãƒ³ãƒ†ã‚£ãƒ†ã‚£ã®ç”Ÿæˆ
+        // ƒJƒƒ‰ƒGƒ“ƒeƒBƒeƒB‚Ì¶¬
         //--------------------------------------------------------------
         Tsukino::ECS::Entity cameraEntity = m_scene.CreateEntity();
 
-        // TransformComponent (ã‚«ãƒ¡ãƒ©ã®ä½ç½®)
+        // TransformComponent (ƒJƒƒ‰‚ÌˆÊ’u)
         Tsukino::BuiltIn::ECS::TransformComponent& camTransform = registry.AddComponent<Tsukino::BuiltIn::ECS::TransformComponent>(cameraEntity);
-        camTransform.position                                   = hlslpp::float3(0.0f, 0.0f, -10.0f);    // æ‰‹å‰ã«å¼•ã
+        camTransform.position                                   = hlslpp::float3(0.0f, 0.0f, -10.0f);    // è‘O‚Éˆø‚­
 
-        // CameraComponent (æŠ•å½±è¨­å®š)
+        // CameraComponent (“Š‰eİ’è)
         Tsukino::BuiltIn::ECS::CameraComponent& camera = registry.AddComponent<Tsukino::BuiltIn::ECS::CameraComponent>(cameraEntity);
         camera.projectionType                          = Tsukino::BuiltIn::ECS::CameraComponent::ProjectionType::Orthographic;
-        camera.orthoSize                               = 720.0f;    // ç”»é¢ã®ç¸¦å¹…ã‚’ 720 ãƒ¦ãƒ‹ãƒƒãƒˆã«ã™ã‚‹
-        camera.isPrimary                               = true;      // ã“ã‚Œã‚’ãƒ¡ã‚¤ãƒ³ã‚«ãƒ¡ãƒ©ã«ã™ã‚‹
+        camera.orthoSize                               = 720.0f;    // ‰æ–Ê‚Ìc•‚ğ 720 ƒ†ƒjƒbƒg‚É‚·‚é
+        camera.isPrimary                               = true;      // ‚±‚ê‚ğƒƒCƒ“ƒJƒƒ‰‚É‚·‚é
     }
 
     //-------------------------------------------------------------
-    //! @brief  ã‚·ãƒ¼ãƒ³ã®æ›´æ–°
+    //! @brief  ƒV[ƒ“‚ÌXV
     //-------------------------------------------------------------
     void SampleScene1::OnUpdate(Tsukino::EngineIntegration::EngineAPI& api, float deltaTime) {
         m_scene.Update(deltaTime);
     }
 
     //-------------------------------------------------------------
-    //! @brief  ã‚·ãƒ¼ãƒ³ã®çµ‚äº†å‡¦ç†
+    //! @brief  ƒV[ƒ“‚ÌI—¹ˆ—
     //-------------------------------------------------------------
     void SampleScene1::OnExit() {
-        // ã‚·ãƒ¼ãƒ³çµ‚äº†æ™‚ã®è§£æ”¾å‡¦ç†ãªã©ãŒå¿…è¦ãªå ´åˆã¯ã“ã“ã«è¨˜è¿°ã—ã¾ã™
+        // ƒV[ƒ“I—¹‚Ì‰ğ•úˆ—‚È‚Ç‚ª•K—v‚Èê‡‚Í‚±‚±‚É‹Lq‚µ‚Ü‚·
     }
 
 }    // namespace Tsukino::Sandbox
+
