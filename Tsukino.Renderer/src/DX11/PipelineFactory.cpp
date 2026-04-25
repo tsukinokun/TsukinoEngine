@@ -67,6 +67,12 @@ namespace Tsukino::Renderer {
         }
         // デプスステンシルステートの作成
         m_device->CreateDepthStencilState(&desc, p->depth.GetAddressOf());
+        D3D11_RASTERIZER_DESC rasterDesc = {};
+        rasterDesc.FillMode              = D3D11_FILL_SOLID;
+        rasterDesc.CullMode              = D3D11_CULL_NONE;
+        rasterDesc.DepthClipEnable       = TRUE;
+        m_device->CreateRasterizerState(&rasterDesc, p->rasterizer.GetAddressOf());
+
 
         // 4. キャッシュに保存してから返す
         m_cache[key] = p;

@@ -33,7 +33,7 @@ struct PSInput
     float2 uv : TEXCOORD0;
 };
 
-float4 main(PSInput input) : SV_TARGET
+float4 PSMain(PSInput input) : SV_TARGET
 {
     // Basic direction light (hardcoded for now)
     float3 lightDir = normalize(float3(1.0f, -1.0f, 1.0f));

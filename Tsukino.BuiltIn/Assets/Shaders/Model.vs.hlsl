@@ -43,7 +43,7 @@ struct VSOutput
     float2 uv : TEXCOORD0;
 };
 
-VSOutput main(VSInput input)
+VSOutput VSMain(VSInput input)
 {
     VSOutput output;
    
