@@ -207,6 +207,11 @@ namespace Tsukino::Asset {
 
             {".font",   ".spritefont"},
 
+            {".obj",    ".tsm"},
+            {".fbx",    ".tsm"},
+            {".gltf",   ".tsm"},
+            {".glb",    ".tsm"},
+
             // Audio
             {".wav",    ".xwb"       },
         };
