@@ -5,6 +5,7 @@
 //--------------------------------------------------------------
 #pragma once
 #include <Tsukino/Core/Math/Matrix.hpp>
+#include <hlsl++.h>
 // 名前空間 : Tsukino::Renderer
 namespace Tsukino::Renderer {
     //--------------------------------------------------------------
@@ -23,5 +24,17 @@ namespace Tsukino::Renderer {
     //--------------------------------------------------------------
     struct CBufferTransform {
         Tsukino::Core::Math::matrix world;
+    };
+
+    //--------------------------------------------------------------
+    //! @struct CBufferMaterial
+    //! @brief  スロット2 (b2) 用：マテリアルごとの固有データ
+    //--------------------------------------------------------------
+    struct CBufferMaterial {
+        hlslpp::float4 baseColor;
+        hlslpp::float3 emissive;
+        float          metallic;
+        float          roughness;
+        hlslpp::float3 padding;
     };
 }    // namespace Tsukino::Renderer

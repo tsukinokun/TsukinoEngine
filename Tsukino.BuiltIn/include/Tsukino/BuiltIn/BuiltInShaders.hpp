@@ -26,5 +26,7 @@ namespace Tsukino::BuiltIn {
 
         Tsukino::Asset::AssetHandle spriteVS;    // スプライト用頂点シェーダーのハンドル
         Tsukino::Asset::AssetHandle spritePS;     // スプライト用ピクセルシェーダーのハンドル
+        Tsukino::Asset::AssetHandle modelVS;     // モデル用頂点シェーダーのハンドル
+        Tsukino::Asset::AssetHandle modelPS;     // モデル用ピクセルシェーダーのハンドル
     };
 }    // namespace Tsukino::BuiltIn
