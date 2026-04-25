@@ -164,6 +164,7 @@ project "Tsukino.Engine"
         "External/entt/single_include",
         "External/DirectXTex",
         "External/cereal/include",
+        ".build/packages/AssimpCpp:5.0.1.6/build/native/include",
     }
 
     links {

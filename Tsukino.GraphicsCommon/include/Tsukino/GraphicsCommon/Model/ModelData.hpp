@@ -9,6 +9,20 @@
 #include <Tsukino/GraphicsCommon/Material/MaterialData.hpp>
 #include <vector>
 
+// hlslpp のシリアライズ
+namespace hlslpp {
+    namespace interop {
+        template <class Archive>
+        void serialize(Archive& ar, float3& f) {
+            ar(f.x, f.y, f.z);
+        }
+        template <class Archive>
+        void serialize(Archive& ar, float4& f) {
+            ar(f.x, f.y, f.z, f.w);
+        }
+    }
+}
+
 // 名前空間 Tsukino::GraphicsCommon
 namespace Tsukino::GraphicsCommon {
 

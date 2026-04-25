@@ -17,6 +17,14 @@
 
 #include <d3dcompiler.h>
 #include <fstream>
+#include <cereal/archives/binary.hpp>
+#include <cereal/types/string.hpp>
+#include <cereal/types/vector.hpp>
+#include <string>
+#include <vector>
+#include <functional>
+
+#include <Tsukino/GraphicsCommon/Model/ModelData.hpp>
 // 名前空間 Tsukino::Asset
 namespace Tsukino::Asset {
     // 独自バイナリ用の頂点定義（エンジンの頂点レイアウトに合わせる）
@@ -25,14 +33,7 @@ namespace Tsukino::Asset {
         hlslpp::float3 normal;
         hlslpp::float2 texcoord;
     };
-
-    // 中間ファイルのヘッダー構造
-    struct ModelHeader {
-        char magic[4]  = {'T', 'S', 'M', ' '};
-        u32  version   = 1;
-        u32  meshCount = 0;
-    };
-
+    
     //--------------------------------------------------------------
     //! @brief  モデルアセットをインポートする関数
     //--------------------------------------------------------------
@@ -68,7 +69,13 @@ namespace Tsukino::Asset {
         //--------------------------------------------------------------
         Tsukino::Core::Path tempPath = inputPath;
         tempPath.replace_extension(".tsm");
-        Tsukino::Core::Path outputPath = outputDirectory / tempPath.stem();
+        Tsukino::Core::Path outputPath = outputDirectory / tempPath;
+
+        //--------------------------------------------------------------
+        // 親ディレクトリ作成
+        //--------------------------------------------------------------
+        Tsukino::IO::FileSystem::CreateDirectories(outputPath.parent_path());
+
         std::ofstream       ofs(outputPath.string(), std::ios::binary);
         if(!ofs) {
             Tsukino::Core::Log::Error("Failed to open output file");
@@ -78,44 +85,82 @@ namespace Tsukino::Asset {
         //--------------------------------------------------------------
         // データの解析と書き出し
         //--------------------------------------------------------------
-        ModelHeader header;
-        header.meshCount = scene->mNumMeshes;
-        ofs.write(reinterpret_cast<const char*>(&header), sizeof(ModelHeader));
+        Tsukino::GraphicsCommon::ModelData modelData;
 
+        // メッシュ
+        modelData.meshes.resize(scene->mNumMeshes);
         for(u32 i = 0; i < scene->mNumMeshes; ++i) {
-            const aiMesh* mesh = scene->mMeshes[i];
+            const aiMesh* aiMesh = scene->mMeshes[i];
+            auto&         dstMesh = modelData.meshes[i];
 
-            // 頂点データの詰め替え
-            std::vector<Vertex> vertices(mesh->mNumVertices);
-            for(u32 v = 0; v < mesh->mNumVertices; ++v) {
-                vertices[v].position = {mesh->mVertices[v].x, mesh->mVertices[v].y, mesh->mVertices[v].z};
-                vertices[v].normal   = {mesh->mNormals[v].x, mesh->mNormals[v].y, mesh->mNormals[v].z};
-                if(mesh->HasTextureCoords(0)) {
-                    vertices[v].texcoord = {mesh->mTextureCoords[0][v].x, mesh->mTextureCoords[0][v].y};
+            std::vector<Vertex> vertices(aiMesh->mNumVertices);
+            for(u32 v = 0; v < aiMesh->mNumVertices; ++v) {
+                vertices[v].position = {aiMesh->mVertices[v].x, aiMesh->mVertices[v].y, aiMesh->mVertices[v].z};
+                vertices[v].normal   = {aiMesh->mNormals[v].x, aiMesh->mNormals[v].y, aiMesh->mNormals[v].z};
+                if(aiMesh->HasTextureCoords(0)) {
+                    vertices[v].texcoord = {aiMesh->mTextureCoords[0][v].x, aiMesh->mTextureCoords[0][v].y};
                 }
             }
 
-            // インデックスデータの詰め替え
-            std::vector<u32> indices;
-            for(u32 f = 0; f < mesh->mNumFaces; ++f) {
-                const aiFace& face = mesh->mFaces[f];
+            dstMesh.indices.reserve(aiMesh->mNumFaces * 3);
+            for(u32 f = 0; f < aiMesh->mNumFaces; ++f) {
+                const aiFace& face = aiMesh->mFaces[f];
                 for(u32 idx = 0; idx < face.mNumIndices; ++idx) {
-                    indices.push_back(face.mIndices[idx]);
+                    dstMesh.indices.push_back(face.mIndices[idx]);
                 }
             }
 
-            // メッシュごとの情報を書き出し
-            u32 vCount = static_cast<u32>(vertices.size());
-            u32 iCount = static_cast<u32>(indices.size());
+            dstMesh.vertexCount  = static_cast<u32>(vertices.size());
+            dstMesh.indexCount   = static_cast<u32>(dstMesh.indices.size());
+            dstMesh.vertexStride = sizeof(Vertex);
+            dstMesh.format       = Tsukino::GraphicsCommon::VertexFormat::PositionNormalUV; // If defined, else skip
 
-            ofs.write(reinterpret_cast<const char*>(&vCount), sizeof(u32));
-            ofs.write(reinterpret_cast<const char*>(vertices.data()), sizeof(Vertex) * vCount);
-
-            ofs.write(reinterpret_cast<const char*>(&iCount), sizeof(u32));
-            ofs.write(reinterpret_cast<const char*>(indices.data()), sizeof(u32) * iCount);
+            dstMesh.vertexData.resize(vertices.size() * sizeof(Vertex));
+            std::memcpy(dstMesh.vertexData.data(), vertices.data(), dstMesh.vertexData.size());
         }
 
-        Tsukino::Core::Log::Error("Successfully imported model");
+        // ノード
+        if (scene->mRootNode) {
+            std::function<u32(const aiNode*, u32)> ProcessNode = [&](const aiNode* aiNode, u32 parentIndex) -> u32 {
+                u32 currentIndex = static_cast<u32>(modelData.nodes.size());
+                modelData.nodes.emplace_back();
+
+                // 参照を改めて取得 (vector再確保によるポインタ無効化回避)
+                // (emplace_back直後はback()で取れるが、再帰呼び出し中にキャパシティ超え再確保が起こると
+                // dstNode参照がdanglingになるため、メンバへの書き込みはIDを使ってアクセスするようにする)
+
+                modelData.nodes[currentIndex].name = aiNode->mName.C_Str();
+                modelData.nodes[currentIndex].parentIndex = parentIndex;
+                if (aiNode->mNumMeshes > 0) {
+                    modelData.nodes[currentIndex].meshIndex = aiNode->mMeshes[0];
+                } else {
+                    modelData.nodes[currentIndex].meshIndex = UINT32_MAX;
+                }
+
+                aiVector3D scaling, position;
+                aiQuaternion aiRot;
+                aiNode->mTransformation.Decompose(scaling, aiRot, position);
+                modelData.nodes[currentIndex].translation = hlslpp::float3(position.x, position.y, position.z);
+                modelData.nodes[currentIndex].rotation = hlslpp::float4(aiRot.x, aiRot.y, aiRot.z, aiRot.w);
+                modelData.nodes[currentIndex].scale = hlslpp::float3(scaling.x, scaling.y, scaling.z);
+
+                for (u32 i = 0; i < aiNode->mNumChildren; ++i) {
+                    u32 childIndex = ProcessNode(aiNode->mChildren[i], currentIndex);
+                    // ここで再度modelData.nodesが再確保されている可能性があるためcurrentIndexでフェッチしなおす
+                    modelData.nodes[currentIndex].childIndices.push_back(childIndex);
+                }
+                return currentIndex;
+            };
+
+            modelData.rootNodeIndex = ProcessNode(scene->mRootNode, UINT32_MAX);
+        }
+
+        {
+            cereal::BinaryOutputArchive archive(ofs);
+            archive(modelData);
+        }
+
+        Tsukino::Core::Log::Info("Successfully imported model");
         return true;
     }
 
