@@ -25,27 +25,22 @@
 #include <functional>
 
 #include <Tsukino/GraphicsCommon/Model/ModelData.hpp>
-// 名前空間 Tsukino::Asset
+
 namespace Tsukino::Asset {
-    // 独自バイナリ用の頂点定義（エンジンの頂点レイアウトに合わせる）
+
     struct Vertex {
         hlslpp::float3 position;
         hlslpp::float3 normal;
         hlslpp::float2 texcoord;
     };
-    
-    //--------------------------------------------------------------
-    //! @brief  モデルアセットをインポートする関数
-    //--------------------------------------------------------------
+
     bool ModelImporter::Import(const Tsukino::Core::Path& inputPath, const Tsukino::Core::Path& outputDirectory) {
         //--------------------------------------------------------------
         // 拡張子チェック
         //--------------------------------------------------------------
         std::string ext = inputPath.extension();
-        // 小文字に変換して判定しやすくする
         std::transform(ext.begin(), ext.end(), ext.begin(), ::tolower);
 
-        // 主要な3Dモデル形式以外は弾く
         if(ext != ".fbx" && ext != ".obj" && ext != ".gltf" && ext != ".glb" && ext != ".dae") {
             Tsukino::Core::Log::Error("Unsupported model format");
             return false;
@@ -65,32 +60,82 @@ namespace Tsukino::Asset {
         }
 
         //--------------------------------------------------------------
-        // 出力パスの構築 (例: input.fbx -> output/input.tsm)
+        // 出力パスの構築
         //--------------------------------------------------------------
         Tsukino::Core::Path tempPath = inputPath;
         tempPath.replace_extension(".tsm");
         Tsukino::Core::Path outputPath = outputDirectory / tempPath;
 
-        //--------------------------------------------------------------
-        // 親ディレクトリ作成
-        //--------------------------------------------------------------
         Tsukino::IO::FileSystem::CreateDirectories(outputPath.parent_path());
 
-        std::ofstream       ofs(outputPath.string(), std::ios::binary);
+        std::ofstream ofs(outputPath.string(), std::ios::binary);
         if(!ofs) {
             Tsukino::Core::Log::Error("Failed to open output file");
             return false;
         }
 
-        //--------------------------------------------------------------
-        // データの解析と書き出し
-        //--------------------------------------------------------------
         Tsukino::GraphicsCommon::ModelData modelData;
 
+        //--------------------------------------------------------------
+        // マテリアル
+        //--------------------------------------------------------------
+        modelData.materials.resize(scene->mNumMaterials);
+        for(u32 i = 0; i < scene->mNumMaterials; ++i) {
+            const aiMaterial* aiMat  = scene->mMaterials[i];
+            auto&             dstMat = modelData.materials[i];
+
+            // 名前
+            aiString matName;
+            if(aiMat->Get(AI_MATKEY_NAME, matName) == AI_SUCCESS) {
+                dstMat.name = matName.C_Str();
+            }
+
+            // ベースカラー（ディフューズカラー）
+            aiColor4D color;
+            if(aiGetMaterialColor(aiMat, AI_MATKEY_COLOR_DIFFUSE, &color) == AI_SUCCESS) {
+                dstMat.baseColor = hlslpp::float4(color.r, color.g, color.b, color.a);
+            }
+
+            // エミッシブカラー
+            aiColor4D emissive;
+            if(aiGetMaterialColor(aiMat, AI_MATKEY_COLOR_EMISSIVE, &emissive) == AI_SUCCESS) {
+                dstMat.emissive = hlslpp::float3(emissive.r, emissive.g, emissive.b);
+            }
+
+            // メタリック・ラフネス
+            // メタリック・ラフネス（Assimp 5.0.1 対応）
+            float metallic  = 0.0f;
+            float roughness = 0.5f;
+            aiMat->Get("$mat.metallicFactor", 0, 0, metallic);
+            aiMat->Get("$mat.roughnessFactor", 0, 0, roughness);
+            dstMat.metallic  = metallic;
+            dstMat.roughness = roughness;
+
+            // テクスチャパス（相対パスをそのまま保存）
+            aiString texPath;
+            if(aiMat->GetTexture(aiTextureType_DIFFUSE, 0, &texPath) == AI_SUCCESS) {
+                dstMat.albedoMap = texPath.C_Str();
+            }
+            if(aiMat->GetTexture(aiTextureType_NORMALS, 0, &texPath) == AI_SUCCESS) {
+                dstMat.normalMap = texPath.C_Str();
+            }
+            if(aiMat->GetTexture(aiTextureType_DIFFUSE_ROUGHNESS, 0, &texPath) == AI_SUCCESS) {
+                dstMat.metallicRoughnessMap = texPath.C_Str();
+            }
+            if(aiMat->GetTexture(aiTextureType_EMISSIVE, 0, &texPath) == AI_SUCCESS) {
+                dstMat.emissiveMap = texPath.C_Str();
+            }
+            if(aiMat->GetTexture(aiTextureType_AMBIENT_OCCLUSION, 0, &texPath) == AI_SUCCESS) {
+                dstMat.aoMap = texPath.C_Str();
+            }
+        }
+
+        //--------------------------------------------------------------
         // メッシュ
+        //--------------------------------------------------------------
         modelData.meshes.resize(scene->mNumMeshes);
         for(u32 i = 0; i < scene->mNumMeshes; ++i) {
-            const aiMesh* aiMesh = scene->mMeshes[i];
+            const aiMesh* aiMesh  = scene->mMeshes[i];
             auto&         dstMesh = modelData.meshes[i];
 
             std::vector<Vertex> vertices(aiMesh->mNumVertices);
@@ -113,40 +158,33 @@ namespace Tsukino::Asset {
             dstMesh.vertexCount  = static_cast<u32>(vertices.size());
             dstMesh.indexCount   = static_cast<u32>(dstMesh.indices.size());
             dstMesh.vertexStride = sizeof(Vertex);
-            dstMesh.format       = Tsukino::GraphicsCommon::VertexFormat::PositionNormalUV; // If defined, else skip
+            dstMesh.format       = Tsukino::GraphicsCommon::VertexFormat::PositionNormalUV;
 
             dstMesh.vertexData.resize(vertices.size() * sizeof(Vertex));
             std::memcpy(dstMesh.vertexData.data(), vertices.data(), dstMesh.vertexData.size());
         }
 
+        //--------------------------------------------------------------
         // ノード
-        if (scene->mRootNode) {
+        //--------------------------------------------------------------
+        if(scene->mRootNode) {
             std::function<u32(const aiNode*, u32)> ProcessNode = [&](const aiNode* aiNode, u32 parentIndex) -> u32 {
                 u32 currentIndex = static_cast<u32>(modelData.nodes.size());
                 modelData.nodes.emplace_back();
 
-                // 参照を改めて取得 (vector再確保によるポインタ無効化回避)
-                // (emplace_back直後はback()で取れるが、再帰呼び出し中にキャパシティ超え再確保が起こると
-                // dstNode参照がdanglingになるため、メンバへの書き込みはIDを使ってアクセスするようにする)
-
-                modelData.nodes[currentIndex].name = aiNode->mName.C_Str();
+                modelData.nodes[currentIndex].name        = aiNode->mName.C_Str();
                 modelData.nodes[currentIndex].parentIndex = parentIndex;
-                if (aiNode->mNumMeshes > 0) {
-                    modelData.nodes[currentIndex].meshIndex = aiNode->mMeshes[0];
-                } else {
-                    modelData.nodes[currentIndex].meshIndex = UINT32_MAX;
-                }
+                modelData.nodes[currentIndex].meshIndex   = (aiNode->mNumMeshes > 0) ? aiNode->mMeshes[0] : UINT32_MAX;
 
-                aiVector3D scaling, position;
+                aiVector3D   scaling, position;
                 aiQuaternion aiRot;
                 aiNode->mTransformation.Decompose(scaling, aiRot, position);
                 modelData.nodes[currentIndex].translation = hlslpp::float3(position.x, position.y, position.z);
-                modelData.nodes[currentIndex].rotation = hlslpp::float4(aiRot.x, aiRot.y, aiRot.z, aiRot.w);
-                modelData.nodes[currentIndex].scale = hlslpp::float3(scaling.x, scaling.y, scaling.z);
+                modelData.nodes[currentIndex].rotation    = hlslpp::float4(aiRot.x, aiRot.y, aiRot.z, aiRot.w);
+                modelData.nodes[currentIndex].scale       = hlslpp::float3(scaling.x, scaling.y, scaling.z);
 
-                for (u32 i = 0; i < aiNode->mNumChildren; ++i) {
+                for(u32 i = 0; i < aiNode->mNumChildren; ++i) {
                     u32 childIndex = ProcessNode(aiNode->mChildren[i], currentIndex);
-                    // ここで再度modelData.nodesが再確保されている可能性があるためcurrentIndexでフェッチしなおす
                     modelData.nodes[currentIndex].childIndices.push_back(childIndex);
                 }
                 return currentIndex;
@@ -155,6 +193,9 @@ namespace Tsukino::Asset {
             modelData.rootNodeIndex = ProcessNode(scene->mRootNode, UINT32_MAX);
         }
 
+        //--------------------------------------------------------------
+        // シリアライズして書き出し
+        //--------------------------------------------------------------
         {
             cereal::BinaryOutputArchive archive(ofs);
             archive(modelData);
