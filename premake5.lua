@@ -198,7 +198,8 @@ project "Tsukino.Renderer"
     files {
         "Tsukino.Renderer/src/**.cpp",
         "Tsukino.Renderer/include/**.hpp",
-        "Tsukino.Renderer/pch.cpp"
+        "Tsukino.Renderer/pch.cpp",
+        "External/hlslpp/include/hlsl++.natvis",
     }
 
     includedirs {
