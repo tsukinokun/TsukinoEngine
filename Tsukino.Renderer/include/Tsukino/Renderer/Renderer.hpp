@@ -14,10 +14,12 @@
 #include <Tsukino/Renderer/SpriteRenderer.hpp>
 #include <Tsukino/Renderer/DrawCommandQueue.hpp>
 #include <Tsukino/Renderer/DX11/Texture/DX11Texture2D.hpp>
+#include <Tsukino/Renderer/ConstantBuffer.hpp>
 
 #include <Tsukino/GraphicsCommon/Mesh/PrimitiveType.hpp>
 #include <Tsukino/GraphicsCommon/Mesh/MeshData.hpp>
 #include <Tsukino/GraphicsCommon/State/SamplerType.hpp>
+
 
 #include <wrl/client.h>    // ComPtrの依存関係を明示
 #include <d3d11.h>         // 依存関係を明示
@@ -143,7 +145,19 @@ namespace Tsukino::Renderer {
         //! @param  size [in] フォントデータのサイズ
         //! @return SpriteFontのユニークポインタ
         //------------------------------------------------------------
-        std::unique_ptr<DirectX::SpriteFont> CreateSpriteFont(const uint8_t* data, size_t size);
+        std::unique_ptr<DirectX::SpriteFont> CreateSpriteFont(const u8* data, size_t size);
+
+        //------------------------------------------------------------
+        // ワールドカメラ行列のセット
+        //! @param data [in] シーン定数バッファの値データ
+        //------------------------------------------------------------
+        void SetWorldCameraMatrix(const CBufferScene& data);
+
+        //------------------------------------------------------------
+        // オーバーレイカメラ行列のセット
+        //! @param data [in] シーン定数バッファの値データ
+        //------------------------------------------------------------
+        void SetOverlayCameraMatrix(const CBufferScene& data);
 
         //------------------------------------------------------------
         // スプライトバッチの作成
@@ -193,9 +207,9 @@ namespace Tsukino::Renderer {
         ComPtr<ID3D11InputLayout>  m_inputLayout;        // 入力レイアウト
 
         // 定数バッファ
-        ComPtr<ID3D11Buffer> m_objectBuffer;    // オブジェクトデータ用定数バッファ
-        ComPtr<ID3D11Buffer> m_sceneBuffer;     // シーンデータ用定数バッファ
-        ComPtr<ID3D11Buffer> m_materialBuffer;  // マテリアルデータ用定数バッファ
+        ComPtr<ID3D11Buffer> m_objectBuffer;      // オブジェクトデータ用定数バッファ
+        ComPtr<ID3D11Buffer> m_sceneBuffer;       // シーンデータ用定数バッファ
+        ComPtr<ID3D11Buffer> m_materialBuffer;    // マテリアルデータ用定数バッファ
 
         std::array<float, 4> m_clearColor = {0.5f, 0.5f, 0.5f, 1.0f};    // 描画領域のクリアカラー (デフォルトはグレー)
 
@@ -205,6 +219,10 @@ namespace Tsukino::Renderer {
         std::optional<PipelineFactory>                          m_pipelineFactory;    // メンバとして持たせる
         SpriteRenderer                                          m_spriteRenderer;     // スプライト描画クラスのインスタンス
         DrawCommandQueue                                        m_drawQueue;          // 描画コマンドキュー
+
+        // カメラ行列のセットを保存する変数
+        Tsukino::Renderer::CBufferScene m_worldSceneData;      // 3D（メインカメラ）用
+        Tsukino::Renderer::CBufferScene m_overlaySceneData;    // 2D（UIカメラ）用
 
         std::unique_ptr<DirectX::CommonStates> m_commonStatesTK;
     };

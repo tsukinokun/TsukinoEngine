@@ -136,6 +136,7 @@ namespace Tsukino::Renderer {
         //------------------------------------------------------------
         // World パス
         //------------------------------------------------------------
+        UpdateSceneBuffer(m_worldSceneData);
         for(const auto& cmd : commands) {
             if(cmd.pass != RenderPass::World)
                 continue;
@@ -145,6 +146,7 @@ namespace Tsukino::Renderer {
         //------------------------------------------------------------
         // Overlayパス
         //------------------------------------------------------------
+        UpdateSceneBuffer(m_overlaySceneData);
         for(const auto& cmd : commands) {
             if(cmd.pass != RenderPass::Overlay)
                 continue;
@@ -219,9 +221,24 @@ namespace Tsukino::Renderer {
     //------------------------------------------------------------
     //! @brief SpriteFontの作成
     //------------------------------------------------------------
-    std::unique_ptr<DirectX::SpriteFont> Renderer::CreateSpriteFont(const uint8_t* data, size_t size) {
+    std::unique_ptr<DirectX::SpriteFont> Renderer::CreateSpriteFont(const u8* data, size_t size) {
         // ここで DirectX 11 のデバイスを使って、バイナリを「文字」として魂を吹き込む
         return std::make_unique<DirectX::SpriteFont>(m_graphicsContext.GetDevice(), data, size);
+    }
+
+    
+    //------------------------------------------------------------
+    //! @brief ワールドカメラ行列のセット
+    //------------------------------------------------------------
+    void Renderer::SetWorldCameraMatrix(const CBufferScene& data) {
+        m_worldSceneData = data;    // メンバ変数に保存
+    }
+
+    //------------------------------------------------------------
+    //! @brief オーバーレイカメラ行列のセット
+    //------------------------------------------------------------
+    void Renderer::SetOverlayCameraMatrix(const CBufferScene& data) {
+        m_overlaySceneData = data;    // メンバ変数に保存
     }
 
     //------------------------------------------------------------
