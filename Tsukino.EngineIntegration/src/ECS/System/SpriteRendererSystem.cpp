@@ -142,6 +142,8 @@ namespace Tsukino::BuiltIn::ECS {
             // 実体のアドレスを DrawCommand に渡す
             cmd.material = &material;
 
+            cmd.pass = Tsukino::Renderer::RenderPass::Overlay;
+
             // コンテキストから取得したレンダラーを使って描画
             ctx->renderer->PushDrawCommand(cmd);
         });

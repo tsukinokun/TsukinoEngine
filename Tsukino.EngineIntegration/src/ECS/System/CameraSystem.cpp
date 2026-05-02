@@ -107,15 +107,16 @@ namespace Tsukino::BuiltIn::ECS {
         // viewを再度ループして、シーン定数バッファを更新
         //-------------------------------------------------------------
         view.each([&](entt::entity entity, const Tsukino::BuiltIn::ECS::TransformComponent& transform, const Tsukino::BuiltIn::ECS::CameraComponent& camera) {
-            // メインカメラのみシーン定数バッファに転送
+            // メインカメラの行列をシーン定数バッファに転送
+            Tsukino::Renderer::CBufferScene sceneData;
+            sceneData.view       = camera.viewMatrix;
+            sceneData.projection = camera.projectionMatrix;
+            sceneData.viewProj   = camera.viewProjMatrix;
+            // シーン定数バッファをRendererにセット
             if(camera.isPrimary) {
-                // メインカメラの行列をシーン定数バッファに転送
-                Tsukino::Renderer::CBufferScene sceneData;
-                sceneData.view       = camera.viewMatrix;
-                sceneData.projection = camera.projectionMatrix;
-                sceneData.viewProj   = camera.viewProjMatrix;
-                // シーン定数バッファを更新
-                ctx->renderer->UpdateSceneBuffer(sceneData);
+                ctx->renderer->SetWorldCameraMatrix(sceneData);
+            } else {
+                ctx->renderer->SetOverlayCameraMatrix(sceneData);
             }
         });
     }

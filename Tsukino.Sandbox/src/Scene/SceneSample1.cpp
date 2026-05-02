@@ -127,19 +127,36 @@ namespace Tsukino::Sandbox {
         model.visible                                = true;
 
         //--------------------------------------------------------------
-        // カメラエンティティの生成
+        // 2Dカメラエンティティの生成
         //--------------------------------------------------------------
-        Tsukino::ECS::Entity cameraEntity = m_scene.CreateEntity();
+        Tsukino::ECS::Entity cameraEntity2D = m_scene.CreateEntity();
 
         // TransformComponent (カメラの位置)
-        Tsukino::BuiltIn::ECS::TransformComponent& camTransform = registry.AddComponent<Tsukino::BuiltIn::ECS::TransformComponent>(cameraEntity);
-        camTransform.position                                   = hlslpp::float3(0.0f, 0.0f, -10.0f);    // 手前に引く
+        Tsukino::BuiltIn::ECS::TransformComponent& camTransform2D = registry.AddComponent<Tsukino::BuiltIn::ECS::TransformComponent>(cameraEntity2D);
+        camTransform2D.position                                   = hlslpp::float3(0.0f, 0.0f, -10.0f);    // 手前に引く
 
         // CameraComponent (投影設定)
-        Tsukino::BuiltIn::ECS::CameraComponent& camera = registry.AddComponent<Tsukino::BuiltIn::ECS::CameraComponent>(cameraEntity);
-        camera.projectionType                          = Tsukino::BuiltIn::ECS::CameraComponent::ProjectionType::Orthographic;
-        camera.orthoSize                               = 720.0f;    // 画面の縦幅を 720 ユニットにする
-        camera.isPrimary                               = true;      // これをメインカメラにする
+        Tsukino::BuiltIn::ECS::CameraComponent& camera2D = registry.AddComponent<Tsukino::BuiltIn::ECS::CameraComponent>(cameraEntity2D);
+        camera2D.projectionType                          = Tsukino::BuiltIn::ECS::CameraComponent::ProjectionType::Orthographic;
+        camera2D.orthoSize                               = 720.0f;    // 画面の縦幅を 720 ユニットにする
+        camera2D.isPrimary                               = false;     // これをメインカメラにしない
+
+        //--------------------------------------------------------------
+        // 3Dカメラエンティティの生成
+        //--------------------------------------------------------------
+        Tsukino::ECS::Entity cameraEntity3D = m_scene.CreateEntity();
+
+        // TransformComponent (カメラの位置)
+        Tsukino::BuiltIn::ECS::TransformComponent& camTransform3D = registry.AddComponent<Tsukino::BuiltIn::ECS::TransformComponent>(cameraEntity3D);
+        camTransform3D.position                                   = hlslpp::float3(0.0f, 0.0f, -5.0f);    // 手前に引く
+
+        // CameraComponent (投影設定)
+        Tsukino::BuiltIn::ECS::CameraComponent& camera3D = registry.AddComponent<Tsukino::BuiltIn::ECS::CameraComponent>(cameraEntity3D);
+        camera3D.useLookAt                               = true;                                // 注視点を向くようにする
+        camera3D.lookAtTarget                            = hlslpp::float3(0.0f, 0.0f, 0.0f);    // 注視点は原点
+        camera3D.projectionType                          = Tsukino::BuiltIn::ECS::CameraComponent::ProjectionType::Perspective;
+        camera3D.fov                                     = 60.0f;    // 視野角
+        camera3D.isPrimary                               = true;     // これをメインカメラにする
     }
 
     //-------------------------------------------------------------
