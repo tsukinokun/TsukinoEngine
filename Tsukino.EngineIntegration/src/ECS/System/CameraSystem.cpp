@@ -54,11 +54,21 @@ namespace Tsukino::BuiltIn::ECS {
                 //-------------------------------------------------------------
                 // View行列の計算 (カメラの向き)
                 //-------------------------------------------------------------
-                // クォータニオンから前方・上方を算出
-                hlslpp::float3 forward = hlslpp::mul(transform.rotation, hlslpp::float3(0, 0, 1));
-                hlslpp::float3 up      = hlslpp::mul(transform.rotation, hlslpp::float3(0, 1, 0));
-                hlslpp::float3 target  = transform.position + forward;
+                // 上方ベクトルは常にRotationから算出（または(0,1,0)固定でも可）
+                hlslpp::float3 up = hlslpp::mul(transform.rotation, hlslpp::float3(0, 1, 0));
+                hlslpp::float3 target;
 
+                //-------------------------------------------------------------
+                // 注視を使用する場合の処理
+                //-------------------------------------------------------------
+                if(camera.useLookAt) {
+                    target = camera.lookAtTarget;
+                } else {
+                    hlslpp::float3 forward = hlslpp::mul(transform.rotation, hlslpp::float3(0, 0, 1));
+                    target                 = transform.position + forward;
+                }
+
+                // 決定した target を使って View行列を作成
                 camera.viewMatrix = Tsukino::Core::Math::matrix::lookAtLH(transform.position, target, up);
 
                 //-------------------------------------------------------------

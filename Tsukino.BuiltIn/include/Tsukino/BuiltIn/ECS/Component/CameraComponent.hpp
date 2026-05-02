@@ -33,6 +33,9 @@ namespace Tsukino::BuiltIn::ECS {
         float nearZ       = 0.1f;            // ニアクリップ距離
         float farZ        = 1000.0f;         // ファークリップ距離
 
+        bool           useLookAt    = false;                      // trueなら指定した座標を向き続ける
+        hlslpp::float3 lookAtTarget = hlslpp::float3(0, 0, 0);    // 注視する座標
+
         // --- 行列キャッシュ ---
         Tsukino::Core::Math::matrix viewMatrix;          // ビュー行列
         Tsukino::Core::Math::matrix projectionMatrix;    // 射影行列
