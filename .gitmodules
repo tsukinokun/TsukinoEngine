@@ -10,3 +10,6 @@
 [submodule "External/cereal"]
 	path = External/cereal
 	url = https://github.com/USCiLab/cereal.git
+[submodule "External/JoltPhysics"]
+	path = External/JoltPhysics
+	url = https://github.com/jrouwe/JoltPhysics.git
