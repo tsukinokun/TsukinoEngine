@@ -5,6 +5,10 @@ workspace "TsukinoEngine"                   -- ソリューション名
     startproject "Sandbox"                  -- スタートアッププロジェクト
     location ".build"                       -- ビルドファイルの出力先 
     
+    filter "configurations:*"
+        defines { "JPH_DEBUG_RENDERER" } -- 値は1でなくても定義されていることが重要
+    filter {}
+
     filter "configurations:Debug" 
         optimize "Off" 
         symbols "On" 
@@ -73,8 +77,8 @@ project "JoltPhysics"
 	local SOURCE_PATH = "External/JoltPhysics/Jolt"
 
    	warnings "Default"
-	inlining "Auto"			-- 常にインライン展開
-	optimize "Full"			-- 常に最適化
+	-- inlining "Auto"			-- 常にインライン展開
+	-- optimize "Full"			-- 常に最適化
 
 	buildoptions {
 		"/Zo",	-- 最適化されたデバッグ機能の強化
@@ -97,8 +101,8 @@ project "JoltPhysics"
 	}
 
 	-- プリコンパイル済ヘッダー
-	pchheader "Jolt.h"
-	pchsource (path.join(SOURCE_PATH, "pch.cpp"))
+	-- pchheader "Jolt.h"
+	-- pchsource (path.join(SOURCE_PATH, "pch.cpp"))
 	forceincludes "Jolt.h"
 
 	-- 除去するファイル
