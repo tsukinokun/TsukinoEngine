@@ -58,6 +58,75 @@ project "DirectXTex"
         defines { "WIN32", "_WIN32_WINNT=0x0A00" }
     filter {}
 
+----------------------------------------
+-- joltプロジェクトを追加
+----------------------------------------
+project "JoltPhysics"
+    location ".build/JoltPhysics"
+    kind "StaticLib"
+    language "C++"
+    cppdialect "C++17"
+
+    -- PCH も一旦やめて、素の状態にする
+    flags { "NoPCH" }
+
+	local SOURCE_PATH = "External/JoltPhysics/Jolt"
+
+   	warnings "Default"
+	inlining "Auto"			-- 常にインライン展開
+	optimize "Full"			-- 常に最適化
+
+	buildoptions {
+		"/Zo",	-- 最適化されたデバッグ機能の強化
+	}
+	
+	-- 追加するソースコード
+	-- *=フォルダ内 **=フォルダ内とその階層下サブフォルダ内
+    files {
+		path.join(SOURCE_PATH, "**.c"),
+		path.join(SOURCE_PATH, "**.cpp"),
+		path.join(SOURCE_PATH, "**.h"),
+		path.join(SOURCE_PATH, "**.natvis"),
+	}
+	
+	-- "" インクルードパス
+	includedirs {
+		SOURCE_PATH,
+		"External",
+		"External/JoltPhysics",
+	}
+
+	-- プリコンパイル済ヘッダー
+	pchheader "Jolt.h"
+	pchsource (path.join(SOURCE_PATH, "pch.cpp"))
+	forceincludes "Jolt.h"
+
+	-- 除去するファイル
+	removefiles {
+	}
+
+	-- プリプロセッサ #define
+   	defines {
+   		"JPH_DEBUG_RENDERER=1",
+	}
+
+	-- フォルダ分け
+	vpaths {
+		["ヘッダー ファイル/*"] = {
+			path.join(SOURCE_PATH, "**.h"),
+			path.join(SOURCE_PATH, "**.hxx"),
+			path.join(SOURCE_PATH, "**.hpp"),
+			path.join(SOURCE_PATH, "**.inl")
+		},
+		["ソース ファイル/*"] = {
+			path.join(SOURCE_PATH, "**.c"),
+			path.join(SOURCE_PATH, "**.cxx"),
+			path.join(SOURCE_PATH, "**.cpp")
+		},
+		["*"] = {
+			path.join(SOURCE_PATH, "**.natvis")
+		},
+	}
 
 ----------------------------------------
 -- コアプロジェクト
