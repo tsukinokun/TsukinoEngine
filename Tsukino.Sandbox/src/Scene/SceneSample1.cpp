@@ -24,6 +24,7 @@
 #include <Tsukino/BuiltIn/ECS/Component/AudioComponent.hpp>
 #include <Tsukino/EngineIntegration/ECS/System/ModelSystem.hpp>
 #include <Tsukino/BuiltIn/ECS/Component/ModelComponent.hpp>
+#include <Tsukino/BuiltIn/ECS/Component/CollisionComponent.hpp>
 
 #include <entt/entt.hpp>
 #include <hlsl++.h>
@@ -125,6 +126,9 @@ namespace Tsukino::Sandbox {
         Tsukino::BuiltIn::ECS::ModelComponent& model = registry.AddComponent<Tsukino::BuiltIn::ECS::ModelComponent>(modelEntity);
         model.modelHandle                            = modelHandle;
         model.visible                                = true;
+
+        // モデルにコリジョンをつける
+        Tsukino::BuiltIn::ECS::CollisionComponent& collision = registry.AddComponent<Tsukino::BuiltIn::ECS::CollisionComponent>(modelEntity);
 
         //--------------------------------------------------------------
         // 2Dカメラエンティティの生成

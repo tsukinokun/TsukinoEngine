@@ -411,6 +411,7 @@ project "Tsukino.BuiltIn"
         "Tsukino.Core/include",
         "External/hlslpp/include",
         "External/entt/single_include",
+        "External/JoltPhysics",
     }
 
     links {
@@ -419,6 +420,7 @@ project "Tsukino.BuiltIn"
         "Tsukino.Renderer",
         "Tsukino.GraphicsCommon",
         "Tsukino.Core",
+        "JoltPhysics",
     }
 
     nuget { "directxtk_desktop_win10:2026.4.1.1" }
@@ -460,6 +462,7 @@ project "Tsukino.EngineIntegration"
         --"Tsukino.Physics/include",
         "External/hlslpp/include",
         "External/entt/single_include",
+        "External/JoltPhysics",
         ".build/packages/directxtk_desktop_win10.2026.4.1.1/include",
     }
 
@@ -469,7 +472,8 @@ project "Tsukino.EngineIntegration"
         "Tsukino.Renderer",
         "Tsukino.GraphicsCommon",
         "Tsukino.BuiltIn",
-         "Tsukino.Core",
+        "Tsukino.Core",
+        "JoltPhysics",
         --"Tsukino.Physics",
         "d3d11", 
         "dxgi",
@@ -533,7 +537,8 @@ project "Tsukino.Sandbox"
         --"Tsukino.Physics/include",
         "Tsukino.Core/include",
         "External/hlslpp/include",
-        "External/entt/single_include"
+        "External/entt/single_include",
+        "External/JoltPhysics",
     }
 
     links {
@@ -543,6 +548,7 @@ project "Tsukino.Sandbox"
         "Tsukino.Audio",
         "Tsukino.BuiltIn",
         "Tsukino.EngineIntegration",
+        "JoltPhysics",
         --"Tsukino.Physics",
         "Tsukino.Core",
         "d3d11", 
