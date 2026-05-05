@@ -1,0 +1,32 @@
+﻿//-------------------------------------------------------------
+//! @file   CollisionSystem.hpp
+//! @brief  CollisionSystemクラスの宣言
+//! @author 山﨑愛
+//-------------------------------------------------------------
+#pragma once
+#include <Tsukino/Core/ECS/System/ISystem.hpp>
+// 名前空間 : Tsukino::BuiltIn::ECS
+namespace Tsukino::BuiltIn::ECS {
+    struct CollisionComponent;    // 前方宣言
+
+    //-------------------------------------------------------------
+    //! @class  CollisionSystem
+    //-------------------------------------------------------------
+    class CollisionSystem : public Tsukino::ECS::ISystem {
+    public:
+        CollisionSystem();
+        ~CollisionSystem() override;
+
+        //-------------------------------------------------------------
+        // システムの更新
+        //! @param  registry    [in] ECS レジストリ
+        //! @param  deltaTime   [in] 前フレームからの経過時間
+        //-------------------------------------------------------------
+        void Update(Tsukino::ECS::Registry& registry, float deltaTime) override;
+
+    private:
+        struct Impl;
+        Impl* m_impl;
+    };
+
+}    // namespace Tsukino::BuiltIn::ECS

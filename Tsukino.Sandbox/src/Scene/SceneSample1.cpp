@@ -25,6 +25,7 @@
 #include <Tsukino/EngineIntegration/ECS/System/ModelSystem.hpp>
 #include <Tsukino/BuiltIn/ECS/Component/ModelComponent.hpp>
 #include <Tsukino/BuiltIn/ECS/Component/CollisionComponent.hpp>
+#include <Tsukino/EngineIntegration/ECS/System/CollisionSystem.hpp>
 
 #include <entt/entt.hpp>
 #include <hlsl++.h>
@@ -52,6 +53,8 @@ namespace Tsukino::Sandbox {
         m_scene.AddSystem(std::make_shared<Tsukino::BuiltIn::ECS::ModelSystem>(), 10);
         // オーディオの更新 (優先度 11)
         m_scene.AddSystem(std::make_shared<Tsukino::BuiltIn::ECS::AudioSystem>(), 11);
+        // コリジョンの更新は最後に行う (優先度 12)
+        m_scene.AddSystem(std::make_shared<Tsukino::BuiltIn::ECS::CollisionSystem>(), 12);
 
         //--------------------------------------------------------------
         // アセットのロード

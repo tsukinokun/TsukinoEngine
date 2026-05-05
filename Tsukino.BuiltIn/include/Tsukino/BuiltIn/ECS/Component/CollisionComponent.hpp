@@ -4,6 +4,8 @@
 //! @author 山﨑愛
 //-------------------------------------------------------------
 #pragma once
+#include <functional>
+#include <entt/entt.hpp>
 #include <Jolt/Jolt.h>
 #include <Jolt/Physics/Body/BodyID.h>
 #include <DirectXMath.h>
@@ -53,6 +55,11 @@ namespace Tsukino::BuiltIn::ECS {
         // Jolt側でBodyの実体が生成・登録されているかどうかのフラグ
         //---------------------------------------------------------------------
         bool isInitialized = false;
+
+        //---------------------------------------------------------------------
+        // 衝突開始イベントのコールバック関数
+        //---------------------------------------------------------------------
+        std::function<void(entt::entity)> onCollisionEnter = nullptr;
 
         //---------------------------------------------------------------------
         // @brief  保持しているBodyIDが有効なものかどうかを返す
