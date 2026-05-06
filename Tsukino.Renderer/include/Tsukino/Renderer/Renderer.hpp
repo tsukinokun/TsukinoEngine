@@ -19,6 +19,7 @@
 #include <Tsukino/GraphicsCommon/Mesh/PrimitiveType.hpp>
 #include <Tsukino/GraphicsCommon/Mesh/MeshData.hpp>
 #include <Tsukino/GraphicsCommon/State/SamplerType.hpp>
+#include <Tsukino/GraphicsCommon/Vertex/DebugVertex.hpp>
 
 
 #include <wrl/client.h>    // ComPtrの依存関係を明示
@@ -86,6 +87,17 @@ namespace Tsukino::Renderer {
         //! @param cmd [in] 追加する描画コマンド
         //------------------------------------------------------------
         void PushDrawCommand(const DrawCommand& cmd);
+
+        //------------------------------------------------------------
+        // デバッグライン/三角形の追加
+        //------------------------------------------------------------
+        void DrawDebugLine(const Tsukino::GraphicsCommon::DebugVertex& v1, const Tsukino::GraphicsCommon::DebugVertex& v2);
+        void DrawDebugTriangle(const Tsukino::GraphicsCommon::DebugVertex& v1, const Tsukino::GraphicsCommon::DebugVertex& v2, const Tsukino::GraphicsCommon::DebugVertex& v3);
+
+        //------------------------------------------------------------
+        // 追加されたデバッグ線を実際に描画する
+        //------------------------------------------------------------
+        void FlushDebugDraw();
 
         //------------------------------------------------------------
         // PipelineFactoryを使うためのGetterを公開
@@ -198,6 +210,13 @@ namespace Tsukino::Renderer {
         [[nodiscard]]
         bool CreateCommonStates();
 
+        //------------------------------------------------------------
+        // デバッグ用バッファとシェーダーの作成
+        //! @return true: 作成成功, false: 作成失敗
+        //------------------------------------------------------------
+        [[nodiscard]]
+        bool CreateDebugBuffers();
+
     private:
         // DirectX 11の主要なインターフェース
         GraphicsContext            m_graphicsContext;    // グラフィックスコンテキスト（Device, DeviceContext, SwapChainを管理）
@@ -223,6 +242,17 @@ namespace Tsukino::Renderer {
         // カメラ行列のセットを保存する変数
         Tsukino::Renderer::CBufferScene m_worldSceneData;      // 3D（メインカメラ）用
         Tsukino::Renderer::CBufferScene m_overlaySceneData;    // 2D（UIカメラ）用
+
+        // デバッグ描画用の頂点群
+        std::vector<Tsukino::GraphicsCommon::DebugVertex> m_debugLineVertices;
+        std::vector<Tsukino::GraphicsCommon::DebugVertex> m_debugTriangleVertices;
+
+        // デバッグ描画用の動的バッファ等
+        ComPtr<ID3D11Buffer>       m_debugLineVB;
+        ComPtr<ID3D11Buffer>       m_debugTriangleVB;
+        ComPtr<ID3D11VertexShader> m_debugVS;
+        ComPtr<ID3D11PixelShader>  m_debugPS;
+        ComPtr<ID3D11InputLayout>  m_debugIL;
 
         std::unique_ptr<DirectX::CommonStates> m_commonStatesTK;
     };

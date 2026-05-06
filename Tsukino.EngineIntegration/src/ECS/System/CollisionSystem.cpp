@@ -21,9 +21,12 @@
 #include <Jolt/Physics/Collision/Shape/CapsuleShape.h>
 #include <Jolt/Physics/Body/BodyCreationSettings.h>
 #include <Jolt/Physics/Body/BodyActivationListener.h>
+#include <Jolt/Renderer/DebugRendererSimple.h>
 #include <Tsukino/EngineIntegration/ECS/System/CollisionSystem.hpp>
 #include <Tsukino/BuiltIn/ECS/Component/CollisionComponent.hpp>
 #include <Tsukino/Renderer/Renderer.hpp>
+#include <Tsukino/EngineIntegration/EngineContext.hpp>
+#include <Tsukino/GraphicsCommon/Vertex/DebugVertex.hpp>
 
 // 名前空間 : Tsukino::BuiltIn::ECS
 namespace Tsukino::BuiltIn::ECS {
@@ -172,6 +175,47 @@ namespace Tsukino::BuiltIn::ECS {
     };
 
     //-------------------------------------------------------------
+    //! @class  JoltDebugRendererImpl
+    //! @brief  Jolt Physics のデバッグ描画を Tsukino::Renderer に中継するクラス
+    //-------------------------------------------------------------
+    class JoltDebugRendererImpl final : public JPH::DebugRendererSimple {
+    public:
+        JoltDebugRendererImpl() {
+            JPH::DebugRendererSimple::Initialize();
+        }
+
+        void DrawLine(JPH::RVec3Arg inFrom, JPH::RVec3Arg inTo, JPH::ColorArg inColor) override {
+            if (!m_renderer) return;
+            Tsukino::GraphicsCommon::DebugVertex v1 {
+                { inFrom.GetX(), inFrom.GetY(), inFrom.GetZ() },
+                { inColor.r / 255.0f, inColor.g / 255.0f, inColor.b / 255.0f, inColor.a / 255.0f }
+            };
+            Tsukino::GraphicsCommon::DebugVertex v2 {
+                { inTo.GetX(), inTo.GetY(), inTo.GetZ() },
+                { inColor.r / 255.0f, inColor.g / 255.0f, inColor.b / 255.0f, inColor.a / 255.0f }
+            };
+            m_renderer->DrawDebugLine(v1, v2);
+        }
+
+        void DrawTriangle(JPH::RVec3Arg inV1, JPH::RVec3Arg inV2, JPH::RVec3Arg inV3, JPH::ColorArg inColor, ECastShadow inCastShadow) override {
+            if (!m_renderer) return;
+            Tsukino::GraphicsCommon::DebugVertex v1 { { inV1.GetX(), inV1.GetY(), inV1.GetZ() }, { inColor.r / 255.0f, inColor.g / 255.0f, inColor.b / 255.0f, inColor.a / 255.0f } };
+            Tsukino::GraphicsCommon::DebugVertex v2 { { inV2.GetX(), inV2.GetY(), inV2.GetZ() }, { inColor.r / 255.0f, inColor.g / 255.0f, inColor.b / 255.0f, inColor.a / 255.0f } };
+            Tsukino::GraphicsCommon::DebugVertex v3 { { inV3.GetX(), inV3.GetY(), inV3.GetZ() }, { inColor.r / 255.0f, inColor.g / 255.0f, inColor.b / 255.0f, inColor.a / 255.0f } };
+            m_renderer->DrawDebugTriangle(v1, v2, v3);
+        }
+
+        virtual void DrawText3D(JPH::RVec3Arg inPosition, const std::string_view &inString, JPH::ColorArg inColor, float inHeight) override {}
+
+        void SetEngineRenderer(Tsukino::Renderer::Renderer* renderer) {
+            m_renderer = renderer;
+        }
+
+    private:
+        Tsukino::Renderer::Renderer* m_renderer = nullptr;
+    };
+
+    //-------------------------------------------------------------
     //! @struct CollisionSystem::Impl
     //! @brief  システム実装の隠蔽用構造体
     //-------------------------------------------------------------
@@ -183,6 +227,7 @@ namespace Tsukino::BuiltIn::ECS {
         ObjectLayerPairFilterImpl objPairFilter;           //!< オブジェクト層間フィルタ
         JPH::PhysicsSystem* physicsSystem = nullptr;       //!< Jolt物理システム本体
         MyContactListener* contactListener = nullptr;      //!< 衝突イベントリスナー
+        JoltDebugRendererImpl* debugRenderer = nullptr;    //!< デバッグ描画インターフェース
         bool isDebugDrawEnabled = false;                   //!< デバッグ描画が有効か
         bool f5WasDown = false;                            //!< 直前フレームでF5キーが押されていたか
     };
@@ -215,6 +260,8 @@ namespace Tsukino::BuiltIn::ECS {
 
         m_impl->contactListener = new MyContactListener();
         m_impl->physicsSystem->SetContactListener(m_impl->contactListener);
+
+        m_impl->debugRenderer = new JoltDebugRendererImpl();
     }
 
     //-------------------------------------------------------------
@@ -222,6 +269,7 @@ namespace Tsukino::BuiltIn::ECS {
     //-------------------------------------------------------------
     CollisionSystem::~CollisionSystem() {
         if (m_impl) {
+            delete m_impl->debugRenderer;
             delete m_impl->contactListener;
             delete m_impl->physicsSystem;
             delete m_impl->jobSystem;
@@ -282,8 +330,24 @@ namespace Tsukino::BuiltIn::ECS {
         m_impl->f5WasDown = f5IsDown;
 
         if (m_impl->isDebugDrawEnabled) {
-            // Draw collision debug (e.g. using Jolt's debug renderer or custom integration)
-            // (Assigned empty implementation as requested per typical Jolt F5 toggle setup unless specific renderer provided)
+            auto* ctx = registry.GetContext<Tsukino::EngineIntegration::EngineContext*>();
+            if (ctx && ctx->renderer) {
+                m_impl->debugRenderer->SetEngineRenderer(ctx->renderer);
+                JPH::BodyManager::DrawSettings drawSettings;
+                drawSettings.mDrawShape = true;
+                drawSettings.mDrawBoundingBox = false;
+
+                m_impl->physicsSystem->DrawBodies(drawSettings, m_impl->debugRenderer);
+                m_impl->physicsSystem->DrawConstraints(m_impl->debugRenderer);
+
+                // 発行されたデバッグ頂点を描画するコマンドをキューに送る
+                Tsukino::Renderer::DrawCommand cmd{};
+                cmd.pass = Tsukino::Renderer::RenderPass::World;
+                cmd.customDraw = [renderer = ctx->renderer](ID3D11DeviceContext* context) {
+                    renderer->FlushDebugDraw();
+                };
+                ctx->renderer->PushDrawCommand(cmd);
+            }
         }
     }
 

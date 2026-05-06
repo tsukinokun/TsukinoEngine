@@ -14,6 +14,11 @@
 #include <Tsukino/Core/Log.hpp>
 
 #include <cassert>
+#include <d3dcompiler.h>
+#include <algorithm>
+
+#pragma comment(lib, "d3dcompiler.lib")
+
 // 名前空間 : Tsukino::Renderer
 namespace Tsukino::Renderer {
     //------------------------------------------------------------
@@ -53,6 +58,12 @@ namespace Tsukino::Renderer {
         //------------------------------------------------------------
         if(!CreateConstantBuffer())
             return false;    // 定数バッファの作成に失敗した場合は false を返す
+
+        //------------------------------------------------------------
+        // デバッグ用バッファの作成
+        //------------------------------------------------------------
+        if(!CreateDebugBuffers())
+            return false;    
 
         return true;
     }
@@ -99,6 +110,51 @@ namespace Tsukino::Renderer {
         }
 
         // 成功
+        return true;
+    }
+
+    //------------------------------------------------------------
+    //! @brief デバッグ用バッファの作成
+    //------------------------------------------------------------
+    bool Renderer::CreateDebugBuffers() {
+        ID3D11Device* device = m_graphicsContext.GetDevice();
+
+        // 頂点シェーダのコンパイルと読み込み
+        Microsoft::WRL::ComPtr<ID3DBlob> vsBlob;
+        Microsoft::WRL::ComPtr<ID3DBlob> errorBlob;
+        HRESULT hr = D3DCompileFromFile(L"Tsukino.BuiltIn/Assets/Shaders/DebugLine.vs.hlsl", nullptr, nullptr, "VSMain", "vs_5_0", D3DCOMPILE_ENABLE_STRICTNESS, 0, &vsBlob, &errorBlob);
+        if(FAILED(hr)) {
+            if(errorBlob) OutputDebugStringA((char*)errorBlob->GetBufferPointer());
+            return false;
+        }
+        device->CreateVertexShader(vsBlob->GetBufferPointer(), vsBlob->GetBufferSize(), nullptr, m_debugVS.GetAddressOf());
+
+        // ピクセルシェーダのコンパイルと読み込み
+        Microsoft::WRL::ComPtr<ID3DBlob> psBlob;
+        hr = D3DCompileFromFile(L"Tsukino.BuiltIn/Assets/Shaders/DebugLine.ps.hlsl", nullptr, nullptr, "PSMain", "ps_5_0", D3DCOMPILE_ENABLE_STRICTNESS, 0, &psBlob, &errorBlob);
+        if(FAILED(hr)) {
+            if(errorBlob) OutputDebugStringA((char*)errorBlob->GetBufferPointer());
+            return false;
+        }
+        device->CreatePixelShader(psBlob->GetBufferPointer(), psBlob->GetBufferSize(), nullptr, m_debugPS.GetAddressOf());
+
+        // 入力レイアウトの作成
+        D3D11_INPUT_ELEMENT_DESC layout[] = {
+            {"POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, offsetof(Tsukino::GraphicsCommon::DebugVertex, position), D3D11_INPUT_PER_VERTEX_DATA, 0},
+            {"COLOR",    0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, offsetof(Tsukino::GraphicsCommon::DebugVertex, color),    D3D11_INPUT_PER_VERTEX_DATA, 0},
+        };
+        device->CreateInputLayout(layout, ARRAYSIZE(layout), vsBlob->GetBufferPointer(), vsBlob->GetBufferSize(), m_debugIL.GetAddressOf());
+
+        // 動的頂点バッファの作成
+        D3D11_BUFFER_DESC bd = {};
+        bd.Usage = D3D11_USAGE_DYNAMIC;
+        bd.ByteWidth = sizeof(Tsukino::GraphicsCommon::DebugVertex) * 50000; // 最大 50,000 頂点
+        bd.BindFlags = D3D11_BIND_VERTEX_BUFFER;
+        bd.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+
+        device->CreateBuffer(&bd, nullptr, m_debugLineVB.GetAddressOf());
+        device->CreateBuffer(&bd, nullptr, m_debugTriangleVB.GetAddressOf());
+
         return true;
     }
 
@@ -161,10 +217,83 @@ namespace Tsukino::Renderer {
     }
 
     //------------------------------------------------------------
+    //! @brief デバッグ描画の実行
+    //------------------------------------------------------------
+    void Renderer::FlushDebugDraw() {
+        ID3D11DeviceContext* context = m_graphicsContext.GetContext();
+
+        UpdateSceneBuffer(m_worldSceneData);
+
+        if (!m_debugLineVertices.empty() || !m_debugTriangleVertices.empty()) {
+            context->VSSetShader(m_debugVS.Get(), nullptr, 0);
+            context->PSSetShader(m_debugPS.Get(), nullptr, 0);
+            context->IASetInputLayout(m_debugIL.Get());
+
+            // ブレンドステート（不透明）と深度有効を設定（適宜CommonStates等で）
+            context->OMSetBlendState(m_commonStatesTK->Opaque(), nullptr, 0xFFFFFFFF);
+            context->OMSetDepthStencilState(m_commonStatesTK->DepthDefault(), 0);
+            // レンダリングステート設定（ここでは必要に応じてワイヤーフレーム用等の設定が必要になる可能性）
+            context->RSSetState(m_commonStatesTK->CullNone()); 
+
+            UINT stride = sizeof(Tsukino::GraphicsCommon::DebugVertex);
+            UINT offset = 0;
+
+            // --- ラインの描画 ---
+            if (!m_debugLineVertices.empty()) {
+                D3D11_MAPPED_SUBRESOURCE mapped;
+                if (SUCCEEDED(context->Map(m_debugLineVB.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped))) {
+                    size_t count = std::min(m_debugLineVertices.size(), (size_t)50000);
+                    memcpy(mapped.pData, m_debugLineVertices.data(), count * stride);
+                    context->Unmap(m_debugLineVB.Get(), 0);
+
+                    context->IASetVertexBuffers(0, 1, m_debugLineVB.GetAddressOf(), &stride, &offset);
+                    context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_LINELIST);
+                    context->Draw((UINT)count, 0);
+                }
+                m_debugLineVertices.clear();
+            }
+
+            // --- 三角形の描画 ---
+            if (!m_debugTriangleVertices.empty()) {
+                D3D11_MAPPED_SUBRESOURCE mapped;
+                if (SUCCEEDED(context->Map(m_debugTriangleVB.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped))) {
+                    size_t count = std::min(m_debugTriangleVertices.size(), (size_t)50000);
+                    memcpy(mapped.pData, m_debugTriangleVertices.data(), count * stride);
+                    context->Unmap(m_debugTriangleVB.Get(), 0);
+
+                    context->IASetVertexBuffers(0, 1, m_debugTriangleVB.GetAddressOf(), &stride, &offset);
+                    context->RSSetState(m_commonStatesTK->Wireframe()); // 三角形はワイヤーフレームで描画
+                    context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+                    context->Draw((UINT)count, 0);
+                    context->RSSetState(m_commonStatesTK->CullNone()); // 元に戻す
+                }
+                m_debugTriangleVertices.clear();
+            }
+        }
+    }
+
+    //------------------------------------------------------------
     //! @brief クリアカラー設定
     //------------------------------------------------------------
     void Renderer::SetClearColor(float r, float g, float b, float a) {
         m_clearColor = {r, g, b, a};
+    }
+
+    //------------------------------------------------------------
+    //! @brief デバッグラインの追加
+    //------------------------------------------------------------
+    void Renderer::DrawDebugLine(const Tsukino::GraphicsCommon::DebugVertex& v1, const Tsukino::GraphicsCommon::DebugVertex& v2) {
+        m_debugLineVertices.push_back(v1);
+        m_debugLineVertices.push_back(v2);
+    }
+
+    //------------------------------------------------------------
+    //! @brief デバッグ三角形の追加
+    //------------------------------------------------------------
+    void Renderer::DrawDebugTriangle(const Tsukino::GraphicsCommon::DebugVertex& v1, const Tsukino::GraphicsCommon::DebugVertex& v2, const Tsukino::GraphicsCommon::DebugVertex& v3) {
+        m_debugTriangleVertices.push_back(v1);
+        m_debugTriangleVertices.push_back(v2);
+        m_debugTriangleVertices.push_back(v3);
     }
 
     //------------------------------------------------------------
