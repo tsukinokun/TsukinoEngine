@@ -24,6 +24,7 @@
 #include <Jolt/Renderer/DebugRendererSimple.h>
 #include <Tsukino/EngineIntegration/ECS/System/CollisionSystem.hpp>
 #include <Tsukino/BuiltIn/ECS/Component/CollisionComponent.hpp>
+#include <Tsukino/BuiltIn/ECS/Component/TransformComponent.hpp>
 #include <Tsukino/Renderer/Renderer.hpp>
 #include <Tsukino/EngineIntegration/EngineContext.hpp>
 #include <Tsukino/GraphicsCommon/Vertex/DebugVertex.hpp>
@@ -302,8 +303,19 @@ namespace Tsukino::BuiltIn::ECS {
                 }
 
                 if (shape) {
-                    JPH::BodyCreationSettings settings(shape, JPH::RVec3(0, 0, 0), JPH::Quat::sIdentity(), 
-                        JPH::EMotionType::Dynamic, Layers::MOVING);
+                    JPH::RVec3 position(0, 0, 0);
+                    JPH::Quat rotation = JPH::Quat::sIdentity();
+
+                    if (registry.HasComponent<TransformComponent>(entity)) {
+                        auto& transform = registry.GetComponent<TransformComponent>(entity);
+                        position = JPH::RVec3(transform.position.x, transform.position.y, transform.position.z);
+                        rotation = JPH::Quat(transform.rotation.x, transform.rotation.y, transform.rotation.z, transform.rotation.w);
+                    }
+
+                    JPH::EMotionType motionType = comp.isStatic ? JPH::EMotionType::Static : JPH::EMotionType::Dynamic;
+                    JPH::ObjectLayer layer = comp.isStatic ? Layers::NON_MOVING : Layers::MOVING;
+
+                    JPH::BodyCreationSettings settings(shape, position, rotation, motionType, layer);
                     settings.mIsSensor = comp.isSensor;
 
                     JPH::Body* body = bodyInterface.CreateBody(settings);
@@ -321,6 +333,24 @@ namespace Tsukino::BuiltIn::ECS {
         const int cCollisionSteps = 1;
         float stepTime = deltaTime > 0.0f ? deltaTime : 1.0f / 60.0f;
         m_impl->physicsSystem->Update(stepTime, cCollisionSteps, m_impl->tempAllocator, m_impl->jobSystem);
+
+        // Update TransformComponent with results from physics world
+        for (auto entity : view) {
+            auto& comp = registry.GetComponent<CollisionComponent>(entity);
+            if (comp.isInitialized && !comp.isStatic) {
+                if (registry.HasComponent<TransformComponent>(entity)) {
+                    auto& transform = registry.GetComponent<TransformComponent>(entity);
+                    if (bodyInterface.IsActive(comp.bodyID)) {
+                        JPH::RVec3 pos = bodyInterface.GetPosition(comp.bodyID);
+                        JPH::Quat rot = bodyInterface.GetRotation(comp.bodyID);
+
+                        transform.position = hlslpp::float3(pos.GetX(), pos.GetY(), pos.GetZ());
+                        transform.rotation = hlslpp::quaternion(rot.GetX(), rot.GetY(), rot.GetZ(), rot.GetW());
+                        transform.dirty = true;
+                    }
+                }
+            }
+        }
 
         // F5 key logic for debug drawing
         bool f5IsDown = (::GetAsyncKeyState(VK_F5) & 0x8000) != 0;
