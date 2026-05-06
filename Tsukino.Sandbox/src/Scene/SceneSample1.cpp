@@ -70,11 +70,11 @@ namespace Tsukino::Sandbox {
         //--------------------------------------------------------------
         // オーディオエンティティの生成
         //--------------------------------------------------------------
-        Tsukino::ECS::Entity audioEntity = m_scene.CreateEntity();
+ /*       Tsukino::ECS::Entity audioEntity = m_scene.CreateEntity();
 
         Tsukino::BuiltIn::ECS::AudioComponent& audioComp = registry.AddComponent<Tsukino::BuiltIn::ECS::AudioComponent>(audioEntity);
         audioComp.audioHandle                            = audioHandle;
-        audioComp.playOnAwake                            = true;
+        audioComp.playOnAwake                            = true;*/
 
         //--------------------------------------------------------------
         // スプライトエンティティ生成
@@ -132,6 +132,7 @@ namespace Tsukino::Sandbox {
 
         // モデルにコリジョンをつける
         Tsukino::BuiltIn::ECS::CollisionComponent& collision = registry.AddComponent<Tsukino::BuiltIn::ECS::CollisionComponent>(modelEntity);
+        collision.extent                                     = {250.0f, 250.0f, 250.0f};    // 大きめの当たり判定
 
         //--------------------------------------------------------------
         // 2Dカメラエンティティの生成
