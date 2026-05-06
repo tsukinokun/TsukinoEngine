@@ -25,7 +25,7 @@
 #include <Tsukino/EngineIntegration/ECS/System/ModelSystem.hpp>
 #include <Tsukino/BuiltIn/ECS/Component/ModelComponent.hpp>
 #include <Tsukino/BuiltIn/ECS/Component/CollisionComponent.hpp>
-#include <Tsukino/EngineIntegration/ECS/System/CollisionSystem.hpp>
+#include <Tsukino/EngineIntegration/ECS/System/PhysicsSystem.hpp>
 
 #include <entt/entt.hpp>
 #include <hlsl++.h>
@@ -54,7 +54,7 @@ namespace Tsukino::Sandbox {
         // オーディオの更新 (優先度 11)
         m_scene.AddSystem(std::make_shared<Tsukino::BuiltIn::ECS::AudioSystem>(), 11);
         // コリジョンの更新は最後に行う (優先度 12)
-        m_scene.AddSystem(std::make_shared<Tsukino::BuiltIn::ECS::CollisionSystem>(), 12);
+        m_scene.AddSystem(std::make_shared<Tsukino::BuiltIn::ECS::PhysicsSystem>(), 12);
 
         //--------------------------------------------------------------
         // アセットのロード
@@ -132,7 +132,7 @@ namespace Tsukino::Sandbox {
 
         // モデルにコリジョンをつける
         Tsukino::BuiltIn::ECS::CollisionComponent& collision = registry.AddComponent<Tsukino::BuiltIn::ECS::CollisionComponent>(modelEntity);
-        collision.extent                                     = {250.0f, 250.0f, 250.0f};    // 大きめの当たり判定
+        collision.extent                                     = {150.0f, 150.0f, 150.0f};    // 大きめの当たり判定
         collision.type                                       = Tsukino::BuiltIn::ECS::ColliderType::Sphere;
 
         //--------------------------------------------------------------

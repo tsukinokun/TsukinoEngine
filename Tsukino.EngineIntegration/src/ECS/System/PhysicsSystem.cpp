@@ -1,6 +1,6 @@
 ﻿//-------------------------------------------------------------
-//! @file   CollisionSystem.cpp
-//! @brief  CollisionSystemクラスの実装
+//! @file   PhysicsSystem.cpp
+//! @brief  PhysicsSystemクラスの実装
 //! @author 山﨑愛
 //-------------------------------------------------------------
 
@@ -22,7 +22,7 @@
 #include <Jolt/Physics/Body/BodyCreationSettings.h>
 #include <Jolt/Physics/Body/BodyActivationListener.h>
 #include <Jolt/Renderer/DebugRendererSimple.h>
-#include <Tsukino/EngineIntegration/ECS/System/CollisionSystem.hpp>
+#include <Tsukino/EngineIntegration/ECS/System/PhysicsSystem.hpp>
 #include <Tsukino/BuiltIn/ECS/Component/CollisionComponent.hpp>
 #include <Tsukino/BuiltIn/ECS/Component/TransformComponent.hpp>
 #include <Tsukino/Renderer/Renderer.hpp>
@@ -217,10 +217,10 @@ namespace Tsukino::BuiltIn::ECS {
     };
 
     //-------------------------------------------------------------
-    //! @struct CollisionSystem::Impl
+    //! @struct PhysicsSystem::Impl
     //! @brief  システム実装の隠蔽用構造体
     //-------------------------------------------------------------
-    struct CollisionSystem::Impl {
+    struct PhysicsSystem::Impl {
         JPH::TempAllocatorImpl* tempAllocator = nullptr;   //!< 物理計算用一時アロケータ
         JPH::JobSystemThreadPool* jobSystem = nullptr;     //!< 物理シミュレーション用ジョブシステム
         BPLayerInterfaceImpl bpLayerInterface;             //!< ブロードフェーズインターフェース
@@ -236,7 +236,7 @@ namespace Tsukino::BuiltIn::ECS {
     //-------------------------------------------------------------
     // デフォルトコンストラクタ
     //-------------------------------------------------------------
-    CollisionSystem::CollisionSystem() {
+    PhysicsSystem::PhysicsSystem() {
         m_impl = new Impl();
         
         static bool isJoltInitialized = false;
@@ -268,7 +268,7 @@ namespace Tsukino::BuiltIn::ECS {
     //-------------------------------------------------------------
     // デストラクタ
     //-------------------------------------------------------------
-    CollisionSystem::~CollisionSystem() {
+    PhysicsSystem::~PhysicsSystem() {
         if (m_impl) {
             delete m_impl->debugRenderer;
             delete m_impl->contactListener;
@@ -282,7 +282,7 @@ namespace Tsukino::BuiltIn::ECS {
     //-------------------------------------------------------------
     // システムの更新処理
     //-------------------------------------------------------------
-    void CollisionSystem::Update(Tsukino::ECS::Registry& registry, float deltaTime) {
+    void PhysicsSystem::Update(Tsukino::ECS::Registry& registry, float deltaTime) {
         m_impl->contactListener->registry = &registry;
 
         // Initialize newly added collision components
