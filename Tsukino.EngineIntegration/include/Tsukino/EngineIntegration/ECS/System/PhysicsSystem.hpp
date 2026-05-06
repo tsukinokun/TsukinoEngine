@@ -1,6 +1,6 @@
 ﻿//-------------------------------------------------------------
-//! @file   CollisionSystem.hpp
-//! @brief  CollisionSystemクラスの宣言
+//! @file   PhysicsSystem.hpp
+//! @brief  PhysicsSystemクラスの宣言
 //! @author 山﨑愛
 //-------------------------------------------------------------
 #pragma once
@@ -10,12 +10,12 @@ namespace Tsukino::BuiltIn::ECS {
     struct CollisionComponent;    // 前方宣言
 
     //-------------------------------------------------------------
-    //! @class  CollisionSystem
+    //! @class  PhysicsSystem
     //-------------------------------------------------------------
-    class CollisionSystem : public Tsukino::ECS::ISystem {
+    class PhysicsSystem : public Tsukino::ECS::ISystem {
     public:
-        CollisionSystem();
-        ~CollisionSystem() override;
+        PhysicsSystem();
+        ~PhysicsSystem() override;
 
         //-------------------------------------------------------------
         // システムの更新
