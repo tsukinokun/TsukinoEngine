@@ -70,7 +70,7 @@ namespace Tsukino::Sandbox {
         //--------------------------------------------------------------
         // オーディオエンティティの生成
         //--------------------------------------------------------------
- /*       Tsukino::ECS::Entity audioEntity = m_scene.CreateEntity();
+        /*       Tsukino::ECS::Entity audioEntity = m_scene.CreateEntity();
 
         Tsukino::BuiltIn::ECS::AudioComponent& audioComp = registry.AddComponent<Tsukino::BuiltIn::ECS::AudioComponent>(audioEntity);
         audioComp.audioHandle                            = audioHandle;
@@ -133,6 +133,7 @@ namespace Tsukino::Sandbox {
         // モデルにコリジョンをつける
         Tsukino::BuiltIn::ECS::CollisionComponent& collision = registry.AddComponent<Tsukino::BuiltIn::ECS::CollisionComponent>(modelEntity);
         collision.extent                                     = {250.0f, 250.0f, 250.0f};    // 大きめの当たり判定
+        collision.type                                       = Tsukino::BuiltIn::ECS::ColliderType::Sphere;
 
         //--------------------------------------------------------------
         // 2Dカメラエンティティの生成
@@ -160,7 +161,7 @@ namespace Tsukino::Sandbox {
 
         // CameraComponent (投影設定)
         Tsukino::BuiltIn::ECS::CameraComponent& camera3D = registry.AddComponent<Tsukino::BuiltIn::ECS::CameraComponent>(cameraEntity3D);
-        camera3D.useLookAt                               = true;                                // 注視点を向くようにする
+        camera3D.useLookAt                               = true;                                  // 注視点を向くようにする
         camera3D.lookAtTarget                            = hlslpp::float3(0.0f, 100.0f, 0.0f);    // 注視点は原点
         camera3D.projectionType                          = Tsukino::BuiltIn::ECS::CameraComponent::ProjectionType::Perspective;
         camera3D.fov                                     = 60.0f;    // 視野角
