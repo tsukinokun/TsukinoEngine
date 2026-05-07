@@ -24,6 +24,7 @@
 #include <Jolt/Renderer/DebugRendererSimple.h>
 #include <Tsukino/EngineIntegration/ECS/System/PhysicsSystem.hpp>
 #include <Tsukino/BuiltIn/ECS/Component/CollisionComponent.hpp>
+#include <Tsukino/BuiltIn/ECS/Component/RigidBodyComponent.hpp>
 #include <Tsukino/BuiltIn/ECS/Component/TransformComponent.hpp>
 #include <Tsukino/Renderer/Renderer.hpp>
 #include <Tsukino/EngineIntegration/EngineContext.hpp>
@@ -284,69 +285,110 @@ namespace Tsukino::BuiltIn::ECS {
     //-------------------------------------------------------------
     void PhysicsSystem::Update(Tsukino::ECS::Registry& registry, float deltaTime) {
         m_impl->contactListener->registry = &registry;
-
-        // Initialize newly added collision components
-        auto view = registry.View<CollisionComponent>();
+        auto                view          = registry.View<CollisionComponent>();
         JPH::BodyInterface& bodyInterface = m_impl->physicsSystem->GetBodyInterface();
 
-        for (auto entity : view) {
-            auto& comp = registry.GetComponent<CollisionComponent>(entity);
-            if (!comp.isInitialized) {
+        for(auto entity : view) {
+            auto& col = registry.GetComponent<CollisionComponent>(entity);
+
+            // --- ステップ1: ボディの新規生成 ---
+            if(!col.isInitialized) {
                 JPH::RefConst<JPH::Shape> shape;
+                // (Shape生成ロジックは現状維持)
+                if(col.type == ColliderType::Box)
+                    shape = new JPH::BoxShape(JPH::Vec3(col.extent.x, col.extent.y, col.extent.z));
+                else if(col.type == ColliderType::Sphere)
+                    shape = new JPH::SphereShape(col.extent.x);
+                else if(col.type == ColliderType::Capsule)
+                    shape = new JPH::CapsuleShape(col.extent.y, col.extent.x);
 
-                if (comp.type == ColliderType::Box) {
-                    shape = new JPH::BoxShape(JPH::Vec3(comp.extent.x, comp.extent.y, comp.extent.z));
-                } else if (comp.type == ColliderType::Sphere) {
-                    shape = new JPH::SphereShape(comp.extent.x);
-                } else if (comp.type == ColliderType::Capsule) {
-                    shape = new JPH::CapsuleShape(comp.extent.y, comp.extent.x);
-                }
+                if(shape) {
+                    // デフォルトはStatic設定
+                    JPH::EMotionType motionType = JPH::EMotionType::Static;
+                    JPH::ObjectLayer layer      = Layers::NON_MOVING;
 
-                if (shape) {
-                    JPH::RVec3 position(0, 0, 0);
-                    JPH::Quat rotation = JPH::Quat::sIdentity();
-
-                    if (registry.HasComponent<TransformComponent>(entity)) {
-                        auto& transform = registry.GetComponent<TransformComponent>(entity);
-                        position = JPH::RVec3(transform.position.x, transform.position.y, transform.position.z);
-                        rotation = JPH::Quat(transform.rotation.x, transform.rotation.y, transform.rotation.z, transform.rotation.w);
+                    // Rigidbodyがある場合はその設定を反映
+                    if(registry.HasComponent<RigidbodyComponent>(entity)) {
+                        auto& rb = registry.GetComponent<RigidbodyComponent>(entity);
+                        switch(rb.type) {
+                        case RigidbodyType::Dynamic:
+                            motionType = JPH::EMotionType::Dynamic;
+                            layer      = Layers::MOVING;
+                            break;
+                        case RigidbodyType::Kinematic:
+                            motionType = JPH::EMotionType::Kinematic;
+                            layer      = Layers::MOVING;
+                            break;
+                        case RigidbodyType::Static:
+                            motionType = JPH::EMotionType::Static;
+                            layer      = Layers::NON_MOVING;
+                            break;
+                        }
                     }
 
-                    JPH::EMotionType motionType = comp.isStatic ? JPH::EMotionType::Static : JPH::EMotionType::Dynamic;
-                    JPH::ObjectLayer layer = comp.isStatic ? Layers::NON_MOVING : Layers::MOVING;
+                    // Transformの取得
+                    JPH::RVec3 position(0, 0, 0);
+                    JPH::Quat  rotation = JPH::Quat::sIdentity();
+                    if(registry.HasComponent<TransformComponent>(entity)) {
+                        auto& transform = registry.GetComponent<TransformComponent>(entity);
+                        position        = JPH::RVec3(transform.position.x, transform.position.y, transform.position.z);
+                        rotation        = JPH::Quat(transform.rotation.x, transform.rotation.y, transform.rotation.z, transform.rotation.w);
+                    }
 
                     JPH::BodyCreationSettings settings(shape, position, rotation, motionType, layer);
-                    settings.mIsSensor = comp.isSensor;
+                    settings.mIsSensor = col.isSensor;
+
+                    // Rigidbodyのパラメータ適用
+                    if(registry.HasComponent<RigidbodyComponent>(entity)) {
+                        auto& rb                               = registry.GetComponent<RigidbodyComponent>(entity);
+                        settings.mFriction                     = rb.friction;
+                        settings.mRestitution                  = rb.restitution;
+                        settings.mOverrideMassProperties       = JPH::EOverrideMassProperties::CalculateInertia;
+                        settings.mMassPropertiesOverride.mMass = rb.mass;
+                    }
 
                     JPH::Body* body = bodyInterface.CreateBody(settings);
-                    if (body) {
+                    if(body) {
                         body->SetUserData((uint64_t)entity);
-                        comp.bodyID = body->GetID();
-                        bodyInterface.AddBody(comp.bodyID, JPH::EActivation::Activate);
-                        comp.isInitialized = true;
+                        col.bodyID = body->GetID();
+                        bodyInterface.AddBody(col.bodyID, JPH::EActivation::Activate);
+                        col.isInitialized = true;
                     }
+                }
+            }
+
+            // --- ステップ2: Kinematicの同期 (Transform -> Jolt) ---
+            // 物理シミュレーションの前に、プログラム側で動いた座標をJoltに伝える
+            if(col.isInitialized && registry.HasComponent<RigidbodyComponent>(entity)) {
+                auto& rb = registry.GetComponent<RigidbodyComponent>(entity);
+                if(rb.type == RigidbodyType::Kinematic && registry.HasComponent<TransformComponent>(entity)) {
+                    auto&      tf = registry.GetComponent<TransformComponent>(entity);
+                    JPH::RVec3 p(tf.position.x, tf.position.y, tf.position.z);
+                    JPH::Quat  r(tf.rotation.x, tf.rotation.y, tf.rotation.z, tf.rotation.w);
+                    // Kinematic移動としてJolt側に通知（これにより周囲のDynamicが押し出される）
+                    bodyInterface.SetPositionAndRotation(col.bodyID, p, r, JPH::EActivation::Activate);
                 }
             }
         }
 
-        // Step the world
-        const int cCollisionSteps = 1;
+        // --- ステップ3: 物理シミュレーション実行 ---
         float stepTime = deltaTime > 0.0f ? deltaTime : 1.0f / 60.0f;
-        m_impl->physicsSystem->Update(stepTime, cCollisionSteps, m_impl->tempAllocator, m_impl->jobSystem);
+        m_impl->physicsSystem->Update(stepTime, 1, m_impl->tempAllocator, m_impl->jobSystem);
 
-        // Update TransformComponent with results from physics world
-        for (auto entity : view) {
-            auto& comp = registry.GetComponent<CollisionComponent>(entity);
-            if (comp.isInitialized && !comp.isStatic) {
-                if (registry.HasComponent<TransformComponent>(entity)) {
-                    auto& transform = registry.GetComponent<TransformComponent>(entity);
-                    if (bodyInterface.IsActive(comp.bodyID)) {
-                        JPH::RVec3 pos = bodyInterface.GetPosition(comp.bodyID);
-                        JPH::Quat rot = bodyInterface.GetRotation(comp.bodyID);
-
-                        transform.position = hlslpp::float3(pos.GetX(), pos.GetY(), pos.GetZ());
-                        transform.rotation = hlslpp::quaternion(rot.GetX(), rot.GetY(), rot.GetZ(), rot.GetW());
-                        transform.dirty = true;
+        // --- ステップ4: Dynamicの同期 (Jolt -> Transform) ---
+        for(auto entity : view) {
+            auto& col = registry.GetComponent<CollisionComponent>(entity);
+            if(col.isInitialized && registry.HasComponent<RigidbodyComponent>(entity)) {
+                auto& rb = registry.GetComponent<RigidbodyComponent>(entity);
+                // Dynamicのみ、物理演算の結果をTransformに書き戻す
+                if(rb.type == RigidbodyType::Dynamic && registry.HasComponent<TransformComponent>(entity)) {
+                    auto& tf = registry.GetComponent<TransformComponent>(entity);
+                    if(bodyInterface.IsActive(col.bodyID)) {
+                        JPH::RVec3 pos = bodyInterface.GetPosition(col.bodyID);
+                        JPH::Quat  rot = bodyInterface.GetRotation(col.bodyID);
+                        tf.position    = hlslpp::float3(pos.GetX(), pos.GetY(), pos.GetZ());
+                        tf.rotation    = hlslpp::quaternion(rot.GetX(), rot.GetY(), rot.GetZ(), rot.GetW());
+                        tf.dirty       = true;
                     }
                 }
             }

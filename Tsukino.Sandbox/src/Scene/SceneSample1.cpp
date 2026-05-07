@@ -25,6 +25,7 @@
 #include <Tsukino/EngineIntegration/ECS/System/ModelSystem.hpp>
 #include <Tsukino/BuiltIn/ECS/Component/ModelComponent.hpp>
 #include <Tsukino/BuiltIn/ECS/Component/CollisionComponent.hpp>
+#include <Tsukino/BuiltIn/ECS/Component/RigidBodyComponent.hpp>
 #include <Tsukino/EngineIntegration/ECS/System/PhysicsSystem.hpp>
 
 #include <entt/entt.hpp>
@@ -134,6 +135,10 @@ namespace Tsukino::Sandbox {
         Tsukino::BuiltIn::ECS::CollisionComponent& collision = registry.AddComponent<Tsukino::BuiltIn::ECS::CollisionComponent>(modelEntity);
         collision.extent                                     = {150.0f, 150.0f, 150.0f};    // 大きめの当たり判定
         collision.type                                       = Tsukino::BuiltIn::ECS::ColliderType::Sphere;
+
+        // RBをつける
+        Tsukino::BuiltIn::ECS::RigidbodyComponent& rb = registry.AddComponent<Tsukino::BuiltIn::ECS::RigidbodyComponent>(modelEntity);
+        rb.type                                       = Tsukino::BuiltIn::ECS::RigidbodyType::Kinematic;    
 
         //--------------------------------------------------------------
         // 2Dカメラエンティティの生成
