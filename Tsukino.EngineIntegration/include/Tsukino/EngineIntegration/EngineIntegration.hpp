@@ -40,10 +40,12 @@ namespace Tsukino::EngineIntegration {
 
         //------------------------------------------------------------
         // エンジンの初期化関数
+        //! @param width  [in] ウィンドウ幅
+        //! @param height [in] ウィンドウ高さ
         //! @return true: 初期化成功, false: 初期化失敗
         //------------------------------------------------------------
         [[nodiscard]]
-        bool Initialize();
+        bool Initialize(int width, int height);
 
         //------------------------------------------------------------
         //! @brief  エンジン全体で共有されるクラスを初期化する関数
