@@ -95,8 +95,8 @@ namespace Tsukino::Sandbox {
         //--------------------------------------------------------------
         // パドル
         //--------------------------------------------------------------
+        Tsukino::ECS::Entity paddleEntity = m_scene.CreateEntity();
         {
-            Tsukino::ECS::Entity paddleEntity = m_scene.CreateEntity();
             // TransformComponent
             Tsukino::BuiltIn::ECS::TransformComponent& modelTransform = registry.AddComponent<Tsukino::BuiltIn::ECS::TransformComponent>(paddleEntity);
             modelTransform.position                                   = hlslpp::float3(0.0f, -200.0f, 0.0f);
@@ -111,7 +111,7 @@ namespace Tsukino::Sandbox {
             model.visible                                = true;
             // コリジョンをつける
             Tsukino::BuiltIn::ECS::CollisionComponent& collision = registry.AddComponent<Tsukino::BuiltIn::ECS::CollisionComponent>(paddleEntity);
-            collision.extent                                     = {5.0f, 5.0f, 5.0f};    // パドルの当たり判定
+            collision.extent                                     = {80.0f, 20.0f, 20.0f};    // パドルの当たり判定
             collision.type                                       = Tsukino::BuiltIn::ECS::ColliderType::Box;
             // RBをつける
             Tsukino::BuiltIn::ECS::RigidbodyComponent& rb = registry.AddComponent<Tsukino::BuiltIn::ECS::RigidbodyComponent>(paddleEntity);
@@ -139,8 +139,8 @@ namespace Tsukino::Sandbox {
             model.visible                                = true;
             // コリジョンをつける
             Tsukino::BuiltIn::ECS::CollisionComponent& collision = registry.AddComponent<Tsukino::BuiltIn::ECS::CollisionComponent>(ballEntity);
-            collision.extent                                     = {5.0f, 5.0f, 5.0f};    // パドルの当たり判定
-            collision.type                                       = Tsukino::BuiltIn::ECS::ColliderType::Box;
+            collision.extent                                     = {20.0f, 20.0f, 20.0f};    // ボールの当たり判定
+            collision.type                                       = Tsukino::BuiltIn::ECS::ColliderType::Sphere;
             // RBをつける
             Tsukino::BuiltIn::ECS::RigidbodyComponent& rb = registry.AddComponent<Tsukino::BuiltIn::ECS::RigidbodyComponent>(ballEntity);
             rb.type                                       = Tsukino::BuiltIn::ECS::RigidbodyType::Kinematic;
