@@ -12,6 +12,7 @@ namespace BlockBreakingSample::ECS {
     //! @brief  ボールに必要なCmoponent
     //-------------------------------------------------------------
     struct BallComponent {
-        float speed = 200.0f;    //!< ボールの移動速度
+        bool  IsLaunched = false;     //!< 発射されたかどうかのフラグ
+        float speed      = 200.0f;    //!< ボールの移動速度
     };
 }    // namespace BlockBreakingSample::ECS

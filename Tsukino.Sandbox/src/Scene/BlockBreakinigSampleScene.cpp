@@ -6,7 +6,9 @@
 #include <Tsukino/Sandbox/Scene/BlockBreakingSampleScene.hpp>
 
 #include <Tsukino/Sandbox/BlockBreakingSample/ECS/Component/PaddleComponent.hpp>
+#include <Tsukino/Sandbox/BlockBreakingSample/ECS/Component/BallComponent.hpp>
 #include <Tsukino/Sandbox/BlockBreakingSample/ECS/System/PaddleSystem.hpp>
+#include <Tsukino/Sandbox/BlockBreakingSample/ECS/System/BallSystem.hpp>
 
 #include <Tsukino/EngineIntegration/EngineAPI.hpp>
 #include <Tsukino/EngineIntegration/EngineContext.hpp>
@@ -45,6 +47,8 @@ namespace Tsukino::Sandbox {
         m_scene.AddSystem(std::make_shared<Tsukino::BuiltIn::ECS::CameraSystem>(), 5);
         // パドルの操作 (優先度 6)
         m_scene.AddSystem(std::make_shared<BlockBreakingSample::ECS::PaddleSystem>(), 6);
+        // ボールの操作 (優先度 7)
+        m_scene.AddSystem(std::make_shared<BlockBreakingSample::ECS::BallSystem>(), 7);
         // モデル描画 (優先度 10)
         m_scene.AddSystem(std::make_shared<Tsukino::BuiltIn::ECS::ModelSystem>(), 10);
         // コリジョンの更新は最後に行う (優先度 12)
@@ -114,6 +118,34 @@ namespace Tsukino::Sandbox {
             rb.type                                       = Tsukino::BuiltIn::ECS::RigidbodyType::Kinematic;
             // パドルコンポーネントを追加
             BlockBreakingSample::ECS::PaddleComponent& paddle = registry.AddComponent<BlockBreakingSample::ECS::PaddleComponent>(paddleEntity);
+        }
+
+        //--------------------------------------------------------------
+        // ボール
+        //--------------------------------------------------------------
+        {
+            Tsukino::ECS::Entity ballEntity = m_scene.CreateEntity();
+            // TransformComponent
+            Tsukino::BuiltIn::ECS::TransformComponent& modelTransform = registry.AddComponent<Tsukino::BuiltIn::ECS::TransformComponent>(ballEntity);
+            modelTransform.position                                   = hlslpp::float3(0.0f, 0.0f, 0.0f);
+            modelTransform.rotation                                   = hlslpp::quaternion(0.0f, 0.0f, 0.0f, 1.0f);    // 無回転
+            modelTransform.scale                                      = hlslpp::float3(1.0f, 1.0f, 1.0f);
+            modelTransform.dirty                                      = true;          // 初回計算のためフラグを立てる
+            modelTransform.parent                                     = entt::null;    // 親なし
+
+            // ModelComponent
+            Tsukino::BuiltIn::ECS::ModelComponent& model = registry.AddComponent<Tsukino::BuiltIn::ECS::ModelComponent>(ballEntity);
+            model.modelHandle                            = context->assetManager->Load(Tsukino::Core::Path("Tsukino.Sandbox/Assets/Models/Ball.fbx"));
+            model.visible                                = true;
+            // コリジョンをつける
+            Tsukino::BuiltIn::ECS::CollisionComponent& collision = registry.AddComponent<Tsukino::BuiltIn::ECS::CollisionComponent>(ballEntity);
+            collision.extent                                     = {5.0f, 5.0f, 5.0f};    // パドルの当たり判定
+            collision.type                                       = Tsukino::BuiltIn::ECS::ColliderType::Box;
+            // RBをつける
+            Tsukino::BuiltIn::ECS::RigidbodyComponent& rb = registry.AddComponent<Tsukino::BuiltIn::ECS::RigidbodyComponent>(ballEntity);
+            rb.type                                       = Tsukino::BuiltIn::ECS::RigidbodyType::Kinematic;
+            // ボールコンポーネントを追加
+            BlockBreakingSample::ECS::BallComponent& paddle = registry.AddComponent<BlockBreakingSample::ECS::BallComponent>(ballEntity);
         }
     }
 
