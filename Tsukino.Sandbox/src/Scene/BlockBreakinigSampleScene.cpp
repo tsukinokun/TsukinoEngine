@@ -5,6 +5,9 @@
 //-------------------------------------------------------------
 #include <Tsukino/Sandbox/Scene/BlockBreakingSampleScene.hpp>
 
+#include <Tsukino/Sandbox/BlockBreakingSample/ECS/Component/PaddleComponent.hpp>
+#include <Tsukino/Sandbox/BlockBreakingSample/ECS/System/PaddleSystem.hpp>
+
 #include <Tsukino/EngineIntegration/EngineAPI.hpp>
 #include <Tsukino/EngineIntegration/EngineContext.hpp>
 #include <Tsukino/Engine/Asset/AssetManager.hpp>
@@ -40,6 +43,8 @@ namespace Tsukino::Sandbox {
         m_scene.AddSystem(std::make_shared<Tsukino::BuiltIn::ECS::TransformSystem>(), 0);
         // カメラは描画前に更新する (優先度 5)
         m_scene.AddSystem(std::make_shared<Tsukino::BuiltIn::ECS::CameraSystem>(), 5);
+        // パドルの操作 (優先度 6)
+        m_scene.AddSystem(std::make_shared<BlockBreakingSample::ECS::PaddleSystem>(), 6);
         // モデル描画 (優先度 10)
         m_scene.AddSystem(std::make_shared<Tsukino::BuiltIn::ECS::ModelSystem>(), 10);
         // コリジョンの更新は最後に行う (優先度 12)
@@ -72,7 +77,7 @@ namespace Tsukino::Sandbox {
 
             // TransformComponent (カメラの位置)
             Tsukino::BuiltIn::ECS::TransformComponent& camTransform3D = registry.AddComponent<Tsukino::BuiltIn::ECS::TransformComponent>(cameraEntity3D);
-            camTransform3D.position                                   = hlslpp::float3(0.0f, 100.0f, -250.0f);    // 手前に引く
+            camTransform3D.position                                   = hlslpp::float3(0.0f, 0.0f, -500.0f);    // 手前に引く
 
             // CameraComponent (投影設定)
             Tsukino::BuiltIn::ECS::CameraComponent& camera3D = registry.AddComponent<Tsukino::BuiltIn::ECS::CameraComponent>(cameraEntity3D);
@@ -90,7 +95,7 @@ namespace Tsukino::Sandbox {
             Tsukino::ECS::Entity paddleEntity = m_scene.CreateEntity();
             // TransformComponent
             Tsukino::BuiltIn::ECS::TransformComponent& modelTransform = registry.AddComponent<Tsukino::BuiltIn::ECS::TransformComponent>(paddleEntity);
-            modelTransform.position                                   = hlslpp::float3(0.0f, 0.0f, 0.0f);
+            modelTransform.position                                   = hlslpp::float3(0.0f, -200.0f, 0.0f);
             modelTransform.rotation                                   = hlslpp::quaternion(0.0f, 0.0f, 0.0f, 1.0f);    // 無回転
             modelTransform.scale                                      = hlslpp::float3(1.0f, 1.0f, 1.0f);
             modelTransform.dirty                                      = true;          // 初回計算のためフラグを立てる
@@ -107,6 +112,8 @@ namespace Tsukino::Sandbox {
             // RBをつける
             Tsukino::BuiltIn::ECS::RigidbodyComponent& rb = registry.AddComponent<Tsukino::BuiltIn::ECS::RigidbodyComponent>(paddleEntity);
             rb.type                                       = Tsukino::BuiltIn::ECS::RigidbodyType::Kinematic;
+            // パドルコンポーネントを追加
+            BlockBreakingSample::ECS::PaddleComponent& paddle = registry.AddComponent<BlockBreakingSample::ECS::PaddleComponent>(paddleEntity);
         }
     }
 
