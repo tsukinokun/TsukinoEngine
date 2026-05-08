@@ -126,12 +126,12 @@ namespace Tsukino::Sandbox {
         {
             Tsukino::ECS::Entity ballEntity = m_scene.CreateEntity();
             // TransformComponent
-            Tsukino::BuiltIn::ECS::TransformComponent& modelTransform = registry.AddComponent<Tsukino::BuiltIn::ECS::TransformComponent>(ballEntity);
-            modelTransform.position                                   = hlslpp::float3(0.0f, 0.0f, 0.0f);
-            modelTransform.rotation                                   = hlslpp::quaternion(0.0f, 0.0f, 0.0f, 1.0f);    // 無回転
-            modelTransform.scale                                      = hlslpp::float3(1.0f, 1.0f, 1.0f);
-            modelTransform.dirty                                      = true;          // 初回計算のためフラグを立てる
-            modelTransform.parent                                     = entt::null;    // 親なし
+            Tsukino::BuiltIn::ECS::TransformComponent& ballTransform = registry.AddComponent<Tsukino::BuiltIn::ECS::TransformComponent>(ballEntity);
+            ballTransform.position                                   = hlslpp::float3(0.0f, 0.0f, 0.0f);
+            ballTransform.rotation                                   = hlslpp::quaternion(0.0f, 0.0f, 0.0f, 1.0f);    // 無回転
+            ballTransform.scale                                      = hlslpp::float3(1.0f, 1.0f, 1.0f);
+            ballTransform.dirty                                      = true;          // 初回計算のためフラグを立てる
+            ballTransform.parent                                     = entt::null;    // 親なし
 
             // ModelComponent
             Tsukino::BuiltIn::ECS::ModelComponent& model = registry.AddComponent<Tsukino::BuiltIn::ECS::ModelComponent>(ballEntity);
@@ -146,6 +146,30 @@ namespace Tsukino::Sandbox {
             rb.type                                       = Tsukino::BuiltIn::ECS::RigidbodyType::Kinematic;
             // ボールコンポーネントを追加
             BlockBreakingSample::ECS::BallComponent& paddle = registry.AddComponent<BlockBreakingSample::ECS::BallComponent>(ballEntity);
+        }
+        //--------------------------------------------------------------
+        // 四方に壁エンティティを作成
+        //--------------------------------------------------------------
+        {
+            Tsukino::ECS::Entity wallEntity = m_scene.CreateEntity();
+            // TransformComponent
+            Tsukino::BuiltIn::ECS::TransformComponent& wallTransform = registry.AddComponent<Tsukino::BuiltIn::ECS::TransformComponent>(wallEntity);
+            wallTransform.position                                   = hlslpp::float3(0.0f, 0.0f, 0.0f);
+            wallTransform.rotation                                   = hlslpp::quaternion(0.0f, 0.0f, 0.0f, 1.0f);    // 無回転
+            wallTransform.scale                                      = hlslpp::float3(1.0f, 1.0f, 1.0f);
+            wallTransform.dirty                                      = true;          // 初回計算のためフラグを立てる
+            wallTransform.parent                                     = entt::null;    // 親なし
+            Tsukino::BuiltIn::ECS::ModelComponent& model             = registry.AddComponent<Tsukino::BuiltIn::ECS::ModelComponent>(wallEntity);
+            model.modelHandle = context->assetManager->Load(Tsukino::Core::Path("Tsukino.Sandbox/Assets/Models/Wall.fbx"));
+            model.visible     = true;
+            // コリジョンをつける
+            Tsukino::BuiltIn::ECS::CollisionComponent& collision = registry.AddComponent<Tsukino::BuiltIn::ECS::CollisionComponent>(wallEntity);
+            collision.extent                                     = {20.0f, 20.0f, 20.0f};    // ボールの当たり判定
+            collision.type                                       = Tsukino::BuiltIn::ECS::ColliderType::Box;
+            // RBをつける
+            Tsukino::BuiltIn::ECS::RigidbodyComponent& rb = registry.AddComponent<Tsukino::BuiltIn::ECS::RigidbodyComponent>(paddleEntity);
+            rb.type                                       = Tsukino::BuiltIn::ECS::RigidbodyType::Kinematic;
+
         }
     }
 
