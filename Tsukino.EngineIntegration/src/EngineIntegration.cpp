@@ -41,7 +41,7 @@ namespace Tsukino::EngineIntegration {
     //------------------------------------------------------------
     //! @brief  エンジンの初期化関数
     //------------------------------------------------------------
-    bool EngineIntegration::Initialize() {
+    bool EngineIntegration::Initialize(int width, int height) {
         //--------------------------------------------------------------
         // COM初期化
         //--------------------------------------------------------------
@@ -70,14 +70,14 @@ namespace Tsukino::EngineIntegration {
         //--------------------------------------------------------------
         // ウィンドウ生成
         //--------------------------------------------------------------
-        if(!m_window->Create("TsukinoEngine", 1280, 720)) {
+        if(!m_window->Create("TsukinoEngine", width, height)) {
             return false;
         }
 
         //--------------------------------------------------------------
         // オーディオマネージャの初期化
         //--------------------------------------------------------------
-        if (!m_audioManager->Initialize()) {
+        if(!m_audioManager->Initialize()) {
             Tsukino::Core::Log::Error("Failed to initialize AudioManager.");
             return false;
         }
