@@ -291,7 +291,7 @@ namespace Tsukino::BuiltIn::ECS {
         for(auto entity : view) {
             auto& col = registry.GetComponent<CollisionComponent>(entity);
 
-            // --- ステップ1: ボディの新規生成 ---
+            // ボディの新規生成
             if(!col.isInitialized) {
                 JPH::RefConst<JPH::Shape> shape;
                 // (Shape生成ロジックは現状維持)
@@ -357,7 +357,7 @@ namespace Tsukino::BuiltIn::ECS {
                 }
             }
 
-            // --- ステップ2: Kinematicの同期 (Transform -> Jolt) ---
+            // Kinematicの同期 (Transform -> Jolt) ---
             // 物理シミュレーションの前に、プログラム側で動いた座標をJoltに伝える
             if(col.isInitialized && registry.HasComponent<RigidbodyComponent>(entity)) {
                 auto& rb = registry.GetComponent<RigidbodyComponent>(entity);
@@ -371,11 +371,11 @@ namespace Tsukino::BuiltIn::ECS {
             }
         }
 
-        // --- ステップ3: 物理シミュレーション実行 ---
+        //  物理シミュレーション実行 ---
         float stepTime = deltaTime > 0.0f ? deltaTime : 1.0f / 60.0f;
         m_impl->physicsSystem->Update(stepTime, 1, m_impl->tempAllocator, m_impl->jobSystem);
 
-        // --- ステップ4: Dynamicの同期 (Jolt -> Transform) ---
+        //  Dynamicの同期 (Jolt -> Transform) ---
         for(auto entity : view) {
             auto& col = registry.GetComponent<CollisionComponent>(entity);
             if(col.isInitialized && registry.HasComponent<RigidbodyComponent>(entity)) {
@@ -394,7 +394,6 @@ namespace Tsukino::BuiltIn::ECS {
             }
         }
 
-        // F5 key logic for debug drawing
         bool f5IsDown = (::GetAsyncKeyState(VK_F5) & 0x8000) != 0;
         if (f5IsDown && !m_impl->f5WasDown) {
             m_impl->isDebugDrawEnabled = !m_impl->isDebugDrawEnabled;
