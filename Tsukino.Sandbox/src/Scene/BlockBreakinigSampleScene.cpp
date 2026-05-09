@@ -272,40 +272,64 @@ namespace Tsukino::Sandbox {
         // ブロック（Brick）の二重ループ生成（壁の内側に配置）
         //--------------------------------------------------------------
         {
-            Tsukino::ECS::Entity brickEntity = m_scene.CreateEntity();
+            const int   rows    = 5;       // 行数
+            const int   cols    = 8;       // 列数
+            const float spacing = 20.0f;    // ブロック間の隙間
 
-            // --- Transform ---
-            auto& tf    = registry.AddComponent<Tsukino::BuiltIn::ECS::TransformComponent>(brickEntity);
-            tf.position = hlslpp::float3(0.0f, 0.0f, 0.0f);
-            tf.rotation = hlslpp::quaternion(0.0f, 0.0f, 0.0f, 1.0f);
-            tf.scale    = hlslpp::float3(0.25f, 0.2f, 1.0f);    // この見た目を維持
-            tf.dirty    = true;
-            tf.parent   = entt::null;
+            // ブロックの見た目のサイズ（10.0f * 2 = 20.0f / 5.0f * 2 = 10.0f）
+            const float brickWidth  = 30.0f;
+            const float brickHeight = 10.0f;
 
-            // --- Model ---
-            auto& model       = registry.AddComponent<Tsukino::BuiltIn::ECS::ModelComponent>(brickEntity);
-            model.modelHandle = context->assetManager->Load(Tsukino::Core::Path("Tsukino.Sandbox/Assets/Models/Block.fbx"));
-            model.visible     = true;
+            // 全体の横幅を計算して、中央寄せの開始地点を決める
+            float totalWidth = (cols * brickWidth) + ((cols - 1) * spacing);
+            float startX     = -(totalWidth / 2.0f) + (brickWidth / 2.0f);
+            float startY     = 150.0f;    // 画面上方の開始高さ
 
-            // --- Collision (ここをモデルの見た目に合わせる) ---
-            auto& col = registry.AddComponent<Tsukino::BuiltIn::ECS::CollisionComponent>(brickEntity);
-            col.type  = Tsukino::BuiltIn::ECS::ColliderType::Box;
+            for(int y = 0; y < rows; ++y) {
+                for(int x = 0; x < cols; ++x) {
+                    Tsukino::ECS::Entity brickEntity = m_scene.CreateEntity();
 
-            col.extent = hlslpp::float3(10.0f, 5.0f, 10.0f);
+                    // --- Transform ---
+                    auto& tf = registry.AddComponent<Tsukino::BuiltIn::ECS::TransformComponent>(brickEntity);
+                    // グリッド状に位置を計算
+                    float posX = startX + (x * (brickWidth + spacing));
+                    float posY = startY - (y * (brickHeight + spacing));
 
-            // --- Rigidbody ---
-            auto& rb = registry.AddComponent<Tsukino::BuiltIn::ECS::RigidbodyComponent>(brickEntity);
-            rb.type  = Tsukino::BuiltIn::ECS::RigidbodyType::Kinematic;
+                    tf.position = hlslpp::float3(posX, posY, 0.0f);
+                    tf.rotation = hlslpp::quaternion(0.0f, 0.0f, 0.0f, 1.0f);
+                    tf.scale    = hlslpp::float3(1.0f, 1.0f, 1.0f);
+                    tf.dirty    = true;
+                    tf.parent   = entt::null;
 
-            // --- BrickComponent & Callback ---
-            registry.AddComponent<BlockBreakingSample::ECS::BrickComponent>(brickEntity);
+                    // --- Model ---
+                    auto& model       = registry.AddComponent<Tsukino::BuiltIn::ECS::ModelComponent>(brickEntity);
+                    model.modelHandle = context->assetManager->Load(Tsukino::Core::Path("Tsukino.Sandbox/Assets/Models/Block.fbx"));
+                    model.visible     = true;
 
-            col.onCollisionEnter = [&registry, brickEntity](entt::entity other) {
-                if(registry.HasComponent<BlockBreakingSample::ECS::BallComponent>(other)) {
-                    auto& brick = registry.GetComponent<BlockBreakingSample::ECS::BrickComponent>(brickEntity);
-                    brick.dead = true;
+                    // --- Collision ---
+                    auto& col = registry.AddComponent<Tsukino::BuiltIn::ECS::CollisionComponent>(brickEntity);
+                    col.type  = Tsukino::BuiltIn::ECS::ColliderType::Box;
+                    // 
+                    col.extent = hlslpp::float3(20.0f, 10.0f, 10.0f);
+
+                    // --- Rigidbody ---
+                    auto& rb = registry.AddComponent<Tsukino::BuiltIn::ECS::RigidbodyComponent>(brickEntity);
+                    rb.type  = Tsukino::BuiltIn::ECS::RigidbodyType::Kinematic;
+
+                    // --- BrickComponent & Callback ---
+                    auto& brick = registry.AddComponent<BlockBreakingSample::ECS::BrickComponent>(brickEntity);
+                    brick.dead  = false;    // 初期化
+
+                    col.onCollisionEnter = [&registry, brickEntity](entt::entity other) {
+                        if(registry.HasComponent<BlockBreakingSample::ECS::BallComponent>(other)) {
+                            if(registry.IsValid(brickEntity)) {
+                                auto& b = registry.GetComponent<BlockBreakingSample::ECS::BrickComponent>(brickEntity);
+                                b.dead  = true;    // フラグを立てて後で消去
+                            }
+                        }
+                    };
                 }
-            };
+            }
         }
     }
 
