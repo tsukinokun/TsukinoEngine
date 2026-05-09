@@ -147,8 +147,12 @@ namespace Tsukino::Sandbox {
             Tsukino::BuiltIn::ECS::CollisionComponent& ballCol = registry.GetComponent<Tsukino::BuiltIn::ECS::CollisionComponent>(ballEntity);
             // コールバックを設定
             ballCol.onCollisionEnter = [&registry, ballEntity](entt::entity other) {
-                if(!registry.HasComponent<BlockBreakingSample::ECS::WallComponent>(other)
-                   && !registry.HasComponent<BlockBreakingSample::ECS::BrickComponent>(other))
+                // 壁・ブロック・パドルのいずれでもないなら無視
+                bool isWall   = registry.HasComponent<BlockBreakingSample::ECS::WallComponent>(other);
+                bool isBrick  = registry.HasComponent<BlockBreakingSample::ECS::BrickComponent>(other);
+                bool isPaddle = registry.HasComponent<BlockBreakingSample::ECS::PaddleComponent>(other);
+
+                if(!isWall && !isBrick && !isPaddle)
                     return;
 
                 auto& rb       = registry.GetComponent<Tsukino::BuiltIn::ECS::RigidbodyComponent>(ballEntity);
@@ -156,13 +160,36 @@ namespace Tsukino::Sandbox {
                 auto& otherTf  = registry.GetComponent<Tsukino::BuiltIn::ECS::TransformComponent>(other);
                 auto& otherCol = registry.GetComponent<Tsukino::BuiltIn::ECS::CollisionComponent>(other);
 
-                // 1. 相手のサイズ(extent)を考慮して、どの面から侵入したかを計算
-                hlslpp::float3 diff = ballTf.position - otherTf.position;
+                // --- パドル独自の反射処理 ---
+                if(isPaddle) {
+                    // 1. パドルの中心からの距離を -1.0 ~ 1.0 で正規化
+                    // パドルの横幅(extent.x * 2)に対して、ボールがどこに当たったか
+                    float relativeHitPos = (ballTf.position.x - otherTf.position.x) / otherCol.extent.x;
 
-                // 各軸での「はみ出し量」を計算（正規化）
-                // 相手のサイズで割ることで、アスペクト比に関係なく 1.0 に近い方が衝突面と判断できる
-                float nx = diff.x / (otherCol.extent.x + 0.001f);
-                float ny = diff.y / (otherCol.extent.y + 0.001f);
+                    // 安全のために範囲をクランプ
+                    relativeHitPos = std::clamp(relativeHitPos, -1.0f, 1.0f);
+
+                    // 2. 新しい速度ベクトルを計算
+                    // 最大反射角（例えば60度）を定義
+                    const float maxAngle = 60.0f * (3.14159f / 180.0f);
+                    float       angle    = relativeHitPos * maxAngle;
+
+                    // 現在の速さを維持
+                    float speed = hlslpp::length(rb.linearVelocity);
+
+                    // 新しい方向ベクトル (x = sin, y = cos で上向きを基準にする)
+                    rb.linearVelocity = hlslpp::float3(std::sin(angle) * speed, std::cos(angle) * speed, 0.0f);
+
+                    // 3. 押し戻し（パドルの上に乗らないように）
+                    ballTf.position.y = otherTf.position.y + otherCol.extent.y + 5.0f;
+                    ballTf.dirty      = true;
+                    return;    // パドル処理をしたのでここで終了
+                }
+
+                // --- 通常の壁・ブロックの反射処理（既存のロジック） ---
+                hlslpp::float3 diff = ballTf.position - otherTf.position;
+                float          nx   = diff.x / (otherCol.extent.x + 0.001f);
+                float          ny   = diff.y / (otherCol.extent.y + 0.001f);
 
                 hlslpp::float3 normal = hlslpp::float3(0, 0, 0);
                 if(std::abs(nx) > std::abs(ny)) {
@@ -171,18 +198,11 @@ namespace Tsukino::Sandbox {
                     normal.y = (ny > 0) ? 1.0f : -1.0f;
                 }
 
-                // 2. 反射処理
                 float dot = hlslpp::dot(rb.linearVelocity, normal);
-
-                // 速度が壁に向かっている場合のみ反射 (少し余裕を持たせて -0.01f)
                 if(dot < -0.01f) {
-                    rb.linearVelocity = rb.linearVelocity - 2.0f * dot * normal;
-
-                    // 3. 押し戻しを強化
-                    // 固定値 2.0f ではなく、ボールのサイズや速度に合わせて少し多めに。
-                    // ここで「壁の外」へ完全に出し切るのがコツです。
-                    ballTf.position += normal * 5.0f;
-                    ballTf.dirty     = true;
+                    rb.linearVelocity  = rb.linearVelocity - 2.0f * dot * normal;
+                    ballTf.position   += normal * 5.0f;
+                    ballTf.dirty       = true;
                 }
             };
 
