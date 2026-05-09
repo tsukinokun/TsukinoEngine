@@ -39,10 +39,16 @@ namespace BlockBreakingSample::ECS {
             if(inputSystem->IsKeyDown(Tsukino::Input::KeyCode::Left)) {
                 // 左キーが押されている場合の処理
                 transform.position.x -= paddle.speed * deltaTime;
+                if(transform.position.x < -paddle.clampRange) {
+                    transform.position.x = -paddle.clampRange;
+                }
                 transform.dirty       = true;    // Transformが更新されたことを示すフラグ
             } else if(inputSystem->IsKeyDown(Tsukino::Input::KeyCode::Right)) {
                 // 右キーが押されている場合の処理
                 transform.position.x += paddle.speed * deltaTime;
+                if(transform.position.x > paddle.clampRange) {
+                    transform.position.x = paddle.clampRange;
+                }
                 transform.dirty       = true;    // Transformが更新されたことを示すフラグ
             }
         });
