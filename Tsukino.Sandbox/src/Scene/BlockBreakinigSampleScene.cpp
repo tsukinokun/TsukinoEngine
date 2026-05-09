@@ -7,6 +7,7 @@
 
 #include <Tsukino/Sandbox/BlockBreakingSample/ECS/Component/PaddleComponent.hpp>
 #include <Tsukino/Sandbox/BlockBreakingSample/ECS/Component/BallComponent.hpp>
+#include <Tsukino/Sandbox/BlockBreakingSample/ECS/Component/WallComponent.hpp>
 #include <Tsukino/Sandbox/BlockBreakingSample/ECS/System/PaddleSystem.hpp>
 #include <Tsukino/Sandbox/BlockBreakingSample/ECS/System/BallSystem.hpp>
 
@@ -141,6 +142,7 @@ namespace Tsukino::Sandbox {
             Tsukino::BuiltIn::ECS::CollisionComponent& collision = registry.AddComponent<Tsukino::BuiltIn::ECS::CollisionComponent>(ballEntity);
             collision.extent                                     = {20.0f, 20.0f, 20.0f};    // ボールの当たり判定
             collision.type                                       = Tsukino::BuiltIn::ECS::ColliderType::Sphere;
+
             // RBをつける
             Tsukino::BuiltIn::ECS::RigidbodyComponent& rb = registry.AddComponent<Tsukino::BuiltIn::ECS::RigidbodyComponent>(ballEntity);
             rb.type                                       = Tsukino::BuiltIn::ECS::RigidbodyType::Kinematic;
@@ -198,6 +200,9 @@ namespace Tsukino::Sandbox {
                 auto& rb = registry.AddComponent<Tsukino::BuiltIn::ECS::RigidbodyComponent>(wallEntity);
                 // 壁は動かないのでKinematic
                 rb.type = Tsukino::BuiltIn::ECS::RigidbodyType::Kinematic;
+
+                // --- WallComponent ---
+                //auto& wallComp = registry.AddComponent<BlockBreakingSample::ECS::WallComponent>(wallEntity);
             }
         }
     }
