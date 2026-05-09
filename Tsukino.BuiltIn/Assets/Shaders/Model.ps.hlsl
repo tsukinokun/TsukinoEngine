@@ -37,7 +37,7 @@ float4 PSMain(PSInput input) : SV_TARGET
 {
     // Basic direction light (hardcoded for now)
     float3 lightDir = normalize(float3(1.0f, -1.0f, 1.0f));
-    float ndotl = saturate(dot(input.normal, lightDir));
+    float ndotl = saturate(dot(input.normal, -lightDir));
     
     // Very basic diffuse lighting
     float3 ambient = float3(0.2f, 0.2f, 0.2f);
