@@ -13,5 +13,7 @@ namespace BlockBreakingSample::ECS {
     //-------------------------------------------------------------
     struct PaddleComponent {
         float speed = 150.0f;    //!< パドルの移動速度
+        // 横の移動制限を設ける
+        float clampRange = 150.0f;    //!< パドルの移動範囲の半分
     };
 }    // namespace BlockBreakingSample::ECS
