@@ -158,21 +158,54 @@ namespace Tsukino::BuiltIn::ECS {
         //! @param  ioSettings [in/out] コンタクト設定（摩擦係数等のオーバーライド可能）
         //-------------------------------------------------------------
         void OnContactAdded(const JPH::Body& inBody1, const JPH::Body& inBody2, const JPH::ContactManifold& inManifold, JPH::ContactSettings& ioSettings) override {
-            if (!registry) return;
+            if(!registry)
+                return;
 
-            auto callEnterEvent = [&](const JPH::Body& b1, const JPH::Body& b2) {
-                uint64_t entityId1 = b1.GetUserData();
-                uint64_t entityId2 = b2.GetUserData();
+            // 衝突時の法線（Body1から見たBody2への法線）
+            // Joltの法線は「Body1から衝突点への方向」を指す
+            JPH::Vec3 normal = inManifold.mWorldSpaceNormal;
 
-                if (entityId1 != 0 && registry->HasComponent<CollisionComponent>((entt::entity)entityId1)) {
-                    auto& comp = registry->GetComponent<CollisionComponent>((entt::entity)entityId1);
-                    if (comp.onCollisionEnter) {
-                        comp.onCollisionEnter((entt::entity)entityId2);
+            auto handleReflection = [&](const JPH::Body& self, const JPH::Body& other, JPH::Vec3 n) {
+                uint64_t selfId = self.GetUserData();
+                if(selfId == 0)
+                    return;
+
+                entt::entity entity = (entt::entity)selfId;
+
+                // 1. RigidbodyComponentがあれば反射処理を行う
+                if(registry->HasComponent<RigidbodyComponent>(entity)) {
+                    auto& rb = registry->GetComponent<RigidbodyComponent>(entity);
+
+                    // Kinematic（ボール等）のみ反射を計算
+                    if(rb.type == RigidbodyType::Kinematic) {
+                        hlslpp::float3 V = rb.linearVelocity;
+                        hlslpp::float3 N = {n.GetX(), n.GetY(), n.GetZ()};
+
+                        // 内積を計算 (速度ベクトルと法線が向き合っているか)
+                        float dot = hlslpp::dot(V, N);
+
+                        // dot < 0 の場合、物体は壁に向かっている
+                        if(dot < 0.0f) {
+                            // 反射の公式: V' = V - 2 * (V・N) * N
+                            rb.linearVelocity = V - 2.0f * dot * N;
+                        }
+                    }
+                }
+
+                // 2. 既存の通知処理（CollisionComponent）
+                if(registry->HasComponent<CollisionComponent>(entity)) {
+                    auto& col = registry->GetComponent<CollisionComponent>(entity);
+                    if(col.onCollisionEnter) {
+                        col.onCollisionEnter((entt::entity)other.GetUserData());
                     }
                 }
             };
-            callEnterEvent(inBody1, inBody2);
-            callEnterEvent(inBody2, inBody1);
+
+            // Body1に対する処理 (法線はそのままでOK)
+            handleReflection(inBody1, inBody2, normal);
+
+            // Body2に対する処理 (法線は逆向きにする必要がある)
+            handleReflection(inBody2, inBody1, -normal);
         }
     };
 
@@ -340,9 +373,12 @@ namespace Tsukino::BuiltIn::ECS {
 
                     // Rigidbodyのパラメータ適用
                     if(registry.HasComponent<RigidbodyComponent>(entity)) {
-                        auto& rb                               = registry.GetComponent<RigidbodyComponent>(entity);
-                        settings.mFriction                     = rb.friction;
-                        settings.mRestitution                  = rb.restitution;
+                        auto& rb              = registry.GetComponent<RigidbodyComponent>(entity);
+                        settings.mFriction    = rb.friction;
+                        settings.mRestitution = rb.restitution;
+                        settings.mGravityFactor  = rb.gravityFactor;    // 重力の影響度 (0.0f で無重力)
+                        settings.mLinearDamping  = 0.0f;                // 空気抵抗による減衰を無効化
+                        settings.mAngularDamping = 0.0f;                // 回転の減衰を無効化
                         settings.mOverrideMassProperties       = JPH::EOverrideMassProperties::CalculateInertia;
                         settings.mMassPropertiesOverride.mMass = rb.mass;
                     }

@@ -24,9 +24,10 @@ namespace Tsukino::BuiltIn::ECS {
     struct RigidbodyComponent {
         RigidbodyType type = RigidbodyType::Dynamic;
 
-        float mass        = 1.0f;    // 質量
-        float friction    = 0.5f;    // 摩擦係数
-        float restitution = 0.0f;    // 反発係数
+        float mass          = 1.0f;    // 質量
+        float friction      = 0.5f;    // 摩擦係数
+        float restitution   = 0.0f;    // 反発係数
+        float gravityFactor = 1.0f;    // デフォルトは標準重力
 
         hlslpp::float3 linearVelocity  = {0, 0, 0};    // 線速度
         hlslpp::float3 angularVelocity = {0, 0, 0};    // 角速度
