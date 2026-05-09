@@ -143,6 +143,47 @@ namespace Tsukino::Sandbox {
             collision.extent                                     = {20.0f, 20.0f, 20.0f};    // ボールの当たり判定
             collision.type                                       = Tsukino::BuiltIn::ECS::ColliderType::Sphere;
 
+            Tsukino::BuiltIn::ECS::CollisionComponent& ballCol = registry.GetComponent<Tsukino::BuiltIn::ECS::CollisionComponent>(ballEntity);
+            // コールバックを設定
+            ballCol.onCollisionEnter = [&registry, ballEntity](entt::entity other) {
+                if(!registry.HasComponent<BlockBreakingSample::ECS::WallComponent>(other))
+                    return;
+
+                auto& rb       = registry.GetComponent<Tsukino::BuiltIn::ECS::RigidbodyComponent>(ballEntity);
+                auto& ballTf   = registry.GetComponent<Tsukino::BuiltIn::ECS::TransformComponent>(ballEntity);
+                auto& otherTf  = registry.GetComponent<Tsukino::BuiltIn::ECS::TransformComponent>(other);
+                auto& otherCol = registry.GetComponent<Tsukino::BuiltIn::ECS::CollisionComponent>(other);
+
+                // 1. 相手のサイズ(extent)を考慮して、どの面から侵入したかを計算
+                hlslpp::float3 diff = ballTf.position - otherTf.position;
+
+                // 各軸での「はみ出し量」を計算（正規化）
+                // 相手のサイズで割ることで、アスペクト比に関係なく 1.0 に近い方が衝突面と判断できる
+                float nx = diff.x / (otherCol.extent.x + 0.001f);
+                float ny = diff.y / (otherCol.extent.y + 0.001f);
+
+                hlslpp::float3 normal = hlslpp::float3(0, 0, 0);
+                if(std::abs(nx) > std::abs(ny)) {
+                    normal.x = (nx > 0) ? 1.0f : -1.0f;
+                } else {
+                    normal.y = (ny > 0) ? 1.0f : -1.0f;
+                }
+
+                // 2. 反射処理
+                float dot = hlslpp::dot(rb.linearVelocity, normal);
+
+                // 速度が壁に向かっている場合のみ反射 (少し余裕を持たせて -0.01f)
+                if(dot < -0.01f) {
+                    rb.linearVelocity = rb.linearVelocity - 2.0f * dot * normal;
+
+                    // 3. 押し戻しを強化
+                    // 固定値 2.0f ではなく、ボールのサイズや速度に合わせて少し多めに。
+                    // ここで「壁の外」へ完全に出し切るのがコツです。
+                    ballTf.position += normal * 5.0f;
+                    ballTf.dirty     = true;
+                }
+            };
+
             // RBをつける
             Tsukino::BuiltIn::ECS::RigidbodyComponent& rb = registry.AddComponent<Tsukino::BuiltIn::ECS::RigidbodyComponent>(ballEntity);
             rb.type                                       = Tsukino::BuiltIn::ECS::RigidbodyType::Kinematic;
@@ -202,7 +243,7 @@ namespace Tsukino::Sandbox {
                 rb.type = Tsukino::BuiltIn::ECS::RigidbodyType::Kinematic;
 
                 // --- WallComponent ---
-                //auto& wallComp = registry.AddComponent<BlockBreakingSample::ECS::WallComponent>(wallEntity);
+                auto& wallComp = registry.AddComponent<BlockBreakingSample::ECS::WallComponent>(wallEntity);
             }
         }
     }
