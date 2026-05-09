@@ -130,6 +130,16 @@ namespace Tsukino::ECS {
             registry.ctx().erase<T>();
         }
 
+        //--------------------------------------------------------------------
+        //! @brief  エンティティが有効（生存）しているか確認
+        //! @param  entity [in] 確認するエンティティ
+        //! @return 有効であれば true
+        //--------------------------------------------------------------------
+        [[nodiscard]]
+        bool IsValid(Entity entity) const {
+            return registry.valid(entity);
+        }
+
     private:
         entt::registry registry;    //!< 内部のレジストリ
     };

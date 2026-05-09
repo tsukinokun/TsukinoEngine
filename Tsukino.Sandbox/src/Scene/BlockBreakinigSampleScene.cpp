@@ -8,8 +8,10 @@
 #include <Tsukino/Sandbox/BlockBreakingSample/ECS/Component/PaddleComponent.hpp>
 #include <Tsukino/Sandbox/BlockBreakingSample/ECS/Component/BallComponent.hpp>
 #include <Tsukino/Sandbox/BlockBreakingSample/ECS/Component/WallComponent.hpp>
+#include <Tsukino/Sandbox/BlockBreakingSample/ECS/Component/BrickComponent.hpp>
 #include <Tsukino/Sandbox/BlockBreakingSample/ECS/System/PaddleSystem.hpp>
 #include <Tsukino/Sandbox/BlockBreakingSample/ECS/System/BallSystem.hpp>
+#include <Tsukino/Sandbox/BlockBreakingSample/ECS/System/BrickSystem.hpp>
 
 #include <Tsukino/EngineIntegration/EngineAPI.hpp>
 #include <Tsukino/EngineIntegration/EngineContext.hpp>
@@ -19,9 +21,6 @@
 // 必要なシステムとコンポーネントのインクルード
 #include <Tsukino/EngineIntegration/ECS/System/TransformSystem.hpp>
 #include <Tsukino/EngineIntegration/ECS/System/CameraSystem.hpp>
-#include <Tsukino/EngineIntegration/ECS/System/SpriteRendererSystem.hpp>
-#include <Tsukino/EngineIntegration/ECS/System/FontRendererSystem.hpp>
-#include <Tsukino/EngineIntegration/ECS/System/AudioSystem.hpp>
 
 #include <Tsukino/BuiltIn/ECS/Component/TransformComponent.hpp>
 #include <Tsukino/BuiltIn/ECS/Component/CameraComponent.hpp>
@@ -54,6 +53,8 @@ namespace Tsukino::Sandbox {
         m_scene.AddSystem(std::make_shared<Tsukino::BuiltIn::ECS::ModelSystem>(), 10);
         // コリジョンの更新は最後に行う (優先度 12)
         m_scene.AddSystem(std::make_shared<Tsukino::BuiltIn::ECS::PhysicsSystem>(), 12);
+        // ブロックの状態更新 (優先度 13)
+        m_scene.AddSystem(std::make_shared<BlockBreakingSample::ECS::BrickSystem>(), 13);
 
         Tsukino::ECS::Registry& registry = m_scene.GetRegistry();
 
@@ -146,7 +147,8 @@ namespace Tsukino::Sandbox {
             Tsukino::BuiltIn::ECS::CollisionComponent& ballCol = registry.GetComponent<Tsukino::BuiltIn::ECS::CollisionComponent>(ballEntity);
             // コールバックを設定
             ballCol.onCollisionEnter = [&registry, ballEntity](entt::entity other) {
-                if(!registry.HasComponent<BlockBreakingSample::ECS::WallComponent>(other))
+                if(!registry.HasComponent<BlockBreakingSample::ECS::WallComponent>(other)
+                   && !registry.HasComponent<BlockBreakingSample::ECS::BrickComponent>(other))
                     return;
 
                 auto& rb       = registry.GetComponent<Tsukino::BuiltIn::ECS::RigidbodyComponent>(ballEntity);
@@ -245,6 +247,45 @@ namespace Tsukino::Sandbox {
                 // --- WallComponent ---
                 auto& wallComp = registry.AddComponent<BlockBreakingSample::ECS::WallComponent>(wallEntity);
             }
+        }
+        //--------------------------------------------------------------
+        // ブロック（Brick）の二重ループ生成（壁の内側に配置）
+        //--------------------------------------------------------------
+        {
+            Tsukino::ECS::Entity brickEntity = m_scene.CreateEntity();
+
+            // --- Transform ---
+            auto& tf    = registry.AddComponent<Tsukino::BuiltIn::ECS::TransformComponent>(brickEntity);
+            tf.position = hlslpp::float3(0.0f, 0.0f, 0.0f);
+            tf.rotation = hlslpp::quaternion(0.0f, 0.0f, 0.0f, 1.0f);
+            tf.scale    = hlslpp::float3(0.25f, 0.2f, 1.0f);    // この見た目を維持
+            tf.dirty    = true;
+            tf.parent   = entt::null;
+
+            // --- Model ---
+            auto& model       = registry.AddComponent<Tsukino::BuiltIn::ECS::ModelComponent>(brickEntity);
+            model.modelHandle = context->assetManager->Load(Tsukino::Core::Path("Tsukino.Sandbox/Assets/Models/Block.fbx"));
+            model.visible     = true;
+
+            // --- Collision (ここをモデルの見た目に合わせる) ---
+            auto& col = registry.AddComponent<Tsukino::BuiltIn::ECS::CollisionComponent>(brickEntity);
+            col.type  = Tsukino::BuiltIn::ECS::ColliderType::Box;
+
+            col.extent = hlslpp::float3(10.0f, 5.0f, 10.0f);
+
+            // --- Rigidbody ---
+            auto& rb = registry.AddComponent<Tsukino::BuiltIn::ECS::RigidbodyComponent>(brickEntity);
+            rb.type  = Tsukino::BuiltIn::ECS::RigidbodyType::Kinematic;
+
+            // --- BrickComponent & Callback ---
+            registry.AddComponent<BlockBreakingSample::ECS::BrickComponent>(brickEntity);
+
+            col.onCollisionEnter = [&registry, brickEntity](entt::entity other) {
+                if(registry.HasComponent<BlockBreakingSample::ECS::BallComponent>(other)) {
+                    auto& brick = registry.GetComponent<BlockBreakingSample::ECS::BrickComponent>(brickEntity);
+                    brick.dead = true;
+                }
+            };
         }
     }
 
