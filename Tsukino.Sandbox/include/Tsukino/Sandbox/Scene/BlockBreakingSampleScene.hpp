@@ -13,6 +13,15 @@ namespace Tsukino::Sandbox {
     //-------------------------------------------------------------
     class BlockBreakingSampleScene : public Tsukino::EngineIntegration::GameSceneBase {
     public:
+    public:
+        // ゲームの状態定義
+        enum class GameState {
+            Ready,      // 開始待ち
+            Playing,    // プレイ中
+            Clear,      // クリア演出
+            GameOver    // ゲームオーバー演出
+        };
+
         BlockBreakingSampleScene()           = default;
         ~BlockBreakingSampleScene() override = default;
 
@@ -31,5 +40,8 @@ namespace Tsukino::Sandbox {
         //! @brief  シーン固有の初期化処理
         //-------------------------------------------------------------
         void OnInitialize(Tsukino::EngineIntegration::EngineAPI& api) override;
+
+        GameState m_currentState = GameState::Ready;
+        bool      isGameOver     = false;    // ゲームオーバー状態のフラグ
     };
 }    // namespace Tsukino::Sandbox

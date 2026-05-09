@@ -15,12 +15,16 @@
 
 #include <Tsukino/EngineIntegration/EngineAPI.hpp>
 #include <Tsukino/EngineIntegration/EngineContext.hpp>
+#include <Tsukino/Core/Input/InputSystem.hpp>
 #include <Tsukino/Engine/Asset/AssetManager.hpp>
 #include <Tsukino/Core/Path.hpp>
 
 // 必要なシステムとコンポーネントのインクルード
 #include <Tsukino/EngineIntegration/ECS/System/TransformSystem.hpp>
 #include <Tsukino/EngineIntegration/ECS/System/CameraSystem.hpp>
+#include <Tsukino/EngineIntegration/ECS/System/FontRendererSystem.hpp>
+#include <Tsukino/EngineIntegration/ECS/System/PhysicsSystem.hpp>
+#include <Tsukino/EngineIntegration/Scene/GameSceneManager.hpp>
 
 #include <Tsukino/BuiltIn/ECS/Component/TransformComponent.hpp>
 #include <Tsukino/BuiltIn/ECS/Component/CameraComponent.hpp>
@@ -28,7 +32,7 @@
 #include <Tsukino/BuiltIn/ECS/Component/ModelComponent.hpp>
 #include <Tsukino/BuiltIn/ECS/Component/CollisionComponent.hpp>
 #include <Tsukino/BuiltIn/ECS/Component/RigidBodyComponent.hpp>
-#include <Tsukino/EngineIntegration/ECS/System/PhysicsSystem.hpp>
+#include <Tsukino/BuiltIn/ECS/Component/FontComponent.hpp>
 
 #include <entt/entt.hpp>
 #include <hlsl++.h>
@@ -49,6 +53,8 @@ namespace Tsukino::Sandbox {
         m_scene.AddSystem(std::make_shared<BlockBreakingSample::ECS::PaddleSystem>(), 6);
         // ボールの操作 (優先度 7)
         m_scene.AddSystem(std::make_shared<BlockBreakingSample::ECS::BallSystem>(), 7);
+        // フォント描画 (優先度 9)
+        m_scene.AddSystem(std::make_shared<Tsukino::BuiltIn::ECS::FontRendererSystem>(), 9);
         // モデル描画 (優先度 10)
         m_scene.AddSystem(std::make_shared<Tsukino::BuiltIn::ECS::ModelSystem>(), 10);
         // コリジョンの更新は最後に行う (優先度 12)
@@ -146,7 +152,7 @@ namespace Tsukino::Sandbox {
 
             Tsukino::BuiltIn::ECS::CollisionComponent& ballCol = registry.GetComponent<Tsukino::BuiltIn::ECS::CollisionComponent>(ballEntity);
             // コールバックを設定
-            ballCol.onCollisionEnter = [&registry, ballEntity](entt::entity other) {
+            ballCol.onCollisionEnter = [&registry, ballEntity, this](entt::entity other) {
                 // 壁・ブロック・パドルのいずれでもないなら無視
                 bool isWall   = registry.HasComponent<BlockBreakingSample::ECS::WallComponent>(other);
                 bool isBrick  = registry.HasComponent<BlockBreakingSample::ECS::BrickComponent>(other);
@@ -162,14 +168,14 @@ namespace Tsukino::Sandbox {
 
                 // --- パドル独自の反射処理 ---
                 if(isPaddle) {
-                    // 1. パドルの中心からの距離を -1.0 ~ 1.0 で正規化
+                    // パドルの中心からの距離を -1.0 ~ 1.0 で正規化
                     // パドルの横幅(extent.x * 2)に対して、ボールがどこに当たったか
                     float relativeHitPos = (ballTf.position.x - otherTf.position.x) / otherCol.extent.x;
 
                     // 安全のために範囲をクランプ
                     relativeHitPos = std::clamp(relativeHitPos, -1.0f, 1.0f);
 
-                    // 2. 新しい速度ベクトルを計算
+                    // 新しい速度ベクトルを計算
                     // 最大反射角（例えば60度）を定義
                     const float maxAngle = 60.0f * (3.14159f / 180.0f);
                     float       angle    = relativeHitPos * maxAngle;
@@ -180,10 +186,18 @@ namespace Tsukino::Sandbox {
                     // 新しい方向ベクトル (x = sin, y = cos で上向きを基準にする)
                     rb.linearVelocity = hlslpp::float3(std::sin(angle) * speed, std::cos(angle) * speed, 0.0f);
 
-                    // 3. 押し戻し（パドルの上に乗らないように）
+                    // 押し戻し（パドルの上に乗らないように）
                     ballTf.position.y = otherTf.position.y + otherCol.extent.y + 5.0f;
                     ballTf.dirty      = true;
                     return;    // パドル処理をしたのでここで終了
+                }
+
+                // --- 壁の場合 ---
+                if(isWall) {
+                    auto& wall = registry.GetComponent<BlockBreakingSample::ECS::WallComponent>(other);
+                    if(wall.isDeadZone) {
+                        isGameOver = true;    // ミス判定の壁に当たったらゲームオーバー
+                    }
                 }
 
                 // --- 通常の壁・ブロックの反射処理（既存のロジック） ---
@@ -265,15 +279,16 @@ namespace Tsukino::Sandbox {
                 rb.type = Tsukino::BuiltIn::ECS::RigidbodyType::Kinematic;
 
                 // --- WallComponent ---
-                auto& wallComp = registry.AddComponent<BlockBreakingSample::ECS::WallComponent>(wallEntity);
+                auto& wallComp      = registry.AddComponent<BlockBreakingSample::ECS::WallComponent>(wallEntity);
+                wallComp.isDeadZone = config.isDeadZone;    // 下の壁はミス判定用
             }
         }
         //--------------------------------------------------------------
         // ブロック（Brick）の二重ループ生成（壁の内側に配置）
         //--------------------------------------------------------------
         {
-            const int   rows    = 5;       // 行数
-            const int   cols    = 8;       // 列数
+            const int   rows    = 5;        // 行数
+            const int   cols    = 8;        // 列数
             const float spacing = 20.0f;    // ブロック間の隙間
 
             // ブロックの見た目のサイズ（10.0f * 2 = 20.0f / 5.0f * 2 = 10.0f）
@@ -309,7 +324,7 @@ namespace Tsukino::Sandbox {
                     // --- Collision ---
                     auto& col = registry.AddComponent<Tsukino::BuiltIn::ECS::CollisionComponent>(brickEntity);
                     col.type  = Tsukino::BuiltIn::ECS::ColliderType::Box;
-                    // 
+                    //
                     col.extent = hlslpp::float3(20.0f, 10.0f, 10.0f);
 
                     // --- Rigidbody ---
@@ -331,12 +346,75 @@ namespace Tsukino::Sandbox {
                 }
             }
         }
+        //--------------------------------------------------------------
+        // フォントUIエンティティの生成(ナビ)
+        //--------------------------------------------------------------
+        {
+            Tsukino::ECS::Entity                       naviEntity    = m_scene.CreateEntity();
+            Tsukino::BuiltIn::ECS::TransformComponent& fontTransform = registry.AddComponent<Tsukino::BuiltIn::ECS::TransformComponent>(naviEntity);
+            fontTransform.position                                   = hlslpp::float3(400.0f, 400.0f, 0.0f);
+            fontTransform.rotation                                   = hlslpp::quaternion(0.0f, 0.0f, 0.0f, 1.0f);    // 無回転
+            fontTransform.scale                                      = hlslpp::float3(1.0f, 1.0f, 1.0f);
+            fontTransform.dirty                                      = true;          // 初回計算のためフラグを立てる
+            fontTransform.parent                                     = entt::null;    // 親なし
+
+            // FontRendererComponent の追加
+            Tsukino::BuiltIn::ECS::FontComponent& font = registry.AddComponent<Tsukino::BuiltIn::ECS::FontComponent>(naviEntity);
+            font.text                                  = L"Start Space Key";    // 描画するテキスト
+        }
     }
 
     //-------------------------------------------------------------
     //! @brief  シーンの更新
     //-------------------------------------------------------------
     void BlockBreakingSampleScene::OnUpdate(Tsukino::EngineIntegration::EngineAPI& api, float deltaTime) {
+        Tsukino::EngineIntegration::EngineContext* context  = m_scene.GetRegistry().GetContext<Tsukino::EngineIntegration::EngineContext*>();
+        Tsukino::ECS::Registry&                    registry = m_scene.GetRegistry();
+
+        switch(m_currentState) {
+        case GameState::Ready:
+            {
+                if(context->inputSystem->IsKeyPressed(Tsukino::Input::KeyCode::Space)) {
+                    m_currentState       = GameState::Playing;
+                    const auto& fontView = registry.View<Tsukino::BuiltIn::ECS::FontComponent>();
+                    fontView.each([&](entt::entity entity, Tsukino::BuiltIn::ECS::FontComponent& font) {
+                        font.text = L"";    // 描画するテキスト
+                    });
+                }
+            }
+            break;
+        case GameState::Playing:
+            if(isGameOver) {
+                m_currentState       = GameState::GameOver;
+                const auto& fontView = registry.View<Tsukino::BuiltIn::ECS::FontComponent>();
+                fontView.each([&](entt::entity entity, Tsukino::BuiltIn::ECS::FontComponent& font) {
+                    font.text = L"GameOver";    // 描画するテキスト
+                });
+
+                const auto& ballView = registry.View<BlockBreakingSample::ECS::BallComponent>();
+                ballView.each([&](entt::entity entity, BlockBreakingSample::ECS::BallComponent& ball) { registry.DestroyEntity(entity); });
+            }
+            // クリア条件の例: ブロックが全て壊れたらクリア
+            {
+                auto view = registry.View<BlockBreakingSample::ECS::BrickComponent>();
+                if(view.empty()) {
+                    m_currentState       = GameState::Clear;
+                    const auto& fontView = registry.View<Tsukino::BuiltIn::ECS::FontComponent>();
+                    fontView.each([&](entt::entity entity, Tsukino::BuiltIn::ECS::FontComponent& font) {
+                        font.text            = L"Clear";    // 描画するテキスト
+                        const auto& ballView = registry.View<BlockBreakingSample::ECS::BallComponent>();
+                        ballView.each([&](entt::entity entity, BlockBreakingSample::ECS::BallComponent& ball) { registry.DestroyEntity(entity); });
+                    });
+                }
+            }
+            break;
+        case GameState::Clear:
+        case GameState::GameOver:
+            if(context->inputSystem->IsKeyPressed(Tsukino::Input::KeyCode::Space)) {
+                context->gameSceneManager->ChangeScene(std::make_unique<Tsukino::Sandbox::BlockBreakingSampleScene>());
+            }
+            break;
+        }
         m_scene.Update(deltaTime);
     }
 
