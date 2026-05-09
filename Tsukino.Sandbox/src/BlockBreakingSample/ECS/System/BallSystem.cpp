@@ -13,6 +13,7 @@
 
 #include <Tsukino/BuiltIn/ECS/Component/TransformComponent.hpp>
 #include <Tsukino/BuiltIn/ECS/Component/CollisionComponent.hpp>
+#include <Tsukino/BuiltIn/ECS/Component/RigidbodyComponent.hpp>
 
 #include <hlsl++.h>
 // 名前空間 : BlockBreakingSample::ECS
@@ -42,30 +43,37 @@ namespace BlockBreakingSample::ECS {
         // ボールの更新ループ
         auto ballView = registry.View<Tsukino::BuiltIn::ECS::TransformComponent, BallComponent>();
         ballView.each([&](entt::entity entity, Tsukino::BuiltIn::ECS::TransformComponent& ballTrans, BallComponent& ball) {
+            auto* ctx = registry.GetContext<Tsukino::EngineIntegration::EngineContext*>();
+
+            Tsukino::BuiltIn::ECS::RigidbodyComponent* rbPtr = nullptr;
+            if(registry.HasComponent<Tsukino::BuiltIn::ECS::RigidbodyComponent>(entity))
+                rbPtr = &registry.GetComponent<Tsukino::BuiltIn::ECS::RigidbodyComponent>(entity);
+
+            // -------------------------
+            // 発射前：パドルに追従
+            // -------------------------
             if(!ball.IsLaunched) {
-                // --- 発射前：パドルに追従 ---
-                // パドルの位置 + 設定されたオフセットをボールの座標にする
                 ballTrans.position = paddleTransform.position + ball.offset;
                 ballTrans.dirty    = true;
 
-                // もし CollisionComponent (Jolt) があるなら、物理ワールド側の座標もワープさせる
-                if(registry.HasComponent<Tsukino::BuiltIn::ECS::CollisionComponent>(entity)) {
-                    auto& coll = registry.GetComponent<Tsukino::BuiltIn::ECS::CollisionComponent>(entity);
-                    // 本来は BodyInterface を経由するが、Transformの同期システムが別途あれば不要
-                    // ctx->physicsWorld->GetBodyInterface().SetPosition(...) など
-                }
-
-                // --- 発射判定：スペースキーなどで発射 ---
-                if(ctx->inputSystem->IsKeyPressed(Tsukino::Input::KeyCode::Space)) {
+                // 発射
+                if(ctx->inputSystem->IsKeyPressed(Tsukino::Input::KeyCode::Space) && rbPtr) {
                     ball.IsLaunched = true;
 
-                    // 物理的に打ち出す処理（物理エンジンへの速度設定）が必要
-                    // 例:
-                    // auto& rb = registry.GetComponent<RigidbodyComponent>(entity);
-                    // rb.velocity = hlslpp::float3(0, 0, ball.speed);
+                    // 奥方向は +Y
+                    hlslpp::float3 dir    = hlslpp::normalize(hlslpp::float3(0.1f, 1.0f, 0.0f));
+                    rbPtr->linearVelocity = dir * ball.speed;
                 }
-            } else {
-                // --- 発射後：必要なら速度の維持などのロジックをここに書く ---
+
+                return;
+            }
+
+            // -------------------------
+            // 発射後：Kinematic 移動
+            // -------------------------
+            if(rbPtr) {
+                ballTrans.position += rbPtr->linearVelocity * deltaTime;
+                ballTrans.dirty     = true;
             }
         });
     }
