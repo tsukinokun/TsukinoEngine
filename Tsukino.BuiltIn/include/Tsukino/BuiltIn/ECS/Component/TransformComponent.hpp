@@ -13,9 +13,9 @@ namespace Tsukino::BuiltIn::ECS {
     //! @brief  位置、回転、スケールを管理するクラス
     //-------------------------------------------------------------
     struct TransformComponent {
-        hlslpp::float3     position;    // 位置
-        hlslpp::quaternion rotation;    // 回転
-        hlslpp::float3     scale;       // スケール
+        hlslpp::float3     position = hlslpp::float3(0.0f, 0.0f, 0.0f);    // 位置
+        hlslpp::quaternion rotation = hlslpp::quaternion(0.0f, 0.0f, 0.0f, 1.0f);    // 回転
+        hlslpp::float3     scale = hlslpp::float3(1.0f, 1.0f, 1.0f);       // スケール
 
         Tsukino::Core::Math::matrix localMatrix;    // ローカル行列
         Tsukino::Core::Math::matrix worldMatrix;    // ワールド行列
