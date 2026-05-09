@@ -148,28 +148,57 @@ namespace Tsukino::Sandbox {
             BlockBreakingSample::ECS::BallComponent& paddle = registry.AddComponent<BlockBreakingSample::ECS::BallComponent>(ballEntity);
         }
         //--------------------------------------------------------------
-        // 四方に壁エンティティを作成
+        // 四方に壁エンティティを作成（Zオーダー/配置設定）
         //--------------------------------------------------------------
         {
-            Tsukino::ECS::Entity wallEntity = m_scene.CreateEntity();
-            // TransformComponent
-            Tsukino::BuiltIn::ECS::TransformComponent& wallTransform = registry.AddComponent<Tsukino::BuiltIn::ECS::TransformComponent>(wallEntity);
-            wallTransform.position                                   = hlslpp::float3(0.0f, 0.0f, 0.0f);
-            wallTransform.rotation                                   = hlslpp::quaternion(0.0f, 0.0f, 0.0f, 1.0f);    // 無回転
-            wallTransform.scale                                      = hlslpp::float3(1.0f, 1.0f, 1.0f);
-            wallTransform.dirty                                      = true;          // 初回計算のためフラグを立てる
-            wallTransform.parent                                     = entt::null;    // 親なし
-            Tsukino::BuiltIn::ECS::ModelComponent& model             = registry.AddComponent<Tsukino::BuiltIn::ECS::ModelComponent>(wallEntity);
-            model.modelHandle = context->assetManager->Load(Tsukino::Core::Path("Tsukino.Sandbox/Assets/Models/Wall.fbx"));
-            model.visible     = true;
-            // コリジョンをつける
-            Tsukino::BuiltIn::ECS::CollisionComponent& collision = registry.AddComponent<Tsukino::BuiltIn::ECS::CollisionComponent>(wallEntity);
-            collision.extent                                     = {20.0f, 20.0f, 20.0f};    // ボールの当たり判定
-            collision.type                                       = Tsukino::BuiltIn::ECS::ColliderType::Box;
-            // RBをつける
-            Tsukino::BuiltIn::ECS::RigidbodyComponent& rb = registry.AddComponent<Tsukino::BuiltIn::ECS::RigidbodyComponent>(paddleEntity);
-            rb.type                                       = Tsukino::BuiltIn::ECS::RigidbodyType::Kinematic;
+            // ステージのサイズ定義
+            const float stageWidth      = 250.0f;
+            const float stageHeight     = 250.0f;
+            const float wallThickness   = 1.0f;      // 壁の厚み
+            const float modelExtent     = 0.027f;    // モデルが大きいことを考慮
+            const float collisionExtent = 20.0f;     // 当たり判定のサイズ（壁の厚み + モデルの大きさ）
 
+            struct WallConfig {
+                std::string    name;
+                hlslpp::float3 position;
+                hlslpp::float3 scale;
+                bool           isDeadZone;    // 下の壁（ミス判定用）かどうか
+            };
+
+            WallConfig configs[] = {
+                {"Wall_Left",   {-stageWidth, 0.0f, 0.0f},  {wallThickness, stageHeight * 2.0f * modelExtent, 1.0f}, false},
+                {"Wall_Right",  {stageWidth, 0.0f, 0.0f},   {wallThickness, stageHeight * 2.0f * modelExtent, 1.0f}, false},
+                {"Wall_Top",    {0.0f, stageHeight, 0.0f},  {stageWidth * 2.0f * modelExtent, 1.0f, wallThickness},  false},
+                {"Wall_Bottom", {0.0f, -stageHeight, 0.0f}, {stageWidth * 2.0f * modelExtent, 1.0f, wallThickness},  true }
+            };
+
+            for(const auto& config : configs) {
+                Tsukino::ECS::Entity wallEntity = m_scene.CreateEntity();
+
+                // --- TransformComponent ---
+                auto& wallTransform    = registry.AddComponent<Tsukino::BuiltIn::ECS::TransformComponent>(wallEntity);
+                wallTransform.position = config.position;
+                wallTransform.rotation = hlslpp::quaternion(0.0f, 0.0f, 0.0f, 1.0f);
+                wallTransform.scale    = config.scale;
+                wallTransform.dirty    = true;
+                wallTransform.parent   = entt::null;
+
+                // --- ModelComponent ---
+                auto& model       = registry.AddComponent<Tsukino::BuiltIn::ECS::ModelComponent>(wallEntity);
+                model.modelHandle = context->assetManager->Load(Tsukino::Core::Path("Tsukino.Sandbox/Assets/Models/Wall.fbx"));
+                model.visible     = true;
+
+                // --- CollisionComponent ---
+                auto& collision = registry.AddComponent<Tsukino::BuiltIn::ECS::CollisionComponent>(wallEntity);
+                collision.type  = Tsukino::BuiltIn::ECS::ColliderType::Box;
+                // スケールに合わせた当たり判定サイズ（extent）を設定
+                collision.extent = config.scale * collisionExtent;
+
+                // --- RigidbodyComponent ---
+                auto& rb = registry.AddComponent<Tsukino::BuiltIn::ECS::RigidbodyComponent>(wallEntity);
+                // 壁は動かないのでKinematic
+                rb.type = Tsukino::BuiltIn::ECS::RigidbodyType::Kinematic;
+            }
         }
     }
 
