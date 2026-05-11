@@ -194,6 +194,53 @@ namespace Tsukino::Asset {
         }
 
         //--------------------------------------------------------------
+        // アニメーション
+        //--------------------------------------------------------------
+        if(scene->HasAnimations()) {
+            modelData.animations.resize(scene->mNumAnimations);
+            for(u32 i = 0; i < scene->mNumAnimations; ++i) {
+                const aiAnimation* aiAnim  = scene->mAnimations[i];
+                auto&              dstAnim = modelData.animations[i];
+
+                dstAnim.name           = aiAnim->mName.C_Str();
+                dstAnim.duration       = static_cast<float>(aiAnim->mDuration);
+                dstAnim.ticksPerSecond = static_cast<float>(aiAnim->mTicksPerSecond != 0.0 ? aiAnim->mTicksPerSecond : 25.0);
+
+                dstAnim.channels.resize(aiAnim->mNumChannels);
+                for(u32 c = 0; c < aiAnim->mNumChannels; ++c) {
+                    const aiNodeAnim* aiChannel  = aiAnim->mChannels[c];
+                    auto&             dstChannel = dstAnim.channels[c];
+
+                    dstChannel.nodeName = aiChannel->mNodeName.C_Str();
+
+                    // 位置キー
+                    dstChannel.positionKeys.resize(aiChannel->mNumPositionKeys);
+                    for(u32 k = 0; k < aiChannel->mNumPositionKeys; ++k) {
+                        const auto& key = aiChannel->mPositionKeys[k];
+                        dstChannel.positionKeys[k].time  = static_cast<float>(key.mTime);
+                        dstChannel.positionKeys[k].value = hlslpp::float3(static_cast<float>(key.mValue.x), static_cast<float>(key.mValue.y), static_cast<float>(key.mValue.z));
+                    }
+
+                    // 回転キー
+                    dstChannel.rotationKeys.resize(aiChannel->mNumRotationKeys);
+                    for(u32 k = 0; k < aiChannel->mNumRotationKeys; ++k) {
+                        const auto& key = aiChannel->mRotationKeys[k];
+                        dstChannel.rotationKeys[k].time  = static_cast<float>(key.mTime);
+                        dstChannel.rotationKeys[k].value = hlslpp::float4(static_cast<float>(key.mValue.x), static_cast<float>(key.mValue.y), static_cast<float>(key.mValue.z), static_cast<float>(key.mValue.w));
+                    }
+
+                    // スケールキー
+                    dstChannel.scaleKeys.resize(aiChannel->mNumScalingKeys);
+                    for(u32 k = 0; k < aiChannel->mNumScalingKeys; ++k) {
+                        const auto& key = aiChannel->mScalingKeys[k];
+                        dstChannel.scaleKeys[k].time  = static_cast<float>(key.mTime);
+                        dstChannel.scaleKeys[k].value = hlslpp::float3(static_cast<float>(key.mValue.x), static_cast<float>(key.mValue.y), static_cast<float>(key.mValue.z));
+                    }
+                }
+            }
+        }
+
+        //--------------------------------------------------------------
         // シリアライズして書き出し
         //--------------------------------------------------------------
         {
