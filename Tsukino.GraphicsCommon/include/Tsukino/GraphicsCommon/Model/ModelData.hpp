@@ -118,7 +118,7 @@ namespace Tsukino::GraphicsCommon {
         //--------------------------------------------------------------
         template <class Archive>
         void serialize(Archive& ar) {
-            ar(nodes, meshes, materials, animations, rootNodeIndex);    // ★animationsを追加
+            ar(nodes, meshes, materials, animations, rootNodeIndex);
         }
     };
 
