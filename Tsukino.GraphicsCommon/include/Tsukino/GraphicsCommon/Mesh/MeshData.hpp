@@ -13,12 +13,22 @@
 // 名前空間 Tsukino::GraphicsCommon
 namespace Tsukino::GraphicsCommon {
     //--------------------------------------------------------------
+    //! @struct BoneWeight
+    //! @brief  ボーンウェイトの構造体
+    //--------------------------------------------------------------
+    struct BoneWeight {
+        u32   boneIndices[4] = {0, 0, 0, 0};
+        float weights[4]     = {0, 0, 0, 0};
+    };
+
+    //--------------------------------------------------------------
     //! @struct MeshData
     //! @brief  メッシュデータの構造体
     //--------------------------------------------------------------
     struct MeshData {
-        std::vector<u8>  vertexData;    // 生の頂点バイト列
-        std::vector<u32> indices;       // 頂点インデックス
+        std::vector<u8>  vertexData;            // 生の頂点バイト列
+        std::vector<u32> indices;               // 頂点インデックス
+        std::vector<BoneWeight> boneWeights;    // スキニング用のボーンウェイトデータ
 
         u32 vertexStride = 0;    // 頂点データの1頂点あたりのバイト数
         u32 vertexCount  = 0;    // 頂点の総数
