@@ -102,6 +102,24 @@ namespace Tsukino::GraphicsCommon {
     };
 
     //--------------------------------------------------------------
+    //! @struct BoneInfo
+    //! @brief  ボーンの情報
+    //--------------------------------------------------------------
+    struct BoneInfo {
+        std::string      name;
+        u32              nodeIndex;
+        hlslpp::float4x4 inverseBindPose;
+    };
+
+    //--------------------------------------------------------------
+    //! @struct SkeletonData
+    //! @brief  スケルトン全体のデータ構造
+    //--------------------------------------------------------------
+    struct SkeletonData {
+        std::vector<BoneInfo> bones;
+    };
+
+    //--------------------------------------------------------------
     //! @struct ModelData
     //! @brief  モデル全体のデータ構造
     //--------------------------------------------------------------
@@ -109,7 +127,8 @@ namespace Tsukino::GraphicsCommon {
         std::vector<NodeData>      nodes;
         std::vector<MeshData>      meshes;
         std::vector<MaterialData>  materials;
-        std::vector<AnimationData> animations;    // ★追加
+        std::vector<AnimationData> animations;    
+        SkeletonData               skeleton;    // スケルトンデータ
         u32                        rootNodeIndex = 0;
 
         //--------------------------------------------------------------
