@@ -23,6 +23,7 @@
 #include <string>
 #include <vector>
 #include <functional>
+#include <unordered_map>
 
 #include <Tsukino/GraphicsCommon/Model/ModelData.hpp>
 
@@ -134,6 +135,9 @@ namespace Tsukino::Asset {
         // メッシュ
         //--------------------------------------------------------------
         modelData.meshes.resize(scene->mNumMeshes);
+        
+        std::unordered_map<std::string, u32> boneNameToIndex;
+
         for(u32 i = 0; i < scene->mNumMeshes; ++i) {
             const aiMesh* aiMesh  = scene->mMeshes[i];
             auto&         dstMesh = modelData.meshes[i];
@@ -144,6 +148,50 @@ namespace Tsukino::Asset {
                 vertices[v].normal   = {aiMesh->mNormals[v].x, aiMesh->mNormals[v].y, aiMesh->mNormals[v].z};
                 if(aiMesh->HasTextureCoords(0)) {
                     vertices[v].texcoord = {aiMesh->mTextureCoords[0][v].x, aiMesh->mTextureCoords[0][v].y};
+                }
+            }
+
+            // ボーンウェイトの初期化
+            dstMesh.boneWeights.resize(aiMesh->mNumVertices);
+            std::vector<u32> weightCounts(aiMesh->mNumVertices, 0);
+
+            // ボーンの処理
+            for(u32 b = 0; b < aiMesh->mNumBones; ++b) {
+                const aiBone* aiBone = aiMesh->mBones[b];
+                std::string boneName = aiBone->mName.C_Str();
+
+                u32 boneIndex = 0;
+                auto it = boneNameToIndex.find(boneName);
+                if(it == boneNameToIndex.end()) {
+                    boneIndex = static_cast<u32>(modelData.skeleton.bones.size());
+                    boneNameToIndex[boneName] = boneIndex;
+
+                    Tsukino::GraphicsCommon::BoneInfo boneInfo;
+                    boneInfo.name = boneName;
+                    boneInfo.nodeIndex = UINT32_MAX; // 後で解決する
+
+                    const auto& mat = aiBone->mOffsetMatrix;
+                    boneInfo.inverseBindPose = hlslpp::float4x4(
+                        mat.a1, mat.b1, mat.c1, mat.d1,
+                        mat.a2, mat.b2, mat.c2, mat.d2,
+                        mat.a3, mat.b3, mat.c3, mat.d3,
+                        mat.a4, mat.b4, mat.c4, mat.d4
+                    );
+
+                    modelData.skeleton.bones.push_back(boneInfo);
+                } else {
+                    boneIndex = it->second;
+                }
+
+                // ウェイトのセット
+                for(u32 w = 0; w < aiBone->mNumWeights; ++w) {
+                    const aiVertexWeight& vw = aiBone->mWeights[w];
+                    u32 vId = vw.mVertexId;
+                    if(weightCounts[vId] < 4) {
+                        dstMesh.boneWeights[vId].boneIndices[weightCounts[vId]] = boneIndex;
+                        dstMesh.boneWeights[vId].weights[weightCounts[vId]]     = vw.mWeight;
+                        weightCounts[vId]++;
+                    }
                 }
             }
 
@@ -172,9 +220,16 @@ namespace Tsukino::Asset {
                 u32 currentIndex = static_cast<u32>(modelData.nodes.size());
                 modelData.nodes.emplace_back();
 
-                modelData.nodes[currentIndex].name        = aiNode->mName.C_Str();
+                std::string nodeName = aiNode->mName.C_Str();
+                modelData.nodes[currentIndex].name        = nodeName;
                 modelData.nodes[currentIndex].parentIndex = parentIndex;
                 modelData.nodes[currentIndex].meshIndex   = (aiNode->mNumMeshes > 0) ? aiNode->mMeshes[0] : UINT32_MAX;
+
+                // ボーンのNodeIndexを解決
+                auto it = boneNameToIndex.find(nodeName);
+                if(it != boneNameToIndex.end()) {
+                    modelData.skeleton.bones[it->second].nodeIndex = currentIndex;
+                }
 
                 aiVector3D   scaling, position;
                 aiQuaternion aiRot;
