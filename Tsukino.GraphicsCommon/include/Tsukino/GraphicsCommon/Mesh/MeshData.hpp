@@ -19,6 +19,17 @@ namespace Tsukino::GraphicsCommon {
     struct BoneWeight {
         u32   boneIndices[4] = {0, 0, 0, 0};
         float weights[4]     = {0, 0, 0, 0};
+
+        //--------------------------------------------------------------
+        //! @brief  シリアライズ関数
+        //! @tparam Archive シリアライズアーカイブの型
+        //! @param  ar [in,out] シリアライズアーカイブ
+        //--------------------------------------------------------------
+        template <class Archive>
+        void serialize(Archive& ar) {
+            ar(boneIndices[0], boneIndices[1], boneIndices[2], boneIndices[3],
+               weights[0], weights[1], weights[2], weights[3]);
+        }
     };
 
     //--------------------------------------------------------------
@@ -43,7 +54,7 @@ namespace Tsukino::GraphicsCommon {
         //--------------------------------------------------------------
         template <class Archive>
         void serialize(Archive& ar) {
-            ar(vertexData, indices, vertexStride, vertexCount, indexCount, format);
+            ar(vertexData, indices, boneWeights, vertexStride, vertexCount, indexCount, format);
         }
     };
 

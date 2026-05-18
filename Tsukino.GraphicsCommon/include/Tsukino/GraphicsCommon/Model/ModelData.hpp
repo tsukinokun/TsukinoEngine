@@ -109,6 +109,19 @@ namespace Tsukino::GraphicsCommon {
         std::string      name;
         u32              nodeIndex;
         hlslpp::float4x4 inverseBindPose;
+
+        //--------------------------------------------------------------
+        //! @brief  シリアライズ関数
+        //! @param  ar [out] アーカイブオブジェクト
+        //--------------------------------------------------------------
+        template <class Archive>
+        void serialize(Archive& ar) {
+            ar(name, nodeIndex);
+            float* m = reinterpret_cast<float*>(&inverseBindPose);
+            for(int i = 0; i < 16; ++i) {
+                ar(m[i]);
+            }
+        }
     };
 
     //--------------------------------------------------------------
@@ -117,6 +130,15 @@ namespace Tsukino::GraphicsCommon {
     //--------------------------------------------------------------
     struct SkeletonData {
         std::vector<BoneInfo> bones;
+
+        //--------------------------------------------------------------
+        //! @brief  シリアライズ関数
+        //! @param  ar [out] アーカイブオブジェクト
+        //--------------------------------------------------------------
+        template <class Archive>
+        void serialize(Archive& ar) {
+            ar(bones);
+        }
     };
 
     //--------------------------------------------------------------
@@ -137,7 +159,7 @@ namespace Tsukino::GraphicsCommon {
         //--------------------------------------------------------------
         template <class Archive>
         void serialize(Archive& ar) {
-            ar(nodes, meshes, materials, animations, rootNodeIndex);
+            ar(nodes, meshes, materials, animations, skeleton, rootNodeIndex);
         }
     };
 
