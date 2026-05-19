@@ -71,7 +71,7 @@ namespace Tsukino::Sandbox {
 
         Tsukino::Asset::AssetHandle modelHandle = context->assetManager->Load(Tsukino::Core::Path("Tsukino.Sandbox/Assets/Models/test.fbx"));
 
-        Tsukino::Asset::AssetHandle animationHandle = context->assetManager->Load(Tsukino::Core::Path("Tsukino.Sandbox/Assets/Anims/testAnim.glb"));
+        Tsukino::Asset::AssetHandle animationHandle = context->assetManager->Load(Tsukino::Core::Path("Tsukino.Sandbox/Assets/Anims/testAnim.fbx"));
 
         Tsukino::ECS::Registry& registry = m_scene.GetRegistry();
 
@@ -149,7 +149,8 @@ namespace Tsukino::Sandbox {
 
         // アニメーションを再生・制御するコンポーネント
         Tsukino::BuiltIn::ECS::AnimationPlayerComponent& animPlayer = registry.AddComponent<Tsukino::BuiltIn::ECS::AnimationPlayerComponent>(modelEntity);
-        animPlayer.current_clip_id                                  = animationHandle;    // ロードした testAnim.glb のハンドルを渡す
+        animPlayer.current_clip_id                                  = animationHandle;    // ロードした testAnim.fbx のハンドルを渡す
+        animPlayer.animation_index                                  = 1;                  // 再生するアニメーションのインデックスを指定
         animPlayer.elapsed_time                                     = 0.0f;               // 0秒からスタート
         animPlayer.playback_speed                                   = 1.0f;               // 等速再生
         animPlayer.is_looping                                       = true;               // ループさせる

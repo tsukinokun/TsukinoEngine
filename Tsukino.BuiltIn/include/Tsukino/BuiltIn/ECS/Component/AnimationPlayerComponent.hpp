@@ -13,6 +13,7 @@ namespace Tsukino::BuiltIn::ECS {
     //-------------------------------------------------------------
     struct AnimationPlayerComponent {
         Tsukino::Asset::AssetHandle current_clip_id;    // リソースマネージャ内のID
+        u32                         animation_index = 0;// 再生するアニメーションのインデックス
         float                       elapsed_time;       // 現在の再生時間（秒）
         float                       playback_speed;     // 1.0f = 等速
         bool                        is_looping;         // ループ再生フラグ

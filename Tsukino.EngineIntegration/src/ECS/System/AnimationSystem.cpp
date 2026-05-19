@@ -82,6 +82,7 @@ namespace Tsukino::BuiltIn::ECS {
                 if (controller->next.clip.IsValid()) {
                     if (controller->next.immediate) {
                         player.current_clip_id = controller->next.clip;
+                        player.animation_index = controller->next.animation_index;
                         player.elapsed_time = 0.0f;
                         controller->next.clip = Tsukino::Asset::AssetHandle{};
                         controller->is_transitioning = false;
@@ -101,8 +102,12 @@ namespace Tsukino::BuiltIn::ECS {
             auto modelAss = std::static_pointer_cast<Tsukino::Asset::ModelAsset>(animAsset);
             if (modelAss->modelData.animations.empty()) return;
 
-            const auto& animData = modelAss->modelData.animations[0];
-            
+            u32 animIndex = player.animation_index;
+            if (animIndex >= modelAss->modelData.animations.size()) {
+                animIndex = 0; // Fallback
+            }
+            const auto& animData = modelAss->modelData.animations[animIndex];
+
             // Convert to ticks
             float ticks = player.elapsed_time * animData.ticksPerSecond;
             float animTime = std::fmod(ticks, animData.duration);
@@ -125,12 +130,17 @@ namespace Tsukino::BuiltIn::ECS {
                 if (nextAsset && nextAsset->GetType() == Tsukino::Asset::AssetType::Model) {
                     auto nextModelAss = std::static_pointer_cast<Tsukino::Asset::ModelAsset>(nextAsset);
                     if (!nextModelAss->modelData.animations.empty()) {
-                        blendAnimData = &nextModelAss->modelData.animations[0];
+                        u32 nextAnimIndex = pController->next.animation_index;
+                        if (nextAnimIndex >= nextModelAss->modelData.animations.size()) {
+                            nextAnimIndex = 0;
+                        }
+                        blendAnimData = &nextModelAss->modelData.animations[nextAnimIndex];
                         pController->blend_alpha += deltaTime / pController->next.fade_time;
                         if (pController->blend_alpha >= 1.0f) {
                             pController->blend_alpha = 1.0f;
                             pController->is_transitioning = false;
                             player.current_clip_id = pController->next.clip;
+                            player.animation_index = pController->next.animation_index;
                             player.elapsed_time = 0.0f; // Simplified, in reality would have to keep track of both times
                             pController->next.clip = Tsukino::Asset::AssetHandle{};
                         }
@@ -148,63 +158,93 @@ namespace Tsukino::BuiltIn::ECS {
                  }
             }
 
-            // Calculate matrices
-            skeletonOut.bone_count = 0;
-            // Iterate over bones in modelAsset to find correct animation channels and calc matrix
-            for (u32 idx = 0; idx < modelAss->modelData.skeleton.bones.size() && idx < SkeletonOutputComponent::MAX_BONES; ++idx) {
-                const auto& boneInfo = modelAss->modelData.skeleton.bones[idx];
+            //-------------------------------------------------------------
+            // 全ノードのグローバル行列を計算
+            //-------------------------------------------------------------
+            std::vector<Tsukino::Core::Math::matrix> globalNodeMatrices(modelAss->modelData.nodes.size());
+
+            // ノードは親から子の順に並んでいる前提（一般的なフォーマット）で計算
+            for (size_t i = 0; i < modelAss->modelData.nodes.size(); ++i) {
+                const auto& node = modelAss->modelData.nodes[i];
                 
-                hlslpp::float3 pos(0,0,0);
-                hlslpp::quaternion rot(0,0,0,1);
-                hlslpp::float3 scale(1,1,1);
+                hlslpp::float3 pos(node.translation.x, node.translation.y, node.translation.z);      
+                hlslpp::quaternion rot(node.rotation.x, node.rotation.y, node.rotation.z, node.rotation.w);
+                hlslpp::float3 scale(node.scale.x, node.scale.y, node.scale.z);                      
+
                 bool channelFound = false;
 
-                for(const auto& channel : animData.channels) {
-                     if (channel.nodeName == boneInfo.name) {
-                         pos = LerpVector(channel.positionKeys, animTime);
-                         rot = SlerpQuaternion(channel.rotationKeys, animTime);
-                         scale = LerpVector(channel.scaleKeys, animTime);
-                         channelFound = true;
-                         break;
-                     }
+                // 現在のアニメーションチャンネルを検索
+                for (const auto& channel : animData.channels) {
+                    if (channel.nodeName == node.name) {
+                        pos = LerpVector(channel.positionKeys, animTime);
+                        rot = SlerpQuaternion(channel.rotationKeys, animTime);
+                        scale = LerpVector(channel.scaleKeys, animTime);
+                        channelFound = true;
+                        break;
+                    }
                 }
 
-                // If no channel found, use default node transform (not fully correct hierarchical logic, but simplifed here for bone matrix output)
-                if (!channelFound) {
-                    // Fallback
-                }
-                
+                // ブレンド処理の適用
                 if (finalBlendAlpha > 0.0f && blendAnimData) {
-                    hlslpp::float3 blendPos(0,0,0);
-                    hlslpp::quaternion blendRot(0,0,0,1);
-                    hlslpp::float3 blendScale(1,1,1);
+                    hlslpp::float3 blendPos(node.translation.x, node.translation.y, node.translation.z);
+                    hlslpp::quaternion blendRot(node.rotation.x, node.rotation.y, node.rotation.z, node.rotation.w);
+                    hlslpp::float3 blendScale(node.scale.x, node.scale.y, node.scale.z);
                     bool blendChannelFound = false;
-                    for(const auto& bChannel : blendAnimData->channels) {
-                         if (bChannel.nodeName == boneInfo.name) {
-                             blendPos = LerpVector(bChannel.positionKeys, blendAnimTime);
-                             blendRot = SlerpQuaternion(bChannel.rotationKeys, blendAnimTime);
-                             blendScale = LerpVector(bChannel.scaleKeys, blendAnimTime);
-                             blendChannelFound = true;
-                             break;
-                         }
+
+                    for (const auto& bChannel : blendAnimData->channels) {
+                        if (bChannel.nodeName == node.name) {
+                            blendPos = LerpVector(bChannel.positionKeys, blendAnimTime);
+                            blendRot = SlerpQuaternion(bChannel.rotationKeys, blendAnimTime);
+                            blendScale = LerpVector(bChannel.scaleKeys, blendAnimTime);
+                            blendChannelFound = true;
+                            break;
+                        }
                     }
-                    if (blendChannelFound) {
+
+                    if (channelFound || blendChannelFound) {
                         pos = hlslpp::lerp(pos, blendPos, finalBlendAlpha);
                         rot = hlslpp::slerp(rot, blendRot, finalBlendAlpha);
                         scale = hlslpp::lerp(scale, blendScale, finalBlendAlpha);
                     }
                 }
-                
+
+                // ローカル行列の計算
+                // (行優先 / Column-major等の仕様に合わせ、T * R * S とするケースに対応)
                 Tsukino::Core::Math::matrix scaleMat = Tsukino::Core::Math::matrix::scale(scale);
                 Tsukino::Core::Math::matrix rotMat = Tsukino::Core::Math::matrix::rotate(rot);
                 Tsukino::Core::Math::matrix transMat = Tsukino::Core::Math::matrix::translate(pos);
-                Tsukino::Core::Math::matrix localMat = hlslpp::mul(hlslpp::mul(scaleMat, rotMat), transMat);
-                
-                // Usually we need to traverse hierarchy and mult with parent transforms, then inverseBindPose
-                Tsukino::Core::Math::matrix finalBoneMat = hlslpp::mul(boneInfo.inverseBindPose, localMat);
+                // ご指摘の通り親を左側に乗算する仕様 (Parent * Local) の場合、SRTの順序も T * R * S であるべきケースが多いです
+                Tsukino::Core::Math::matrix localMat = hlslpp::mul(transMat, hlslpp::mul(rotMat, scaleMat));
 
-                // Write to skeletonOut
-                std::memcpy(skeletonOut.local_matrices[idx], &finalBoneMat, sizeof(float)*16);
+                // グローバル（ワールド）行列の算出
+                if (node.parentIndex != UINT32_MAX && node.parentIndex < globalNodeMatrices.size()) {
+                    // 親が左、ローカルが右（Parent * Local）になるように修正
+                    globalNodeMatrices[i] = hlslpp::mul(globalNodeMatrices[node.parentIndex], localMat);
+                } else {
+                    // ルートノードの場合はローカル行列がそのままグローバル行列
+                    globalNodeMatrices[i] = localMat;
+                }
+            }
+
+            //-------------------------------------------------------------
+            // ボーン行列の計算
+            //-------------------------------------------------------------
+            skeletonOut.bone_count = 0;
+            for (u32 idx = 0; idx < modelAss->modelData.skeleton.bones.size() && idx < SkeletonOutputComponent::MAX_BONES; ++idx) {
+                const auto& boneInfo = modelAss->modelData.skeleton.bones[idx];
+
+                Tsukino::Core::Math::matrix globalNodeMat = Tsukino::Core::Math::matrix::identity();
+
+                // ボーンに対応するノードのグローバル行列を取得
+                if (boneInfo.nodeIndex < globalNodeMatrices.size()) {
+                    globalNodeMat = globalNodeMatrices[boneInfo.nodeIndex];
+                }
+
+                // スキニング行列（Global Node Matrix * Inverse Bind Pose）になるよう乗算順序を修正
+                Tsukino::Core::Math::matrix finalBoneMat = hlslpp::mul(globalNodeMat, boneInfo.inverseBindPose);
+
+                // SkeletonOutput に書き出し
+                std::memcpy(skeletonOut.local_matrices[idx], &finalBoneMat, sizeof(float) * 16);
                 skeletonOut.bone_count++;
             }
         });

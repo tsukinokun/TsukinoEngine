@@ -20,9 +20,10 @@ namespace Tsukino::BuiltIn::ECS {
         //! @brief  次のアニメーションの情報
         //-------------------------------------------------------------
         struct NextAnimation {
-            Tsukino::Asset::AssetHandle clip;         // リソースマネージャ内のID
-            float                       fade_time;    // フェード時間（秒）
-            bool                        immediate;    // 即座に切り替えるか、今のが終わってからか
+            Tsukino::Asset::AssetHandle clip;             // リソースマネージャ内のID
+            u32                         animation_index = 0; // 次に再生するアニメーションのインデックス
+            float                       fade_time;        // フェード時間（秒）
+            bool                        immediate;        // 即座に切り替えるか、今のが終わってからか
         } next;
     };
 
