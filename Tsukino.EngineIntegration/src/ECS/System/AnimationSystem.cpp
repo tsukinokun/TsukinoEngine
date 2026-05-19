@@ -17,7 +17,12 @@
 
 namespace Tsukino::BuiltIn::ECS {
 
-    // 補間関数
+    //-------------------------------------------------------------
+    //! @brief ベクトルの線形補間（位置・スケール用）
+    //! @param keys キーフレームのリスト
+    //! @param time 現在のアニメーション時間（Ticks）
+    //! @return 補間されたhlslpp::float3
+    //-------------------------------------------------------------
     static hlslpp::float3 LerpVector(const std::vector<Tsukino::GraphicsCommon::VectorKey>& keys, float time) {
         if (keys.empty()) return hlslpp::float3(0, 0, 0);
         if (keys.size() == 1 || time <= keys.front().time) return hlslpp::float3(keys.front().value.x, keys.front().value.y, keys.front().value.z);
@@ -32,6 +37,12 @@ namespace Tsukino::BuiltIn::ECS {
         return hlslpp::float3(keys.back().value.x, keys.back().value.y, keys.back().value.z);
     }
 
+    //-------------------------------------------------------------
+    //! @brief クォータニオンの球面線形補間（回転用）
+    //! @param keys キーフレームのリスト
+    //! @param time 現在のアニメーション時間（Ticks）
+    //! @return 補間されたhlslpp::quaternion
+    //-------------------------------------------------------------
     static hlslpp::quaternion SlerpQuaternion(const std::vector<Tsukino::GraphicsCommon::QuaternionKey>& keys, float time) {
         if (keys.empty()) return hlslpp::quaternion(0, 0, 0, 1);
         if (keys.size() == 1 || time <= keys.front().time) return hlslpp::quaternion(keys.front().value.x, keys.front().value.y, keys.front().value.z, keys.front().value.w);
@@ -48,6 +59,9 @@ namespace Tsukino::BuiltIn::ECS {
         return hlslpp::quaternion(keys.back().value.x, keys.back().value.y, keys.back().value.z, keys.back().value.w);
     }
 
+    //-------------------------------------------------------------
+    //! @brief アニメーションシステムのメイン更新処理
+    //-------------------------------------------------------------
     void AnimationSystem::Update(Tsukino::ECS::Registry& registry, float deltaTime) {
         auto* ctx = registry.GetContext<Tsukino::EngineIntegration::EngineContext*>();
         if (!ctx || !ctx->assetManager) return;
