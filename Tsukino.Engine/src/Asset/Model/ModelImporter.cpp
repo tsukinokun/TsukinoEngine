@@ -4,6 +4,7 @@
 //! @author 山﨑愛
 //--------------------------------------------------------------
 #include <Tsukino/Engine/Asset/Model/ModelImporter.hpp>
+#include <cstring>
 
 #include <Tsukino/Core/Log.hpp>
 #include <Tsukino/Core/Path.hpp>

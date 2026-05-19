@@ -159,7 +159,7 @@ namespace Tsukino::BuiltIn::ECS {
                     cmd.boneCount = skeletonOut->bone_count;
                 }
 
-                ctx->renderer->GetContextData().drawCommandQueue->PushCommand(cmd);
+                ctx->renderer->PushDrawCommand(cmd);
             }
         });
     }
