@@ -37,4 +37,12 @@ namespace Tsukino::Renderer {
         float          roughness;
         hlslpp::float3 padding;
     };
+
+    //--------------------------------------------------------------
+    //! @struct CBufferSkinning
+    //! @brief  スロット3 (b3) 用：アニメーションするオブジェクトのボーン行列
+    //--------------------------------------------------------------
+    struct CBufferSkinning {
+        hlslpp::float4x4 bones[128];    // hlslpp::float4x4 の配列（最大128本分）
+    };
 }    // namespace Tsukino::Renderer
