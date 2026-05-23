@@ -405,8 +405,22 @@ namespace Tsukino::Renderer {
         // カスタム描画（フォント等）がある場合
         //------------------------------------------------------------
         if(cmd.customDraw) {
+            // 1. スロットをクリア
+            ID3D11Buffer* nullBuffers[] = {nullptr, nullptr};
+            UINT          strides[]     = {0, 0};
+            UINT          offsets[]     = {0, 0};
+            context->IASetVertexBuffers(0, 2, nullBuffers, strides, offsets);
+
+            // 2. カスタム描画実行
             cmd.customDraw(context);
-            return;    // カスタム描画をしたのでここで終了
+
+            // 3. 重要：SpriteBatchで汚されたステートをリセット
+            // これを入れないとSpriteの後の描画が真っ暗になったり崩れます
+            context->OMSetBlendState(m_commonStatesTK->Opaque(), nullptr, 0xFFFFFFFF);
+            context->OMSetDepthStencilState(m_commonStatesTK->DepthDefault(), 0);
+            context->RSSetState(m_commonStatesTK->CullNone());
+
+            return;
         }
 
         //------------------------------------------------------------
@@ -467,6 +481,25 @@ namespace Tsukino::Renderer {
         ID3D11Buffer* vb     = cmd.mesh->vertexBuffer.Get();
 
         context->IASetVertexBuffers(0, 1, &vb, &stride, &offset);
+        if(cmd.boneMatrices && cmd.boneCount > 0 && cmd.mesh->boneWeightBuffer.Get() != nullptr) {
+            // ボーンあり：スロット0と1をバインド
+            ID3D11Buffer* vbs[]     = {cmd.mesh->vertexBuffer.Get(), cmd.mesh->boneWeightBuffer.Get()};
+            UINT          strides[] = {cmd.mesh->stride, sizeof(Tsukino::GraphicsCommon::BoneWeight)};
+            UINT          offsets[] = {0, 0};
+            context->IASetVertexBuffers(0, 2, vbs, strides, offsets);
+        } else {
+            // ボーンなし：スロット0のみバインドし、スロット1は必ず明示的にクリア！
+            UINT          stride = cmd.mesh->stride;
+            UINT          offset = 0;
+            ID3D11Buffer* vb     = cmd.mesh->vertexBuffer.Get();
+
+            // スロット0に頂点バッファ、スロット1にNULLをセットしてクリアする
+            ID3D11Buffer* vbs[]     = {vb, nullptr};
+            UINT          strides[] = {stride, 0};
+            UINT          offsets[] = {0, 0};
+            context->IASetVertexBuffers(0, 2, vbs, strides, offsets);
+        }
+
         context->IASetIndexBuffer(cmd.mesh->indexBuffer.Get(), DXGI_FORMAT_R32_UINT, 0);
         context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
         //------------------------------------------------------
