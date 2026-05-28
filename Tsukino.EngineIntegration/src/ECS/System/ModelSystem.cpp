@@ -38,32 +38,26 @@ namespace Tsukino::BuiltIn::ECS {
 
         // 初回のみパイプライン生成
         if(!m_pipelineCache) {
+            std::shared_ptr<Tsukino::Asset::ShaderAsset> vsStaticAsset =
+                std::static_pointer_cast<Tsukino::Asset::ShaderAsset>(ctx->assetManager->Get(ctx->builtinAssets->shaders.staticModelVS));
             std::shared_ptr<Tsukino::Asset::ShaderAsset> vsAsset =
                 std::static_pointer_cast<Tsukino::Asset::ShaderAsset>(ctx->assetManager->Get(ctx->builtinAssets->shaders.modelVS));
             std::shared_ptr<Tsukino::Asset::ShaderAsset> psAsset =
                 std::static_pointer_cast<Tsukino::Asset::ShaderAsset>(ctx->assetManager->Get(ctx->builtinAssets->shaders.modelPS));
 
-            if(vsAsset && psAsset) {
-                D3D11_INPUT_ELEMENT_DESC layout[] = {
+            if(vsStaticAsset && vsAsset && psAsset) {
+                D3D11_INPUT_ELEMENT_DESC staticLayout[] = {
                     {"POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0},
                     {"NORMAL",   0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0},
                     {"TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT,    0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0},
-                    {"BONE_INDICES",
-                     0, DXGI_FORMAT_R32G32B32A32_UINT,
-                     1, offsetof(Tsukino::GraphicsCommon::BoneWeight, boneIndices),
-                     D3D11_INPUT_PER_VERTEX_DATA, 0},
-                    {"BONE_WEIGHTS",
-                     0, DXGI_FORMAT_R32G32B32A32_FLOAT,
-                     1, offsetof(Tsukino::GraphicsCommon::BoneWeight, weights),
-                     D3D11_INPUT_PER_VERTEX_DATA, 0},
                 };
-                m_pipelineCache =
-                    ctx->renderer->GetPipelineFactory()->Create(*vsAsset, *psAsset, layout, ARRAYSIZE(layout), Tsukino::Renderer::DepthMode::ReadWrite);
+                m_pipelineCache = ctx->renderer->GetPipelineFactory()->Create(
+                    *vsStaticAsset, *psAsset, staticLayout, ARRAYSIZE(staticLayout), Tsukino::Renderer::DepthMode::ReadWrite);
 
                 D3D11_INPUT_ELEMENT_DESC skeletalLayout[] = {
                     {"POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0},
-                    {"NORMAL",   0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0},
-                    {"TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT,    0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0},
+                    {"NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0},
+                    {"TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0},
                     {"BONE_INDICES",
                      0, DXGI_FORMAT_R32G32B32A32_UINT,
                      1, offsetof(Tsukino::GraphicsCommon::BoneWeight, boneIndices),
@@ -73,8 +67,8 @@ namespace Tsukino::BuiltIn::ECS {
                      1, offsetof(Tsukino::GraphicsCommon::BoneWeight, weights),
                      D3D11_INPUT_PER_VERTEX_DATA, 0},
                 };
-                m_skeletalPipelineCache =
-                    ctx->renderer->GetPipelineFactory()->Create(*vsAsset, *psAsset, skeletalLayout, ARRAYSIZE(skeletalLayout), Tsukino::Renderer::DepthMode::ReadWrite);
+                m_skeletalPipelineCache = ctx->renderer->GetPipelineFactory()->Create(
+                    *vsAsset, *psAsset, skeletalLayout, ARRAYSIZE(skeletalLayout), Tsukino::Renderer::DepthMode::ReadWrite);
             }
         }
 
@@ -109,7 +103,7 @@ namespace Tsukino::BuiltIn::ECS {
             const auto& meshBuffers = s_modelMeshCache[handleVal];
 
             auto* skeletonOut = registry.try_get<SkeletonOutputComponent>(entity);
-            bool isSkeletal = skeletonOut && skeletonOut->bone_count > 0;
+            bool  isSkeletal  = skeletonOut && skeletonOut->bone_count > 0;
 
             for(const auto& node : modelAsset->modelData.nodes) {
                 if(node.meshIndex < 0 || node.meshIndex >= meshBuffers.size())
@@ -119,8 +113,8 @@ namespace Tsukino::BuiltIn::ECS {
                 const auto& targetMeshBuffer = meshBuffers[node.meshIndex];
 
                 Tsukino::Core::Math::matrix finalTransform;
-                
-                if (isSkeletal) {
+
+                if(isSkeletal) {
                     finalTransform = transform.worldMatrix;
                 } else {
                     Tsukino::Core::Math::matrix scaleMat = Tsukino::Core::Math::matrix::scale(hlslpp::float3(node.scale.x, node.scale.y, node.scale.z));
@@ -128,8 +122,8 @@ namespace Tsukino::BuiltIn::ECS {
                         Tsukino::Core::Math::matrix::rotate(hlslpp::quaternion(node.rotation.x, node.rotation.y, node.rotation.z, node.rotation.w));
                     Tsukino::Core::Math::matrix transMat =
                         Tsukino::Core::Math::matrix::translate(hlslpp::float3(node.translation.x, node.translation.y, node.translation.z));
-                    Tsukino::Core::Math::matrix nodeTransform  = hlslpp::mul(hlslpp::mul(scaleMat, rotMat), transMat);
-                    finalTransform = hlslpp::mul(nodeTransform, transform.worldMatrix);
+                    Tsukino::Core::Math::matrix nodeTransform = hlslpp::mul(hlslpp::mul(scaleMat, rotMat), transMat);
+                    finalTransform                            = hlslpp::mul(nodeTransform, transform.worldMatrix);
                 }
 
                 Tsukino::Renderer::CBufferMaterial cbMat{};
@@ -168,9 +162,9 @@ namespace Tsukino::BuiltIn::ECS {
                 cmd.transform    = finalTransform;
                 cmd.material     = &m_materialBuffer.back();
                 cmd.materialData = pCbMat;
-                if (isSkeletal) {
+                if(isSkeletal) {
                     cmd.boneMatrices = skeletonOut->local_matrices;
-                    cmd.boneCount = skeletonOut->bone_count;
+                    cmd.boneCount    = skeletonOut->bone_count;
                 }
 
                 ctx->renderer->PushDrawCommand(cmd);
