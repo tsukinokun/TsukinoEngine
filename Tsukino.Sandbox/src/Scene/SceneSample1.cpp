@@ -148,16 +148,16 @@ namespace Tsukino::Sandbox {
         rb.type                                       = Tsukino::BuiltIn::ECS::RigidbodyType::Kinematic;
 
         // アニメーションを再生・制御するコンポーネント
-        Tsukino::BuiltIn::ECS::AnimationPlayerComponent& animPlayer = registry.AddComponent<Tsukino::BuiltIn::ECS::AnimationPlayerComponent>(modelEntity);
-        animPlayer.current_clip_id                                  = animationHandle;    // ロードした testAnim.fbx のハンドルを渡す
-        animPlayer.animation_index                                  = 1;                  // 再生するアニメーションのインデックスを指定
-        animPlayer.elapsed_time                                     = 0.0f;               // 0秒からスタート
-        animPlayer.playback_speed                                   = 1.0f;               // 等速再生
-        animPlayer.is_looping                                       = true;               // ループさせる
-        animPlayer.is_playing                                       = true;               // 再生状態にする
+        //Tsukino::BuiltIn::ECS::AnimationPlayerComponent& animPlayer = registry.AddComponent<Tsukino::BuiltIn::ECS::AnimationPlayerComponent>(modelEntity);
+        //animPlayer.current_clip_id                                  = animationHandle;    // ロードした testAnim.fbx のハンドルを渡す
+        //animPlayer.animation_index                                  = 1;                  // 再生するアニメーションのインデックスを指定
+        //animPlayer.elapsed_time                                     = 0.0f;               // 0秒からスタート
+        //animPlayer.playback_speed                                   = 1.0f;               // 等速再生
+        //animPlayer.is_looping                                       = true;               // ループさせる
+        //animPlayer.is_playing                                       = true;               // 再生状態にする
 
-        // 計算されたボーン行列の出力先（スキニング用）コンポーネント 
-        Tsukino::BuiltIn::ECS::SkeletonOutputComponent& skeletonOutput = registry.AddComponent<Tsukino::BuiltIn::ECS::SkeletonOutputComponent>(modelEntity);
+        //// 計算されたボーン行列の出力先（スキニング用）コンポーネント 
+        //Tsukino::BuiltIn::ECS::SkeletonOutputComponent& skeletonOutput = registry.AddComponent<Tsukino::BuiltIn::ECS::SkeletonOutputComponent>(modelEntity);
 
         //--------------------------------------------------------------
         // 2Dカメラエンティティの生成

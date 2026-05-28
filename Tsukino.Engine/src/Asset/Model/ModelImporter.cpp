@@ -157,6 +157,7 @@ namespace Tsukino::Asset {
             std::vector<u32> weightCounts(aiMesh->mNumVertices, 0);
 
             // ボーンの処理
+
             for(u32 b = 0; b < aiMesh->mNumBones; ++b) {
                 const aiBone* aiBone = aiMesh->mBones[b];
                 std::string boneName = aiBone->mName.C_Str();
