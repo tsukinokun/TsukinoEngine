@@ -2,7 +2,7 @@ workspace "TsukinoEngine"                   -- ソリューション名
     architecture "x64"                      -- アーキテクチャ
     configurations { "Debug", "Release" }   -- ビルド構成
 
-    startproject "Sandbox"                  -- スタートアッププロジェクト
+    startproject "Tsukino.Sandbox"                  -- スタートアッププロジェクト
     location ".build"                       -- ビルドファイルの出力先 
     multiprocessorcompile "On"
     
