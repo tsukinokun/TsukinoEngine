@@ -44,15 +44,25 @@ namespace Tsukino::BuiltIn::ECS {
     //! @return 補間されたhlslpp::quaternion
     //-------------------------------------------------------------
     static hlslpp::quaternion SlerpQuaternion(const std::vector<Tsukino::GraphicsCommon::QuaternionKey>& keys, float time) {
-        if (keys.empty()) return hlslpp::quaternion(0, 0, 0, 1);
-        if (keys.size() == 1 || time <= keys.front().time) return hlslpp::quaternion(keys.front().value.x, keys.front().value.y, keys.front().value.z, keys.front().value.w);
-        if (time >= keys.back().time) return hlslpp::quaternion(keys.back().value.x, keys.back().value.y, keys.back().value.z, keys.back().value.w);
+        if(keys.empty())
+            return hlslpp::quaternion(0, 0, 0, 1);
+        if(keys.size() == 1 || time <= keys.front().time)
+            return hlslpp::quaternion(keys.front().value.x, keys.front().value.y, keys.front().value.z, keys.front().value.w);
+        if(time >= keys.back().time)
+            return hlslpp::quaternion(keys.back().value.x, keys.back().value.y, keys.back().value.z, keys.back().value.w);
 
-        for (size_t i = 0; i < keys.size() - 1; ++i) {
-            if (time >= keys[i].time && time < keys[i + 1].time) {
-                float t = (time - keys[i].time) / (keys[i + 1].time - keys[i].time);
+        for(size_t i = 0; i < keys.size() - 1; ++i) {
+            if(time >= keys[i].time && time < keys[i + 1].time) {
+                float              t  = (time - keys[i].time) / (keys[i + 1].time - keys[i].time);
                 hlslpp::quaternion q1 = hlslpp::quaternion(keys[i].value.x, keys[i].value.y, keys[i].value.z, keys[i].value.w);
-                hlslpp::quaternion q2 = hlslpp::quaternion(keys[i+1].value.x, keys[i+1].value.y, keys[i+1].value.z, keys[i+1].value.w);
+                hlslpp::quaternion q2 = hlslpp::quaternion(keys[i + 1].value.x, keys[i + 1].value.y, keys[i + 1].value.z, keys[i + 1].value.w);
+
+                // 内積が負なら q2 を反転して最短経路を保証
+                float dot = q1.x * q2.x + q1.y * q2.y + q1.z * q2.z + q1.w * q2.w;
+                if(dot < 0.0f) {
+                    q2 = hlslpp::quaternion(-q2.x, -q2.y, -q2.z, -q2.w);
+                }
+
                 return hlslpp::slerp(q1, q2, t);
             }
         }
@@ -214,12 +224,12 @@ namespace Tsukino::BuiltIn::ECS {
                 Tsukino::Core::Math::matrix rotMat = Tsukino::Core::Math::matrix::rotate(rot);
                 Tsukino::Core::Math::matrix transMat = Tsukino::Core::Math::matrix::translate(pos);
                 // ご指摘の通り親を左側に乗算する仕様 (Parent * Local) の場合、SRTの順序も T * R * S であるべきケースが多いです
-                Tsukino::Core::Math::matrix localMat = hlslpp::mul(transMat, hlslpp::mul(rotMat, scaleMat));
+                Tsukino::Core::Math::matrix localMat = hlslpp::mul(scaleMat, hlslpp::mul(rotMat, transMat));
 
                 // グローバル（ワールド）行列の算出
                 if (node.parentIndex != UINT32_MAX && node.parentIndex < globalNodeMatrices.size()) {
                     // 親が左、ローカルが右（Parent * Local）になるように修正
-                    globalNodeMatrices[i] = hlslpp::mul(globalNodeMatrices[node.parentIndex], localMat);
+                    globalNodeMatrices[i] = hlslpp::mul(localMat, globalNodeMatrices[node.parentIndex]);
                 } else {
                     // ルートノードの場合はローカル行列がそのままグローバル行列
                     globalNodeMatrices[i] = localMat;
@@ -241,7 +251,7 @@ namespace Tsukino::BuiltIn::ECS {
                 }
 
                 // スキニング行列（Global Node Matrix * Inverse Bind Pose）になるよう乗算順序を修正
-                Tsukino::Core::Math::matrix finalBoneMat = hlslpp::mul(globalNodeMat, boneInfo.inverseBindPose);
+                Tsukino::Core::Math::matrix finalBoneMat = hlslpp::mul(boneInfo.inverseBindPose, globalNodeMat);
 
                 // SkeletonOutput に書き出し
                 std::memcpy(skeletonOut.local_matrices[idx], &finalBoneMat, sizeof(float) * 16);
