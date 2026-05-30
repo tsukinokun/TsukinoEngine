@@ -106,68 +106,68 @@ namespace Tsukino::BuiltIn::ECS {
             bool  isSkeletal  = skeletonOut && skeletonOut->bone_count > 0;
 
             for(const auto& node : modelAsset->modelData.nodes) {
-                if(node.meshIndex < 0 || node.meshIndex >= meshBuffers.size())
-                    continue;
+                for (u32 meshIdx : node.meshIndices) {
+                    if(meshIdx >= meshBuffers.size())
+                        continue;
 
-                const auto& meshData         = modelAsset->modelData.meshes[node.meshIndex];
-                const auto& targetMeshBuffer = meshBuffers[node.meshIndex];
+                    const auto& meshData         = modelAsset->modelData.meshes[meshIdx];
+                    const auto& targetMeshBuffer = meshBuffers[meshIdx];
 
-                Tsukino::Core::Math::matrix finalTransform;
+                    Tsukino::Core::Math::matrix finalTransform;
 
-                if(isSkeletal) {
-                    finalTransform = transform.worldMatrix;
-                } else {
-                    Tsukino::Core::Math::matrix scaleMat = Tsukino::Core::Math::matrix::scale(hlslpp::float3(node.scale.x, node.scale.y, node.scale.z));
-                    Tsukino::Core::Math::matrix rotMat =
-                        Tsukino::Core::Math::matrix::rotate(hlslpp::quaternion(node.rotation.x, node.rotation.y, node.rotation.z, node.rotation.w));
-                    Tsukino::Core::Math::matrix transMat =
-                        Tsukino::Core::Math::matrix::translate(hlslpp::float3(node.translation.x, node.translation.y, node.translation.z));
-                    Tsukino::Core::Math::matrix nodeTransform = hlslpp::mul(hlslpp::mul(scaleMat, rotMat), transMat);
-                    finalTransform                            = hlslpp::mul(nodeTransform, transform.worldMatrix);
+                    if(isSkeletal) {
+                        finalTransform = transform.worldMatrix;
+                    } else {
+                        Tsukino::Core::Math::matrix scaleMat = Tsukino::Core::Math::matrix::scale(hlslpp::float3(node.scale.x, node.scale.y, node.scale.z));
+                        Tsukino::Core::Math::matrix rotMat =
+                            Tsukino::Core::Math::matrix::rotate(hlslpp::quaternion(node.rotation.x, node.rotation.y, node.rotation.z, node.rotation.w));
+                        Tsukino::Core::Math::matrix transMat =
+                            Tsukino::Core::Math::matrix::translate(hlslpp::float3(node.translation.x, node.translation.y, node.translation.z));
+                        Tsukino::Core::Math::matrix nodeTransform = hlslpp::mul(hlslpp::mul(scaleMat, rotMat), transMat);
+                        finalTransform                            = hlslpp::mul(nodeTransform, transform.worldMatrix);
+                    }
+
+                    Tsukino::Renderer::CBufferMaterial cbMat{};
+                    cbMat.baseColor = hlslpp::float4(1.0f, 1.0f, 1.0f, 1.0f);
+                    cbMat.emissive  = hlslpp::float3(0.0f, 0.0f, 0.0f);
+                    cbMat.metallic  = 0.0f;
+                    cbMat.roughness = 0.5f;
+
+                    ID3D11ShaderResourceView* srv = nullptr;
+
+                    if(meshData.materialIndex < modelAsset->modelData.materials.size()) {
+                        const auto& matData = modelAsset->modelData.materials[meshData.materialIndex];
+                        cbMat.baseColor     = hlslpp::float4(matData.baseColor.x, matData.baseColor.y, matData.baseColor.z, matData.baseColor.w);
+                        cbMat.emissive      = hlslpp::float3(matData.emissive.x, matData.emissive.y, matData.emissive.z);
+                        cbMat.metallic      = matData.metallic;
+                        cbMat.roughness     = matData.roughness;
+
+                        // TODO: Load Texture if albedo map exists.
+                    }
+
+                    m_cbufferMaterialBuffer.push_back(cbMat);
+                    Tsukino::Renderer::CBufferMaterial* pCbMat = &m_cbufferMaterialBuffer.back();
+
+                    Tsukino::Renderer::Material mat{};
+                    mat.SetPipeline(isSkeletal ? m_skeletalPipelineCache.get() : m_pipelineCache.get());
+                    mat.SetSampler(ctx->renderer->GetSampler(Tsukino::GraphicsCommon::SamplerType::LinearClamp));
+                    if(srv)
+                        mat.SetTexture(srv);
+
+                    m_materialBuffer.push_back(mat);
+
+                    Tsukino::Renderer::DrawCommand cmd{};
+                    cmd.mesh         = const_cast<Tsukino::Renderer::MeshBuffer*>(&targetMeshBuffer);
+                    cmd.transform    = finalTransform;
+                    cmd.material     = &m_materialBuffer.back();
+                    cmd.materialData = pCbMat;
+                    if(isSkeletal) {
+                        cmd.boneMatrices = skeletonOut->local_matrices;
+                        cmd.boneCount    = skeletonOut->bone_count;
+                    }
+
+                    ctx->renderer->PushDrawCommand(cmd);
                 }
-
-                Tsukino::Renderer::CBufferMaterial cbMat{};
-                cbMat.baseColor = hlslpp::float4(1.0f, 1.0f, 1.0f, 1.0f);
-                cbMat.emissive  = hlslpp::float3(0.0f, 0.0f, 0.0f);
-                cbMat.metallic  = 0.0f;
-                cbMat.roughness = 0.5f;
-
-                ID3D11ShaderResourceView* srv = nullptr;
-
-                // MeshData doesn't have materialIndex, load fallback for now
-                // if materials vector has at least one mat, use the first
-                if(!modelAsset->modelData.materials.empty()) {
-                    const auto& matData = modelAsset->modelData.materials[0];
-                    cbMat.baseColor     = hlslpp::float4(matData.baseColor.x, matData.baseColor.y, matData.baseColor.z, matData.baseColor.w);
-                    cbMat.emissive      = hlslpp::float3(matData.emissive.x, matData.emissive.y, matData.emissive.z);
-                    cbMat.metallic      = matData.metallic;
-                    cbMat.roughness     = matData.roughness;
-
-                    // TODO: Load Texture if albedo map exists.
-                }
-
-                m_cbufferMaterialBuffer.push_back(cbMat);
-                Tsukino::Renderer::CBufferMaterial* pCbMat = &m_cbufferMaterialBuffer.back();
-
-                Tsukino::Renderer::Material mat{};
-                mat.SetPipeline(isSkeletal ? m_skeletalPipelineCache.get() : m_pipelineCache.get());
-                mat.SetSampler(ctx->renderer->GetSampler(Tsukino::GraphicsCommon::SamplerType::LinearClamp));
-                if(srv)
-                    mat.SetTexture(srv);
-
-                m_materialBuffer.push_back(mat);
-
-                Tsukino::Renderer::DrawCommand cmd{};
-                cmd.mesh         = const_cast<Tsukino::Renderer::MeshBuffer*>(&targetMeshBuffer);
-                cmd.transform    = finalTransform;
-                cmd.material     = &m_materialBuffer.back();
-                cmd.materialData = pCbMat;
-                if(isSkeletal) {
-                    cmd.boneMatrices = skeletonOut->local_matrices;
-                    cmd.boneCount    = skeletonOut->bone_count;
-                }
-
-                ctx->renderer->PushDrawCommand(cmd);
             }
         });
     }

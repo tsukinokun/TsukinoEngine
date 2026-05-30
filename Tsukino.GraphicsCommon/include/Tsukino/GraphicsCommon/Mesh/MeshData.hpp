@@ -44,6 +44,7 @@ namespace Tsukino::GraphicsCommon {
         u32 vertexStride = 0;    // 頂点データの1頂点あたりのバイト数
         u32 vertexCount  = 0;    // 頂点の総数
         u32 indexCount   = 0;    // 頂点インデックスの総数
+        u32 materialIndex = 0;   // マテリアルインデックス
 
         VertexFormat format = VertexFormat::Unknown;    // 頂点のフォーマット
 
@@ -54,7 +55,7 @@ namespace Tsukino::GraphicsCommon {
         //--------------------------------------------------------------
         template <class Archive>
         void serialize(Archive& ar) {
-            ar(vertexData, indices, boneWeights, vertexStride, vertexCount, indexCount, format);
+            ar(vertexData, indices, boneWeights, vertexStride, vertexCount, indexCount, materialIndex, format);
         }
     };
 

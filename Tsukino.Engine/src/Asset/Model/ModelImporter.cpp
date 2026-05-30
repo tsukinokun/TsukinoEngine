@@ -143,6 +143,8 @@ namespace Tsukino::Asset {
             const aiMesh* aiMesh  = scene->mMeshes[i];
             auto&         dstMesh = modelData.meshes[i];
 
+            dstMesh.materialIndex = aiMesh->mMaterialIndex;
+
             std::vector<Vertex> vertices(aiMesh->mNumVertices);
             for(u32 v = 0; v < aiMesh->mNumVertices; ++v) {
                 vertices[v].position = {aiMesh->mVertices[v].x, aiMesh->mVertices[v].y, aiMesh->mVertices[v].z};
@@ -225,7 +227,10 @@ namespace Tsukino::Asset {
                 std::string nodeName = aiNode->mName.C_Str();
                 modelData.nodes[currentIndex].name        = nodeName;
                 modelData.nodes[currentIndex].parentIndex = parentIndex;
-                modelData.nodes[currentIndex].meshIndex   = (aiNode->mNumMeshes > 0) ? aiNode->mMeshes[0] : UINT32_MAX;
+
+                for (u32 i = 0; i < aiNode->mNumMeshes; ++i) {
+                    modelData.nodes[currentIndex].meshIndices.push_back(aiNode->mMeshes[i]);
+                }
 
                 // ボーンのNodeIndexを解決
                 auto it = boneNameToIndex.find(nodeName);
