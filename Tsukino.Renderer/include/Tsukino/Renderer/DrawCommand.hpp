@@ -33,5 +33,8 @@ namespace Tsukino::Renderer {
         Tsukino::Core::Math::matrix               transform;                   // どこに描くか（モデル行列）
         RenderPass                                pass = RenderPass::World;    // 描画パス
         CBufferMaterial*                          materialData = nullptr;      // マテリアルの定数データ（存在すれば）
+
+        const void*                               boneMatrices = nullptr;      // ボーン行列の配列へのポインタ（スキニング用, 最大ボーン数は SkeletonOutputComponent 等に依存）
+        u32                                       boneCount = 0;               // スキニング用のボーン数
     };
 }    // namespace Tsukino::Renderer

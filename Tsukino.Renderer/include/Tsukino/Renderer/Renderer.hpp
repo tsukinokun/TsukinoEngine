@@ -21,7 +21,6 @@
 #include <Tsukino/GraphicsCommon/State/SamplerType.hpp>
 #include <Tsukino/GraphicsCommon/Vertex/DebugVertex.hpp>
 
-
 #include <wrl/client.h>    // ComPtrの依存関係を明示
 #include <d3d11.h>         // 依存関係を明示
 #include <dxgi.h>          // 依存関係を明示
@@ -92,7 +91,9 @@ namespace Tsukino::Renderer {
         // デバッグライン/三角形の追加
         //------------------------------------------------------------
         void DrawDebugLine(const Tsukino::GraphicsCommon::DebugVertex& v1, const Tsukino::GraphicsCommon::DebugVertex& v2);
-        void DrawDebugTriangle(const Tsukino::GraphicsCommon::DebugVertex& v1, const Tsukino::GraphicsCommon::DebugVertex& v2, const Tsukino::GraphicsCommon::DebugVertex& v3);
+        void DrawDebugTriangle(const Tsukino::GraphicsCommon::DebugVertex& v1,
+                               const Tsukino::GraphicsCommon::DebugVertex& v2,
+                               const Tsukino::GraphicsCommon::DebugVertex& v3);
 
         //------------------------------------------------------------
         // 追加されたデバッグ線を実際に描画する
@@ -229,6 +230,7 @@ namespace Tsukino::Renderer {
         ComPtr<ID3D11Buffer> m_objectBuffer;      // オブジェクトデータ用定数バッファ
         ComPtr<ID3D11Buffer> m_sceneBuffer;       // シーンデータ用定数バッファ
         ComPtr<ID3D11Buffer> m_materialBuffer;    // マテリアルデータ用定数バッファ
+        ComPtr<ID3D11Buffer> m_skinningBuffer;    // ボーン行列用バッファ
 
         std::array<float, 4> m_clearColor = {0.5f, 0.5f, 0.5f, 1.0f};    // 描画領域のクリアカラー (デフォルトはグレー)
 

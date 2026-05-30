@@ -24,6 +24,9 @@
 #include <Tsukino/BuiltIn/ECS/Component/AudioComponent.hpp>
 #include <Tsukino/EngineIntegration/ECS/System/ModelSystem.hpp>
 #include <Tsukino/BuiltIn/ECS/Component/ModelComponent.hpp>
+#include <Tsukino/EngineIntegration/ECS/System/AnimationSystem.hpp>
+#include <Tsukino/BuiltIn/ECS/Component/AnimationPlayerComponent.hpp>
+#include <Tsukino/BuiltIn/ECS/Component/SkeletonOutputComponent.hpp>
 #include <Tsukino/BuiltIn/ECS/Component/CollisionComponent.hpp>
 #include <Tsukino/BuiltIn/ECS/Component/RigidBodyComponent.hpp>
 #include <Tsukino/EngineIntegration/ECS/System/PhysicsSystem.hpp>
@@ -44,6 +47,8 @@ namespace Tsukino::Sandbox {
         //--------------------------------------------------------------
         // Transformは一番最初に計算する (優先度 0)
         m_scene.AddSystem(std::make_shared<Tsukino::BuiltIn::ECS::TransformSystem>(), 0);
+        // アニメーションはTransformの後に更新する (優先度 2)
+        m_scene.AddSystem(std::make_shared<Tsukino::BuiltIn::ECS::AnimationSystem>(), 2);
         // カメラは描画前に更新する (優先度 5)
         m_scene.AddSystem(std::make_shared<Tsukino::BuiltIn::ECS::CameraSystem>(), 5);
         // フォント描画 (優先度 9)
@@ -64,7 +69,9 @@ namespace Tsukino::Sandbox {
 
         Tsukino::Asset::AssetHandle audioHandle = context->assetManager->Load(Tsukino::Core::Path("Tsukino.Sandbox/Assets/Sounds/cat1.wav"));
 
-        Tsukino::Asset::AssetHandle modelHandle = context->assetManager->Load(Tsukino::Core::Path("Tsukino.Sandbox/Assets/Models/Paddle.fbx"));
+        Tsukino::Asset::AssetHandle modelHandle = context->assetManager->Load(Tsukino::Core::Path("Tsukino.Sandbox/Assets/Models/test2.fbx"));
+
+        Tsukino::Asset::AssetHandle animationHandle = context->assetManager->Load(Tsukino::Core::Path("Tsukino.Sandbox/Assets/Anims/Northern Soul Floor Combo.fbx"));
 
         Tsukino::ECS::Registry& registry = m_scene.GetRegistry();
 
@@ -138,7 +145,19 @@ namespace Tsukino::Sandbox {
 
         // RBをつける
         Tsukino::BuiltIn::ECS::RigidbodyComponent& rb = registry.AddComponent<Tsukino::BuiltIn::ECS::RigidbodyComponent>(modelEntity);
-        rb.type                                       = Tsukino::BuiltIn::ECS::RigidbodyType::Kinematic;    
+        rb.type                                       = Tsukino::BuiltIn::ECS::RigidbodyType::Kinematic;
+
+        // アニメーションを再生・制御するコンポーネント
+        Tsukino::BuiltIn::ECS::AnimationPlayerComponent& animPlayer = registry.AddComponent<Tsukino::BuiltIn::ECS::AnimationPlayerComponent>(modelEntity);
+        animPlayer.current_clip_id                                  = animationHandle;    // ロードした testAnim.fbx のハンドルを渡す
+        animPlayer.animation_index                                  = 1;                  // 再生するアニメーションのインデックスを指定
+        animPlayer.elapsed_time                                     = 0.0f;               // 0秒からスタート
+        animPlayer.playback_speed                                   = 1.0f;               // 等速再生
+        animPlayer.is_looping                                       = true;               // ループさせる
+        animPlayer.is_playing                                       = true;               // 再生状態にする
+
+        // 計算されたボーン行列の出力先（スキニング用）コンポーネント 
+        Tsukino::BuiltIn::ECS::SkeletonOutputComponent& skeletonOutput = registry.AddComponent<Tsukino::BuiltIn::ECS::SkeletonOutputComponent>(modelEntity);
 
         //--------------------------------------------------------------
         // 2Dカメラエンティティの生成
@@ -162,7 +181,7 @@ namespace Tsukino::Sandbox {
 
         // TransformComponent (カメラの位置)
         Tsukino::BuiltIn::ECS::TransformComponent& camTransform3D = registry.AddComponent<Tsukino::BuiltIn::ECS::TransformComponent>(cameraEntity3D);
-        camTransform3D.position                                   = hlslpp::float3(250.0f, 250.0f, -250.0f);    // 手前に引く
+        camTransform3D.position                                   = hlslpp::float3(0.0f, 250.0f, 250.0f);    // 手前に引く
 
         // CameraComponent (投影設定)
         Tsukino::BuiltIn::ECS::CameraComponent& camera3D = registry.AddComponent<Tsukino::BuiltIn::ECS::CameraComponent>(cameraEntity3D);

@@ -2,8 +2,9 @@ workspace "TsukinoEngine"                   -- ソリューション名
     architecture "x64"                      -- アーキテクチャ
     configurations { "Debug", "Release" }   -- ビルド構成
 
-    startproject "Sandbox"                  -- スタートアッププロジェクト
+    startproject "Tsukino.Sandbox"                  -- スタートアッププロジェクト
     location ".build"                       -- ビルドファイルの出力先 
+    multiprocessorcompile "On"
     
     filter "configurations:*"
         defines { "JPH_DEBUG_RENDERER" } -- 値は1でなくても定義されていることが重要
@@ -452,7 +453,8 @@ project "Tsukino.EngineIntegration"
     files {
         "Tsukino.EngineIntegration/src/**.cpp",
         "Tsukino.EngineIntegration/include/**.hpp",
-        "Tsukino.EngineIntegration/pch.cpp"
+        "Tsukino.EngineIntegration/pch.cpp",
+        "External/hlslpp/include/hlsl++.natvis",
     }
 
     includedirs {

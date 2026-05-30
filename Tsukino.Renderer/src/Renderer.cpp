@@ -63,7 +63,7 @@ namespace Tsukino::Renderer {
         // デバッグ用バッファの作成
         //------------------------------------------------------------
         if(!CreateDebugBuffers())
-            return false;    
+            return false;
 
         return true;
     }
@@ -109,6 +109,16 @@ namespace Tsukino::Renderer {
             return false;
         }
 
+        // ------------------------------------------------------------
+        // m_skinningBuffer (b3) の作成
+        // ------------------------------------------------------------
+        desc.ByteWidth = sizeof(Tsukino::Renderer::CBufferSkinning);
+        hr             = device->CreateBuffer(&desc, nullptr, m_skinningBuffer.GetAddressOf());
+        if(FAILED(hr)) {
+            Tsukino::Core::Log::Error("Failed to create skinning constant buffer.");
+            return false;
+        }
+
         // 成功
         return true;
     }
@@ -122,35 +132,39 @@ namespace Tsukino::Renderer {
         // 頂点シェーダのコンパイルと読み込み
         Microsoft::WRL::ComPtr<ID3DBlob> vsBlob;
         Microsoft::WRL::ComPtr<ID3DBlob> errorBlob;
-        HRESULT hr = D3DCompileFromFile(L"Tsukino.BuiltIn/Assets/Shaders/DebugLine.vs.hlsl", nullptr, nullptr, "VSMain", "vs_5_0", D3DCOMPILE_ENABLE_STRICTNESS, 0, &vsBlob, &errorBlob);
+        HRESULT                          hr = D3DCompileFromFile(
+            L"Tsukino.BuiltIn/Assets/Shaders/DebugLine.vs.hlsl", nullptr, nullptr, "VSMain", "vs_5_0", D3DCOMPILE_ENABLE_STRICTNESS, 0, &vsBlob, &errorBlob);
         if(FAILED(hr)) {
-            if(errorBlob) OutputDebugStringA((char*)errorBlob->GetBufferPointer());
+            if(errorBlob)
+                OutputDebugStringA((char*)errorBlob->GetBufferPointer());
             return false;
         }
         device->CreateVertexShader(vsBlob->GetBufferPointer(), vsBlob->GetBufferSize(), nullptr, m_debugVS.GetAddressOf());
 
         // ピクセルシェーダのコンパイルと読み込み
         Microsoft::WRL::ComPtr<ID3DBlob> psBlob;
-        hr = D3DCompileFromFile(L"Tsukino.BuiltIn/Assets/Shaders/DebugLine.ps.hlsl", nullptr, nullptr, "PSMain", "ps_5_0", D3DCOMPILE_ENABLE_STRICTNESS, 0, &psBlob, &errorBlob);
+        hr = D3DCompileFromFile(
+            L"Tsukino.BuiltIn/Assets/Shaders/DebugLine.ps.hlsl", nullptr, nullptr, "PSMain", "ps_5_0", D3DCOMPILE_ENABLE_STRICTNESS, 0, &psBlob, &errorBlob);
         if(FAILED(hr)) {
-            if(errorBlob) OutputDebugStringA((char*)errorBlob->GetBufferPointer());
+            if(errorBlob)
+                OutputDebugStringA((char*)errorBlob->GetBufferPointer());
             return false;
         }
         device->CreatePixelShader(psBlob->GetBufferPointer(), psBlob->GetBufferSize(), nullptr, m_debugPS.GetAddressOf());
 
         // 入力レイアウトの作成
         D3D11_INPUT_ELEMENT_DESC layout[] = {
-            {"POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, offsetof(Tsukino::GraphicsCommon::DebugVertex, position), D3D11_INPUT_PER_VERTEX_DATA, 0},
+            {"POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT,    0, offsetof(Tsukino::GraphicsCommon::DebugVertex, position), D3D11_INPUT_PER_VERTEX_DATA, 0},
             {"COLOR",    0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, offsetof(Tsukino::GraphicsCommon::DebugVertex, color),    D3D11_INPUT_PER_VERTEX_DATA, 0},
         };
         device->CreateInputLayout(layout, ARRAYSIZE(layout), vsBlob->GetBufferPointer(), vsBlob->GetBufferSize(), m_debugIL.GetAddressOf());
 
         // 動的頂点バッファの作成
         D3D11_BUFFER_DESC bd = {};
-        bd.Usage = D3D11_USAGE_DYNAMIC;
-        bd.ByteWidth = sizeof(Tsukino::GraphicsCommon::DebugVertex) * 50000; // 最大 50,000 頂点
-        bd.BindFlags = D3D11_BIND_VERTEX_BUFFER;
-        bd.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+        bd.Usage             = D3D11_USAGE_DYNAMIC;
+        bd.ByteWidth         = sizeof(Tsukino::GraphicsCommon::DebugVertex) * 50000;    // 最大 50,000 頂点
+        bd.BindFlags         = D3D11_BIND_VERTEX_BUFFER;
+        bd.CPUAccessFlags    = D3D11_CPU_ACCESS_WRITE;
 
         device->CreateBuffer(&bd, nullptr, m_debugLineVB.GetAddressOf());
         device->CreateBuffer(&bd, nullptr, m_debugTriangleVB.GetAddressOf());
@@ -224,7 +238,7 @@ namespace Tsukino::Renderer {
 
         UpdateSceneBuffer(m_worldSceneData);
 
-        if (!m_debugLineVertices.empty() || !m_debugTriangleVertices.empty()) {
+        if(!m_debugLineVertices.empty() || !m_debugTriangleVertices.empty()) {
             context->VSSetShader(m_debugVS.Get(), nullptr, 0);
             context->PSSetShader(m_debugPS.Get(), nullptr, 0);
             context->IASetInputLayout(m_debugIL.Get());
@@ -233,15 +247,15 @@ namespace Tsukino::Renderer {
             context->OMSetBlendState(m_commonStatesTK->Opaque(), nullptr, 0xFFFFFFFF);
             context->OMSetDepthStencilState(m_commonStatesTK->DepthDefault(), 0);
             // レンダリングステート設定（ここでは必要に応じてワイヤーフレーム用等の設定が必要になる可能性）
-            context->RSSetState(m_commonStatesTK->CullNone()); 
+            context->RSSetState(m_commonStatesTK->CullNone());
 
             UINT stride = sizeof(Tsukino::GraphicsCommon::DebugVertex);
             UINT offset = 0;
 
             // --- ラインの描画 ---
-            if (!m_debugLineVertices.empty()) {
+            if(!m_debugLineVertices.empty()) {
                 D3D11_MAPPED_SUBRESOURCE mapped;
-                if (SUCCEEDED(context->Map(m_debugLineVB.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped))) {
+                if(SUCCEEDED(context->Map(m_debugLineVB.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped))) {
                     size_t count = std::min(m_debugLineVertices.size(), (size_t)50000);
                     memcpy(mapped.pData, m_debugLineVertices.data(), count * stride);
                     context->Unmap(m_debugLineVB.Get(), 0);
@@ -254,18 +268,18 @@ namespace Tsukino::Renderer {
             }
 
             // --- 三角形の描画 ---
-            if (!m_debugTriangleVertices.empty()) {
+            if(!m_debugTriangleVertices.empty()) {
                 D3D11_MAPPED_SUBRESOURCE mapped;
-                if (SUCCEEDED(context->Map(m_debugTriangleVB.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped))) {
+                if(SUCCEEDED(context->Map(m_debugTriangleVB.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped))) {
                     size_t count = std::min(m_debugTriangleVertices.size(), (size_t)50000);
                     memcpy(mapped.pData, m_debugTriangleVertices.data(), count * stride);
                     context->Unmap(m_debugTriangleVB.Get(), 0);
 
                     context->IASetVertexBuffers(0, 1, m_debugTriangleVB.GetAddressOf(), &stride, &offset);
-                    context->RSSetState(m_commonStatesTK->Wireframe()); // 三角形はワイヤーフレームで描画
+                    context->RSSetState(m_commonStatesTK->Wireframe());    // 三角形はワイヤーフレームで描画
                     context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
                     context->Draw((UINT)count, 0);
-                    context->RSSetState(m_commonStatesTK->CullNone()); // 元に戻す
+                    context->RSSetState(m_commonStatesTK->CullNone());    // 元に戻す
                 }
                 m_debugTriangleVertices.clear();
             }
@@ -290,7 +304,9 @@ namespace Tsukino::Renderer {
     //------------------------------------------------------------
     //! @brief デバッグ三角形の追加
     //------------------------------------------------------------
-    void Renderer::DrawDebugTriangle(const Tsukino::GraphicsCommon::DebugVertex& v1, const Tsukino::GraphicsCommon::DebugVertex& v2, const Tsukino::GraphicsCommon::DebugVertex& v3) {
+    void Renderer::DrawDebugTriangle(const Tsukino::GraphicsCommon::DebugVertex& v1,
+                                     const Tsukino::GraphicsCommon::DebugVertex& v2,
+                                     const Tsukino::GraphicsCommon::DebugVertex& v3) {
         m_debugTriangleVertices.push_back(v1);
         m_debugTriangleVertices.push_back(v2);
         m_debugTriangleVertices.push_back(v3);
@@ -355,7 +371,6 @@ namespace Tsukino::Renderer {
         return std::make_unique<DirectX::SpriteFont>(m_graphicsContext.GetDevice(), data, size);
     }
 
-    
     //------------------------------------------------------------
     //! @brief ワールドカメラ行列のセット
     //------------------------------------------------------------
@@ -390,8 +405,22 @@ namespace Tsukino::Renderer {
         // カスタム描画（フォント等）がある場合
         //------------------------------------------------------------
         if(cmd.customDraw) {
+            // 1. スロットをクリア
+            ID3D11Buffer* nullBuffers[] = {nullptr, nullptr};
+            UINT          strides[]     = {0, 0};
+            UINT          offsets[]     = {0, 0};
+            context->IASetVertexBuffers(0, 2, nullBuffers, strides, offsets);
+
+            // 2. カスタム描画実行
             cmd.customDraw(context);
-            return;    // カスタム描画をしたのでここで終了
+
+            // 3. 重要：SpriteBatchで汚されたステートをリセット
+            // これを入れないとSpriteの後の描画が真っ暗になったり崩れます
+            context->OMSetBlendState(m_commonStatesTK->Opaque(), nullptr, 0xFFFFFFFF);
+            context->OMSetDepthStencilState(m_commonStatesTK->DepthDefault(), 0);
+            context->RSSetState(m_commonStatesTK->CullNone());
+
+            return;
         }
 
         //------------------------------------------------------------
@@ -417,12 +446,29 @@ namespace Tsukino::Renderer {
         context->UpdateSubresource(m_objectBuffer.Get(), 0, nullptr, &cb, 0, 0);
         context->VSSetConstantBuffers(1, 1, m_objectBuffer.GetAddressOf());
 
+        // ------------------------------------------------------------
+        // ボーン行列 (b3) の適用
+        // ------------------------------------------------------------
+        if(cmd.boneMatrices && cmd.boneCount > 0) {
+            CBufferSkinning cbSkin{};
+            uint32_t        copyCount = std::min(cmd.boneCount, 128u);
+            std::memcpy(cbSkin.bones, cmd.boneMatrices, sizeof(hlslpp::float4x4) * copyCount);
+
+            context->UpdateSubresource(m_skinningBuffer.Get(), 0, nullptr, &cbSkin, 0, 0);
+            context->VSSetConstantBuffers(3, 1, m_skinningBuffer.GetAddressOf());
+        } else {
+            // スキニングを使わないオブジェクトを描画するときは、
+            // スロット3を nullptr でクリアして、前のオブジェクトのボーン行列が残らないようにする
+            ID3D11Buffer* nullBuffer = nullptr;
+            context->VSSetConstantBuffers(3, 1, &nullBuffer);
+        }
+
         //------------------------------------------------------
         // Material を適用
         //------------------------------------------------------
         m_graphicsContext.SetMaterial(*cmd.material);
 
-        if (cmd.materialData) {
+        if(cmd.materialData) {
             context->UpdateSubresource(m_materialBuffer.Get(), 0, nullptr, cmd.materialData, 0, 0);
             context->PSSetConstantBuffers(2, 1, m_materialBuffer.GetAddressOf());
         }
@@ -435,6 +481,25 @@ namespace Tsukino::Renderer {
         ID3D11Buffer* vb     = cmd.mesh->vertexBuffer.Get();
 
         context->IASetVertexBuffers(0, 1, &vb, &stride, &offset);
+        if(cmd.boneMatrices && cmd.boneCount > 0 && cmd.mesh->boneWeightBuffer.Get() != nullptr) {
+            // ボーンあり：スロット0と1をバインド
+            ID3D11Buffer* vbs[]     = {cmd.mesh->vertexBuffer.Get(), cmd.mesh->boneWeightBuffer.Get()};
+            UINT          strides[] = {cmd.mesh->stride, sizeof(Tsukino::GraphicsCommon::BoneWeight)};
+            UINT          offsets[] = {0, 0};
+            context->IASetVertexBuffers(0, 2, vbs, strides, offsets);
+        } else {
+            // ボーンなし：スロット0のみバインドし、スロット1は必ず明示的にクリア！
+            UINT          stride = cmd.mesh->stride;
+            UINT          offset = 0;
+            ID3D11Buffer* vb     = cmd.mesh->vertexBuffer.Get();
+
+            // スロット0に頂点バッファ、スロット1にNULLをセットしてクリアする
+            ID3D11Buffer* vbs[]     = {vb, nullptr};
+            UINT          strides[] = {stride, 0};
+            UINT          offsets[] = {0, 0};
+            context->IASetVertexBuffers(0, 2, vbs, strides, offsets);
+        }
+
         context->IASetIndexBuffer(cmd.mesh->indexBuffer.Get(), DXGI_FORMAT_R32_UINT, 0);
         context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
         //------------------------------------------------------

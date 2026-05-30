@@ -54,6 +54,21 @@ namespace Tsukino::Renderer {
             }
         }
 
+        if(!meshData.boneWeights.empty()) {    // meshDataにボーンデータが含まれているかチェック
+            D3D11_BUFFER_DESC bbd = {};
+            bbd.Usage             = D3D11_USAGE_DEFAULT;
+            bbd.ByteWidth         = static_cast<UINT>(meshData.boneWeights.size() * sizeof(Tsukino::GraphicsCommon::BoneWeight));
+            bbd.BindFlags         = D3D11_BIND_VERTEX_BUFFER;
+
+            D3D11_SUBRESOURCE_DATA binit = {};
+            binit.pSysMem                = meshData.boneWeights.data();
+
+            HRESULT hr = device->CreateBuffer(&bbd, &binit, buffer.boneWeightBuffer.GetAddressOf());
+            if(FAILED(hr)) {
+                // エラーハンドリング
+            }
+        }
+
         //--------------------------------------------------------------
         // メタ情報を保存
         //--------------------------------------------------------------
