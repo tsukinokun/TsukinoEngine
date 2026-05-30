@@ -4,6 +4,7 @@ workspace "TsukinoEngine"                   -- ソリューション名
 
     startproject "Sandbox"                  -- スタートアッププロジェクト
     location ".build"                       -- ビルドファイルの出力先 
+    multiprocessorcompile "On"
     
     filter "configurations:*"
         defines { "JPH_DEBUG_RENDERER" } -- 値は1でなくても定義されていることが重要

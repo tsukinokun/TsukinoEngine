@@ -17,8 +17,8 @@ namespace Tsukino::GraphicsCommon {
     //! @brief  モデルのノード（パーツ・ボーン）1つ分のデータ
     //--------------------------------------------------------------
     struct NodeData {
-        std::string name;                      // ノード名
-        u32         meshIndex = UINT32_MAX;    // 対応する MeshData のインデックス（なし = UINT32_MAX）
+        std::string      name;                      // ノード名
+        std::vector<u32> meshIndices;               // 対応する MeshData のインデックスのリスト
 
         // ローカルトランスフォーム
         hlslpp::interop::float3 translation = hlslpp::float3(0.0f, 0.0f, 0.0f);
@@ -34,7 +34,7 @@ namespace Tsukino::GraphicsCommon {
         //--------------------------------------------------------------
         template <class Archive>
         void serialize(Archive& ar) {
-            ar(name, meshIndex, translation, rotation, scale, parentIndex, childIndices);
+            ar(name, meshIndices, translation, rotation, scale, parentIndex, childIndices);
         }
     };
 
