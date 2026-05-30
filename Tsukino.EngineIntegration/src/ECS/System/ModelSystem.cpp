@@ -10,6 +10,7 @@
 #include <Tsukino/BuiltIn/BuiltInAssets.hpp>
 #include <Tsukino/BuiltIn/ECS/Component/ModelComponent.hpp>
 #include <Tsukino/BuiltIn/ECS/Component/TransformComponent.hpp>
+#include <Tsukino/BuiltIn/ECS/Component/SkeletonOutputComponent.hpp>
 #include <Tsukino/Engine/Asset/AssetManager.hpp>
 #include <Tsukino/Engine/Asset/Model/ModelAsset.hpp>
 #include <Tsukino/Engine/Asset/Shader/ShaderAsset.hpp>
@@ -37,23 +38,41 @@ namespace Tsukino::BuiltIn::ECS {
 
         // 初回のみパイプライン生成
         if(!m_pipelineCache) {
+            std::shared_ptr<Tsukino::Asset::ShaderAsset> vsStaticAsset =
+                std::static_pointer_cast<Tsukino::Asset::ShaderAsset>(ctx->assetManager->Get(ctx->builtinAssets->shaders.staticModelVS));
             std::shared_ptr<Tsukino::Asset::ShaderAsset> vsAsset =
                 std::static_pointer_cast<Tsukino::Asset::ShaderAsset>(ctx->assetManager->Get(ctx->builtinAssets->shaders.modelVS));
             std::shared_ptr<Tsukino::Asset::ShaderAsset> psAsset =
                 std::static_pointer_cast<Tsukino::Asset::ShaderAsset>(ctx->assetManager->Get(ctx->builtinAssets->shaders.modelPS));
 
-            if(vsAsset && psAsset) {
-                D3D11_INPUT_ELEMENT_DESC layout[] = {
+            if(vsStaticAsset && vsAsset && psAsset) {
+                D3D11_INPUT_ELEMENT_DESC staticLayout[] = {
                     {"POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0},
                     {"NORMAL",   0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0},
                     {"TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT,    0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0},
                 };
-                m_pipelineCache =
-                    ctx->renderer->GetPipelineFactory()->Create(*vsAsset, *psAsset, layout, ARRAYSIZE(layout), Tsukino::Renderer::DepthMode::ReadWrite);
+                m_pipelineCache = ctx->renderer->GetPipelineFactory()->Create(
+                    *vsStaticAsset, *psAsset, staticLayout, ARRAYSIZE(staticLayout), Tsukino::Renderer::DepthMode::ReadWrite);
+
+                D3D11_INPUT_ELEMENT_DESC skeletalLayout[] = {
+                    {"POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0},
+                    {"NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0},
+                    {"TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0},
+                    {"BONE_INDICES",
+                     0, DXGI_FORMAT_R32G32B32A32_UINT,
+                     1, offsetof(Tsukino::GraphicsCommon::BoneWeight, boneIndices),
+                     D3D11_INPUT_PER_VERTEX_DATA, 0},
+                    {"BONE_WEIGHTS",
+                     0, DXGI_FORMAT_R32G32B32A32_FLOAT,
+                     1, offsetof(Tsukino::GraphicsCommon::BoneWeight, weights),
+                     D3D11_INPUT_PER_VERTEX_DATA, 0},
+                };
+                m_skeletalPipelineCache = ctx->renderer->GetPipelineFactory()->Create(
+                    *vsAsset, *psAsset, skeletalLayout, ARRAYSIZE(skeletalLayout), Tsukino::Renderer::DepthMode::ReadWrite);
             }
         }
 
-        if(!m_pipelineCache)
+        if(!m_pipelineCache || !m_skeletalPipelineCache)
             return;
 
         m_materialBuffer.clear();
@@ -61,7 +80,7 @@ namespace Tsukino::BuiltIn::ECS {
 
         auto view = registry.View<TransformComponent, ModelComponent>();
 
-        view.each([&](entt::entity, const TransformComponent& transform, const ModelComponent& modelComp) {
+        view.each([&](entt::entity entity, const TransformComponent& transform, const ModelComponent& modelComp) {
             if(!modelComp.visible)
                 return;
 
@@ -83,60 +102,72 @@ namespace Tsukino::BuiltIn::ECS {
 
             const auto& meshBuffers = s_modelMeshCache[handleVal];
 
+            auto* skeletonOut = registry.try_get<SkeletonOutputComponent>(entity);
+            bool  isSkeletal  = skeletonOut && skeletonOut->bone_count > 0;
+
             for(const auto& node : modelAsset->modelData.nodes) {
-                if(node.meshIndex < 0 || node.meshIndex >= meshBuffers.size())
-                    continue;
+                for (u32 meshIdx : node.meshIndices) {
+                    if(meshIdx >= meshBuffers.size())
+                        continue;
 
-                const auto& meshData         = modelAsset->modelData.meshes[node.meshIndex];
-                const auto& targetMeshBuffer = meshBuffers[node.meshIndex];
+                    const auto& meshData         = modelAsset->modelData.meshes[meshIdx];
+                    const auto& targetMeshBuffer = meshBuffers[meshIdx];
 
-                Tsukino::Core::Math::matrix scaleMat = Tsukino::Core::Math::matrix::scale(hlslpp::float3(node.scale.x, node.scale.y, node.scale.z));
-                Tsukino::Core::Math::matrix rotMat =
-                    Tsukino::Core::Math::matrix::rotate(hlslpp::quaternion(node.rotation.x, node.rotation.y, node.rotation.z, node.rotation.w));
-                Tsukino::Core::Math::matrix transMat =
-                    Tsukino::Core::Math::matrix::translate(hlslpp::float3(node.translation.x, node.translation.y, node.translation.z));
-                Tsukino::Core::Math::matrix nodeTransform  = hlslpp::mul(hlslpp::mul(scaleMat, rotMat), transMat);
-                Tsukino::Core::Math::matrix finalTransform = hlslpp::mul(nodeTransform, transform.worldMatrix);
+                    Tsukino::Core::Math::matrix finalTransform;
 
-                Tsukino::Renderer::CBufferMaterial cbMat{};
-                cbMat.baseColor = hlslpp::float4(1.0f, 1.0f, 1.0f, 1.0f);
-                cbMat.emissive  = hlslpp::float3(0.0f, 0.0f, 0.0f);
-                cbMat.metallic  = 0.0f;
-                cbMat.roughness = 0.5f;
+                    if(isSkeletal) {
+                        finalTransform = transform.worldMatrix;
+                    } else {
+                        Tsukino::Core::Math::matrix scaleMat = Tsukino::Core::Math::matrix::scale(hlslpp::float3(node.scale.x, node.scale.y, node.scale.z));
+                        Tsukino::Core::Math::matrix rotMat =
+                            Tsukino::Core::Math::matrix::rotate(hlslpp::quaternion(node.rotation.x, node.rotation.y, node.rotation.z, node.rotation.w));
+                        Tsukino::Core::Math::matrix transMat =
+                            Tsukino::Core::Math::matrix::translate(hlslpp::float3(node.translation.x, node.translation.y, node.translation.z));
+                        Tsukino::Core::Math::matrix nodeTransform = hlslpp::mul(hlslpp::mul(scaleMat, rotMat), transMat);
+                        finalTransform                            = hlslpp::mul(nodeTransform, transform.worldMatrix);
+                    }
 
-                ID3D11ShaderResourceView* srv = nullptr;
+                    Tsukino::Renderer::CBufferMaterial cbMat{};
+                    cbMat.baseColor = hlslpp::float4(1.0f, 1.0f, 1.0f, 1.0f);
+                    cbMat.emissive  = hlslpp::float3(0.0f, 0.0f, 0.0f);
+                    cbMat.metallic  = 0.0f;
+                    cbMat.roughness = 0.5f;
 
-                // MeshData doesn't have materialIndex, load fallback for now
-                // if materials vector has at least one mat, use the first
-                if(!modelAsset->modelData.materials.empty()) {
-                    const auto& matData = modelAsset->modelData.materials[0];
-                    cbMat.baseColor     = hlslpp::float4(matData.baseColor.x, matData.baseColor.y, matData.baseColor.z, matData.baseColor.w);
-                    cbMat.emissive      = hlslpp::float3(matData.emissive.x, matData.emissive.y, matData.emissive.z);
-                    cbMat.metallic      = matData.metallic;
-                    cbMat.roughness     = matData.roughness;
+                    ID3D11ShaderResourceView* srv = nullptr;
 
-                    // TODO: Load Texture if albedo map exists.
+                    if(meshData.materialIndex < modelAsset->modelData.materials.size()) {
+                        const auto& matData = modelAsset->modelData.materials[meshData.materialIndex];
+                        cbMat.baseColor     = hlslpp::float4(matData.baseColor.x, matData.baseColor.y, matData.baseColor.z, matData.baseColor.w);
+                        cbMat.emissive      = hlslpp::float3(matData.emissive.x, matData.emissive.y, matData.emissive.z);
+                        cbMat.metallic      = matData.metallic;
+                        cbMat.roughness     = matData.roughness;
+
+                        // TODO: Load Texture if albedo map exists.
+                    }
+
+                    m_cbufferMaterialBuffer.push_back(cbMat);
+                    Tsukino::Renderer::CBufferMaterial* pCbMat = &m_cbufferMaterialBuffer.back();
+
+                    Tsukino::Renderer::Material mat{};
+                    mat.SetPipeline(isSkeletal ? m_skeletalPipelineCache.get() : m_pipelineCache.get());
+                    mat.SetSampler(ctx->renderer->GetSampler(Tsukino::GraphicsCommon::SamplerType::LinearClamp));
+                    if(srv)
+                        mat.SetTexture(srv);
+
+                    m_materialBuffer.push_back(mat);
+
+                    Tsukino::Renderer::DrawCommand cmd{};
+                    cmd.mesh         = const_cast<Tsukino::Renderer::MeshBuffer*>(&targetMeshBuffer);
+                    cmd.transform    = finalTransform;
+                    cmd.material     = &m_materialBuffer.back();
+                    cmd.materialData = pCbMat;
+                    if(isSkeletal) {
+                        cmd.boneMatrices = skeletonOut->local_matrices;
+                        cmd.boneCount    = skeletonOut->bone_count;
+                    }
+
+                    ctx->renderer->PushDrawCommand(cmd);
                 }
-
-                m_cbufferMaterialBuffer.push_back(cbMat);
-                Tsukino::Renderer::CBufferMaterial* pCbMat = &m_cbufferMaterialBuffer.back();
-
-                Tsukino::Renderer::Material mat{};
-                mat.SetPipeline(m_pipelineCache.get());
-                mat.SetSampler(ctx->renderer->GetSampler(Tsukino::GraphicsCommon::SamplerType::LinearClamp));
-                if(srv)
-                    mat.SetTexture(srv);
-
-                m_materialBuffer.push_back(mat);
-
-                Tsukino::Renderer::DrawCommand cmd{};
-                cmd.material     = &m_materialBuffer.back();
-                cmd.mesh         = const_cast<Tsukino::Renderer::MeshBuffer*>(&targetMeshBuffer);
-                cmd.transform    = finalTransform;
-                cmd.pass         = Tsukino::Renderer::RenderPass::World;
-                cmd.materialData = pCbMat;
-
-                ctx->renderer->PushDrawCommand(cmd);
             }
         });
     }
