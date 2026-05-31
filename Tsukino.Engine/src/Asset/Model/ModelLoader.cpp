@@ -5,6 +5,10 @@
 //--------------------------------------------------------------
 #include <Tsukino/Engine/Asset/Model/ModelLoader.hpp>
 #include <Tsukino/Engine/Asset/Model/ModelAsset.hpp>
+#include <Tsukino/Engine/Asset/Material/MaterialAsset.hpp>
+#include <Tsukino/Engine/Asset/AssetManager.hpp>
+#include <Tsukino/Engine/Asset/Util/AssetHandleGenerator.hpp>
+
 #include <Tsukino/Core/Log.hpp>
 
 #include <fstream>
@@ -55,7 +59,41 @@ namespace Tsukino::Asset {
             return nullptr;
         }
 
+        //--------------------------------------------------------------
+        // マテリアルのテクスチャをロードしてMaterialAssetを構築
+        //--------------------------------------------------------------
+        if(m_assetManager) {
+            asset->materialHandles.resize(asset->modelData.materials.size());
+
+            for(u32 i = 0; i < asset->modelData.materials.size(); ++i) {
+                const auto& matData = asset->modelData.materials[i];
+
+                auto matAsset  = Tsukino::Core::CreateRef<MaterialAsset>();
+                matAsset->data = matData;
+
+                // テクスチャをロード
+                if(!matData.albedoMap.empty())
+                    matAsset->albedoHandle = m_assetManager->Load(Tsukino::Core::Path(matData.albedoMap));
+                if(!matData.normalMap.empty())
+                    matAsset->normalHandle = m_assetManager->Load(Tsukino::Core::Path(matData.normalMap));
+                if(!matData.metallicRoughnessMap.empty())
+                    matAsset->metallicRoughnessHandle = m_assetManager->Load(Tsukino::Core::Path(matData.metallicRoughnessMap));
+                if(!matData.emissiveMap.empty())
+                    matAsset->emissiveHandle = m_assetManager->Load(Tsukino::Core::Path(matData.emissiveMap));
+                if(!matData.aoMap.empty())
+                    matAsset->aoHandle = m_assetManager->Load(Tsukino::Core::Path(matData.aoMap));
+
+                // MaterialAssetをAssetManagerに登録してハンドルを取得
+                AssetHandle matHandle = AssetHandleGenerator::Generate();
+                matAsset->SetHandle(matHandle);
+                m_assetManager->RegisterAsset(matHandle, matAsset);
+
+                asset->materialHandles[i] = matHandle;
+            }
+        }
+
         Tsukino::Core::Log::Info("ModelLoader: Successfully loaded .tsm (" + std::to_string(asset->modelData.nodes.size()) + " mesh nodes): " + filePath);
+        
         return asset;
     }
 }    // namespace Tsukino::Asset

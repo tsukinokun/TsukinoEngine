@@ -71,6 +71,13 @@ namespace Tsukino::Asset {
         //--------------------------------------------------------------
         void RegisterImporter(AssetType type, Tsukino::Core::Ref<IAssetImporter> importer);
 
+        //--------------------------------------------------------------
+        // アセットを登録する関数
+        //! @param  handle [in] 登録するアセットのハンドル
+        //! @param  asset  [in] 登録するアセットのshared_ptr
+        //--------------------------------------------------------------
+        void RegisterAsset(AssetHandle handle, Tsukino::Core::Ref<IAsset> asset);
+
     private:
         //--------------------------------------------------------------
         // ローダーを登録する関数
