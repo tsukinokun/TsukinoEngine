@@ -3,6 +3,8 @@
 //! @brief  モデルインポーター
 //! @author 山﨑愛
 //--------------------------------------------------------------
+#define NOMINMAX
+
 #include <Tsukino/Engine/Asset/Model/ModelImporter.hpp>
 #include <cstring>
 
@@ -181,6 +183,16 @@ namespace Tsukino::Asset {
                 image = std::move(converted);
             }
 
+            // 2048を超える場合は2048にリサイズ
+            size_t maxSize = 2048;
+            if(image.GetMetadata().width > maxSize || image.GetMetadata().height > maxSize) {
+                size_t                newWidth  = std::min(image.GetMetadata().width, maxSize);
+                size_t                newHeight = std::min(image.GetMetadata().height, maxSize);
+                DirectX::ScratchImage resized;
+                DirectX::Resize(*image.GetImage(0, 0, 0), newWidth, newHeight, DirectX::TEX_FILTER_DEFAULT, resized);
+                image = std::move(resized);
+            }
+
             // 4の倍数にリサイズ
             size_t newWidth  = (image.GetMetadata().width + 3) & ~3;
             size_t newHeight = (image.GetMetadata().height + 3) & ~3;
@@ -210,7 +222,6 @@ namespace Tsukino::Asset {
             Tsukino::Core::Path tsmDir      = (outputDirectory / inputPath).parent_path();
             Tsukino::Core::Path ddsPath     = tsmDir / ddsFilename;
 
-
             hr = DirectX::SaveToDDSFile(
                 compressed.GetImages(), compressed.GetImageCount(), compressed.GetMetadata(), DirectX::DDS_FLAGS_NONE, ddsPath.ToWString().c_str());
             if(FAILED(hr)) {
@@ -221,7 +232,7 @@ namespace Tsukino::Asset {
             embeddedTexIndexToDDSPath[i] = ddsPath.string();
         }
 
-                auto GetTexPath = [&](const aiMaterial* mat, aiTextureType type) -> std::string {
+        auto GetTexPath = [&](const aiMaterial* mat, aiTextureType type) -> std::string {
             aiString texPath;
             if(mat->GetTexture(type, 0, &texPath) != AI_SUCCESS)
                 return "";
