@@ -43,8 +43,11 @@ namespace Tsukino::Asset {
         //--------------------------------------------------------------
         void SetHandle(const AssetHandle& h) { m_handle = h; }
 
-        // モデルデータ
+        // モデルデータ（メッシュ・スケルトン・アニメーション・マテリアルパス）
         Tsukino::GraphicsCommon::ModelData modelData;
+
+        // マテリアルのランタイムハンドル（modelData.materials と同インデックス）
+        std::vector<AssetHandle> materialHandles;
 
     private:
         AssetHandle m_handle;    // アセットのハンドル

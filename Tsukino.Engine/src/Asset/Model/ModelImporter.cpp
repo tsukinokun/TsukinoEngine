@@ -16,6 +16,9 @@
 #include <assimp/scene.h>
 #include <assimp/postprocess.h>
 
+#include <DirectXTex/DirectXTex.h>
+#include <wincodec.h>
+
 #include <d3dcompiler.h>
 #include <fstream>
 #include <cereal/archives/binary.hpp>
@@ -133,10 +136,125 @@ namespace Tsukino::Asset {
         }
 
         //--------------------------------------------------------------
+        // 埋め込みテクスチャをDDSに変換・保存
+        //--------------------------------------------------------------
+        std::string                          modelBaseName = inputPath.stem();
+        std::unordered_map<u32, std::string> embeddedTexIndexToDDSPath;
+
+        for(u32 i = 0; i < scene->mNumTextures; ++i) {
+            const aiTexture* tex = scene->mTextures[i];
+
+            DirectX::ScratchImage image;
+
+            if(tex->mHeight == 0) {
+                DirectX::TexMetadata metadata;
+                // PNG/JPGなど圧縮済みデータ
+                HRESULT hr = DirectX::LoadFromWICMemory(
+                    reinterpret_cast<const std::byte*>(tex->pcData), static_cast<size_t>(tex->mWidth), DirectX::WIC_FLAGS_NONE, &metadata, image, nullptr);
+                if(FAILED(hr)) {
+                    Tsukino::Core::Log::Error("Failed to load embedded texture: " + std::to_string(i));
+                    continue;
+                }
+            } else {
+                // 生ピクセル（ARGB8888）
+                HRESULT hr = image.Initialize2D(DXGI_FORMAT_B8G8R8A8_UNORM, tex->mWidth, tex->mHeight, 1, 1);
+                if(FAILED(hr)) {
+                    Tsukino::Core::Log::Error("Failed to initialize raw texture: " + std::to_string(i));
+                    continue;
+                }
+
+                // ピクセルデータをコピー
+                const DirectX::Image* img = image.GetImage(0, 0, 0);
+                if(!img) {
+                    Tsukino::Core::Log::Error("GetImage returned nullptr after Initialize2D: " + std::to_string(i));
+                    continue;
+                }
+                std::memcpy(img->pixels, tex->pcData, img->slicePitch);
+            }
+
+            const DirectX::Image* srcImg = image.GetImage(0, 0, 0);
+            if(!srcImg) {
+                Tsukino::Core::Log::Error("GetImage returned nullptr: " + std::to_string(i));
+                continue;
+            }
+
+            // フォーマットをRGBA8に統一
+            // すでにRGBA8の場合はConvertをスキップ
+            if(srcImg->format != DXGI_FORMAT_R8G8B8A8_UNORM) {
+                DirectX::ScratchImage converted;
+                HRESULT hrConv = DirectX::Convert(*srcImg, DXGI_FORMAT_R8G8B8A8_UNORM, DirectX::TEX_FILTER_DEFAULT, DirectX::TEX_THRESHOLD_DEFAULT, converted);
+                if(FAILED(hrConv)) {
+                    Tsukino::Core::Log::Error("Failed to convert texture format: " + std::to_string(i));
+                    continue;
+                }
+                image = std::move(converted);
+            }
+
+            // 4の倍数にリサイズ
+            size_t newWidth  = (image.GetMetadata().width + 3) & ~3;
+            size_t newHeight = (image.GetMetadata().height + 3) & ~3;
+
+            if(newWidth != image.GetMetadata().width || newHeight != image.GetMetadata().height) {
+                DirectX::ScratchImage resized;
+                DirectX::Resize(*image.GetImage(0, 0, 0), newWidth, newHeight, DirectX::TEX_FILTER_DEFAULT, resized);
+                image = std::move(resized);
+            }
+
+            // BC3圧縮
+            DirectX::ScratchImage compressed;
+            HRESULT               hr = DirectX::Compress(image.GetImages(),
+                                           image.GetImageCount(),
+                                           image.GetMetadata(),
+                                           DXGI_FORMAT_BC3_UNORM,    // BC3
+                                           DirectX::TEX_COMPRESS_DEFAULT,
+                                           DirectX::TEX_THRESHOLD_DEFAULT,
+                                           compressed);
+            if(FAILED(hr)) {
+                Tsukino::Core::Log::Error("Failed to compress texture: " + std::to_string(i));
+                continue;
+            }
+
+            // 保存パスの構築
+            std::string         ddsFilename = modelBaseName + "_" + std::to_string(i) + ".dds";
+            Tsukino::Core::Path tsmDir      = (outputDirectory / inputPath).parent_path();
+            Tsukino::Core::Path ddsPath     = tsmDir / ddsFilename;
+
+            hr = DirectX::SaveToDDSFile(
+                compressed.GetImages(), compressed.GetImageCount(), compressed.GetMetadata(), DirectX::DDS_FLAGS_NONE, ddsPath.ToWString().c_str());
+            if(FAILED(hr)) {
+                Tsukino::Core::Log::Error("Failed to save DDS: " + ddsFilename);
+                continue;
+            }
+
+            embeddedTexIndexToDDSPath[i] = ddsPath.string();
+        }
+
+        //--------------------------------------------------------------
+        // マテリアルのテクスチャパスをDDSパスに差し替え
+        //--------------------------------------------------------------
+        auto ResolveTexPath = [&](std::string& texPathStr) {
+            if(!texPathStr.empty() && texPathStr[0] == '*') {
+                u32  idx = static_cast<u32>(std::atoi(texPathStr.c_str() + 1));
+                auto it  = embeddedTexIndexToDDSPath.find(idx);
+                if(it != embeddedTexIndexToDDSPath.end()) {
+                    texPathStr = it->second;
+                }
+            }
+        };
+
+        for(auto& mat : modelData.materials) {
+            ResolveTexPath(mat.albedoMap);
+            ResolveTexPath(mat.normalMap);
+            ResolveTexPath(mat.metallicRoughnessMap);
+            ResolveTexPath(mat.emissiveMap);
+            ResolveTexPath(mat.aoMap);
+        }
+
+        //--------------------------------------------------------------
         // メッシュ
         //--------------------------------------------------------------
         modelData.meshes.resize(scene->mNumMeshes);
-        
+
         std::unordered_map<std::string, u32> boneNameToIndex;
 
         for(u32 i = 0; i < scene->mNumMeshes; ++i) {
@@ -161,26 +279,22 @@ namespace Tsukino::Asset {
             // ボーンの処理
 
             for(u32 b = 0; b < aiMesh->mNumBones; ++b) {
-                const aiBone* aiBone = aiMesh->mBones[b];
-                std::string boneName = aiBone->mName.C_Str();
+                const aiBone* aiBone   = aiMesh->mBones[b];
+                std::string   boneName = aiBone->mName.C_Str();
 
-                u32 boneIndex = 0;
-                auto it = boneNameToIndex.find(boneName);
+                u32  boneIndex = 0;
+                auto it        = boneNameToIndex.find(boneName);
                 if(it == boneNameToIndex.end()) {
-                    boneIndex = static_cast<u32>(modelData.skeleton.bones.size());
+                    boneIndex                 = static_cast<u32>(modelData.skeleton.bones.size());
                     boneNameToIndex[boneName] = boneIndex;
 
                     Tsukino::GraphicsCommon::BoneInfo boneInfo;
-                    boneInfo.name = boneName;
-                    boneInfo.nodeIndex = UINT32_MAX; // 後で解決する
+                    boneInfo.name      = boneName;
+                    boneInfo.nodeIndex = UINT32_MAX;    // 後で解決する
 
-                    const auto& mat = aiBone->mOffsetMatrix;
+                    const auto& mat          = aiBone->mOffsetMatrix;
                     boneInfo.inverseBindPose = hlslpp::float4x4(
-                        mat.a1, mat.b1, mat.c1, mat.d1,
-                        mat.a2, mat.b2, mat.c2, mat.d2,
-                        mat.a3, mat.b3, mat.c3, mat.d3,
-                        mat.a4, mat.b4, mat.c4, mat.d4
-                    );
+                        mat.a1, mat.b1, mat.c1, mat.d1, mat.a2, mat.b2, mat.c2, mat.d2, mat.a3, mat.b3, mat.c3, mat.d3, mat.a4, mat.b4, mat.c4, mat.d4);
 
                     modelData.skeleton.bones.push_back(boneInfo);
                 } else {
@@ -189,8 +303,8 @@ namespace Tsukino::Asset {
 
                 // ウェイトのセット
                 for(u32 w = 0; w < aiBone->mNumWeights; ++w) {
-                    const aiVertexWeight& vw = aiBone->mWeights[w];
-                    u32 vId = vw.mVertexId;
+                    const aiVertexWeight& vw  = aiBone->mWeights[w];
+                    u32                   vId = vw.mVertexId;
                     if(weightCounts[vId] < 4) {
                         dstMesh.boneWeights[vId].boneIndices[weightCounts[vId]] = boneIndex;
                         dstMesh.boneWeights[vId].weights[weightCounts[vId]]     = vw.mWeight;
@@ -224,11 +338,11 @@ namespace Tsukino::Asset {
                 u32 currentIndex = static_cast<u32>(modelData.nodes.size());
                 modelData.nodes.emplace_back();
 
-                std::string nodeName = aiNode->mName.C_Str();
+                std::string nodeName                      = aiNode->mName.C_Str();
                 modelData.nodes[currentIndex].name        = nodeName;
                 modelData.nodes[currentIndex].parentIndex = parentIndex;
 
-                for (u32 i = 0; i < aiNode->mNumMeshes; ++i) {
+                for(u32 i = 0; i < aiNode->mNumMeshes; ++i) {
                     modelData.nodes[currentIndex].meshIndices.push_back(aiNode->mMeshes[i]);
                 }
 
@@ -278,25 +392,30 @@ namespace Tsukino::Asset {
                     // 位置キー
                     dstChannel.positionKeys.resize(aiChannel->mNumPositionKeys);
                     for(u32 k = 0; k < aiChannel->mNumPositionKeys; ++k) {
-                        const auto& key = aiChannel->mPositionKeys[k];
-                        dstChannel.positionKeys[k].time  = static_cast<float>(key.mTime);
-                        dstChannel.positionKeys[k].value = hlslpp::float3(static_cast<float>(key.mValue.x), static_cast<float>(key.mValue.y), static_cast<float>(key.mValue.z));
+                        const auto& key                 = aiChannel->mPositionKeys[k];
+                        dstChannel.positionKeys[k].time = static_cast<float>(key.mTime);
+                        dstChannel.positionKeys[k].value =
+                            hlslpp::float3(static_cast<float>(key.mValue.x), static_cast<float>(key.mValue.y), static_cast<float>(key.mValue.z));
                     }
 
                     // 回転キー
                     dstChannel.rotationKeys.resize(aiChannel->mNumRotationKeys);
                     for(u32 k = 0; k < aiChannel->mNumRotationKeys; ++k) {
-                        const auto& key = aiChannel->mRotationKeys[k];
+                        const auto& key                  = aiChannel->mRotationKeys[k];
                         dstChannel.rotationKeys[k].time  = static_cast<float>(key.mTime);
-                        dstChannel.rotationKeys[k].value = hlslpp::float4(static_cast<float>(key.mValue.x), static_cast<float>(key.mValue.y), static_cast<float>(key.mValue.z), static_cast<float>(key.mValue.w));
+                        dstChannel.rotationKeys[k].value = hlslpp::float4(static_cast<float>(key.mValue.x),
+                                                                          static_cast<float>(key.mValue.y),
+                                                                          static_cast<float>(key.mValue.z),
+                                                                          static_cast<float>(key.mValue.w));
                     }
 
                     // スケールキー
                     dstChannel.scaleKeys.resize(aiChannel->mNumScalingKeys);
                     for(u32 k = 0; k < aiChannel->mNumScalingKeys; ++k) {
-                        const auto& key = aiChannel->mScalingKeys[k];
-                        dstChannel.scaleKeys[k].time  = static_cast<float>(key.mTime);
-                        dstChannel.scaleKeys[k].value = hlslpp::float3(static_cast<float>(key.mValue.x), static_cast<float>(key.mValue.y), static_cast<float>(key.mValue.z));
+                        const auto& key              = aiChannel->mScalingKeys[k];
+                        dstChannel.scaleKeys[k].time = static_cast<float>(key.mTime);
+                        dstChannel.scaleKeys[k].value =
+                            hlslpp::float3(static_cast<float>(key.mValue.x), static_cast<float>(key.mValue.y), static_cast<float>(key.mValue.z));
                     }
                 }
             }
