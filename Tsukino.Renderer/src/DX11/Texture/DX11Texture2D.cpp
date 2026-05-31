@@ -3,7 +3,9 @@
 //! @brief  DirectX11用の2Dテクスチャクラスの実装
 //! @author 山﨑愛
 //------------------------------------------------------------
+#define NOMINMAX
 #include <Tsukino/Renderer/DX11/Texture/DX11Texture2D.hpp>
+#include <algorithm>
 
 // 名前空間 : Tsukino::Renderer
 namespace Tsukino::Renderer {
@@ -28,7 +30,16 @@ namespace Tsukino::Renderer {
         // 初期データ
         D3D11_SUBRESOURCE_DATA initData = {};
         initData.pSysMem                = data;
-        initData.SysMemPitch            = width * 4;    // RGBA8
+
+        // BC3などブロック圧縮フォーマットの場合はPitchの計算が異なる
+        if(format == DXGI_FORMAT_BC1_UNORM || format == DXGI_FORMAT_BC1_UNORM_SRGB) {
+            initData.SysMemPitch = std::max(1u, (width + 3) / 4) * 8;    // BC1は8バイト/ブロック
+        } else if(format == DXGI_FORMAT_BC3_UNORM || format == DXGI_FORMAT_BC3_UNORM_SRGB || format == DXGI_FORMAT_BC7_UNORM
+                  || format == DXGI_FORMAT_BC7_UNORM_SRGB) {
+            initData.SysMemPitch = std::max(1u, (width + 3) / 4) * 16;    // BC3/BC7は16バイト/ブロック
+        } else {
+            initData.SysMemPitch = width * 4;    // RGBA8など非圧縮
+        }
 
         // テクスチャ作成
         device->CreateTexture2D(&desc, &initData, m_texture.GetAddressOf());
