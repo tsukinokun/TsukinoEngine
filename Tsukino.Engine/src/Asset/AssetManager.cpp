@@ -43,7 +43,7 @@ namespace Tsukino::Asset {
         RegisterLoader(Tsukino::Core::CreateRef<TextureLoader>());    // テクスチャローダーを登録
         RegisterLoader(Tsukino::Core::CreateRef<FontLoader>());       // フォントローダーを登録
         RegisterLoader(Tsukino::Core::CreateRef<AudioLoader>());      // オーディオローダーを登録
-        RegisterLoader(Tsukino::Core::CreateRef<ModelLoader>());      // モデルローダーを登録
+        RegisterLoader(Tsukino::Core::CreateRef<ModelLoader>(this));      // モデルローダーを登録
 
         //--------------------------------------------------------------
         // インポーター登録
@@ -151,6 +151,13 @@ namespace Tsukino::Asset {
 
         s_Importers[type] = importer;
         Tsukino::Core::Log::Info(std::format("Registered importer for AssetType {}", (int)type));
+    }
+
+    //--------------------------------------------------------------
+    //! @brief アセットを登録する関数
+    //--------------------------------------------------------------
+    void AssetManager::RegisterAsset(AssetHandle handle, Tsukino::Core::Ref<IAsset> asset) {
+        s_Assets.insert({handle.Value(), asset});
     }
 
     //--------------------------------------------------------------

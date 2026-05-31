@@ -5,10 +5,12 @@
 //--------------------------------------------------------------
 #pragma once
 #include <Tsukino/Engine/Asset/IAssetLoader.hpp>
-#include <Tsukino/Engine/Asset/Shader/ShaderAsset.hpp>
 #include <Tsukino/Core/Path.hpp>
 // 名前空間 Tsukino::Asset
 namespace Tsukino::Asset {
+    // 前方宣言
+    class AssetManager;
+
     //--------------------------------------------------------------
     //! @class  ModelLoader
     //! @brief  .shader ファイルを読み込んでShaderAssetを生成するローダー
@@ -16,9 +18,11 @@ namespace Tsukino::Asset {
     class ModelLoader : public IAssetLoader {
     public:
         //--------------------------------------------------------------
-        //! @brief デフォルトコンストラクタ
+        //! @brief コンストラクタ
+        //! @param assetManager [in] テクスチャロードに使用するAssetManager
         //--------------------------------------------------------------
-        ModelLoader() = default;
+        explicit ModelLoader(AssetManager* assetManager)
+            : m_assetManager(assetManager) {}
 
         //--------------------------------------------------------------
         // 対応する拡張子か判定する
@@ -36,13 +40,8 @@ namespace Tsukino::Asset {
         [[nodiscard]]
         Tsukino::Core::Ref<IAsset> Load(const Tsukino::Core::Path& path) override;
 
-        //--------------------------------------------------------------
-        //! @brief  モデルーステージをファイルパスから推測する関数
-        //! @param  path [in] モデルファイルのパス
-        //! @return 推測されたモデルーステージ
-        //--------------------------------------------------------------
-        [[nodiscard]]
-        static Tsukino::Shader::ShaderStage DetectStage(const Tsukino::Core::Path& path);
+    private:
+        AssetManager* m_assetManager = nullptr;
     };
 
 }    // namespace Tsukino::Asset
