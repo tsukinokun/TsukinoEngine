@@ -3,8 +3,9 @@
 //! @brief  マテリアルアセットの定義
 //! @author 山﨑愛
 //--------------------------------------------------------------
+#pragma once
 #include <Tsukino/Engine/Asset/IAsset.hpp>
-
+#include <Tsukino/GraphicsCommon/Material/MaterialData.hpp>
 #include <hlsl++.h>
 // 名前空間 ：Tsukino::Asset
 namespace Tsukino::Asset {
@@ -38,12 +39,18 @@ namespace Tsukino::Asset {
         //--------------------------------------------------------------
         void SetHandle(const AssetHandle& h) { m_handle = h; }
 
-        // テクスチャの配列
-        std::vector<AssetHandle> textureHandles;
+        // PBRパラメータはMaterialDataに任せる
+        Tsukino::GraphicsCommon::MaterialData data;
 
-        AssetHandle    vertexShaderHandle;    // VS
-        AssetHandle    pixelShaderHandle;     // PS
-        hlslpp::float4 diffuseColor;          // 基本色
+        // テクスチャハンドル（ランタイム専用）
+        AssetHandle albedoHandle;               // アルベドテクスチャのハンドル
+        AssetHandle normalHandle;               // 法線テクスチャのハンドル
+        AssetHandle metallicRoughnessHandle;    // メタリック・ラフネステクスチャのハンドル
+        AssetHandle emissiveHandle;             // エミッシブテクスチャのハンドル
+        AssetHandle aoHandle;                   // アンビエントオクルージョンテクスチャのハンドル
+
+        AssetHandle vertexShaderHandle;    // VS
+        AssetHandle pixelShaderHandle;     // PS
 
     private:
         AssetHandle m_handle;    // IAssetの実体となる識別子
