@@ -14,6 +14,8 @@
 #include <Tsukino/Engine/Asset/AssetManager.hpp>
 #include <Tsukino/Engine/Asset/Model/ModelAsset.hpp>
 #include <Tsukino/Engine/Asset/Shader/ShaderAsset.hpp>
+#include <Tsukino/Engine/Asset/Material/MaterialAsset.hpp>
+#include <Tsukino/Engine/Asset/Texture/TextureAsset.hpp>
 #include <Tsukino/Renderer/Renderer.hpp>
 #include <Tsukino/Renderer/DX11/MeshBuffer.hpp>
 #include <Tsukino/GraphicsCommon/Model/ModelData.hpp>
@@ -135,14 +137,27 @@ namespace Tsukino::BuiltIn::ECS {
 
                     ID3D11ShaderResourceView* srv = nullptr;
 
-                    if(meshData.materialIndex < modelAsset->modelData.materials.size()) {
-                        const auto& matData = modelAsset->modelData.materials[meshData.materialIndex];
-                        cbMat.baseColor     = hlslpp::float4(matData.baseColor.x, matData.baseColor.y, matData.baseColor.z, matData.baseColor.w);
-                        cbMat.emissive      = hlslpp::float3(matData.emissive.x, matData.emissive.y, matData.emissive.z);
-                        cbMat.metallic      = matData.metallic;
-                        cbMat.roughness     = matData.roughness;
+                    if(meshData.materialIndex < modelAsset->materialHandles.size()) {
+                        auto matHandle    = modelAsset->materialHandles[meshData.materialIndex];
+                        auto matAssetBase = ctx->assetManager->Get(matHandle);
+                        if(matAssetBase && matAssetBase->GetType() == Tsukino::Asset::AssetType::Material) {
+                            Tsukino::Core::Ref<Tsukino::Asset::MaterialAsset> matAsset = std::static_pointer_cast<Tsukino::Asset::MaterialAsset>(matAssetBase);
 
-                        // TODO: Load Texture if albedo map exists.
+                            cbMat.baseColor =
+                                hlslpp::float4(matAsset->data.baseColor.x, matAsset->data.baseColor.y, matAsset->data.baseColor.z, matAsset->data.baseColor.w);
+                            cbMat.emissive  = hlslpp::float3(matAsset->data.emissive.x, matAsset->data.emissive.y, matAsset->data.emissive.z);
+                            cbMat.metallic  = matAsset->data.metallic;
+                            cbMat.roughness = matAsset->data.roughness;
+
+                            // albedoテクスチャのSRVを取得
+                            if(matAsset->albedoHandle.IsValid()) {
+                                auto texAssetBase = ctx->assetManager->Get(matAsset->albedoHandle);
+                                if(texAssetBase) {
+                                    auto texAsset = std::static_pointer_cast<Tsukino::Asset::TextureAsset>(texAssetBase);
+                                    srv           = ctx->renderer->GetTextureSRV(*texAsset);
+                                }
+                            }
+                        }
                     }
 
                     m_cbufferMaterialBuffer.push_back(cbMat);

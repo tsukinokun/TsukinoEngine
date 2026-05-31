@@ -39,11 +39,11 @@ namespace Tsukino::Asset {
         //--------------------------------------------------------------
         // ローダー登録
         //--------------------------------------------------------------
-        RegisterLoader(Tsukino::Core::CreateRef<ShaderLoader>());     // シェーダローダーを登録
-        RegisterLoader(Tsukino::Core::CreateRef<TextureLoader>());    // テクスチャローダーを登録
-        RegisterLoader(Tsukino::Core::CreateRef<FontLoader>());       // フォントローダーを登録
-        RegisterLoader(Tsukino::Core::CreateRef<AudioLoader>());      // オーディオローダーを登録
-        RegisterLoader(Tsukino::Core::CreateRef<ModelLoader>(this));      // モデルローダーを登録
+        RegisterLoader(Tsukino::Core::CreateRef<ShaderLoader>());       // シェーダローダーを登録
+        RegisterLoader(Tsukino::Core::CreateRef<TextureLoader>());      // テクスチャローダーを登録
+        RegisterLoader(Tsukino::Core::CreateRef<FontLoader>());         // フォントローダーを登録
+        RegisterLoader(Tsukino::Core::CreateRef<AudioLoader>());        // オーディオローダーを登録
+        RegisterLoader(Tsukino::Core::CreateRef<ModelLoader>(this));    // モデルローダーを登録
 
         //--------------------------------------------------------------
         // インポーター登録
@@ -85,13 +85,23 @@ namespace Tsukino::Asset {
             if(!Tsukino::IO::FileSystem::Exists(cacheBasePath)) {
                 shouldImport = true;
             } else {
-                Tsukino::Core::Path             baseDir    = Tsukino::IO::FileSystem::GetAssetRootPath();
-                std::filesystem::file_time_type sourceTime = Tsukino::IO::FileSystem::GetLastWriteTime(baseDir / sourceBasePath);
-                std::filesystem::file_time_type cacheTime  = Tsukino::IO::FileSystem::GetLastWriteTime(cacheBasePath);
+                Tsukino::Core::Path baseDir    = Tsukino::IO::FileSystem::GetAssetRootPath();
+                Tsukino::Core::Path sourceFull = baseDir / sourceBasePath;
 
-                if(sourceTime > cacheTime) {
-                    Tsukino::Core::Log::Info("Asset updated. Re-importing: " + path.string());
-                    shouldImport = true;
+                if(!Tsukino::IO::FileSystem::Exists(sourceFull)) {
+                    // ソースファイルが存在しない（.gitignoreで除外されているなど）
+                    // キャッシュをそのまま使用する
+                    shouldImport = false;
+                } else {
+                    // ソースとキャッシュの更新日時を比較
+                    auto sourceTime = Tsukino::IO::FileSystem::GetLastWriteTime(sourceFull);
+                    auto cacheTime  = Tsukino::IO::FileSystem::GetLastWriteTime(cacheBasePath);
+
+                    if(sourceTime > cacheTime) {
+                        // ソースが更新されているので再インポートが必要
+                        Tsukino::Core::Log::Info("Asset updated. Re-importing: " + path.string());
+                        shouldImport = true;
+                    }
                 }
             }
 
@@ -182,10 +192,11 @@ namespace Tsukino::Asset {
             {".shader", AssetType::Shader },
             {".hlsl",   AssetType::Shader },
 
-            {".obj",    AssetType::Model   },
+            {".obj",    AssetType::Model  },
             {".fbx",    AssetType::Model  },
             {".gltf",   AssetType::Model  },
             {".glb",    AssetType::Model  },
+            {".tsm",    AssetType::Model  },
 
             {".wav",    AssetType::Audio  },
 
@@ -211,13 +222,15 @@ namespace Tsukino::Asset {
             {".jpeg",   ".dds"       },
             {".tga",    ".dds"       },
             {".bmp",    ".dds"       },
+            {".dds",    ".dds"       },
 
             {".font",   ".spritefont"},
 
-            {".obj",    ".tsm"},
-            {".fbx",    ".tsm"},
-            {".gltf",   ".tsm"},
-            {".glb",    ".tsm"},
+            {".obj",    ".tsm"       },
+            {".fbx",    ".tsm"       },
+            {".gltf",   ".tsm"       },
+            {".glb",    ".tsm"       },
+            {".tsm",    ".tsm"       },
 
             // Audio
             {".wav",    ".xwb"       },
