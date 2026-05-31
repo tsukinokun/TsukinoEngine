@@ -82,9 +82,15 @@ namespace Tsukino::Asset {
         Tsukino::GraphicsCommon::ModelData modelData;
 
         //--------------------------------------------------------------
+        // テクスチャの数をログ出力
+        //--------------------------------------------------------------
+        Tsukino::Core::Log::Info("mNumTextures: " + std::to_string(scene->mNumTextures));
+
+        //--------------------------------------------------------------
         // マテリアル
         //--------------------------------------------------------------
         modelData.materials.resize(scene->mNumMaterials);
+
         for(u32 i = 0; i < scene->mNumMaterials; ++i) {
             const aiMaterial* aiMat  = scene->mMaterials[i];
             auto&             dstMat = modelData.materials[i];
@@ -115,25 +121,7 @@ namespace Tsukino::Asset {
             aiMat->Get("$mat.roughnessFactor", 0, 0, roughness);
             dstMat.metallic  = metallic;
             dstMat.roughness = roughness;
-
-            // テクスチャパス（相対パスをそのまま保存）
-            aiString texPath;
-            if(aiMat->GetTexture(aiTextureType_DIFFUSE, 0, &texPath) == AI_SUCCESS) {
-                dstMat.albedoMap = texPath.C_Str();
-            }
-            if(aiMat->GetTexture(aiTextureType_NORMALS, 0, &texPath) == AI_SUCCESS) {
-                dstMat.normalMap = texPath.C_Str();
-            }
-            if(aiMat->GetTexture(aiTextureType_DIFFUSE_ROUGHNESS, 0, &texPath) == AI_SUCCESS) {
-                dstMat.metallicRoughnessMap = texPath.C_Str();
-            }
-            if(aiMat->GetTexture(aiTextureType_EMISSIVE, 0, &texPath) == AI_SUCCESS) {
-                dstMat.emissiveMap = texPath.C_Str();
-            }
-            if(aiMat->GetTexture(aiTextureType_AMBIENT_OCCLUSION, 0, &texPath) == AI_SUCCESS) {
-                dstMat.aoMap = texPath.C_Str();
-            }
-        }
+        };
 
         //--------------------------------------------------------------
         // 埋め込みテクスチャをDDSに変換・保存
@@ -165,6 +153,9 @@ namespace Tsukino::Asset {
 
                 // ピクセルデータをコピー
                 const DirectX::Image* img = image.GetImage(0, 0, 0);
+
+                Tsukino::Core::Log::Info("TextureLoader format: " + std::to_string(img->format));
+
                 if(!img) {
                     Tsukino::Core::Log::Error("GetImage returned nullptr after Initialize2D: " + std::to_string(i));
                     continue;
@@ -219,6 +210,7 @@ namespace Tsukino::Asset {
             Tsukino::Core::Path tsmDir      = (outputDirectory / inputPath).parent_path();
             Tsukino::Core::Path ddsPath     = tsmDir / ddsFilename;
 
+
             hr = DirectX::SaveToDDSFile(
                 compressed.GetImages(), compressed.GetImageCount(), compressed.GetMetadata(), DirectX::DDS_FLAGS_NONE, ddsPath.ToWString().c_str());
             if(FAILED(hr)) {
@@ -229,25 +221,34 @@ namespace Tsukino::Asset {
             embeddedTexIndexToDDSPath[i] = ddsPath.string();
         }
 
-        //--------------------------------------------------------------
-        // マテリアルのテクスチャパスをDDSパスに差し替え
-        //--------------------------------------------------------------
-        auto ResolveTexPath = [&](std::string& texPathStr) {
-            if(!texPathStr.empty() && texPathStr[0] == '*') {
-                u32  idx = static_cast<u32>(std::atoi(texPathStr.c_str() + 1));
-                auto it  = embeddedTexIndexToDDSPath.find(idx);
-                if(it != embeddedTexIndexToDDSPath.end()) {
-                    texPathStr = it->second;
+                auto GetTexPath = [&](const aiMaterial* mat, aiTextureType type) -> std::string {
+            aiString texPath;
+            if(mat->GetTexture(type, 0, &texPath) != AI_SUCCESS)
+                return "";
+
+            const aiTexture* embedded = scene->GetEmbeddedTexture(texPath.C_Str());
+            if(!embedded)
+                return texPath.C_Str();
+
+            for(u32 t = 0; t < scene->mNumTextures; ++t) {
+                if(scene->mTextures[t] == embedded) {
+                    auto it = embeddedTexIndexToDDSPath.find(t);
+                    if(it != embeddedTexIndexToDDSPath.end())
+                        return it->second;
                 }
             }
+            return "";
         };
 
-        for(auto& mat : modelData.materials) {
-            ResolveTexPath(mat.albedoMap);
-            ResolveTexPath(mat.normalMap);
-            ResolveTexPath(mat.metallicRoughnessMap);
-            ResolveTexPath(mat.emissiveMap);
-            ResolveTexPath(mat.aoMap);
+        for(u32 i = 0; i < scene->mNumMaterials; ++i) {
+            const aiMaterial* aiMat  = scene->mMaterials[i];
+            auto&             dstMat = modelData.materials[i];
+
+            dstMat.albedoMap            = GetTexPath(aiMat, aiTextureType_DIFFUSE);
+            dstMat.normalMap            = GetTexPath(aiMat, aiTextureType_NORMALS);
+            dstMat.metallicRoughnessMap = GetTexPath(aiMat, aiTextureType_DIFFUSE_ROUGHNESS);
+            dstMat.emissiveMap          = GetTexPath(aiMat, aiTextureType_EMISSIVE);
+            dstMat.aoMap                = GetTexPath(aiMat, aiTextureType_AMBIENT_OCCLUSION);
         }
 
         //--------------------------------------------------------------

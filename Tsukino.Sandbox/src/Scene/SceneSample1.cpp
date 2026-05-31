@@ -181,7 +181,7 @@ namespace Tsukino::Sandbox {
 
         // TransformComponent (カメラの位置)
         Tsukino::BuiltIn::ECS::TransformComponent& camTransform3D = registry.AddComponent<Tsukino::BuiltIn::ECS::TransformComponent>(cameraEntity3D);
-        camTransform3D.position                                   = hlslpp::float3(0.0f, 250.0f, 250.0f);    // 手前に引く
+        camTransform3D.position                                   = hlslpp::float3(0.0f, 100.0f, 250.0f);    // 手前に引く
 
         // CameraComponent (投影設定)
         Tsukino::BuiltIn::ECS::CameraComponent& camera3D = registry.AddComponent<Tsukino::BuiltIn::ECS::CameraComponent>(cameraEntity3D);
