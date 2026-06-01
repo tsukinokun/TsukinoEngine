@@ -7,6 +7,7 @@
 #include <Tsukino/Core/Log.hpp>
 
 #include <cereal/cereal.hpp>
+#include <cereal/archives/json.hpp>
 
 #include <string>
 #include <fstream>
@@ -26,7 +27,7 @@ namespace Tsukino::Engine::ECS::Prefab {
         //--------------------------------------------------------------
         //! @brief デフォルトコンストラクタ
         //--------------------------------------------------------------
-        PrefabFactory()  = delete;
+        PrefabFactory() = delete;
 
         //--------------------------------------------------------------
         //! @brief デストラクタ
@@ -59,10 +60,10 @@ namespace Tsukino::Engine::ECS::Prefab {
             //--------------------------------------------------------------
             // JSONのパースとDescへの展開
             //--------------------------------------------------------------
-            //{
-            //    cereal::JSONInputArchive archive(is);
-            //    archive(cereal::make_nvp(keyName, desc));
-            //}
+            {
+                cereal::JSONInputArchive archive(is);
+                archive(cereal::make_nvp(keyName, desc));
+            }
 
             // ロードに成功していれば、JSONから展開された値が入ったdescを返す
             return desc;
@@ -92,10 +93,10 @@ namespace Tsukino::Engine::ECS::Prefab {
             //--------------------------------------------------------------
             //　JSONへのシリアライズとファイルへの書き込み
             //--------------------------------------------------------------
-            //{
-            //    cereal::JSONOutputArchive archive(os);
-            //    archive(cereal::make_nvp(keyName, desc));
-            //}
+            {
+                cereal::JSONOutputArchive archive(os);
+                archive(cereal::make_nvp(keyName, desc));
+            }
 
             return true;
         }
