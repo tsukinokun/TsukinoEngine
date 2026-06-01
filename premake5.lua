@@ -2,9 +2,10 @@ workspace "TsukinoEngine"                   -- ソリューション名
     architecture "x64"                      -- アーキテクチャ
     configurations { "Debug", "Release" }   -- ビルド構成
 
-    startproject "Tsukino.Sandbox"                  -- スタートアッププロジェクト
+    startproject "Tsukino.Sandbox"          -- スタートアッププロジェクト
     location ".build"                       -- ビルドファイルの出力先 
-    multiprocessorcompile "On"
+    multiprocessorcompile "On"              -- マルチプロセッサコンパイルを有効化    
+    exceptionhandling "On"                  -- 例外処理を有効化
     
     filter "configurations:*"
         defines { "JPH_DEBUG_RENDERER" } -- 値は1でなくても定義されていることが重要
@@ -235,10 +236,10 @@ project "Tsukino.Engine"
         "Tsukino.Engine/include",
         "Tsukino.GraphicsCommon/include",
         "Tsukino.Core/include",
+        "External/cereal/include",
         "External/hlslpp/include", 
         "External/entt/single_include",
         "External/DirectXTex",
-        "External/cereal/include",
         ".build/packages/AssimpCpp:5.0.1.6/build/native/include",
     }
 
@@ -544,6 +545,7 @@ project "Tsukino.Sandbox"
         "Tsukino.EngineIntegration/include",
         --"Tsukino.Physics/include",
         "Tsukino.Core/include",
+        "External/cereal/include",
         "External/hlslpp/include",
         "External/entt/single_include",
         "External/JoltPhysics",
