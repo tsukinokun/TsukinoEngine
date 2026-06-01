@@ -30,6 +30,9 @@ namespace Tsukino::Renderer {
             return false;
         }
 
+        Tsukino::Core::Log::Info("sizeof(hlslpp::float4x4) = " + std::to_string(sizeof(hlslpp::float4x4)));
+        Tsukino::Core::Log::Info("sizeof(CBufferSkinning) = " + std::to_string(sizeof(CBufferSkinning)));
+
         ID3D11Device*        device  = m_graphicsContext.GetDevice();     // DirectXのDevice
         ID3D11DeviceContext* context = m_graphicsContext.GetContext();    // DirectXのDeviceContext
 
