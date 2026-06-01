@@ -69,9 +69,9 @@ namespace Tsukino::Sandbox {
 
         Tsukino::Asset::AssetHandle audioHandle = context->assetManager->Load(Tsukino::Core::Path("Tsukino.Sandbox/Assets/Sounds/cat1.wav"));
 
-        Tsukino::Asset::AssetHandle modelHandle = context->assetManager->Load(Tsukino::Core::Path("Tsukino.Sandbox/Assets/Models/test2.fbx"));
+        Tsukino::Asset::AssetHandle modelHandle = context->assetManager->Load(Tsukino::Core::Path("Tsukino.Sandbox/Assets/Models/Arissa.fbx"));
 
-        Tsukino::Asset::AssetHandle animationHandle = context->assetManager->Load(Tsukino::Core::Path("Tsukino.Sandbox/Assets/Anims/Northern Soul Floor Combo.fbx"));
+        Tsukino::Asset::AssetHandle animationHandle = context->assetManager->Load(Tsukino::Core::Path("Tsukino.Sandbox/Assets/Anims/Typing.fbx"));
 
         Tsukino::ECS::Registry& registry = m_scene.GetRegistry();
 
@@ -149,12 +149,12 @@ namespace Tsukino::Sandbox {
 
         // アニメーションを再生・制御するコンポーネント
         Tsukino::BuiltIn::ECS::AnimationPlayerComponent& animPlayer = registry.AddComponent<Tsukino::BuiltIn::ECS::AnimationPlayerComponent>(modelEntity);
-        animPlayer.current_clip_id                                  = animationHandle;    // ロードした testAnim.fbx のハンドルを渡す
-        animPlayer.animation_index                                  = 1;                  // 再生するアニメーションのインデックスを指定
-        animPlayer.elapsed_time                                     = 0.0f;               // 0秒からスタート
-        animPlayer.playback_speed                                   = 1.0f;               // 等速再生
-        animPlayer.is_looping                                       = true;               // ループさせる
-        animPlayer.is_playing                                       = true;               // 再生状態にする
+        //animPlayer.current_clip_id                                  = animationHandle;    // ロードした testAnim.fbx のハンドルを渡す
+        //animPlayer.animation_index                                  = 1;                  // 再生するアニメーションのインデックスを指定
+        //animPlayer.elapsed_time                                     = 0.0f;               // 0秒からスタート
+        //animPlayer.playback_speed                                   = 1.0f;               // 等速再生
+        //animPlayer.is_looping                                       = true;               // ループさせる
+        //animPlayer.is_playing                                       = true;               // 再生状態にする
 
         // 計算されたボーン行列の出力先（スキニング用）コンポーネント 
         Tsukino::BuiltIn::ECS::SkeletonOutputComponent& skeletonOutput = registry.AddComponent<Tsukino::BuiltIn::ECS::SkeletonOutputComponent>(modelEntity);
@@ -181,7 +181,7 @@ namespace Tsukino::Sandbox {
 
         // TransformComponent (カメラの位置)
         Tsukino::BuiltIn::ECS::TransformComponent& camTransform3D = registry.AddComponent<Tsukino::BuiltIn::ECS::TransformComponent>(cameraEntity3D);
-        camTransform3D.position                                   = hlslpp::float3(0.0f, 100.0f, 250.0f);    // 手前に引く
+        camTransform3D.position                                   = hlslpp::float3(250.0f, 100.0f, 250.0f);    // 手前に引く
 
         // CameraComponent (投影設定)
         Tsukino::BuiltIn::ECS::CameraComponent& camera3D = registry.AddComponent<Tsukino::BuiltIn::ECS::CameraComponent>(cameraEntity3D);
