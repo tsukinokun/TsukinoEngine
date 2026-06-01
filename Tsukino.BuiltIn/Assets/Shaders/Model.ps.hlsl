@@ -64,12 +64,12 @@ float4 PSMain(PSInput input) : SV_TARGET
     float4 albedo = albedoTexture.Sample(albedoSampler, input.uv) * baseColor;
 
     // Basic direction light (hardcoded for now)
-    float3 lightDir = normalize(float3(1.0f, -1.0f, 1.0f));
+    float3 lightDir = normalize(float3(1.0f, -1.0f, -1.0f));
     float ndotl = saturate(dot(input.normal, -lightDir));
 
     // Very basic diffuse lighting
-    float3 ambient = float3(0.2f, 0.2f, 0.2f);
-    float3 diffuse = ndotl.xxx;
+    float3 ambient = float3(0.3f, 0.3f, 0.3f);
+    float3 diffuse = ndotl.xxx * 1.5;
 
     float3 finalColor = albedo.rgb * (ambient + diffuse) + emissive;
 
