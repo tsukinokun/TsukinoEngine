@@ -4,6 +4,8 @@
 //! @author 山﨑愛
 //-------------------------------------------------------------
 #include <Tsukino/Engine/ECS/Scene.hpp>
+#include <Tsukino/Engine/ECS/EngineEvent/EntityEvent.hpp>
+#include <Tsukino/Engine/ECS/EngineEvent/SceneEvent.hpp>
 
 // 名前空間 : Tsukino::ECS
 namespace Tsukino::ECS {
@@ -11,7 +13,17 @@ namespace Tsukino::ECS {
     //! @brief  シーン初期化
     //-------------------------------------------------------------
     void Scene::Initialize() {
-        // 今後の拡張として、Sceneロード時や初期化時に必要な処理を記述
+        //-------------------------------------------------------------
+        // EventBus を Registry のコンテキストに登録する
+        // これにより System 内で
+        // registry.GetContext<EventBus*>() からアクセスできる
+        //-------------------------------------------------------------
+        m_registry.SetContext<EventBus*>(&m_eventBus);
+
+        //-------------------------------------------------------------
+        // シーン初期化完了を Built-in イベントで通知する
+        //-------------------------------------------------------------
+        m_eventBus.Publish(EngineEvent::SceneInitializedEvent{});
     }
 
     //-------------------------------------------------------------
@@ -26,13 +38,24 @@ namespace Tsukino::ECS {
     //! @brief  エンティティの生成
     //-------------------------------------------------------------
     Entity Scene::CreateEntity() {
-        return m_registry.CreateEntity();
+        Tsukino::ECS::Entity entity = m_registry.CreateEntity();
+
+        //-------------------------------------------------------------
+        // エンティティ生成を Built-in イベントで通知する
+        //-------------------------------------------------------------
+        m_eventBus.Publish(EngineEvent::EntityCreatedEvent{entity});
+
+        return entity;
     }
 
     //-------------------------------------------------------------
     //! @brief  エンティティの破棄
     //-------------------------------------------------------------
     void Scene::DestroyEntity(Entity entity) {
+        //-------------------------------------------------------------
+        // 破棄後は Entity が無効になるため、破棄前に通知する
+        //-------------------------------------------------------------
+        m_eventBus.Publish(EngineEvent::EntityDestroyedEvent{entity});
         m_registry.DestroyEntity(entity);
     }
 

@@ -6,6 +6,8 @@
 #pragma once
 #include <Tsukino/Core/ECS/Registry/Registry.hpp>
 #include <Tsukino/Engine/ECS/SystemManager.hpp>
+#include <Tsukino/Core/ECS/Event/EventBus.hpp>
+
 #include <memory>
 #include <utility>
 
@@ -17,7 +19,14 @@ namespace Tsukino::ECS {
     //-------------------------------------------------------------
     class Scene {
     public:
-        Scene()  = default;
+        //-------------------------------------------------------------
+        //! @brief  デフォルトコンストラクタ
+        //-------------------------------------------------------------
+        Scene() = default;
+
+        //-------------------------------------------------------------
+        //! @brief  デストラクタ
+        //-------------------------------------------------------------
         ~Scene() = default;
 
         //-------------------------------------------------------------
@@ -35,6 +44,7 @@ namespace Tsukino::ECS {
         // エンティティの生成
         //! @return 生成されたエンティティ
         //-------------------------------------------------------------
+        [[nodiscard]]
         Entity CreateEntity();
 
         //-------------------------------------------------------------
@@ -47,6 +57,7 @@ namespace Tsukino::ECS {
         // レジストリへのアクセス
         //! @return Registryの参照
         //-------------------------------------------------------------
+        [[nodiscard]]
         Registry& GetRegistry() { return m_registry; }
 
         //-------------------------------------------------------------
@@ -56,8 +67,17 @@ namespace Tsukino::ECS {
         //-------------------------------------------------------------
         void AddSystem(std::shared_ptr<ISystem> system, int priority = 0);
 
+        //-------------------------------------------------------------
+        //! @brief  EventBus へのアクセス
+        //! @return EventBus の参照
+        //! @note   System のコンストラクタに渡して Subscribe させる
+        //-------------------------------------------------------------
+        [[nodiscard]]
+        EventBus& GetEventBus() { return m_eventBus; }
+
     private:
         Registry      m_registry;         //!< エンティティとコンポーネントの管理
         SystemManager m_systemManager;    //!< システムの管理
+        EventBus      m_eventBus;         //!< イベントの管理
     };
 }    // namespace Tsukino::ECS
