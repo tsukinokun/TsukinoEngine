@@ -4,8 +4,8 @@
 //! @author 山﨑愛
 //--------------------------------------------------------------
 #pragma once
-#include <Tsukino/Core/Math/Serialization/HlslppSerialization.hpp>    // 数学のシリアライズ
-#include <Tsukino/BuiltIn/ECS/Desc/CameraDesc.hpp>      // 純粋な設計図
+#include <Tsukino/Core/Math/Serialization/HlslppSerialization.hpp>   
+#include <Tsukino/BuiltIn/ECS/Desc/CameraDesc.hpp>      
 
 #include <cereal/cereal.hpp>
 // 名前空間 : cereal

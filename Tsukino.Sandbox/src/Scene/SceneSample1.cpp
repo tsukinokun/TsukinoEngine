@@ -34,7 +34,7 @@
 #include <Tsukino/BuiltIn/ECS/Component/RigidBodyComponent.hpp>
 #include <Tsukino/EngineIntegration/ECS/System/PhysicsSystem.hpp>
 
-#include <Tsukino/BuiltIn/ECS/Desc/CameraDesc.hpp>
+#include <Tsukino/BuiltIn/ECS/Serialization/CameraDescSerialization.hpp>
 
 #include <entt/entt.hpp>
 #include <hlsl++.h>

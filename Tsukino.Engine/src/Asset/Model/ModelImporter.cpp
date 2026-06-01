@@ -32,17 +32,22 @@
 #include <unordered_map>
 
 #include <Tsukino/GraphicsCommon/Model/ModelData.hpp>
-
+// 名前空間 : Tsukino::Asset
 namespace Tsukino::Asset {
 
+    //--------------------------------------------------------------
+    //! @brief  頂点データ構造体
+    //--------------------------------------------------------------
     struct Vertex {
         hlslpp::interop::float3 position;
         hlslpp::interop::float3 normal;
         hlslpp::interop::float2 texcoord;
     };
 
+    //--------------------------------------------------------------
+    //! @brief  モデルのインポート関数
+    //--------------------------------------------------------------
     bool ModelImporter::Import(const Tsukino::Core::Path& inputPath, const Tsukino::Core::Path& outputDirectory) {
-
         Tsukino::Core::Log::Info("sizeof(Vertex) = " + std::to_string(sizeof(Vertex)));
         Tsukino::Core::Log::Info("offsetof texcoord = " + std::to_string(offsetof(Vertex, texcoord)));
 
