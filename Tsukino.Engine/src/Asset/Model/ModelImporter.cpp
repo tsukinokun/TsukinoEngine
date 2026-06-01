@@ -305,6 +305,8 @@ namespace Tsukino::Asset {
                 const aiBone* aiBone   = aiMesh->mBones[b];
                 std::string   boneName = aiBone->mName.C_Str();
 
+                Tsukino::Core::Log::Info("bone count = " + std::to_string(modelData.skeleton.bones.size()));
+
                 u32  boneIndex = 0;
                 auto it        = boneNameToIndex.find(boneName);
                 if(it == boneNameToIndex.end()) {
