@@ -36,12 +36,16 @@
 namespace Tsukino::Asset {
 
     struct Vertex {
-        hlslpp::float3 position;
-        hlslpp::float3 normal;
-        hlslpp::float2 texcoord;
+        hlslpp::interop::float3 position;
+        hlslpp::interop::float3 normal;
+        hlslpp::interop::float2 texcoord;
     };
 
     bool ModelImporter::Import(const Tsukino::Core::Path& inputPath, const Tsukino::Core::Path& outputDirectory) {
+
+        Tsukino::Core::Log::Info("sizeof(Vertex) = " + std::to_string(sizeof(Vertex)));
+        Tsukino::Core::Log::Info("offsetof texcoord = " + std::to_string(offsetof(Vertex, texcoord)));
+
         //--------------------------------------------------------------
         // 拡張子チェック
         //--------------------------------------------------------------
@@ -277,10 +281,17 @@ namespace Tsukino::Asset {
 
             std::vector<Vertex> vertices(aiMesh->mNumVertices);
             for(u32 v = 0; v < aiMesh->mNumVertices; ++v) {
-                vertices[v].position = {aiMesh->mVertices[v].x, aiMesh->mVertices[v].y, aiMesh->mVertices[v].z};
-                vertices[v].normal   = {aiMesh->mNormals[v].x, aiMesh->mNormals[v].y, aiMesh->mNormals[v].z};
+                vertices[v].position.x = aiMesh->mVertices[v].x;
+                vertices[v].position.y = aiMesh->mVertices[v].y;
+                vertices[v].position.z = aiMesh->mVertices[v].z;
+
+                vertices[v].normal.x = aiMesh->mNormals[v].x;
+                vertices[v].normal.y = aiMesh->mNormals[v].y;
+                vertices[v].normal.z = aiMesh->mNormals[v].z;
+
                 if(aiMesh->HasTextureCoords(0)) {
-                    vertices[v].texcoord = {aiMesh->mTextureCoords[0][v].x, aiMesh->mTextureCoords[0][v].y};
+                    vertices[v].texcoord.x = aiMesh->mTextureCoords[0][v].x;
+                    vertices[v].texcoord.y = aiMesh->mTextureCoords[0][v].y;
                 }
             }
 
