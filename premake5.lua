@@ -161,6 +161,7 @@ project "Tsukino.Core"
 
     includedirs {
         "Tsukino.Core/include",
+        "External/cereal/include",
         "External/hlslpp/include", 
         "External/entt/single_include"
     }
@@ -197,7 +198,7 @@ project "Tsukino.GraphicsCommon"
         "Tsukino.Core/include",
         "Tsukino.GraphicsCommon/include",
         "External/cereal/include",
-	"External/hlslpp/include",
+	    "External/hlslpp/include",
     }
 
     links {
