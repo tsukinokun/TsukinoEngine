@@ -74,8 +74,6 @@ namespace Tsukino::Asset {
 
 }    // namespace Tsukino::Asset
 
-#include <functional>    // std::hash用
-
 namespace std {
     template <>
     struct hash<Tsukino::Asset::AssetHandle> {

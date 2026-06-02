@@ -59,20 +59,28 @@ namespace Tsukino::Engine::ECS::Prefab {
         //--------------------------------------------------------------
         template <typename ComponentType>
         void RegisterComponent(const std::string& typeName) {
-            // [typeName] をコピーキャプチャしてラムダ内部に保持させる
             m_loaders[typeName] = [typeName](Tsukino::ECS::Registry& registry, entt::entity entity, const std::string& compJsonPath) {
-                // コンポーネントをエンティティにアタッチ（既に存在する場合は取得）
+                //--------------------------------------------------------------
+                // まずはアタッチ（これで初期値が入る）
+                //--------------------------------------------------------------
                 if(!registry.HasComponent<ComponentType>(entity)) {
                     registry.AddComponent<ComponentType>(entity);
                 }
                 auto& component = registry.GetComponent<ComponentType>(entity);
 
-                std::ifstream is(compJsonPath);
-                if(is.is_open()) {
-                    cereal::JSONInputArchive archive(is);
-                    archive(cereal::make_nvp(typeName, component));
-                } else {
-                    Tsukino::Core::Log::Warn("Component JSON not found: " + compJsonPath);
+                //--------------------------------------------------------------
+                // コンパイル時に「cerealで扱える型か」をチェックする条件分岐（C++20 requires）
+                //--------------------------------------------------------------
+                if constexpr(requires(cereal::JSONInputArchive& archive) { archive(cereal::make_nvp(typeName, component)); }) {
+                    // シリアライズ可能な型なら、ファイルを開いてロードを試みる
+                    std::ifstream is(compJsonPath);
+                    if(is.is_open()) {
+                        cereal::JSONInputArchive archive(is);
+                        archive(cereal::make_nvp(typeName, component));
+                    } else {
+                        // ファイルがなければ初期値のまま（警告を出す）
+                        Tsukino::Core::Log::Warn("Component JSON not found: " + compJsonPath + " (Using default parameters)");
+                    }
                 }
             };
         }
