@@ -43,7 +43,7 @@ namespace JumpGameSample::ECS {
                 // ジャンプ処理
                 //-------------------------------------------------------------
                 // エンティティにImpulseRequestComponentを追加して、物理システムにジャンプの衝撃を要求する
-                registry.AddComponent<Tsukino::BuiltIn::ECS::ImpulseRequestComponent>(entity, hlslpp::float3(0.0f, 5.0f, 0.0f));
+                registry.AddComponent<Tsukino::BuiltIn::ECS::ImpulseRequestComponent>(entity, hlslpp::float3(0.0f, 100.0f, 0.0f));
             }
         });
     }
