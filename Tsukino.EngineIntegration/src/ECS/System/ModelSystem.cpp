@@ -11,6 +11,7 @@
 #include <Tsukino/BuiltIn/ECS/Component/ModelComponent.hpp>
 #include <Tsukino/BuiltIn/ECS/Component/TransformComponent.hpp>
 #include <Tsukino/BuiltIn/ECS/Component/SkeletonOutputComponent.hpp>
+#include <Tsukino/BuiltIn/ECS/Component/CollisionComponent.hpp>
 #include <Tsukino/Engine/Asset/AssetManager.hpp>
 #include <Tsukino/Engine/Asset/Model/ModelAsset.hpp>
 #include <Tsukino/Engine/Asset/Shader/ShaderAsset.hpp>
@@ -108,7 +109,7 @@ namespace Tsukino::BuiltIn::ECS {
             bool  isSkeletal  = skeletonOut && skeletonOut->bone_count > 0;
 
             for(const auto& node : modelAsset->modelData.nodes) {
-                for (u32 meshIdx : node.meshIndices) {
+                for(u32 meshIdx : node.meshIndices) {
                     if(meshIdx >= meshBuffers.size())
                         continue;
 
@@ -127,6 +128,21 @@ namespace Tsukino::BuiltIn::ECS {
                             Tsukino::Core::Math::matrix::translate(hlslpp::float3(node.translation.x, node.translation.y, node.translation.z));
                         Tsukino::Core::Math::matrix nodeTransform = hlslpp::mul(hlslpp::mul(scaleMat, rotMat), transMat);
                         finalTransform                            = hlslpp::mul(nodeTransform, transform.worldMatrix);
+                    }
+
+                    // コリジョンオフセットの逆変換を適用
+                    auto* col = registry.try_get<CollisionComponent>(entity);
+                    if(col && col->isInitialized) {
+                        // クォータニオンの共役 = (x, y, z) を反転、w はそのまま
+                        hlslpp::quaternion q = hlslpp::quaternion(col->offsetRotation.x, col->offsetRotation.y, col->offsetRotation.z, col->offsetRotation.w);
+                        hlslpp::quaternion conj = hlslpp::quaternion(-q.x, -q.y, -q.z, q.w);
+
+                        Tsukino::Core::Math::matrix invRotMat = Tsukino::Core::Math::matrix::rotate(conj);
+                        Tsukino::Core::Math::matrix invTransMat =
+                            Tsukino::Core::Math::matrix::translate(-hlslpp::float3(col->offsetPosition.x, col->offsetPosition.y, col->offsetPosition.z));
+
+                        Tsukino::Core::Math::matrix invOffsetMat = hlslpp::mul(invRotMat, invTransMat);
+                        finalTransform                           = hlslpp::mul(invOffsetMat, finalTransform);
                     }
 
                     Tsukino::Renderer::CBufferMaterial cbMat{};
@@ -149,7 +165,6 @@ namespace Tsukino::BuiltIn::ECS {
                             cbMat.metallic  = matAsset->data.metallic;
                             cbMat.roughness = matAsset->data.roughness;
 
-                            // albedoテクスチャのSRVを取得
                             if(matAsset->albedoHandle.IsValid()) {
                                 auto texAssetBase = ctx->assetManager->Get(matAsset->albedoHandle);
                                 if(texAssetBase) {
