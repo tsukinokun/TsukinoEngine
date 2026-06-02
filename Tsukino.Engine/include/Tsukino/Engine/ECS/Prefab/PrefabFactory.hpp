@@ -55,7 +55,7 @@ namespace Tsukino::Engine::ECS::Prefab {
         //--------------------------------------------------------------
         //! @brief     コンポーネントの型名とロード処理を工場に登録する
         //! @tparam    ComponentType 登録したいコンポーネントの型
-        //! @param     typeName      JSON内でキーとなる型名（例: "Transform"）
+        //! @param     typeName      [in] JSON内でキーとなる型名（例: "Transform"）
         //--------------------------------------------------------------
         template <typename ComponentType>
         void RegisterComponent(const std::string& typeName) {
@@ -66,20 +66,25 @@ namespace Tsukino::Engine::ECS::Prefab {
                 if(!registry.HasComponent<ComponentType>(entity)) {
                     registry.AddComponent<ComponentType>(entity);
                 }
-                auto& component = registry.GetComponent<ComponentType>(entity);
 
                 //--------------------------------------------------------------
-                // コンパイル時に「cerealで扱える型か」をチェックする条件分岐（C++20 requires）
+                // "null" か空ならロードをスキップ
                 //--------------------------------------------------------------
+                if(compJsonPath == "null" || compJsonPath.empty()) {
+                    return;
+                }
+
+                //--------------------------------------------------------------
+                // ロード処理（シリアライズ対応型のみ実行）
+                //--------------------------------------------------------------
+                auto& component = registry.GetComponent<ComponentType>(entity);
                 if constexpr(requires(cereal::JSONInputArchive& archive) { archive(cereal::make_nvp(typeName, component)); }) {
-                    // シリアライズ可能な型なら、ファイルを開いてロードを試みる
                     std::ifstream is(compJsonPath);
                     if(is.is_open()) {
                         cereal::JSONInputArchive archive(is);
                         archive(cereal::make_nvp(typeName, component));
                     } else {
-                        // ファイルがなければ初期値のまま（警告を出す）
-                        Tsukino::Core::Log::Warn("Component JSON not found: " + compJsonPath + " (Using default parameters)");
+                        Tsukino::Core::Log::Warn("Component JSON not found: " + compJsonPath);
                     }
                 }
             };
