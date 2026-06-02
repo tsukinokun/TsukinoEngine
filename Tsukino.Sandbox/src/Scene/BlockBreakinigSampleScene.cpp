@@ -1,6 +1,6 @@
 ﻿//-------------------------------------------------------------
 //! @file    BlockBreakingSampleScene.cpp
-//! @brief   サンプルシーン1の実装
+//! @brief   ブロック崩しサンプルの実装
 //! @author  山﨑愛
 //-------------------------------------------------------------
 #include <Tsukino/Sandbox/Scene/BlockBreakingSampleScene.hpp>

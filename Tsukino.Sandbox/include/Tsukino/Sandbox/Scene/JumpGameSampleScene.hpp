@@ -1,6 +1,6 @@
 ﻿//-------------------------------------------------------------
-//! @file    BlockBreakingSampleScene.hpp
-//! @brief   ブロック崩しのサンプルシーンの宣言
+//! @file    JumpGameSampleScene.hpp
+//! @brief   ジャンプゲームのサンプルシーンの宣言
 //! @author  山﨑愛
 //-------------------------------------------------------------
 #pragma once
@@ -8,21 +8,20 @@
 // 名前空間 : Tsukino::Sandbox
 namespace Tsukino::Sandbox {
     //-------------------------------------------------------------
-    //! @class   BlockBreakingSampleScene
-    //! @brief   ブロック崩しのサンプルシーン
+    //! @class   JumpGameSampleScene
+    //! @brief   ジャンプゲームのサンプルシーン
     //-------------------------------------------------------------
-    class BlockBreakingSampleScene : public Tsukino::EngineIntegration::GameSceneBase {
+    class JumpGameSampleScene : public Tsukino::EngineIntegration::GameSceneBase {
     public:
         // ゲームの状態定義
         enum class GameState {
             Ready,      // 開始待ち
             Playing,    // プレイ中
-            Clear,      // クリア演出
             GameOver    // ゲームオーバー演出
         };
 
-        BlockBreakingSampleScene()           = default;
-        ~BlockBreakingSampleScene() override = default;
+        JumpGameSampleScene()           = default;
+        ~JumpGameSampleScene() override = default;
 
         //-------------------------------------------------------------
         //! @brief  シーンの更新
