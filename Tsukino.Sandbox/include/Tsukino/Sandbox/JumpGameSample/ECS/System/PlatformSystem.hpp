@@ -1,6 +1,6 @@
 ﻿//-------------------------------------------------------------
-//! @file   PlayerSystem.hpp
-//! @brief  PlayerSystemクラスの宣言
+//! @file   PlatformSystem.hpp
+//! @brief  PlatformSystemクラスの宣言
 //! @author 山﨑愛
 //-------------------------------------------------------------
 #pragma once
@@ -9,10 +9,10 @@
 // 名前空間 : JumpGameSample::ECS
 namespace JumpGameSample::ECS {
     //-------------------------------------------------------------
-    //! @class  PlayerSystem
-    //! @brief  プレイヤーのシステム
+    //! @class  PlatformSystem
+    //! @brief  土台のシステム
     //-------------------------------------------------------------
-    class PlayerSystem : public Tsukino::ECS::ISystem {
+    class PlatformSystem : public Tsukino::ECS::ISystem {
     public:
         //-------------------------------------------------------------
         //! @brief 更新処理

@@ -6,8 +6,10 @@
 #include <Tsukino/Sandbox/Scene/JumpGameSampleScene.hpp>
 
 #include <Tsukino/Sandbox/JumpGameSample/ECS/Component/PlayerComponent.hpp>
+#include <Tsukino/Sandbox/JumpGameSample/ECS/Component/PlatformComponent.hpp>
 
 #include <Tsukino/Sandbox/JumpGameSample/ECS/System/PlayerSystem.hpp>
+#include <Tsukino/Sandbox/JumpGameSample/ECS/System/PlatformSystem.hpp>
 
 #include <Tsukino/BuiltIn/ECS/Component/TransformComponent.hpp>
 #include <Tsukino/BuiltIn/ECS/Component/CameraComponent.hpp>
@@ -61,10 +63,12 @@ namespace Tsukino::Sandbox {
         m_scene.AddSystem(std::make_shared<Tsukino::BuiltIn::ECS::TransformSystem>(), 0);
         // プレイヤーの更新 (優先度 1)
         m_scene.AddSystem(std::make_shared<JumpGameSample::ECS::PlayerSystem>(), 1);
-        // アニメーションはTransformの後に更新する (優先度 2)
-        m_scene.AddSystem(std::make_shared<Tsukino::BuiltIn::ECS::AnimationSystem>(), 2);
-        // 物理計算 (優先度 3)
-        m_scene.AddSystem(std::make_shared<Tsukino::BuiltIn::ECS::PhysicsSystem>(), 3);
+        // プラットフォームの更新 (優先度 2)
+        m_scene.AddSystem(std::make_shared<JumpGameSample::ECS::PlatformSystem>(), 2);
+        // アニメーションはTransformの後に更新する (優先度 3)
+        m_scene.AddSystem(std::make_shared<Tsukino::BuiltIn::ECS::AnimationSystem>(), 3);
+        // 物理計算 (優先度 4)
+        m_scene.AddSystem(std::make_shared<Tsukino::BuiltIn::ECS::PhysicsSystem>(), 4);
         // カメラは描画前に更新する (優先度 5)
         m_scene.AddSystem(std::make_shared<Tsukino::BuiltIn::ECS::CameraSystem>(), 5);
         // フォント描画 (優先度 9)
@@ -139,6 +143,11 @@ namespace Tsukino::Sandbox {
             Tsukino::BuiltIn::ECS::ModelComponent& model = registry.AddComponent<Tsukino::BuiltIn::ECS::ModelComponent>(platformEntity);
             model.modelHandle = context->assetManager->Load(Tsukino::Core::Path("Tsukino.Sandbox/Assets/JumpGameSample/Models/Block.fbx"));
             model.visible     = true;
+
+            // PlatformComponent の追加
+            JumpGameSample::ECS::PlatformComponent& platform = registry.AddComponent<JumpGameSample::ECS::PlatformComponent>(platformEntity);
+            platform.speed = 50.0f;    // 土台の移動速度
+            platform.isMoving = true; // 移動中フラグを立てる
         }
 
         //--------------------------------------------------------------
