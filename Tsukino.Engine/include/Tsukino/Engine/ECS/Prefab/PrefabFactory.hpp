@@ -6,6 +6,7 @@
 #pragma once
 
 #include <Tsukino/Core/Log.hpp>
+#include <Tsukino/Core/ECS/Registry/Registry.hpp>
 
 #include <cereal/cereal.hpp>
 #include <cereal/archives/json.hpp>
@@ -24,14 +25,14 @@ namespace Tsukino::Engine::ECS::Prefab {
 
     //--------------------------------------------------------------
     //! @class  PrefabFactory
-    //! @brief  データ駆動のためのPrefabロード＆エンティティ生成システム（インスタンス駆動版）
+    //! @brief  データ駆動のためのPrefabロード＆エンティティ生成システム
     //--------------------------------------------------------------
     class PrefabFactory {
     public:
         //--------------------------------------------------------------
-        // 動的ロード関数の型定義 (レジストリ、ターゲットエンティティ、コンポーネント単体のJSONパス)
+        // 動的ロード関数の型定義 (ラッパーレジストリ、ターゲットエンティティ、コンポーネント単体のJSONパス)
         //--------------------------------------------------------------
-        using ComponentLoader = std::function<void(entt::registry&, entt::entity, const std::string&)>;
+        using ComponentLoader = std::function<void(Tsukino::ECS::Registry&, entt::entity, const std::string&)>;
 
         //--------------------------------------------------------------
         //! @brief デフォルトコンストラクタ
@@ -51,17 +52,20 @@ namespace Tsukino::Engine::ECS::Prefab {
         PrefabFactory(PrefabFactory&&)                 = default;
         PrefabFactory& operator=(PrefabFactory&&)      = default;
 
-       //--------------------------------------------------------------
+        //--------------------------------------------------------------
         //! @brief     コンポーネントの型名とロード処理を工場に登録する
         //! @tparam    ComponentType 登録したいコンポーネントの型
         //! @param     typeName      JSON内でキーとなる型名（例: "Transform"）
         //--------------------------------------------------------------
         template <typename ComponentType>
         void RegisterComponent(const std::string& typeName) {
-            // 💡 [typeName] を追加して、文字列をラムダの内部にコピーして保持させる
-            m_loaders[typeName] = [typeName](entt::registry& registry, entt::entity entity, const std::string& compJsonPath) {
+            // [typeName] をコピーキャプチャしてラムダ内部に保持させる
+            m_loaders[typeName] = [typeName](Tsukino::ECS::Registry& registry, entt::entity entity, const std::string& compJsonPath) {
                 // コンポーネントをエンティティにアタッチ（既に存在する場合は取得）
-                auto& component = registry.get_or_emplace<ComponentType>(entity);
+                if(!registry.HasComponent<ComponentType>(entity)) {
+                    registry.AddComponent<ComponentType>(entity);
+                }
+                auto& component = registry.GetComponent<ComponentType>(entity);
 
                 std::ifstream is(compJsonPath);
                 if(is.is_open()) {
@@ -76,11 +80,11 @@ namespace Tsukino::Engine::ECS::Prefab {
         //--------------------------------------------------------------
         //! @brief     PrefabのJSON（目次）から動的にコンポーネントを組み立ててエンティティを生成する
         //! @param     prefabJsonPath Prefab（目次）のJSONファイルパス
-        //! @param     registry       アタッチ先となるEnTTのレジストリ
+        //! @param     registry       アタッチ先となるラッパーレジストリ
         //! @return    生成されたエンティティ（失敗時は entt::null）
         //--------------------------------------------------------------
         [[nodiscard]]
-        entt::entity Instantiate(const std::string& prefabJsonPath, entt::registry& registry) {
+        entt::entity Instantiate(const std::string& prefabJsonPath, Tsukino::ECS::Registry& registry) {
             if(!std::filesystem::exists(prefabJsonPath)) {
                 Tsukino::Core::Log::Error("Prefab file not found: " + prefabJsonPath);
                 return entt::null;
@@ -102,7 +106,7 @@ namespace Tsukino::Engine::ECS::Prefab {
             //--------------------------------------------------------------
             // 新しい空のエンティティを生み出す
             //--------------------------------------------------------------
-            entt::entity newEntity = registry.create();
+            entt::entity newEntity = registry.CreateEntity();
 
             //--------------------------------------------------------------
             // JSONに書かれていたコンポーネントをループで自動アタッチ＆ロード

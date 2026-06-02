@@ -1,0 +1,12 @@
+{
+  "Components": [
+    {
+      "key": "CameraComponent",
+      "value": "Tsukino.Sandbox/Assets/Prefabs/TestPrefab_Camera.json"
+    },
+    {
+      "key": "TransformComponent",
+      "value": "Tsukino.Sandbox/Assets/Prefabs/TestPrefab_Transform.json"
+    }
+  ]
+}
