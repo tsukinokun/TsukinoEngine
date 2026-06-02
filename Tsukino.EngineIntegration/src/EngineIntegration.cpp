@@ -7,9 +7,11 @@
 
 #include <Tsukino/BuiltIn/ECS/Component/CameraComponent.hpp>
 #include <Tsukino/BuiltIn/ECS/Component/TransformComponent.hpp>
+#include <Tsukino/BuiltIn/ECS/Component/RigidbodyComponent.hpp>
 
 #include <Tsukino/BuiltIn/ECS/Serialization/TransformComponentSerialization.hpp>
 #include <Tsukino/BuiltIn/ECS/Serialization/CameraComponentSerialization.hpp>
+#include <Tsukino/BuiltIn/ECS/Serialization/RigidbodyComponentSerialization.hpp>
 
 #include <Tsukino/Core/Log.hpp>
 
@@ -143,5 +145,6 @@ namespace Tsukino::EngineIntegration {
         // 標準のトランスフォームとカメラを登録
         m_prefabFactory->RegisterComponent<Tsukino::BuiltIn::ECS::TransformComponent>("TransformComponent");
         m_prefabFactory->RegisterComponent<Tsukino::BuiltIn::ECS::CameraComponent>("CameraComponent");
+        m_prefabFactory->RegisterComponent<Tsukino::BuiltIn::ECS::RigidbodyComponent>("RigidbodyComponent");
     }
 }    // namespace Tsukino::EngineIntegration
