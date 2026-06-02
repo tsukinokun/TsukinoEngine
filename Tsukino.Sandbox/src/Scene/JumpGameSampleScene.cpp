@@ -122,6 +122,26 @@ namespace Tsukino::Sandbox {
         JumpGameSample::ECS::PlayerComponent& player = registry.AddComponent<JumpGameSample::ECS::PlayerComponent>(playerEntity);
 
         //--------------------------------------------------------------
+        // 土台エンティティのテスト生成
+        //--------------------------------------------------------------
+        {
+            Tsukino::ECS::Entity platformEntity = m_scene.CreateEntity();
+
+            // TransformComponent の追加と初期化
+            Tsukino::BuiltIn::ECS::TransformComponent& platformTransform = registry.AddComponent<Tsukino::BuiltIn::ECS::TransformComponent>(platformEntity);
+            platformTransform.position                           = hlslpp::float3(0.0f, 0.0f, 0.0f);
+            platformTransform.rotation                                   = hlslpp::quaternion(0.0f, 0.0f, 0.0f, 1.0f);    // 無回転
+            platformTransform.scale                                      = hlslpp::float3(1.0f, 1.0f, 1.0f);              // 土台
+            platformTransform.dirty                                      = true;                                          // 初回計算のためフラグを立てる
+            platformTransform.parent                                     = entt::null;                                    // 親なし
+
+            // ModelComponent の追加
+            Tsukino::BuiltIn::ECS::ModelComponent& model = registry.AddComponent<Tsukino::BuiltIn::ECS::ModelComponent>(platformEntity);
+            model.modelHandle = context->assetManager->Load(Tsukino::Core::Path("Tsukino.Sandbox/Assets/JumpGameSample/Models/Block.fbx"));
+            model.visible     = true;
+        }
+
+        //--------------------------------------------------------------
         // 地面エンティティの生成
         //--------------------------------------------------------------
         {
