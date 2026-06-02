@@ -407,10 +407,11 @@ namespace Tsukino::BuiltIn::ECS {
             }
         }
 
-        // 2. Kinematic同期
         for(auto entity : view) {
             auto& col = registry.GetComponent<CollisionComponent>(entity);
-            auto& rb  = registry.GetComponent<RigidbodyComponent>(entity);
+            if(!registry.HasComponent<RigidbodyComponent>(entity))
+                continue;
+            auto& rb = registry.GetComponent<RigidbodyComponent>(entity);
             if(col.isInitialized && rb.type == RigidbodyType::Kinematic && registry.HasComponent<TransformComponent>(entity)) {
                 auto&      tf = registry.GetComponent<TransformComponent>(entity);
                 JPH::RVec3 pos(tf.position.x, tf.position.y, tf.position.z);
@@ -471,9 +472,27 @@ namespace Tsukino::BuiltIn::ECS {
             auto* ctx = registry.GetContext<Tsukino::EngineIntegration::EngineContext*>();
             if(ctx && ctx->renderer) {
                 m_impl->debugRenderer->SetEngineRenderer(ctx->renderer);
-                JPH::BodyManager::DrawSettings ds;
-                ds.mDrawShape = true;
-                m_impl->physicsSystem->DrawBodies(ds, m_impl->debugRenderer);
+
+                // DrawBodiesの代わりに自前でECSのviewから全ボディを描画
+                for(auto entity : view) {
+                    auto& col = registry.GetComponent<CollisionComponent>(entity);
+                    if(!col.isInitialized)
+                        continue;
+
+                    JPH::BodyLockRead lock(m_impl->physicsSystem->GetBodyLockInterface(), col.bodyID);
+                    if(!lock.Succeeded())
+                        continue;
+
+                    const JPH::Body& body      = lock.GetBody();
+                    JPH::RMat44      transform = body.GetCenterOfMassTransform();
+
+                    JPH::BodyManager::DrawSettings ds;
+                    ds.mDrawShape          = true;
+                    ds.mDrawShapeWireframe = true;
+
+                    body.GetShape()->Draw(m_impl->debugRenderer, transform, JPH::Vec3::sReplicate(1.0f), JPH::Color::sGreen, false, false);
+                }
+
                 Tsukino::Renderer::DrawCommand cmd{};
                 cmd.pass       = Tsukino::Renderer::RenderPass::World;
                 cmd.customDraw = [renderer = ctx->renderer](ID3D11DeviceContext* context) { renderer->FlushDebugDraw(); };

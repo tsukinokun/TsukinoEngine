@@ -77,13 +77,13 @@ namespace Tsukino::Sandbox {
         m_scene.AddSystem(std::make_shared<Tsukino::BuiltIn::ECS::AudioSystem>(), 11);
 
         //--------------------------------------------------------------
-        // Modelエンティティ生成
+        // Playerエンティティ生成
         //--------------------------------------------------------------
         Tsukino::ECS::Entity playerEntity = m_scene.CreateEntity();
 
         // TransformComponent の追加と初期化
         Tsukino::BuiltIn::ECS::TransformComponent& playerTransform = registry.AddComponent<Tsukino::BuiltIn::ECS::TransformComponent>(playerEntity);
-        playerTransform.position                                   = hlslpp::float3(0.0f, 0.0f, 0.0f);
+        playerTransform.position                                   = hlslpp::float3(0.0f, 10.0f, 0.0f);
         playerTransform.rotation                                   = hlslpp::quaternion(0.0f, 0.0f, 0.0f, 1.0f);    // 無回転
         playerTransform.scale                                      = hlslpp::float3(1.0f, 1.0f, 1.0f);
         playerTransform.dirty                                      = true;          // 初回計算のためフラグを立てる
@@ -99,10 +99,12 @@ namespace Tsukino::Sandbox {
         collision.extent                                     = {35.0f, 70.0f, 70.0f};    // 大きめの当たり判定
         collision.offsetPosition                             = {0.0f, 90.0f, 0.0f};      // モデルの足元から中心にオフセット
         collision.type                                       = Tsukino::BuiltIn::ECS::ColliderType::Capsule;
+        collision.isSensor                                   = false;    // 衝突判定と物理的な反発を有効にする
 
         // RBをつける
         Tsukino::BuiltIn::ECS::RigidbodyComponent& rb = registry.AddComponent<Tsukino::BuiltIn::ECS::RigidbodyComponent>(playerEntity);
         rb.type                                       = Tsukino::BuiltIn::ECS::RigidbodyType::Dynamic;
+        rb.gravityFactor                              = 9.8f;
 
         // アニメーションを再生・制御するコンポーネント
         Tsukino::BuiltIn::ECS::AnimationPlayerComponent& animPlayer = registry.AddComponent<Tsukino::BuiltIn::ECS::AnimationPlayerComponent>(playerEntity);
@@ -118,6 +120,32 @@ namespace Tsukino::Sandbox {
 
         // プレイヤーコンポーネントをつける
         JumpGameSample::ECS::PlayerComponent& player = registry.AddComponent<JumpGameSample::ECS::PlayerComponent>(playerEntity);
+
+        //--------------------------------------------------------------
+        // 地面エンティティの生成
+        //--------------------------------------------------------------
+        {
+            Tsukino::ECS::Entity groundEntity = m_scene.CreateEntity();
+
+            // TransformComponent の追加と初期化
+            Tsukino::BuiltIn::ECS::TransformComponent& groundTransform = registry.AddComponent<Tsukino::BuiltIn::ECS::TransformComponent>(groundEntity);
+            groundTransform.position                                   = hlslpp::float3(0.0f, -30.0f, 0.0f);
+            groundTransform.rotation                                   = hlslpp::quaternion(0.0f, 0.0f, 0.0f, 1.0f);    // 無回転
+            groundTransform.scale                                      = hlslpp::float3(1.0f, 1.0f, 1.0f);              // 土台
+            groundTransform.dirty                                      = true;                                          // 初回計算のためフラグを立てる
+            groundTransform.parent                                     = entt::null;                                    // 親なし
+
+            // CollisionComponent の追加
+            Tsukino::BuiltIn::ECS::CollisionComponent& collision = registry.AddComponent<Tsukino::BuiltIn::ECS::CollisionComponent>(groundEntity);
+            collision.extent                                     = {50.0f, 5.0f, 50.0f};    // 土台の当たり判定
+            collision.offsetPosition                             = {0.0f, 2.5f, 0.0f};      // 土台の中心にオフセット
+            collision.type                                       = Tsukino::BuiltIn::ECS::ColliderType::Box;
+            collision.isSensor                                   = false;    // 衝突判定を有効にする
+
+            // RBをつける
+            Tsukino::BuiltIn::ECS::RigidbodyComponent& rb = registry.AddComponent<Tsukino::BuiltIn::ECS::RigidbodyComponent>(groundEntity);
+            rb.type                                       = Tsukino::BuiltIn::ECS::RigidbodyType::Static;
+        }
 
         //--------------------------------------------------------------
         // 2Dカメラエンティティの生成
@@ -137,8 +165,8 @@ namespace Tsukino::Sandbox {
         //--------------------------------------------------------------
         // 3Dカメラエンティティの生成
         //--------------------------------------------------------------
-        const std::string prefabPath        = "Tsukino.Sandbox/Assets/JumpGameSample/Prefabs/3DCamera/Prefab.json";
-        entt::entity testEntity = context->prefabFactory->Instantiate(prefabPath, registry);
+        const std::string prefabPath = "Tsukino.Sandbox/Assets/JumpGameSample/Prefabs/3DCamera/Prefab.json";
+        entt::entity      testEntity = context->prefabFactory->Instantiate(prefabPath, registry);
     }
 
     //-------------------------------------------------------------
