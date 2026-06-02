@@ -5,7 +5,7 @@
 //------------------------------------------------------------
 #include <Tsukino/EngineIntegration/EngineIntegration.hpp>
 
-#include <Tsukino/BuiltIn/ECS/Component/CameraComponent.hpp> 
+#include <Tsukino/BuiltIn/ECS/Component/CameraComponent.hpp>
 #include <Tsukino/BuiltIn/ECS/Component/TransformComponent.hpp>
 
 #include <Tsukino/BuiltIn/ECS/Serialization/TransformComponentSerialization.hpp>
@@ -59,6 +59,11 @@ namespace Tsukino::EngineIntegration {
             Tsukino::Core::Log::Error("Failed to initialize COM library.");
             return false;
         }
+
+        //--------------------------------------------------------------
+        // BuiltInのCopmonentをPrefabFactoryに登録
+        //--------------------------------------------------------------
+        RegisterBuiltInComponents();
 
         //--------------------------------------------------------------
         // AssetManager 初期化
@@ -136,7 +141,7 @@ namespace Tsukino::EngineIntegration {
     //------------------------------------------------------------
     void EngineIntegration::RegisterBuiltInComponents() {
         // 標準のトランスフォームとカメラを登録
-        m_prefabFactory->RegisterComponent<Tsukino::BuiltIn::ECS::TransformComponent>("Transform");
+        m_prefabFactory->RegisterComponent<Tsukino::BuiltIn::ECS::TransformComponent>("TransformComponent");
         m_prefabFactory->RegisterComponent<Tsukino::BuiltIn::ECS::CameraComponent>("CameraComponent");
     }
 }    // namespace Tsukino::EngineIntegration

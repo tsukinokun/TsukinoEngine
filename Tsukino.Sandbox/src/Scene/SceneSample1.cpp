@@ -181,57 +181,74 @@ namespace Tsukino::Sandbox {
         camera2D.isPrimary                               = false;     // これをメインカメラにしない
 
         //--------------------------------------------------------------
-        // 3Dカメラエンティティの生成（自動生成 ＆ 読込開通テスト版）
+        //! @brief     PrefabFactory のテスト：PrefabのJSONから3Dカメラエンティティを生成してみる
         //--------------------------------------------------------------
-        Tsukino::ECS::Entity cameraEntity3D = m_scene.CreateEntity();
+        //Tsukino::Core::Log::Info("=== [PrefabFactory] Instantiate Test Start ===");
 
-        //--------------------------------------------------------------
-        // TransformComponent の双方向シリアライズテスト
-        //--------------------------------------------------------------
-        const std::string transformJsonPath = "Tsukino.Sandbox/Assets/Prefabs/Camera3D_Transform.json";
-        const std::string transformKeyName  = "Transform";
+        //const std::string instTransformPath = "Tsukino.Sandbox/Assets/Prefabs/TestPrefab_Transform.json";
+        //const std::string instCameraPath    = "Tsukino.Sandbox/Assets/Prefabs/TestPrefab_Camera.json";
+        const std::string prefabPath        = "Tsukino.Sandbox/Assets/Prefabs/TestPrefab.json";
 
-        // TransformComponent (カメラの位置) を登録
-        auto& camTransform3D = registry.AddComponent<Tsukino::BuiltIn::ECS::TransformComponent>(cameraEntity3D);
+        // 各コンポーネントのJSONを生成（初回のみ）
+        //if(!std::filesystem::exists(instTransformPath)) {
+        //    Tsukino::BuiltIn::ECS::TransformComponent t{};
+        //    t.position = hlslpp::float3(7.0f, 8.0f, 9.0f);
+        //    t.rotation = hlslpp::quaternion(0.0f, 0.0f, 0.0f, 1.0f);
+        //    t.scale    = hlslpp::float3(1.0f, 1.0f, 1.0f);
+        //    context->prefabFactory->Save(instTransformPath, "Transform", t);
+        //}
 
-        if(!std::filesystem::exists(transformJsonPath)) {
-            // 【1回目の実行用】指定された初期パラメータを仕込む
-            camTransform3D.position = hlslpp::float3(0.0f, 100.0f, 250.0f);
-            camTransform3D.rotation = hlslpp::quaternion(0.0f, 0.0f, 0.0f, 1.0f);    // 回転なし
-            camTransform3D.scale    = hlslpp::float3(1.0f, 1.0f, 1.0f);              // 等倍
+        //if(!std::filesystem::exists(instCameraPath)) {
+        //    Tsukino::BuiltIn::ECS::CameraComponent c{};
+        //    c.projectionType = Tsukino::BuiltIn::ECS::CameraComponent::ProjectionType::Perspective;
+        //    c.fov            = 75.0f;
+        //    c.nearZ          = 0.1f;
+        //    c.farZ           = 500.0f;
+        //    c.isPrimary      = false;
+        //    context->prefabFactory->Save(instCameraPath, "Camera", c);
+        //}
 
-            // 【1回目】上の初期値をそのままJSONとして新規保存
-            context->prefabFactory->Save(transformJsonPath, transformKeyName, camTransform3D);
-            Tsukino::Core::Log::Info("First run: Created Camera3D_Transform JSON!");
-        } else {
-            // 【2回目以降】ファイルから現在の位置パラメータを直接ロード！
-            context->prefabFactory->Load(transformJsonPath, transformKeyName, camTransform3D);
-            Tsukino::Core::Log::Info("Subsequent run: Loaded Transform parameters from JSON!");
-        }
+        //// 目次JSONを生成（初回のみ）
+        //if(!std::filesystem::exists(prefabPath)) {
+        //    std::map<std::string, std::string> componentList = {
+        //        {"Transform", instTransformPath},
+        //        {"Camera",    instCameraPath   }
+        //    };
+        //    std::ofstream             os(prefabPath);
+        //    cereal::JSONOutputArchive archive(os);
+        //    archive(cereal::make_nvp("Components", componentList));
+        //    Tsukino::Core::Log::Info("Created TestPrefab.json");
+        //}
 
-        //--------------------------------------------------------------
-        // 双方向シリアライズテスト
-        //--------------------------------------------------------------
-        const std::string jsonPath = "Tsukino.Sandbox/Assets/Prefabs/Camera3D.json";
-        const std::string keyName  = "Camera3D";
+        entt::entity testEntity = context->prefabFactory->Instantiate(prefabPath, registry);
 
-        auto& camera3D = registry.AddComponent<Tsukino::BuiltIn::ECS::CameraComponent>(cameraEntity3D);
+        //if(testEntity == entt::null) {
+        //    Tsukino::Core::Log::Error("Instantiate FAILED: returned entt::null");
+        //} else {
+        //    Tsukino::Core::Log::Info("Instantiate OK: entity created");
 
-        if(!std::filesystem::exists(jsonPath)) {
-            // 【1回目の実行用】JSONに保存したいカスタム初期値をここに仕込む
-            camera3D.projectionType = Tsukino::BuiltIn::ECS::CameraComponent::ProjectionType::Perspective;
-            camera3D.fov            = 60.0f;                                 // デフォルト(45.0f)から変えてみる
-            camera3D.nearZ          = 0.3f;                                  // デフォルト(0.1f)から変えてみる
-            camera3D.farZ           = 2000.0f;                               // デフォルト(1000.0f)から変えてみる
-            camera3D.useLookAt      = true;                                  // 注視を有効に
-            camera3D.lookAtTarget   = hlslpp::float3(0.0f, 100.0f, 5.0f);    // 適当な座標を向かせる
-            camera3D.isPrimary      = true;
-            // (AddComponentした時点でデフォルト値が入っているので、そのままSaveできる)
-            context->prefabFactory->Save(jsonPath, keyName, camera3D);
-        } else {
-            // 【2回目以降】ファイルからコンポーネントに直接ロード！
-            context->prefabFactory->Load(jsonPath, keyName, camera3D);
-        }
+        //    // Transform の確認（期待値: 7, 8, 9）
+        //    auto* t = registry.try_get<Tsukino::BuiltIn::ECS::TransformComponent>(testEntity);
+        //    if(t) {
+        //        Tsukino::Core::Log::Info("Transform.position.x = " + std::to_string(t->position.x) + " (expect 7)");
+        //        Tsukino::Core::Log::Info("Transform.position.y = " + std::to_string(t->position.y) + " (expect 8)");
+        //        Tsukino::Core::Log::Info("Transform.position.z = " + std::to_string(t->position.z) + " (expect 9)");
+        //    } else {
+        //        Tsukino::Core::Log::Error("TransformComponent NOT attached!");
+        //    }
+
+        //    // Camera の確認（期待値: fov=75, farZ=500）
+        //    auto* c = registry.try_get<Tsukino::BuiltIn::ECS::CameraComponent>(testEntity);
+        //    if(c) {
+        //        Tsukino::Core::Log::Info("Camera.fov  = " + std::to_string(c->fov) + " (expect 75)");
+        //        Tsukino::Core::Log::Info("Camera.farZ = " + std::to_string(c->farZ) + " (expect 500)");
+        //    } else {
+        //        Tsukino::Core::Log::Error("CameraComponent NOT attached!");
+        //    }
+        //}
+
+        //Tsukino::Core::Log::Info("=== [PrefabFactory] Instantiate Test End ===");
+
     }
 
     //-------------------------------------------------------------
