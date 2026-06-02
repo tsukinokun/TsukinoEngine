@@ -101,7 +101,7 @@ namespace Tsukino::Sandbox {
 
         // RBをつける
         Tsukino::BuiltIn::ECS::RigidbodyComponent& rb = registry.AddComponent<Tsukino::BuiltIn::ECS::RigidbodyComponent>(playerEntity);
-        rb.type                                       = Tsukino::BuiltIn::ECS::RigidbodyType::Kinematic;
+        rb.type                                       = Tsukino::BuiltIn::ECS::RigidbodyType::Dynamic;
 
         // アニメーションを再生・制御するコンポーネント
         Tsukino::BuiltIn::ECS::AnimationPlayerComponent& animPlayer = registry.AddComponent<Tsukino::BuiltIn::ECS::AnimationPlayerComponent>(playerEntity);

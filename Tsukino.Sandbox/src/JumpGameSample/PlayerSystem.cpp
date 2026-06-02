@@ -6,6 +6,8 @@
 #include <Tsukino/Sandbox/JumpGameSample/ECS/System/PlayerSystem.hpp>
 #include <Tsukino/Sandbox/JumpGameSample/ECS/Component/PlayerComponent.hpp>
 
+#include <Tsukino/BuiltIn/ECS/Component/ImpulseRequestComponent.hpp>
+
 #include <Tsukino/BuiltIn/ECS/Component/TransformComponent.hpp>
 
 #include <Tsukino/EngineIntegration/EngineContext.hpp>
@@ -37,8 +39,11 @@ namespace JumpGameSample::ECS {
             // スペースキー押下でジャンプ
             //-------------------------------------------------------------
             if(inputSystem->IsKeyPressed(Tsukino::Input::KeyCode::Space)) {
+                //-------------------------------------------------------------
                 // ジャンプ処理
-                // アニメーションをジャンプへ変更
+                //-------------------------------------------------------------
+                // エンティティにImpulseRequestComponentを追加して、物理システムにジャンプの衝撃を要求する
+                registry.AddComponent<Tsukino::BuiltIn::ECS::ImpulseRequestComponent>(entity, hlslpp::float3(0.0f, 5.0f, 0.0f));
             }
         });
     }
