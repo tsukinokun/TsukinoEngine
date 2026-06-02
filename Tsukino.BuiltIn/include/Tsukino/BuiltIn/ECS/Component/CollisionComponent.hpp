@@ -44,6 +44,10 @@ namespace Tsukino::BuiltIn::ECS {
         //---------------------------------------------------------------------
         hlslpp::float3 extent = {0.5f, 0.5f, 0.5f};
 
+        // オフセット設定
+        hlslpp::float3     offsetPosition = {0.0f, 0.0f, 0.0f};
+        hlslpp::quaternion offsetRotation = hlslpp::quaternion::identity();
+
         //---------------------------------------------------------------------
         // センサー設定
         // true  : 当たり判定のみを行い、物理的な衝突（反発）は発生させない

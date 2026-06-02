@@ -63,6 +63,8 @@ namespace Tsukino::Sandbox {
         m_scene.AddSystem(std::make_shared<JumpGameSample::ECS::PlayerSystem>(), 1);
         // アニメーションはTransformの後に更新する (優先度 2)
         m_scene.AddSystem(std::make_shared<Tsukino::BuiltIn::ECS::AnimationSystem>(), 2);
+        // 物理計算 (優先度 3)
+        m_scene.AddSystem(std::make_shared<Tsukino::BuiltIn::ECS::PhysicsSystem>(), 3);
         // カメラは描画前に更新する (優先度 5)
         m_scene.AddSystem(std::make_shared<Tsukino::BuiltIn::ECS::CameraSystem>(), 5);
         // フォント描画 (優先度 9)
@@ -73,8 +75,6 @@ namespace Tsukino::Sandbox {
         m_scene.AddSystem(std::make_shared<Tsukino::BuiltIn::ECS::ModelSystem>(), 10);
         // オーディオの更新 (優先度 11)
         m_scene.AddSystem(std::make_shared<Tsukino::BuiltIn::ECS::AudioSystem>(), 11);
-        // コリジョンの更新は最後に行う (優先度 12)
-        m_scene.AddSystem(std::make_shared<Tsukino::BuiltIn::ECS::PhysicsSystem>(), 12);
 
         //--------------------------------------------------------------
         // Modelエンティティ生成
@@ -96,8 +96,9 @@ namespace Tsukino::Sandbox {
 
         // モデルにコリジョンをつける
         Tsukino::BuiltIn::ECS::CollisionComponent& collision = registry.AddComponent<Tsukino::BuiltIn::ECS::CollisionComponent>(playerEntity);
-        collision.extent                                     = {150.0f, 150.0f, 150.0f};    // 大きめの当たり判定
-        collision.type                                       = Tsukino::BuiltIn::ECS::ColliderType::Sphere;
+        collision.extent                                     = {35.0f, 70.0f, 70.0f};    // 大きめの当たり判定
+        collision.offsetPosition                             = {0.0f, 90.0f, 0.0f};      // モデルの足元から中心にオフセット
+        collision.type                                       = Tsukino::BuiltIn::ECS::ColliderType::Capsule;
 
         // RBをつける
         Tsukino::BuiltIn::ECS::RigidbodyComponent& rb = registry.AddComponent<Tsukino::BuiltIn::ECS::RigidbodyComponent>(playerEntity);
