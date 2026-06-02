@@ -19,20 +19,21 @@
 #include <Tsukino/EngineIntegration/ECS/System/SpriteRendererSystem.hpp>
 #include <Tsukino/EngineIntegration/ECS/System/FontRendererSystem.hpp>
 #include <Tsukino/EngineIntegration/ECS/System/AudioSystem.hpp>
+#include <Tsukino/EngineIntegration/ECS/System/PhysicsSystem.hpp>
+#include <Tsukino/EngineIntegration/ECS/System/ModelSystem.hpp>
+#include <Tsukino/EngineIntegration/ECS/System/AnimationSystem.hpp>
+
 
 #include <Tsukino/BuiltIn/ECS/Component/TransformComponent.hpp>
 #include <Tsukino/BuiltIn/ECS/Component/CameraComponent.hpp>
 #include <Tsukino/BuiltIn/ECS/Component/SpriteComponent.hpp>
 #include <Tsukino/BuiltIn/ECS/Component/FontComponent.hpp>
 #include <Tsukino/BuiltIn/ECS/Component/AudioComponent.hpp>
-#include <Tsukino/EngineIntegration/ECS/System/ModelSystem.hpp>
 #include <Tsukino/BuiltIn/ECS/Component/ModelComponent.hpp>
-#include <Tsukino/EngineIntegration/ECS/System/AnimationSystem.hpp>
 #include <Tsukino/BuiltIn/ECS/Component/AnimationPlayerComponent.hpp>
 #include <Tsukino/BuiltIn/ECS/Component/SkeletonOutputComponent.hpp>
 #include <Tsukino/BuiltIn/ECS/Component/CollisionComponent.hpp>
 #include <Tsukino/BuiltIn/ECS/Component/RigidBodyComponent.hpp>
-#include <Tsukino/EngineIntegration/ECS/System/PhysicsSystem.hpp>
 
 #include <Tsukino/BuiltIn/ECS/Serialization/TransformComponentSerialization.hpp>
 #include <Tsukino/BuiltIn/ECS/Serialization/CameraComponentSerialization.hpp>
@@ -155,10 +156,10 @@ namespace Tsukino::Sandbox {
 
         // アニメーションを再生・制御するコンポーネント
         Tsukino::BuiltIn::ECS::AnimationPlayerComponent& animPlayer = registry.AddComponent<Tsukino::BuiltIn::ECS::AnimationPlayerComponent>(modelEntity);
-        animPlayer.current_clip_id                                  = animationHandle;    // ロードした testAnim.fbx のハンドルを渡す
+        animPlayer.current_clip_id                                  = animationHandle;    // ロー等速再生ドした testAnim.fbx のハンドルを渡す
         animPlayer.animation_index                                  = 1;                  // 再生するアニメーションのインデックスを指定
         animPlayer.elapsed_time                                     = 0.0f;               // 0秒からスタート
-        animPlayer.playback_speed                                   = 1.0f;               // 等速再生
+        animPlayer.playback_speed                                   = 1.0f;               // 
         animPlayer.is_looping                                       = true;               // ループさせる
         animPlayer.is_playing                                       = true;               // 再生状態にする
 
