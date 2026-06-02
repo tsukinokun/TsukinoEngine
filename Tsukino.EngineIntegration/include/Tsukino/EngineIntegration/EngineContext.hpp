@@ -29,6 +29,10 @@ namespace Tsukino {
     namespace Audio {
         class AudioManager;
     }
+
+    namespace Engine::ECS::Prefab {
+        class PrefabFactory;
+    }
 }    // namespace Tsukino
 
 // 名前空間 : Tsukino::EngineIntegration
@@ -39,12 +43,13 @@ namespace Tsukino::EngineIntegration {
     //! @brief   エンジン全体で共有されるクラスのポインタを集めた構造体
     //------------------------------------------------------------
     struct EngineContext {
-        Tsukino::Renderer::Renderer*     renderer         = nullptr;
-        Tsukino::Core::Window*           window           = nullptr;
-        Tsukino::Input::InputSystem*     inputSystem      = nullptr;
-        Tsukino::Asset::AssetManager*    assetManager           = nullptr;
-        Tsukino::BuiltIn::BuiltInAssets* builtinAssets    = nullptr;
-        GameSceneManager*                gameSceneManager = nullptr;
-        Tsukino::Audio::AudioManager*    audioManager     = nullptr;
+        Tsukino::Renderer::Renderer*                 renderer         = nullptr;
+        Tsukino::Core::Window*                       window           = nullptr;
+        Tsukino::Input::InputSystem*                 inputSystem      = nullptr;
+        Tsukino::Asset::AssetManager*                assetManager     = nullptr;
+        Tsukino::BuiltIn::BuiltInAssets*             builtinAssets    = nullptr;
+        GameSceneManager*                            gameSceneManager = nullptr;
+        Tsukino::Audio::AudioManager*                audioManager     = nullptr;
+        Tsukino::Engine::ECS::Prefab::PrefabFactory* prefabFactory    = nullptr;
     };
 }    // namespace Tsukino::EngineIntegration

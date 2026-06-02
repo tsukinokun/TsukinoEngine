@@ -469,6 +469,7 @@ project "Tsukino.EngineIntegration"
         "Tsukino.BuiltIn/include",
         "Tsukino.EngineIntegration/include",
         --"Tsukino.Physics/include",
+        "External/cereal/include",
         "External/hlslpp/include",
         "External/entt/single_include",
         "External/JoltPhysics",
