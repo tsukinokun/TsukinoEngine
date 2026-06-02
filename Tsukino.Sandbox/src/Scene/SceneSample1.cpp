@@ -34,7 +34,7 @@
 #include <Tsukino/BuiltIn/ECS/Component/RigidBodyComponent.hpp>
 #include <Tsukino/EngineIntegration/ECS/System/PhysicsSystem.hpp>
 
-#include <Tsukino/BuiltIn/ECS/Serialization/CameraDescSerialization.hpp>
+#include <Tsukino/BuiltIn/ECS/Serialization/CameraComponentSerialization.hpp>
 
 #include <entt/entt.hpp>
 #include <hlsl++.h>
@@ -161,7 +161,7 @@ namespace Tsukino::Sandbox {
         animPlayer.is_looping                                       = true;               // ループさせる
         animPlayer.is_playing                                       = true;               // 再生状態にする
 
-        // 計算されたボーン行列の出力先（スキニング用）コンポーネント 
+        // 計算されたボーン行列の出力先（スキニング用）コンポーネント
         Tsukino::BuiltIn::ECS::SkeletonOutputComponent& skeletonOutput = registry.AddComponent<Tsukino::BuiltIn::ECS::SkeletonOutputComponent>(modelEntity);
 
         //--------------------------------------------------------------
@@ -194,50 +194,23 @@ namespace Tsukino::Sandbox {
         const std::string jsonPath = "Tsukino.Sandbox/Assets/Prefabs/Camera3D.json";
         const std::string keyName  = "Camera3D";
 
-        Tsukino::BuiltIn::ECS::CameraDesc cameraDesc;
+        auto& camera3D = registry.AddComponent<Tsukino::BuiltIn::ECS::CameraComponent>(cameraEntity3D);
 
-        //--------------------------------------------------------------
-        // まずファイルが存在するかチェック
-        //--------------------------------------------------------------
-        std::ifstream checkFile(jsonPath);
-        if(!checkFile.is_open()) {
-            //--------------------------------------------------------------
-            // 【1回目】ファイルがないので、デフォルトのカメラ設定を作ってJSONを新規生成
-            //--------------------------------------------------------------
-            Tsukino::Core::Log::Info("[Prefab Test] JSON file not found. Creating default JSON...");
-
-            cameraDesc.useLookAt      = true;
-            cameraDesc.lookAtTarget   = hlslpp::float3(0.0f, 100.0f, 0.0f);
-            cameraDesc.projectionType = Tsukino::BuiltIn::ECS::CameraComponent::ProjectionType::Perspective;
-            cameraDesc.fov            = 60.0f;
-            cameraDesc.isPrimary      = true;
-
-            // JSONファイルを保存（SaveDescのテスト）
-            Tsukino::Engine::ECS::Prefab::PrefabFactory::SaveDesc(jsonPath, keyName, cameraDesc);
-            Tsukino::Core::Log::Info("[Prefab Test] Default JSON created successfully at: " + jsonPath);
+        if(!std::filesystem::exists(jsonPath)) {
+            // 【1回目の実行用】JSONに保存したいカスタム初期値をここに仕込む
+            camera3D.projectionType = Tsukino::BuiltIn::ECS::CameraComponent::ProjectionType::Perspective;
+            camera3D.fov            = 60.0f;                                 // デフォルト(45.0f)から変えてみる
+            camera3D.nearZ          = 0.3f;                                  // デフォルト(0.1f)から変えてみる
+            camera3D.farZ           = 2000.0f;                               // デフォルト(1000.0f)から変えてみる
+            camera3D.useLookAt      = true;                                  // 注視を有効に
+            camera3D.lookAtTarget   = hlslpp::float3(0.0f, 100.0f, 5.0f);    // 適当な座標を向かせる
+            camera3D.isPrimary      = true;
+            // (AddComponentした時点でデフォルト値が入っているので、そのままSaveできる)
+            Tsukino::Engine::ECS::Prefab::PrefabFactory::Save(jsonPath, keyName, camera3D);
         } else {
-            //--------------------------------------------------------------
-            // 【2回目以降】ファイルがあるので、一度閉じてからロード
-            //--------------------------------------------------------------
-            checkFile.close();
-            Tsukino::Core::Log::Info("[Prefab Test] JSON file found! Loading data from file...");
-
-            // JSONファイルをロード（LoadDescのテスト）
-            cameraDesc = Tsukino::Engine::ECS::Prefab::PrefabFactory::LoadDesc<Tsukino::BuiltIn::ECS::CameraDesc>(jsonPath, keyName);
-            Tsukino::Core::Log::Info("[Prefab Test] Load Success! (Loaded FOV: " + std::to_string(cameraDesc.fov) + ")");
+            // 【2回目以降】ファイルからコンポーネントに直接ロード！
+            Tsukino::Engine::ECS::Prefab::PrefabFactory::Load(jsonPath, keyName, camera3D);
         }
-
-        // ロード（または自動生成）したDescから、実行用コンポーネントにパラメータを流し込む
-        Tsukino::BuiltIn::ECS::CameraComponent& camera3D = registry.AddComponent<Tsukino::BuiltIn::ECS::CameraComponent>(cameraEntity3D);
-        camera3D.projectionType                          = cameraDesc.projectionType;
-        camera3D.orthoSize                               = cameraDesc.orthoSize;
-        camera3D.fov                                     = cameraDesc.fov;
-        camera3D.aspectRatio                             = cameraDesc.aspectRatio;
-        camera3D.nearZ                                   = cameraDesc.nearZ;
-        camera3D.farZ                                    = cameraDesc.farZ;
-        camera3D.useLookAt                               = cameraDesc.useLookAt;
-        camera3D.lookAtTarget                            = cameraDesc.lookAtTarget;
-        camera3D.isPrimary                               = cameraDesc.isPrimary;
     }
 
     //-------------------------------------------------------------
