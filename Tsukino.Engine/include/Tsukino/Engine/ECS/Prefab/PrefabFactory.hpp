@@ -35,18 +35,17 @@ namespace Tsukino::Engine::ECS::Prefab {
         ~PrefabFactory() = delete;
 
         //--------------------------------------------------------------
-        //! @brief     任意のDesc（T）をJSONファイルからロードする
-        //! @tparam T  ロードしたいDesc構造体の型（例: CameraDesc）
+        //! @brief     任意のComponent（T）をJSONファイルからロードする
+        //! @tparam T  ロードしたい構造体の型（例: CameraComponent）
         //! @param     jsonPath  [in] JSONファイルへの相対/絶対パス
-        //! @param     keyName   [in]JSON内のルートキー名（例: "CameraPrefab"）
-        //! @return    ロードされたDescデータ（失敗時はデフォルト値が返る）
+        //! @param     keyName   [in] JSON内のルートキー名（例: "CameraPrefab"）
+        //! @return    ロードに成功したか（ファイルが開けたらtrue）
         //--------------------------------------------------------------
         template <typename T>
-        static [[nodiscard]] T LoadDesc(const std::string& jsonPath, const std::string& keyName) {
+        static [[nodiscard]] bool Load(const std::string& jsonPath, const std::string& keyName, T& outData) {
             //--------------------------------------------------------------
-            // descを宣言して、jsonファイルを開く
+            // dataを宣言して、jsonファイルを開く
             //--------------------------------------------------------------
-            T             desc;
             std::ifstream is(jsonPath);
 
             //--------------------------------------------------------------
@@ -54,31 +53,31 @@ namespace Tsukino::Engine::ECS::Prefab {
             //--------------------------------------------------------------
             if(!is.is_open()) {
                 Tsukino::Core::Log::Warn("Prefab file not found: " + jsonPath + " (Using default parameters)");
-                return desc;
+                return false;
             }
 
             //--------------------------------------------------------------
-            // JSONのパースとDescへの展開
+            // JSONのパースとoutDataへの展開
             //--------------------------------------------------------------
             {
                 cereal::JSONInputArchive archive(is);
-                archive(cereal::make_nvp(keyName, desc));
+                archive(cereal::make_nvp(keyName, outData));
             }
 
-            // ロードに成功していれば、JSONから展開された値が入ったdescを返す
-            return desc;
+            // ロードに成功していれば、JSONから展開された値が入ったdataを返す
+            return true;
         }
 
         //--------------------------------------------------------------
-        //! @brief     任意のDesc（T）をJSONファイルにセーブする
-        //! @tparam T  セーブしたいDesc構造体の型
+        //! @brief     任意のComponent（T）をJSONファイルにセーブする
+        //! @tparam T  セーブしたいComponentの型
         //! @param     jsonPath [in] 保存先のJSONファイルパス
         //! @param     keyName  [in] JSON内のルートキー名
-        //! @param     desc     [in] 保存したいDescデータ
+        //! @param     desc     [in] 保存したいComponentデータ
         //! @return    セーブに成功したか
         //--------------------------------------------------------------
         template <typename T>
-        static bool SaveDesc(const std::string& jsonPath, const std::string& keyName, const T& desc) {
+        static bool Save(const std::string& jsonPath, const std::string& keyName, const T& desc) {
             // JSONファイルを開く（上書きモード）
             std::ofstream os(jsonPath);
 
