@@ -5,6 +5,12 @@
 //------------------------------------------------------------
 #include <Tsukino/EngineIntegration/EngineIntegration.hpp>
 
+#include <Tsukino/BuiltIn/ECS/Component/CameraComponent.hpp> 
+#include <Tsukino/BuiltIn/ECS/Component/TransformComponent.hpp>
+
+#include <Tsukino/BuiltIn/ECS/Serialization/TransformComponentSerialization.hpp>
+#include <Tsukino/BuiltIn/ECS/Serialization/CameraComponentSerialization.hpp>
+
 #include <Tsukino/Core/Log.hpp>
 
 #include <memory>
@@ -25,6 +31,7 @@ namespace Tsukino::EngineIntegration {
         m_builtinAssets    = std::make_unique<Tsukino::BuiltIn::BuiltInAssets>();
         m_gameSceneManager = std::make_unique<GameSceneManager>();
         m_audioManager     = std::make_unique<Tsukino::Audio::AudioManager>();
+        m_prefabFactory    = std::make_unique<Tsukino::Engine::ECS::Prefab::PrefabFactory>();
 
         //------------------------------------------------------------
         // コンテキストにポインタをセット
@@ -36,6 +43,7 @@ namespace Tsukino::EngineIntegration {
         m_ctx.gameSceneManager = m_gameSceneManager.get();
         m_ctx.inputSystem      = m_inputSystem.get();
         m_ctx.audioManager     = m_audioManager.get();
+        m_ctx.prefabFactory    = m_prefabFactory.get();
     }
 
     //------------------------------------------------------------
@@ -121,5 +129,14 @@ namespace Tsukino::EngineIntegration {
         }
 
         return true;
+    }
+
+    //------------------------------------------------------------
+    //! @brief  エンジン標準の組み込みコンポーネントを工場に自動登録する
+    //------------------------------------------------------------
+    void EngineIntegration::RegisterBuiltInComponents() {
+        // 標準のトランスフォームとカメラを登録
+        m_prefabFactory->RegisterComponent<Tsukino::BuiltIn::ECS::TransformComponent>("Transform");
+        m_prefabFactory->RegisterComponent<Tsukino::BuiltIn::ECS::CameraComponent>("CameraComponent");
     }
 }    // namespace Tsukino::EngineIntegration

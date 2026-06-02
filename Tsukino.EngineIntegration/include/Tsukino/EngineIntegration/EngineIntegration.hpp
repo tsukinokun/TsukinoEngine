@@ -11,6 +11,7 @@
 #include <Tsukino/Renderer/Renderer.hpp>
 
 #include <Tsukino/Engine/Asset/AssetManager.hpp>
+#include <Tsukino/Engine/ECS/Prefab/PrefabFactory.hpp>
 
 #include <Tsukino/Core/ECS/Registry/Registry.hpp>
 
@@ -57,6 +58,12 @@ namespace Tsukino::EngineIntegration {
         }
 
     private:
+        //------------------------------------------------------------
+        //! @brief  エンジン標準の組み込みコンポーネントを工場に自動登録する
+        //------------------------------------------------------------
+        void RegisterBuiltInComponents();
+
+    private:
         std::unique_ptr<Tsukino::Renderer::Renderer>     m_renderer;
         std::unique_ptr<Tsukino::Asset::AssetManager>    m_assetManager;
         std::unique_ptr<Tsukino::Core::Window>           m_window;
@@ -64,6 +71,7 @@ namespace Tsukino::EngineIntegration {
         std::unique_ptr<GameSceneManager>                m_gameSceneManager;
         std::unique_ptr<Tsukino::Input::InputSystem>     m_inputSystem;
         std::unique_ptr<Tsukino::Audio::AudioManager>    m_audioManager;
+        std::unique_ptr<Tsukino::Engine::ECS::Prefab::PrefabFactory> m_prefabFactory;    
 
         EngineContext m_ctx;    // エンジン全体で共有されるクラスのポインタを集めた構造体
     };

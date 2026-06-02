@@ -201,13 +201,11 @@ namespace Tsukino::Sandbox {
             camTransform3D.scale    = hlslpp::float3(1.0f, 1.0f, 1.0f);              // 等倍
 
             // 【1回目】上の初期値をそのままJSONとして新規保存
-            Tsukino::Engine::ECS::Prefab::PrefabFactory::Save(transformJsonPath, transformKeyName, camTransform3D);
-
+            context->prefabFactory->Save(transformJsonPath, transformKeyName, camTransform3D);
             Tsukino::Core::Log::Info("First run: Created Camera3D_Transform JSON!");
         } else {
             // 【2回目以降】ファイルから現在の位置パラメータを直接ロード！
-            Tsukino::Engine::ECS::Prefab::PrefabFactory::Load(transformJsonPath, transformKeyName, camTransform3D);
-
+            context->prefabFactory->Load(transformJsonPath, transformKeyName, camTransform3D);
             Tsukino::Core::Log::Info("Subsequent run: Loaded Transform parameters from JSON!");
         }
 
@@ -229,10 +227,10 @@ namespace Tsukino::Sandbox {
             camera3D.lookAtTarget   = hlslpp::float3(0.0f, 100.0f, 5.0f);    // 適当な座標を向かせる
             camera3D.isPrimary      = true;
             // (AddComponentした時点でデフォルト値が入っているので、そのままSaveできる)
-            Tsukino::Engine::ECS::Prefab::PrefabFactory::Save(jsonPath, keyName, camera3D);
+            context->prefabFactory->Save(jsonPath, keyName, camera3D);
         } else {
             // 【2回目以降】ファイルからコンポーネントに直接ロード！
-            Tsukino::Engine::ECS::Prefab::PrefabFactory::Load(jsonPath, keyName, camera3D);
+            context->prefabFactory->Load(jsonPath, keyName, camera3D);
         }
     }
 
