@@ -26,6 +26,8 @@
 #include <Tsukino/BuiltIn/ECS/Component/CollisionComponent.hpp>
 #include <Tsukino/BuiltIn/ECS/Component/RigidBodyComponent.hpp>
 #include <Tsukino/BuiltIn/ECS/Component/TransformComponent.hpp>
+#include <Tsukino/BuiltIn/ECS/Component/ImpulseRequestComponent.hpp>
+
 #include <Tsukino/Renderer/Renderer.hpp>
 #include <Tsukino/EngineIntegration/EngineContext.hpp>
 #include <Tsukino/GraphicsCommon/Vertex/DebugVertex.hpp>
@@ -405,6 +407,25 @@ namespace Tsukino::BuiltIn::ECS {
                     bodyInterface.SetPositionAndRotation(col.bodyID, p, r, JPH::EActivation::Activate);
                 }
             }
+        }
+
+        // 外部システムから投げられた ImpulseRequestComponent を処理する
+        auto impulseView = registry.View<CollisionComponent, ImpulseRequestComponent>();
+        
+        // 削除対象を一時的に保持するリスト
+        std::vector<entt::entity> entitiesToRemove;
+
+        impulseView.each([&](auto entity, const auto& col, const auto& req) {
+            // 物理エンジンへの反映
+            bodyInterface.AddImpulse(col.bodyID, JPH::Vec3(req.impulse.x, req.impulse.y, req.impulse.z));
+
+            // 削除対象を貯める
+            entitiesToRemove.push_back(entity);
+        });
+
+        // 反映し終えたリクエストを削除
+        for(auto entity : entitiesToRemove) {
+            registry.RemoveComponent<ImpulseRequestComponent>(entity);
         }
 
         //  物理シミュレーション実行 ---
