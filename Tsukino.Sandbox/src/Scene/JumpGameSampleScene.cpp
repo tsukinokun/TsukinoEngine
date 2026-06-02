@@ -5,6 +5,10 @@
 //-------------------------------------------------------------
 #include <Tsukino/Sandbox/Scene/JumpGameSampleScene.hpp>
 
+#include <Tsukino/Sandbox/JumpGameSample/ECS/Component/PlayerComponent.hpp>
+
+#include <Tsukino/Sandbox/JumpGameSample/ECS/System/PlayerSystem.hpp>
+
 #include <Tsukino/BuiltIn/ECS/Component/TransformComponent.hpp>
 #include <Tsukino/BuiltIn/ECS/Component/CameraComponent.hpp>
 #include <Tsukino/BuiltIn/ECS/Component/SpriteComponent.hpp>
@@ -55,6 +59,8 @@ namespace Tsukino::Sandbox {
         //--------------------------------------------------------------
         // Transformは一番最初に計算する (優先度 0)
         m_scene.AddSystem(std::make_shared<Tsukino::BuiltIn::ECS::TransformSystem>(), 0);
+        // プレイヤーの更新 (優先度 1)
+        m_scene.AddSystem(std::make_shared<JumpGameSample::ECS::PlayerSystem>(), 1);
         // アニメーションはTransformの後に更新する (優先度 2)
         m_scene.AddSystem(std::make_shared<Tsukino::BuiltIn::ECS::AnimationSystem>(), 2);
         // カメラは描画前に更新する (優先度 5)
@@ -73,32 +79,32 @@ namespace Tsukino::Sandbox {
         //--------------------------------------------------------------
         // Modelエンティティ生成
         //--------------------------------------------------------------
-        Tsukino::ECS::Entity modelEntity = m_scene.CreateEntity();
+        Tsukino::ECS::Entity playerEntity = m_scene.CreateEntity();
 
         // TransformComponent の追加と初期化
-        Tsukino::BuiltIn::ECS::TransformComponent& modelTransform = registry.AddComponent<Tsukino::BuiltIn::ECS::TransformComponent>(modelEntity);
-        modelTransform.position                                   = hlslpp::float3(0.0f, 0.0f, 0.0f);
-        modelTransform.rotation                                   = hlslpp::quaternion(0.0f, 0.0f, 0.0f, 1.0f);    // 無回転
-        modelTransform.scale                                      = hlslpp::float3(1.0f, 1.0f, 1.0f);
-        modelTransform.dirty                                      = true;          // 初回計算のためフラグを立てる
-        modelTransform.parent                                     = entt::null;    // 親なし
+        Tsukino::BuiltIn::ECS::TransformComponent& playerTransform = registry.AddComponent<Tsukino::BuiltIn::ECS::TransformComponent>(playerEntity);
+        playerTransform.position                                   = hlslpp::float3(0.0f, 0.0f, 0.0f);
+        playerTransform.rotation                                   = hlslpp::quaternion(0.0f, 0.0f, 0.0f, 1.0f);    // 無回転
+        playerTransform.scale                                      = hlslpp::float3(1.0f, 1.0f, 1.0f);
+        playerTransform.dirty                                      = true;          // 初回計算のためフラグを立てる
+        playerTransform.parent                                     = entt::null;    // 親なし
 
         // ModelComponent の追加
-        Tsukino::BuiltIn::ECS::ModelComponent& model = registry.AddComponent<Tsukino::BuiltIn::ECS::ModelComponent>(modelEntity);
+        Tsukino::BuiltIn::ECS::ModelComponent& model = registry.AddComponent<Tsukino::BuiltIn::ECS::ModelComponent>(playerEntity);
         model.modelHandle = context->assetManager->Load(Tsukino::Core::Path("Tsukino.Sandbox/Assets/JumpGameSample/Models/Arissa.fbx"));
         model.visible     = true;
 
         // モデルにコリジョンをつける
-        Tsukino::BuiltIn::ECS::CollisionComponent& collision = registry.AddComponent<Tsukino::BuiltIn::ECS::CollisionComponent>(modelEntity);
+        Tsukino::BuiltIn::ECS::CollisionComponent& collision = registry.AddComponent<Tsukino::BuiltIn::ECS::CollisionComponent>(playerEntity);
         collision.extent                                     = {150.0f, 150.0f, 150.0f};    // 大きめの当たり判定
         collision.type                                       = Tsukino::BuiltIn::ECS::ColliderType::Sphere;
 
         // RBをつける
-        Tsukino::BuiltIn::ECS::RigidbodyComponent& rb = registry.AddComponent<Tsukino::BuiltIn::ECS::RigidbodyComponent>(modelEntity);
+        Tsukino::BuiltIn::ECS::RigidbodyComponent& rb = registry.AddComponent<Tsukino::BuiltIn::ECS::RigidbodyComponent>(playerEntity);
         rb.type                                       = Tsukino::BuiltIn::ECS::RigidbodyType::Kinematic;
 
         // アニメーションを再生・制御するコンポーネント
-        Tsukino::BuiltIn::ECS::AnimationPlayerComponent& animPlayer = registry.AddComponent<Tsukino::BuiltIn::ECS::AnimationPlayerComponent>(modelEntity);
+        Tsukino::BuiltIn::ECS::AnimationPlayerComponent& animPlayer = registry.AddComponent<Tsukino::BuiltIn::ECS::AnimationPlayerComponent>(playerEntity);
         animPlayer.current_clip_id = context->assetManager->Load(Tsukino::Core::Path("Tsukino.Sandbox/Assets/JumpGameSample/Anims/Standing Idle.fbx"));
         animPlayer.animation_index = 1;       // 再生するアニメーションのインデックスを指定
         animPlayer.elapsed_time    = 0.0f;    // 0秒からスタート
@@ -107,7 +113,10 @@ namespace Tsukino::Sandbox {
         animPlayer.is_playing      = true;    // 再生状態にする
 
         //計算されたボーン行列の出力先（スキニング用）コンポーネント
-        Tsukino::BuiltIn::ECS::SkeletonOutputComponent& skeletonOutput = registry.AddComponent<Tsukino::BuiltIn::ECS::SkeletonOutputComponent>(modelEntity);
+        Tsukino::BuiltIn::ECS::SkeletonOutputComponent& skeletonOutput = registry.AddComponent<Tsukino::BuiltIn::ECS::SkeletonOutputComponent>(playerEntity);
+
+        // プレイヤーコンポーネントをつける
+        JumpGameSample::ECS::PlayerComponent& player = registry.AddComponent<JumpGameSample::ECS::PlayerComponent>(playerEntity);
 
         //--------------------------------------------------------------
         // 2Dカメラエンティティの生成
