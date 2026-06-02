@@ -34,6 +34,7 @@
 #include <Tsukino/BuiltIn/ECS/Component/RigidBodyComponent.hpp>
 #include <Tsukino/EngineIntegration/ECS/System/PhysicsSystem.hpp>
 
+#include <Tsukino/BuiltIn/ECS/Serialization/TransformComponentSerialization.hpp>
 #include <Tsukino/BuiltIn/ECS/Serialization/CameraComponentSerialization.hpp>
 
 #include <entt/entt.hpp>
@@ -184,9 +185,31 @@ namespace Tsukino::Sandbox {
         //--------------------------------------------------------------
         Tsukino::ECS::Entity cameraEntity3D = m_scene.CreateEntity();
 
-        // TransformComponent (カメラの位置)
-        Tsukino::BuiltIn::ECS::TransformComponent& camTransform3D = registry.AddComponent<Tsukino::BuiltIn::ECS::TransformComponent>(cameraEntity3D);
-        camTransform3D.position                                   = hlslpp::float3(0.0f, 100.0f, 250.0f);
+        //--------------------------------------------------------------
+        // TransformComponent の双方向シリアライズテスト
+        //--------------------------------------------------------------
+        const std::string transformJsonPath = "Tsukino.Sandbox/Assets/Prefabs/Camera3D_Transform.json";
+        const std::string transformKeyName  = "Transform";
+
+        // TransformComponent (カメラの位置) を登録
+        auto& camTransform3D = registry.AddComponent<Tsukino::BuiltIn::ECS::TransformComponent>(cameraEntity3D);
+
+        if(!std::filesystem::exists(transformJsonPath)) {
+            // 【1回目の実行用】指定された初期パラメータを仕込む
+            camTransform3D.position = hlslpp::float3(0.0f, 100.0f, 250.0f);
+            camTransform3D.rotation = hlslpp::quaternion(0.0f, 0.0f, 0.0f, 1.0f);    // 回転なし
+            camTransform3D.scale    = hlslpp::float3(1.0f, 1.0f, 1.0f);              // 等倍
+
+            // 【1回目】上の初期値をそのままJSONとして新規保存
+            Tsukino::Engine::ECS::Prefab::PrefabFactory::Save(transformJsonPath, transformKeyName, camTransform3D);
+
+            Tsukino::Core::Log::Info("First run: Created Camera3D_Transform JSON!");
+        } else {
+            // 【2回目以降】ファイルから現在の位置パラメータを直接ロード！
+            Tsukino::Engine::ECS::Prefab::PrefabFactory::Load(transformJsonPath, transformKeyName, camTransform3D);
+
+            Tsukino::Core::Log::Info("Subsequent run: Loaded Transform parameters from JSON!");
+        }
 
         //--------------------------------------------------------------
         // 双方向シリアライズテスト
