@@ -10,6 +10,7 @@
 
 #include <Tsukino/Sandbox/JumpGameSample/ECS/System/PlayerSystem.hpp>
 #include <Tsukino/Sandbox/JumpGameSample/ECS/System/PlatformSystem.hpp>
+#include <Tsukino/Sandbox/JumpGameSample/ECS/System/InGameCameraSystem.hpp>
 
 #include <Tsukino/BuiltIn/ECS/Component/TransformComponent.hpp>
 #include <Tsukino/BuiltIn/ECS/Component/CameraComponent.hpp>
@@ -61,19 +62,21 @@ namespace Tsukino::Sandbox {
         //--------------------------------------------------------------
         enum class SystemPriority : int {
             Transform = 0,
-            Player    = 1,
-            Platform  = 2,
-            Animation = 3,
-            Physics   = 4,
-            Camera    = 5,
-            Font      = 9,
-            Render    = 10,
-            Audio     = 11,
+            Player,
+            InGameCamera,
+            Platform,
+            Animation,
+            Physics,
+            Camera,
+            Font,
+            Render,
+            Audio,
         };
 
         // 登録
         m_scene.AddSystem(std::make_shared<Tsukino::BuiltIn::ECS::TransformSystem>(), (int)SystemPriority::Transform);
         m_scene.AddSystem(std::make_shared<JumpGameSample::ECS::PlayerSystem>(), (int)SystemPriority::Player);
+        m_scene.AddSystem(std::make_shared<JumpGameSample::ECS::InGameCameraSystem>(), (int)SystemPriority::InGameCamera);
         m_scene.AddSystem(std::make_shared<JumpGameSample::ECS::PlatformSystem>(), (int)SystemPriority::Platform);
         m_scene.AddSystem(std::make_shared<Tsukino::BuiltIn::ECS::AnimationSystem>(), (int)SystemPriority::Animation);
         m_scene.AddSystem(std::make_shared<Tsukino::BuiltIn::ECS::PhysicsSystem>(), (int)SystemPriority::Physics);
@@ -90,7 +93,7 @@ namespace Tsukino::Sandbox {
 
         // TransformComponent の追加と初期化
         Tsukino::BuiltIn::ECS::TransformComponent& playerTransform = registry.AddComponent<Tsukino::BuiltIn::ECS::TransformComponent>(playerEntity);
-        playerTransform.position                                   = hlslpp::float3(0.0f, 10.0f, 0.0f);
+        playerTransform.position                                   = hlslpp::float3(0.0f, 0.0f, 0.0f);
         playerTransform.rotation                                   = hlslpp::quaternion(0.0f, 0.0f, 0.0f, 1.0f);    // 無回転
         playerTransform.scale                                      = hlslpp::float3(1.0f, 1.0f, 1.0f);
         playerTransform.dirty                                      = true;          // 初回計算のためフラグを立てる
@@ -99,7 +102,7 @@ namespace Tsukino::Sandbox {
         // ModelComponent の追加
         Tsukino::BuiltIn::ECS::ModelComponent& model = registry.AddComponent<Tsukino::BuiltIn::ECS::ModelComponent>(playerEntity);
         model.modelHandle = context->assetManager->Load(Tsukino::Core::Path("Tsukino.Sandbox/Assets/JumpGameSample/Models/Arissa.fbx"));
-        model.visible     = false;
+        model.visible     = true;
 
         // モデルにコリジョンをつける
         Tsukino::BuiltIn::ECS::CollisionComponent& collision = registry.AddComponent<Tsukino::BuiltIn::ECS::CollisionComponent>(playerEntity);
@@ -113,7 +116,7 @@ namespace Tsukino::Sandbox {
         rb.type                                       = Tsukino::BuiltIn::ECS::RigidbodyType::Dynamic;
         rb.gravityFactor                              = 9.8f;
         rb.groundCheckDistance                        = 110.0f;
-        rb.groundCheckRadius                          = 30.0f;
+        rb.groundCheckRadius                          = 5.0f;
 
         // アニメーションを再生・制御するコンポーネント
         Tsukino::BuiltIn::ECS::AnimationPlayerComponent& animPlayer = registry.AddComponent<Tsukino::BuiltIn::ECS::AnimationPlayerComponent>(playerEntity);
