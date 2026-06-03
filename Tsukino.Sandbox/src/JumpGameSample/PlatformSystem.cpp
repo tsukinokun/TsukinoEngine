@@ -6,6 +6,7 @@
 #include <Tsukino/Sandbox/JumpGameSample/ECS/System/PlatformSystem.hpp>
 #include <Tsukino/Sandbox/JumpGameSample/ECS/Component/PlatformComponent.hpp>
 #include <Tsukino/Sandbox/JumpGameSample/ECS/Component/LandedOnPlatformComponent.hpp>
+#include <Tsukino/Sandbox/JumpGameSample/ECS/Component/ScoreComponent.hpp>
 
 #include <Tsukino/BuiltIn/ECS/Component/TransformComponent.hpp>
 #include <Tsukino/BuiltIn/ECS/Component/RigidbodyComponent.hpp>
@@ -45,6 +46,13 @@ namespace JumpGameSample::ECS {
                 Tsukino::BuiltIn::ECS::RigidbodyComponent& platformRb = registry.GetComponent<Tsukino::BuiltIn::ECS::RigidbodyComponent>(landed.platformEntity);
                 platformRb.type                                       = Tsukino::BuiltIn::ECS::RigidbodyType::Static;
                 platformRb.isTypeDirty                                = true;    // PhysicsSystemにタイプ変更を通知するためのフラグを立てる
+                //-------------------------------------------------------------
+                // このタイミングで、スコアを加算する
+                //-------------------------------------------------------------
+                if(registry.HasComponent<ScoreComponent>(playerEntity)) {
+                    ScoreComponent& score  = registry.GetComponent<ScoreComponent>(playerEntity);
+                    score.value           += 100;    // 例: 土台に乗るごとに100点加算
+                }
             }
             registry.RemoveComponent<LandedOnPlatformComponent>(playerEntity);
         });
@@ -53,7 +61,10 @@ namespace JumpGameSample::ECS {
         // viewを取得して各パドルを更新
         //-------------------------------------------------------------
         auto view = registry.View<Tsukino::BuiltIn::ECS::TransformComponent, PlatformComponent, Tsukino::BuiltIn::ECS::RigidbodyComponent>();
-        view.each([&](entt::entity entity, Tsukino::BuiltIn::ECS::TransformComponent& transform, PlatformComponent& platform, Tsukino::BuiltIn::ECS::RigidbodyComponent& rb) {
+        view.each([&](entt::entity                               entity,
+                      Tsukino::BuiltIn::ECS::TransformComponent& transform,
+                      PlatformComponent&                         platform,
+                      Tsukino::BuiltIn::ECS::RigidbodyComponent& rb) {
             if(platform.isMoving) {
                 // 移動の適用
                 transform.position.x -= platform.speed * deltaTime;

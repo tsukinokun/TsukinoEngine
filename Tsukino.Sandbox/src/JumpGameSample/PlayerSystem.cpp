@@ -13,11 +13,16 @@
 #include <Tsukino/BuiltIn/ECS/Component/ImpulseRequestComponent.hpp>
 #include <Tsukino/BuiltIn/ECS/Component/RigidbodyComponent.hpp>
 #include <Tsukino/BuiltIn/ECS/Component/TransformComponent.hpp>
+#include <Tsukino/BuiltIn/ECS/Component/AnimationControllerComponent.hpp>
+#include <Tsukino/BuiltIn/ECS/Component/AnimationPlayerComponent.hpp>
 
 #include <Tsukino/EngineIntegration/EngineContext.hpp>
 
+#include <Tsukino/Engine/Asset/AssetManager.hpp>
+
 #include <Tsukino/Core/Input/InputSystem.hpp>
 #include <Tsukino/Core/ECS/Event/EventBus.hpp>
+#include <Tsukino/Core/Path.hpp>
 
 #include <hlsl++.h>
 // 名前空間 : JumpGameSample::ECS
@@ -57,6 +62,10 @@ namespace JumpGameSample::ECS {
                 // 上に乗った
                 // 既存のコンポーネントがある場合は上書きするよう注意
                 registry.AddComponent<LandedOnPlatformComponent>(e.self, LandedOnPlatformComponent{e.other});
+
+                Tsukino::BuiltIn::ECS::AnimationControllerComponent& animController =
+                    registry.GetComponent<Tsukino::BuiltIn::ECS::AnimationControllerComponent>(e.self);
+
             } else {
                 // 横から当たった (または下から当たった)
                 // 連続で吹っ飛ばされないように、すでにImpulseがあるかチェックするとより安全です
@@ -71,11 +80,17 @@ namespace JumpGameSample::ECS {
         //-------------------------------------------------------------
         // viewを取得して各パドルを更新
         //-------------------------------------------------------------
-        auto view = registry.View<Tsukino::BuiltIn::ECS::TransformComponent, PlayerComponent, Tsukino::BuiltIn::ECS::RigidbodyComponent>();
-        view.each([&](entt::entity                               entity,
-                      Tsukino::BuiltIn::ECS::TransformComponent& transform,
-                      PlayerComponent&                           player,
-                      Tsukino::BuiltIn::ECS::RigidbodyComponent& rb) {
+        auto view = registry.View<Tsukino::BuiltIn::ECS::TransformComponent,
+                                  PlayerComponent,
+                                  Tsukino::BuiltIn::ECS::RigidbodyComponent,
+                                  Tsukino::BuiltIn::ECS::AnimationControllerComponent,
+                                  Tsukino::BuiltIn::ECS::AnimationPlayerComponent>();
+        view.each([&](entt::entity                                         entity,
+                      Tsukino::BuiltIn::ECS::TransformComponent&           transform,
+                      PlayerComponent&                                     player,
+                      Tsukino::BuiltIn::ECS::RigidbodyComponent&           rb,
+                      Tsukino::BuiltIn::ECS::AnimationControllerComponent& animController,
+                      Tsukino::BuiltIn::ECS::AnimationPlayerComponent&     animPlayer) {
             //-------------------------------------------------------------
             // スペースキー押下でジャンプ
             //-------------------------------------------------------------
@@ -88,6 +103,14 @@ namespace JumpGameSample::ECS {
                     // エンティティにImpulseRequestComponentを追加して、物理システムにジャンプの衝撃を要求する
                     const hlslpp::float3 impulseStrength = hlslpp::float3(0.0f, 100.0f, 0.0f);
                     registry.AddComponent<Tsukino::BuiltIn::ECS::ImpulseRequestComponent>(entity, impulseStrength);
+
+                    //-------------------------------------------------------------
+                    // ジャンプへ切り替え
+                    //-------------------------------------------------------------
+                    animController.next.clip = ctx->assetManager->Load(
+                        Tsukino::Core::Path("Tsukino.Sandbox/Assets/JumpGameSample/Anims/Jumping.fbx"));    // ジャンプアニメーションに切り替える
+                    animController.next.immediate = true;
+                    animPlayer.is_looping         = false;    // ジャンプアニメーションはループさせない
                 }
             }
         });
