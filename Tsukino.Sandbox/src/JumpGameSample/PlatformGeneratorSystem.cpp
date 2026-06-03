@@ -8,6 +8,8 @@
 #include <Tsukino/Sandbox/JumpGameSample/ECS/Component/PlatformGeneratorComponent.hpp>
 #include <Tsukino/Sandbox/JumpGameSample/ECS/Component/LandedOnPlatformComponent.hpp>
 
+#include <Tsukino/Sandbox/JumpGameSample/ECS/State/GameState.hpp>
+
 #include <Tsukino/BuiltIn/ECS/Component/TransformComponent.hpp>
 #include <Tsukino/BuiltIn/ECS/Component/RigidbodyComponent.hpp>
 #include <Tsukino/BuiltIn/ECS/Component/CollisionComponent.hpp>
@@ -49,7 +51,11 @@ namespace JumpGameSample::ECS {
         if(!isAnyPlatformMoving) {
             auto generators = registry.View<PlatformGeneratorComponent>();
             for(auto entity : generators) {
-                auto& gen = generators.get<PlatformGeneratorComponent>(entity);
+                auto&                          gen   = generators.get<PlatformGeneratorComponent>(entity);
+                JumpGameSample::ECS::GameState state = registry.GetContext<JumpGameSample::ECS::GameState>();
+                if(state != JumpGameSample::ECS::GameState::Playing) {
+                    continue;    // ゲームがプレイ中でなければ生成しない
+                }
                 SpawnNewPlatform(registry, gen.spawnDistance);     // 生成関数
                 constexpr float spawnDistance  = 20.0f;            // 土台同士の距離
                 gen.spawnDistance             += spawnDistance;    // 次の土台が出るまでの距離を更新

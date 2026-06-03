@@ -49,7 +49,7 @@ namespace Tsukino::EngineIntegration {
         bool Initialize(int width, int height);
 
         //------------------------------------------------------------
-        //! @brief  エンジン全体で共有されるクラスを初期化する関数
+        //! @brief  エンジン全体で共有されるクラスを取得する関数
         //! @return クラスのポインタを集めた構造体
         //------------------------------------------------------------
         [[nodiscard]]
@@ -64,14 +64,14 @@ namespace Tsukino::EngineIntegration {
         void RegisterBuiltInComponents();
 
     private:
-        std::unique_ptr<Tsukino::Renderer::Renderer>     m_renderer;
-        std::unique_ptr<Tsukino::Asset::AssetManager>    m_assetManager;
-        std::unique_ptr<Tsukino::Core::Window>           m_window;
-        std::unique_ptr<Tsukino::BuiltIn::BuiltInAssets> m_builtinAssets;
-        std::unique_ptr<GameSceneManager>                m_gameSceneManager;
-        std::unique_ptr<Tsukino::Input::InputSystem>     m_inputSystem;
-        std::unique_ptr<Tsukino::Audio::AudioManager>    m_audioManager;
-        std::unique_ptr<Tsukino::Engine::ECS::Prefab::PrefabFactory> m_prefabFactory;    
+        std::unique_ptr<Tsukino::Renderer::Renderer>                 m_renderer;
+        std::unique_ptr<Tsukino::Asset::AssetManager>                m_assetManager;
+        std::unique_ptr<Tsukino::Core::Window>                       m_window;
+        std::unique_ptr<Tsukino::BuiltIn::BuiltInAssets>             m_builtinAssets;
+        std::unique_ptr<GameSceneManager>                            m_gameSceneManager;
+        std::unique_ptr<Tsukino::Input::InputSystem>                 m_inputSystem;
+        std::unique_ptr<Tsukino::Audio::AudioManager>                m_audioManager;
+        std::unique_ptr<Tsukino::Engine::ECS::Prefab::PrefabFactory> m_prefabFactory;
 
         EngineContext m_ctx;    // エンジン全体で共有されるクラスのポインタを集めた構造体
     };
