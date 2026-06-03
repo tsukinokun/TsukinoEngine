@@ -4,6 +4,8 @@
 //! @author  山﨑愛
 //-------------------------------------------------------------
 #pragma once
+#include <Tsukino/Sandbox/JumpGameSample/ECS/State/GameState.hpp>
+
 #include <Tsukino/EngineIntegration/Scene/GameSceneBase.hpp>
 // 名前空間 : Tsukino::Sandbox
 namespace Tsukino::Sandbox {
@@ -13,14 +15,14 @@ namespace Tsukino::Sandbox {
     //-------------------------------------------------------------
     class JumpGameSampleScene : public Tsukino::EngineIntegration::GameSceneBase {
     public:
-        // ゲームの状態定義
-        enum class GameState {
-            Ready,      // 開始待ち
-            Playing,    // プレイ中
-            GameOver    // ゲームオーバー演出
-        };
+        //-------------------------------------------------------------
+        //! @brief  コンストラクタ
+        //-------------------------------------------------------------
+        JumpGameSampleScene() = default;
 
-        JumpGameSampleScene()           = default;
+        //-------------------------------------------------------------
+        //! @brief  デストラクタ
+        //-------------------------------------------------------------
         ~JumpGameSampleScene() override = default;
 
         //-------------------------------------------------------------
@@ -42,7 +44,7 @@ namespace Tsukino::Sandbox {
         //-------------------------------------------------------------
         void OnInitialize(Tsukino::EngineIntegration::EngineAPI& api) override;
 
-        GameState m_currentState = GameState::Ready;
-        bool      isGameOver     = false;    // ゲームオーバー状態のフラグ
+        JumpGameSample::ECS::GameState mCurrentState = JumpGameSample::ECS::GameState::Ready;
+        bool                      isGameOver    = false;    // ゲームオーバー状態のフラグ
     };
 }    // namespace Tsukino::Sandbox

@@ -41,9 +41,12 @@
 #include <Tsukino/EngineIntegration/EngineContext.hpp>
 #include <Tsukino/Engine/Asset/AssetManager.hpp>
 #include <Tsukino/Engine/ECS/Prefab/PrefabFactory.hpp>
+#include <Tsukino/EngineIntegration/Scene/GameSceneManager.hpp>
 
 #include <Tsukino/Core/Path.hpp>
 #include <Tsukino/Core/Log.hpp>
+#include <Tsukino/Core/Input/InputSystem.hpp>
+#include <Tsukino/Core/Input/KeyCodes.hpp>
 
 #include <entt/entt.hpp>
 #include <hlsl++.h>
@@ -60,6 +63,8 @@ namespace Tsukino::Sandbox {
         Tsukino::ECS::Registry& registry = m_scene.GetRegistry();
 
         Tsukino::ECS::EventBus& eventBus = m_scene.GetEventBus();
+
+        registry.SetContext<JumpGameSample::ECS::GameState>(mCurrentState);
 
         //--------------------------------------------------------------
         // システムの生成と追加
@@ -149,40 +154,6 @@ namespace Tsukino::Sandbox {
         }
 
         //--------------------------------------------------------------
-        // 土台エンティティのテスト生成
-        //--------------------------------------------------------------
-        {
-            //Tsukino::ECS::Entity platformEntity = m_scene.CreateEntity();
-
-            //// TransformComponent の追加と初期化
-            //Tsukino::BuiltIn::ECS::TransformComponent& platformTransform = registry.AddComponent<Tsukino::BuiltIn::ECS::TransformComponent>(platformEntity);
-            //platformTransform.position                                   = hlslpp::float3(300.0f, 0.0f, 0.0f);
-            //platformTransform.rotation                                   = hlslpp::quaternion(0.0f, 0.0f, 0.0f, 1.0f);    // 無回転
-            //platformTransform.scale                                      = hlslpp::float3(1.0f, 1.0f, 1.0f);              // 土台
-            //platformTransform.dirty                                      = true;                                          // 初回計算のためフラグを立てる
-            //platformTransform.parent                                     = entt::null;                                    // 親なし
-
-            //// ModelComponent の追加
-            //Tsukino::BuiltIn::ECS::ModelComponent& model = registry.AddComponent<Tsukino::BuiltIn::ECS::ModelComponent>(platformEntity);
-            //model.modelHandle = context->assetManager->Load(Tsukino::Core::Path("Tsukino.Sandbox/Assets/JumpGameSample/Models/Block.fbx"));
-            //model.visible     = true;
-
-            //// コリジョンを追加
-            //Tsukino::BuiltIn::ECS::CollisionComponent& collision = registry.AddComponent<Tsukino::BuiltIn::ECS::CollisionComponent>(platformEntity);
-            //collision.extent                                     = hlslpp::float3(50.0f, 10.0f, 50.0f);    // 土台の当たり判定
-            //collision.isSensor                                   = false;                                  // 衝突判定を有効にする
-
-            //// RBをつける
-            //Tsukino::BuiltIn::ECS::RigidbodyComponent& rb = registry.AddComponent<Tsukino::BuiltIn::ECS::RigidbodyComponent>(platformEntity);
-            //rb.type                                       = Tsukino::BuiltIn::ECS::RigidbodyType::Kinematic;    // 動く床なので Kinematic にする
-
-            //// PlatformComponent の追加
-            //JumpGameSample::ECS::PlatformComponent& platform = registry.AddComponent<JumpGameSample::ECS::PlatformComponent>(platformEntity);
-            //platform.speed                                   = 100.0f;    // 土台の移動速度
-            //platform.isMoving                                = true;      // 移動中フラグを立てる
-        }
-
-        //--------------------------------------------------------------
         // 地面エンティティの生成
         //--------------------------------------------------------------
         {
@@ -228,6 +199,23 @@ namespace Tsukino::Sandbox {
         //--------------------------------------------------------------
         const std::string prefabPath = "Tsukino.Sandbox/Assets/JumpGameSample/Prefabs/3DCamera/Prefab.json";
         entt::entity      testEntity = context->prefabFactory->Instantiate(prefabPath, registry);
+
+        //--------------------------------------------------------------
+        // フォントUIエンティティの生成(ナビ)
+        //--------------------------------------------------------------
+        {
+            Tsukino::ECS::Entity                       naviEntity    = m_scene.CreateEntity();
+            Tsukino::BuiltIn::ECS::TransformComponent& fontTransform = registry.AddComponent<Tsukino::BuiltIn::ECS::TransformComponent>(naviEntity);
+            fontTransform.position                                   = hlslpp::float3(400.0f, 400.0f, 0.0f);
+            fontTransform.rotation                                   = hlslpp::quaternion(0.0f, 0.0f, 0.0f, 1.0f);    // 無回転
+            fontTransform.scale                                      = hlslpp::float3(1.0f, 1.0f, 1.0f);
+            fontTransform.dirty                                      = true;          // 初回計算のためフラグを立てる
+            fontTransform.parent                                     = entt::null;    // 親なし
+
+            // FontRendererComponent の追加
+            Tsukino::BuiltIn::ECS::FontComponent& font = registry.AddComponent<Tsukino::BuiltIn::ECS::FontComponent>(naviEntity);
+            font.text                                  = L"Start Space Key";    // 描画するテキスト
+        }
     }
 
     //-------------------------------------------------------------
@@ -235,6 +223,34 @@ namespace Tsukino::Sandbox {
     //-------------------------------------------------------------
     void JumpGameSampleScene::OnUpdate(Tsukino::EngineIntegration::EngineAPI& api, float deltaTime) {
         m_scene.Update(deltaTime);
+
+        Tsukino::EngineIntegration::EngineContext* context  = m_scene.GetRegistry().GetContext<Tsukino::EngineIntegration::EngineContext*>();
+        Tsukino::ECS::Registry&                    registry = m_scene.GetRegistry();
+
+        switch(mCurrentState) {
+        case JumpGameSample::ECS::GameState::Ready:
+            {
+                if(context->inputSystem->IsKeyPressed(Tsukino::Input::KeyCode::Space)) {
+                    //-------------------------------------------------------------
+                    // シーン変更
+                    //-------------------------------------------------------------
+                    mCurrentState = JumpGameSample::ECS::GameState::Playing;
+                    registry.SetContext<JumpGameSample::ECS::GameState>(mCurrentState);
+                    const auto& fontView = registry.View<Tsukino::BuiltIn::ECS::FontComponent>();
+                    fontView.each([&](entt::entity entity, Tsukino::BuiltIn::ECS::FontComponent& font) {
+                        font.text = L"";    // 描画するテキスト
+                    });
+                }
+            }
+            break;
+        case JumpGameSample::ECS::GameState::Playing:
+            break;
+        case JumpGameSample::ECS::GameState::GameOver:
+            if(context->inputSystem->IsKeyPressed(Tsukino::Input::KeyCode::Space)) {
+                context->gameSceneManager->ChangeScene(std::make_unique<Tsukino::Sandbox::JumpGameSampleScene>());
+            }
+            break;
+        }
     }
 
     //-------------------------------------------------------------

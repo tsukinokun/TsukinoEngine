@@ -8,6 +8,8 @@
 #include <Tsukino/Sandbox/JumpGameSample/ECS/Component/PlatformComponent.hpp>
 #include <Tsukino/Sandbox/JumpGameSample/ECS/Component/LandedOnPlatformComponent.hpp>
 
+#include <Tsukino/Sandbox/JumpGameSample/ECS/State/GameState.hpp>
+
 #include <Tsukino/BuiltIn/ECS/Component/ImpulseRequestComponent.hpp>
 #include <Tsukino/BuiltIn/ECS/Component/RigidbodyComponent.hpp>
 #include <Tsukino/BuiltIn/ECS/Component/TransformComponent.hpp>
@@ -59,7 +61,8 @@ namespace JumpGameSample::ECS {
                 // 横から当たった (または下から当たった)
                 // 連続で吹っ飛ばされないように、すでにImpulseがあるかチェックするとより安全です
                 if(!registry.HasComponent<Tsukino::BuiltIn::ECS::ImpulseRequestComponent>(e.self)) {
-                    registry.AddComponent<Tsukino::BuiltIn::ECS::ImpulseRequestComponent>(e.self, hlslpp::float3(-100.0f, 0.0f, 0.0f));
+                    const hlslpp::float3 impulseStrength = hlslpp::float3(-100.0f, 0.0f, 0.0f);
+                    registry.AddComponent<Tsukino::BuiltIn::ECS::ImpulseRequestComponent>(e.self, impulseStrength);
                 }
             }
         }
@@ -77,11 +80,15 @@ namespace JumpGameSample::ECS {
             // スペースキー押下でジャンプ
             //-------------------------------------------------------------
             if(rb.isGrounded && inputSystem->IsKeyPressed(Tsukino::Input::KeyCode::Space)) {
-                //-------------------------------------------------------------
-                // ジャンプ処理
-                //-------------------------------------------------------------
-                // エンティティにImpulseRequestComponentを追加して、物理システムにジャンプの衝撃を要求する
-                registry.AddComponent<Tsukino::BuiltIn::ECS::ImpulseRequestComponent>(entity, hlslpp::float3(0.0f, 100.0f, 0.0f));
+                JumpGameSample::ECS::GameState state = registry.GetContext<JumpGameSample::ECS::GameState>();
+                if(state == JumpGameSample::ECS::GameState::Playing) {
+                    //-------------------------------------------------------------
+                    // ジャンプ処理
+                    //-------------------------------------------------------------
+                    // エンティティにImpulseRequestComponentを追加して、物理システムにジャンプの衝撃を要求する
+                    const hlslpp::float3 impulseStrength = hlslpp::float3(0.0f, 100.0f, 0.0f);
+                    registry.AddComponent<Tsukino::BuiltIn::ECS::ImpulseRequestComponent>(entity, impulseStrength);
+                }
             }
         });
     }
