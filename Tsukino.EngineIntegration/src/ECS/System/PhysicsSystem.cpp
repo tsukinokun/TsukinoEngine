@@ -7,14 +7,18 @@
 #define NOMINMAX
 #define WIN32_LEAN_AND_MEAN
 #include <Tsukino/EngineIntegration/ECS/System/PhysicsSystem.hpp>
+
 #include <Tsukino/BuiltIn/ECS/Component/CollisionComponent.hpp>
 #include <Tsukino/BuiltIn/ECS/Component/RigidBodyComponent.hpp>
 #include <Tsukino/BuiltIn/ECS/Component/TransformComponent.hpp>
 #include <Tsukino/BuiltIn/ECS/Component/ImpulseRequestComponent.hpp>
+#include <Tsukino/BuiltIn/ECS/Event/CollisionEnterEvent.hpp>
 
 #include <Tsukino/Renderer/Renderer.hpp>
 #include <Tsukino/EngineIntegration/EngineContext.hpp>
 #include <Tsukino/GraphicsCommon/Vertex/DebugVertex.hpp>
+
+#include <Tsukino/Core/ECS/Event/EventBus.hpp>
 
 #include <hlsl++.h>
 #include <entt/entt.hpp>
@@ -161,9 +165,9 @@ namespace Tsukino::BuiltIn::ECS {
     //-------------------------------------------------------------
     class MyContactListener : public JPH::ContactListener {
     public:
-        using Registry     = Tsukino::ECS::Registry;
-        Registry* registry = nullptr;    //!< コールバック実行用のレジストリ参照
-
+        using Registry                   = Tsukino::ECS::Registry;
+        Registry*               registry = nullptr;    //!< コールバック実行用のレジストリ参照
+        Tsukino::ECS::EventBus* eventBus = nullptr;
         //-------------------------------------------------------------
         //! @brief  衝突が追加された（当たった）際に呼ばれるコールバック
         //! @param  inBody1    [in] 衝突したボディ1
@@ -193,7 +197,7 @@ namespace Tsukino::BuiltIn::ECS {
                 if(registry->HasComponent<RigidbodyComponent>(entity)) {
                     auto& rb = registry->GetComponent<RigidbodyComponent>(entity);
 
-                    // Kinematic（ボール等）のみ反射を計算
+                    // Kinematicのみ反射を計算
                     if(rb.type == RigidbodyType::Kinematic) {
                         hlslpp::float3 V = rb.linearVelocity;
                         hlslpp::float3 N = {n.GetX(), n.GetY(), n.GetZ()};
@@ -209,12 +213,9 @@ namespace Tsukino::BuiltIn::ECS {
                     }
                 }
 
-                // 2. 既存の通知処理（CollisionComponent）
-                if(registry->HasComponent<CollisionComponent>(entity)) {
-                    auto& col = registry->GetComponent<CollisionComponent>(entity);
-                    if(col.onCollisionEnter) {
-                        col.onCollisionEnter((entt::entity)other.GetUserData());
-                    }
+                // イベントバス発行
+                if(eventBus) {
+                    eventBus->Publish(CollisionEnterEvent{entity, (entt::entity)other.GetUserData()});
                 }
             };
 
@@ -293,9 +294,9 @@ namespace Tsukino::BuiltIn::ECS {
     };
 
     //-------------------------------------------------------------
-    // デフォルトコンストラクタ
+    //! @brief コンストラクタ
     //-------------------------------------------------------------
-    PhysicsSystem::PhysicsSystem() {
+    PhysicsSystem::PhysicsSystem(Tsukino::ECS::EventBus& eventBus) {
         m_impl = new Impl();
 
         static bool isJoltInitialized = false;
@@ -319,6 +320,8 @@ namespace Tsukino::BuiltIn::ECS {
             cMaxBodies, cNumBodyMutexes, cMaxBodyPairs, cMaxContactConstraints, m_impl->bpLayerInterface, m_impl->objVsBpFilter, m_impl->objPairFilter);
 
         m_impl->contactListener = new MyContactListener();
+        // ContactListenerにイベントバスの参照を渡す
+        m_impl->contactListener->eventBus = &eventBus;
         m_impl->physicsSystem->SetContactListener(m_impl->contactListener);
 
         m_impl->debugRenderer = new JoltDebugRendererImpl();

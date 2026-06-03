@@ -5,6 +5,11 @@
 //-------------------------------------------------------------
 #pragma once
 #include <Tsukino/Core/ECS/System/ISystem.hpp>
+
+namespace Tsukino::ECS {
+    class EventBus;
+}
+
 // 名前空間 : Tsukino::BuiltIn::ECS
 namespace Tsukino::BuiltIn::ECS {
     struct CollisionComponent;    // 前方宣言
@@ -14,7 +19,14 @@ namespace Tsukino::BuiltIn::ECS {
     //-------------------------------------------------------------
     class PhysicsSystem : public Tsukino::ECS::ISystem {
     public:
-        PhysicsSystem();
+        //-------------------------------------------------------------
+        //! @brief コンストラクタ
+        //-------------------------------------------------------------
+        explicit PhysicsSystem(Tsukino::ECS::EventBus& eventBus);
+
+        //-------------------------------------------------------------
+        //! @brief デストラクタ
+        //-------------------------------------------------------------
         ~PhysicsSystem() override;
 
         //-------------------------------------------------------------

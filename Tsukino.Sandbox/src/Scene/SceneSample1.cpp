@@ -46,8 +46,14 @@ namespace Tsukino::Sandbox {
     //! @brief  シーン固有の初期化処理
     //-------------------------------------------------------------
     void SampleScene1::OnInitialize(Tsukino::EngineIntegration::EngineAPI& api) {
+        //-------------------------------------------------------------
         // コンテキストをレジストリから取得
+        //-------------------------------------------------------------
         Tsukino::EngineIntegration::EngineContext* context = m_scene.GetRegistry().GetContext<Tsukino::EngineIntegration::EngineContext*>();
+        //-------------------------------------------------------------
+        // イベントバスをレジストリから取得
+        //-------------------------------------------------------------
+        Tsukino::ECS::EventBus&                    eventBus = m_scene.GetEventBus();
 
         //--------------------------------------------------------------
         // システムの生成と追加
@@ -67,7 +73,7 @@ namespace Tsukino::Sandbox {
         // オーディオの更新 (優先度 11)
         m_scene.AddSystem(std::make_shared<Tsukino::BuiltIn::ECS::AudioSystem>(), 11);
         // コリジョンの更新は最後に行う (優先度 12)
-        m_scene.AddSystem(std::make_shared<Tsukino::BuiltIn::ECS::PhysicsSystem>(), 12);
+        m_scene.AddSystem(std::make_shared<Tsukino::BuiltIn::ECS::PhysicsSystem>(eventBus), 12);
 
         //--------------------------------------------------------------
         // アセットのロード
