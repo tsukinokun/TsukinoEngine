@@ -5,6 +5,7 @@
 //-------------------------------------------------------------
 #include <Tsukino/Sandbox/JumpGameSample/ECS/System/PlatformSystem.hpp>
 #include <Tsukino/Sandbox/JumpGameSample/ECS/Component/PlatformComponent.hpp>
+#include <Tsukino/Sandbox/JumpGameSample/ECS/Component/LandedOnPlatformComponent.hpp>
 
 #include <Tsukino/BuiltIn/ECS/Component/TransformComponent.hpp>
 
@@ -27,6 +28,18 @@ namespace JumpGameSample::ECS {
             return;
 
         Tsukino::Input::InputSystem* inputSystem = ctx->inputSystem;
+
+        //-------------------------------------------------------------
+        // プレイヤーがこの土台に止まっているかを確認、乗ってるなら土台の動きを止める
+        //-------------------------------------------------------------
+        auto playerView = registry.View<LandedOnPlatformComponent>();
+        playerView.each([&](entt::entity playerEntity, LandedOnPlatformComponent& landed) {
+            if(registry.HasComponent<PlatformComponent>(landed.platformEntity)) {
+                auto& platform    = registry.GetComponent<PlatformComponent>(landed.platformEntity);
+                platform.isMoving = false;
+            }
+            registry.RemoveComponent<LandedOnPlatformComponent>(playerEntity);
+        });
 
         //-------------------------------------------------------------
         // viewを取得して各パドルを更新

@@ -5,6 +5,8 @@
 //-------------------------------------------------------------
 #include <Tsukino/Sandbox/JumpGameSample/ECS/System/PlayerSystem.hpp>
 #include <Tsukino/Sandbox/JumpGameSample/ECS/Component/PlayerComponent.hpp>
+#include <Tsukino/Sandbox/JumpGameSample/ECS/Component/PlatformComponent.hpp>
+#include <Tsukino/Sandbox/JumpGameSample/ECS/Component/LandedOnPlatformComponent.hpp>
 
 #include <Tsukino/BuiltIn/ECS/Component/ImpulseRequestComponent.hpp>
 #include <Tsukino/BuiltIn/ECS/Component/RigidbodyComponent.hpp>
@@ -13,10 +15,19 @@
 #include <Tsukino/EngineIntegration/EngineContext.hpp>
 
 #include <Tsukino/Core/Input/InputSystem.hpp>
+#include <Tsukino/Core/ECS/Event/EventBus.hpp>
 
 #include <hlsl++.h>
 // 名前空間 : JumpGameSample::ECS
 namespace JumpGameSample::ECS {
+    //-------------------------------------------------------------
+    //! @brief  コンストラクタ
+    //-------------------------------------------------------------
+    PlayerSystem::PlayerSystem(Tsukino::ECS::EventBus& eventBus) {
+        m_collisionConnection = eventBus.Subscribe<Tsukino::BuiltIn::ECS::CollisionEnterEvent>(
+            [this](const Tsukino::BuiltIn::ECS::CollisionEnterEvent& e) { m_pendingCollisions.push_back(e); });
+    }
+
     //-------------------------------------------------------------
     //! @brief システムの更新
     //-------------------------------------------------------------
@@ -29,6 +40,27 @@ namespace JumpGameSample::ECS {
             return;
 
         Tsukino::Input::InputSystem* inputSystem = ctx->inputSystem;
+
+        // 衝突イベントを処理
+        for(auto& e : m_pendingCollisions) {
+            // selfがプレイヤーでなければスキップ
+             if(!registry.HasComponent<PlayerComponent>(e.self))
+                continue;
+            // otherが土台でなければスキップ
+            if(!registry.HasComponent<PlatformComponent>(e.other))
+                continue;
+
+            auto& rb = registry.GetComponent<Tsukino::BuiltIn::ECS::RigidbodyComponent>(e.self);
+
+            if(rb.isGrounded) {
+                // 上に乗った → LandedOnPlatformComponentを置く
+                registry.AddComponent<LandedOnPlatformComponent>(e.self, LandedOnPlatformComponent{e.other});
+            } else {
+                // 横から当たった → 吹っ飛ばす
+                registry.AddComponent<Tsukino::BuiltIn::ECS::ImpulseRequestComponent>(e.self, hlslpp::float3(500.0f, 300.0f, 0.0f));
+            }
+        }
+        m_pendingCollisions.clear();
 
         //-------------------------------------------------------------
         // viewを取得して各パドルを更新

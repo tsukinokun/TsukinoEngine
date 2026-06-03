@@ -179,51 +179,45 @@ namespace Tsukino::BuiltIn::ECS {
                             const JPH::Body&            inBody2,
                             const JPH::ContactManifold& inManifold,
                             JPH::ContactSettings&       ioSettings) override {
-            if(!registry)
-                return;
-
+            JPH::Vec3 normal = inManifold.mWorldSpaceNormal;
+            //-------------------------------------------------------------
             // 衝突時の法線（Body1から見たBody2への法線）
             // Joltの法線は「Body1から衝突点への方向」を指す
-            JPH::Vec3 normal = inManifold.mWorldSpaceNormal;
+            //-------------------------------------------------------------
+            uint64_t id1 = inBody1.GetUserData();
+            uint64_t id2 = inBody2.GetUserData();
 
-            auto handleReflection = [&](const JPH::Body& self, const JPH::Body& other, JPH::Vec3 n) {
-                uint64_t selfId = self.GetUserData();
-                if(selfId == 0)
+            // イベント発行（衝突の事実を双方向に通知）
+            if(eventBus) {
+                // Aから見たBへのイベント
+                eventBus->Publish(CollisionEnterEvent{
+                    (entt::entity)id1, (entt::entity)id2, {normal.GetX(), normal.GetY(), normal.GetZ()}
+                });
+                // Bから見たAへのイベント
+                eventBus->Publish(CollisionEnterEvent{
+                    (entt::entity)id2, (entt::entity)id1, {-normal.GetX(), -normal.GetY(), -normal.GetZ()}
+                });
+            }
+
+            // 2. 反射処理（Bodyそれぞれの計算）
+            auto applyReflection = [&](const JPH::Body& b, JPH::Vec3 n) {
+                entt::entity e = (entt::entity)b.GetUserData();
+                if(!registry->HasComponent<RigidbodyComponent>(e))
                     return;
 
-                entt::entity entity = (entt::entity)selfId;
-
-                // 1. RigidbodyComponentがあれば反射処理を行う
-                if(registry->HasComponent<RigidbodyComponent>(entity)) {
-                    auto& rb = registry->GetComponent<RigidbodyComponent>(entity);
-
-                    // Kinematicのみ反射を計算
-                    if(rb.type == RigidbodyType::Kinematic) {
-                        hlslpp::float3 V = rb.linearVelocity;
-                        hlslpp::float3 N = {n.GetX(), n.GetY(), n.GetZ()};
-
-                        // 内積を計算 (速度ベクトルと法線が向き合っているか)
-                        float dot = hlslpp::dot(V, N);
-
-                        // dot < 0 の場合、物体は壁に向かっている
-                        if(dot < 0.0f) {
-                            // 反射の公式: V' = V - 2 * (V・N) * N
-                            rb.linearVelocity = V - 2.0f * dot * N;
-                        }
+                auto& rb = registry->GetComponent<RigidbodyComponent>(e);
+                if(rb.type == RigidbodyType::Kinematic) {
+                    hlslpp::float3 V   = rb.linearVelocity;
+                    hlslpp::float3 N   = {n.GetX(), n.GetY(), n.GetZ()};
+                    float          dot = hlslpp::dot(V, N);
+                    if(dot < 0.0f) {
+                        rb.linearVelocity = V - 2.0f * dot * N;
                     }
-                }
-
-                // イベントバス発行
-                if(eventBus) {
-                    eventBus->Publish(CollisionEnterEvent{entity, (entt::entity)other.GetUserData()});
                 }
             };
 
-            // Body1に対する処理 (法線はそのままでOK)
-            handleReflection(inBody1, inBody2, normal);
-
-            // Body2に対する処理 (法線は逆向きにする必要がある)
-            handleReflection(inBody2, inBody1, -normal);
+            applyReflection(inBody1, normal);
+            applyReflection(inBody2, -normal);
         }
     };
 

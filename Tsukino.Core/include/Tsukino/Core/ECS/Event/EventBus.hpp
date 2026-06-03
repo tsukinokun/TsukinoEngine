@@ -45,7 +45,9 @@ namespace Tsukino::ECS {
         //-------------------------------------------------------------
         //! @brief  デストラクタ
         //-------------------------------------------------------------
-        ~EventBus() = default;
+        ~EventBus() {
+            m_isDestroying = true;    // 解体
+        }
 
         //-------------------------------------------------------------
         // Scene が所有するためコピー・ムーブ禁止
@@ -146,6 +148,9 @@ namespace Tsukino::ECS {
         //! @note   ScopedConnection のデストラクタから呼ばれる
         //-------------------------------------------------------------
         void Unsubscribe(std::type_index typeId, HandlerId id) {
+            if(m_isDestroying)
+                return;    // 破壊済みの場合は何もしない
+
             auto it = m_handlers.find(typeId);
             if(it == m_handlers.end())
                 return;
@@ -166,6 +171,9 @@ namespace Tsukino::ECS {
 
         // 現在発火中のイベント型（再入検知用、発火中以外は typeid(void)）
         std::type_index m_dispatchingType{typeid(void)};
+
+        // 解体中かのフラグ、メモリ破壊を防ぐ
+        bool m_isDestroying = false;
     };
 
 }    // namespace Tsukino::ECS
