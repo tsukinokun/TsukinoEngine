@@ -166,9 +166,6 @@ namespace Tsukino::Sandbox {
         // 計算されたボーン行列の出力先（スキニング用）コンポーネント
         Tsukino::BuiltIn::ECS::SkeletonOutputComponent& skeletonOutput = registry.AddComponent<Tsukino::BuiltIn::ECS::SkeletonOutputComponent>(modelEntity);
 
-        // プレイヤーコンポーネントをつける
-
-
         //--------------------------------------------------------------
         // 2Dカメラエンティティの生成
         //--------------------------------------------------------------
