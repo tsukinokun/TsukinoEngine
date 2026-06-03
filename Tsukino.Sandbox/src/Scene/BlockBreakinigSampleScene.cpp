@@ -44,6 +44,10 @@ namespace Tsukino::Sandbox {
     void BlockBreakingSampleScene::OnInitialize(Tsukino::EngineIntegration::EngineAPI& api) {
         // コンテキストをレジストリから取得
         Tsukino::EngineIntegration::EngineContext* context = m_scene.GetRegistry().GetContext<Tsukino::EngineIntegration::EngineContext*>();
+        //-------------------------------------------------------------
+        // イベントバスをレジストリから取得
+        //-------------------------------------------------------------
+        Tsukino::ECS::EventBus& eventBus = m_scene.GetEventBus();
 
         // Transformは一番最初に計算する (優先度 0)
         m_scene.AddSystem(std::make_shared<Tsukino::BuiltIn::ECS::TransformSystem>(), 0);
@@ -58,7 +62,7 @@ namespace Tsukino::Sandbox {
         // モデル描画 (優先度 10)
         m_scene.AddSystem(std::make_shared<Tsukino::BuiltIn::ECS::ModelSystem>(), 10);
         // コリジョンの更新は最後に行う (優先度 12)
-        m_scene.AddSystem(std::make_shared<Tsukino::BuiltIn::ECS::PhysicsSystem>(), 12);
+        m_scene.AddSystem(std::make_shared<Tsukino::BuiltIn::ECS::PhysicsSystem>(eventBus), 12);
         // ブロックの状態更新 (優先度 13)
         m_scene.AddSystem(std::make_shared<BlockBreakingSample::ECS::BrickSystem>(), 13);
 

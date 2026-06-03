@@ -57,6 +57,8 @@ namespace Tsukino::Sandbox {
 
         Tsukino::ECS::Registry& registry = m_scene.GetRegistry();
 
+        Tsukino::ECS::EventBus& eventBus = m_scene.GetEventBus();
+
         //--------------------------------------------------------------
         // システムの生成と追加
         //--------------------------------------------------------------
@@ -79,7 +81,7 @@ namespace Tsukino::Sandbox {
         m_scene.AddSystem(std::make_shared<JumpGameSample::ECS::InGameCameraSystem>(), (int)SystemPriority::InGameCamera);
         m_scene.AddSystem(std::make_shared<JumpGameSample::ECS::PlatformSystem>(), (int)SystemPriority::Platform);
         m_scene.AddSystem(std::make_shared<Tsukino::BuiltIn::ECS::AnimationSystem>(), (int)SystemPriority::Animation);
-        m_scene.AddSystem(std::make_shared<Tsukino::BuiltIn::ECS::PhysicsSystem>(), (int)SystemPriority::Physics);
+        m_scene.AddSystem(std::make_shared<Tsukino::BuiltIn::ECS::PhysicsSystem>(eventBus), (int)SystemPriority::Physics);
         m_scene.AddSystem(std::make_shared<Tsukino::BuiltIn::ECS::CameraSystem>(), (int)SystemPriority::Camera);
         m_scene.AddSystem(std::make_shared<Tsukino::BuiltIn::ECS::FontRendererSystem>(), (int)SystemPriority::Font);
         m_scene.AddSystem(std::make_shared<Tsukino::BuiltIn::ECS::SpriteRenderSystem>(), (int)SystemPriority::Render);
