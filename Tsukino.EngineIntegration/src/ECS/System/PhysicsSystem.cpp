@@ -285,6 +285,7 @@ namespace Tsukino::BuiltIn::ECS {
         JoltDebugRendererImpl*            debugRenderer      = nullptr;    //!< デバッグ描画インターフェース
         bool                              isDebugDrawEnabled = false;      //!< デバッグ描画が有効か
         bool                              f5WasDown          = false;      //!< 直前フレームでF5キーが押されていたか
+        std::unordered_map<entt::entity, JPH::RVec3> prevPositions;
     };
 
     //-------------------------------------------------------------
@@ -407,6 +408,8 @@ namespace Tsukino::BuiltIn::ECS {
             }
         }
 
+        float stepTime = deltaTime > 0.0f ? deltaTime : 1.0f / 60.0f;
+
         for(auto entity : view) {
             auto& col = registry.GetComponent<CollisionComponent>(entity);
             if(!registry.HasComponent<RigidbodyComponent>(entity))
@@ -422,6 +425,13 @@ namespace Tsukino::BuiltIn::ECS {
                                                      pos + (rot * JPH::Vec3(col.offsetPosition.x, col.offsetPosition.y, col.offsetPosition.z)),
                                                      rot * offsetRot,
                                                      JPH::EActivation::Activate);
+
+               auto it = m_impl->prevPositions.find(entity);
+                if(it != m_impl->prevPositions.end()) {
+                    JPH::Vec3 velocity = (pos - it->second) / stepTime;
+                    bodyInterface.SetLinearVelocity(col.bodyID, velocity);
+                }
+                m_impl->prevPositions[entity] = pos;
             }
         }
 
@@ -441,7 +451,6 @@ namespace Tsukino::BuiltIn::ECS {
         }
 
         // 3. 物理シミュレーション実行
-        float stepTime = deltaTime > 0.0f ? deltaTime : 1.0f / 60.0f;
         m_impl->physicsSystem->Update(stepTime, 1, m_impl->tempAllocator, m_impl->jobSystem);
 
         // 4. Dynamic同期

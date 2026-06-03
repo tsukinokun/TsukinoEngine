@@ -59,26 +59,29 @@ namespace Tsukino::Sandbox {
         //--------------------------------------------------------------
         // システムの生成と追加
         //--------------------------------------------------------------
-        // Transformは一番最初に計算する (優先度 0)
-        m_scene.AddSystem(std::make_shared<Tsukino::BuiltIn::ECS::TransformSystem>(), 0);
-        // プレイヤーの更新 (優先度 1)
-        m_scene.AddSystem(std::make_shared<JumpGameSample::ECS::PlayerSystem>(), 1);
-        // プラットフォームの更新 (優先度 2)
-        m_scene.AddSystem(std::make_shared<JumpGameSample::ECS::PlatformSystem>(), 2);
-        // アニメーションはTransformの後に更新する (優先度 3)
-        m_scene.AddSystem(std::make_shared<Tsukino::BuiltIn::ECS::AnimationSystem>(), 3);
-        // 物理計算 (優先度 4)
-        m_scene.AddSystem(std::make_shared<Tsukino::BuiltIn::ECS::PhysicsSystem>(), 4);
-        // カメラは描画前に更新する (優先度 5)
-        m_scene.AddSystem(std::make_shared<Tsukino::BuiltIn::ECS::CameraSystem>(), 5);
-        // フォント描画 (優先度 9)
-        m_scene.AddSystem(std::make_shared<Tsukino::BuiltIn::ECS::FontRendererSystem>(), 9);
-        // スプライトなど描画用のコマンド生成は後で行う (優先度 10)
-        m_scene.AddSystem(std::make_shared<Tsukino::BuiltIn::ECS::SpriteRenderSystem>(), 10);
-        // モデル描画 (優先度 10)
-        m_scene.AddSystem(std::make_shared<Tsukino::BuiltIn::ECS::ModelSystem>(), 10);
-        // オーディオの更新 (優先度 11)
-        m_scene.AddSystem(std::make_shared<Tsukino::BuiltIn::ECS::AudioSystem>(), 11);
+        enum class SystemPriority : int {
+            Transform = 0,
+            Player    = 1,
+            Platform  = 2,
+            Animation = 3,
+            Physics   = 4,
+            Camera    = 5,
+            Font      = 9,
+            Render    = 10,
+            Audio     = 11,
+        };
+
+        // 登録
+        m_scene.AddSystem(std::make_shared<Tsukino::BuiltIn::ECS::TransformSystem>(), (int)SystemPriority::Transform);
+        m_scene.AddSystem(std::make_shared<JumpGameSample::ECS::PlayerSystem>(), (int)SystemPriority::Player);
+        m_scene.AddSystem(std::make_shared<JumpGameSample::ECS::PlatformSystem>(), (int)SystemPriority::Platform);
+        m_scene.AddSystem(std::make_shared<Tsukino::BuiltIn::ECS::AnimationSystem>(), (int)SystemPriority::Animation);
+        m_scene.AddSystem(std::make_shared<Tsukino::BuiltIn::ECS::PhysicsSystem>(), (int)SystemPriority::Physics);
+        m_scene.AddSystem(std::make_shared<Tsukino::BuiltIn::ECS::CameraSystem>(), (int)SystemPriority::Camera);
+        m_scene.AddSystem(std::make_shared<Tsukino::BuiltIn::ECS::FontRendererSystem>(), (int)SystemPriority::Font);
+        m_scene.AddSystem(std::make_shared<Tsukino::BuiltIn::ECS::SpriteRenderSystem>(), (int)SystemPriority::Render);
+        m_scene.AddSystem(std::make_shared<Tsukino::BuiltIn::ECS::ModelSystem>(), (int)SystemPriority::Render);
+        m_scene.AddSystem(std::make_shared<Tsukino::BuiltIn::ECS::AudioSystem>(), (int)SystemPriority::Audio);
 
         //--------------------------------------------------------------
         // Playerエンティティ生成
@@ -133,7 +136,7 @@ namespace Tsukino::Sandbox {
 
             // TransformComponent の追加と初期化
             Tsukino::BuiltIn::ECS::TransformComponent& platformTransform = registry.AddComponent<Tsukino::BuiltIn::ECS::TransformComponent>(platformEntity);
-            platformTransform.position                           = hlslpp::float3(0.0f, 0.0f, 0.0f);
+            platformTransform.position                                   = hlslpp::float3(300.0f, 0.0f, 0.0f);
             platformTransform.rotation                                   = hlslpp::quaternion(0.0f, 0.0f, 0.0f, 1.0f);    // 無回転
             platformTransform.scale                                      = hlslpp::float3(1.0f, 1.0f, 1.0f);              // 土台
             platformTransform.dirty                                      = true;                                          // 初回計算のためフラグを立てる
@@ -144,10 +147,18 @@ namespace Tsukino::Sandbox {
             model.modelHandle = context->assetManager->Load(Tsukino::Core::Path("Tsukino.Sandbox/Assets/JumpGameSample/Models/Block.fbx"));
             model.visible     = true;
 
+            // コリジョンを追加
+            Tsukino::BuiltIn::ECS::CollisionComponent& collision = registry.AddComponent<Tsukino::BuiltIn::ECS::CollisionComponent>(platformEntity);
+            collision.extent                                     = hlslpp::float3(50.0f, 10.0f, 50.0f);    // 土台の当たり判定
+
+            // RBをつける
+            Tsukino::BuiltIn::ECS::RigidbodyComponent& rb = registry.AddComponent<Tsukino::BuiltIn::ECS::RigidbodyComponent>(platformEntity);
+            rb.type                                       = Tsukino::BuiltIn::ECS::RigidbodyType::Kinematic;    // 動く床なので Kinematic にする
+
             // PlatformComponent の追加
             JumpGameSample::ECS::PlatformComponent& platform = registry.AddComponent<JumpGameSample::ECS::PlatformComponent>(platformEntity);
-            platform.speed = 50.0f;    // 土台の移動速度
-            platform.isMoving = true; // 移動中フラグを立てる
+            platform.speed                                   = 100.0f;    // 土台の移動速度
+            platform.isMoving                                = true;      // 移動中フラグを立てる
         }
 
         //--------------------------------------------------------------
