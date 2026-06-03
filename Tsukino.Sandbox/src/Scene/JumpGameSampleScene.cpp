@@ -24,6 +24,7 @@
 #include <Tsukino/BuiltIn/ECS/Component/SkeletonOutputComponent.hpp>
 #include <Tsukino/BuiltIn/ECS/Component/CollisionComponent.hpp>
 #include <Tsukino/BuiltIn/ECS/Component/RigidBodyComponent.hpp>
+#include <Tsukino/BuiltIn/ECS/Component/AnimationControllerComponent.hpp>
 
 #include <Tsukino/BuiltIn/ECS/Serialization/TransformComponentSerialization.hpp>
 #include <Tsukino/BuiltIn/ECS/Serialization/CameraComponentSerialization.hpp>
@@ -100,49 +101,56 @@ namespace Tsukino::Sandbox {
         //--------------------------------------------------------------
         // Playerエンティティ生成
         //--------------------------------------------------------------
-        Tsukino::ECS::Entity playerEntity = m_scene.CreateEntity();
+        {
+            Tsukino::ECS::Entity playerEntity = m_scene.CreateEntity();
 
-        // TransformComponent の追加と初期化
-        Tsukino::BuiltIn::ECS::TransformComponent& playerTransform = registry.AddComponent<Tsukino::BuiltIn::ECS::TransformComponent>(playerEntity);
-        playerTransform.position                                   = hlslpp::float3(0.0f, 0.0f, 0.0f);
-        playerTransform.rotation                                   = hlslpp::quaternion(0.0f, 0.0f, 0.0f, 1.0f);    // 無回転
-        playerTransform.scale                                      = hlslpp::float3(1.0f, 1.0f, 1.0f);
-        playerTransform.dirty                                      = true;          // 初回計算のためフラグを立てる
-        playerTransform.parent                                     = entt::null;    // 親なし
+            // TransformComponent の追加と初期化
+            Tsukino::BuiltIn::ECS::TransformComponent& playerTransform = registry.AddComponent<Tsukino::BuiltIn::ECS::TransformComponent>(playerEntity);
+            playerTransform.position                                   = hlslpp::float3(0.0f, 0.0f, 0.0f);
+            playerTransform.rotation                                   = hlslpp::quaternion(0.0f, 0.0f, 0.0f, 1.0f);    // 無回転
+            playerTransform.scale                                      = hlslpp::float3(1.0f, 1.0f, 1.0f);
+            playerTransform.dirty                                      = true;          // 初回計算のためフラグを立てる
+            playerTransform.parent                                     = entt::null;    // 親なし
 
-        // ModelComponent の追加
-        Tsukino::BuiltIn::ECS::ModelComponent& model = registry.AddComponent<Tsukino::BuiltIn::ECS::ModelComponent>(playerEntity);
-        model.modelHandle = context->assetManager->Load(Tsukino::Core::Path("Tsukino.Sandbox/Assets/JumpGameSample/Models/Arissa.fbx"));
-        model.visible     = true;
+            // ModelComponent の追加
+            Tsukino::BuiltIn::ECS::ModelComponent& model = registry.AddComponent<Tsukino::BuiltIn::ECS::ModelComponent>(playerEntity);
+            model.modelHandle = context->assetManager->Load(Tsukino::Core::Path("Tsukino.Sandbox/Assets/JumpGameSample/Models/Arissa.fbx"));
+            model.visible     = true;
 
-        // モデルにコリジョンをつける
-        Tsukino::BuiltIn::ECS::CollisionComponent& collision = registry.AddComponent<Tsukino::BuiltIn::ECS::CollisionComponent>(playerEntity);
-        collision.extent                                     = {35.0f, 70.0f, 70.0f};    // 大きめの当たり判定
-        collision.offsetPosition                             = {0.0f, 90.0f, 0.0f};      // モデルの足元から中心にオフセット
-        collision.type                                       = Tsukino::BuiltIn::ECS::ColliderType::Capsule;
-        collision.isSensor                                   = false;    // 衝突判定と物理的な反発を有効にする
+            // モデルにコリジョンをつける
+            Tsukino::BuiltIn::ECS::CollisionComponent& collision = registry.AddComponent<Tsukino::BuiltIn::ECS::CollisionComponent>(playerEntity);
+            collision.extent                                     = {35.0f, 70.0f, 70.0f};    // 大きめの当たり判定
+            collision.offsetPosition                             = {0.0f, 90.0f, 0.0f};      // モデルの足元から中心にオフセット
+            collision.type                                       = Tsukino::BuiltIn::ECS::ColliderType::Capsule;
+            collision.isSensor                                   = false;    // 衝突判定と物理的な反発を有効にする
 
-        // RBをつける
-        Tsukino::BuiltIn::ECS::RigidbodyComponent& rb = registry.AddComponent<Tsukino::BuiltIn::ECS::RigidbodyComponent>(playerEntity);
-        rb.type                                       = Tsukino::BuiltIn::ECS::RigidbodyType::Dynamic;
-        rb.gravityFactor                              = 9.8f;
-        rb.groundCheckDistance                        = 110.0f;
-        rb.groundCheckRadius                          = 5.0f;
+            // RBをつける
+            Tsukino::BuiltIn::ECS::RigidbodyComponent& rb = registry.AddComponent<Tsukino::BuiltIn::ECS::RigidbodyComponent>(playerEntity);
+            rb.type                                       = Tsukino::BuiltIn::ECS::RigidbodyType::Dynamic;
+            rb.gravityFactor                              = 9.8f;
+            rb.groundCheckDistance                        = 110.0f;
+            rb.groundCheckRadius                          = 5.0f;
 
-        // アニメーションを再生・制御するコンポーネント
-        Tsukino::BuiltIn::ECS::AnimationPlayerComponent& animPlayer = registry.AddComponent<Tsukino::BuiltIn::ECS::AnimationPlayerComponent>(playerEntity);
-        animPlayer.current_clip_id = context->assetManager->Load(Tsukino::Core::Path("Tsukino.Sandbox/Assets/JumpGameSample/Anims/Standing Idle.fbx"));
-        animPlayer.animation_index = 1;       // 再生するアニメーションのインデックスを指定
-        animPlayer.elapsed_time    = 0.0f;    // 0秒からスタート
-        animPlayer.playback_speed  = 1.0f;    // 等速再生
-        animPlayer.is_looping      = true;    // ループさせる
-        animPlayer.is_playing      = true;    // 再生状態にする
+            // アニメーションを再生・制御するコンポーネント
+            Tsukino::BuiltIn::ECS::AnimationPlayerComponent& animPlayer = registry.AddComponent<Tsukino::BuiltIn::ECS::AnimationPlayerComponent>(playerEntity);
+            animPlayer.current_clip_id = context->assetManager->Load(Tsukino::Core::Path("Tsukino.Sandbox/Assets/JumpGameSample/Anims/Standing Idle.fbx"));
+            animPlayer.animation_index = 1;       // 再生するアニメーションのインデックスを指定
+            animPlayer.elapsed_time    = 0.0f;    // 0秒からスタート
+            animPlayer.playback_speed  = 1.0f;    // 等速再生
+            animPlayer.is_looping      = true;    // ループさせる
+            animPlayer.is_playing      = true;    // 再生状態にする
 
-        //計算されたボーン行列の出力先（スキニング用）コンポーネント
-        Tsukino::BuiltIn::ECS::SkeletonOutputComponent& skeletonOutput = registry.AddComponent<Tsukino::BuiltIn::ECS::SkeletonOutputComponent>(playerEntity);
+            //計算されたボーン行列の出力先（スキニング用）コンポーネント
+            Tsukino::BuiltIn::ECS::SkeletonOutputComponent& skeletonOutput =
+                registry.AddComponent<Tsukino::BuiltIn::ECS::SkeletonOutputComponent>(playerEntity);
 
-        // プレイヤーコンポーネントをつける
-        JumpGameSample::ECS::PlayerComponent& player = registry.AddComponent<JumpGameSample::ECS::PlayerComponent>(playerEntity);
+            // プレイヤーコンポーネントをつける
+            JumpGameSample::ECS::PlayerComponent& player = registry.AddComponent<JumpGameSample::ECS::PlayerComponent>(playerEntity);
+
+            // アニメーションの制御用コンポーネントをつける
+            Tsukino::BuiltIn::ECS::AnimationControllerComponent& animController =
+                registry.AddComponent<Tsukino::BuiltIn::ECS::AnimationControllerComponent>(playerEntity);
+        }
         //--------------------------------------------------------------
         // PlatformGeneratorエンティティの生成
         //--------------------------------------------------------------
@@ -216,6 +224,23 @@ namespace Tsukino::Sandbox {
             Tsukino::BuiltIn::ECS::FontComponent& font = registry.AddComponent<Tsukino::BuiltIn::ECS::FontComponent>(naviEntity);
             font.text                                  = L"Start Space Key";    // 描画するテキスト
         }
+
+        //--------------------------------------------------------------
+        // 得点用UIエンティティの生成
+        //--------------------------------------------------------------
+        {
+            Tsukino::ECS::Entity                       naviEntity    = m_scene.CreateEntity();
+            Tsukino::BuiltIn::ECS::TransformComponent& fontTransform = registry.AddComponent<Tsukino::BuiltIn::ECS::TransformComponent>(naviEntity);
+            fontTransform.position                                   = hlslpp::float3(0.0f, 0.0f, 0.0f);
+            fontTransform.rotation                                   = hlslpp::quaternion(0.0f, 0.0f, 0.0f, 1.0f);    // 無回転
+            fontTransform.scale                                      = hlslpp::float3(1.0f, 1.0f, 1.0f);
+            fontTransform.dirty                                      = true;          // 初回計算のためフラグを立てる
+            fontTransform.parent                                     = entt::null;    // 親なし
+
+            // FontRendererComponent の追加
+            Tsukino::BuiltIn::ECS::FontComponent& font = registry.AddComponent<Tsukino::BuiltIn::ECS::FontComponent>(naviEntity);
+            font.text                                  = L"";    // 描画するテキスト
+        }
     }
 
     //-------------------------------------------------------------
@@ -259,7 +284,6 @@ namespace Tsukino::Sandbox {
                     }
                 });
             }
-            //-------------------------------------------------------------
             break;
         case JumpGameSample::ECS::GameState::GameOver:
             if(context->inputSystem->IsKeyPressed(Tsukino::Input::KeyCode::Space)) {
