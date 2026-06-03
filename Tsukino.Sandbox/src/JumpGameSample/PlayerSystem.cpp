@@ -7,7 +7,7 @@
 #include <Tsukino/Sandbox/JumpGameSample/ECS/Component/PlayerComponent.hpp>
 
 #include <Tsukino/BuiltIn/ECS/Component/ImpulseRequestComponent.hpp>
-
+#include <Tsukino/BuiltIn/ECS/Component/RigidbodyComponent.hpp>
 #include <Tsukino/BuiltIn/ECS/Component/TransformComponent.hpp>
 
 #include <Tsukino/EngineIntegration/EngineContext.hpp>
@@ -33,12 +33,15 @@ namespace JumpGameSample::ECS {
         //-------------------------------------------------------------
         // viewを取得して各パドルを更新
         //-------------------------------------------------------------
-        auto view = registry.View<Tsukino::BuiltIn::ECS::TransformComponent, PlayerComponent>();
-        view.each([&](entt::entity entity, Tsukino::BuiltIn::ECS::TransformComponent& transform, PlayerComponent& player) {
+        auto view = registry.View<Tsukino::BuiltIn::ECS::TransformComponent, PlayerComponent, Tsukino::BuiltIn::ECS::RigidbodyComponent>();
+        view.each([&](entt::entity                               entity,
+                      Tsukino::BuiltIn::ECS::TransformComponent& transform,
+                      PlayerComponent&                           player,
+                      Tsukino::BuiltIn::ECS::RigidbodyComponent& rb) {
             //-------------------------------------------------------------
             // スペースキー押下でジャンプ
             //-------------------------------------------------------------
-            if(inputSystem->IsKeyPressed(Tsukino::Input::KeyCode::Space)) {
+            if(rb.isGrounded && inputSystem->IsKeyPressed(Tsukino::Input::KeyCode::Space)) {
                 //-------------------------------------------------------------
                 // ジャンプ処理
                 //-------------------------------------------------------------

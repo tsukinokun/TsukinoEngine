@@ -99,7 +99,7 @@ namespace Tsukino::Sandbox {
         // ModelComponent の追加
         Tsukino::BuiltIn::ECS::ModelComponent& model = registry.AddComponent<Tsukino::BuiltIn::ECS::ModelComponent>(playerEntity);
         model.modelHandle = context->assetManager->Load(Tsukino::Core::Path("Tsukino.Sandbox/Assets/JumpGameSample/Models/Arissa.fbx"));
-        model.visible     = true;
+        model.visible     = false;
 
         // モデルにコリジョンをつける
         Tsukino::BuiltIn::ECS::CollisionComponent& collision = registry.AddComponent<Tsukino::BuiltIn::ECS::CollisionComponent>(playerEntity);
@@ -112,6 +112,8 @@ namespace Tsukino::Sandbox {
         Tsukino::BuiltIn::ECS::RigidbodyComponent& rb = registry.AddComponent<Tsukino::BuiltIn::ECS::RigidbodyComponent>(playerEntity);
         rb.type                                       = Tsukino::BuiltIn::ECS::RigidbodyType::Dynamic;
         rb.gravityFactor                              = 9.8f;
+        rb.groundCheckDistance                        = 110.0f;
+        rb.groundCheckRadius                          = 30.0f;
 
         // アニメーションを再生・制御するコンポーネント
         Tsukino::BuiltIn::ECS::AnimationPlayerComponent& animPlayer = registry.AddComponent<Tsukino::BuiltIn::ECS::AnimationPlayerComponent>(playerEntity);

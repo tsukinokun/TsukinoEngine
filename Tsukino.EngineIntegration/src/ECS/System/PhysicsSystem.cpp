@@ -6,22 +6,6 @@
 
 #define NOMINMAX
 #define WIN32_LEAN_AND_MEAN
-#include <windows.h>
-#include <hlsl++.h>
-#include <entt/entt.hpp>
-#include <Jolt/Jolt.h>
-#include <Jolt/RegisterTypes.h>
-#include <Jolt/Core/Factory.h>
-#include <Jolt/Core/TempAllocator.h>
-#include <Jolt/Core/JobSystemThreadPool.h>
-#include <Jolt/Physics/PhysicsSettings.h>
-#include <Jolt/Physics/PhysicsSystem.h>
-#include <Jolt/Physics/Collision/Shape/BoxShape.h>
-#include <Jolt/Physics/Collision/Shape/SphereShape.h>
-#include <Jolt/Physics/Collision/Shape/CapsuleShape.h>
-#include <Jolt/Physics/Body/BodyCreationSettings.h>
-#include <Jolt/Physics/Body/BodyActivationListener.h>
-#include <Jolt/Renderer/DebugRendererSimple.h>
 #include <Tsukino/EngineIntegration/ECS/System/PhysicsSystem.hpp>
 #include <Tsukino/BuiltIn/ECS/Component/CollisionComponent.hpp>
 #include <Tsukino/BuiltIn/ECS/Component/RigidBodyComponent.hpp>
@@ -32,6 +16,26 @@
 #include <Tsukino/EngineIntegration/EngineContext.hpp>
 #include <Tsukino/GraphicsCommon/Vertex/DebugVertex.hpp>
 
+#include <hlsl++.h>
+#include <entt/entt.hpp>
+#include <Jolt/Jolt.h>
+#include <Jolt/Physics/Collision/CollideShape.h>
+#include <Jolt/RegisterTypes.h>
+#include <Jolt/Core/Factory.h>
+#include <Jolt/Core/TempAllocator.h>
+#include <Jolt/Core/JobSystemThreadPool.h>
+#include <Jolt/Physics/PhysicsSettings.h>
+#include <Jolt/Physics/PhysicsSystem.h>
+#include <Jolt/Physics/Collision/CollisionCollectorImpl.h>
+#include <Jolt/Physics/Collision/Shape/BoxShape.h>
+#include <Jolt/Geometry/AABox.h>
+#include <Jolt/Physics/Collision/Shape/SphereShape.h>
+#include <Jolt/Physics/Collision/Shape/CapsuleShape.h>
+#include <Jolt/Physics/Body/BodyCreationSettings.h>
+#include <Jolt/Physics/Body/BodyActivationListener.h>
+#include <Jolt/Renderer/DebugRendererSimple.h>
+
+#include <windows.h>
 // 名前空間 : Tsukino::BuiltIn::ECS
 namespace Tsukino::BuiltIn::ECS {
 
@@ -275,16 +279,16 @@ namespace Tsukino::BuiltIn::ECS {
     //! @brief  システム実装の隠蔽用構造体
     //-------------------------------------------------------------
     struct PhysicsSystem::Impl {
-        JPH::TempAllocatorImpl*           tempAllocator = nullptr;         //!< 物理計算用一時アロケータ
-        JPH::JobSystemThreadPool*         jobSystem     = nullptr;         //!< 物理シミュレーション用ジョブシステム
-        BPLayerInterfaceImpl              bpLayerInterface;                //!< ブロードフェーズインターフェース
-        ObjectVsBroadPhaseLayerFilterImpl objVsBpFilter;                   //!< オブジェクト対ブロードフェーズ層フィルタ
-        ObjectLayerPairFilterImpl         objPairFilter;                   //!< オブジェクト層間フィルタ
-        JPH::PhysicsSystem*               physicsSystem      = nullptr;    //!< Jolt物理システム本体
-        MyContactListener*                contactListener    = nullptr;    //!< 衝突イベントリスナー
-        JoltDebugRendererImpl*            debugRenderer      = nullptr;    //!< デバッグ描画インターフェース
-        bool                              isDebugDrawEnabled = false;      //!< デバッグ描画が有効か
-        bool                              f5WasDown          = false;      //!< 直前フレームでF5キーが押されていたか
+        JPH::TempAllocatorImpl*                      tempAllocator = nullptr;         //!< 物理計算用一時アロケータ
+        JPH::JobSystemThreadPool*                    jobSystem     = nullptr;         //!< 物理シミュレーション用ジョブシステム
+        BPLayerInterfaceImpl                         bpLayerInterface;                //!< ブロードフェーズインターフェース
+        ObjectVsBroadPhaseLayerFilterImpl            objVsBpFilter;                   //!< オブジェクト対ブロードフェーズ層フィルタ
+        ObjectLayerPairFilterImpl                    objPairFilter;                   //!< オブジェクト層間フィルタ
+        JPH::PhysicsSystem*                          physicsSystem      = nullptr;    //!< Jolt物理システム本体
+        MyContactListener*                           contactListener    = nullptr;    //!< 衝突イベントリスナー
+        JoltDebugRendererImpl*                       debugRenderer      = nullptr;    //!< デバッグ描画インターフェース
+        bool                                         isDebugDrawEnabled = false;      //!< デバッグ描画が有効か
+        bool                                         f5WasDown          = false;      //!< 直前フレームでF5キーが押されていたか
         std::unordered_map<entt::entity, JPH::RVec3> prevPositions;
     };
 
@@ -426,7 +430,7 @@ namespace Tsukino::BuiltIn::ECS {
                                                      rot * offsetRot,
                                                      JPH::EActivation::Activate);
 
-               auto it = m_impl->prevPositions.find(entity);
+                auto it = m_impl->prevPositions.find(entity);
                 if(it != m_impl->prevPositions.end()) {
                     JPH::Vec3 velocity = (pos - it->second) / stepTime;
                     bodyInterface.SetLinearVelocity(col.bodyID, velocity);
@@ -466,6 +470,21 @@ namespace Tsukino::BuiltIn::ECS {
                     tf.position = hlslpp::float3(bodyPos.GetX(), bodyPos.GetY(), bodyPos.GetZ());
                     tf.rotation = hlslpp::quaternion(bodyRot.GetX(), bodyRot.GetY(), bodyRot.GetZ(), bodyRot.GetW());
                     tf.dirty    = true;
+
+                    JPH::BoxShape                                             checkShape(JPH::Vec3(rb.groundCheckRadius, 0.05f, rb.groundCheckRadius));
+                    JPH::RVec3                                                checkPos(tf.position.x, tf.position.y - rb.groundCheckDistance, tf.position.z);
+                    JPH::IgnoreSingleBodyFilter                               bodyFilter(col.bodyID);
+                    JPH::AllHitCollisionCollector<JPH::CollideShapeCollector> collector;
+                    m_impl->physicsSystem->GetNarrowPhaseQuery().CollideShape(&checkShape,
+                                                                              JPH::Vec3::sReplicate(1.0f),
+                                                                              JPH::RMat44::sTranslation(checkPos),
+                                                                              JPH::CollideShapeSettings(),
+                                                                              JPH::RVec3::sZero(),
+                                                                              collector,
+                                                                              {},
+                                                                              {},
+                                                                              bodyFilter);
+                    rb.isGrounded = collector.HadHit();
                 }
             }
         }
@@ -500,6 +519,41 @@ namespace Tsukino::BuiltIn::ECS {
                     ds.mDrawShapeWireframe = true;
 
                     body.GetShape()->Draw(m_impl->debugRenderer, transform, JPH::Vec3::sReplicate(1.0f), JPH::Color::sGreen, false, false);
+                }
+
+                // isGrounded判定Box描画
+                for(auto entity : view) {
+                    if(!registry.HasComponent<RigidbodyComponent>(entity))
+                        continue;
+                    if(!registry.HasComponent<TransformComponent>(entity))
+                        continue;
+                    auto& rb = registry.GetComponent<RigidbodyComponent>(entity);
+                    if(rb.type != RigidbodyType::Dynamic)
+                        continue;
+
+                    auto&         tf    = registry.GetComponent<TransformComponent>(entity);
+                    float         r     = rb.groundCheckRadius;
+                    float         thick = 0.05f;
+                    float         cx    = tf.position.x;
+                    float         cy    = tf.position.y - rb.groundCheckDistance;
+                    float         cz    = tf.position.z;
+                    JPH::ColorArg color = rb.isGrounded ? JPH::Color::sGreen : JPH::Color::sRed;
+
+                    // 上面
+                    m_impl->debugRenderer->DrawLine({cx - r, cy + thick, cz - r}, {cx + r, cy + thick, cz - r}, color);
+                    m_impl->debugRenderer->DrawLine({cx + r, cy + thick, cz - r}, {cx + r, cy + thick, cz + r}, color);
+                    m_impl->debugRenderer->DrawLine({cx + r, cy + thick, cz + r}, {cx - r, cy + thick, cz + r}, color);
+                    m_impl->debugRenderer->DrawLine({cx - r, cy + thick, cz + r}, {cx - r, cy + thick, cz - r}, color);
+                    // 下面
+                    m_impl->debugRenderer->DrawLine({cx - r, cy - thick, cz - r}, {cx + r, cy - thick, cz - r}, color);
+                    m_impl->debugRenderer->DrawLine({cx + r, cy - thick, cz - r}, {cx + r, cy - thick, cz + r}, color);
+                    m_impl->debugRenderer->DrawLine({cx + r, cy - thick, cz + r}, {cx - r, cy - thick, cz + r}, color);
+                    m_impl->debugRenderer->DrawLine({cx - r, cy - thick, cz + r}, {cx - r, cy - thick, cz - r}, color);
+                    // 縦辺
+                    m_impl->debugRenderer->DrawLine({cx - r, cy + thick, cz - r}, {cx - r, cy - thick, cz - r}, color);
+                    m_impl->debugRenderer->DrawLine({cx + r, cy + thick, cz - r}, {cx + r, cy - thick, cz - r}, color);
+                    m_impl->debugRenderer->DrawLine({cx + r, cy + thick, cz + r}, {cx + r, cy - thick, cz + r}, color);
+                    m_impl->debugRenderer->DrawLine({cx - r, cy + thick, cz + r}, {cx - r, cy - thick, cz + r}, color);
                 }
 
                 Tsukino::Renderer::DrawCommand cmd{};
