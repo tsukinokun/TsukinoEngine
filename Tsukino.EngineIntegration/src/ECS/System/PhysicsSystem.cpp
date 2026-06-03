@@ -396,6 +396,22 @@ namespace Tsukino::BuiltIn::ECS {
                         settings.mGravityFactor                = rb.gravityFactor;
                         settings.mOverrideMassProperties       = JPH::EOverrideMassProperties::CalculateInertia;
                         settings.mMassPropertiesOverride.mMass = rb.mass;
+
+                        JPH::EAllowedDOFs dofs = JPH::EAllowedDOFs::All;
+                        if(rb.freezePositionX)
+                            dofs &= ~JPH::EAllowedDOFs::TranslationX;
+                        if(rb.freezePositionY)
+                            dofs &= ~JPH::EAllowedDOFs::TranslationY;
+                        if(rb.freezePositionZ)
+                            dofs &= ~JPH::EAllowedDOFs::TranslationZ;
+                        if(rb.freezeRotationX)
+                            dofs &= ~JPH::EAllowedDOFs::RotationX;
+                        if(rb.freezeRotationY)
+                            dofs &= ~JPH::EAllowedDOFs::RotationY;
+                        if(rb.freezeRotationZ)
+                            dofs &= ~JPH::EAllowedDOFs::RotationZ;
+
+                        settings.mAllowedDOFs = dofs;
                     }
 
                     JPH::Body* body = bodyInterface.CreateBody(settings);
@@ -449,6 +465,40 @@ namespace Tsukino::BuiltIn::ECS {
         // 一括で削除（遅延削除によって、イテレータ走査中にリムーブしない）
         for(auto entity : entitiesToRemoveImpulse) {
             registry.RemoveComponent<ImpulseRequestComponent>(entity);
+        }
+
+        // MotionTypeの変更
+        for(auto entity : view) {
+            if(!registry.HasComponent<RigidbodyComponent>(entity))
+                continue;
+            auto& rb  = registry.GetComponent<RigidbodyComponent>(entity);
+            auto& col = registry.GetComponent<CollisionComponent>(entity);
+            if(!col.isInitialized)
+                continue;
+
+            if(!rb.isTypeDirty)
+                continue;
+
+            JPH::EMotionType currentJoltType = bodyInterface.GetMotionType(col.bodyID);
+            JPH::EMotionType targetType;
+
+            switch(rb.type) {
+            case RigidbodyType::Static:
+                targetType = JPH::EMotionType::Static;
+                break;
+            case RigidbodyType::Kinematic:
+                targetType = JPH::EMotionType::Kinematic;
+                break;
+            case RigidbodyType::Dynamic:
+                targetType = JPH::EMotionType::Dynamic;
+                break;
+            default:
+                continue;
+            }
+
+            if(currentJoltType != targetType) {
+                bodyInterface.SetMotionType(col.bodyID, targetType, JPH::EActivation::Activate);
+            }
         }
 
         // 3. 物理シミュレーション実行

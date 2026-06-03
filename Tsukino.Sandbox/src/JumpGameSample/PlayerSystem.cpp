@@ -43,21 +43,24 @@ namespace JumpGameSample::ECS {
 
         // 衝突イベントを処理
         for(auto& e : m_pendingCollisions) {
-            // selfがプレイヤーでなければスキップ
-             if(!registry.HasComponent<PlayerComponent>(e.self))
+            if(!registry.HasComponent<PlayerComponent>(e.self))
                 continue;
-            // otherが土台でなければスキップ
             if(!registry.HasComponent<PlatformComponent>(e.other))
                 continue;
 
-            auto& rb = registry.GetComponent<Tsukino::BuiltIn::ECS::RigidbodyComponent>(e.self);
+            // 衝突法線（Normal）を使う。Platformの法線が-1.0fなら真上に乗ったことになる
+            bool isTopSurface = e.normal.y == -1.0f;
 
-            if(rb.isGrounded) {
-                // 上に乗った → LandedOnPlatformComponentを置く
+            if(isTopSurface) {
+                // 上に乗った
+                // 既存のコンポーネントがある場合は上書きするよう注意
                 registry.AddComponent<LandedOnPlatformComponent>(e.self, LandedOnPlatformComponent{e.other});
             } else {
-                // 横から当たった → 吹っ飛ばす
-                registry.AddComponent<Tsukino::BuiltIn::ECS::ImpulseRequestComponent>(e.self, hlslpp::float3(500.0f, 300.0f, 0.0f));
+                // 横から当たった (または下から当たった)
+                // 連続で吹っ飛ばされないように、すでにImpulseがあるかチェックするとより安全です
+                if(!registry.HasComponent<Tsukino::BuiltIn::ECS::ImpulseRequestComponent>(e.self)) {
+                    registry.AddComponent<Tsukino::BuiltIn::ECS::ImpulseRequestComponent>(e.self, hlslpp::float3(-100.0f, 0.0f, 0.0f));
+                }
             }
         }
         m_pendingCollisions.clear();

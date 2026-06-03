@@ -8,6 +8,7 @@
 #include <Tsukino/Sandbox/JumpGameSample/ECS/Component/LandedOnPlatformComponent.hpp>
 
 #include <Tsukino/BuiltIn/ECS/Component/TransformComponent.hpp>
+#include <Tsukino/BuiltIn/ECS/Component/RigidbodyComponent.hpp>
 
 #include <Tsukino/EngineIntegration/EngineContext.hpp>
 
@@ -32,11 +33,18 @@ namespace JumpGameSample::ECS {
         //-------------------------------------------------------------
         // プレイヤーがこの土台に止まっているかを確認、乗ってるなら土台の動きを止める
         //-------------------------------------------------------------
-        auto playerView = registry.View<LandedOnPlatformComponent>();
-        playerView.each([&](entt::entity playerEntity, LandedOnPlatformComponent& landed) {
-            if(registry.HasComponent<PlatformComponent>(landed.platformEntity)) {
-                auto& platform    = registry.GetComponent<PlatformComponent>(landed.platformEntity);
-                platform.isMoving = false;
+        auto playerView = registry.View<LandedOnPlatformComponent, Tsukino::BuiltIn::ECS::RigidbodyComponent>();
+        playerView.each([&](entt::entity playerEntity, LandedOnPlatformComponent& landed, Tsukino::BuiltIn::ECS::RigidbodyComponent& rb) {
+            if(registry.HasComponent<PlatformComponent>(landed.platformEntity)
+               && registry.HasComponent<Tsukino::BuiltIn::ECS::RigidbodyComponent>(landed.platformEntity)) {
+                //-------------------------------------------------------------
+                // プレイヤーが土台に乗っている場合、土台の動きを止める
+                //-------------------------------------------------------------
+                PlatformComponent& platform                           = registry.GetComponent<PlatformComponent>(landed.platformEntity);
+                platform.isMoving                                     = false;
+                Tsukino::BuiltIn::ECS::RigidbodyComponent& platformRb = registry.GetComponent<Tsukino::BuiltIn::ECS::RigidbodyComponent>(landed.platformEntity);
+                platformRb.type                                       = Tsukino::BuiltIn::ECS::RigidbodyType::Static;
+                platformRb.isTypeDirty                                = true;    // PhysicsSystemにタイプ変更を通知するためのフラグを立てる
             }
             registry.RemoveComponent<LandedOnPlatformComponent>(playerEntity);
         });
