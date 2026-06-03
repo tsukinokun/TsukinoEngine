@@ -49,10 +49,11 @@ namespace JumpGameSample::ECS {
                 //-------------------------------------------------------------
                 // このタイミングで、スコアを加算する
                 //-------------------------------------------------------------
-                if(registry.HasComponent<ScoreComponent>(playerEntity)) {
-                    ScoreComponent& score  = registry.GetComponent<ScoreComponent>(playerEntity);
-                    score.value           += 100;    // 例: 土台に乗るごとに100点加算
-                }
+                auto scoreView = registry.View<ScoreComponent>();
+                scoreView.each([&](entt::entity scoreEntity, ScoreComponent& score) {
+                    constexpr int pointsPerPlatform  = 100;    // 土台に乗るごとに加算するポイント
+                    score.value                     += pointsPerPlatform;    // 土台に乗るごとに加算
+                });
             }
             registry.RemoveComponent<LandedOnPlatformComponent>(playerEntity);
         });
