@@ -12,7 +12,6 @@ namespace JumpGameSample::ECS {
     //! @brief  土台生成器に必要なComponent
     //-------------------------------------------------------------
     struct PlatformGeneratorComponent {
-        bool  canSpawn      = true;    // 次を生成して良いか
-        float spawnDistance = 5.0f;    // 次の土台が出るまでの距離やオフセットなど
+        float spawnDistance = 0.0f;    // 次の土台が出るまでの距離やオフセットなど
     };
 }    // namespace JumpGameSample::ECS

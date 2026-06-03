@@ -7,10 +7,12 @@
 
 #include <Tsukino/Sandbox/JumpGameSample/ECS/Component/PlayerComponent.hpp>
 #include <Tsukino/Sandbox/JumpGameSample/ECS/Component/PlatformComponent.hpp>
+#include <Tsukino/Sandbox/JumpGameSample/ECS/Component/PlatformGeneratorComponent.hpp>
 
 #include <Tsukino/Sandbox/JumpGameSample/ECS/System/PlayerSystem.hpp>
 #include <Tsukino/Sandbox/JumpGameSample/ECS/System/PlatformSystem.hpp>
 #include <Tsukino/Sandbox/JumpGameSample/ECS/System/InGameCameraSystem.hpp>
+#include <Tsukino/Sandbox/JumpGameSample/ECS/System/PlatformGeneratorSystem.hpp>
 
 #include <Tsukino/BuiltIn/ECS/Component/TransformComponent.hpp>
 #include <Tsukino/BuiltIn/ECS/Component/CameraComponent.hpp>
@@ -66,6 +68,7 @@ namespace Tsukino::Sandbox {
             Transform = 0,
             Player,
             InGameCamera,
+            PlatformGenerator,
             Platform,
             Animation,
             Physics,
@@ -79,6 +82,7 @@ namespace Tsukino::Sandbox {
         m_scene.AddSystem(std::make_shared<Tsukino::BuiltIn::ECS::TransformSystem>(), (int)SystemPriority::Transform);
         m_scene.AddSystem(std::make_shared<JumpGameSample::ECS::PlayerSystem>(eventBus), (int)SystemPriority::Player);
         m_scene.AddSystem(std::make_shared<JumpGameSample::ECS::InGameCameraSystem>(), (int)SystemPriority::InGameCamera);
+        m_scene.AddSystem(std::make_shared<JumpGameSample::ECS::PlatformGeneratorSystem>(), (int)SystemPriority::PlatformGenerator);
         m_scene.AddSystem(std::make_shared<JumpGameSample::ECS::PlatformSystem>(), (int)SystemPriority::Platform);
         m_scene.AddSystem(std::make_shared<Tsukino::BuiltIn::ECS::AnimationSystem>(), (int)SystemPriority::Animation);
         m_scene.AddSystem(std::make_shared<Tsukino::BuiltIn::ECS::PhysicsSystem>(eventBus), (int)SystemPriority::Physics);
@@ -134,39 +138,48 @@ namespace Tsukino::Sandbox {
 
         // プレイヤーコンポーネントをつける
         JumpGameSample::ECS::PlayerComponent& player = registry.AddComponent<JumpGameSample::ECS::PlayerComponent>(playerEntity);
+        //--------------------------------------------------------------
+        // PlatformGeneratorエンティティの生成
+        //--------------------------------------------------------------
+        {
+            Tsukino::ECS::Entity platformGeneratorEntity = m_scene.CreateEntity();
+            // PlatformGeneratorComponent の追加
+            JumpGameSample::ECS::PlatformGeneratorComponent& platformGenerator =
+                registry.AddComponent<JumpGameSample::ECS::PlatformGeneratorComponent>(platformGeneratorEntity);
+        }
 
         //--------------------------------------------------------------
         // 土台エンティティのテスト生成
         //--------------------------------------------------------------
         {
-            Tsukino::ECS::Entity platformEntity = m_scene.CreateEntity();
+            //Tsukino::ECS::Entity platformEntity = m_scene.CreateEntity();
 
-            // TransformComponent の追加と初期化
-            Tsukino::BuiltIn::ECS::TransformComponent& platformTransform = registry.AddComponent<Tsukino::BuiltIn::ECS::TransformComponent>(platformEntity);
-            platformTransform.position                                   = hlslpp::float3(300.0f, 0.0f, 0.0f);
-            platformTransform.rotation                                   = hlslpp::quaternion(0.0f, 0.0f, 0.0f, 1.0f);    // 無回転
-            platformTransform.scale                                      = hlslpp::float3(1.0f, 1.0f, 1.0f);              // 土台
-            platformTransform.dirty                                      = true;                                          // 初回計算のためフラグを立てる
-            platformTransform.parent                                     = entt::null;                                    // 親なし
+            //// TransformComponent の追加と初期化
+            //Tsukino::BuiltIn::ECS::TransformComponent& platformTransform = registry.AddComponent<Tsukino::BuiltIn::ECS::TransformComponent>(platformEntity);
+            //platformTransform.position                                   = hlslpp::float3(300.0f, 0.0f, 0.0f);
+            //platformTransform.rotation                                   = hlslpp::quaternion(0.0f, 0.0f, 0.0f, 1.0f);    // 無回転
+            //platformTransform.scale                                      = hlslpp::float3(1.0f, 1.0f, 1.0f);              // 土台
+            //platformTransform.dirty                                      = true;                                          // 初回計算のためフラグを立てる
+            //platformTransform.parent                                     = entt::null;                                    // 親なし
 
-            // ModelComponent の追加
-            Tsukino::BuiltIn::ECS::ModelComponent& model = registry.AddComponent<Tsukino::BuiltIn::ECS::ModelComponent>(platformEntity);
-            model.modelHandle = context->assetManager->Load(Tsukino::Core::Path("Tsukino.Sandbox/Assets/JumpGameSample/Models/Block.fbx"));
-            model.visible     = true;
+            //// ModelComponent の追加
+            //Tsukino::BuiltIn::ECS::ModelComponent& model = registry.AddComponent<Tsukino::BuiltIn::ECS::ModelComponent>(platformEntity);
+            //model.modelHandle = context->assetManager->Load(Tsukino::Core::Path("Tsukino.Sandbox/Assets/JumpGameSample/Models/Block.fbx"));
+            //model.visible     = true;
 
-            // コリジョンを追加
-            Tsukino::BuiltIn::ECS::CollisionComponent& collision = registry.AddComponent<Tsukino::BuiltIn::ECS::CollisionComponent>(platformEntity);
-            collision.extent                                     = hlslpp::float3(50.0f, 10.0f, 50.0f);    // 土台の当たり判定
-            collision.isSensor                                   = false;                                  // 衝突判定を有効にする
+            //// コリジョンを追加
+            //Tsukino::BuiltIn::ECS::CollisionComponent& collision = registry.AddComponent<Tsukino::BuiltIn::ECS::CollisionComponent>(platformEntity);
+            //collision.extent                                     = hlslpp::float3(50.0f, 10.0f, 50.0f);    // 土台の当たり判定
+            //collision.isSensor                                   = false;                                  // 衝突判定を有効にする
 
-            // RBをつける
-            Tsukino::BuiltIn::ECS::RigidbodyComponent& rb = registry.AddComponent<Tsukino::BuiltIn::ECS::RigidbodyComponent>(platformEntity);
-            rb.type                                       = Tsukino::BuiltIn::ECS::RigidbodyType::Kinematic;    // 動く床なので Kinematic にする
+            //// RBをつける
+            //Tsukino::BuiltIn::ECS::RigidbodyComponent& rb = registry.AddComponent<Tsukino::BuiltIn::ECS::RigidbodyComponent>(platformEntity);
+            //rb.type                                       = Tsukino::BuiltIn::ECS::RigidbodyType::Kinematic;    // 動く床なので Kinematic にする
 
-            // PlatformComponent の追加
-            JumpGameSample::ECS::PlatformComponent& platform = registry.AddComponent<JumpGameSample::ECS::PlatformComponent>(platformEntity);
-            platform.speed                                   = 100.0f;    // 土台の移動速度
-            platform.isMoving                                = true;      // 移動中フラグを立てる
+            //// PlatformComponent の追加
+            //JumpGameSample::ECS::PlatformComponent& platform = registry.AddComponent<JumpGameSample::ECS::PlatformComponent>(platformEntity);
+            //platform.speed                                   = 100.0f;    // 土台の移動速度
+            //platform.isMoving                                = true;      // 移動中フラグを立てる
         }
 
         //--------------------------------------------------------------
