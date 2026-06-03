@@ -22,7 +22,8 @@ namespace Tsukino::BuiltIn::ECS {
     //! @struct RigidbodyComponent
     //-------------------------------------------------------------
     struct RigidbodyComponent {
-        RigidbodyType type = RigidbodyType::Dynamic;
+        RigidbodyType type        = RigidbodyType::Dynamic;
+        bool          isTypeDirty = false;    // タイプが変更されたか
 
         float mass          = 1.0f;    // 質量
         float friction      = 0.5f;    // 摩擦係数
@@ -39,5 +40,13 @@ namespace Tsukino::BuiltIn::ECS {
         bool  isGrounded          = false;    //!< 地面に接触しているか（PhysicsSystemが毎フレーム更新）
         float groundCheckDistance = 0.1f;     //!< 足元チェックのオフセット（コライダー底面からの距離）
         float groundCheckRadius   = 0.2f;     //!< 足元チェックBoxの水平サイズ
+
+        // 移動や回転を固定するフラグ
+        bool freezePositionX = false;
+        bool freezePositionY = false;
+        bool freezePositionZ = false;
+        bool freezeRotationX = true;    
+        bool freezeRotationY = true;
+        bool freezeRotationZ = true;
     };
 }    // namespace Tsukino::BuiltIn::ECS

@@ -157,6 +157,7 @@ namespace Tsukino::Sandbox {
             // コリジョンを追加
             Tsukino::BuiltIn::ECS::CollisionComponent& collision = registry.AddComponent<Tsukino::BuiltIn::ECS::CollisionComponent>(platformEntity);
             collision.extent                                     = hlslpp::float3(50.0f, 10.0f, 50.0f);    // 土台の当たり判定
+            collision.isSensor                                   = false;                                  // 衝突判定を有効にする
 
             // RBをつける
             Tsukino::BuiltIn::ECS::RigidbodyComponent& rb = registry.AddComponent<Tsukino::BuiltIn::ECS::RigidbodyComponent>(platformEntity);
