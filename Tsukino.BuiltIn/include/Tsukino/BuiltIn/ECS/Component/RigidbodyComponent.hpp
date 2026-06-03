@@ -34,5 +34,10 @@ namespace Tsukino::BuiltIn::ECS {
 
         // Jolt内部でボディを生成するためのトリガー
         bool isInitialized = false;
+
+        // 着地判定
+        bool  isGrounded          = false;    //!< 地面に接触しているか（PhysicsSystemが毎フレーム更新）
+        float groundCheckDistance = 0.1f;     //!< 足元チェックのオフセット（コライダー底面からの距離）
+        float groundCheckRadius   = 0.2f;     //!< 足元チェックBoxの水平サイズ
     };
 }    // namespace Tsukino::BuiltIn::ECS
