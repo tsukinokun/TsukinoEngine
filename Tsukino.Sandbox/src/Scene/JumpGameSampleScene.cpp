@@ -244,6 +244,22 @@ namespace Tsukino::Sandbox {
             }
             break;
         case JumpGameSample::ECS::GameState::Playing:
+            //-------------------------------------------------------------
+            // プレイヤーを取得して、TransformComponentのxが0.0fからある程度動いて居ればゲームオーバーにする
+            //-------------------------------------------------------------
+            {
+                auto playerView = registry.View<JumpGameSample::ECS::PlayerComponent, Tsukino::BuiltIn::ECS::TransformComponent>();
+                playerView.each([&](entt::entity entity, JumpGameSample::ECS::PlayerComponent& player, Tsukino::BuiltIn::ECS::TransformComponent& transform) {
+                    if(abs(transform.position.x) > hlslpp::float1(100.0f)) {
+                        const auto& fontView = registry.View<Tsukino::BuiltIn::ECS::FontComponent>();
+                        fontView.each([&](entt::entity entity, Tsukino::BuiltIn::ECS::FontComponent& font) {
+                            font.text = L"GameOver";    // 描画するテキスト
+                        });
+                        mCurrentState = JumpGameSample::ECS::GameState::GameOver;
+                    }
+                });
+            }
+            //-------------------------------------------------------------
             break;
         case JumpGameSample::ECS::GameState::GameOver:
             if(context->inputSystem->IsKeyPressed(Tsukino::Input::KeyCode::Space)) {
