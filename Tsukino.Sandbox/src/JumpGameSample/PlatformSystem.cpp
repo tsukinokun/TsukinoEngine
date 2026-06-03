@@ -52,11 +52,30 @@ namespace JumpGameSample::ECS {
         //-------------------------------------------------------------
         // viewを取得して各パドルを更新
         //-------------------------------------------------------------
-        auto view = registry.View<Tsukino::BuiltIn::ECS::TransformComponent, PlatformComponent>();
-        view.each([&](entt::entity entity, Tsukino::BuiltIn::ECS::TransformComponent& transform, PlatformComponent& platform) {
+        auto view = registry.View<Tsukino::BuiltIn::ECS::TransformComponent, PlatformComponent, Tsukino::BuiltIn::ECS::RigidbodyComponent>();
+        view.each([&](entt::entity entity, Tsukino::BuiltIn::ECS::TransformComponent& transform, PlatformComponent& platform, Tsukino::BuiltIn::ECS::RigidbodyComponent& rb) {
             if(platform.isMoving) {
+                // 移動の適用
                 transform.position.x -= platform.speed * deltaTime;
-                transform.dirty       = true;    // TransformSystemにワールド行列の更新を要求するためにフラグを立てる
+                transform.dirty       = true;
+
+                //-------------------------------------------------------------
+                // 0.0f を超えた（通過した）か判定
+                // 右から左へ（speedが正）移動している場合：xが0.0f以下になったら停止
+                // 左から右へ（speedが負）移動している場合：xが0.0f以上になったら停止
+                //-------------------------------------------------------------
+                bool stopCondition = (platform.speed > 0) ? (transform.position.x <= 0.0f) : (transform.position.x >= 0.0f);
+
+                if(stopCondition) {
+                    // 位置を厳密に 0.0f に固定
+                    transform.position.x = 0.0f;
+                    transform.dirty      = true;
+
+                    // 停止処理
+                    platform.isMoving = false;
+                    rb.type           = Tsukino::BuiltIn::ECS::RigidbodyType::Static;
+                    rb.isTypeDirty    = true;
+                }
             }
         });
     }
