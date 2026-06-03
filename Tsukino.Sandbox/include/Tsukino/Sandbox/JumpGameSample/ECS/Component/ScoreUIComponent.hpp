@@ -1,16 +1,16 @@
 ﻿//-------------------------------------------------------------
-//! @file   ScoreComponent.hpp
-//! @brief  ScoreComponentクラスの宣言
+//! @file   ScoreUIComponent.hpp
+//! @brief  ScoreUIComponentクラスの宣言
 //! @author 山﨑愛
 //-------------------------------------------------------------
 #pragma once
 // 名前空間 : JumpGameSample::ECS
 namespace JumpGameSample::ECS {
     //-------------------------------------------------------------
-    //! @struct ScoreComponent
+    //! @struct ScoreUIComponent
     //! @brief  スコア管理エンティティに必要なComponent
     //-------------------------------------------------------------
-    struct ScoreComponent {
-        int value;    // スコアの値
+    struct ScoreUIComponent {
+        bool dummy = false;
     };
 }    // namespace JumpGameSample::ECS

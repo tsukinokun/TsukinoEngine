@@ -8,11 +8,14 @@
 #include <Tsukino/Sandbox/JumpGameSample/ECS/Component/PlayerComponent.hpp>
 #include <Tsukino/Sandbox/JumpGameSample/ECS/Component/PlatformComponent.hpp>
 #include <Tsukino/Sandbox/JumpGameSample/ECS/Component/PlatformGeneratorComponent.hpp>
+#include <Tsukino/Sandbox/JumpGameSample/ECS/Component/ScoreComponent.hpp>
+#include <Tsukino/Sandbox/JumpGameSample/ECS/Component/ScoreUIComponent.hpp>
 
 #include <Tsukino/Sandbox/JumpGameSample/ECS/System/PlayerSystem.hpp>
 #include <Tsukino/Sandbox/JumpGameSample/ECS/System/PlatformSystem.hpp>
 #include <Tsukino/Sandbox/JumpGameSample/ECS/System/InGameCameraSystem.hpp>
 #include <Tsukino/Sandbox/JumpGameSample/ECS/System/PlatformGeneratorSystem.hpp>
+#include <Tsukino/Sandbox/JumpGameSample/ECS/System/ScoreUISystem.hpp>
 
 #include <Tsukino/BuiltIn/ECS/Component/TransformComponent.hpp>
 #include <Tsukino/BuiltIn/ECS/Component/CameraComponent.hpp>
@@ -79,6 +82,7 @@ namespace Tsukino::Sandbox {
             Animation,
             Physics,
             Camera,
+            ScoreUI,
             Font,
             Render,
             Audio,
@@ -93,6 +97,7 @@ namespace Tsukino::Sandbox {
         m_scene.AddSystem(std::make_shared<Tsukino::BuiltIn::ECS::AnimationSystem>(), (int)SystemPriority::Animation);
         m_scene.AddSystem(std::make_shared<Tsukino::BuiltIn::ECS::PhysicsSystem>(eventBus), (int)SystemPriority::Physics);
         m_scene.AddSystem(std::make_shared<Tsukino::BuiltIn::ECS::CameraSystem>(), (int)SystemPriority::Camera);
+        m_scene.AddSystem(std::make_shared<JumpGameSample::ECS::ScoreUISystem>(), (int)SystemPriority::ScoreUI);
         m_scene.AddSystem(std::make_shared<Tsukino::BuiltIn::ECS::FontRendererSystem>(), (int)SystemPriority::Font);
         m_scene.AddSystem(std::make_shared<Tsukino::BuiltIn::ECS::SpriteRenderSystem>(), (int)SystemPriority::Render);
         m_scene.AddSystem(std::make_shared<Tsukino::BuiltIn::ECS::ModelSystem>(), (int)SystemPriority::Render);
@@ -226,6 +231,14 @@ namespace Tsukino::Sandbox {
         }
 
         //--------------------------------------------------------------
+        // 得点管理エンティティ
+        //--------------------------------------------------------------
+        {
+            Tsukino::ECS::Entity                 scoreManagerEntity = m_scene.CreateEntity();
+            JumpGameSample::ECS::ScoreComponent& scoreComponent     = registry.AddComponent<JumpGameSample::ECS::ScoreComponent>(scoreManagerEntity);
+        }
+
+        //--------------------------------------------------------------
         // 得点用UIエンティティの生成
         //--------------------------------------------------------------
         {
@@ -240,6 +253,9 @@ namespace Tsukino::Sandbox {
             // FontRendererComponent の追加
             Tsukino::BuiltIn::ECS::FontComponent& font = registry.AddComponent<Tsukino::BuiltIn::ECS::FontComponent>(naviEntity);
             font.text                                  = L"";    // 描画するテキスト
+
+            // ScoreUIComponent をつける
+            JumpGameSample::ECS::ScoreUIComponent& scoreUI = registry.AddComponent<JumpGameSample::ECS::ScoreUIComponent>(naviEntity);
         }
     }
 
