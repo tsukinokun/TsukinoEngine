@@ -77,7 +77,7 @@ namespace Tsukino::Sandbox {
 
         // 登録
         m_scene.AddSystem(std::make_shared<Tsukino::BuiltIn::ECS::TransformSystem>(), (int)SystemPriority::Transform);
-        m_scene.AddSystem(std::make_shared<JumpGameSample::ECS::PlayerSystem>(), (int)SystemPriority::Player);
+        m_scene.AddSystem(std::make_shared<JumpGameSample::ECS::PlayerSystem>(eventBus), (int)SystemPriority::Player);
         m_scene.AddSystem(std::make_shared<JumpGameSample::ECS::InGameCameraSystem>(), (int)SystemPriority::InGameCamera);
         m_scene.AddSystem(std::make_shared<JumpGameSample::ECS::PlatformSystem>(), (int)SystemPriority::Platform);
         m_scene.AddSystem(std::make_shared<Tsukino::BuiltIn::ECS::AnimationSystem>(), (int)SystemPriority::Animation);
