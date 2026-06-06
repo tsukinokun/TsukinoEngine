@@ -68,6 +68,12 @@ namespace Tsukino::Renderer {
         if(!CreateDebugBuffers())
             return false;
 
+        //------------------------------------------------------------
+        // シャドウマップ用リソースの作成
+        //------------------------------------------------------------
+        if(!CreateShadowMap())
+            return false;
+
         return true;
     }
 
@@ -398,6 +404,86 @@ namespace Tsukino::Renderer {
     }
 
     //------------------------------------------------------------
+    //! @brief シャドウマップ用リソースの作成
+    //------------------------------------------------------------
+    bool Renderer::CreateShadowMap() {
+        ID3D11Device* device = m_graphicsContext.GetDevice();
+
+        //------------------------------------------------------------
+        // シャドウマップテクスチャの作成
+        // R32_TYPELESS : DSV(D32_FLOAT)とSRV(R32_FLOAT)で共有するため
+        //------------------------------------------------------------
+        D3D11_TEXTURE2D_DESC texDesc{};
+        texDesc.Width            = SHADOW_MAP_SIZE;
+        texDesc.Height           = SHADOW_MAP_SIZE;
+        texDesc.MipLevels        = 1;
+        texDesc.ArraySize        = 1;
+        texDesc.Format           = DXGI_FORMAT_R32_TYPELESS;
+        texDesc.SampleDesc.Count = 1;
+        texDesc.Usage            = D3D11_USAGE_DEFAULT;
+        texDesc.BindFlags        = D3D11_BIND_DEPTH_STENCIL | D3D11_BIND_SHADER_RESOURCE;
+
+        HRESULT hr = device->CreateTexture2D(&texDesc, nullptr, m_shadowMapTex.GetAddressOf());
+        if(FAILED(hr)) {
+            Tsukino::Core::Log::Error("Failed to create shadow map texture.");
+            return false;
+        }
+
+        //------------------------------------------------------------
+        // DSVの作成（深度書き込み用）
+        //------------------------------------------------------------
+        D3D11_DEPTH_STENCIL_VIEW_DESC dsvDesc{};
+        dsvDesc.Format        = DXGI_FORMAT_D32_FLOAT;
+        dsvDesc.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2D;
+
+        hr = device->CreateDepthStencilView(m_shadowMapTex.Get(), &dsvDesc, m_shadowMapDSV.GetAddressOf());
+        if(FAILED(hr)) {
+            Tsukino::Core::Log::Error("Failed to create shadow map DSV.");
+            return false;
+        }
+
+        //------------------------------------------------------------
+        // SRVの作成（PSでのサンプリング用）
+        //------------------------------------------------------------
+        D3D11_SHADER_RESOURCE_VIEW_DESC srvDesc{};
+        srvDesc.Format                    = DXGI_FORMAT_R32_FLOAT;
+        srvDesc.ViewDimension             = D3D11_SRV_DIMENSION_TEXTURE2D;
+        srvDesc.Texture2D.MipLevels       = 1;
+        srvDesc.Texture2D.MostDetailedMip = 0;
+
+        hr = device->CreateShaderResourceView(m_shadowMapTex.Get(), &srvDesc, m_shadowMapSRV.GetAddressOf());
+        if(FAILED(hr)) {
+            Tsukino::Core::Log::Error("Failed to create shadow map SRV.");
+            return false;
+        }
+
+        //------------------------------------------------------------
+        // PCF用比較サンプラーの作成
+        // SampleCmpLevelZero で使用する
+        //------------------------------------------------------------
+        D3D11_SAMPLER_DESC samplerDesc{};
+        samplerDesc.Filter         = D3D11_FILTER_COMPARISON_MIN_MAG_MIP_LINEAR;
+        samplerDesc.AddressU       = D3D11_TEXTURE_ADDRESS_BORDER;
+        samplerDesc.AddressV       = D3D11_TEXTURE_ADDRESS_BORDER;
+        samplerDesc.AddressW       = D3D11_TEXTURE_ADDRESS_BORDER;
+        samplerDesc.BorderColor[0] = 1.0f;    // 範囲外は「影なし」にする
+        samplerDesc.BorderColor[1] = 1.0f;
+        samplerDesc.BorderColor[2] = 1.0f;
+        samplerDesc.BorderColor[3] = 1.0f;
+        samplerDesc.ComparisonFunc = D3D11_COMPARISON_LESS_EQUAL;
+        samplerDesc.MinLOD         = 0;
+        samplerDesc.MaxLOD         = D3D11_FLOAT32_MAX;
+
+        hr = device->CreateSamplerState(&samplerDesc, m_shadowSampler.GetAddressOf());
+        if(FAILED(hr)) {
+            Tsukino::Core::Log::Error("Failed to create shadow sampler.");
+            return false;
+        }
+
+        return true;
+    }
+
+    //------------------------------------------------------------
     //! @brief 描画コマンドの実行
     //------------------------------------------------------------
     void Renderer::ExecuteDrawCommand(const DrawCommand& cmd) {
@@ -578,5 +664,48 @@ namespace Tsukino::Renderer {
             return false;
 
         return true;
+    }
+
+    //------------------------------------------------------------
+    //! @brief ディレクショナルライトの設定
+    //------------------------------------------------------------
+    void Renderer::SetDirectionalLight(const hlslpp::float3& direction, const hlslpp::float3& color, float intensity) {
+        //------------------------------------------------------------
+        // ライト方向を正規化
+        //------------------------------------------------------------
+        hlslpp::float3 normalizedDir = hlslpp::normalize(direction);
+
+        //------------------------------------------------------------
+        // lightViewProj の計算
+        // ディレクショナルライトは平行投影を使う
+        //------------------------------------------------------------
+
+        // ライトの位置はシーンから十分離れた場所に置く
+        hlslpp::float3 lightPos = -normalizedDir * 500.0f;
+        hlslpp::float3 target   = hlslpp::float3(0.0f, 0.0f, 0.0f);
+        hlslpp::float3 up       = hlslpp::float3(0.0f, 1.0f, 0.0f);
+
+        // ライト方向が真上/真下に近いときupベクトルが平行になるので回避
+        float dotUp = std::abs(hlslpp::dot(normalizedDir, up));
+        if(dotUp > 0.99f) {
+            up = hlslpp::float3(0.0f, 0.0f, 1.0f);
+        }
+
+        // LookAt でライトのView行列を作成
+        Tsukino::Core::Math::matrix lightView = Tsukino::Core::Math::matrix::lookAtLH(lightPos, target, up);
+        // 平行投影でライトのProj行列を作成
+        Tsukino::Core::Math::matrix lightProj = Tsukino::Core::Math::matrix::orthographicOffCenterLH(-500.0f,    // left
+                                                                                                     500.0f,     // right
+                                                                                                     -500.0f,    // bottom
+                                                                                                     500.0f,     // top
+                                                                                                     1.0f,       // near
+                                                                                                     2000.0f     // far
+        );
+
+        //------------------------------------------------------------
+        // m_worldSceneData に書き込む
+        //------------------------------------------------------------
+        m_worldSceneData.lightViewProj = hlslpp::mul(lightView, lightProj);
+        m_worldSceneData.lightDir      = hlslpp::float4(normalizedDir.x, normalizedDir.y, normalizedDir.z, 0.0f);
     }
 }    // namespace Tsukino::Renderer
