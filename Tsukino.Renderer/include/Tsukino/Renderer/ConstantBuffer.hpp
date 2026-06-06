@@ -16,6 +16,8 @@ namespace Tsukino::Renderer {
         Tsukino::Core::Math::matrix view;
         Tsukino::Core::Math::matrix projection;
         Tsukino::Core::Math::matrix viewProj;
+        Tsukino::Core::Math::matrix lightViewProj;    //!< ライト空間のViewProjection行列
+        hlslpp::float4              lightDir;         //!< ライトの方向
     };
 
     //--------------------------------------------------------------

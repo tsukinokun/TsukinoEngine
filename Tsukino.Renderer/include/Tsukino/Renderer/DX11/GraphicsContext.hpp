@@ -90,6 +90,10 @@ namespace Tsukino::Renderer {
 
         // DepthStencilView
         Microsoft::WRL::ComPtr<ID3D11DepthStencilView> m_dsv;
+
+        UINT m_width  = 0;    //!< 描画領域の幅
+        UINT m_height = 0;    //!< 描画領域の高さ
+
     };
 
 }    // namespace Tsukino::Renderer

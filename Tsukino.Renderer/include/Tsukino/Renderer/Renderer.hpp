@@ -183,6 +183,21 @@ namespace Tsukino::Renderer {
         //------------------------------------------------------------
         DirectX::CommonStates* GetCommonStatesTK() const { return m_commonStatesTK.get(); }
 
+        //------------------------------------------------------------
+        //! @brief ディレクショナルライトの設定
+        //! @param direction [in] ライトの方向（正規化推奨）
+        //! @param color     [in] ライトの色
+        //! @param intensity [in] ライトの強度
+        //------------------------------------------------------------
+        void SetDirectionalLight(const hlslpp::float3& direction, const hlslpp::float3& color, float intensity);
+
+        //------------------------------------------------------------
+        //! @brief シャドウパイプラインのセット
+        //! @param staticPipeline   [in] スタティックメッシュ用シャド
+        //! @param skeletalPipeline [in] スケルタルメッシュ用シャドウパイプライン
+        //------------------------------------------------------------
+        void SetShadowPipeline(std::shared_ptr<PipelineState> staticPipeline, std::shared_ptr<PipelineState> skeletalPipeline);
+
     private:
         //------------------------------------------------------------
         // 定数バッファの作成
@@ -218,6 +233,19 @@ namespace Tsukino::Renderer {
         [[nodiscard]]
         bool CreateDebugBuffers();
 
+        //------------------------------------------------------------
+        //! @brief シャドウマップ用リソースの作成
+        //! @return true: 作成成功, false: 作成失敗
+        //------------------------------------------------------------
+        [[nodiscard]]
+        bool CreateShadowMap();
+
+        //------------------------------------------------------------
+        //! @brief シャドウパスの実行（シャドウマップへの深度書き込み）
+        //! @param cmd [in] 実行する描画コマンド
+        //------------------------------------------------------------
+        void ExecuteShadowCommand(const DrawCommand& cmd);
+
     private:
         // DirectX 11の主要なインターフェース
         GraphicsContext            m_graphicsContext;    // グラフィックスコンテキスト（Device, DeviceContext, SwapChainを管理）
@@ -231,6 +259,23 @@ namespace Tsukino::Renderer {
         ComPtr<ID3D11Buffer> m_sceneBuffer;       // シーンデータ用定数バッファ
         ComPtr<ID3D11Buffer> m_materialBuffer;    // マテリアルデータ用定数バッファ
         ComPtr<ID3D11Buffer> m_skinningBuffer;    // ボーン行列用バッファ
+
+        // シャドウマップ用リソース
+        static constexpr uint32_t        SHADOW_MAP_SIZE = 2048;
+        ComPtr<ID3D11Texture2D>          m_shadowMapTex;     //!< シャドウマップテクスチャ
+        ComPtr<ID3D11DepthStencilView>   m_shadowMapDSV;     //!< シャドウマップDSV（深度書き込み用）
+        ComPtr<ID3D11ShaderResourceView> m_shadowMapSRV;     //!< シャドウマップSRV（PSでのサンプリング用）
+        ComPtr<ID3D11SamplerState>       m_shadowSampler;    //!< PCF用比較サンプラー
+
+        // シャドウ用シェーダー
+        ComPtr<ID3D11VertexShader> m_shadowVS;            //!< スタティック用シャドウVS
+        ComPtr<ID3D11VertexShader> m_shadowSkeletalVS;    //!< スケルタル用シャドウVS
+        ComPtr<ID3D11InputLayout>  m_shadowStaticIL;      //!< スタティック用入力レイアウト
+        ComPtr<ID3D11InputLayout>  m_shadowSkeletalIL;    //!< スケルタル用入力レイアウト
+
+        // シャドウ用パイプラインステート
+        std::shared_ptr<PipelineState> m_shadowStaticPipeline;      //!< スタティック用シャドウパイプライン
+        std::shared_ptr<PipelineState> m_shadowSkeletalPipeline;    //!< スケルタル用シャドウパイプライン
 
         std::array<float, 4> m_clearColor = {0.5f, 0.5f, 0.5f, 1.0f};    // 描画領域のクリアカラー (デフォルトはグレー)
 

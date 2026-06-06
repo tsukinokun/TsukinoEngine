@@ -21,5 +21,8 @@ namespace Tsukino::BuiltIn {
         staticModelVS = assetManager->Load(Tsukino::Core::Path("Tsukino.BuiltIn/Assets/Shaders/ModelStatic.vs.hlsl"));
         debugVS       = assetManager->Load(Tsukino::Core::Path("Tsukino.BuiltIn/Assets/Shaders/Debug.vs.hlsl"));
         debugPS       = assetManager->Load(Tsukino::Core::Path("Tsukino.BuiltIn/Assets/Shaders/Debug.ps.hlsl"));
+        shadowVS       = assetManager->Load(Tsukino::Core::Path("Tsukino.BuiltIn/Assets/Shaders/ShadowMap.vs.hlsl"));
+        shadowStaticVS = assetManager->Load(Tsukino::Core::Path("Tsukino.BuiltIn/Assets/Shaders/ShadowMapStatic.vs.hlsl"));
+        shadowPS       = assetManager->Load(Tsukino::Core::Path("Tsukino.BuiltIn/Assets/Shaders/ShadowMap.ps.hlsl"));
     }
 }    // namespace Tsukino::BuiltIn
