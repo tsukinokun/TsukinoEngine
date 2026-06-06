@@ -73,6 +73,7 @@ namespace Tsukino::Renderer {
         rasterDesc.DepthClipEnable       = TRUE;
         m_device->CreateRasterizerState(&rasterDesc, p->rasterizer.GetAddressOf());
 
+        p->topology = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
 
         // 4. キャッシュに保存してから返す
         m_cache[key] = p;
