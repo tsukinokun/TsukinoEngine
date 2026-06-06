@@ -31,5 +31,8 @@ namespace Tsukino::BuiltIn {
         Tsukino::Asset::AssetHandle staticModelVS;    // アニメーションなしモデル用頂点シェーダーのハンドル
         Tsukino::Asset::AssetHandle debugVS;          // デバッグ用頂点シェーダーのハンドル
         Tsukino::Asset::AssetHandle debugPS;          // デバッグ用ピクセルシェーダーのハンドル
+        Tsukino::Asset::AssetHandle shadowVS;         // シャドウマップ用頂点シェーダー（スケルタル）のハンドル
+        Tsukino::Asset::AssetHandle shadowStaticVS;    // シャドウマップ用頂点シェーダー（スタティック）のハンドル
+        Tsukino::Asset::AssetHandle shadowPS;          // シャドウマップ用ピクセルシェーダーのハンドル
     };
 }    // namespace Tsukino::BuiltIn
