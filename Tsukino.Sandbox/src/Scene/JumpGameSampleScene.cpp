@@ -28,6 +28,7 @@
 #include <Tsukino/BuiltIn/ECS/Component/CollisionComponent.hpp>
 #include <Tsukino/BuiltIn/ECS/Component/RigidBodyComponent.hpp>
 #include <Tsukino/BuiltIn/ECS/Component/AnimationControllerComponent.hpp>
+#include <Tsukino/BuiltIn/ECS/Component/DirectionalLightComponent.hpp>
 
 #include <Tsukino/BuiltIn/ECS/Serialization/TransformComponentSerialization.hpp>
 #include <Tsukino/BuiltIn/ECS/Serialization/CameraComponentSerialization.hpp>
@@ -40,6 +41,7 @@
 #include <Tsukino/EngineIntegration/ECS/System/PhysicsSystem.hpp>
 #include <Tsukino/EngineIntegration/ECS/System/ModelSystem.hpp>
 #include <Tsukino/EngineIntegration/ECS/System/AnimationSystem.hpp>
+#include <Tsukino/EngineIntegration/ECS/System/DirectionalLightSystem.hpp>
 
 #include <Tsukino/EngineIntegration/EngineAPI.hpp>
 #include <Tsukino/EngineIntegration/EngineContext.hpp>
@@ -81,6 +83,7 @@ namespace Tsukino::Sandbox {
             Platform,
             Animation,
             Physics,
+            DirectionalLightSystem,
             Camera,
             ScoreUI,
             Font,
@@ -96,6 +99,7 @@ namespace Tsukino::Sandbox {
         m_scene.AddSystem(std::make_shared<JumpGameSample::ECS::PlatformSystem>(), (int)SystemPriority::Platform);
         m_scene.AddSystem(std::make_shared<Tsukino::BuiltIn::ECS::AnimationSystem>(), (int)SystemPriority::Animation);
         m_scene.AddSystem(std::make_shared<Tsukino::BuiltIn::ECS::PhysicsSystem>(eventBus), (int)SystemPriority::Physics);
+        m_scene.AddSystem(std::make_shared<Tsukino::BuiltIn::ECS::DirectionalLightSystem>(), (int)SystemPriority::DirectionalLightSystem);
         m_scene.AddSystem(std::make_shared<Tsukino::BuiltIn::ECS::CameraSystem>(), (int)SystemPriority::Camera);
         m_scene.AddSystem(std::make_shared<JumpGameSample::ECS::ScoreUISystem>(), (int)SystemPriority::ScoreUI);
         m_scene.AddSystem(std::make_shared<Tsukino::BuiltIn::ECS::FontRendererSystem>(), (int)SystemPriority::Font);
@@ -256,6 +260,18 @@ namespace Tsukino::Sandbox {
 
             // ScoreUIComponent をつける
             JumpGameSample::ECS::ScoreUIComponent& scoreUI = registry.AddComponent<JumpGameSample::ECS::ScoreUIComponent>(naviEntity);
+        }
+
+        //--------------------------------------------------------------
+        // ディレクショナルライトエンティティの生成
+        //--------------------------------------------------------------
+        {
+            Tsukino::ECS::Entity                              lightEntity = m_scene.CreateEntity();
+            Tsukino::BuiltIn::ECS::DirectionalLightComponent& light = registry.AddComponent<Tsukino::BuiltIn::ECS::DirectionalLightComponent>(lightEntity);
+            light.direction                                         = hlslpp::float3(1.0f, -1.0f, -1.0f);    // 斜め上から照らす
+            light.color                                             = hlslpp::float3(1.0f, 1.0f, 1.0f);
+            light.intensity                                         = 1.0f;
+            light.castShadow                                        = true;
         }
     }
 

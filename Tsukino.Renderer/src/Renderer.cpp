@@ -409,6 +409,7 @@ namespace Tsukino::Renderer {
         // スロット0（b0）にバインドする
         //------------------------------------------------------------
         context->VSSetConstantBuffers(0, 1, m_sceneBuffer.GetAddressOf());
+        context->PSSetConstantBuffers(0, 1, m_sceneBuffer.GetAddressOf());
     }
 
     //------------------------------------------------------------
@@ -423,7 +424,10 @@ namespace Tsukino::Renderer {
     //! @brief ワールドカメラ行列のセット
     //------------------------------------------------------------
     void Renderer::SetWorldCameraMatrix(const CBufferScene& data) {
-        m_worldSceneData = data;    // メンバ変数に保存
+        // カメラ行列のみ更新し、ライト情報は上書きしない
+        m_worldSceneData.view       = data.view;
+        m_worldSceneData.projection = data.projection;
+        m_worldSceneData.viewProj   = data.viewProj;
     }
 
     //------------------------------------------------------------

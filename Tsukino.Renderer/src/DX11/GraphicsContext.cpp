@@ -100,6 +100,10 @@ namespace Tsukino::Renderer {
         // DSV 作成
         m_device->CreateDepthStencilView(depthTex.Get(), nullptr, m_dsv.GetAddressOf());
 
+        // 画面サイズを保存
+        m_width  = width;
+        m_height = height;
+
         return true;
     }
 
@@ -117,6 +121,16 @@ namespace Tsukino::Renderer {
 
         // 深度ステンシルクリア
         m_context->ClearDepthStencilView(m_dsv.Get(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
+
+        // シャドウパスで変更されたビューポートを元に戻す
+        D3D11_VIEWPORT vp{};
+        vp.TopLeftX = 0.0f;
+        vp.TopLeftY = 0.0f;
+        vp.Width    = static_cast<float>(m_width);
+        vp.Height   = static_cast<float>(m_height);
+        vp.MinDepth = 0.0f;
+        vp.MaxDepth = 1.0f;
+        m_context->RSSetViewports(1, &vp);
     }
 
     //--------------------------------------------------------------
