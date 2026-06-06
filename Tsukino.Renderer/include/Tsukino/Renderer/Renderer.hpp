@@ -65,7 +65,7 @@ namespace Tsukino::Renderer {
         //! @return true: [in] 初期化成功, false: 初期化失敗
         //------------------------------------------------------------
         [[nodiscard]]
-        bool Initialize(HWND hwnd, uint32_t width, uint32_t height);
+        bool Initialize(HWND hwnd, uint32_t width, uint32_t height, const Tsukino::Asset::ShaderAsset* debugVS, const Tsukino::Asset::ShaderAsset* debugPS);
 
         //------------------------------------------------------------
         // 描画処理
@@ -231,7 +231,7 @@ namespace Tsukino::Renderer {
         //! @return true: 作成成功, false: 作成失敗
         //------------------------------------------------------------
         [[nodiscard]]
-        bool CreateDebugBuffers();
+        bool CreateDebugBuffers(const Tsukino::Asset::ShaderAsset* vs, const Tsukino::Asset::ShaderAsset* ps);
 
         //------------------------------------------------------------
         //! @brief シャドウマップ用リソースの作成

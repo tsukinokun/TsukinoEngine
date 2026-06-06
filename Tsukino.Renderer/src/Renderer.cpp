@@ -9,6 +9,8 @@
 #include <Tsukino/Renderer/ShaderLoader.hpp>
 #include <Tsukino/Renderer/ConstantBuffer.hpp>
 
+#include <Tsukino/Engine/Asset/Shader/ShaderAsset.hpp>
+
 #include <Tsukino/GraphicsCommon/Mesh/MeshPrimitives.hpp>
 
 #include <Tsukino/Core/Log.hpp>
@@ -24,7 +26,8 @@ namespace Tsukino::Renderer {
     //------------------------------------------------------------
     //! @brief レンダラーの初期化
     //------------------------------------------------------------
-    bool Renderer::Initialize(HWND hwnd, uint32_t width, uint32_t height) {
+    bool Renderer::Initialize(
+        HWND hwnd, uint32_t width, uint32_t height, const Tsukino::Asset::ShaderAsset* debugVS, const Tsukino::Asset::ShaderAsset* debugPS) {
         // グラフィックスコンテキストの初期化
         if(!m_graphicsContext.Initialize(hwnd, width, height)) {
             return false;
@@ -65,7 +68,7 @@ namespace Tsukino::Renderer {
         //------------------------------------------------------------
         // デバッグ用バッファの作成
         //------------------------------------------------------------
-        if(!CreateDebugBuffers())
+        if(!CreateDebugBuffers(debugVS, debugPS))
             return false;
 
         //------------------------------------------------------------
@@ -135,48 +138,57 @@ namespace Tsukino::Renderer {
     //------------------------------------------------------------
     //! @brief デバッグ用バッファの作成
     //------------------------------------------------------------
-    bool Renderer::CreateDebugBuffers() {
-        ID3D11Device* device = m_graphicsContext.GetDevice();
-
-        // 頂点シェーダのコンパイルと読み込み
-        Microsoft::WRL::ComPtr<ID3DBlob> vsBlob;
-        Microsoft::WRL::ComPtr<ID3DBlob> errorBlob;
-        HRESULT                          hr = D3DCompileFromFile(
-            L"Tsukino.BuiltIn/Assets/Shaders/DebugLine.vs.hlsl", nullptr, nullptr, "VSMain", "vs_5_0", D3DCOMPILE_ENABLE_STRICTNESS, 0, &vsBlob, &errorBlob);
-        if(FAILED(hr)) {
-            if(errorBlob)
-                OutputDebugStringA((char*)errorBlob->GetBufferPointer());
+    bool Renderer::CreateDebugBuffers(const Tsukino::Asset::ShaderAsset* vs, const Tsukino::Asset::ShaderAsset* ps) {
+        if(!vs || !ps) {
+            Tsukino::Core::Log::Error("Debug shader assets are null.");
             return false;
         }
-        device->CreateVertexShader(vsBlob->GetBufferPointer(), vsBlob->GetBufferSize(), nullptr, m_debugVS.GetAddressOf());
 
-        // ピクセルシェーダのコンパイルと読み込み
-        Microsoft::WRL::ComPtr<ID3DBlob> psBlob;
-        hr = D3DCompileFromFile(
-            L"Tsukino.BuiltIn/Assets/Shaders/DebugLine.ps.hlsl", nullptr, nullptr, "PSMain", "ps_5_0", D3DCOMPILE_ENABLE_STRICTNESS, 0, &psBlob, &errorBlob);
+            ID3D11Device* device = m_graphicsContext.GetDevice();
+
+        // 頂点シェーダーの作成
+        HRESULT hr = device->CreateVertexShader(vs->binary.data(), vs->binary.size(), nullptr, m_debugVS.GetAddressOf());
         if(FAILED(hr)) {
-            if(errorBlob)
-                OutputDebugStringA((char*)errorBlob->GetBufferPointer());
+            Tsukino::Core::Log::Error("Failed to create debug vertex shader.");
             return false;
         }
-        device->CreatePixelShader(psBlob->GetBufferPointer(), psBlob->GetBufferSize(), nullptr, m_debugPS.GetAddressOf());
+
+        // ピクセルシェーダーの作成
+        hr = device->CreatePixelShader(ps->binary.data(), ps->binary.size(), nullptr, m_debugPS.GetAddressOf());
+        if(FAILED(hr)) {
+            Tsukino::Core::Log::Error("Failed to create debug pixel shader.");
+            return false;
+        }
 
         // 入力レイアウトの作成
         D3D11_INPUT_ELEMENT_DESC layout[] = {
             {"POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT,    0, offsetof(Tsukino::GraphicsCommon::DebugVertex, position), D3D11_INPUT_PER_VERTEX_DATA, 0},
             {"COLOR",    0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, offsetof(Tsukino::GraphicsCommon::DebugVertex, color),    D3D11_INPUT_PER_VERTEX_DATA, 0},
         };
-        device->CreateInputLayout(layout, ARRAYSIZE(layout), vsBlob->GetBufferPointer(), vsBlob->GetBufferSize(), m_debugIL.GetAddressOf());
+        hr = device->CreateInputLayout(layout, ARRAYSIZE(layout), vs->binary.data(), vs->binary.size(), m_debugIL.GetAddressOf());
+        if(FAILED(hr)) {
+            Tsukino::Core::Log::Error("Failed to create debug input layout.");
+            return false;
+        }
 
         // 動的頂点バッファの作成
-        D3D11_BUFFER_DESC bd = {};
-        bd.Usage             = D3D11_USAGE_DYNAMIC;
-        bd.ByteWidth         = sizeof(Tsukino::GraphicsCommon::DebugVertex) * 50000;    // 最大 50,000 頂点
-        bd.BindFlags         = D3D11_BIND_VERTEX_BUFFER;
-        bd.CPUAccessFlags    = D3D11_CPU_ACCESS_WRITE;
+        D3D11_BUFFER_DESC bd{};
+        bd.Usage          = D3D11_USAGE_DYNAMIC;
+        bd.ByteWidth      = sizeof(Tsukino::GraphicsCommon::DebugVertex) * 50000;
+        bd.BindFlags      = D3D11_BIND_VERTEX_BUFFER;
+        bd.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
 
-        device->CreateBuffer(&bd, nullptr, m_debugLineVB.GetAddressOf());
-        device->CreateBuffer(&bd, nullptr, m_debugTriangleVB.GetAddressOf());
+        hr = device->CreateBuffer(&bd, nullptr, m_debugLineVB.GetAddressOf());
+        if(FAILED(hr)) {
+            Tsukino::Core::Log::Error("Failed to create debug line vertex buffer.");
+            return false;
+        }
+
+        hr = device->CreateBuffer(&bd, nullptr, m_debugTriangleVB.GetAddressOf());
+        if(FAILED(hr)) {
+            Tsukino::Core::Log::Error("Failed to create debug triangle vertex buffer.");
+            return false;
+        }
 
         return true;
     }

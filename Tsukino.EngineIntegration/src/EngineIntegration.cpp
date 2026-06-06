@@ -5,6 +5,8 @@
 //------------------------------------------------------------
 #include <Tsukino/EngineIntegration/EngineIntegration.hpp>
 
+#include <Tsukino/Engine/Asset/Shader/ShaderAsset.hpp>
+
 #include <Tsukino/BuiltIn/ECS/Component/CameraComponent.hpp>
 #include <Tsukino/BuiltIn/ECS/Component/TransformComponent.hpp>
 #include <Tsukino/BuiltIn/ECS/Component/RigidbodyComponent.hpp>
@@ -128,10 +130,13 @@ namespace Tsukino::EngineIntegration {
             }
         });
 
+        auto vsAsset = std::static_pointer_cast<Tsukino::Asset::ShaderAsset>(m_assetManager->Get(m_builtinAssets->shaders.debugVS));
+        auto psAsset = std::static_pointer_cast<Tsukino::Asset::ShaderAsset>(m_assetManager->Get(m_builtinAssets->shaders.debugPS));
+
         //--------------------------------------------------------------
         // レンダラー生成
         //--------------------------------------------------------------
-        if(!m_renderer->Initialize(m_window->GetHWND(), m_window->GetWidth(), m_window->GetHeight())) {
+        if(!m_renderer->Initialize(m_window->GetHWND(), m_window->GetWidth(), m_window->GetHeight(), vsAsset.get(), psAsset.get())) {
             return false;
         }
 
