@@ -204,17 +204,52 @@ namespace Tsukino::Renderer {
     //! @brief 描画処理
     //------------------------------------------------------------
     void Renderer::Render() {
-        // 設定されたクリアカラーで画面をクリア
         m_graphicsContext.BeginFrame(m_clearColor[0], m_clearColor[1], m_clearColor[2], m_clearColor[3]);
 
-        //------------------------------------------------------------
-        // 描画コマンドの実行
-        //------------------------------------------------------------
         const auto& commands = m_drawQueue.GetCommands();
+
+        //------------------------------------------------------------
+        // Shadow パス
+        //------------------------------------------------------------
+        if(m_shadowStaticPipeline || m_shadowSkeletalPipeline) {
+            ID3D11DeviceContext* context = m_graphicsContext.GetContext();
+
+            // シャドウマップをクリア
+            context->ClearDepthStencilView(m_shadowMapDSV.Get(), D3D11_CLEAR_DEPTH, 1.0f, 0);
+
+            // カラーRTをnullにしてDSVだけセット
+            ID3D11RenderTargetView* nullRTV = nullptr;
+            context->OMSetRenderTargets(1, &nullRTV, m_shadowMapDSV.Get());
+
+            // シャドウマップ解像度でビューポートをセット
+            D3D11_VIEWPORT vp{};
+            vp.Width    = static_cast<float>(SHADOW_MAP_SIZE);
+            vp.Height   = static_cast<float>(SHADOW_MAP_SIZE);
+            vp.MaxDepth = 1.0f;
+            context->RSSetViewports(1, &vp);
+
+            UpdateSceneBuffer(m_worldSceneData);
+
+            for(const auto& cmd : commands) {
+                if(cmd.pass != RenderPass::World)
+                    continue;
+                ExecuteShadowCommand(cmd);
+            }
+
+            // RTとビューポートをBeginFrame時の状態に戻す
+            m_graphicsContext.BeginFrame(m_clearColor[0], m_clearColor[1], m_clearColor[2], m_clearColor[3]);
+        }
 
         //------------------------------------------------------------
         // World パス
         //------------------------------------------------------------
+        {
+            ID3D11DeviceContext* context = m_graphicsContext.GetContext();
+            // シャドウマップをt1・s1にバインド
+            context->PSSetShaderResources(1, 1, m_shadowMapSRV.GetAddressOf());
+            context->PSSetSamplers(1, 1, m_shadowSampler.GetAddressOf());
+        }
+
         UpdateSceneBuffer(m_worldSceneData);
         for(const auto& cmd : commands) {
             if(cmd.pass != RenderPass::World)
@@ -222,8 +257,15 @@ namespace Tsukino::Renderer {
             ExecuteDrawCommand(cmd);
         }
 
+        // シャドウマップのバインドを解除（DSVとSRVの同時バインド防止）
+        {
+            ID3D11DeviceContext*      context = m_graphicsContext.GetContext();
+            ID3D11ShaderResourceView* nullSRV = nullptr;
+            context->PSSetShaderResources(1, 1, &nullSRV);
+        }
+
         //------------------------------------------------------------
-        // Overlayパス
+        // Overlay パス
         //------------------------------------------------------------
         UpdateSceneBuffer(m_overlaySceneData);
         for(const auto& cmd : commands) {
@@ -232,10 +274,7 @@ namespace Tsukino::Renderer {
             ExecuteDrawCommand(cmd);
         }
 
-        // 描画コマンドのクリア
         m_drawQueue.Clear();
-
-        // 表示
         m_graphicsContext.EndFrame();
     }
 
@@ -481,6 +520,86 @@ namespace Tsukino::Renderer {
         }
 
         return true;
+    }
+
+    //------------------------------------------------------------
+    //! @brief シャドウパスの実行（シャドウマップへの深度書き込み）
+    //------------------------------------------------------------
+    void Renderer::ExecuteShadowCommand(const DrawCommand& cmd) {
+        if(!cmd.mesh)
+            return;
+
+        ID3D11DeviceContext* context = m_graphicsContext.GetContext();
+
+        bool isSkeletal = cmd.boneMatrices && cmd.boneCount > 0;
+
+        //------------------------------------------------------------
+        // シャドウ用パイプラインをセット
+        //------------------------------------------------------------
+        auto* pipeline = isSkeletal ? m_shadowSkeletalPipeline.get() : m_shadowStaticPipeline.get();
+
+        if(!pipeline)
+            return;
+
+        m_graphicsContext.SetPipelineState(*pipeline);
+
+        //------------------------------------------------------------
+        // Scene (b0) を再バインド
+        //------------------------------------------------------------
+        context->VSSetConstantBuffers(0, 1, m_sceneBuffer.GetAddressOf());
+
+        //------------------------------------------------------------
+        // Transform (b1)
+        //------------------------------------------------------------
+        CBufferTransform cb{};
+        cb.world = cmd.transform;
+        context->UpdateSubresource(m_objectBuffer.Get(), 0, nullptr, &cb, 0, 0);
+        context->VSSetConstantBuffers(1, 1, m_objectBuffer.GetAddressOf());
+
+        //------------------------------------------------------------
+        // ボーン行列 (b3)
+        //------------------------------------------------------------
+        if(isSkeletal) {
+            CBufferSkinning cbSkin{};
+            uint32_t        copyCount = std::min(cmd.boneCount, 128u);
+            std::memcpy(cbSkin.bones, cmd.boneMatrices, sizeof(hlslpp::float4x4) * copyCount);
+            context->UpdateSubresource(m_skinningBuffer.Get(), 0, nullptr, &cbSkin, 0, 0);
+            context->VSSetConstantBuffers(3, 1, m_skinningBuffer.GetAddressOf());
+        } else {
+            ID3D11Buffer* nullBuffer = nullptr;
+            context->VSSetConstantBuffers(3, 1, &nullBuffer);
+        }
+
+        //------------------------------------------------------------
+        // 頂点バッファ・インデックスバッファのセット
+        //------------------------------------------------------------
+        if(isSkeletal && cmd.mesh->boneWeightBuffer.Get() != nullptr) {
+            ID3D11Buffer* vbs[]     = {cmd.mesh->vertexBuffer.Get(), cmd.mesh->boneWeightBuffer.Get()};
+            UINT          strides[] = {cmd.mesh->stride, sizeof(Tsukino::GraphicsCommon::BoneWeight)};
+            UINT          offsets[] = {0, 0};
+            context->IASetVertexBuffers(0, 2, vbs, strides, offsets);
+        } else {
+            ID3D11Buffer* vbs[]     = {cmd.mesh->vertexBuffer.Get(), nullptr};
+            UINT          strides[] = {cmd.mesh->stride, 0};
+            UINT          offsets[] = {0, 0};
+            context->IASetVertexBuffers(0, 2, vbs, strides, offsets);
+        }
+
+        context->IASetIndexBuffer(cmd.mesh->indexBuffer.Get(), DXGI_FORMAT_R32_UINT, 0);
+        context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+
+        //------------------------------------------------------------
+        // 描画
+        //------------------------------------------------------------
+        context->DrawIndexed(cmd.mesh->indexCount, 0, 0);
+    }
+
+    //------------------------------------------------------------
+    //! @brief シャドウパイプラインのセット
+    //------------------------------------------------------------
+    void Renderer::SetShadowPipeline(std::shared_ptr<PipelineState> staticPipeline, std::shared_ptr<PipelineState> skeletalPipeline) {
+        m_shadowStaticPipeline   = staticPipeline;
+        m_shadowSkeletalPipeline = skeletalPipeline;
     }
 
     //------------------------------------------------------------

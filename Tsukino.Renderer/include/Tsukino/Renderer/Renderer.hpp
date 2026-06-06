@@ -191,6 +191,13 @@ namespace Tsukino::Renderer {
         //------------------------------------------------------------
         void SetDirectionalLight(const hlslpp::float3& direction, const hlslpp::float3& color, float intensity);
 
+        //------------------------------------------------------------
+        //! @brief シャドウパイプラインのセット
+        //! @param staticPipeline   [in] スタティックメッシュ用シャド
+        //! @param skeletalPipeline [in] スケルタルメッシュ用シャドウパイプライン
+        //------------------------------------------------------------
+        void SetShadowPipeline(std::shared_ptr<PipelineState> staticPipeline, std::shared_ptr<PipelineState> skeletalPipeline);
+
     private:
         //------------------------------------------------------------
         // 定数バッファの作成
@@ -265,6 +272,10 @@ namespace Tsukino::Renderer {
         ComPtr<ID3D11VertexShader> m_shadowSkeletalVS;    //!< スケルタル用シャドウVS
         ComPtr<ID3D11InputLayout>  m_shadowStaticIL;      //!< スタティック用入力レイアウト
         ComPtr<ID3D11InputLayout>  m_shadowSkeletalIL;    //!< スケルタル用入力レイアウト
+
+        // シャドウ用パイプラインステート
+        std::shared_ptr<PipelineState> m_shadowStaticPipeline;      //!< スタティック用シャドウパイプライン
+        std::shared_ptr<PipelineState> m_shadowSkeletalPipeline;    //!< スケルタル用シャドウパイプライン
 
         std::array<float, 4> m_clearColor = {0.5f, 0.5f, 0.5f, 1.0f};    // 描画領域のクリアカラー (デフォルトはグレー)
 
