@@ -61,8 +61,36 @@ namespace Tsukino::Core {
         //--------------------------------------------------------------
         // ウィンドウ作成
         //--------------------------------------------------------------
-        m_hWnd = CreateWindowEx(
-            0, wc.lpszClassName, wTitle.c_str(), WS_OVERLAPPEDWINDOW, CW_USEDEFAULT, CW_USEDEFAULT, width, height, nullptr, nullptr, wc.hInstance, this);
+        // 使用するウィンドウのスタイルを定義
+        DWORD dwStyle = WS_OVERLAPPEDWINDOW;
+
+        // 希望する描画領域（クライアント領域）のサイズを設定
+        RECT rc = {0, 0, width, height};
+
+        // 枠線やタイトルバーを含めた、ウィンドウ全体の正しいサイズを計算
+        AdjustWindowRect(&rc, dwStyle, FALSE);
+
+        // 計算された全体の幅と高さを算出
+        int winWidth  = rc.right - rc.left;
+        int winHeight = rc.bottom - rc.top;
+
+        // m_width と m_height には、枠線を含まない「純粋なゲーム画面の解像度」を保存し直す
+        m_width  = width;
+        m_height = height;
+
+        // 5. 計算した winWidth, winHeight を使ってウィンドウを生成
+        m_hWnd = CreateWindowEx(0,
+                                wc.lpszClassName,
+                                wTitle.c_str(),
+                                dwStyle,    // 定義したスタイルを渡す
+                                CW_USEDEFAULT,
+                                CW_USEDEFAULT,
+                                winWidth,     // 計算した「全体の幅」
+                                winHeight,    // 計算した「全体の高さ」
+                                nullptr,
+                                nullptr,
+                                wc.hInstance,
+                                this);
 
         //--------------------------------------------------------------
         // ウィンドウの作成に失敗した場合はエラーメッセージを表示して終了
