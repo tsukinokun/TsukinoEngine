@@ -144,7 +144,7 @@ namespace Tsukino::Renderer {
             return false;
         }
 
-            ID3D11Device* device = m_graphicsContext.GetDevice();
+        ID3D11Device* device = m_graphicsContext.GetDevice();
 
         // 頂点シェーダーの作成
         HRESULT hr = device->CreateVertexShader(vs->binary.data(), vs->binary.size(), nullptr, m_debugVS.GetAddressOf());
@@ -629,16 +629,16 @@ namespace Tsukino::Renderer {
         // カスタム描画（フォント等）がある場合
         //------------------------------------------------------------
         if(cmd.customDraw) {
-            // 1. スロットをクリア
+            // スロットをクリア
             ID3D11Buffer* nullBuffers[] = {nullptr, nullptr};
             UINT          strides[]     = {0, 0};
             UINT          offsets[]     = {0, 0};
             context->IASetVertexBuffers(0, 2, nullBuffers, strides, offsets);
 
-            // 2. カスタム描画実行
+            // カスタム描画実行
             cmd.customDraw(context);
 
-            // 3. 重要：SpriteBatchで汚されたステートをリセット
+            // 重要：SpriteBatchで汚されたステートをリセット
             // これを入れないとSpriteの後の描画が真っ暗になったり崩れます
             context->OMSetBlendState(m_commonStatesTK->Opaque(), nullptr, 0xFFFFFFFF);
             context->OMSetDepthStencilState(m_commonStatesTK->DepthDefault(), 0);
