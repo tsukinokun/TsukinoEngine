@@ -212,6 +212,27 @@ namespace Tsukino::Asset {
                 image = std::move(resized);
             }
 
+            //---------------------------------------------------------------
+            // ミップマップを自動生成する
+            //---------------------------------------------------------------
+            {
+                DirectX::ScratchImage mipChain;
+                // TEX_FILTER_DEFAULT（ボックスフィルタ）で 1x1 になるまで全階層を生成
+                // ※もし縮小時の画質をより優先したい場合は、より高品質な DirectX::TEX_FILTER_FANT も選べます
+                HRESULT hrMip = DirectX::GenerateMipMaps(*image.GetImage(0, 0, 0),
+                                                         DirectX::TEX_FILTER_DEFAULT,
+                                                         0,    // 0 を指定すると、1x1ピクセルに達するまでの最適階層数が自動計算されます
+                                                         mipChain);
+
+                if(SUCCEEDED(hrMip)) {
+                    // 元画像（Mip0のみ）から、ミップチェーン付きのデータに差し替える
+                    image = std::move(mipChain);
+                } else {
+                    Tsukino::Core::Log::Error("Failed to generate mipmaps for texture index: " + std::to_string(i));
+                    continue;
+                }
+            }
+
             // BC3圧縮
             DirectX::ScratchImage compressed;
             HRESULT               hr = DirectX::Compress(image.GetImages(),
