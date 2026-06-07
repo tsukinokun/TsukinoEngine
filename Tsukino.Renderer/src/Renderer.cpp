@@ -8,6 +8,7 @@
 #include <Tsukino/Renderer/Renderer.hpp>
 #include <Tsukino/Renderer/ShaderLoader.hpp>
 #include <Tsukino/Renderer/ConstantBuffer.hpp>
+#include <Tsukino/Renderer/ShaderSlots.hpp>
 
 #include <Tsukino/Engine/Asset/Shader/ShaderAsset.hpp>
 
@@ -258,8 +259,10 @@ namespace Tsukino::Renderer {
         {
             ID3D11DeviceContext* context = m_graphicsContext.GetContext();
             // シャドウマップをt1・s1にバインド
-            context->PSSetShaderResources(1, 1, m_shadowMapSRV.GetAddressOf());
-            context->PSSetSamplers(1, 1, m_shadowSampler.GetAddressOf());
+            constexpr UINT shadowSRVSlot     = static_cast<UINT>(SRVSlot::ShadowMap);
+            constexpr UINT shadowSamplerSlot = static_cast<UINT>(SamplerSlot::ShadowMap);
+            context->PSSetShaderResources(shadowSRVSlot, 1, m_shadowMapSRV.GetAddressOf());
+            context->PSSetSamplers(shadowSamplerSlot, 1, m_shadowSampler.GetAddressOf());
         }
 
         UpdateSceneBuffer(m_worldSceneData);
@@ -271,9 +274,10 @@ namespace Tsukino::Renderer {
 
         // シャドウマップのバインドを解除（DSVとSRVの同時バインド防止）
         {
-            ID3D11DeviceContext*      context = m_graphicsContext.GetContext();
-            ID3D11ShaderResourceView* nullSRV = nullptr;
-            context->PSSetShaderResources(1, 1, &nullSRV);
+            ID3D11DeviceContext*      context       = m_graphicsContext.GetContext();
+            ID3D11ShaderResourceView* nullSRV       = nullptr;
+            constexpr UINT            shadowSRVSlot = static_cast<UINT>(SRVSlot::ShadowMap);
+            context->PSSetShaderResources(shadowSRVSlot, 1, &nullSRV);
         }
 
         //------------------------------------------------------------
@@ -440,6 +444,7 @@ namespace Tsukino::Renderer {
         m_worldSceneData.view       = data.view;
         m_worldSceneData.projection = data.projection;
         m_worldSceneData.viewProj   = data.viewProj;
+        m_worldSceneData.cameraPos  = data.cameraPos;    // PBR視線ベクトル用
     }
 
     //------------------------------------------------------------
@@ -842,5 +847,6 @@ namespace Tsukino::Renderer {
         //------------------------------------------------------------
         m_worldSceneData.lightViewProj = hlslpp::mul(lightView, lightProj);
         m_worldSceneData.lightDir      = hlslpp::float4(normalizedDir.x, normalizedDir.y, normalizedDir.z, 0.0f);
+        m_worldSceneData.lightColor    = hlslpp::float4(color.x, color.y, color.z, intensity);
     }
 }    // namespace Tsukino::Renderer
