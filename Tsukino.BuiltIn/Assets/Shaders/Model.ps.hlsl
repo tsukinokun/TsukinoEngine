@@ -13,9 +13,11 @@ cbuffer CBufferScene : register(b0)
     matrix projection;
     matrix viewProj;
     matrix lightViewProj; // ライト空間のViewProjection行列
-    float4 lightDir; // xyz: ライト方向（正規化済み）
-    float4 cameraPos; // xyz: カメラのワールド座標, w: 未使用
+    float4 lightDir;      // xyz: ライト方向（正規化済み）
+    float4 lightColor;    // xyz: ライトの色, w: 未使用
+    float4 cameraPos;     // xyz: カメラのワールド座標, w: 未使用
 };
+
 //--------------------------------------------------------------
 //! @brief モデル位置定数バッファ
 //--------------------------------------------------------------
@@ -23,6 +25,7 @@ cbuffer CBufferTransform : register(b1)
 {
     matrix world;
 };
+
 //--------------------------------------------------------------
 //! @brief マテリアル定数バッファ
 //--------------------------------------------------------------
@@ -33,8 +36,9 @@ cbuffer CBufferMaterial : register(b2)
     float metallic;
     float roughness;
     float specular;
-    float3 padding;
+    float4 padding;
 };
+
 //--------------------------------------------------------------
 //! @brief アルベドテクスチャ (t0)
 //--------------------------------------------------------------
