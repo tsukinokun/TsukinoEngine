@@ -182,7 +182,7 @@ namespace Tsukino::BuiltIn::ECS {
 
                     Tsukino::Renderer::Material mat{};
                     mat.SetPipeline(isSkeletal ? m_skeletalPipelineCache.get() : m_pipelineCache.get());
-                    mat.SetSampler(ctx->renderer->GetSampler(Tsukino::GraphicsCommon::SamplerType::LinearClamp));
+                    mat.SetSampler(ctx->renderer->GetSampler(Tsukino::GraphicsCommon::SamplerType::AnisotropicWrap));
                     if(srv)
                         mat.SetTexture(srv);
 
