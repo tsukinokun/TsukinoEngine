@@ -14,6 +14,7 @@ cbuffer CBufferScene : register(b0)
     matrix viewProj;
     matrix lightViewProj; // ライト空間のViewProjection行列
     float4 lightDir; // xyz: ライト方向（正規化済み）
+    float4 cameraPos; // xyz: カメラのワールド座標, w: 未使用
 };
 //--------------------------------------------------------------
 //! @brief モデル位置定数バッファ
@@ -31,6 +32,7 @@ cbuffer CBufferMaterial : register(b2)
     float3 emissive;
     float metallic;
     float roughness;
+    float specular;
     float3 padding;
 };
 //--------------------------------------------------------------
@@ -38,17 +40,17 @@ cbuffer CBufferMaterial : register(b2)
 //--------------------------------------------------------------
 Texture2D albedoTexture : register(t0);
 //--------------------------------------------------------------
-//! @brief シャドウマップ (t1)
+//! @brief シャドウマップ (t8)
 //--------------------------------------------------------------
-Texture2D shadowMap : register(t1);
+Texture2D shadowMap : register(t8);
 //--------------------------------------------------------------
 //! @brief アルベドテクスチャ用サンプラー (s0)
 //--------------------------------------------------------------
 SamplerState albedoSampler : register(s0);
 //--------------------------------------------------------------
-//! @brief シャドウマップ用比較サンプラー (s1)
+//! @brief シャドウマップ用比較サンプラー (s8)
 //--------------------------------------------------------------
-SamplerComparisonState shadowSampler : register(s1);
+SamplerComparisonState shadowSampler : register(s8);
 //--------------------------------------------------------------
 //! @brief ピクセルシェーダ入力構造体
 //--------------------------------------------------------------

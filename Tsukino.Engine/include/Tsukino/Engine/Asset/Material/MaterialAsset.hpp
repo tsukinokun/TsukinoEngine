@@ -42,7 +42,15 @@ namespace Tsukino::Asset {
         // PBRパラメータはMaterialDataに任せる
         Tsukino::GraphicsCommon::MaterialData data;
 
-        // テクスチャハンドル（ランタイム専用）
+        //--------------------------------------------------------------
+        //! @brief テクスチャハンドル（ランタイム専用）
+        //! @note  各ハンドルのバインド先スロットはShaderSlots.hppを参照
+        //!        SRVSlot::Albedo            = t0
+        //!        SRVSlot::Normal            = t1
+        //!        SRVSlot::MetallicRoughness = t2
+        //!        SRVSlot::Emissive          = t3
+        //!        SRVSlot::AO                = t4
+        //--------------------------------------------------------------
         AssetHandle albedoHandle;               // アルベドテクスチャのハンドル
         AssetHandle normalHandle;               // 法線テクスチャのハンドル
         AssetHandle metallicRoughnessHandle;    // メタリック・ラフネステクスチャのハンドル
