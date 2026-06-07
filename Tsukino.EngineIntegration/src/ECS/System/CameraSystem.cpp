@@ -112,6 +112,7 @@ namespace Tsukino::BuiltIn::ECS {
             sceneData.view       = camera.viewMatrix;
             sceneData.projection = camera.projectionMatrix;
             sceneData.viewProj   = camera.viewProjMatrix;
+            sceneData.cameraPos  = hlslpp::float4(transform.position.x, transform.position.y, transform.position.z, 1.0f);
             // シーン定数バッファをRendererにセット
             if(camera.isPrimary) {
                 ctx->renderer->SetWorldCameraMatrix(sceneData);

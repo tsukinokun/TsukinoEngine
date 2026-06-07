@@ -34,6 +34,7 @@ namespace Tsukino::GraphicsCommon {
         hlslpp::interop::float3 emissive  = hlslpp::float3(0.0f, 0.0f, 0.0f);
         float                   metallic  = 0.0f;
         float                   roughness = 0.5f;
+        float                   specular  = 0.5f;
 
         // テクスチャパス（空文字 = 未使用）
         std::string albedoMap;
@@ -47,7 +48,7 @@ namespace Tsukino::GraphicsCommon {
         //--------------------------------------------------------------
         template <class Archive>
         void serialize(Archive& ar) {
-            ar(name, shadingModel, baseColor, emissive, metallic, roughness, albedoMap, normalMap, metallicRoughnessMap, emissiveMap, aoMap);
+            ar(name, shadingModel, baseColor, emissive, metallic, roughness, specular, albedoMap, normalMap, metallicRoughnessMap, emissiveMap, aoMap);
         }
     };
 

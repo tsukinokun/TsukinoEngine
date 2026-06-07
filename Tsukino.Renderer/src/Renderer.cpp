@@ -649,6 +649,9 @@ namespace Tsukino::Renderer {
             context->OMSetDepthStencilState(m_commonStatesTK->DepthDefault(), 0);
             context->RSSetState(m_commonStatesTK->CullNone());
 
+            // s0をLinearWrapに戻す（SpriteBatch汚染対策）
+            ID3D11SamplerState* linearWrap = m_samplers[static_cast<size_t>(Tsukino::GraphicsCommon::SamplerType::LinearWrap)].Get();
+            context->PSSetSamplers(static_cast<UINT>(SamplerSlot::Material), 1, &linearWrap);
             return;
         }
 

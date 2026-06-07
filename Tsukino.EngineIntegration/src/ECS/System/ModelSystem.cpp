@@ -150,6 +150,7 @@ namespace Tsukino::BuiltIn::ECS {
                     cbMat.emissive  = hlslpp::float3(0.0f, 0.0f, 0.0f);
                     cbMat.metallic  = 0.0f;
                     cbMat.roughness = 0.5f;
+                    cbMat.specular  = 0.5f;
 
                     ID3D11ShaderResourceView* srv = nullptr;
 
@@ -164,6 +165,7 @@ namespace Tsukino::BuiltIn::ECS {
                             cbMat.emissive  = hlslpp::float3(matAsset->data.emissive.x, matAsset->data.emissive.y, matAsset->data.emissive.z);
                             cbMat.metallic  = matAsset->data.metallic;
                             cbMat.roughness = matAsset->data.roughness;
+                            cbMat.specular  = matAsset->data.specular;
 
                             if(matAsset->albedoHandle.IsValid()) {
                                 auto texAssetBase = ctx->assetManager->Get(matAsset->albedoHandle);

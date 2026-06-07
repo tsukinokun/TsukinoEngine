@@ -15,7 +15,9 @@
 
 // 名前空間 : Tsukino::BuiltIn::ECS
 namespace Tsukino::BuiltIn::ECS {
-
+    //--------------------------------------------------------------
+    //! @brief システムの更新
+    //--------------------------------------------------------------
     void DirectionalLightSystem::Update(Tsukino::ECS::Registry& registry, float deltaTime) {
         Tsukino::EngineIntegration::EngineContext* ctx = registry.GetContext<Tsukino::EngineIntegration::EngineContext*>();
         if(!ctx || !ctx->renderer)
