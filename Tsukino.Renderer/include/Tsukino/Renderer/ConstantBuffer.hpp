@@ -18,6 +18,8 @@ namespace Tsukino::Renderer {
         Tsukino::Core::Math::matrix viewProj;
         Tsukino::Core::Math::matrix lightViewProj;    //!< ライト空間のViewProjection行列
         hlslpp::float4              lightDir;         //!< ライトの方向
+        hlslpp::float4              lightColor;       //!< ライト色と強度 xyz: 色(linear), w: 強度
+        hlslpp::float4              cameraPos;        //!< カメラのワールド座標 xyz: 座標, w: 未使用
     };
 
     //--------------------------------------------------------------
@@ -37,7 +39,8 @@ namespace Tsukino::Renderer {
         hlslpp::float3 emissive;
         float          metallic;
         float          roughness;
-        hlslpp::float3 padding;
+        float          specular;
+        hlslpp::float4 padding;
     };
 
     //--------------------------------------------------------------
