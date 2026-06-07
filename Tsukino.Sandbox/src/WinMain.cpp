@@ -22,6 +22,8 @@
 //! @return 終了コード（通常は0）
 //--------------------------------------------------------------
 int WINAPI WinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ LPSTR, _In_ int) {
+    // DPIスケーリングの無効化
+    SetProcessDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2);
     // ログの初期化
     Tsukino::EngineIntegration::EngineIntegration engineIntegration;
     // 初期化
