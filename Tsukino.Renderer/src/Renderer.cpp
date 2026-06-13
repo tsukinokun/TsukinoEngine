@@ -138,6 +138,16 @@ namespace Tsukino::Renderer {
             return false;
         }
 
+        //------------------------------------------------------------
+        // m_skyBuffer (b4) の作成
+        //------------------------------------------------------------
+        desc.ByteWidth = sizeof(Tsukino::Renderer::CBufferSky);
+        hr             = device->CreateBuffer(&desc, nullptr, m_skyBuffer.GetAddressOf());
+        if(FAILED(hr)) {
+            Tsukino::Core::Log::Error("Failed to create sky constant buffer.");
+            return false;
+        }
+
         // 成功
         return true;
     }
@@ -258,6 +268,12 @@ namespace Tsukino::Renderer {
             // RTとビューポートをBeginFrame時の状態に戻す
             m_graphicsContext.BeginFrame(m_clearColor[0], m_clearColor[1], m_clearColor[2], m_clearColor[3]);
         }
+
+        //------------------------------------------------------------
+        // Sky パス（Worldパスの前、深度書き込みなし）
+        //------------------------------------------------------------
+        UpdateSceneBuffer(m_worldSceneData);
+        ExecuteSkyPass();
 
         //------------------------------------------------------------
         // World パス
@@ -637,6 +653,40 @@ namespace Tsukino::Renderer {
     }
 
     //------------------------------------------------------------
+    //! @brief 大気散乱パラメータのセット
+    //------------------------------------------------------------
+    void Renderer::SetSkyParameters(const CBufferSky& sky) {
+        m_skyData = sky;
+    }
+
+    //------------------------------------------------------------
+    //! @brief スカイパイプラインのセット
+    //------------------------------------------------------------
+    void Renderer::SetSkyPipeline(const Tsukino::Asset::ShaderAsset* vs, const Tsukino::Asset::ShaderAsset* ps) {
+        if(!vs || !ps) {
+            Tsukino::Core::Log::Error("Renderer::SetSkyPipeline - shader is null.");
+            return;
+        }
+
+        ID3D11Device* device = m_graphicsContext.GetDevice();
+
+        HRESULT hr = device->CreateVertexShader(vs->binary.data(), vs->binary.size(), nullptr, m_skyVS.GetAddressOf());
+        if(FAILED(hr)) {
+            Tsukino::Core::Log::Error("Failed to create sky vertex shader.");
+            return;
+        }
+
+        hr = device->CreatePixelShader(ps->binary.data(), ps->binary.size(), nullptr, m_skyPS.GetAddressOf());
+        if(FAILED(hr)) {
+            Tsukino::Core::Log::Error("Failed to create sky pixel shader.");
+            return;
+        }
+
+        m_hasSky = true;
+    }
+
+
+    //------------------------------------------------------------
     //! @brief 描画コマンドの実行
     //------------------------------------------------------------
     void Renderer::ExecuteDrawCommand(const DrawCommand& cmd) {
@@ -898,5 +948,55 @@ namespace Tsukino::Renderer {
         }
 
         return true;
+    }
+
+    //------------------------------------------------------------
+    //! @brief スカイパスの実行
+    //------------------------------------------------------------
+    void Renderer::ExecuteSkyPass() {
+        if(!m_hasSky || !m_skyVS || !m_skyPS)
+            return;
+
+        ID3D11DeviceContext* context = m_graphicsContext.GetContext();
+
+        //----------------------------------------------------------
+        // シェーダーをセット
+        //----------------------------------------------------------
+        context->VSSetShader(m_skyVS.Get(), nullptr, 0);
+        context->PSSetShader(m_skyPS.Get(), nullptr, 0);
+        context->IASetInputLayout(nullptr);    // 頂点バッファ不要
+
+        //----------------------------------------------------------
+        // 深度書き込みなし（スカイは常に最背面）
+        //----------------------------------------------------------
+        context->OMSetDepthStencilState(m_commonStatesTK->DepthRead(), 0);
+        context->OMSetBlendState(m_commonStatesTK->Opaque(), nullptr, 0xFFFFFFFF);
+        context->RSSetState(m_commonStatesTK->CullNone());
+
+        //----------------------------------------------------------
+        // Scene (b0) をバインド（invViewProjの計算に使う）
+        //----------------------------------------------------------
+        context->VSSetConstantBuffers(0, 1, m_sceneBuffer.GetAddressOf());
+        context->PSSetConstantBuffers(0, 1, m_sceneBuffer.GetAddressOf());
+
+        //----------------------------------------------------------
+        // Sky (b4) をバインド
+        //----------------------------------------------------------
+        context->UpdateSubresource(m_skyBuffer.Get(), 0, nullptr, &m_skyData, 0, 0);
+        context->PSSetConstantBuffers(4, 1, m_skyBuffer.GetAddressOf());
+
+        //----------------------------------------------------------
+        // 頂点バッファなしでフルスクリーントライアングルを描画
+        // VSでSV_VertexIDから3頂点を生成する
+        //----------------------------------------------------------
+        context->IASetVertexBuffers(0, 0, nullptr, nullptr, nullptr);
+        context->IASetIndexBuffer(nullptr, DXGI_FORMAT_UNKNOWN, 0);
+        context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+        context->Draw(3, 0);
+
+        //----------------------------------------------------------
+        // ステートをリセット
+        //----------------------------------------------------------
+        context->OMSetDepthStencilState(m_commonStatesTK->DepthDefault(), 0);
     }
 }    // namespace Tsukino::Renderer
