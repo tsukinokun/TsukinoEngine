@@ -104,6 +104,25 @@ namespace Tsukino::EngineIntegration {
         //--------------------------------------------------------------
         m_window->SetMessageCallback([this](UINT msg, WPARAM wp, LPARAM lp) {
             switch(msg) {
+                // --- マウスボタン ---
+            case WM_LBUTTONDOWN:
+                m_inputSystem->SetKeyState(Input::KeyCode::LButton, true);
+                break;
+            case WM_LBUTTONUP:
+                m_inputSystem->SetKeyState(Input::KeyCode::LButton, false);
+                break;
+            case WM_RBUTTONDOWN:
+                m_inputSystem->SetKeyState(Input::KeyCode::RButton, true);
+                break;
+            case WM_RBUTTONUP:
+                m_inputSystem->SetKeyState(Input::KeyCode::RButton, false);
+                break;
+            case WM_MBUTTONDOWN:
+                m_inputSystem->SetKeyState(Input::KeyCode::MButton, true);
+                break;
+            case WM_MBUTTONUP:
+                m_inputSystem->SetKeyState(Input::KeyCode::MButton, false);
+                break;
             // --- キーボード入力 ---
             case WM_KEYDOWN:
             case WM_SYSKEYDOWN:    // Altキーなどを含める場合
