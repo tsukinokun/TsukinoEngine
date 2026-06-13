@@ -19,9 +19,11 @@
 
 #include <hlsl++.h>
 #include <algorithm>
-
+// 名前空間 : Tsukino::BuiltIn::ECS
 namespace Tsukino::BuiltIn::ECS {
-
+    //-------------------------------------------------------------
+    //! @brief  デバッグカメラの操作を管理するシステムの更新関数
+    //-------------------------------------------------------------
     void DebugCameraSystem::Update(Tsukino::ECS::Registry& registry, float deltaTime) {
         auto* ctx = registry.GetContext<Tsukino::EngineIntegration::EngineContext*>();
         if(!ctx || !ctx->inputSystem)

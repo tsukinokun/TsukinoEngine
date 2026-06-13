@@ -5,6 +5,12 @@
 //-------------------------------------------------------------
 #include <Tsukino/Sandbox/Scene/FishingGameSampleScene.hpp>
 
+#ifdef _DEBUG
+#include <Tsukino/EngineIntegration/ECS/System/DebugCameraSystem.hpp>
+#include <Tsukino/BuiltIn/ECS/Component/DebugCameraComponent.hpp>
+#include <Tsukino/BuiltIn/ECS/Component/DebugCameraTag.hpp>
+#endif
+
 #include <Tsukino/BuiltIn/ECS/Component/TransformComponent.hpp>
 #include <Tsukino/BuiltIn/ECS/Component/CameraComponent.hpp>
 #include <Tsukino/BuiltIn/ECS/Component/SpriteComponent.hpp>
@@ -65,6 +71,9 @@ namespace Tsukino::Sandbox {
             Animation,
             Physics,
             DirectionalLightSystem,
+#ifdef _DEBUG
+            DebugCamera,
+#endif
             Camera,
             Font,
             Render,
@@ -76,6 +85,9 @@ namespace Tsukino::Sandbox {
         m_scene.AddSystem(std::make_shared<Tsukino::BuiltIn::ECS::AnimationSystem>(), (int)SystemPriority::Animation);
         m_scene.AddSystem(std::make_shared<Tsukino::BuiltIn::ECS::PhysicsSystem>(eventBus), (int)SystemPriority::Physics);
         m_scene.AddSystem(std::make_shared<Tsukino::BuiltIn::ECS::DirectionalLightSystem>(), (int)SystemPriority::DirectionalLightSystem);
+#ifdef _DEBUG
+        m_scene.AddSystem(std::make_shared<Tsukino::BuiltIn::ECS::DebugCameraSystem>(), (int)SystemPriority::DebugCamera);
+#endif
         m_scene.AddSystem(std::make_shared<Tsukino::BuiltIn::ECS::CameraSystem>(), (int)SystemPriority::Camera);
         m_scene.AddSystem(std::make_shared<Tsukino::BuiltIn::ECS::FontRendererSystem>(), (int)SystemPriority::Font);
         m_scene.AddSystem(std::make_shared<Tsukino::BuiltIn::ECS::SpriteRenderSystem>(), (int)SystemPriority::Render);
@@ -145,6 +157,23 @@ namespace Tsukino::Sandbox {
             const std::string prefabPath = "Tsukino.Sandbox/Assets/FishingGameSample/Prefabs/3DCamera/Prefab.json";
             entt::entity      testEntity = context->prefabFactory->Instantiate(prefabPath, registry);
         }
+
+        #ifdef _DEBUG
+        {
+            Tsukino::ECS::Entity debugCamEntity = m_scene.CreateEntity();
+
+            Tsukino::BuiltIn::ECS::TransformComponent& t = registry.AddComponent<Tsukino::BuiltIn::ECS::TransformComponent>(debugCamEntity);
+            t.position                                   = hlslpp::float3(0.0f, 5.0f, -10.0f);
+            t.rotation                                   = hlslpp::quaternion(0.0f, 0.0f, 0.0f, 1.0f);
+            t.dirty                                      = true;
+
+            Tsukino::BuiltIn::ECS::CameraComponent& cam = registry.AddComponent<Tsukino::BuiltIn::ECS::CameraComponent>(debugCamEntity);
+            cam.isPrimary                               = false;
+
+            registry.AddComponent<Tsukino::BuiltIn::ECS::DebugCameraComponent>(debugCamEntity);
+            registry.AddComponent<Tsukino::BuiltIn::ECS::DebugCameraTag>(debugCamEntity);
+        }
+#endif
 
         //--------------------------------------------------------------
         // ディレクショナルライトエンティティの生成
