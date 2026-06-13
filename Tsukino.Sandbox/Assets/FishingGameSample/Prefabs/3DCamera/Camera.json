@@ -5,7 +5,7 @@
         "fov": 90.0,
         "aspectRatio": 1.7777777910232545,
         "nearZ": 10,
-        "farZ": 100000.0,
+        "farZ": 10000.0,
         "useLookAt": true,
         "lookAtTarget": {
             "x": 0.0,

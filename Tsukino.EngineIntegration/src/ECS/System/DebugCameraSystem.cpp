@@ -109,7 +109,7 @@ namespace Tsukino::BuiltIn::ECS {
 
             float len = hlslpp::length(move);
             if(len > 0.001f) {
-                transform.position = transform.position + (move / len) * speed * deltaTime;
+                transform.position = transform.position + (move / len) * speed;
             }
 
             //----------------------------------------------------------
