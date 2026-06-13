@@ -39,16 +39,20 @@ namespace Tsukino::BuiltIn::ECS {
             if(input.IsKeyPressed(Tsukino::Input::KeyCode::F5)) {
                 cam.isActive = !cam.isActive;
 
-                // ゲームカメラ（DebugCameraTagを持たない）のisPrimaryを反転
                 auto camView = registry.View<CameraComponent>();
                 camView.each([&](entt::entity e, CameraComponent& c) {
-                    if(!registry.HasComponent<DebugCameraTag>(e)) {
-                        c.isPrimary = !cam.isActive;
-                        c.dirty     = true;
+                    if(registry.HasComponent<DebugCameraTag>(e))
+                        return;
+
+                    // オフにするときは必ず3Dカメラ（Perspective）に戻す
+                    if(!cam.isActive) {
+                        c.isPrimary = (c.projectionType == CameraComponent::ProjectionType::Perspective);
+                    } else {
+                        c.isPrimary = false;
                     }
+                    c.dirty = true;
                 });
 
-                // デバッグカメラ自身のisPrimaryも切り替え
                 camera.isPrimary = cam.isActive;
                 camera.dirty     = true;
             }
@@ -57,10 +61,9 @@ namespace Tsukino::BuiltIn::ECS {
                 return;
 
             //----------------------------------------------------------
-            // 右クリック押しっぱなしの間だけ操作を受け付ける
+            // 右クリック押しっぱなしの間だけ全操作を受け付ける（Unreal準拠）
             //----------------------------------------------------------
-            bool controlling = input.IsKeyDown(Tsukino::Input::KeyCode::RButton);
-            if(!controlling)
+            if(!input.IsKeyDown(Tsukino::Input::KeyCode::RButton))
                 return;
 
             //----------------------------------------------------------
@@ -81,7 +84,7 @@ namespace Tsukino::BuiltIn::ECS {
             transform.rotation        = hlslpp::mul(qYaw, qPitch);
 
             //----------------------------------------------------------
-            // WASD + EQ で移動
+            // WASD + EQ で移動（右クリック中のみ）
             //----------------------------------------------------------
             float speed = input.IsKeyDown(Tsukino::Input::KeyCode::Shift) ? cam.sprintSpeed : cam.moveSpeed;
 

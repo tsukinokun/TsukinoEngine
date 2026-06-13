@@ -115,8 +115,8 @@ namespace Tsukino::Sandbox {
 
             // ModelComponent
             Tsukino::BuiltIn::ECS::ModelComponent& model = registry.AddComponent<Tsukino::BuiltIn::ECS::ModelComponent>(groundEntity);
-            model.modelHandle                            = context->assetManager->Load(Tsukino::Core::Path("Tsukino.Sandbox/Assets/FishingGameSample/Models/Stage.fbx"));
-            model.visible                                = true;
+            model.modelHandle = context->assetManager->Load(Tsukino::Core::Path("Tsukino.Sandbox/Assets/FishingGameSample/Models/Stage.fbx"));
+            model.visible     = true;
 
             // CollisionComponent の追加
             Tsukino::BuiltIn::ECS::CollisionComponent& collision = registry.AddComponent<Tsukino::BuiltIn::ECS::CollisionComponent>(groundEntity);
@@ -158,7 +158,7 @@ namespace Tsukino::Sandbox {
             entt::entity      testEntity = context->prefabFactory->Instantiate(prefabPath, registry);
         }
 
-        #ifdef _DEBUG
+#ifdef _DEBUG
         {
             Tsukino::ECS::Entity debugCamEntity = m_scene.CreateEntity();
 
@@ -170,7 +170,9 @@ namespace Tsukino::Sandbox {
             Tsukino::BuiltIn::ECS::CameraComponent& cam = registry.AddComponent<Tsukino::BuiltIn::ECS::CameraComponent>(debugCamEntity);
             cam.isPrimary                               = false;
 
-            registry.AddComponent<Tsukino::BuiltIn::ECS::DebugCameraComponent>(debugCamEntity);
+            Tsukino::BuiltIn::ECS::DebugCameraComponent& debug = registry.AddComponent<Tsukino::BuiltIn::ECS::DebugCameraComponent>(debugCamEntity);
+            debug.moveSpeed                                    = 100000.0f;
+
             registry.AddComponent<Tsukino::BuiltIn::ECS::DebugCameraTag>(debugCamEntity);
         }
 #endif
