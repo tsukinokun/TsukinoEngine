@@ -2,11 +2,11 @@
     "Components": [
         {
             "key": "CameraComponent",
-            "value": "Tsukino.Sandbox/Assets/JumpGameSample/Prefabs/3DCamera/Camera.json"
+            "value": "Tsukino.Sandbox/Assets/FishingGameSample/Prefabs/3DCamera/Camera.json"
         },
         {
             "key": "TransformComponent",
-            "value": "Tsukino.Sandbox/Assets/JumpGameSample/Prefabs/3DCamera/Transform.json"
+            "value": "Tsukino.Sandbox/Assets/FishingGameSample/Prefabs/3DCamera/Transform.json"
         }
     ]
 }

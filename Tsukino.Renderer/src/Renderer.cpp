@@ -67,6 +67,12 @@ namespace Tsukino::Renderer {
             return false;    // 定数バッファの作成に失敗した場合は false を返す
 
         //------------------------------------------------------------
+        // 白テクスチャの作成
+        //------------------------------------------------------------
+        if(!CreateWhiteTexture())
+            return false;    // 白テクスチャの作成に失敗した場合は false を返す
+
+        //------------------------------------------------------------
         // デバッグ用バッファの作成
         //------------------------------------------------------------
         if(!CreateDebugBuffers(debugVS, debugPS))
@@ -624,6 +630,13 @@ namespace Tsukino::Renderer {
     }
 
     //------------------------------------------------------------
+    //! @brief 白テクスチャSRVの取得
+    //------------------------------------------------------------
+    ID3D11ShaderResourceView* Renderer::GetWhiteTextureSRV() {
+        return m_whiteSRV.Get();
+    }
+
+    //------------------------------------------------------------
     //! @brief 描画コマンドの実行
     //------------------------------------------------------------
     void Renderer::ExecuteDrawCommand(const DrawCommand& cmd) {
@@ -851,5 +864,39 @@ namespace Tsukino::Renderer {
         m_worldSceneData.lightViewProj = hlslpp::mul(lightView, lightProj);
         m_worldSceneData.lightDir      = hlslpp::float4(normalizedDir.x, normalizedDir.y, normalizedDir.z, 0.0f);
         m_worldSceneData.lightColor    = hlslpp::float4(color.x, color.y, color.z, intensity);
+    }
+
+    //------------------------------------------------------------
+    //! @brief 白テクスチャの作成（1x1の白いピクセル）
+    //------------------------------------------------------------
+    bool Renderer::CreateWhiteTexture() {
+        ID3D11Device* device = m_graphicsContext.GetDevice();
+
+        D3D11_TEXTURE2D_DESC desc{};
+        desc.Width            = 1;
+        desc.Height           = 1;
+        desc.MipLevels        = 1;
+        desc.ArraySize        = 1;
+        desc.Format           = DXGI_FORMAT_R8G8B8A8_UNORM;
+        desc.SampleDesc.Count = 1;
+        desc.Usage            = D3D11_USAGE_IMMUTABLE;
+        desc.BindFlags        = D3D11_BIND_SHADER_RESOURCE;
+
+        uint32_t               white = 0xFFFFFFFF;
+        D3D11_SUBRESOURCE_DATA initData{&white, 4, 0};
+
+        HRESULT hr = device->CreateTexture2D(&desc, &initData, m_whiteTex.GetAddressOf());
+        if(FAILED(hr)) {
+            Tsukino::Core::Log::Error("Failed to create white texture.");
+            return false;
+        }
+
+        hr = device->CreateShaderResourceView(m_whiteTex.Get(), nullptr, m_whiteSRV.GetAddressOf());
+        if(FAILED(hr)) {
+            Tsukino::Core::Log::Error("Failed to create white texture SRV.");
+            return false;
+        }
+
+        return true;
     }
 }    // namespace Tsukino::Renderer

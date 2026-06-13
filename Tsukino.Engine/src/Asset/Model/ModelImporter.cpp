@@ -71,7 +71,7 @@ namespace Tsukino::Asset {
             inputPath.string(), aiProcess_Triangulate | aiProcess_GenSmoothNormals | aiProcess_FlipUVs | aiProcess_LimitBoneWeights | aiProcess_OptimizeMeshes);
 
         if(!scene || !scene->mRootNode) {
-            Tsukino::Core::Log::Error("Assimp Load Error");
+            Tsukino::Core::Log::Error(importer.GetErrorString());
             return false;
         }
 
