@@ -20,6 +20,7 @@ namespace Tsukino::Asset {
         Material,    // マテリアル
         Font,        // フォント
         Audio,       // オーディオ
+        Cubemap,     // キューブマップ
     };
 
 }    // namespace Tsukino::Asset
