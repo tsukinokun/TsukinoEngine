@@ -204,6 +204,19 @@ namespace Tsukino::Renderer {
         //------------------------------------------------------------
         ID3D11ShaderResourceView* GetWhiteTextureSRV();
 
+        //------------------------------------------------------------
+        //! @brief 大気散乱パラメータのセット
+        //! @param sky [in] 大気散乱定数バッファデータ
+        //------------------------------------------------------------
+        void SetSkyParameters(const CBufferSky& sky);
+
+        //------------------------------------------------------------
+        //! @brief スカイパイプラインのセット
+        //! @param vs [in] 頂点シェーダーアセット
+        //! @param ps [in] ピクセルシェーダーアセット
+        //------------------------------------------------------------
+        void SetSkyPipeline(const Tsukino::Asset::ShaderAsset* vs, const Tsukino::Asset::ShaderAsset* ps);
+
     private:
         //------------------------------------------------------------
         // 定数バッファの作成
@@ -258,6 +271,12 @@ namespace Tsukino::Renderer {
         //------------------------------------------------------------
         [[nodiscard]]
         bool CreateWhiteTexture();
+
+        //------------------------------------------------------------
+        //! @brief スカイパスの実行
+        //------------------------------------------------------------
+        void ExecuteSkyPass();
+
     private:
         // DirectX 11の主要なインターフェース
         GraphicsContext            m_graphicsContext;    // グラフィックスコンテキスト（Device, DeviceContext, SwapChainを管理）
@@ -318,5 +337,12 @@ namespace Tsukino::Renderer {
         // 白テクスチャ用
         Microsoft::WRL::ComPtr<ID3D11Texture2D>          m_whiteTex;
         Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> m_whiteSRV;
+
+        // スカイ用リソース
+        ComPtr<ID3D11VertexShader> m_skyVS;             //!< スカイ用頂点シェーダー
+        ComPtr<ID3D11PixelShader>  m_skyPS;             //!< スカイ用ピクセルシェーダー
+        ComPtr<ID3D11Buffer>       m_skyBuffer;         //!< スカイ定数バッファ (b4)
+        CBufferSky                 m_skyData{};         //!< スカイパラメータ
+        bool                       m_hasSky = false;    //!< スカイが有効かどうか
     };
 }    // namespace Tsukino::Renderer
