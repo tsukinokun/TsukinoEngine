@@ -1,0 +1,10 @@
+{
+    "CubemapDesc": {
+        "px": "Tsukino.Sandbox/Assets/FishingGameSample/Skybox/w038/038_+X.png",
+        "nx": "Tsukino.Sandbox/Assets/FishingGameSample/Skybox/w038/038_-X.png",
+        "py": "Tsukino.Sandbox/Assets/FishingGameSample/Skybox/w038/038_+Y.png",
+        "ny": "Tsukino.Sandbox/Assets/FishingGameSample/Skybox/w038/038_-Y.png",
+        "pz": "Tsukino.Sandbox/Assets/FishingGameSample/Skybox/w038/038_+Z.png",
+        "nz": "Tsukino.Sandbox/Assets/FishingGameSample/Skybox/w038/038_-Z.png"
+    }
+}
