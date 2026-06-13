@@ -43,6 +43,8 @@
 #include <Tsukino/Engine/ECS/Prefab/PrefabFactory.hpp>
 #include <Tsukino/EngineIntegration/Scene/GameSceneManager.hpp>
 
+#include <Tsukino/Engine/Asset/Cubemap/CubemapAsset.hpp>
+
 #include <Tsukino/Core/Path.hpp>
 #include <Tsukino/Core/Log.hpp>
 #include <Tsukino/Core/Input/InputSystem.hpp>
@@ -95,6 +97,9 @@ namespace Tsukino::Sandbox {
         m_scene.AddSystem(std::make_shared<Tsukino::BuiltIn::ECS::AudioSystem>(), (int)SystemPriority::Audio);
 
         Tsukino::ECS::Registry& registry = m_scene.GetRegistry();
+
+        // テストでスカイボックスを読み込み
+        context->assetManager->Load(Tsukino::Core::Path("Tsukino.Sandbox/Assets/FishingGameSample/Skybox/sky.cubemap"));
 
         //--------------------------------------------------------------
         // ステージモデルの生成
