@@ -158,6 +158,9 @@ namespace Tsukino::Sandbox {
             entt::entity      testEntity = context->prefabFactory->Instantiate(prefabPath, registry);
         }
 
+        //--------------------------------------------------------------
+        // デバッグカメラエンティティの生成 (デバッグビルドのみ)
+        //--------------------------------------------------------------
 #ifdef _DEBUG
         {
             Tsukino::ECS::Entity debugCamEntity = m_scene.CreateEntity();
@@ -168,10 +171,11 @@ namespace Tsukino::Sandbox {
             t.dirty                                      = true;
 
             Tsukino::BuiltIn::ECS::CameraComponent& cam = registry.AddComponent<Tsukino::BuiltIn::ECS::CameraComponent>(debugCamEntity);
+            cam.farZ                                    = 100000.0f;
             cam.isPrimary                               = false;
 
             Tsukino::BuiltIn::ECS::DebugCameraComponent& debug = registry.AddComponent<Tsukino::BuiltIn::ECS::DebugCameraComponent>(debugCamEntity);
-            debug.moveSpeed                                    = 100000.0f;
+            debug.moveSpeed                                    = 10000.0f;
 
             registry.AddComponent<Tsukino::BuiltIn::ECS::DebugCameraTag>(debugCamEntity);
         }
