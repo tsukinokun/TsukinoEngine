@@ -161,6 +161,8 @@ namespace Tsukino::Sandbox {
             //--------------------------------------------------------------
             const std::string prefabPath = "Tsukino.Sandbox/Assets/FishingGameSample/Prefabs/3DCamera/Prefab.json";
             entt::entity      testEntity = context->prefabFactory->Instantiate(prefabPath, registry);
+            Tsukino::BuiltIn::ECS::CameraComponent& cam = registry.GetComponent<Tsukino::BuiltIn::ECS::CameraComponent>(testEntity);    // これをメインカメラにする
+            std::swap(cam.nearZ, cam.farZ);                                                   // デバッグカメラは最初からオルソにしておく
         }
 
         //--------------------------------------------------------------
@@ -171,16 +173,19 @@ namespace Tsukino::Sandbox {
             Tsukino::ECS::Entity debugCamEntity = m_scene.CreateEntity();
 
             Tsukino::BuiltIn::ECS::TransformComponent& t = registry.AddComponent<Tsukino::BuiltIn::ECS::TransformComponent>(debugCamEntity);
-            t.position                                   = hlslpp::float3(0.0f, 5.0f, -10.0f);
+            t.position                                   = hlslpp::float3(100.0f, 250.0f, -10.0f);
             t.rotation                                   = hlslpp::quaternion(0.0f, 0.0f, 0.0f, 1.0f);
             t.dirty                                      = true;
 
             Tsukino::BuiltIn::ECS::CameraComponent& cam = registry.AddComponent<Tsukino::BuiltIn::ECS::CameraComponent>(debugCamEntity);
-            cam.farZ                                    = 100000.0f;
+            cam.lookAtTarget                            = hlslpp::float3(0.0f, 100.0f, 5.0f);
+            cam.nearZ                                   = 1.0f;
+            cam.farZ                                    = 10000.0f;
+            std::swap(cam.nearZ, cam.farZ);    // デバッグカメラは最初からオルソにしておく
             cam.isPrimary                               = false;
 
             Tsukino::BuiltIn::ECS::DebugCameraComponent& debug = registry.AddComponent<Tsukino::BuiltIn::ECS::DebugCameraComponent>(debugCamEntity);
-            debug.moveSpeed                                    = 10000.0f;
+            debug.moveSpeed                                    = 100000.0f;
 
             registry.AddComponent<Tsukino::BuiltIn::ECS::DebugCameraTag>(debugCamEntity);
         }

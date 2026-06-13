@@ -92,7 +92,7 @@ float GetShadowPCF(float3 worldPos)
         return 1.0f;
 
     // 深度値 + シャドウアクネ対策バイアス
-    float depth = lightSpace.z - 0.001f;
+    float depth = lightSpace.z + 0.001f;
 
     //----------------------------------------------------------
     // 3x3 PCF : 9サンプルの平均を取る
