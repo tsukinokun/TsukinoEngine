@@ -4,7 +4,7 @@
         "orthoSize": 720.0,
         "fov": 90.0,
         "aspectRatio": 1.7777777910232545,
-        "nearZ": 10,
+        "nearZ": 1.0,
         "farZ": 10000.0,
         "useLookAt": true,
         "lookAtTarget": {

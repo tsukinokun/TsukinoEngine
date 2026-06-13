@@ -120,7 +120,7 @@ namespace Tsukino::Renderer {
         m_context->ClearRenderTargetView(m_rtv.Get(), clearColor);
 
         // 深度ステンシルクリア
-        m_context->ClearDepthStencilView(m_dsv.Get(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
+        m_context->ClearDepthStencilView(m_dsv.Get(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 0.0f, 0);
 
         // シャドウパスで変更されたビューポートを元に戻す
         D3D11_VIEWPORT vp{};

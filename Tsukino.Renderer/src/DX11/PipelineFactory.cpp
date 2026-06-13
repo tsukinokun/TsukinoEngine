@@ -56,13 +56,13 @@ namespace Tsukino::Renderer {
         case DepthMode::ReadWrite:
             desc.DepthEnable    = TRUE;
             desc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ALL;
-            desc.DepthFunc      = D3D11_COMPARISON_LESS;
+            desc.DepthFunc      = D3D11_COMPARISON_GREATER_EQUAL;
             break;
 
         case DepthMode::ReadOnly:
             desc.DepthEnable    = TRUE;
             desc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ZERO;
-            desc.DepthFunc      = D3D11_COMPARISON_LESS_EQUAL;
+            desc.DepthFunc      = D3D11_COMPARISON_GREATER_EQUAL;
             break;
         }
         // デプスステンシルステートの作成

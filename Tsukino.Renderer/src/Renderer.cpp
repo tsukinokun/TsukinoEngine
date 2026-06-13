@@ -234,7 +234,7 @@ namespace Tsukino::Renderer {
             ID3D11DeviceContext* context = m_graphicsContext.GetContext();
 
             // シャドウマップをクリア
-            context->ClearDepthStencilView(m_shadowMapDSV.Get(), D3D11_CLEAR_DEPTH, 1.0f, 0);
+            context->ClearDepthStencilView(m_shadowMapDSV.Get(), D3D11_CLEAR_DEPTH, 0.0f, 0);
 
             // カラーRTをnullにしてDSVだけセット
             ID3D11RenderTargetView* nullRTV = nullptr;
@@ -536,7 +536,7 @@ namespace Tsukino::Renderer {
         samplerDesc.BorderColor[1] = 1.0f;
         samplerDesc.BorderColor[2] = 1.0f;
         samplerDesc.BorderColor[3] = 1.0f;
-        samplerDesc.ComparisonFunc = D3D11_COMPARISON_LESS_EQUAL;
+        samplerDesc.ComparisonFunc = D3D11_COMPARISON_GREATER_EQUAL;
         samplerDesc.MinLOD         = 0;
         samplerDesc.MaxLOD         = D3D11_FLOAT32_MAX;
 
@@ -854,8 +854,8 @@ namespace Tsukino::Renderer {
                                                                                                      500.0f,     // right
                                                                                                      -500.0f,    // bottom
                                                                                                      500.0f,     // top
-                                                                                                     1.0f,       // near
-                                                                                                     2000.0f     // far
+                                                                                                     2000.0f,    // far
+                                                                                                     1.0f        // near
         );
 
         //------------------------------------------------------------
