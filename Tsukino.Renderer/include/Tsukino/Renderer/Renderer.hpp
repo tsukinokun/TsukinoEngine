@@ -198,6 +198,12 @@ namespace Tsukino::Renderer {
         //------------------------------------------------------------
         void SetShadowPipeline(std::shared_ptr<PipelineState> staticPipeline, std::shared_ptr<PipelineState> skeletalPipeline);
 
+        //------------------------------------------------------------
+        //! @brief 白テクスチャのSRVを取得
+        //! @return ID3D11ShaderResourceViewへのポインタ
+        //------------------------------------------------------------
+        ID3D11ShaderResourceView* GetWhiteTextureSRV();
+
     private:
         //------------------------------------------------------------
         // 定数バッファの作成
@@ -246,6 +252,12 @@ namespace Tsukino::Renderer {
         //------------------------------------------------------------
         void ExecuteShadowCommand(const DrawCommand& cmd);
 
+        //------------------------------------------------------------
+        //! @brief シャドウ用シェーダーと入力レイアウトの作成
+        //! @return true: 作成成功, false: 作成失敗
+        //------------------------------------------------------------
+        [[nodiscard]]
+        bool CreateWhiteTexture();
     private:
         // DirectX 11の主要なインターフェース
         GraphicsContext            m_graphicsContext;    // グラフィックスコンテキスト（Device, DeviceContext, SwapChainを管理）
@@ -302,5 +314,9 @@ namespace Tsukino::Renderer {
         ComPtr<ID3D11InputLayout>  m_debugIL;
 
         std::unique_ptr<DirectX::CommonStates> m_commonStatesTK;
+
+        // 白テクスチャ用
+        Microsoft::WRL::ComPtr<ID3D11Texture2D>          m_whiteTex;
+        Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> m_whiteSRV;
     };
 }    // namespace Tsukino::Renderer
