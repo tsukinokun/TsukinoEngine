@@ -89,8 +89,8 @@ namespace Tsukino::BuiltIn::ECS {
                                                                                                    camera.farZ);
                 } else {
                     // 自作の perspectiveFovLH を使用
-                    camera.projectionMatrix = Tsukino::Core::Math::matrix::perspectiveFovLH(
-                        Tsukino::Core::Math::ToRadians(camera.fov), camera.aspectRatio, camera.nearZ, camera.farZ);
+                    // リバースZに対応しているため、farZ と nearZ の順番で指定
+                    camera.projectionMatrix = Tsukino::Core::Math::matrix::perspectiveFovLH(Tsukino::Core::Math::ToRadians(camera.fov), camera.aspectRatio, camera.farZ, camera.nearZ);
                 }
 
                 //-------------------------------------------------------------
