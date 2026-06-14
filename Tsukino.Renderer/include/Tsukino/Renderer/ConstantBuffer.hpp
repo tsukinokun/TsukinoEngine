@@ -16,6 +16,7 @@ namespace Tsukino::Renderer {
         Tsukino::Core::Math::matrix view;
         Tsukino::Core::Math::matrix projection;
         Tsukino::Core::Math::matrix viewProj;
+        Tsukino::Core::Math::matrix invViewProj;      //!< viewProjの逆行列（スカイ・ポストエフェクト等で使用）
         Tsukino::Core::Math::matrix lightViewProj;    //!< ライト空間のViewProjection行列
         hlslpp::float4              lightDir;         //!< ライトの方向
         hlslpp::float4              lightColor;       //!< ライト色と強度 xyz: 色(linear), w: 強度
