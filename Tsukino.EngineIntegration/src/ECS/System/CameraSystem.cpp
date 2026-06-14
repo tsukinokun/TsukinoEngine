@@ -98,6 +98,10 @@ namespace Tsukino::BuiltIn::ECS {
                 //-------------------------------------------------------------
                 camera.viewProjMatrix = hlslpp::mul(camera.viewMatrix, camera.projectionMatrix);
 
+                //-------------------------------------------------------------
+                //! @brief ViewProjection行列の逆行列の計算
+                //-------------------------------------------------------------
+                camera.invViewProjMatrix = hlslpp::inverse(camera.viewProjMatrix);
                 // 更新完了
                 camera.dirty = false;
             }
@@ -112,6 +116,7 @@ namespace Tsukino::BuiltIn::ECS {
             sceneData.view       = camera.viewMatrix;
             sceneData.projection = camera.projectionMatrix;
             sceneData.viewProj   = camera.viewProjMatrix;
+            sceneData.invViewProj = camera.invViewProjMatrix;
             sceneData.cameraPos  = hlslpp::float4(transform.position.x, transform.position.y, transform.position.z, 1.0f);
             // シーン定数バッファをRendererにセット
             if(camera.isPrimary) {

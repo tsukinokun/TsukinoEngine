@@ -5,16 +5,20 @@
 //--------------------------------------------------------------
 #pragma pack_matrix(row_major)
 //--------------------------------------------------------------
-//! @brief シーン定数バッファ
+//! @brief シーン用定数バッファ
 //--------------------------------------------------------------
 cbuffer CBufferScene : register(b0)
 {
     matrix view;
     matrix projection;
     matrix viewProj;
-    matrix lightViewProj;
-    float4 lightDir;
+    matrix invViewProj;
+    matrix lightViewProj; // ライト空間のViewProjection行列
+    float4 lightDir; // xyz: ライト方向（正規化済み）
+    float4 lightColor; // xyz: ライトの色, w: 未使用
+    float4 cameraPos; // xyz: カメラのワールド座標, w: 未使用
 };
+
 //--------------------------------------------------------------
 //! @brief トランスフォーム定数バッファ
 //--------------------------------------------------------------

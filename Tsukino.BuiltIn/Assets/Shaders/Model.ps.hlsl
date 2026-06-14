@@ -16,6 +16,7 @@ cbuffer CBufferScene : register(b0)
     matrix view;
     matrix projection;
     matrix viewProj;
+    matrix invViewProj;
     matrix lightViewProj; // ライト空間のViewProjection行列
     float4 lightDir; // xyz: ライト方向（正規化済み）
     float4 lightColor; // xyz: ライトの色, w: 未使用

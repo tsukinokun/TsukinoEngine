@@ -38,9 +38,10 @@ namespace Tsukino::BuiltIn::ECS {
         hlslpp::float3 lookAtTarget = hlslpp::float3(0, 0, 0);    // 注視する座標
 
         // --- 行列キャッシュ ---
-        Tsukino::Core::Math::matrix viewMatrix;          // ビュー行列
-        Tsukino::Core::Math::matrix projectionMatrix;    // 射影行列
-        Tsukino::Core::Math::matrix viewProjMatrix;      // ビュー射影行列
+        Tsukino::Core::Math::matrix viewMatrix;           // ビュー行列
+        Tsukino::Core::Math::matrix projectionMatrix;     // 射影行列
+        Tsukino::Core::Math::matrix viewProjMatrix;       // ビュー射影行列
+        Tsukino::Core::Math::matrix invViewProjMatrix;    // ビュー射影行列の逆行列
 
         // --- 制御フラグ ---
         bool isPrimary = true;    // メインカメラとして使用するか

@@ -466,6 +466,7 @@ namespace Tsukino::Renderer {
         m_worldSceneData.view       = data.view;
         m_worldSceneData.projection = data.projection;
         m_worldSceneData.viewProj   = data.viewProj;
+        m_worldSceneData.invViewProj = data.invViewProj;
         m_worldSceneData.cameraPos  = data.cameraPos;    // PBR視線ベクトル用
     }
 
