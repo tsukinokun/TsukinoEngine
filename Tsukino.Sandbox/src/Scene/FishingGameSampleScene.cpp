@@ -23,6 +23,7 @@
 #include <Tsukino/BuiltIn/ECS/Component/RigidBodyComponent.hpp>
 #include <Tsukino/BuiltIn/ECS/Component/AnimationControllerComponent.hpp>
 #include <Tsukino/BuiltIn/ECS/Component/DirectionalLightComponent.hpp>
+#include <Tsukino/BuiltIn/ECS/Component/SkyAtmosphereComponent.hpp>
 
 #include <Tsukino/BuiltIn/ECS/Serialization/TransformComponentSerialization.hpp>
 #include <Tsukino/BuiltIn/ECS/Serialization/CameraComponentSerialization.hpp>
@@ -36,14 +37,13 @@
 #include <Tsukino/EngineIntegration/ECS/System/ModelSystem.hpp>
 #include <Tsukino/EngineIntegration/ECS/System/AnimationSystem.hpp>
 #include <Tsukino/EngineIntegration/ECS/System/DirectionalLightSystem.hpp>
+#include <Tsukino/EngineIntegration/ECS/System/SkyAtmosphereSystem.hpp>
 
 #include <Tsukino/EngineIntegration/EngineAPI.hpp>
 #include <Tsukino/EngineIntegration/EngineContext.hpp>
 #include <Tsukino/Engine/Asset/AssetManager.hpp>
 #include <Tsukino/Engine/ECS/Prefab/PrefabFactory.hpp>
 #include <Tsukino/EngineIntegration/Scene/GameSceneManager.hpp>
-
-#include <Tsukino/Engine/Asset/Cubemap/CubemapAsset.hpp>
 
 #include <Tsukino/Core/Path.hpp>
 #include <Tsukino/Core/Log.hpp>
@@ -73,6 +73,7 @@ namespace Tsukino::Sandbox {
             Animation,
             Physics,
             DirectionalLightSystem,
+            SkyAtmosphere,
 #ifdef _DEBUG
             DebugCamera,
 #endif
@@ -87,6 +88,7 @@ namespace Tsukino::Sandbox {
         m_scene.AddSystem(std::make_shared<Tsukino::BuiltIn::ECS::AnimationSystem>(), (int)SystemPriority::Animation);
         m_scene.AddSystem(std::make_shared<Tsukino::BuiltIn::ECS::PhysicsSystem>(eventBus), (int)SystemPriority::Physics);
         m_scene.AddSystem(std::make_shared<Tsukino::BuiltIn::ECS::DirectionalLightSystem>(), (int)SystemPriority::DirectionalLightSystem);
+        m_scene.AddSystem(std::make_shared<Tsukino::BuiltIn::ECS::SkyAtmosphereSystem>(), (int)SystemPriority::SkyAtmosphere);
 #ifdef _DEBUG
         m_scene.AddSystem(std::make_shared<Tsukino::BuiltIn::ECS::DebugCameraSystem>(), (int)SystemPriority::DebugCamera);
 #endif
@@ -97,9 +99,6 @@ namespace Tsukino::Sandbox {
         m_scene.AddSystem(std::make_shared<Tsukino::BuiltIn::ECS::AudioSystem>(), (int)SystemPriority::Audio);
 
         Tsukino::ECS::Registry& registry = m_scene.GetRegistry();
-
-        // テストでスカイボックスを読み込み
-        context->assetManager->Load(Tsukino::Core::Path("Tsukino.Sandbox/Assets/FishingGameSample/Skybox/sky.cubemap"));
 
         //--------------------------------------------------------------
         // ステージモデルの生成
@@ -159,9 +158,10 @@ namespace Tsukino::Sandbox {
             //--------------------------------------------------------------
             // 3Dカメラエンティティの生成
             //--------------------------------------------------------------
-            const std::string prefabPath = "Tsukino.Sandbox/Assets/FishingGameSample/Prefabs/3DCamera/Prefab.json";
-            entt::entity      testEntity = context->prefabFactory->Instantiate(prefabPath, registry);
-            Tsukino::BuiltIn::ECS::CameraComponent& cam = registry.GetComponent<Tsukino::BuiltIn::ECS::CameraComponent>(testEntity);    // これをメインカメラにする
+            const std::string                       prefabPath = "Tsukino.Sandbox/Assets/FishingGameSample/Prefabs/3DCamera/Prefab.json";
+            entt::entity                            testEntity = context->prefabFactory->Instantiate(prefabPath, registry);
+            Tsukino::BuiltIn::ECS::CameraComponent& cam =
+                registry.GetComponent<Tsukino::BuiltIn::ECS::CameraComponent>(testEntity);    // これをメインカメラにする
         }
 
         //--------------------------------------------------------------
@@ -199,6 +199,13 @@ namespace Tsukino::Sandbox {
             light.color                                             = hlslpp::float3(1.0f, 1.0f, 1.0f);
             light.intensity                                         = 6.0f;
             light.castShadow                                        = true;
+        }
+        //--------------------------------------------------------------
+        // エンティティ生成（ディレクショナルライトと同じエンティティでもOK）
+        //--------------------------------------------------------------
+        {
+            Tsukino::ECS::Entity skyEntity = m_scene.CreateEntity();
+            registry.AddComponent<Tsukino::BuiltIn::ECS::SkyAtmosphereComponent>(skyEntity);
         }
     }
 
