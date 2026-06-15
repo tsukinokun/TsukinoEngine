@@ -73,6 +73,21 @@ namespace Tsukino::Renderer {
         //--------------------------------------------------------------
         void SetMaterial(const Material& mat);
 
+         //--------------------------------------------------------------
+        //! @brief HDRレンダーターゲットのSRVを取得（トーンマッピングで使用）
+        //! @return ID3D11ShaderResourceViewへのポインタ
+        //--------------------------------------------------------------
+        [[nodiscard]]
+        ID3D11ShaderResourceView* GetHDRSRV() const noexcept {
+            return m_hdrSRV.Get();
+        }
+
+        //--------------------------------------------------------------
+        //! @brief バックバッファ（スワップチェイン）のRTVにバインドする
+        //! @note  トーンマッピングパスの直前に呼び出す
+        //--------------------------------------------------------------
+        void BindBackBuffer();
+
     private:
         Microsoft::WRL::ComPtr<ID3D11Device> m_device;
 
@@ -90,6 +105,11 @@ namespace Tsukino::Renderer {
 
         // DepthStencilView
         Microsoft::WRL::ComPtr<ID3D11DepthStencilView> m_dsv;
+
+        // HDRレンダーターゲット（通常描画の出力先）
+        Microsoft::WRL::ComPtr<ID3D11Texture2D>          m_hdrTex;    //!< HDRカラーバッファ
+        Microsoft::WRL::ComPtr<ID3D11RenderTargetView>   m_hdrRTV;    //!< HDR用RTV
+        Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> m_hdrSRV;    //!< トーンマッピングで読むSRV
 
         UINT m_width  = 0;    //!< 描画領域の幅
         UINT m_height = 0;    //!< 描画領域の高さ

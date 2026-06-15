@@ -100,6 +100,34 @@ namespace Tsukino::Renderer {
         // DSV 作成
         m_device->CreateDepthStencilView(depthTex.Get(), nullptr, m_dsv.GetAddressOf());
 
+        //--------------------------------------------------------------
+        // HDRレンダーターゲットの作成
+        //--------------------------------------------------------------
+        D3D11_TEXTURE2D_DESC hdrDesc{};
+        hdrDesc.Width            = width;
+        hdrDesc.Height           = height;
+        hdrDesc.MipLevels        = 1;
+        hdrDesc.ArraySize        = 1;
+        hdrDesc.Format           = DXGI_FORMAT_R16G16B16A16_FLOAT;
+        hdrDesc.SampleDesc.Count = 1;
+        hdrDesc.Usage            = D3D11_USAGE_DEFAULT;
+        hdrDesc.BindFlags        = D3D11_BIND_RENDER_TARGET | D3D11_BIND_SHADER_RESOURCE;
+
+        hr = m_device->CreateTexture2D(&hdrDesc, nullptr, m_hdrTex.GetAddressOf());
+        if(FAILED(hr)) {
+            return false;
+        }
+
+        hr = m_device->CreateRenderTargetView(m_hdrTex.Get(), nullptr, m_hdrRTV.GetAddressOf());
+        if(FAILED(hr)) {
+            return false;
+        }
+
+        hr = m_device->CreateShaderResourceView(m_hdrTex.Get(), nullptr, m_hdrSRV.GetAddressOf());
+        if(FAILED(hr)) {
+            return false;
+        }
+
         // 画面サイズを保存
         m_width  = width;
         m_height = height;
@@ -113,11 +141,11 @@ namespace Tsukino::Renderer {
     void GraphicsContext::BeginFrame(float r, float g, float b, float a) {
         float clearColor[4] = {r, g, b, a};
 
-        // RenderTarget設定
-        m_context->OMSetRenderTargets(1, m_rtv.GetAddressOf(), m_dsv.Get());
+        // RenderTarget設定（HDRバッファへ描画）
+        m_context->OMSetRenderTargets(1, m_hdrRTV.GetAddressOf(), m_dsv.Get());
 
         // 画面クリア
-        m_context->ClearRenderTargetView(m_rtv.Get(), clearColor);
+        m_context->ClearRenderTargetView(m_hdrRTV.Get(), clearColor);
 
         // 深度ステンシルクリア
         m_context->ClearDepthStencilView(m_dsv.Get(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 0.0f, 0);
@@ -171,5 +199,13 @@ namespace Tsukino::Renderer {
 
         ID3D11SamplerState* sampler = mat.GetSampler();    // マテリアルからサンプラーを取得
         ctx->PSSetSamplers(0, 1, &sampler);                // ピクセルシェーダーのスロット0にサンプラーをセット
+    }
+
+    //--------------------------------------------------------------
+    //! @brief バックバッファ（スワップチェイン）のRTVにバインドする
+    //--------------------------------------------------------------
+    void GraphicsContext::BindBackBuffer() {
+        // 深度なしでバックバッファにバインド（トーンマッピングは深度不要）
+        m_context->OMSetRenderTargets(1, m_rtv.GetAddressOf(), nullptr);
     }
 }    // namespace Tsukino::Renderer
