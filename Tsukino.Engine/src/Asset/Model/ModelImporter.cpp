@@ -208,13 +208,26 @@ namespace Tsukino::Asset {
             //--------------------------------------------------------------
             // sRGBかどうかでターゲットフォーマットを決定
             //--------------------------------------------------------------
-            const bool        isSRGB       = srgbTexIndices.count(i) > 0;
-            const DXGI_FORMAT linearFormat = DXGI_FORMAT_R8G8B8A8_UNORM;
-            const DXGI_FORMAT bcFormat     = isSRGB ? DXGI_FORMAT_BC3_UNORM_SRGB : DXGI_FORMAT_BC3_UNORM;
+            const bool isSRGB = srgbTexIndices.count(i) > 0;
 
-            if(srcImg->format != linearFormat) {
+            //元データがsRGBなら、メタデータのフォーマットを明示的に_SRGBに書き換える
+            if(isSRGB) {
+                // ロードされたフォーマットがUNORM系なら、対応する_SRGBフォーマットに上書きする
+                DXGI_FORMAT srgbFormat = DirectX::MakeSRGB(image.GetMetadata().format);
+                if(srgbFormat != DXGI_FORMAT_UNKNOWN) {
+                    image.OverrideFormat(srgbFormat);
+                }
+            }
+
+            // 中間フォーマットもsRGB / リニアを切り替えるようにする
+            const DXGI_FORMAT intermediateFormat = isSRGB ? DXGI_FORMAT_R8G8B8A8_UNORM_SRGB : DXGI_FORMAT_R8G8B8A8_UNORM;
+            const DXGI_FORMAT bcFormat           = isSRGB ? DXGI_FORMAT_BC3_UNORM_SRGB : DXGI_FORMAT_BC3_UNORM;
+
+            // intermediateFormat（_SRGB か _UNORM）を基準にコンバート
+            if(image.GetMetadata().format != intermediateFormat) {
                 DirectX::ScratchImage converted;
-                HRESULT               hrConv = DirectX::Convert(*srcImg, linearFormat, DirectX::TEX_FILTER_DEFAULT, DirectX::TEX_THRESHOLD_DEFAULT, converted);
+                HRESULT               hrConv =
+                    DirectX::Convert(*image.GetImage(0, 0, 0), intermediateFormat, DirectX::TEX_FILTER_DEFAULT, DirectX::TEX_THRESHOLD_DEFAULT, converted);
                 if(FAILED(hrConv)) {
                     Tsukino::Core::Log::Error("Failed to convert texture format: " + std::to_string(i));
                     continue;
