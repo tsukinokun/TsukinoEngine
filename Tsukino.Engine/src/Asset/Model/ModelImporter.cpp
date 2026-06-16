@@ -140,6 +140,38 @@ namespace Tsukino::Asset {
         std::string                          modelBaseName = inputPath.stem();
         std::unordered_map<u32, std::string> embeddedTexIndexToDDSPath;
 
+        //--------------------------------------------------------------
+        // どのテクスチャインデックスがsRGBか事前に収集
+        //--------------------------------------------------------------
+        std::unordered_set<u32> srgbTexIndices;
+
+        for(u32 i = 0; i < scene->mNumMaterials; ++i) {
+            const aiMaterial* mat = scene->mMaterials[i];
+
+            // sRGBで扱うべきテクスチャタイプ
+            constexpr aiTextureType srgbTypes[] = {
+                aiTextureType_DIFFUSE,
+                aiTextureType_EMISSIVE,
+            };
+
+            for(aiTextureType type : srgbTypes) {
+                aiString texPath;
+                if(mat->GetTexture(type, 0, &texPath) != AI_SUCCESS)
+                    continue;
+
+                const aiTexture* embedded = scene->GetEmbeddedTexture(texPath.C_Str());
+                if(!embedded)
+                    continue;
+
+                for(u32 t = 0; t < scene->mNumTextures; ++t) {
+                    if(scene->mTextures[t] == embedded) {
+                        srgbTexIndices.insert(t);
+                        break;
+                    }
+                }
+            }
+        }
+
         for(u32 i = 0; i < scene->mNumTextures; ++i) {
             const aiTexture* tex = scene->mTextures[i];
 
@@ -147,26 +179,19 @@ namespace Tsukino::Asset {
 
             if(tex->mHeight == 0) {
                 DirectX::TexMetadata metadata;
-                // PNG/JPGなど圧縮済みデータ
-                HRESULT hr = DirectX::LoadFromWICMemory(
+                HRESULT              hr = DirectX::LoadFromWICMemory(
                     reinterpret_cast<const std::byte*>(tex->pcData), static_cast<size_t>(tex->mWidth), DirectX::WIC_FLAGS_NONE, &metadata, image, nullptr);
                 if(FAILED(hr)) {
                     Tsukino::Core::Log::Error("Failed to load embedded texture: " + std::to_string(i));
                     continue;
                 }
             } else {
-                // 生ピクセル（ARGB8888）
                 HRESULT hr = image.Initialize2D(DXGI_FORMAT_B8G8R8A8_UNORM, tex->mWidth, tex->mHeight, 1, 1);
                 if(FAILED(hr)) {
                     Tsukino::Core::Log::Error("Failed to initialize raw texture: " + std::to_string(i));
                     continue;
                 }
-
-                // ピクセルデータをコピー
                 const DirectX::Image* img = image.GetImage(0, 0, 0);
-
-                Tsukino::Core::Log::Info("TextureLoader format: " + std::to_string(img->format));
-
                 if(!img) {
                     Tsukino::Core::Log::Error("GetImage returned nullptr after Initialize2D: " + std::to_string(i));
                     continue;
@@ -180,11 +205,16 @@ namespace Tsukino::Asset {
                 continue;
             }
 
-            // フォーマットをRGBA8に統一
-            // すでにRGBA8の場合はConvertをスキップ
-            if(srcImg->format != DXGI_FORMAT_R8G8B8A8_UNORM) {
+            //--------------------------------------------------------------
+            // sRGBかどうかでターゲットフォーマットを決定
+            //--------------------------------------------------------------
+            const bool        isSRGB       = srgbTexIndices.count(i) > 0;
+            const DXGI_FORMAT linearFormat = DXGI_FORMAT_R8G8B8A8_UNORM;
+            const DXGI_FORMAT bcFormat     = isSRGB ? DXGI_FORMAT_BC3_UNORM_SRGB : DXGI_FORMAT_BC3_UNORM;
+
+            if(srcImg->format != linearFormat) {
                 DirectX::ScratchImage converted;
-                HRESULT hrConv = DirectX::Convert(*srcImg, DXGI_FORMAT_R8G8B8A8_UNORM, DirectX::TEX_FILTER_DEFAULT, DirectX::TEX_THRESHOLD_DEFAULT, converted);
+                HRESULT               hrConv = DirectX::Convert(*srcImg, linearFormat, DirectX::TEX_FILTER_DEFAULT, DirectX::TEX_THRESHOLD_DEFAULT, converted);
                 if(FAILED(hrConv)) {
                     Tsukino::Core::Log::Error("Failed to convert texture format: " + std::to_string(i));
                     continue;
@@ -192,8 +222,8 @@ namespace Tsukino::Asset {
                 image = std::move(converted);
             }
 
-            // 2048を超える場合は2048にリサイズ
-            size_t maxSize = 2048;
+            // 2048を超える場合はリサイズ
+            constexpr size_t maxSize = 2048;
             if(image.GetMetadata().width > maxSize || image.GetMetadata().height > maxSize) {
                 size_t                newWidth  = std::min(image.GetMetadata().width, maxSize);
                 size_t                newHeight = std::min(image.GetMetadata().height, maxSize);
@@ -202,43 +232,34 @@ namespace Tsukino::Asset {
                 image = std::move(resized);
             }
 
-            // 4の倍数にリサイズ
-            size_t newWidth  = (image.GetMetadata().width + 3) & ~3;
-            size_t newHeight = (image.GetMetadata().height + 3) & ~3;
-
-            if(newWidth != image.GetMetadata().width || newHeight != image.GetMetadata().height) {
-                DirectX::ScratchImage resized;
-                DirectX::Resize(*image.GetImage(0, 0, 0), newWidth, newHeight, DirectX::TEX_FILTER_DEFAULT, resized);
-                image = std::move(resized);
-            }
-
-            //---------------------------------------------------------------
-            // ミップマップを自動生成する
-            //---------------------------------------------------------------
+            // 4の倍数にリサイズ（BC圧縮の要件）
             {
-                DirectX::ScratchImage mipChain;
-                // TEX_FILTER_DEFAULT（ボックスフィルタ）で 1x1 になるまで全階層を生成
-                // ※もし縮小時の画質をより優先したい場合は、より高品質な DirectX::TEX_FILTER_FANT も選べます
-                HRESULT hrMip = DirectX::GenerateMipMaps(*image.GetImage(0, 0, 0),
-                                                         DirectX::TEX_FILTER_DEFAULT,
-                                                         0,    // 0 を指定すると、1x1ピクセルに達するまでの最適階層数が自動計算されます
-                                                         mipChain);
-
-                if(SUCCEEDED(hrMip)) {
-                    // 元画像（Mip0のみ）から、ミップチェーン付きのデータに差し替える
-                    image = std::move(mipChain);
-                } else {
-                    Tsukino::Core::Log::Error("Failed to generate mipmaps for texture index: " + std::to_string(i));
-                    continue;
+                size_t newWidth  = (image.GetMetadata().width + 3) & ~3;
+                size_t newHeight = (image.GetMetadata().height + 3) & ~3;
+                if(newWidth != image.GetMetadata().width || newHeight != image.GetMetadata().height) {
+                    DirectX::ScratchImage resized;
+                    DirectX::Resize(*image.GetImage(0, 0, 0), newWidth, newHeight, DirectX::TEX_FILTER_DEFAULT, resized);
+                    image = std::move(resized);
                 }
             }
 
-            // BC3圧縮
+            // ミップマップ生成
+            {
+                DirectX::ScratchImage mipChain;
+                HRESULT               hrMip = DirectX::GenerateMipMaps(*image.GetImage(0, 0, 0), DirectX::TEX_FILTER_DEFAULT, 0, mipChain);
+                if(FAILED(hrMip)) {
+                    Tsukino::Core::Log::Error("Failed to generate mipmaps: " + std::to_string(i));
+                    continue;
+                }
+                image = std::move(mipChain);
+            }
+
+            // BC3圧縮（sRGB / リニアを自動選択）
             DirectX::ScratchImage compressed;
             HRESULT               hr = DirectX::Compress(image.GetImages(),
                                            image.GetImageCount(),
                                            image.GetMetadata(),
-                                           DXGI_FORMAT_BC3_UNORM,    // BC3
+                                           bcFormat,
                                            DirectX::TEX_COMPRESS_DEFAULT,
                                            DirectX::TEX_THRESHOLD_DEFAULT,
                                            compressed);
@@ -247,7 +268,7 @@ namespace Tsukino::Asset {
                 continue;
             }
 
-            // 保存パスの構築
+            // 保存
             std::string         ddsFilename = modelBaseName + "_" + std::to_string(i) + ".dds";
             Tsukino::Core::Path tsmDir      = (outputDirectory / inputPath).parent_path();
             Tsukino::Core::Path ddsPath     = tsmDir / ddsFilename;
