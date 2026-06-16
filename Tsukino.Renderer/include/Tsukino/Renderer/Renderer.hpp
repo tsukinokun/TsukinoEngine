@@ -223,6 +223,19 @@ namespace Tsukino::Renderer {
         //------------------------------------------------------------
         void SetSkyPipeline(const Tsukino::Asset::ShaderAsset* vs, const Tsukino::Asset::ShaderAsset* ps);
 
+        //------------------------------------------------------------
+        //! @brief 水面パイプラインのセット
+        //! @param vs [in] 頂点シェーダーアセット
+        //! @param ps [in] ピクセルシェーダーアセット
+        //------------------------------------------------------------
+        void SetWaterPipeline(const Tsukino::Asset::ShaderAsset* vs, const Tsukino::Asset::ShaderAsset* ps);
+
+        //------------------------------------------------------------
+        //! @brief 水面の時間経過を更新（波のアニメーションなどに使用）
+        //! @param deltaTime [in] 前フレームからの経過時間
+        //------------------------------------------------------------
+        void UpdateWaterTime(float deltaTime);
+
     private:
         //------------------------------------------------------------
         // 定数バッファの作成
@@ -288,12 +301,17 @@ namespace Tsukino::Renderer {
         //------------------------------------------------------------
         void ExecuteTonemapPass();
 
-         //------------------------------------------------------------
+        //------------------------------------------------------------
         //! @brief トーンマッピングパイプラインのセット
         //! @param vs [in] 頂点シェーダーアセット
         //! @param ps [in] ピクセルシェーダーアセット
         //------------------------------------------------------------
         void SetTonemapPipeline(const Tsukino::Asset::ShaderAsset* vs, const Tsukino::Asset::ShaderAsset* ps);
+
+        //------------------------------------------------------------
+        //! @brief 水面の作成
+        //------------------------------------------------------------
+        bool CreateWaterResources();
 
     private:
         // DirectX 11の主要なインターフェース
@@ -367,5 +385,13 @@ namespace Tsukino::Renderer {
         ComPtr<ID3D11VertexShader> m_tonemapVS;    //!< トーンマッピング用VS
         ComPtr<ID3D11PixelShader>  m_tonemapPS;    //!< トーンマッピング用PS
         bool                       m_hasTonemapper = false;
+
+        // 水面用リソース
+        ComPtr<ID3D11VertexShader> m_waterVS;
+        ComPtr<ID3D11PixelShader>  m_waterPS;
+        ComPtr<ID3D11Buffer>       m_waterBuffer;    //!< 水面定数バッファ (b5)
+        CBufferWater               m_waterData{};
+        float                      m_waterTime = 0.0f;
+        bool                       m_hasWater  = false;
     };
 }    // namespace Tsukino::Renderer

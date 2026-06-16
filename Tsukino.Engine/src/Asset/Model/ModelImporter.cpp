@@ -112,6 +112,11 @@ namespace Tsukino::Asset {
                 dstMat.name = matName.C_Str();
             }
 
+            // ShadingModelをマテリアル名のプレフィックスから判定
+            if(dstMat.name.rfind("Water_", 0) == 0) {
+                dstMat.shadingModel = Tsukino::GraphicsCommon::ShadingModel::Water;
+            }
+
             // ベースカラー（ディフューズカラー）
             aiColor4D color;
             if(aiGetMaterialColor(aiMat, AI_MATKEY_COLOR_DIFFUSE, &color) == AI_SUCCESS) {
