@@ -36,5 +36,7 @@ namespace Tsukino::BuiltIn {
         Tsukino::Asset::AssetHandle shadowPS;          // シャドウマップ用ピクセルシェーダーのハンドル
         Tsukino::Asset::AssetHandle skyVS;             // スカイ用頂点シェーダーのハンドル
         Tsukino::Asset::AssetHandle skyPS;             // スカイ用ピクセルシェーダーのハンドル
+        Tsukino::Asset::AssetHandle tonemapVS;         // トーンマップ用頂点シェーダーのハンドル
+        Tsukino::Asset::AssetHandle tonemapPS;         // トーンマップ用ピクセルシェーダーのハンドル
     };
 }    // namespace Tsukino::BuiltIn
