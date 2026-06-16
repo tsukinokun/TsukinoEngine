@@ -27,8 +27,13 @@ namespace Tsukino::Renderer {
     //------------------------------------------------------------
     //! @brief レンダラーの初期化
     //------------------------------------------------------------
-    bool Renderer::Initialize(
-        HWND hwnd, uint32_t width, uint32_t height, const Tsukino::Asset::ShaderAsset* debugVS, const Tsukino::Asset::ShaderAsset* debugPS) {
+    bool Renderer::Initialize(HWND                               hwnd,
+                              uint32_t                           width,
+                              uint32_t                           height,
+                              const Tsukino::Asset::ShaderAsset* debugVS,
+                              const Tsukino::Asset::ShaderAsset* debugPS,
+                              const Tsukino::Asset::ShaderAsset* tonemapVS,
+                              const Tsukino::Asset::ShaderAsset* tonemapPS) {
         // グラフィックスコンテキストの初期化
         if(!m_graphicsContext.Initialize(hwnd, width, height)) {
             return false;
@@ -77,6 +82,11 @@ namespace Tsukino::Renderer {
         //------------------------------------------------------------
         if(!CreateDebugBuffers(debugVS, debugPS))
             return false;
+
+        //------------------------------------------------------------
+        // トーンマッピングパイプラインの作成
+        //------------------------------------------------------------
+        SetTonemapPipeline(tonemapVS, tonemapPS);
 
         //------------------------------------------------------------
         // シャドウマップ用リソースの作成
