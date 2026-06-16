@@ -217,6 +217,13 @@ namespace Tsukino::Renderer {
         //------------------------------------------------------------
         void SetSkyPipeline(const Tsukino::Asset::ShaderAsset* vs, const Tsukino::Asset::ShaderAsset* ps);
 
+        //------------------------------------------------------------
+        //! @brief トーンマッピングパイプラインのセット
+        //! @param vs [in] 頂点シェーダーアセット
+        //! @param ps [in] ピクセルシェーダーアセット
+        //------------------------------------------------------------
+        void SetTonemapPipeline(const Tsukino::Asset::ShaderAsset* vs, const Tsukino::Asset::ShaderAsset* ps);
+
     private:
         //------------------------------------------------------------
         // 定数バッファの作成
@@ -276,6 +283,11 @@ namespace Tsukino::Renderer {
         //! @brief スカイパスの実行
         //------------------------------------------------------------
         void ExecuteSkyPass();
+
+        //------------------------------------------------------------
+        //! @brief トーンマッピングパスの実行
+        //------------------------------------------------------------
+        void ExecuteTonemapPass();
 
     private:
         // DirectX 11の主要なインターフェース
@@ -344,5 +356,10 @@ namespace Tsukino::Renderer {
         ComPtr<ID3D11Buffer>       m_skyBuffer;         //!< スカイ定数バッファ (b4)
         CBufferSky                 m_skyData{};         //!< スカイパラメータ
         bool                       m_hasSky = false;    //!< スカイが有効かどうか
+
+        // トーンマッピング用リソース
+        ComPtr<ID3D11VertexShader> m_tonemapVS;    //!< トーンマッピング用VS
+        ComPtr<ID3D11PixelShader>  m_tonemapPS;    //!< トーンマッピング用PS
+        bool                       m_hasTonemapper = false;
     };
 }    // namespace Tsukino::Renderer

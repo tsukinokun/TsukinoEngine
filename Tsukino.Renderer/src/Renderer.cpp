@@ -313,6 +313,12 @@ namespace Tsukino::Renderer {
         }
 
         m_drawQueue.Clear();
+
+        //------------------------------------------------------------
+        // Tonemapパス（HDR → LDR変換してバックバッファへ）
+        //------------------------------------------------------------
+        ExecuteTonemapPass();
+
         m_graphicsContext.EndFrame();
     }
 
@@ -463,11 +469,11 @@ namespace Tsukino::Renderer {
     //------------------------------------------------------------
     void Renderer::SetWorldCameraMatrix(const CBufferScene& data) {
         // カメラ行列のみ更新し、ライト情報は上書きしない
-        m_worldSceneData.view       = data.view;
-        m_worldSceneData.projection = data.projection;
-        m_worldSceneData.viewProj   = data.viewProj;
+        m_worldSceneData.view        = data.view;
+        m_worldSceneData.projection  = data.projection;
+        m_worldSceneData.viewProj    = data.viewProj;
         m_worldSceneData.invViewProj = data.invViewProj;
-        m_worldSceneData.cameraPos  = data.cameraPos;    // PBR視線ベクトル用
+        m_worldSceneData.cameraPos   = data.cameraPos;    // PBR視線ベクトル用
     }
 
     //------------------------------------------------------------
@@ -686,6 +692,31 @@ namespace Tsukino::Renderer {
         m_hasSky = true;
     }
 
+    //------------------------------------------------------------
+    //! @brief トーンマッピングパイプラインのセット
+    //------------------------------------------------------------
+    void Renderer::SetTonemapPipeline(const Tsukino::Asset::ShaderAsset* vs, const Tsukino::Asset::ShaderAsset* ps) {
+        if(!vs || !ps) {
+            Tsukino::Core::Log::Error("Renderer::SetTonemapPipeline - shader is null.");
+            return;
+        }
+
+        ID3D11Device* device = m_graphicsContext.GetDevice();
+
+        HRESULT hr = device->CreateVertexShader(vs->binary.data(), vs->binary.size(), nullptr, m_tonemapVS.GetAddressOf());
+        if(FAILED(hr)) {
+            Tsukino::Core::Log::Error("Failed to create tonemap vertex shader.");
+            return;
+        }
+
+        hr = device->CreatePixelShader(ps->binary.data(), ps->binary.size(), nullptr, m_tonemapPS.GetAddressOf());
+        if(FAILED(hr)) {
+            Tsukino::Core::Log::Error("Failed to create tonemap pixel shader.");
+            return;
+        }
+
+        m_hasTonemapper = true;
+    }
 
     //------------------------------------------------------------
     //! @brief 描画コマンドの実行
@@ -999,5 +1030,58 @@ namespace Tsukino::Renderer {
         // ステートをリセット
         //----------------------------------------------------------
         context->OMSetDepthStencilState(m_commonStatesTK->DepthDefault(), 0);
+    }
+
+    //------------------------------------------------------------
+    //! @brief トーンマッピングパスの実行
+    //------------------------------------------------------------
+    void Renderer::ExecuteTonemapPass() {
+        if(!m_hasTonemapper || !m_tonemapVS || !m_tonemapPS)
+            return;
+
+        ID3D11DeviceContext* context = m_graphicsContext.GetContext();
+
+        //----------------------------------------------------------
+        // バックバッファに切り替え（HDR SRVとRTVの同時バインド防止）
+        //----------------------------------------------------------
+        m_graphicsContext.BindBackBuffer();
+
+        //----------------------------------------------------------
+        // HDRバッファをt0にバインド
+        //----------------------------------------------------------
+        ID3D11ShaderResourceView* hdrSRV = m_graphicsContext.GetHDRSRV();
+        context->PSSetShaderResources(0, 1, &hdrSRV);
+
+        // LinearClampサンプラーをs0にバインド
+        ID3D11SamplerState* sampler = m_samplers[static_cast<size_t>(Tsukino::GraphicsCommon::SamplerType::LinearClamp)].Get();
+        context->PSSetSamplers(0, 1, &sampler);
+
+        //----------------------------------------------------------
+        // シェーダーをセット
+        //----------------------------------------------------------
+        context->VSSetShader(m_tonemapVS.Get(), nullptr, 0);
+        context->PSSetShader(m_tonemapPS.Get(), nullptr, 0);
+        context->IASetInputLayout(nullptr);
+
+        //----------------------------------------------------------
+        // 深度なし・ブレンドなし
+        //----------------------------------------------------------
+        context->OMSetDepthStencilState(m_commonStatesTK->DepthNone(), 0);
+        context->OMSetBlendState(m_commonStatesTK->Opaque(), nullptr, 0xFFFFFFFF);
+        context->RSSetState(m_commonStatesTK->CullNone());
+
+        //----------------------------------------------------------
+        // フルスクリーントライアングル描画
+        //----------------------------------------------------------
+        context->IASetVertexBuffers(0, 0, nullptr, nullptr, nullptr);
+        context->IASetIndexBuffer(nullptr, DXGI_FORMAT_UNKNOWN, 0);
+        context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+        context->Draw(3, 0);
+
+        //----------------------------------------------------------
+        // HDR SRVのバインドを解除
+        //----------------------------------------------------------
+        ID3D11ShaderResourceView* nullSRV = nullptr;
+        context->PSSetShaderResources(0, 1, &nullSRV);
     }
 }    // namespace Tsukino::Renderer
