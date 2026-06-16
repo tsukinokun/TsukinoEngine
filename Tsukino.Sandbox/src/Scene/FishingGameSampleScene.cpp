@@ -197,7 +197,7 @@ namespace Tsukino::Sandbox {
             Tsukino::BuiltIn::ECS::DirectionalLightComponent& light = registry.AddComponent<Tsukino::BuiltIn::ECS::DirectionalLightComponent>(lightEntity);
             light.direction                                         = hlslpp::float3(0.0f, -1.0f, -1.0f);    // 斜め上から照らす
             light.color                                             = hlslpp::float3(1.0f, 1.0f, 1.0f);
-            light.intensity                                         = 6.0f;
+            light.intensity                                         = 2.0f;
             light.castShadow                                        = true;
         }
         //--------------------------------------------------------------
