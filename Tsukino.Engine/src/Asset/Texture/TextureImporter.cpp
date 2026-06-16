@@ -28,7 +28,14 @@ namespace Tsukino::Asset {
         DirectX::ScratchImage image;
         DirectX::TexMetadata  metadata;
 
-        HRESULT hr = DirectX::LoadFromWICFile(absoluteInputPath.ToWString().c_str(), DirectX::WIC_FLAGS_NONE, &metadata, image);
+        HRESULT hr = DirectX::LoadFromWICFile(absoluteInputPath.ToWString().c_str(), DirectX::WIC_FLAGS_FORCE_SRGB, &metadata, image);
+
+        //--------------------------------------------------------------
+        // metadata.format を sRGB に変換（ここが最重要）
+        //--------------------------------------------------------------
+        if(metadata.format == DXGI_FORMAT_R8G8B8A8_UNORM) {
+            metadata.format = DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
+        }
 
         if(FAILED(hr)) {
             Tsukino::Core::Log::Error("Failed to load texture: " + absoluteInputPath.string());

@@ -41,8 +41,5 @@ float4 PSMain(PSInput input) : SV_TARGET
     // ACESトーンマッピング
     float3 ldrColor = ACES(hdrColor);
 
-    // ガンマ補正（リニア → sRGB）
-    ldrColor = pow(max(ldrColor, 0.0f), 1.0f / 2.2f);
-
     return float4(ldrColor, 1.0f);
 }
