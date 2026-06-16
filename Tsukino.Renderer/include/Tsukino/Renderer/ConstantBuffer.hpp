@@ -80,4 +80,18 @@ namespace Tsukino::Renderer {
         hlslpp::float4 sunDirection;    //!< xyz: 太陽方向（正規化済み）, w: 未使用
     };
 
+    //--------------------------------------------------------------
+    //! @struct CBufferWater
+    //! @brief  スロット5 (b5) 用：水面パラメータ
+    //--------------------------------------------------------------
+    struct CBufferWater {
+        float time;            //!< 経過時間（UVスクロール用）
+        float waveSpeed;       //!< 波のスクロール速度
+        float waveScale;       //!< 波のUVスケール
+        float fresnelPower;    //!< フレネルの強さ
+
+        hlslpp::float4 shallowColor;    //!< 浅瀬の色 xyz: 色, w: 未使用
+        hlslpp::float4 deepColor;       //!< 深部の色 xyz: 色, w: 未使用
+    };
+
 }    // namespace Tsukino::Renderer
