@@ -65,7 +65,13 @@ namespace Tsukino::Renderer {
         //! @return true: [in] 初期化成功, false: 初期化失敗
         //------------------------------------------------------------
         [[nodiscard]]
-        bool Initialize(HWND hwnd, uint32_t width, uint32_t height, const Tsukino::Asset::ShaderAsset* debugVS, const Tsukino::Asset::ShaderAsset* debugPS);
+        bool Initialize(HWND                               hwnd,
+                        uint32_t                           width,
+                        uint32_t                           height,
+                        const Tsukino::Asset::ShaderAsset* debugVS,
+                        const Tsukino::Asset::ShaderAsset* debugPS,
+                        const Tsukino::Asset::ShaderAsset* tonemapVS,
+                        const Tsukino::Asset::ShaderAsset* tonemapPS);
 
         //------------------------------------------------------------
         // 描画処理
@@ -217,13 +223,6 @@ namespace Tsukino::Renderer {
         //------------------------------------------------------------
         void SetSkyPipeline(const Tsukino::Asset::ShaderAsset* vs, const Tsukino::Asset::ShaderAsset* ps);
 
-        //------------------------------------------------------------
-        //! @brief トーンマッピングパイプラインのセット
-        //! @param vs [in] 頂点シェーダーアセット
-        //! @param ps [in] ピクセルシェーダーアセット
-        //------------------------------------------------------------
-        void SetTonemapPipeline(const Tsukino::Asset::ShaderAsset* vs, const Tsukino::Asset::ShaderAsset* ps);
-
     private:
         //------------------------------------------------------------
         // 定数バッファの作成
@@ -288,6 +287,13 @@ namespace Tsukino::Renderer {
         //! @brief トーンマッピングパスの実行
         //------------------------------------------------------------
         void ExecuteTonemapPass();
+
+         //------------------------------------------------------------
+        //! @brief トーンマッピングパイプラインのセット
+        //! @param vs [in] 頂点シェーダーアセット
+        //! @param ps [in] ピクセルシェーダーアセット
+        //------------------------------------------------------------
+        void SetTonemapPipeline(const Tsukino::Asset::ShaderAsset* vs, const Tsukino::Asset::ShaderAsset* ps);
 
     private:
         // DirectX 11の主要なインターフェース

@@ -149,13 +149,21 @@ namespace Tsukino::EngineIntegration {
             }
         });
 
-        auto vsAsset = std::static_pointer_cast<Tsukino::Asset::ShaderAsset>(m_assetManager->Get(m_builtinAssets->shaders.debugVS));
-        auto psAsset = std::static_pointer_cast<Tsukino::Asset::ShaderAsset>(m_assetManager->Get(m_builtinAssets->shaders.debugPS));
+        auto debugVsAsset   = std::static_pointer_cast<Tsukino::Asset::ShaderAsset>(m_assetManager->Get(m_builtinAssets->shaders.debugVS));
+        auto debugPsAsset   = std::static_pointer_cast<Tsukino::Asset::ShaderAsset>(m_assetManager->Get(m_builtinAssets->shaders.debugPS));
+        auto tonemapVSAsset = std::static_pointer_cast<Tsukino::Asset::ShaderAsset>(m_assetManager->Get(m_builtinAssets->shaders.tonemapVS));
+        auto tonemapPSAsset = std::static_pointer_cast<Tsukino::Asset::ShaderAsset>(m_assetManager->Get(m_builtinAssets->shaders.tonemapPS));
 
         //--------------------------------------------------------------
         // レンダラー生成
         //--------------------------------------------------------------
-        if(!m_renderer->Initialize(m_window->GetHWND(), m_window->GetWidth(), m_window->GetHeight(), vsAsset.get(), psAsset.get())) {
+        if(!m_renderer->Initialize(m_window->GetHWND(),
+                                   m_window->GetWidth(),
+                                   m_window->GetHeight(),
+                                   debugVsAsset.get(),
+                                   debugPsAsset.get(),
+                                   tonemapVSAsset.get(),
+                                   tonemapPSAsset.get())) {
             return false;
         }
 

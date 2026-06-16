@@ -34,7 +34,9 @@ float3 ACES(float3 x)
 //--------------------------------------------------------------
 float4 PSMain(PSInput input) : SV_TARGET
 {
-    float3 hdrColor = hdrTexture.Sample(hdrSampler, input.uv).rgb;
+    // UV のY を反転
+    float2 uv = float2(input.uv.x, 1.0f - input.uv.y);
+    float3 hdrColor = hdrTexture.Sample(hdrSampler, uv).rgb;
 
     // ACESトーンマッピング
     float3 ldrColor = ACES(hdrColor);
