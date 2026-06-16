@@ -304,13 +304,20 @@ namespace Tsukino::Renderer {
             ExecuteDrawCommand(cmd);
         }
 
+        //------------------------------------------------------------
         // シャドウマップのバインドを解除（DSVとSRVの同時バインド防止）
+        //------------------------------------------------------------
         {
             ID3D11DeviceContext*      context       = m_graphicsContext.GetContext();
             ID3D11ShaderResourceView* nullSRV       = nullptr;
             constexpr UINT            shadowSRVSlot = static_cast<UINT>(SRVSlot::ShadowMap);
             context->PSSetShaderResources(shadowSRVSlot, 1, &nullSRV);
         }
+
+        //------------------------------------------------------------
+        // Tonemapパス（HDR → LDR変換してバックバッファへ）
+        //------------------------------------------------------------
+        ExecuteTonemapPass();
 
         //------------------------------------------------------------
         // Overlay パス
@@ -323,11 +330,6 @@ namespace Tsukino::Renderer {
         }
 
         m_drawQueue.Clear();
-
-        //------------------------------------------------------------
-        // Tonemapパス（HDR → LDR変換してバックバッファへ）
-        //------------------------------------------------------------
-        ExecuteTonemapPass();
 
         m_graphicsContext.EndFrame();
     }
