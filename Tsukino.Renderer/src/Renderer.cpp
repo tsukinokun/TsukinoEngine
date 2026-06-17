@@ -169,6 +169,16 @@ namespace Tsukino::Renderer {
             return false;
         }
 
+        //------------------------------------------------------------
+        // m_waterBuffer (b5) の作成
+        //------------------------------------------------------------
+        desc.ByteWidth = sizeof(Tsukino::Renderer::CBufferWater);
+        hr             = device->CreateBuffer(&desc, nullptr, m_waterBuffer.GetAddressOf());
+        if(FAILED(hr)) {
+            Tsukino::Core::Log::Error("Failed to create water constant buffer.");
+            return false;
+        }
+
         // 成功
         return true;
     }
@@ -747,6 +757,14 @@ namespace Tsukino::Renderer {
     }
 
     //------------------------------------------------------------
+    //! @brief 水面の時間経過を更新
+    //------------------------------------------------------------
+    void Renderer::UpdateWaterTime(float deltaTime) {
+        m_waterTime      += deltaTime;
+        m_waterData.time  = m_waterTime;
+    }
+
+    //------------------------------------------------------------
     //! @brief トーンマッピングパイプラインのセット
     //------------------------------------------------------------
     void Renderer::SetTonemapPipeline(const Tsukino::Asset::ShaderAsset* vs, const Tsukino::Asset::ShaderAsset* ps) {
@@ -792,7 +810,7 @@ namespace Tsukino::Renderer {
             // カスタム描画実行
             cmd.customDraw(context);
 
-            // 重要：SpriteBatchで汚されたステートをリセット
+            // SpriteBatchで汚されたステートをリセット
             // これを入れないとSpriteの後の描画が真っ暗になったり崩れます
             context->OMSetBlendState(m_commonStatesTK->Opaque(), nullptr, 0xFFFFFFFF);
             context->OMSetDepthStencilState(m_commonStatesTK->DepthDefault(), 0);

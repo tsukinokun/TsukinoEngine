@@ -396,8 +396,6 @@ namespace Tsukino::Renderer {
         bool                       m_hasTonemapper = false;
 
         // 水面用リソース
-        ComPtr<ID3D11VertexShader> m_waterVS;
-        ComPtr<ID3D11PixelShader>  m_waterPS;
         ComPtr<ID3D11Buffer>       m_waterBuffer;    //!< 水面定数バッファ (b5)
         CBufferWater               m_waterData{};
         float                      m_waterTime = 0.0f;

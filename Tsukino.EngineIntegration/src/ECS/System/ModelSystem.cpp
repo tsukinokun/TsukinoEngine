@@ -150,6 +150,18 @@ namespace Tsukino::BuiltIn::ECS {
                     Tsukino::Asset::AssetHandle vsHandle = isSkeletal ? ctx->builtinAssets->shaders.modelVS : ctx->builtinAssets->shaders.staticModelVS;
                     Tsukino::Asset::AssetHandle psHandle = ctx->builtinAssets->shaders.modelPS;
 
+                    // ShadingModelに応じてPSを切り替え
+                    if(meshData.materialIndex < modelAsset->materialHandles.size()) {
+                        auto matHandle    = modelAsset->materialHandles[meshData.materialIndex];
+                        auto matAssetBase = ctx->assetManager->Get(matHandle);
+                        if(matAssetBase && matAssetBase->GetType() == Tsukino::Asset::AssetType::Material) {
+                            auto matAsset = std::static_pointer_cast<Tsukino::Asset::MaterialAsset>(matAssetBase);
+                            if(matAsset->data.shadingModel == Tsukino::GraphicsCommon::ShadingModel::Water) {
+                                psHandle = ctx->builtinAssets->shaders.waterPS;
+                            }
+                        }
+                    }
+
                     auto vsAsset = std::static_pointer_cast<Tsukino::Asset::ShaderAsset>(ctx->assetManager->Get(vsHandle));
                     auto psAsset = std::static_pointer_cast<Tsukino::Asset::ShaderAsset>(ctx->assetManager->Get(psHandle));
 
