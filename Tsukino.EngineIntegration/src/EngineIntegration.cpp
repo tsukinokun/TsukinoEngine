@@ -153,6 +153,9 @@ namespace Tsukino::EngineIntegration {
         auto debugPsAsset   = std::static_pointer_cast<Tsukino::Asset::ShaderAsset>(m_assetManager->Get(m_builtinAssets->shaders.debugPS));
         auto tonemapVSAsset = std::static_pointer_cast<Tsukino::Asset::ShaderAsset>(m_assetManager->Get(m_builtinAssets->shaders.tonemapVS));
         auto tonemapPSAsset = std::static_pointer_cast<Tsukino::Asset::ShaderAsset>(m_assetManager->Get(m_builtinAssets->shaders.tonemapPS));
+        auto shadowStaticVSAsset = std::static_pointer_cast<Tsukino::Asset::ShaderAsset>(m_assetManager->Get(m_builtinAssets->shaders.shadowStaticVS));
+        auto shadowSkeletalVSAsset = std::static_pointer_cast<Tsukino::Asset::ShaderAsset>(m_assetManager->Get(m_builtinAssets->shaders.shadowVS));
+        auto shadowPSAsset         = std::static_pointer_cast<Tsukino::Asset::ShaderAsset>(m_assetManager->Get(m_builtinAssets->shaders.shadowPS));
 
         //--------------------------------------------------------------
         // レンダラー生成
@@ -163,7 +166,10 @@ namespace Tsukino::EngineIntegration {
                                    debugVsAsset.get(),
                                    debugPsAsset.get(),
                                    tonemapVSAsset.get(),
-                                   tonemapPSAsset.get())) {
+                                   tonemapPSAsset.get(),
+                                   shadowStaticVSAsset.get(),
+                                   shadowSkeletalVSAsset.get(),
+                                   shadowPSAsset.get())) {
             return false;
         }
 

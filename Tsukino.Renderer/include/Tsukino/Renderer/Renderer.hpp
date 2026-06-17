@@ -71,7 +71,10 @@ namespace Tsukino::Renderer {
                         const Tsukino::Asset::ShaderAsset* debugVS,
                         const Tsukino::Asset::ShaderAsset* debugPS,
                         const Tsukino::Asset::ShaderAsset* tonemapVS,
-                        const Tsukino::Asset::ShaderAsset* tonemapPS);
+                        const Tsukino::Asset::ShaderAsset* tonemapPS,
+                        const Tsukino::Asset::ShaderAsset* shadowStaticVS,
+                        const Tsukino::Asset::ShaderAsset* shadowSkeletalVS,
+                        const Tsukino::Asset::ShaderAsset* shadowPS);
 
         //------------------------------------------------------------
         // 描画処理
@@ -272,6 +275,18 @@ namespace Tsukino::Renderer {
         bool CreateDebugBuffers(const Tsukino::Asset::ShaderAsset* vs, const Tsukino::Asset::ShaderAsset* ps);
 
         //------------------------------------------------------------
+        //! @brief シャドウ用パイプラインの生成関数
+        //! @param shadowStaticVS   [in] スタティックメッシュ用シャドウ頂点シェーダーアセット
+        //! @param shadowSkeletalVS [in] スケルタルメッシュ用
+        //! @param shadowPS         [in] シャドウピクセルシェーダーアセット
+        //! @return true: 作成成功, false: 作成失敗
+        //------------------------------------------------------------
+        [[nodiscard]]
+        bool CreateShadowPipelines(const Tsukino::Asset::ShaderAsset* shadowStaticVS,
+                                   const Tsukino::Asset::ShaderAsset* shadowSkeletalVS,
+                                   const Tsukino::Asset::ShaderAsset* shadowPS);
+
+        //------------------------------------------------------------
         //! @brief シャドウマップ用リソースの作成
         //! @return true: 作成成功, false: 作成失敗
         //------------------------------------------------------------
@@ -312,6 +327,7 @@ namespace Tsukino::Renderer {
         //! @brief 水面の作成
         //------------------------------------------------------------
         bool CreateWaterResources();
+
     private:
         // DirectX 11の主要なインターフェース
         GraphicsContext            m_graphicsContext;    // グラフィックスコンテキスト（Device, DeviceContext, SwapChainを管理）
@@ -332,12 +348,6 @@ namespace Tsukino::Renderer {
         ComPtr<ID3D11DepthStencilView>   m_shadowMapDSV;     //!< シャドウマップDSV（深度書き込み用）
         ComPtr<ID3D11ShaderResourceView> m_shadowMapSRV;     //!< シャドウマップSRV（PSでのサンプリング用）
         ComPtr<ID3D11SamplerState>       m_shadowSampler;    //!< PCF用比較サンプラー
-
-        // シャドウ用シェーダー
-        ComPtr<ID3D11VertexShader> m_shadowVS;            //!< スタティック用シャドウVS
-        ComPtr<ID3D11VertexShader> m_shadowSkeletalVS;    //!< スケルタル用シャドウVS
-        ComPtr<ID3D11InputLayout>  m_shadowStaticIL;      //!< スタティック用入力レイアウト
-        ComPtr<ID3D11InputLayout>  m_shadowSkeletalIL;    //!< スケルタル用入力レイアウト
 
         // シャドウ用パイプラインステート
         std::shared_ptr<PipelineState> m_shadowStaticPipeline;      //!< スタティック用シャドウパイプライン
