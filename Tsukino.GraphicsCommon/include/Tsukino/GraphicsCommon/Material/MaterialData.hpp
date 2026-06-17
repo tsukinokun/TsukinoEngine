@@ -30,12 +30,21 @@ namespace Tsukino::GraphicsCommon {
         std::string  name;
         ShadingModel shadingModel = ShadingModel::PBR;
 
+        //--------------------------------------------------------------
         // PBR パラメータ（テクスチャがない場合のフォールバック値）
+        //--------------------------------------------------------------
         hlslpp::interop::float4 baseColor = hlslpp::float4(1.0f, 1.0f, 1.0f, 1.0f);
         hlslpp::interop::float3 emissive  = hlslpp::float3(0.0f, 0.0f, 0.0f);
         float                   metallic  = 0.0f;
         float                   roughness = 0.5f;
         float                   specular  = 0.5f;
+
+        //--------------------------------------------------------------
+        // Water シェーディング用パラメータ
+        //--------------------------------------------------------------
+        hlslpp::interop::float2 waterSpeed  = hlslpp::float2(0.1f, 0.1f);
+        float                   waterScale  = 1.0f;
+        float                   waterHeight = 0.05f;
 
         // テクスチャパス（空文字 = 未使用）
         std::string albedoMap;
