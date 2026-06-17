@@ -4,6 +4,7 @@
 //! @author 山﨑愛
 //--------------------------------------------------------------
 #pragma once
+#include <d3d11.h> 
 #include <DirectXMath.h>
 // 名前空間 : Tsukino::GraphicsCommon
 namespace Tsukino::GraphicsCommon {

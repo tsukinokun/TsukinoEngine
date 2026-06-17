@@ -33,10 +33,6 @@ namespace Tsukino::BuiltIn::ECS {
         void Update(Tsukino::ECS::Registry& registry, float deltaTime) override;
 
     private:
-        // パイプラインキャッシュ
-        std::shared_ptr<Tsukino::Renderer::PipelineState> m_pipelineCache;
-        std::shared_ptr<Tsukino::Renderer::PipelineState> m_skeletalPipelineCache;
-
         // マテリアル実体のバッファ
         std::deque<Tsukino::Renderer::Material> m_materialBuffer;
 

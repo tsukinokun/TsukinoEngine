@@ -7,10 +7,13 @@
 #include <Tsukino/Renderer/DX11/PipelineState.hpp>
 #include <Tsukino/Renderer/DX11/DepthMode.hpp>
 
+#include <Tsukino/GraphicsCommon/Vertex/VertexFormat.hpp>
+
 #include <Tsukino/Core/typedef.hpp>
 
 #include <memory>
 #include <unordered_map>
+#include <tuple>
 
 namespace Tsukino::Asset {
     class ShaderAsset;    // 前方宣言
@@ -18,9 +21,9 @@ namespace Tsukino::Asset {
 
 // 名前空間 : Tsukino::Renderer
 namespace Tsukino::Renderer {
-    // パイプラインステートのキャッシュ用キー 
-    using PipelineKey = std::tuple<u64, u64, DepthMode>;
-    //--------------------------------------------------------------
+    // パイプラインステートのキャッシュ用キー
+    using PipelineKey =
+        std::tuple<u64, u64, Tsukino::GraphicsCommon::VertexFormat, DepthMode>;    //--------------------------------------------------------------
     //! @struct PipelineHash
     //! @brief パイプラインステートのハッシュ関数
     //--------------------------------------------------------------
@@ -32,7 +35,9 @@ namespace Tsukino::Renderer {
             auto h1 = std::hash<u64>()(std::get<0>(key));
             auto h2 = std::hash<u64>()(std::get<1>(key));
             auto h3 = std::hash<int>()(static_cast<int>(std::get<2>(key)));
-            return h1 ^ (h2 << 1) ^ (h3 << 2);
+            auto h4 = std::hash<int>()(static_cast<int>(std::get<3>(key)));
+            // ビットシフトで衝突を防ぐ
+            return h1 ^ (h2 << 1) ^ (h3 << 2) ^ (h4 << 3);
         }
     };
 
@@ -59,11 +64,10 @@ namespace Tsukino::Renderer {
         //! @return パイプラインステートのポインタ
         //--------------------------------------------------------------
         [[nodiscard]]
-        std::shared_ptr<PipelineState> Create(const Tsukino::Asset::ShaderAsset& vs,
-                                              const Tsukino::Asset::ShaderAsset& ps,
-                                              const D3D11_INPUT_ELEMENT_DESC*    layout,
-                                              UINT                               layoutCount,
-                                              DepthMode                          depthMode);
+        std::shared_ptr<PipelineState> Create(const Tsukino::Asset::ShaderAsset&    vs,
+                                              const Tsukino::Asset::ShaderAsset&    ps,
+                                              Tsukino::GraphicsCommon::VertexFormat format,
+                                              DepthMode                             depthMode);
 
     private:
         // DirectXのデバイス

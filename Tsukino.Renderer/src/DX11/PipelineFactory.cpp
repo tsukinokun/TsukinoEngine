@@ -5,20 +5,21 @@
 //--------------------------------------------------------------
 #include <Tsukino/Renderer/DX11/PipelineFactory.hpp>
 #include <Tsukino/Engine/Asset/Shader/ShaderAsset.hpp>
+#include <Tsukino/GraphicsCommon/Mesh/MeshData.hpp>
 // 名前空間 : Tsukino::Renderer
 namespace Tsukino::Renderer {
     //--------------------------------------------------------------
     //! @brief  パイプラインステートを作成する関数
     //--------------------------------------------------------------
-    std::shared_ptr<PipelineState> PipelineFactory::Create(const Tsukino::Asset::ShaderAsset& vs,
-                                                           const Tsukino::Asset::ShaderAsset& ps,
-                                                           const D3D11_INPUT_ELEMENT_DESC*    layout,
-                                                           UINT                               layoutCount,
-                                                           DepthMode                          depthMode) {
+    std::shared_ptr<PipelineState> PipelineFactory::Create(const Tsukino::Asset::ShaderAsset&    vs,
+                                                           const Tsukino::Asset::ShaderAsset&    ps,
+                                                           Tsukino::GraphicsCommon::VertexFormat format,
+                                                           DepthMode                             depthMode) {
         //--------------------------------------------------------------
-        // シェーダーのハンドル値を取り出してキーを作成
+        // シェーダーのハンドル値とフォーマット、デプスモードからキーを作成
+        // 4つの要素を正しく波括弧初期化
         //--------------------------------------------------------------
-        PipelineKey key = {vs.GetHandle().Value(), ps.GetHandle().Value(), depthMode};
+        PipelineKey key = {vs.GetHandle().Value(), ps.GetHandle().Value(), format, depthMode};
 
         //--------------------------------------------------------------
         // キャッシュに存在する場合はそれを即座に返す（これによって毎フレームの生成コストをゼロ化）
@@ -38,8 +39,56 @@ namespace Tsukino::Renderer {
         // PS
         m_device->CreatePixelShader(ps.binary.data(), ps.binary.size(), nullptr, p->ps.GetAddressOf());
 
-        // InputLayout
-        m_device->CreateInputLayout(layout, layoutCount, vs.binary.data(), vs.binary.size(), p->inputLayout.GetAddressOf());
+        //--------------------------------------------------------------
+        // 頂点フォーマットに応じてインプットレイアウトを内部で切り替える
+        //--------------------------------------------------------------
+        const D3D11_INPUT_ELEMENT_DESC* finalLayout      = nullptr;
+        UINT                            finalLayoutCount = 0;
+
+        // 静的メッシュ用レイアウト (Slot 0)
+        D3D11_INPUT_ELEMENT_DESC staticLayout[] = {
+            {"POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0,  D3D11_INPUT_PER_VERTEX_DATA, 0},
+            {"NORMAL",   0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 12, D3D11_INPUT_PER_VERTEX_DATA, 0},
+            {"TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT,    0, 24, D3D11_INPUT_PER_VERTEX_DATA, 0},
+        };
+
+        // スキンメッシュ用レイアウト (頂点は Slot 0 / ボーン情報は Slot 1 から跨いでマルチスロットで読み込む)
+        D3D11_INPUT_ELEMENT_DESC skinnedLayout[] = {
+            {"POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0},
+            {"NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 12, D3D11_INPUT_PER_VERTEX_DATA, 0},
+            {"TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 24, D3D11_INPUT_PER_VERTEX_DATA, 0},
+            {"BONE_INDICES", 0, DXGI_FORMAT_R32G32B32A32_UINT, 1, offsetof(Tsukino::GraphicsCommon::BoneWeight, boneIndices), D3D11_INPUT_PER_VERTEX_DATA, 0},
+            {"BONE_WEIGHTS", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 1, offsetof(Tsukino::GraphicsCommon::BoneWeight, weights), D3D11_INPUT_PER_VERTEX_DATA, 0},
+        };
+
+        // Sprite用
+        D3D11_INPUT_ELEMENT_DESC spriteLayout[] = {
+            {"POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0},
+            {"TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT,    0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0},
+        };
+
+        switch(format) {
+        case Tsukino::GraphicsCommon::VertexFormat::PositionNormalUV:
+            finalLayout      = staticLayout;
+            finalLayoutCount = ARRAYSIZE(staticLayout);
+            break;
+
+        case Tsukino::GraphicsCommon::VertexFormat::Skinned:
+            finalLayout      = skinnedLayout;
+            finalLayoutCount = ARRAYSIZE(skinnedLayout);
+            break;
+
+        case Tsukino::GraphicsCommon::VertexFormat::Sprite:    
+            finalLayout      = spriteLayout;
+            finalLayoutCount = ARRAYSIZE(spriteLayout);
+            break;
+
+        default:
+            return nullptr;
+        }
+
+        // InputLayout 生成
+        m_device->CreateInputLayout(finalLayout, finalLayoutCount, vs.binary.data(), vs.binary.size(), p->inputLayout.GetAddressOf());
 
         //--------------------------------------------------------------
         // デプスステンシルステートの設定
@@ -75,7 +124,7 @@ namespace Tsukino::Renderer {
 
         p->topology = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
 
-        // 4. キャッシュに保存してから返す
+        // キャッシュに保存してから返す
         m_cache[key] = p;
         return p;
     }

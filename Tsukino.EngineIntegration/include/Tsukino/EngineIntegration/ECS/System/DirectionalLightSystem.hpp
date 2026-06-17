@@ -20,8 +20,5 @@ namespace Tsukino::BuiltIn::ECS {
         //! @param deltaTime [in] 前フレームからの経過時間
         //--------------------------------------------------------------
         void Update(Tsukino::ECS::Registry& registry, float deltaTime) override;
-
-    private:
-        bool m_pipelineInitialized = false;    //!< パイプライン初期化済みフラグ
     };
 }    // namespace Tsukino::BuiltIn::ECS

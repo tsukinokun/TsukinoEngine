@@ -285,11 +285,11 @@ namespace Tsukino::Asset {
                 Tsukino::Core::Log::Error("Failed to compress texture: " + std::to_string(i));
                 continue;
             }
-
             // 保存
             std::string         ddsFilename = modelBaseName + "_" + std::to_string(i) + ".dds";
             Tsukino::Core::Path tsmDir      = (outputDirectory / inputPath).parent_path();
             Tsukino::Core::Path ddsPath     = tsmDir / ddsFilename;
+
 
             hr = DirectX::SaveToDDSFile(
                 compressed.GetImages(), compressed.GetImageCount(), compressed.GetMetadata(), DirectX::DDS_FLAGS_NONE, ddsPath.ToWString().c_str());
@@ -414,7 +414,14 @@ namespace Tsukino::Asset {
             dstMesh.vertexCount  = static_cast<u32>(vertices.size());
             dstMesh.indexCount   = static_cast<u32>(dstMesh.indices.size());
             dstMesh.vertexStride = sizeof(Vertex);
-            dstMesh.format       = Tsukino::GraphicsCommon::VertexFormat::PositionNormalUV;
+
+            if(aiMesh->mNumBones > 0) {
+                // 骨があるメッシュなら Skinned にする
+                dstMesh.format = Tsukino::GraphicsCommon::VertexFormat::Skinned;
+            } else {
+                // 骨がないメッシュなら通常の 3D メッシュ
+                dstMesh.format = Tsukino::GraphicsCommon::VertexFormat::PositionNormalUV;
+            }
 
             dstMesh.vertexData.resize(vertices.size() * sizeof(Vertex));
             std::memcpy(dstMesh.vertexData.data(), vertices.data(), dstMesh.vertexData.size());
