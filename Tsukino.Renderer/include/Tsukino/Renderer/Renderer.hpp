@@ -312,7 +312,6 @@ namespace Tsukino::Renderer {
         //! @brief 水面の作成
         //------------------------------------------------------------
         bool CreateWaterResources();
-
     private:
         // DirectX 11の主要なインターフェース
         GraphicsContext            m_graphicsContext;    // グラフィックスコンテキスト（Device, DeviceContext, SwapChainを管理）

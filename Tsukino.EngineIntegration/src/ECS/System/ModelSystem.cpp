@@ -20,6 +20,7 @@
 #include <Tsukino/Renderer/Renderer.hpp>
 #include <Tsukino/Renderer/DX11/MeshBuffer.hpp>
 #include <Tsukino/GraphicsCommon/Model/ModelData.hpp>
+#include <Tsukino/GraphicsCommon/Vertex/VertexFormat.hpp>
 
 #include <Tsukino/Core/Math/Matrix.hpp>
 
@@ -39,45 +40,6 @@ namespace Tsukino::BuiltIn::ECS {
         if(!ctx || !ctx->renderer)
             return;
 
-        // 初回のみパイプライン生成
-        if(!m_pipelineCache) {
-            std::shared_ptr<Tsukino::Asset::ShaderAsset> vsStaticAsset =
-                std::static_pointer_cast<Tsukino::Asset::ShaderAsset>(ctx->assetManager->Get(ctx->builtinAssets->shaders.staticModelVS));
-            std::shared_ptr<Tsukino::Asset::ShaderAsset> vsAsset =
-                std::static_pointer_cast<Tsukino::Asset::ShaderAsset>(ctx->assetManager->Get(ctx->builtinAssets->shaders.modelVS));
-            std::shared_ptr<Tsukino::Asset::ShaderAsset> psAsset =
-                std::static_pointer_cast<Tsukino::Asset::ShaderAsset>(ctx->assetManager->Get(ctx->builtinAssets->shaders.modelPS));
-
-            if(vsStaticAsset && vsAsset && psAsset) {
-                D3D11_INPUT_ELEMENT_DESC staticLayout[] = {
-                    {"POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0},
-                    {"NORMAL",   0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0},
-                    {"TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT,    0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0},
-                };
-                m_pipelineCache = ctx->renderer->GetPipelineFactory()->Create(
-                    *vsStaticAsset, *psAsset, staticLayout, ARRAYSIZE(staticLayout), Tsukino::Renderer::DepthMode::ReadWrite);
-
-                D3D11_INPUT_ELEMENT_DESC skeletalLayout[] = {
-                    {"POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0},
-                    {"NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0},
-                    {"TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0},
-                    {"BONE_INDICES",
-                     0, DXGI_FORMAT_R32G32B32A32_UINT,
-                     1, offsetof(Tsukino::GraphicsCommon::BoneWeight, boneIndices),
-                     D3D11_INPUT_PER_VERTEX_DATA, 0},
-                    {"BONE_WEIGHTS",
-                     0, DXGI_FORMAT_R32G32B32A32_FLOAT,
-                     1, offsetof(Tsukino::GraphicsCommon::BoneWeight, weights),
-                     D3D11_INPUT_PER_VERTEX_DATA, 0},
-                };
-                m_skeletalPipelineCache = ctx->renderer->GetPipelineFactory()->Create(
-                    *vsAsset, *psAsset, skeletalLayout, ARRAYSIZE(skeletalLayout), Tsukino::Renderer::DepthMode::ReadWrite);
-            }
-        }
-
-        if(!m_pipelineCache || !m_skeletalPipelineCache)
-            return;
-
         m_materialBuffer.clear();
         m_cbufferMaterialBuffer.clear();
 
@@ -94,20 +56,24 @@ namespace Tsukino::BuiltIn::ECS {
             auto modelAsset = std::static_pointer_cast<Tsukino::Asset::ModelAsset>(asset);
             auto handleVal  = modelComp.modelHandle.Value();
 
-            // メッシュバッファがキャッシュされていなければ作成する
-            if(s_modelMeshCache.find(handleVal) == s_modelMeshCache.end()) {
+            //--------------------------------------------------------------
+            // メッシュバッファのキャッシュ取得
+            //--------------------------------------------------------------
+            auto meshCacheIt = s_modelMeshCache.find(handleVal);
+            if(meshCacheIt == s_modelMeshCache.end()) {
                 std::vector<Tsukino::Renderer::MeshBuffer> buffers;
                 for(const auto& mesh : modelAsset->modelData.meshes) {
                     buffers.push_back(Tsukino::Renderer::CreateMeshBuffer(ctx->renderer->GetDevice(), mesh));
                 }
-                s_modelMeshCache[handleVal] = std::move(buffers);
+                auto result = s_modelMeshCache.emplace(handleVal, std::move(buffers));
+                meshCacheIt = result.first;
             }
-
-            const auto& meshBuffers = s_modelMeshCache[handleVal];
+            const auto& meshBuffers = meshCacheIt->second;
 
             auto* skeletonOut = registry.try_get<SkeletonOutputComponent>(entity);
             bool  isSkeletal  = skeletonOut && skeletonOut->bone_count > 0;
 
+            // ノードとメッシュの巡回ループ
             for(const auto& node : modelAsset->modelData.nodes) {
                 for(u32 meshIdx : node.meshIndices) {
                     if(meshIdx >= meshBuffers.size())
@@ -116,8 +82,8 @@ namespace Tsukino::BuiltIn::ECS {
                     const auto& meshData         = modelAsset->modelData.meshes[meshIdx];
                     const auto& targetMeshBuffer = meshBuffers[meshIdx];
 
+                    // 行列の計算
                     Tsukino::Core::Math::matrix finalTransform;
-
                     if(isSkeletal) {
                         finalTransform = transform.worldMatrix;
                     } else {
@@ -130,10 +96,9 @@ namespace Tsukino::BuiltIn::ECS {
                         finalTransform                            = hlslpp::mul(nodeTransform, transform.worldMatrix);
                     }
 
-                    // コリジョンオフセットの逆変換を適用
+                    // コリジョンオフセットの逆変換
                     auto* col = registry.try_get<CollisionComponent>(entity);
                     if(col && col->isInitialized) {
-                        // クォータニオンの共役 = (x, y, z) を反転、w はそのまま
                         hlslpp::quaternion q = hlslpp::quaternion(col->offsetRotation.x, col->offsetRotation.y, col->offsetRotation.z, col->offsetRotation.w);
                         hlslpp::quaternion conj = hlslpp::quaternion(-q.x, -q.y, -q.z, q.w);
 
@@ -145,6 +110,7 @@ namespace Tsukino::BuiltIn::ECS {
                         finalTransform                           = hlslpp::mul(invOffsetMat, finalTransform);
                     }
 
+                    // マテリアル定数バッファの構築
                     Tsukino::Renderer::CBufferMaterial cbMat{};
                     cbMat.baseColor = hlslpp::float4(1.0f, 1.0f, 1.0f, 1.0f);
                     cbMat.emissive  = hlslpp::float3(0.0f, 0.0f, 0.0f);
@@ -180,11 +146,33 @@ namespace Tsukino::BuiltIn::ECS {
                     m_cbufferMaterialBuffer.push_back(cbMat);
                     Tsukino::Renderer::CBufferMaterial* pCbMat = &m_cbufferMaterialBuffer.back();
 
+                    // シェーダーアセットの取得
+                    Tsukino::Asset::AssetHandle vsHandle = isSkeletal ? ctx->builtinAssets->shaders.modelVS : ctx->builtinAssets->shaders.staticModelVS;
+                    Tsukino::Asset::AssetHandle psHandle = ctx->builtinAssets->shaders.modelPS;
+
+                    auto vsAsset = std::static_pointer_cast<Tsukino::Asset::ShaderAsset>(ctx->assetManager->Get(vsHandle));
+                    auto psAsset = std::static_pointer_cast<Tsukino::Asset::ShaderAsset>(ctx->assetManager->Get(psHandle));
+
+                    if(!vsAsset || !psAsset)
+                        continue;
+
+                    //--------------------------------------------------------------
+                    // 頂点フォーマット列挙型を判定してファクトリーに投げる
+                    //--------------------------------------------------------------
+                    Tsukino::GraphicsCommon::VertexFormat vertexFormat =
+                        isSkeletal ? Tsukino::GraphicsCommon::VertexFormat::Skinned : Tsukino::GraphicsCommon::VertexFormat::PositionNormalUV;
+
+                    // パイプラインキャッシュの取得・生成
+                    auto pipeline = ctx->renderer->GetPipelineFactory()->Create(*vsAsset, *psAsset, vertexFormat, Tsukino::Renderer::DepthMode::ReadWrite);
+
+                    if(!pipeline)
+                        continue;
+
+                    // マテリアルオブジェクトの構築
                     Tsukino::Renderer::Material mat{};
-                    mat.SetPipeline(isSkeletal ? m_skeletalPipelineCache.get() : m_pipelineCache.get());
+                    mat.SetPipeline(pipeline.get());
                     mat.SetSampler(ctx->renderer->GetSampler(Tsukino::GraphicsCommon::SamplerType::AnisotropicWrap));
-                    
-                    // テクスチャがない場合は白テクスチャを使用する
+
                     if(srv) {
                         mat.SetTexture(srv);
                     } else {
@@ -193,6 +181,7 @@ namespace Tsukino::BuiltIn::ECS {
 
                     m_materialBuffer.push_back(mat);
 
+                    // 描画コマンドの組み立てと発行
                     Tsukino::Renderer::DrawCommand cmd{};
                     cmd.mesh         = const_cast<Tsukino::Renderer::MeshBuffer*>(&targetMeshBuffer);
                     cmd.transform    = finalTransform;

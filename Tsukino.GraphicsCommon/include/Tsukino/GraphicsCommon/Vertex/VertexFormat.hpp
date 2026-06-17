@@ -12,9 +12,10 @@ namespace Tsukino::GraphicsCommon {
     //--------------------------------------------------------------
     enum class VertexFormat {
         Unknown = 0,         // 不明なフォーマット
-        PositionUV,          // 2D / Sprite / UI
+        PositionUV,          // 静的メッシュ
         PositionNormalUV,    // 通常の 3D Mesh
         Skinned,             // スキニング（アニメーション）
+        Sprite,              // Sprite
         Particle,            // パーティクルなど
     };
 

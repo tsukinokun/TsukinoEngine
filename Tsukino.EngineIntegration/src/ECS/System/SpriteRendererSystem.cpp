@@ -38,30 +38,21 @@ namespace Tsukino::BuiltIn::ECS {
 
         // 初回のみパイプラインを取得・生成する
         if(!m_pipelineCache) {
-            //-------------------------------------------------------------
-            // VS
-            //-------------------------------------------------------------
             std::shared_ptr<Tsukino::Asset::ShaderAsset> vsAsset =
                 std::static_pointer_cast<Tsukino::Asset::ShaderAsset>(ctx->assetManager->Get(ctx->builtinAssets->shaders.spriteVS));
 
-            //-------------------------------------------------------------
-            // PS
-            //-------------------------------------------------------------
             std::shared_ptr<Tsukino::Asset::ShaderAsset> psAsset =
                 std::static_pointer_cast<Tsukino::Asset::ShaderAsset>(ctx->assetManager->Get(ctx->builtinAssets->shaders.spritePS));
 
             // シェーダーアセットが両方とも有効なら
             if(vsAsset && psAsset) {
                 //-------------------------------------------------------------
-                // layout
+                // 生レイアウト配列を削除し、VertexFormat::Sprite を指定
                 //-------------------------------------------------------------
-                D3D11_INPUT_ELEMENT_DESC layout[] = {
-                    {"POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0},
-                    {"TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT,    0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0},
-                };
-                // パイプラインを生成してキャッシュ
-                m_pipelineCache =
-                    ctx->renderer->GetPipelineFactory()->Create(*vsAsset, *psAsset, layout, ARRAYSIZE(layout), Tsukino::Renderer::DepthMode::None);
+                m_pipelineCache = ctx->renderer->GetPipelineFactory()->Create(*vsAsset,
+                                                                              *psAsset,
+                                                                              Tsukino::GraphicsCommon::VertexFormat::Sprite,    // 頂点フォーマットを指定
+                                                                              Tsukino::Renderer::DepthMode::None);
             }
         }
 
@@ -74,13 +65,8 @@ namespace Tsukino::BuiltIn::ECS {
         // TransformComponent と SpriteComponent の両方を持つエンティティを取得
         auto view = registry.View<TransformComponent, SpriteComponent>();
 
-        //-------------------------------------------------------------
         // 各エンティティから情報を抽出して描画コマンドを作成する
-        //-------------------------------------------------------------
         view.each([&](entt::entity, const Tsukino::BuiltIn::ECS::TransformComponent& transform, const Tsukino::BuiltIn::ECS::SpriteComponent& sprite) {
-            //-------------------------------------------------------------
-            // テクスチャアセットからピクセルサイズを取得
-            //-------------------------------------------------------------
             std::shared_ptr<Tsukino::Asset::TextureAsset> textureAsset =
                 std::static_pointer_cast<Tsukino::Asset::TextureAsset>(ctx->assetManager->Get(sprite.textureHandle));
             if(!textureAsset)
@@ -89,62 +75,44 @@ namespace Tsukino::BuiltIn::ECS {
             float texW = static_cast<float>(textureAsset->width);
             float texH = static_cast<float>(textureAsset->height);
 
-            //-------------------------------------------------------------
             // テクスチャサイズ分だけ引き伸ばす行列を作成
-            //-------------------------------------------------------------
             const auto pixelScaleMatrix = Tsukino::Core::Math::matrix::scale(texW, texH, 1.0f);
 
             Tsukino::Renderer::DrawCommand cmd;
 
-            //TransformSystemが計算したworldMatrixの「手前」にピクセルスケールを噛ませる
-            // 順序：(モデル) -> ピクセル拡大 -> TransformSystemの計算(S*R*T) -> (ワールド)
+            // TransformSystemが計算したworldMatrixの「手前」にピクセルスケールを噛ませる
             cmd.transform = hlslpp::mul(transform.worldMatrix, pixelScaleMatrix);
 
-            //-------------------------------------------------------------
             // メッシュの指定
-            //-------------------------------------------------------------
             cmd.mesh = ctx->renderer->GetPrimitiveMesh(Tsukino::GraphicsCommon::PrimitiveType::Quad);
 
-            //-------------------------------------------------------------
             // マテリアルの構築
-            //-------------------------------------------------------------
-            // バッファに実体を作成し、参照を取得 (std::dequeによりポインタは安全に保たれる)
             Tsukino::Renderer::Material& material = m_materialBuffer.emplace_back();
 
-            //-------------------------------------------------------------
             // サンプラー設定
-            //-------------------------------------------------------------
-            material.SetSampler(ctx->renderer->GetSampler(Tsukino::GraphicsCommon::SamplerType::LinearClamp));    // リニアフィルタを指定
+            material.SetSampler(ctx->renderer->GetSampler(Tsukino::GraphicsCommon::SamplerType::LinearClamp));
 
-            //-------------------------------------------------------------
             // テクスチャ設定
-            //-------------------------------------------------------------
-            // ハンドルを取得
             Tsukino::Asset::AssetHandle handleId = sprite.textureHandle;
 
-            // ハンドルがキャッシュにない場合はアセットマネージャーからテクスチャを取得してキャッシュに保存
             if(m_textureCache.find(handleId) == m_textureCache.end()) {
                 Tsukino::Core::Ref<Tsukino::Asset::IAsset> asset = ctx->assetManager->Get(sprite.textureHandle);
                 if(asset && asset->GetType() == Tsukino::Asset::AssetType::Texture) {
-                    Tsukino::Core::Ref<Tsukino::Asset::TextureAsset> textureAsset = std::static_pointer_cast<Tsukino::Asset::TextureAsset>(asset);
-                    m_textureCache[handleId]                                      = ctx->renderer->GetTextureSRV(*textureAsset);
+                    Tsukino::Core::Ref<Tsukino::Asset::TextureAsset> texAsset = std::static_pointer_cast<Tsukino::Asset::TextureAsset>(asset);
+                    m_textureCache[handleId]                                  = ctx->renderer->GetTextureSRV(*texAsset);
                 } else {
                     m_textureCache[handleId] = nullptr;
                 }
             }
             material.SetTexture(m_textureCache[handleId]);
 
-            //-------------------------------------------------------------
             // パイプライン設定
-            //-------------------------------------------------------------
             material.SetPipeline(m_pipelineCache.get());
 
-            // 実体のアドレスを DrawCommand に渡す
             cmd.material = &material;
+            cmd.pass     = Tsukino::Renderer::RenderPass::Overlay;
 
-            cmd.pass = Tsukino::Renderer::RenderPass::Overlay;
-
-            // コンテキストから取得したレンダラーを使って描画
+            // コマンドをプッシュ
             ctx->renderer->PushDrawCommand(cmd);
         });
     }
