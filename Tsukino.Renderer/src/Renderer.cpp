@@ -33,7 +33,10 @@ namespace Tsukino::Renderer {
                               const Tsukino::Asset::ShaderAsset* debugVS,
                               const Tsukino::Asset::ShaderAsset* debugPS,
                               const Tsukino::Asset::ShaderAsset* tonemapVS,
-                              const Tsukino::Asset::ShaderAsset* tonemapPS) {
+                              const Tsukino::Asset::ShaderAsset* tonemapPS,
+                              const Tsukino::Asset::ShaderAsset* shadowStaticVS,
+                              const Tsukino::Asset::ShaderAsset* shadowSkeletalVS,
+                              const Tsukino::Asset::ShaderAsset* shadowPS) {
         // グラフィックスコンテキストの初期化
         if(!m_graphicsContext.Initialize(hwnd, width, height)) {
             return false;
@@ -52,6 +55,14 @@ namespace Tsukino::Renderer {
         // DirectXTKの共通ステートの作成
         //------------------------------------------------------------
         m_commonStatesTK = std::make_unique<DirectX::CommonStates>(device);    // DirectXTKの共通ステートを作成
+
+        //------------------------------------------------------------
+        // シャドウパイプラインの生成
+        // ------------------------------------------------------------
+        if(!CreateShadowPipelines(shadowStaticVS, shadowSkeletalVS, shadowPS)) {
+            Tsukino::Core::Log::Error("Failed to create shadow pipelines.");
+            return false;
+        }
 
         //------------------------------------------------------------
         // メッシュバッファの作成
@@ -215,6 +226,37 @@ namespace Tsukino::Renderer {
         if(FAILED(hr)) {
             Tsukino::Core::Log::Error("Failed to create debug triangle vertex buffer.");
             return false;
+        }
+
+        return true;
+    }
+
+    //------------------------------------------------------------
+    //! @brief シャドウマップ用パイプラインの作成
+    //------------------------------------------------------------
+    bool Renderer::CreateShadowPipelines(const Tsukino::Asset::ShaderAsset* shadowStaticVS,
+                                         const Tsukino::Asset::ShaderAsset* shadowSkeletalVS,
+                                         const Tsukino::Asset::ShaderAsset* shadowPS) {
+        auto* factory = GetPipelineFactory();
+        if(!factory)
+            return false;
+
+        // 静的メッシュ用シャドウパイプライン
+        if(shadowStaticVS && shadowPS) {
+            m_shadowStaticPipeline = factory->Create(*shadowStaticVS, *shadowPS, Tsukino::GraphicsCommon::VertexFormat::PositionNormalUV, DepthMode::ReadWrite);
+            if(!m_shadowStaticPipeline) {
+                Tsukino::Core::Log::Error("Renderer: Shadow Static Pipeline generation failed.");
+                return false;
+            }
+        }
+
+        // スキニングメッシュ用シャドウパイプライン
+        if(shadowSkeletalVS && shadowPS) {
+            m_shadowSkeletalPipeline = factory->Create(*shadowSkeletalVS, *shadowPS, Tsukino::GraphicsCommon::VertexFormat::Skinned, DepthMode::ReadWrite);
+            if(!m_shadowSkeletalPipeline) {
+                Tsukino::Core::Log::Error("Renderer: Shadow Skeletal Pipeline generation failed.");
+                return false;
+            }
         }
 
         return true;
