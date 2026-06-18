@@ -179,6 +179,13 @@ namespace Tsukino::Renderer {
             return false;
         }
 
+        m_waterData.time         = 0.0f;
+        m_waterData.waveSpeed    = -0.08f;
+        m_waterData.waveScale    = 1.2f;
+        m_waterData.fresnelPower = 4.0f;
+        m_waterData.shallowColor = hlslpp::float4(0.2f, 0.6f, 0.5f, 1.0f);
+        m_waterData.deepColor    = hlslpp::float4(0.0f, 0.1f, 0.3f, 1.0f);
+
         // 成功
         return true;
     }
@@ -298,6 +305,11 @@ namespace Tsukino::Renderer {
         m_graphicsContext.BeginFrame(m_clearColor[0], m_clearColor[1], m_clearColor[2], m_clearColor[3]);
 
         const auto& commands = m_drawQueue.GetCommands();
+
+        //------------------------------------------------------------
+        // 水の更新
+        //------------------------------------------------------------
+        m_waterData.time = m_waterTime;
 
         //------------------------------------------------------------
         // Shadow パス
@@ -651,7 +663,7 @@ namespace Tsukino::Renderer {
         return true;
     }
 
-   //------------------------------------------------------------
+    //------------------------------------------------------------
     //! @brief 水面描画コマンドの実行
     //------------------------------------------------------------
     void Renderer::ExecuteWaterCommand(const DrawCommand& cmd) {

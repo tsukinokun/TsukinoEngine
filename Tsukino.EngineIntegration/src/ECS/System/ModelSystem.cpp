@@ -43,6 +43,11 @@ namespace Tsukino::BuiltIn::ECS {
         m_materialBuffer.clear();
         m_cbufferMaterialBuffer.clear();
 
+        //-------------------------------------------------------------
+        // 水面の時間更新
+        //-------------------------------------------------------------
+        ctx->renderer->UpdateWaterTime(deltaTime);
+
         auto view = registry.View<TransformComponent, ModelComponent>();
 
         view.each([&](entt::entity entity, const TransformComponent& transform, const ModelComponent& modelComp) {
@@ -150,16 +155,21 @@ namespace Tsukino::BuiltIn::ECS {
                     Tsukino::Asset::AssetHandle vsHandle = isSkeletal ? ctx->builtinAssets->shaders.modelVS : ctx->builtinAssets->shaders.staticModelVS;
                     Tsukino::Asset::AssetHandle psHandle = ctx->builtinAssets->shaders.modelPS;
 
-                    // ShadingModelに応じてPSを切り替え
+                    // ShadingModel を一度だけ取得
+                    Tsukino::GraphicsCommon::ShadingModel shadingModel = Tsukino::GraphicsCommon::ShadingModel::PBR;
                     if(meshData.materialIndex < modelAsset->materialHandles.size()) {
-                        auto matHandle    = modelAsset->materialHandles[meshData.materialIndex];
-                        auto matAssetBase = ctx->assetManager->Get(matHandle);
+                        auto matAssetBase = ctx->assetManager->Get(modelAsset->materialHandles[meshData.materialIndex]);
                         if(matAssetBase && matAssetBase->GetType() == Tsukino::Asset::AssetType::Material) {
                             auto matAsset = std::static_pointer_cast<Tsukino::Asset::MaterialAsset>(matAssetBase);
-                            if(matAsset->data.shadingModel == Tsukino::GraphicsCommon::ShadingModel::Water) {
-                                psHandle = ctx->builtinAssets->shaders.waterPS;
-                            }
+                            shadingModel  = matAsset->data.shadingModel;
                         }
+                    }
+
+                    // ShadingModel に応じて PS と BlendMode を切り替え
+                    Tsukino::Renderer::BlendMode blendMode = Tsukino::Renderer::BlendMode::Opaque;
+                    if(shadingModel == Tsukino::GraphicsCommon::ShadingModel::Water) {
+                        psHandle  = ctx->builtinAssets->shaders.waterPS;
+                        blendMode = Tsukino::Renderer::BlendMode::Alpha;
                     }
 
                     auto vsAsset = std::static_pointer_cast<Tsukino::Asset::ShaderAsset>(ctx->assetManager->Get(vsHandle));
@@ -168,32 +178,26 @@ namespace Tsukino::BuiltIn::ECS {
                     if(!vsAsset || !psAsset)
                         continue;
 
-                    //--------------------------------------------------------------
-                    // 頂点フォーマット列挙型を判定してファクトリーに投げる
-                    //--------------------------------------------------------------
+                    // 頂点フォーマット
                     Tsukino::GraphicsCommon::VertexFormat vertexFormat =
                         isSkeletal ? Tsukino::GraphicsCommon::VertexFormat::Skinned : Tsukino::GraphicsCommon::VertexFormat::PositionNormalUV;
 
-                    // パイプラインキャッシュの取得・生成
-                    auto pipeline = ctx->renderer->GetPipelineFactory()->Create(*vsAsset, *psAsset, vertexFormat, Tsukino::Renderer::DepthMode::ReadWrite);
+                    // パイプライン生成（BlendMode を渡す）
+                    auto pipeline =
+                        ctx->renderer->GetPipelineFactory()->Create(*vsAsset, *psAsset, vertexFormat, Tsukino::Renderer::DepthMode::ReadWrite, blendMode);
 
                     if(!pipeline)
                         continue;
 
-                    // マテリアルオブジェクトの構築
+                    // マテリアル構築
                     Tsukino::Renderer::Material mat{};
                     mat.SetPipeline(pipeline.get());
                     mat.SetSampler(ctx->renderer->GetSampler(Tsukino::GraphicsCommon::SamplerType::AnisotropicWrap));
-
-                    if(srv) {
-                        mat.SetTexture(srv);
-                    } else {
-                        mat.SetTexture(ctx->renderer->GetWhiteTextureSRV());
-                    }
+                    mat.SetTexture(srv ? srv : ctx->renderer->GetWhiteTextureSRV());
 
                     m_materialBuffer.push_back(mat);
 
-                    // 描画コマンドの組み立てと発行
+                    // 描画コマンド
                     Tsukino::Renderer::DrawCommand cmd{};
                     cmd.mesh         = const_cast<Tsukino::Renderer::MeshBuffer*>(&targetMeshBuffer);
                     cmd.transform    = finalTransform;
@@ -203,18 +207,9 @@ namespace Tsukino::BuiltIn::ECS {
                         cmd.boneMatrices = skeletonOut->local_matrices;
                         cmd.boneCount    = skeletonOut->bone_count;
                     }
-
-                    if(meshData.materialIndex < modelAsset->materialHandles.size()) {
-                        auto matHandle    = modelAsset->materialHandles[meshData.materialIndex];
-                        auto matAssetBase = ctx->assetManager->Get(matHandle);
-                        if(matAssetBase && matAssetBase->GetType() == Tsukino::Asset::AssetType::Material) {
-                            auto matAsset = std::static_pointer_cast<Tsukino::Asset::MaterialAsset>(matAssetBase);
-                            if(matAsset->data.shadingModel == Tsukino::GraphicsCommon::ShadingModel::Water) {
-                                cmd.pass = Tsukino::Renderer::RenderPass::Water;
-                            }
-                        }
+                    if(shadingModel == Tsukino::GraphicsCommon::ShadingModel::Water) {
+                        cmd.pass = Tsukino::Renderer::RenderPass::Water;
                     }
-
 
                     ctx->renderer->PushDrawCommand(cmd);
                 }
