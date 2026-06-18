@@ -53,7 +53,7 @@ namespace Tsukino::EngineIntegration {
     //------------------------------------------------------------
     //! @brief  エンジンの初期化関数
     //------------------------------------------------------------
-    bool EngineIntegration::Initialize(int width, int height) {
+    bool EngineIntegration::Initialize(int width, int height, Tsukino::Core::Window::WindowStyle style) {
         //--------------------------------------------------------------
         // COM初期化
         //--------------------------------------------------------------
@@ -87,7 +87,7 @@ namespace Tsukino::EngineIntegration {
         //--------------------------------------------------------------
         // ウィンドウ生成
         //--------------------------------------------------------------
-        if(!m_window->Create("TsukinoEngine", width, height)) {
+        if(!m_window->Create("TsukinoEngine", width, height, style)) {
             return false;
         }
 

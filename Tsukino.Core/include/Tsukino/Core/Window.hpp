@@ -17,6 +17,16 @@ namespace Tsukino::Core {
     class Window {
     public:
         //--------------------------------------------------------------
+        //! @brief ウィンドウスタイルの列挙型
+        //--------------------------------------------------------------
+        enum class WindowStyle {
+            Default,        // 通常のゲームウィンドウ
+            Popup,          // 枠なしウィンドウ
+            ClickThrough    // 枠なし ＋ 背景透過 ＋ クリック透過
+        };
+
+    public:
+        //--------------------------------------------------------------
         // メッセージコールバックの型エイリアス
         //--------------------------------------------------------------
         using MessageCallback = std::function<void(UINT, WPARAM, LPARAM)>;
@@ -39,7 +49,7 @@ namespace Tsukino::Core {
         //! @return ウィンドウの生成に成功した場合は true、失敗した場合は false
         //--------------------------------------------------------------
         [[nodiscard]]
-        bool Create(const std::string& title, int width, int height);
+        bool Create(const std::string& title, int width, int height, WindowStyle style = WindowStyle::Default);
 
         //--------------------------------------------------------------
         // メッセージ処理（false が返ればアプリ終了）
