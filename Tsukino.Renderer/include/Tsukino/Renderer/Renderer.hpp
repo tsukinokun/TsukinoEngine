@@ -227,17 +227,23 @@ namespace Tsukino::Renderer {
         void SetSkyPipeline(const Tsukino::Asset::ShaderAsset* vs, const Tsukino::Asset::ShaderAsset* ps);
 
         //------------------------------------------------------------
+        //! @brief 水面の時間経過を更新（波のアニメーションなどに使用）
+        //! @param deltaTime [in] 前フレームからの経過時間
+        //------------------------------------------------------------
+        void UpdateWaterTime(float deltaTime);
+
+        //------------------------------------------------------------
+        //! @brief 水面パラメータのセット
+        //! @param water [in] 水面定数バッファデータ
+        //------------------------------------------------------------
+        void SetWaterParameters(const CBufferWater& water);
+
+        //------------------------------------------------------------
         //! @brief 水面パイプラインのセット
         //! @param vs [in] 頂点シェーダーアセット
         //! @param ps [in] ピクセルシェーダーアセット
         //------------------------------------------------------------
         void SetWaterPipeline(const Tsukino::Asset::ShaderAsset* vs, const Tsukino::Asset::ShaderAsset* ps);
-
-        //------------------------------------------------------------
-        //! @brief 水面の時間経過を更新（波のアニメーションなどに使用）
-        //! @param deltaTime [in] 前フレームからの経過時間
-        //------------------------------------------------------------
-        void UpdateWaterTime(float deltaTime);
 
     private:
         //------------------------------------------------------------
@@ -294,6 +300,12 @@ namespace Tsukino::Renderer {
         bool CreateShadowMap();
 
         //------------------------------------------------------------
+        //! @brief 水面の描画コマンドの実行
+        //! @param cmd [in] 実行する描画コマンド
+        //------------------------------------------------------------
+        void ExecuteWaterCommand(const DrawCommand& cmd);
+
+        //------------------------------------------------------------
         //! @brief シャドウパスの実行（シャドウマップへの深度書き込み）
         //! @param cmd [in] 実行する描画コマンド
         //------------------------------------------------------------
@@ -322,11 +334,6 @@ namespace Tsukino::Renderer {
         //! @param ps [in] ピクセルシェーダーアセット
         //------------------------------------------------------------
         void SetTonemapPipeline(const Tsukino::Asset::ShaderAsset* vs, const Tsukino::Asset::ShaderAsset* ps);
-
-        //------------------------------------------------------------
-        //! @brief 水面の作成
-        //------------------------------------------------------------
-        bool CreateWaterResources();
 
     private:
         // DirectX 11の主要なインターフェース
@@ -396,9 +403,12 @@ namespace Tsukino::Renderer {
         bool                       m_hasTonemapper = false;
 
         // 水面用リソース
-        ComPtr<ID3D11Buffer>       m_waterBuffer;    //!< 水面定数バッファ (b5)
-        CBufferWater               m_waterData{};
-        float                      m_waterTime = 0.0f;
-        bool                       m_hasWater  = false;
+        ComPtr<ID3D11Buffer> m_waterBuffer;    //!< 水面定数バッファ (b5)
+        CBufferWater         m_waterData{};
+        float                m_waterTime = 0.0f;
+        bool                 m_hasWater  = false;
+
+        std::shared_ptr<PipelineState> m_waterPipeline;         //!< 水面用パイプラインキャッシュ
+        ComPtr<ID3D11SamplerState>     m_waterShadowSampler;    //!< 水面用 PCF サンプラー (s8)
     };
 }    // namespace Tsukino::Renderer

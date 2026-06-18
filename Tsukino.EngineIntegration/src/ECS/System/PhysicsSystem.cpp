@@ -604,7 +604,6 @@ namespace Tsukino::BuiltIn::ECS {
                 }
 
                 Tsukino::Renderer::DrawCommand cmd{};
-                cmd.pass       = Tsukino::Renderer::RenderPass::World;
                 cmd.customDraw = [renderer = ctx->renderer](ID3D11DeviceContext* context) { renderer->FlushDebugDraw(); };
                 ctx->renderer->PushDrawCommand(cmd);
             }

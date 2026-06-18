@@ -184,6 +184,10 @@ namespace Tsukino::Renderer {
         ctx->RSSetState(state.rasterizer.Get());                         // ラスタライザーステート設定
         ctx->OMSetBlendState(state.blend.Get(), nullptr, 0xffffffff);    // ブレンドステート設定
         ctx->OMSetDepthStencilState(state.depth.Get(), 0);               // デプスステンシルステート設定
+
+        // ブレンドステートを適用（Opaqueのときは nullptr でデフォルトに戻る）
+        float blendFactor[4] = {0.0f, 0.0f, 0.0f, 0.0f};
+        ctx->OMSetBlendState(state.blend.Get(), blendFactor, 0xFFFFFFFF);
     }
 
     //--------------------------------------------------------------

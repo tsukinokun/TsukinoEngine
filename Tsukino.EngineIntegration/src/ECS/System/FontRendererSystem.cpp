@@ -78,7 +78,6 @@ namespace Tsukino::BuiltIn::ECS {
             // 描画コマンドの作成
             //-------------------------------------------------------------
             Tsukino::Renderer::DrawCommand cmd{};
-            cmd.pass = Tsukino::Renderer::RenderPass::Overlay;    // フォントはオーバーレイパスで描画
 
             // キャプチャ：SpriteFont の生ポインタを渡す
             DirectX::SpriteFont* nativeFont = spriteFont.get();

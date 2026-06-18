@@ -28,5 +28,6 @@ namespace Tsukino::BuiltIn {
         skyPS          = assetManager->Load(Tsukino::Core::Path("Tsukino.BuiltIn/Assets/Shaders/Sky.ps.hlsl"));
         tonemapVS      = assetManager->Load(Tsukino::Core::Path("Tsukino.BuiltIn/Assets/Shaders/Tonemap.vs.hlsl"));
         tonemapPS      = assetManager->Load(Tsukino::Core::Path("Tsukino.BuiltIn/Assets/Shaders/Tonemap.ps.hlsl"));
+        waterPS        = assetManager->Load(Tsukino::Core::Path("Tsukino.BuiltIn/Assets/Shaders/Water.ps.hlsl"));
     }
 }    // namespace Tsukino::BuiltIn
