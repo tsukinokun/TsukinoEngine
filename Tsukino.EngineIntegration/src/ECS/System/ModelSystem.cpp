@@ -204,6 +204,18 @@ namespace Tsukino::BuiltIn::ECS {
                         cmd.boneCount    = skeletonOut->bone_count;
                     }
 
+                    if(meshData.materialIndex < modelAsset->materialHandles.size()) {
+                        auto matHandle    = modelAsset->materialHandles[meshData.materialIndex];
+                        auto matAssetBase = ctx->assetManager->Get(matHandle);
+                        if(matAssetBase && matAssetBase->GetType() == Tsukino::Asset::AssetType::Material) {
+                            auto matAsset = std::static_pointer_cast<Tsukino::Asset::MaterialAsset>(matAssetBase);
+                            if(matAsset->data.shadingModel == Tsukino::GraphicsCommon::ShadingModel::Water) {
+                                cmd.pass = Tsukino::Renderer::RenderPass::Water;
+                            }
+                        }
+                    }
+
+
                     ctx->renderer->PushDrawCommand(cmd);
                 }
             }

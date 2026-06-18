@@ -20,6 +20,7 @@ namespace Tsukino::Renderer {
     enum class RenderPass : u8 {
         World,          // 3D/通常スプライト
         Transparent,    // 透明オブジェクト
+        Water,          // 
         Overlay,        // フォント/UI
     };
 

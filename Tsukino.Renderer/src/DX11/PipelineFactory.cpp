@@ -14,12 +14,13 @@ namespace Tsukino::Renderer {
     std::shared_ptr<PipelineState> PipelineFactory::Create(const Tsukino::Asset::ShaderAsset&    vs,
                                                            const Tsukino::Asset::ShaderAsset&    ps,
                                                            Tsukino::GraphicsCommon::VertexFormat format,
-                                                           DepthMode                             depthMode) {
+                                                           DepthMode                             depthMode,
+                                                           BlendMode                             blendMode) {
         //--------------------------------------------------------------
         // シェーダーのハンドル値とフォーマット、デプスモードからキーを作成
         // 4つの要素を正しく波括弧初期化
         //--------------------------------------------------------------
-        PipelineKey key = {vs.GetHandle().Value(), ps.GetHandle().Value(), format, depthMode};
+        PipelineKey key = {vs.GetHandle().Value(), ps.GetHandle().Value(), format, depthMode, blendMode};
 
         //--------------------------------------------------------------
         // キャッシュに存在する場合はそれを即座に返す（これによって毎フレームの生成コストをゼロ化）
@@ -78,7 +79,7 @@ namespace Tsukino::Renderer {
             finalLayoutCount = ARRAYSIZE(skinnedLayout);
             break;
 
-        case Tsukino::GraphicsCommon::VertexFormat::Sprite:    
+        case Tsukino::GraphicsCommon::VertexFormat::Sprite:
             finalLayout      = spriteLayout;
             finalLayoutCount = ARRAYSIZE(spriteLayout);
             break;
@@ -116,15 +117,51 @@ namespace Tsukino::Renderer {
         }
         // デプスステンシルステートの作成
         m_device->CreateDepthStencilState(&desc, p->depth.GetAddressOf());
+
+        //--------------------------------------------------------------
+        // ラスタライザーステートの設定
+        //--------------------------------------------------------------
         D3D11_RASTERIZER_DESC rasterDesc = {};
         rasterDesc.FillMode              = D3D11_FILL_SOLID;
         rasterDesc.CullMode              = D3D11_CULL_NONE;
         rasterDesc.DepthClipEnable       = TRUE;
         m_device->CreateRasterizerState(&rasterDesc, p->rasterizer.GetAddressOf());
 
+        //--------------------------------------------------------------
+        // ブレンドステートの設定
+        //--------------------------------------------------------------
+        D3D11_BLEND_DESC blendDesc                      = {};
+        blendDesc.RenderTarget[0].RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
+
+        switch(blendMode) {
+        case BlendMode::Opaque:
+            blendDesc.RenderTarget[0].BlendEnable = FALSE;
+            break;
+
+        case BlendMode::Alpha:
+            blendDesc.RenderTarget[0].BlendEnable    = TRUE;
+            blendDesc.RenderTarget[0].SrcBlend       = D3D11_BLEND_SRC_ALPHA;
+            blendDesc.RenderTarget[0].DestBlend      = D3D11_BLEND_INV_SRC_ALPHA;
+            blendDesc.RenderTarget[0].BlendOp        = D3D11_BLEND_OP_ADD;
+            blendDesc.RenderTarget[0].SrcBlendAlpha  = D3D11_BLEND_ONE;
+            blendDesc.RenderTarget[0].DestBlendAlpha = D3D11_BLEND_ZERO;
+            blendDesc.RenderTarget[0].BlendOpAlpha   = D3D11_BLEND_OP_ADD;
+            break;
+
+        case BlendMode::Additive:
+            blendDesc.RenderTarget[0].BlendEnable    = TRUE;
+            blendDesc.RenderTarget[0].SrcBlend       = D3D11_BLEND_SRC_ALPHA;
+            blendDesc.RenderTarget[0].DestBlend      = D3D11_BLEND_ONE;
+            blendDesc.RenderTarget[0].BlendOp        = D3D11_BLEND_OP_ADD;
+            blendDesc.RenderTarget[0].SrcBlendAlpha  = D3D11_BLEND_ONE;
+            blendDesc.RenderTarget[0].DestBlendAlpha = D3D11_BLEND_ZERO;
+            blendDesc.RenderTarget[0].BlendOpAlpha   = D3D11_BLEND_OP_ADD;
+            break;
+        }
+        m_device->CreateBlendState(&blendDesc, p->blend.GetAddressOf());
+
         p->topology = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
 
-        // キャッシュに保存してから返す
         m_cache[key] = p;
         return p;
     }

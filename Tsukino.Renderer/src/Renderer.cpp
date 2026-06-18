@@ -357,6 +357,21 @@ namespace Tsukino::Renderer {
         }
 
         //------------------------------------------------------------
+        // Water パス
+        //------------------------------------------------------------
+        //{
+        //    ID3D11DeviceContext* context = m_graphicsContext.GetContext();
+        //    context->PSSetShaderResources(shadowSRVSlot, 1, m_shadowMapSRV.GetAddressOf());
+        //    context->PSSetSamplers(shadowSamplerSlot, 1, m_shadowSampler.GetAddressOf());
+        //}
+        UpdateSceneBuffer(m_worldSceneData);
+        for(const auto& cmd : commands) {
+            if(cmd.pass != RenderPass::Water)
+                continue;
+            ExecuteWaterCommand(cmd);
+        }
+
+        //------------------------------------------------------------
         // シャドウマップのバインドを解除（DSVとSRVの同時バインド防止）
         //------------------------------------------------------------
         {
@@ -636,6 +651,71 @@ namespace Tsukino::Renderer {
         return true;
     }
 
+   //------------------------------------------------------------
+    //! @brief 水面描画コマンドの実行
+    //------------------------------------------------------------
+    void Renderer::ExecuteWaterCommand(const DrawCommand& cmd) {
+        if(!cmd.material || !cmd.mesh)
+            return;
+
+        ID3D11DeviceContext* context = m_graphicsContext.GetContext();
+
+        //----------------------------------------------------------
+        // cmd.material のパイプラインをセット
+        //----------------------------------------------------------
+        m_graphicsContext.SetMaterial(*cmd.material);
+
+        //----------------------------------------------------------
+        // シャドウマップを t8 / s8 にバインド
+        // （Water.ps.hlsl は t8/s8 を参照する）
+        //----------------------------------------------------------
+        context->PSSetShaderResources(8, 1, m_shadowMapSRV.GetAddressOf());
+        context->PSSetSamplers(8, 1, m_waterShadowSampler.GetAddressOf());
+
+        //----------------------------------------------------------
+        // Scene (b0) を再バインド
+        //----------------------------------------------------------
+        context->VSSetConstantBuffers(0, 1, m_sceneBuffer.GetAddressOf());
+        context->PSSetConstantBuffers(0, 1, m_sceneBuffer.GetAddressOf());
+
+        //----------------------------------------------------------
+        // Transform (b1)
+        //----------------------------------------------------------
+        CBufferTransform cb{};
+        cb.world = cmd.transform;
+        context->UpdateSubresource(m_objectBuffer.Get(), 0, nullptr, &cb, 0, 0);
+        context->VSSetConstantBuffers(1, 1, m_objectBuffer.GetAddressOf());
+
+        //----------------------------------------------------------
+        // Water (b5) を更新してバインド
+        // time は UpdateWaterTime() で毎フレーム更新済み
+        //----------------------------------------------------------
+        context->UpdateSubresource(m_waterBuffer.Get(), 0, nullptr, &m_waterData, 0, 0);
+        context->PSSetConstantBuffers(5, 1, m_waterBuffer.GetAddressOf());
+
+        //----------------------------------------------------------
+        // 頂点バッファ・インデックスバッファのセット
+        // 水面はスキニングなし（スロット1は必ずクリア）
+        //----------------------------------------------------------
+        ID3D11Buffer* vbs[]     = {cmd.mesh->vertexBuffer.Get(), nullptr};
+        UINT          strides[] = {cmd.mesh->stride, 0};
+        UINT          offsets[] = {0, 0};
+        context->IASetVertexBuffers(0, 2, vbs, strides, offsets);
+        context->IASetIndexBuffer(cmd.mesh->indexBuffer.Get(), DXGI_FORMAT_R32_UINT, 0);
+        context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+
+        //----------------------------------------------------------
+        // 描画
+        //----------------------------------------------------------
+        context->DrawIndexed(cmd.mesh->indexCount, 0, 0);
+
+        //----------------------------------------------------------
+        // 後片付け：t8/s8 を解除（他のパスへの影響を防ぐ）
+        //----------------------------------------------------------
+        ID3D11ShaderResourceView* nullSRV = nullptr;
+        context->PSSetShaderResources(8, 1, &nullSRV);
+    }
+
     //------------------------------------------------------------
     //! @brief シャドウパスの実行（シャドウマップへの深度書き込み）
     //------------------------------------------------------------
@@ -762,6 +842,68 @@ namespace Tsukino::Renderer {
     void Renderer::UpdateWaterTime(float deltaTime) {
         m_waterTime      += deltaTime;
         m_waterData.time  = m_waterTime;
+    }
+
+    //------------------------------------------------------------
+    //! @brief 水面パラメータのセット
+    //------------------------------------------------------------
+    void Renderer::SetWaterParameters(const CBufferWater& water) {
+        m_waterData.waveSpeed    = water.waveSpeed;
+        m_waterData.waveScale    = water.waveScale;
+        m_waterData.fresnelPower = water.fresnelPower;
+        m_waterData.shallowColor = water.shallowColor;
+        m_waterData.deepColor    = water.deepColor;
+    }
+
+    //------------------------------------------------------------
+    //! @brief 水面パイプラインのセット
+    //!        PipelineFactory でキャッシュを生成して m_waterPipeline に保持する
+    //------------------------------------------------------------
+    void Renderer::SetWaterPipeline(const Tsukino::Asset::ShaderAsset* vs, const Tsukino::Asset::ShaderAsset* ps) {
+        if(!vs || !ps) {
+            Tsukino::Core::Log::Error("Renderer::SetWaterPipeline - shader is null.");
+            return;
+        }
+
+        auto* factory = GetPipelineFactory();
+        if(!factory)
+            return;
+
+        // BlendMode::Alpha で半透明パイプラインをキャッシュ生成
+        m_waterPipeline = factory->Create(*vs, *ps, Tsukino::GraphicsCommon::VertexFormat::PositionNormalUV, DepthMode::ReadWrite, BlendMode::Alpha);
+
+        if(!m_waterPipeline) {
+            Tsukino::Core::Log::Error("Renderer: Water pipeline creation failed.");
+            return;
+        }
+
+        //----------------------------------------------------------
+        // 水面用 PCF 比較サンプラーを s8 用に作成
+        // （既存の m_shadowSampler は s1 にバインドされるため別途用意）
+        //----------------------------------------------------------
+        if(!m_waterShadowSampler) {
+            ID3D11Device*      device = m_graphicsContext.GetDevice();
+            D3D11_SAMPLER_DESC samplerDesc{};
+            samplerDesc.Filter         = D3D11_FILTER_COMPARISON_MIN_MAG_MIP_LINEAR;
+            samplerDesc.AddressU       = D3D11_TEXTURE_ADDRESS_BORDER;
+            samplerDesc.AddressV       = D3D11_TEXTURE_ADDRESS_BORDER;
+            samplerDesc.AddressW       = D3D11_TEXTURE_ADDRESS_BORDER;
+            samplerDesc.BorderColor[0] = 1.0f;
+            samplerDesc.BorderColor[1] = 1.0f;
+            samplerDesc.BorderColor[2] = 1.0f;
+            samplerDesc.BorderColor[3] = 1.0f;
+            samplerDesc.ComparisonFunc = D3D11_COMPARISON_GREATER_EQUAL;
+            samplerDesc.MinLOD         = 0;
+            samplerDesc.MaxLOD         = D3D11_FLOAT32_MAX;
+
+            HRESULT hr = device->CreateSamplerState(&samplerDesc, m_waterShadowSampler.GetAddressOf());
+            if(FAILED(hr)) {
+                Tsukino::Core::Log::Error("Renderer: Failed to create water shadow sampler.");
+                return;
+            }
+        }
+
+        m_hasWater = true;
     }
 
     //------------------------------------------------------------
