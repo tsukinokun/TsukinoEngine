@@ -46,7 +46,7 @@ namespace Tsukino::EngineIntegration {
         //! @return true: 初期化成功, false: 初期化失敗
         //------------------------------------------------------------
         [[nodiscard]]
-        bool Initialize(int width, int height);
+        bool Initialize(int width, int height, Tsukino::Core::Window::WindowStyle style = Tsukino::Core::Window::WindowStyle::Default);
 
         //------------------------------------------------------------
         //! @brief  エンジン全体で共有されるクラスを取得する関数

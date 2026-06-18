@@ -29,7 +29,7 @@ namespace Tsukino::Core {
     //--------------------------------------------------------------
     //! @brief ウィンドウ生成
     //--------------------------------------------------------------
-    bool Window::Create(const std::string& title, int width, int height) {
+    bool Window::Create(const std::string& title, int width, int height, WindowStyle style) {
         m_width  = width;     // ウィンドウの幅を保存
         m_height = height;    // ウィンドウの高さを保存
 
@@ -63,6 +63,15 @@ namespace Tsukino::Core {
         //--------------------------------------------------------------
         // 使用するウィンドウのスタイルを定義
         DWORD dwStyle = WS_OVERLAPPEDWINDOW;
+        DWORD dwExStyle = 0;
+
+        // スタイルに応じてフラグを切り替える
+        if(style == WindowStyle::Popup) {
+            dwStyle = WS_POPUP;
+        } else if(style == WindowStyle::ClickThrough) {
+            dwStyle   = WS_POPUP;
+            dwExStyle = WS_EX_LAYERED | WS_EX_TRANSPARENT;
+        }
 
         // 希望する描画領域（クライアント領域）のサイズを設定
         RECT rc = {0, 0, width, height};
@@ -79,7 +88,7 @@ namespace Tsukino::Core {
         m_height = height;
 
         // 5. 計算した winWidth, winHeight を使ってウィンドウを生成
-        m_hWnd = CreateWindowEx(0,
+        m_hWnd = CreateWindowEx(dwExStyle,
                                 wc.lpszClassName,
                                 wTitle.c_str(),
                                 dwStyle,    // 定義したスタイルを渡す
