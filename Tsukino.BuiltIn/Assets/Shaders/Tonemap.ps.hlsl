@@ -34,12 +34,15 @@ float3 ACES(float3 x)
 //--------------------------------------------------------------
 float4 PSMain(PSInput input) : SV_TARGET
 {
-    // UV のY を反転
+        // UV のY を反転
     float2 uv = float2(input.uv.x, 1.0f - input.uv.y);
-    float3 hdrColor = hdrTexture.Sample(hdrSampler, uv).rgb;
 
-    // ACESトーンマッピング
-    float3 ldrColor = ACES(hdrColor);
+    // アルファも含めてサンプリング
+    float4 hdrColor = hdrTexture.Sample(hdrSampler, uv);
 
-    return float4(ldrColor, 1.0f);
+    // ACESトーンマッピング（RGBのみ）
+    float3 ldrColor = ACES(hdrColor.rgb);
+
+    // Premultiplied Alpha: RGBにアルファを乗算してから返す
+    return float4(ldrColor * hdrColor.a, hdrColor.a);
 }
