@@ -4,6 +4,8 @@
 //! @author 山﨑愛
 //--------------------------------------------------------------
 #include "Tsukino/Core/Window.hpp"
+#include <dwmapi.h>                   
+#pragma comment(lib, "dwmapi.lib")    
 // 名前空間 : Tsukino::Core
 namespace Tsukino::Core {
     //--------------------------------------------------------------
@@ -107,6 +109,18 @@ namespace Tsukino::Core {
         if(!m_hWnd) {
             MessageBox(nullptr, TEXT("ウィンドウの作成に失敗しました"), TEXT("Error"), MB_OK);
             return false;
+        }
+
+        //--------------------------------------------------------------
+        // ClickThrough スタイル時の DWM 透過設定
+        //--------------------------------------------------------------
+        if(style == WindowStyle::ClickThrough) {
+            // レイヤードウィンドウとしてアルファを使用可能にする（透明度255 = 不透明で初期化）
+            SetLayeredWindowAttributes(m_hWnd, 0, 255, LWA_ALPHA);
+
+            // DWM に対して、クライアント領域全体を「透明なフレーム」として拡張するよう指示
+            MARGINS margins = {-1, -1, -1, -1};    // 全体に適用する特殊な値
+            DwmExtendFrameIntoClientArea(m_hWnd, &margins);
         }
 
         ShowWindow(m_hWnd, SW_SHOW);    // ウィンドウを表示

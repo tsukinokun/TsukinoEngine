@@ -23,7 +23,6 @@
 #include <Tsukino/EngineIntegration/ECS/System/ModelSystem.hpp>
 #include <Tsukino/EngineIntegration/ECS/System/AnimationSystem.hpp>
 
-
 #include <Tsukino/BuiltIn/ECS/Component/TransformComponent.hpp>
 #include <Tsukino/BuiltIn/ECS/Component/CameraComponent.hpp>
 #include <Tsukino/BuiltIn/ECS/Component/SpriteComponent.hpp>
@@ -53,7 +52,12 @@ namespace Tsukino::Sandbox {
         //-------------------------------------------------------------
         // イベントバスをレジストリから取得
         //-------------------------------------------------------------
-        Tsukino::ECS::EventBus&                    eventBus = m_scene.GetEventBus();
+        Tsukino::ECS::EventBus& eventBus = m_scene.GetEventBus();
+
+        //--------------------------------------------------------------
+        // クリアカラーを透明に設定
+        //--------------------------------------------------------------
+        context->renderer->SetClearColor(0.0f, 0.0f, 0.0f, 0.0f);
 
         //--------------------------------------------------------------
         // システムの生成と追加
@@ -165,7 +169,7 @@ namespace Tsukino::Sandbox {
         animPlayer.current_clip_id                                  = animationHandle;    // ロー等速再生ドした testAnim.fbx のハンドルを渡す
         animPlayer.animation_index                                  = 1;                  // 再生するアニメーションのインデックスを指定
         animPlayer.elapsed_time                                     = 0.0f;               // 0秒からスタート
-        animPlayer.playback_speed                                   = 1.0f;               // 
+        animPlayer.playback_speed                                   = 1.0f;               //
         animPlayer.is_looping                                       = true;               // ループさせる
         animPlayer.is_playing                                       = true;               // 再生状態にする
 
@@ -194,7 +198,7 @@ namespace Tsukino::Sandbox {
 
         //const std::string instTransformPath = "Tsukino.Sandbox/Assets/Prefabs/TestPrefab_Transform.json";
         //const std::string instCameraPath    = "Tsukino.Sandbox/Assets/Prefabs/TestPrefab_Camera.json";
-        const std::string prefabPath        = "Tsukino.Sandbox/Assets/Prefabs/TestPrefab.json";
+        const std::string prefabPath = "Tsukino.Sandbox/Assets/Prefabs/TestPrefab.json";
 
         // 各コンポーネントのJSONを生成（初回のみ）
         //if(!std::filesystem::exists(instTransformPath)) {
@@ -255,7 +259,6 @@ namespace Tsukino::Sandbox {
         //}
 
         //Tsukino::Core::Log::Info("=== [PrefabFactory] Instantiate Test End ===");
-
     }
 
     //-------------------------------------------------------------
