@@ -36,7 +36,11 @@ namespace Tsukino::Sandbox {
         // コンテキストをレジストリから取得
         Tsukino::EngineIntegration::EngineContext* context = m_scene.GetRegistry().GetContext<Tsukino::EngineIntegration::EngineContext*>();
         //-------------------------------------------------------------
-        // イベントバスをレジストリから取得
+        // レジストリを取得
+        //-------------------------------------------------------------
+        Tsukino::ECS::Registry& registry = m_scene.GetRegistry();
+        //-------------------------------------------------------------
+        // イベントバスを取得
         //-------------------------------------------------------------
         Tsukino::ECS::EventBus& eventBus = m_scene.GetEventBus();
         //--------------------------------------------------------------
@@ -55,7 +59,7 @@ namespace Tsukino::Sandbox {
             Sprite    = 10
         };
 
-        // Transformは一番最初に計算する 
+        // Transformは一番最初に計算する
         m_scene.AddSystem(std::make_shared<Tsukino::BuiltIn::ECS::TransformSystem>(), static_cast<int>(SystemPriority::Transform));
         // カメラは描画前に更新する
         m_scene.AddSystem(std::make_shared<Tsukino::BuiltIn::ECS::CameraSystem>(), static_cast<int>(SystemPriority::Camera));
@@ -63,6 +67,64 @@ namespace Tsukino::Sandbox {
         m_scene.AddSystem(std::make_shared<Tsukino::BuiltIn::ECS::FontRendererSystem>(), static_cast<int>(SystemPriority::Font));
         // スプライトなど描画用のコマンド生成は後で行う
         m_scene.AddSystem(std::make_shared<Tsukino::BuiltIn::ECS::SpriteRenderSystem>(), static_cast<int>(SystemPriority::Sprite));
+
+        //--------------------------------------------------------------
+        // 2Dカメラエンティティの生成
+        //--------------------------------------------------------------
+        Tsukino::ECS::Entity cameraEntity2D = m_scene.CreateEntity();
+
+        // TransformComponent (カメラの位置)
+        Tsukino::BuiltIn::ECS::TransformComponent& camTransform2D = registry.AddComponent<Tsukino::BuiltIn::ECS::TransformComponent>(cameraEntity2D);
+        camTransform2D.position                                   = hlslpp::float3(0.0f, 0.0f, -10.0f);    // 手前に引く
+
+        // CameraComponent (投影設定)
+        Tsukino::BuiltIn::ECS::CameraComponent& camera2D = registry.AddComponent<Tsukino::BuiltIn::ECS::CameraComponent>(cameraEntity2D);
+        camera2D.projectionType                          = Tsukino::BuiltIn::ECS::CameraComponent::ProjectionType::Orthographic;
+        camera2D.orthoSize                               = 720.0f;    // 画面の縦幅を 720 ユニットにする
+        camera2D.isPrimary                               = false;     // これをメインカメラにしない
+
+        //--------------------------------------------------------------
+        // センター生成
+        //--------------------------------------------------------------
+        {
+            Tsukino::ECS::Entity entity = m_scene.CreateEntity();
+
+            // TransformComponent の追加と初期化
+            Tsukino::BuiltIn::ECS::TransformComponent& transform = registry.AddComponent<Tsukino::BuiltIn::ECS::TransformComponent>(entity);
+            transform.position                                   = hlslpp::float3(1.0f, 0.0f, 0.0f);
+            transform.rotation                                   = hlslpp::quaternion(0.0f, 0.0f, 0.0f, 1.0f);    // 無回転
+            transform.scale                                      = hlslpp::float3(1.0f, 1.0f, 1.0f);
+            transform.dirty                                      = true;          // 初回計算のためフラグを立てる
+            transform.parent                                     = entt::null;    // 親なし
+
+            // SpriteComponent の追加
+            Tsukino::BuiltIn::ECS::SpriteComponent& sprite = registry.AddComponent<Tsukino::BuiltIn::ECS::SpriteComponent>(entity);
+            sprite.textureHandle = context->assetManager->Load(Tsukino::Core::Path("Tsukino.Sandbox/Assets/PenguinGame/penguins/penguin/penguin_center_1.png"));
+            sprite.tintColor     = hlslpp::float4(1.0f, 1.0f, 1.0f, 1.0f);    // 白色
+            sprite.uvRect        = hlslpp::float4(0.0f, 0.0f, 1.0f, 1.0f);
+        }
+
+        //--------------------------------------------------------------
+        // 左手エンティティ生成
+        //--------------------------------------------------------------
+        {
+            Tsukino::ECS::Entity entity = m_scene.CreateEntity();
+
+            // TransformComponent の追加と初期化
+            Tsukino::BuiltIn::ECS::TransformComponent& transform = registry.AddComponent<Tsukino::BuiltIn::ECS::TransformComponent>(entity);
+            transform.position                                   = hlslpp::float3(1.0f, 0.0f, 0.0f);
+            transform.rotation                                   = hlslpp::quaternion(0.0f, 0.0f, 0.0f, 1.0f);    // 無回転
+            transform.scale                                      = hlslpp::float3(1.0f, 1.0f, 1.0f);
+            transform.dirty                                      = true;          // 初回計算のためフラグを立てる
+            transform.parent                                     = entt::null;    // 親なし
+
+            // SpriteComponent の追加
+            Tsukino::BuiltIn::ECS::SpriteComponent& sprite = registry.AddComponent<Tsukino::BuiltIn::ECS::SpriteComponent>(entity);
+            sprite.textureHandle = context->assetManager->Load(Tsukino::Core::Path("Tsukino.Sandbox/Assets/PenguinGame/penguins/penguin/penguin_left_1.png"));
+            sprite.tintColor     = hlslpp::float4(1.0f, 1.0f, 1.0f, 1.0f);    // 白色
+            sprite.uvRect        = hlslpp::float4(0.0f, 0.0f, 1.0f, 1.0f);
+            sprite.sortOrder     = 1;    // 中央のペンギンより手前に描画
+        }
     }
 
     void PenguinGameScene::OnUpdate(Tsukino::EngineIntegration::EngineAPI& api, float deltaTime) {
