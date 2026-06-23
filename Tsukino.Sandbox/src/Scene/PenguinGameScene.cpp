@@ -5,6 +5,9 @@
 //-------------------------------------------------------------
 #include <Tsukino/Sandbox/Scene/PenguinGameScene.hpp>
 
+#include <Tsukino/Sandbox/PenguinGame/ECS/Components/PenguinAnimatorComponent.hpp>
+#include <Tsukino/Sandbox/PenguinGame/ECS/Systems/PenguinAnimationSystem.hpp>
+
 #include <Tsukino/EngineIntegration/EngineAPI.hpp>
 #include <Tsukino/EngineIntegration/EngineContext.hpp>
 #include <Tsukino/Engine/Asset/AssetManager.hpp>
@@ -53,10 +56,11 @@ namespace Tsukino::Sandbox {
         //--------------------------------------------------------------
         // enumを使って優先度を管理
         enum class SystemPriority : int {
-            Transform = 0,
-            Camera    = 5,
-            Font      = 9,
-            Sprite    = 10
+            Transform        = 0,
+            Camera           = 5,
+            Font             = 9,
+            Sprite           = 10,
+            PenguinAnimation = 11,
         };
 
         // Transformは一番最初に計算する
@@ -67,6 +71,8 @@ namespace Tsukino::Sandbox {
         m_scene.AddSystem(std::make_shared<Tsukino::BuiltIn::ECS::FontRendererSystem>(), static_cast<int>(SystemPriority::Font));
         // スプライトなど描画用のコマンド生成は後で行う
         m_scene.AddSystem(std::make_shared<Tsukino::BuiltIn::ECS::SpriteRenderSystem>(), static_cast<int>(SystemPriority::Sprite));
+        // ペンギンアニメーションシステムの追加
+        m_scene.AddSystem(std::make_shared<PenguinGame::ECS::PenguinAnimationSystem>(), static_cast<int>(SystemPriority::PenguinAnimation));
 
         //--------------------------------------------------------------
         // 2Dカメラエンティティの生成
@@ -84,6 +90,35 @@ namespace Tsukino::Sandbox {
         camera2D.isPrimary                               = false;      // これをメインカメラにしない
 
         //--------------------------------------------------------------
+        // ペンギンアニメーターエンティティの生成
+        //--------------------------------------------------------------
+        Tsukino::ECS::Entity penguinAnimatorEntity = m_scene.CreateEntity();
+
+        auto& animator = registry.AddComponent<PenguinGame::ECS::PenguinAnimatorComponent>(penguinAnimatorEntity);
+
+        // スキン定義のロード（本来はアセット管理システム経由が望ましい）
+        // 一旦プロトタイプとして、ここでアセットハンドルをセットします
+        auto* assetMgr = context->assetManager;
+
+        // 初期状態のセットアップ
+        animator.blinkInterval = 2.0f;    // まばたき間隔
+
+        //--------------------------------------------------------------
+        // ペンギンのスキン定義を作成
+        //--------------------------------------------------------------
+        {
+            m_Skin.name              = "Normal";
+            m_Skin.centerTexs[0]     = assetMgr->Load(Tsukino::Core::Path("Tsukino.Sandbox/Assets/PenguinGame/penguins/penguin/penguin_center_1.png"));
+            m_Skin.centerTexs[1]     = assetMgr->Load(Tsukino::Core::Path("Tsukino.Sandbox/Assets/PenguinGame/penguins/penguin/penguin_center_2.png"));
+            m_Skin.leftTexs[0]       = assetMgr->Load(Tsukino::Core::Path("Tsukino.Sandbox/Assets/PenguinGame/penguins/penguin/penguin_left_1.png"));
+            m_Skin.leftTexs[1]       = assetMgr->Load(Tsukino::Core::Path("Tsukino.Sandbox/Assets/PenguinGame/penguins/penguin/penguin_left_2.png"));
+            m_Skin.rightTexs[0]      = assetMgr->Load(Tsukino::Core::Path("Tsukino.Sandbox/Assets/PenguinGame/penguins/penguin/penguin_right_1.png"));
+            m_Skin.rightTexs[1]      = assetMgr->Load(Tsukino::Core::Path("Tsukino.Sandbox/Assets/PenguinGame/penguins/penguin/penguin_right_2.png"));
+            // スキン設定
+            animator.currentSkin = &m_Skin;
+        }
+
+        //--------------------------------------------------------------
         // センター生成
         //--------------------------------------------------------------
         {
@@ -99,9 +134,10 @@ namespace Tsukino::Sandbox {
 
             // SpriteComponent の追加
             Tsukino::BuiltIn::ECS::SpriteComponent& sprite = registry.AddComponent<Tsukino::BuiltIn::ECS::SpriteComponent>(entity);
-            sprite.textureHandle = context->assetManager->Load(Tsukino::Core::Path("Tsukino.Sandbox/Assets/PenguinGame/penguins/penguin/penguin_center_1.png"));
             sprite.tintColor     = hlslpp::float4(1.0f, 1.0f, 1.0f, 1.0f);    // 白色
             sprite.uvRect        = hlslpp::float4(0.0f, 0.0f, 1.0f, 1.0f);
+
+            animator.centerEntity = entity;    // センターエンティティをアニメーターに登録
         }
 
         //--------------------------------------------------------------
@@ -120,10 +156,11 @@ namespace Tsukino::Sandbox {
 
             // SpriteComponent の追加
             Tsukino::BuiltIn::ECS::SpriteComponent& sprite = registry.AddComponent<Tsukino::BuiltIn::ECS::SpriteComponent>(entity);
-            sprite.textureHandle = context->assetManager->Load(Tsukino::Core::Path("Tsukino.Sandbox/Assets/PenguinGame/penguins/penguin/penguin_left_1.png"));
             sprite.tintColor     = hlslpp::float4(1.0f, 1.0f, 1.0f, 1.0f);    // 白色
             sprite.uvRect        = hlslpp::float4(0.0f, 0.0f, 1.0f, 1.0f);
             sprite.sortOrder     = 1;    // 中央のペンギンより手前に描画
+
+            animator.leftHandEntity = entity;    // 左手エンティティをアニメーターに登録
         }
 
         //--------------------------------------------------------------
@@ -142,10 +179,11 @@ namespace Tsukino::Sandbox {
 
             // SpriteComponent の追加
             Tsukino::BuiltIn::ECS::SpriteComponent& sprite = registry.AddComponent<Tsukino::BuiltIn::ECS::SpriteComponent>(entity);
-            sprite.textureHandle = context->assetManager->Load(Tsukino::Core::Path("Tsukino.Sandbox/Assets/PenguinGame/penguins/penguin/penguin_right_1.png"));
             sprite.tintColor     = hlslpp::float4(1.0f, 1.0f, 1.0f, 1.0f);    // 白色
             sprite.uvRect        = hlslpp::float4(0.0f, 0.0f, 1.0f, 1.0f);
             sprite.sortOrder     = 1;    // 中央のペンギンより手前に描画
+
+            animator.rightHandEntity = entity;    // 右手エンティティをアニメーターに登録
         }
     }
 
