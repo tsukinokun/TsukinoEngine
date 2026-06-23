@@ -52,7 +52,8 @@ namespace Tsukino::BuiltIn::ECS {
                 m_pipelineCache = ctx->renderer->GetPipelineFactory()->Create(*vsAsset,
                                                                               *psAsset,
                                                                               Tsukino::GraphicsCommon::VertexFormat::Sprite,    // 頂点フォーマットを指定
-                                                                              Tsukino::Renderer::DepthMode::None);
+                                                                              Tsukino::Renderer::DepthMode::None,
+                                                                              Tsukino::Renderer::BlendMode::Alpha);
             }
         }
 
@@ -61,6 +62,13 @@ namespace Tsukino::BuiltIn::ECS {
 
         // 前フレームのマテリアルバッファをクリアして再利用
         m_materialBuffer.clear();
+
+        // まずエンティティ情報を一時バッファに収集
+        struct SpriteEntry {
+            int         sortOrder;
+            Tsukino::Renderer::DrawCommand cmd;
+        };
+        std::vector<SpriteEntry> entries;
 
         // TransformComponent と SpriteComponent の両方を持つエンティティを取得
         auto view = registry.View<TransformComponent, SpriteComponent>();
@@ -112,8 +120,14 @@ namespace Tsukino::BuiltIn::ECS {
             cmd.material = &material;
             cmd.pass     = Tsukino::Renderer::RenderPass::Overlay;
 
-            // コマンドをプッシュ
-            ctx->renderer->PushDrawCommand(cmd);
+            entries.push_back({sprite.sortOrder, cmd});
         });
+
+        // sortOrderで昇順ソート
+        std::sort(entries.begin(), entries.end(), [](const SpriteEntry& a, const SpriteEntry& b) { return a.sortOrder < b.sortOrder; });
+        // ソート済みの順でpush
+        for(auto& e : entries) {
+            ctx->renderer->PushDrawCommand(e.cmd);
+        }
     }
 }    // namespace Tsukino::BuiltIn::ECS
