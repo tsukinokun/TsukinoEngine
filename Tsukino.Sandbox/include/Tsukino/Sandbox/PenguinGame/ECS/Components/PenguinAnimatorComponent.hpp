@@ -29,5 +29,10 @@ namespace PenguinGame::ECS {
         bool isCenterFrame2 = false;
         bool isLeftFrame2   = false;
         bool isRightFrame2  = false;
+
+        float       leftActionTimer  = 0.0f;
+        float       rightActionTimer = 0.0f;
+        const float actionDuration   = 0.15f;    // 手を上げている時間（秒）
+        bool        lastHandWasLeft  = false;    // 交互にするためのフラグ
     };
 }    // namespace PenguinGame::ECS

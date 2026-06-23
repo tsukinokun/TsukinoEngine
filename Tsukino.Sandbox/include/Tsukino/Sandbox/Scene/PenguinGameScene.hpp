@@ -6,6 +6,8 @@
 #pragma once
 #include <Tsukino/Sandbox/JumpGameSample/ECS/State/GameState.hpp>
 
+#include <Tsukino/Sandbox/PenguinGame/Data/PenguinSkinDefinition.hpp>
+
 #include <Tsukino/EngineIntegration/Scene/GameSceneBase.hpp>
 // 名前空間 : Tsukino::Sandbox
 namespace Tsukino::Sandbox {
@@ -43,5 +45,8 @@ namespace Tsukino::Sandbox {
         //! @param  api [in] エンジンから提供されるAPIへの参照
         //-------------------------------------------------------------
         void OnInitialize(Tsukino::EngineIntegration::EngineAPI& api) override;
+
+        // 現在使用中のペンギンスキンの定義
+        PenguinGame::Data::PenguinSkinDefinition m_Skin;   
     };
 }    // namespace Tsukino::Sandbox
