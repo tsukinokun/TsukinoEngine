@@ -75,22 +75,20 @@ namespace Tsukino::BuiltIn::ECS {
                 // Projection行列の計算 (投影方法の分岐)
                 //-------------------------------------------------------------
                 if(camera.projectionType == CameraComponent::ProjectionType::Orthographic) {
-                    // --- 正投影 (2D / UI用) ---
-                    float halfH = camera.orthoSize * 0.5f;
-                    float halfW = (camera.orthoSize * camera.aspectRatio) * 0.5f;
+                    // Left=0, Right=screenW, Bottom=screenH, Top=0 にして上下反転
+                    camera.projectionMatrix =
+                        Tsukino::Core::Math::matrix::orthographicOffCenterLH(0.0f,
+                                                                             screenW,    // Left, Right
+                                                                             0.0f,       // Bottom, Top 
+                                                                             screenH,
+                                                                             camera.nearZ,
+                                                                             camera.farZ);
 
-                    // 自作のorthographicOffCenterLH を使用
-                    // Left, Right, Bottom, Top の順に指定
-                    camera.projectionMatrix = Tsukino::Core::Math::matrix::orthographicOffCenterLH(-halfW,
-                                                                                                   halfW,    // Left, Right
-                                                                                                   -halfH,
-                                                                                                   halfH,    // Bottom, Top
-                                                                                                   camera.nearZ,
-                                                                                                   camera.farZ);
                 } else {
                     // 自作の perspectiveFovLH を使用
                     // リバースZに対応しているため、farZ と nearZ の順番で指定
-                    camera.projectionMatrix = Tsukino::Core::Math::matrix::perspectiveFovLH(Tsukino::Core::Math::ToRadians(camera.fov), camera.aspectRatio, camera.farZ, camera.nearZ);
+                    camera.projectionMatrix = Tsukino::Core::Math::matrix::perspectiveFovLH(
+                        Tsukino::Core::Math::ToRadians(camera.fov), camera.aspectRatio, camera.farZ, camera.nearZ);
                 }
 
                 //-------------------------------------------------------------
@@ -113,11 +111,11 @@ namespace Tsukino::BuiltIn::ECS {
         view.each([&](entt::entity entity, const Tsukino::BuiltIn::ECS::TransformComponent& transform, const Tsukino::BuiltIn::ECS::CameraComponent& camera) {
             // メインカメラの行列をシーン定数バッファに転送
             Tsukino::Renderer::CBufferScene sceneData;
-            sceneData.view       = camera.viewMatrix;
-            sceneData.projection = camera.projectionMatrix;
-            sceneData.viewProj   = camera.viewProjMatrix;
+            sceneData.view        = camera.viewMatrix;
+            sceneData.projection  = camera.projectionMatrix;
+            sceneData.viewProj    = camera.viewProjMatrix;
             sceneData.invViewProj = camera.invViewProjMatrix;
-            sceneData.cameraPos  = hlslpp::float4(transform.position.x, transform.position.y, transform.position.z, 1.0f);
+            sceneData.cameraPos   = hlslpp::float4(transform.position.x, transform.position.y, transform.position.z, 1.0f);
             // シーン定数バッファをRendererにセット
             if(camera.isPrimary) {
                 ctx->renderer->SetWorldCameraMatrix(sceneData);

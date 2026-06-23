@@ -84,12 +84,14 @@ namespace Tsukino::BuiltIn::ECS {
             float texH = static_cast<float>(textureAsset->height);
 
             // テクスチャサイズ分だけ引き伸ばす行列を作成
-            const auto pixelScaleMatrix = Tsukino::Core::Math::matrix::scale(texW, texH, 1.0f);
+            const auto pixelScaleMatrix = Tsukino::Core::Math::matrix::scale(texW * transform.scale.x, texH * transform.scale.y, 1.0f);
 
             Tsukino::Renderer::DrawCommand cmd;
 
-            // TransformSystemが計算したworldMatrixの「手前」にピクセルスケールを噛ませる
-            cmd.transform = hlslpp::mul(transform.worldMatrix, pixelScaleMatrix);
+            const auto translationMatrix = Tsukino::Core::Math::matrix::translate(transform.position);
+
+            // スケールを適用してから移動することで、Positionにはスケール倍率が掛からなくなります
+            cmd.transform = hlslpp::mul(pixelScaleMatrix, translationMatrix);
 
             // メッシュの指定
             cmd.mesh = ctx->renderer->GetPrimitiveMesh(Tsukino::GraphicsCommon::PrimitiveType::Quad);

@@ -250,8 +250,7 @@ namespace Tsukino::Renderer {
         // 定数バッファの作成
         //! @return true: 定数バッファの作成成功, false: 定数バッファの作成失敗
         //------------------------------------------------------------
-        [[nodiscard]]
-        bool CreateConstantBuffer();
+        [[nodiscard]] bool CreateConstantBuffer();
 
         //------------------------------------------------------------
         // プリミティブメッシュの作成

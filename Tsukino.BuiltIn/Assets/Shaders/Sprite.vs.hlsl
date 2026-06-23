@@ -19,7 +19,7 @@ cbuffer CBufferScene : register(b0)
 //--------------------------------------------------------------
 cbuffer TransformBuffer : register(b1)
 {
-    float4x4 World; // モデル × ビュー × プロジェクション行列
+    float4x4 World;
 };
 
 //--------------------------------------------------------------
@@ -50,6 +50,11 @@ VSOutput VSMain(VSInput input)
     VSOutput output; // 出力構造体の宣言
     // 頂点 * ワールド行列 * ビュープロジェクション行列
     output.position = mul(float4(input.position, 1.0f), mul(World, ViewProj));
-    output.uv = input.uv; // UV座標はそのまま出力
+    
+    // Y座標を反転（DirectXの座標系に合わせるため）
+    output.position.y = -output.position.y;
+    
+    output.uv = float2(input.uv.x, 1.0f - input.uv.y);
+     
     return output;
 }
