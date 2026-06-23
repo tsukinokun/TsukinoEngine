@@ -91,7 +91,7 @@ namespace Tsukino::Sandbox {
 
             // TransformComponent の追加と初期化
             Tsukino::BuiltIn::ECS::TransformComponent& transform = registry.AddComponent<Tsukino::BuiltIn::ECS::TransformComponent>(entity);
-            transform.position                                   = hlslpp::float3(0.0f, 0.0f, 0.0f);
+            transform.position                                   = hlslpp::float3(100.0f, 100.0f, 0.0f);
             transform.rotation                                   = hlslpp::quaternion(0.0f, 0.0f, 0.0f, 1.0f);    // 無回転
             transform.scale                                      = hlslpp::float3(1.0f, 1.0f, 1.0f);
             transform.dirty                                      = true;          // 初回計算のためフラグを立てる
@@ -112,7 +112,7 @@ namespace Tsukino::Sandbox {
 
             // TransformComponent の追加と初期化
             Tsukino::BuiltIn::ECS::TransformComponent& transform = registry.AddComponent<Tsukino::BuiltIn::ECS::TransformComponent>(entity);
-            transform.position                                   = hlslpp::float3(0.0f, 0.0f, 0.0f);
+            transform.position                                   = hlslpp::float3(100.0f, 100.0f, 0.0f);
             transform.rotation                                   = hlslpp::quaternion(0.0f, 0.0f, 0.0f, 1.0f);    // 無回転
             transform.scale                                      = hlslpp::float3(1.0f, 1.0f, 1.0f);
             transform.dirty                                      = true;          // 初回計算のためフラグを立てる
@@ -134,7 +134,7 @@ namespace Tsukino::Sandbox {
 
             // TransformComponent の追加と初期化
             Tsukino::BuiltIn::ECS::TransformComponent& transform = registry.AddComponent<Tsukino::BuiltIn::ECS::TransformComponent>(entity);
-            transform.position                                   = hlslpp::float3(0.0f, 0.0f, 0.0f);
+            transform.position                                   = hlslpp::float3(100.0f, 100.0f, 0.0f);
             transform.rotation                                   = hlslpp::quaternion(0.0f, 0.0f, 0.0f, 1.0f);    // 無回転
             transform.scale                                      = hlslpp::float3(1.0f, 1.0f, 1.0f);
             transform.dirty                                      = true;          // 初回計算のためフラグを立てる
