@@ -126,6 +126,13 @@ namespace Tsukino::Core {
         ShowWindow(m_hWnd, SW_SHOW);    // ウィンドウを表示
         UpdateWindow(m_hWnd);           // ウィンドウを更新して描画を開始
 
+        // ClickThroughなら、はじめから最前面表示にする
+        if(style == WindowStyle::ClickThrough) {
+            SetTopmost(true);
+        } else {
+            m_isTopmost = false;
+        }
+
         // ウィンドウの作成に成功した場合は true を返す
         return true;
     }
@@ -189,5 +196,20 @@ namespace Tsukino::Core {
         }
 
         return DefWindowProc(hwnd, msg, wParam, lParam);
+    }
+
+    //--------------------------------------------------------------
+    //! @brief 動的に最前面表示を切り替える関数
+    //--------------------------------------------------------------
+    void Window::SetTopmost(bool enable) {
+        m_isTopmost = enable;
+
+        if(!m_hWnd)
+            return;
+
+        HWND hWndInsertAfter = enable ? HWND_TOPMOST : HWND_NOTOPMOST;
+
+        // 位置やサイズは変えず、Zオーダーだけを更新（アクティブ化させない）
+        ::SetWindowPos(m_hWnd, hWndInsertAfter, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
     }
 }    // namespace Tsukino::Core
