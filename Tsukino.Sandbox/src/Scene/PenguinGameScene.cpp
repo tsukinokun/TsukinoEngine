@@ -125,6 +125,28 @@ namespace Tsukino::Sandbox {
             sprite.uvRect        = hlslpp::float4(0.0f, 0.0f, 1.0f, 1.0f);
             sprite.sortOrder     = 1;    // 中央のペンギンより手前に描画
         }
+
+        //--------------------------------------------------------------
+        // 右手エンティティ生成
+        //--------------------------------------------------------------
+        {
+            Tsukino::ECS::Entity entity = m_scene.CreateEntity();
+
+            // TransformComponent の追加と初期化
+            Tsukino::BuiltIn::ECS::TransformComponent& transform = registry.AddComponent<Tsukino::BuiltIn::ECS::TransformComponent>(entity);
+            transform.position                                   = hlslpp::float3(1.0f, 0.0f, 0.0f);
+            transform.rotation                                   = hlslpp::quaternion(0.0f, 0.0f, 0.0f, 1.0f);    // 無回転
+            transform.scale                                      = hlslpp::float3(1.0f, 1.0f, 1.0f);
+            transform.dirty                                      = true;          // 初回計算のためフラグを立てる
+            transform.parent                                     = entt::null;    // 親なし
+
+            // SpriteComponent の追加
+            Tsukino::BuiltIn::ECS::SpriteComponent& sprite = registry.AddComponent<Tsukino::BuiltIn::ECS::SpriteComponent>(entity);
+            sprite.textureHandle = context->assetManager->Load(Tsukino::Core::Path("Tsukino.Sandbox/Assets/PenguinGame/penguins/penguin/penguin_right_1.png"));
+            sprite.tintColor     = hlslpp::float4(1.0f, 1.0f, 1.0f, 1.0f);    // 白色
+            sprite.uvRect        = hlslpp::float4(0.0f, 0.0f, 1.0f, 1.0f);
+            sprite.sortOrder     = 1;    // 中央のペンギンより手前に描画
+        }
     }
 
     void PenguinGameScene::OnUpdate(Tsukino::EngineIntegration::EngineAPI& api, float deltaTime) {
