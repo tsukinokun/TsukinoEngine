@@ -4,8 +4,67 @@
 //! @author 山﨑愛
 //--------------------------------------------------------------
 #include "Tsukino/Core/Window.hpp"
-#include <dwmapi.h>                   
-#pragma comment(lib, "dwmapi.lib")    
+#include <dwmapi.h>
+#pragma comment(lib, "dwmapi.lib")
+
+//--------------------------------------------------------------
+// フックの定義
+//--------------------------------------------------------------
+namespace Tsukino::Core {
+    // Window.cpp 内の追加コード
+    static HHOOK   g_mouseHook = nullptr;
+    static HHOOK   g_kbHook    = nullptr;
+    static Window* g_instance  = nullptr;
+
+    // 共通の入力転送ロジック
+    static void DispatchInput(UINT msg, WPARAM wp, LPARAM lp) {
+        if(g_instance) {
+            g_instance->InvokeCallback(msg, wp, lp);
+        }
+    }
+
+    LRESULT CALLBACK KeyboardProc(int nCode, WPARAM wParam, LPARAM lParam) {
+        if(nCode == HC_ACTION) {
+            KBDLLHOOKSTRUCT* pKbd = reinterpret_cast<KBDLLHOOKSTRUCT*>(lParam);
+            UINT             msg  = (wParam == WM_KEYDOWN || wParam == WM_SYSKEYDOWN) ? WM_KEYDOWN : WM_KEYUP;
+            DispatchInput(msg, pKbd->vkCode, 0);
+        }
+        return CallNextHookEx(g_kbHook, nCode, wParam, lParam);
+    }
+
+    LRESULT CALLBACK MouseProc(int nCode, WPARAM wParam, LPARAM lParam) {
+        if(nCode == HC_ACTION) {
+            MSLLHOOKSTRUCT* pMouse = reinterpret_cast<MSLLHOOKSTRUCT*>(lParam);
+            // マウス座標をLPARAMにパック
+            LPARAM lp = MAKELPARAM(pMouse->pt.x, pMouse->pt.y);
+            DispatchInput(static_cast<UINT>(wParam), 0, lp);
+        }
+        return CallNextHookEx(g_mouseHook, nCode, wParam, lParam);
+    }
+
+    //--------------------------------------------------------------
+    // 実際にフックを仕掛ける関数
+    //--------------------------------------------------------------
+    void InstallHooks() {
+        g_mouseHook = SetWindowsHookEx(WH_MOUSE_LL, MouseProc, GetModuleHandle(nullptr), 0);
+        g_kbHook    = SetWindowsHookEx(WH_KEYBOARD_LL, KeyboardProc, GetModuleHandle(nullptr), 0);
+    }
+
+    //--------------------------------------------------------------
+    // 実際にフックを外す関数
+    //--------------------------------------------------------------
+    void UninstallHooks() {
+        if(g_mouseHook) {
+            UnhookWindowsHookEx(g_mouseHook);
+            g_mouseHook = nullptr;
+        }
+        if(g_kbHook) {
+            UnhookWindowsHookEx(g_kbHook);
+            g_kbHook = nullptr;
+        }
+    }
+}    // namespace Tsukino::Core
+
 // 名前空間 : Tsukino::Core
 namespace Tsukino::Core {
     //--------------------------------------------------------------
@@ -21,6 +80,7 @@ namespace Tsukino::Core {
     //! @brief デストラクタ
     //--------------------------------------------------------------
     Window::~Window() {
+        UninstallHooks();    // 確実にアンフック
         // ウィンドウが存在する場合は破棄
         if(m_hWnd) {
             DestroyWindow(m_hWnd);    // ウィンドウを破棄
@@ -34,6 +94,7 @@ namespace Tsukino::Core {
     bool Window::Create(const std::string& title, int width, int height, WindowStyle style) {
         m_width  = width;     // ウィンドウの幅を保存
         m_height = height;    // ウィンドウの高さを保存
+        m_style  = style;     // ウィンドウのスタイルを保存
 
         //--------------------------------------------------------------
         // ウィンドウクラスの登録
@@ -64,7 +125,7 @@ namespace Tsukino::Core {
         // ウィンドウ作成
         //--------------------------------------------------------------
         // 使用するウィンドウのスタイルを定義
-        DWORD dwStyle = WS_OVERLAPPEDWINDOW;
+        DWORD dwStyle   = WS_OVERLAPPEDWINDOW;
         DWORD dwExStyle = 0;
 
         // スタイルに応じてフラグを切り替える
@@ -133,6 +194,8 @@ namespace Tsukino::Core {
             m_isTopmost = false;
         }
 
+        EnableHooksIfClickThrough();
+
         // ウィンドウの作成に成功した場合は true を返す
         return true;
     }
@@ -146,14 +209,30 @@ namespace Tsukino::Core {
         //--------------------------------------------------------------
         // メッセージキューにメッセージがある限り処理を続ける
         //--------------------------------------------------------------
+
         while(PeekMessage(&msg, nullptr, 0, 0, PM_REMOVE)) {
             // WM_QUIT メッセージが来たらアプリケーションを終了する
+
             if(msg.message == WM_QUIT)
+
                 return false;
 
             TranslateMessage(&msg);    // キーボードメッセージを文字メッセージに変換
-            DispatchMessage(&msg);     // メッセージをウィンドウプロシージャに送る
+
+            DispatchMessage(&msg);    // メッセージをウィンドウプロシージャに送る
         }
+
+        // 自動制御：ActiveOnlyなら「待機」してCPUを解放
+
+        // AlwaysResidentなら、そのままループを抜けて Update() へ進ませる
+
+        if(m_updateMode == UpdateMode::ActiveOnly) {
+            WaitMessage();    // メッセージが来るまでスリープ（CPU負荷低減）
+
+        } else {
+            Sleep(1);    // 常駐モード時の最低限の負荷抑制
+        }
+
         // メッセージの処理が完了したら true を返す（アプリケーションは継続）
         return true;
     }
@@ -211,5 +290,23 @@ namespace Tsukino::Core {
 
         // 位置やサイズは変えず、Zオーダーだけを更新（アクティブ化させない）
         ::SetWindowPos(m_hWnd, hWndInsertAfter, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
+    }
+
+    //--------------------------------------------------------------
+    //! @brief フックからコールバックを呼び出すための公開メソッド    //--------------------------------------------------------------
+    void Window::InvokeCallback(UINT msg, WPARAM wParam, LPARAM lParam) {
+        if(m_callback) {
+            m_callback(msg, wParam, lParam);
+        }
+    }
+
+    //--------------------------------------------------------------
+    //! @brief ライフサイクル管理（Window.cpp の最後に追記）
+    //--------------------------------------------------------------
+    void Window::EnableHooksIfClickThrough() {
+        if(m_style == WindowStyle::ClickThrough) {
+            g_instance = this;
+            InstallHooks();
+        }
     }
 }    // namespace Tsukino::Core

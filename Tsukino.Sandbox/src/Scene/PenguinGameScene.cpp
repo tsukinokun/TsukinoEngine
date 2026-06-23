@@ -28,6 +28,7 @@
 #include <Tsukino/Core/Log.hpp>
 #include <Tsukino/Core/Input/InputSystem.hpp>
 #include <Tsukino/Core/Input/KeyCodes.hpp>
+#include <Tsukino/Core/Window.hpp>
 
 #include <Tsukino/Renderer/Renderer.hpp>
 
@@ -50,6 +51,11 @@ namespace Tsukino::Sandbox {
         // クリアカラーを透明に設定
         //--------------------------------------------------------------
         context->renderer->SetClearColor(0.0f, 0.0f, 0.0f, 0.0f);
+
+        //--------------------------------------------------------------
+        // このアプリは常にアクティブ
+        //--------------------------------------------------------------
+        context->window->SetUpdateMode(Tsukino::Core::Window::UpdateMode::AlwaysResident);
 
         //--------------------------------------------------------------
         // システムの生成と追加
@@ -107,13 +113,13 @@ namespace Tsukino::Sandbox {
         // ペンギンのスキン定義を作成
         //--------------------------------------------------------------
         {
-            m_Skin.name              = "Normal";
-            m_Skin.centerTexs[0]     = assetMgr->Load(Tsukino::Core::Path("Tsukino.Sandbox/Assets/PenguinGame/penguins/penguin/penguin_center_1.png"));
-            m_Skin.centerTexs[1]     = assetMgr->Load(Tsukino::Core::Path("Tsukino.Sandbox/Assets/PenguinGame/penguins/penguin/penguin_center_2.png"));
-            m_Skin.leftTexs[0]       = assetMgr->Load(Tsukino::Core::Path("Tsukino.Sandbox/Assets/PenguinGame/penguins/penguin/penguin_left_1.png"));
-            m_Skin.leftTexs[1]       = assetMgr->Load(Tsukino::Core::Path("Tsukino.Sandbox/Assets/PenguinGame/penguins/penguin/penguin_left_2.png"));
-            m_Skin.rightTexs[0]      = assetMgr->Load(Tsukino::Core::Path("Tsukino.Sandbox/Assets/PenguinGame/penguins/penguin/penguin_right_1.png"));
-            m_Skin.rightTexs[1]      = assetMgr->Load(Tsukino::Core::Path("Tsukino.Sandbox/Assets/PenguinGame/penguins/penguin/penguin_right_2.png"));
+            m_Skin.name          = "Normal";
+            m_Skin.centerTexs[0] = assetMgr->Load(Tsukino::Core::Path("Tsukino.Sandbox/Assets/PenguinGame/penguins/penguin/penguin_center_1.png"));
+            m_Skin.centerTexs[1] = assetMgr->Load(Tsukino::Core::Path("Tsukino.Sandbox/Assets/PenguinGame/penguins/penguin/penguin_center_2.png"));
+            m_Skin.leftTexs[0]   = assetMgr->Load(Tsukino::Core::Path("Tsukino.Sandbox/Assets/PenguinGame/penguins/penguin/penguin_left_1.png"));
+            m_Skin.leftTexs[1]   = assetMgr->Load(Tsukino::Core::Path("Tsukino.Sandbox/Assets/PenguinGame/penguins/penguin/penguin_left_2.png"));
+            m_Skin.rightTexs[0]  = assetMgr->Load(Tsukino::Core::Path("Tsukino.Sandbox/Assets/PenguinGame/penguins/penguin/penguin_right_1.png"));
+            m_Skin.rightTexs[1]  = assetMgr->Load(Tsukino::Core::Path("Tsukino.Sandbox/Assets/PenguinGame/penguins/penguin/penguin_right_2.png"));
             // スキン設定
             animator.currentSkin = &m_Skin;
         }
@@ -134,8 +140,8 @@ namespace Tsukino::Sandbox {
 
             // SpriteComponent の追加
             Tsukino::BuiltIn::ECS::SpriteComponent& sprite = registry.AddComponent<Tsukino::BuiltIn::ECS::SpriteComponent>(entity);
-            sprite.tintColor     = hlslpp::float4(1.0f, 1.0f, 1.0f, 1.0f);    // 白色
-            sprite.uvRect        = hlslpp::float4(0.0f, 0.0f, 1.0f, 1.0f);
+            sprite.tintColor                               = hlslpp::float4(1.0f, 1.0f, 1.0f, 1.0f);    // 白色
+            sprite.uvRect                                  = hlslpp::float4(0.0f, 0.0f, 1.0f, 1.0f);
 
             animator.centerEntity = entity;    // センターエンティティをアニメーターに登録
         }
@@ -156,9 +162,9 @@ namespace Tsukino::Sandbox {
 
             // SpriteComponent の追加
             Tsukino::BuiltIn::ECS::SpriteComponent& sprite = registry.AddComponent<Tsukino::BuiltIn::ECS::SpriteComponent>(entity);
-            sprite.tintColor     = hlslpp::float4(1.0f, 1.0f, 1.0f, 1.0f);    // 白色
-            sprite.uvRect        = hlslpp::float4(0.0f, 0.0f, 1.0f, 1.0f);
-            sprite.sortOrder     = 1;    // 中央のペンギンより手前に描画
+            sprite.tintColor                               = hlslpp::float4(1.0f, 1.0f, 1.0f, 1.0f);    // 白色
+            sprite.uvRect                                  = hlslpp::float4(0.0f, 0.0f, 1.0f, 1.0f);
+            sprite.sortOrder                               = 1;    // 中央のペンギンより手前に描画
 
             animator.leftHandEntity = entity;    // 左手エンティティをアニメーターに登録
         }
@@ -179,9 +185,9 @@ namespace Tsukino::Sandbox {
 
             // SpriteComponent の追加
             Tsukino::BuiltIn::ECS::SpriteComponent& sprite = registry.AddComponent<Tsukino::BuiltIn::ECS::SpriteComponent>(entity);
-            sprite.tintColor     = hlslpp::float4(1.0f, 1.0f, 1.0f, 1.0f);    // 白色
-            sprite.uvRect        = hlslpp::float4(0.0f, 0.0f, 1.0f, 1.0f);
-            sprite.sortOrder     = 1;    // 中央のペンギンより手前に描画
+            sprite.tintColor                               = hlslpp::float4(1.0f, 1.0f, 1.0f, 1.0f);    // 白色
+            sprite.uvRect                                  = hlslpp::float4(0.0f, 0.0f, 1.0f, 1.0f);
+            sprite.sortOrder                               = 1;    // 中央のペンギンより手前に描画
 
             animator.rightHandEntity = entity;    // 右手エンティティをアニメーターに登録
         }

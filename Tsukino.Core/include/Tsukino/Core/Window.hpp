@@ -25,6 +25,14 @@ namespace Tsukino::Core {
             ClickThrough    // 枠なし ＋ 背景透過 ＋ クリック透過
         };
 
+        //--------------------------------------------------------------
+        //! @brief ウィンドウ更新モードの列挙型
+        //--------------------------------------------------------------
+        enum class UpdateMode {
+            ActiveOnly,       // 通常：フォーカス時のみ（省電力）
+            AlwaysResident    // 常駐：バックグラウンドでも更新を維持
+        };
+
     public:
         //--------------------------------------------------------------
         // メッセージコールバックの型エイリアス
@@ -106,6 +114,20 @@ namespace Tsukino::Core {
             return m_isTopmost;
         }
 
+        //--------------------------------------------------------------
+        //! @brief ウィンドウ更新モードを設定する関数
+        //! @param mode [in] ウィンドウ更新モード
+        //--------------------------------------------------------------
+        void SetUpdateMode(UpdateMode mode) { m_updateMode = mode; }
+
+        //--------------------------------------------------------------
+        //! @brief フックからコールバックを呼び出すための公開メソッド
+        //! @param msg    [in] メッセージコード
+        //! @param wParam [in] メッセージの追加情報（通常は
+        //! @param lParam [in] メッセージの追加情報（通常はイベントの座標など）
+        //--------------------------------------------------------------
+        void InvokeCallback(UINT msg, WPARAM wParam, LPARAM lParam);
+
     private:
         //--------------------------------------------------------------
         // Win32 のウィンドウプロシージャ
@@ -118,11 +140,20 @@ namespace Tsukino::Core {
         [[nodiscard]]
         static LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
+        //--------------------------------------------------------------
+        //! @brief クリックスルーの場合に、フックを有効化する関数
+        //--------------------------------------------------------------
+        void EnableHooksIfClickThrough();
+
         HWND m_hWnd;      // ウィンドウハンドル
         int  m_width;     // ウィンドウの幅
         int  m_height;    // ウィンドウの高さ
 
         bool m_isTopmost = false;    // ウィンドウが常に最前面にあるかどうかのフラグ
+
+        WindowStyle m_style;    // これで現在のスタイルを記憶しておく
+
+        UpdateMode m_updateMode = UpdateMode::ActiveOnly;    // デフォルトは通常
 
         MessageCallback m_callback;    // 連絡先を保存しておく変数
     };
