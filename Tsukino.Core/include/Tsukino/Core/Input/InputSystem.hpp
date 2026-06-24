@@ -54,6 +54,13 @@ namespace Tsukino::Input {
         bool IsKeyPressed(KeyCode code) const;
 
         //--------------------------------------------------------------
+        // どれかが押された瞬間か
+        //! @return
+        //--------------------------------------------------------------
+        [[nodiscard]]
+        bool AnyKeyPressed() const;
+
+        //--------------------------------------------------------------
         // ボタンが離された瞬間か
         //! @param code [in] 判定したいキーコード
         //--------------------------------------------------------------
@@ -81,7 +88,9 @@ namespace Tsukino::Input {
         //! @return 累積ホイール回転量
         //--------------------------------------------------------------
         [[nodiscard]]
-        float GetWheelDelta() const { return m_wheelDelta; }
+        float GetWheelDelta() const {
+            return m_wheelDelta;
+        }
 
         // --- エンジン内部用（Windowクラス等から呼ばれる） ---
 

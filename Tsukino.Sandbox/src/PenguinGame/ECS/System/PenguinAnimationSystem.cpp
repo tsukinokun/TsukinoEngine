@@ -44,7 +44,7 @@ namespace PenguinGame::ECS {
             }
 
             // 手のアニメーション処理
-            if(input->IsKeyPressed(Tsukino::Input::KeyCode::Space)) {
+            if(input->AnyKeyPressed()) {
                 if(!animator.lastHandWasLeft) {    // 次は左を動かす
                     animator.isLeftFrame2    = true;
                     animator.leftActionTimer = animator.actionDuration;
