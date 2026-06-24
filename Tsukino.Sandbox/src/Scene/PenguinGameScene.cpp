@@ -57,6 +57,7 @@ namespace Tsukino::Sandbox {
         // このアプリは常にアクティブ
         //--------------------------------------------------------------
         context->window->SetUpdateMode(Tsukino::Core::Window::UpdateMode::AlwaysResident);
+        context->window->SetUpdateMode(Tsukino::Core::Window::UpdateMode::ActiveOnly);
         //--------------------------------------------------------------
         // フルスクリーンモードにする
         //--------------------------------------------------------------

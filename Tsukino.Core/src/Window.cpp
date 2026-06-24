@@ -57,10 +57,12 @@ namespace Tsukino::Core {
         if(g_mouseHook) {
             UnhookWindowsHookEx(g_mouseHook);
             g_mouseHook = nullptr;
+            OutputDebugString(L"[Debug] Mouse Hook Uninstalled\n");   
         }
         if(g_kbHook) {
             UnhookWindowsHookEx(g_kbHook);
             g_kbHook = nullptr;
+            OutputDebugString(L"[Debug] KB Hook Uninstalled\n");    
         }
     }
 }    // namespace Tsukino::Core
@@ -257,6 +259,15 @@ namespace Tsukino::Core {
         }
 
         //--------------------------------------------------------------
+        // ウィンドウのアクティブ状態に応じてフックの有効/無効を切り替える
+        //--------------------------------------------------------------
+        if(pWindow && pWindow->m_updateMode == UpdateMode::ActiveOnly) {
+            if(msg == WM_ACTIVATEAPP) {
+                pWindow->UpdateHookState(wParam != 0);    // アクティブならインストール、そうでなければアンインストール
+            }
+        }
+
+        //--------------------------------------------------------------
         // もし通知先 (m_callback) が登録されていれば、メッセージを投げる
         //--------------------------------------------------------------
         if(pWindow && pWindow->m_callback) {
@@ -292,8 +303,21 @@ namespace Tsukino::Core {
         ::SetWindowPos(m_hWnd, hWndInsertAfter, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
     }
 
+    //------------------------------------------------------------------
+    //! @brief フックの管理をウィンドウ側に寄せるためのロジック変更
+    //------------------------------------------------------------------
+    void Window::SetUpdateMode(UpdateMode mode) {
+        m_updateMode = mode;
+
+        if(GetForegroundWindow() == m_hWnd) {
+            UpdateHookState(m_updateMode != UpdateMode::ActiveOnly || true);    // ロジックに応じた制御
+        }
+
+    }
+
     //--------------------------------------------------------------
-    //! @brief フックからコールバックを呼び出すための公開メソッド    //--------------------------------------------------------------
+    //! @brief フックからコールバックを呼び出すための公開メソッド   
+    //--------------------------------------------------------------
     void Window::InvokeCallback(UINT msg, WPARAM wParam, LPARAM lParam) {
         if(m_callback) {
             m_callback(msg, wParam, lParam);
@@ -301,12 +325,31 @@ namespace Tsukino::Core {
     }
 
     //--------------------------------------------------------------
-    //! @brief ライフサイクル管理（Window.cpp の最後に追記）
+    //! @brief ライフサイクル管理
     //--------------------------------------------------------------
     void Window::EnableHooksIfClickThrough() {
         if(m_style == WindowStyle::ClickThrough) {
             g_instance = this;
             InstallHooks();
+        }
+    }
+
+    //------------------------------------------------------------------
+    //! @brief フック管理関数
+    //------------------------------------------------------------------
+    void Window::UpdateHookState(bool shouldInstall) {
+        if(m_style != WindowStyle::ClickThrough)
+            return;
+
+        if(shouldInstall) {
+            if(!g_mouseHook && !g_kbHook) {    // フックが未登録の場合のみ
+                g_instance = this;
+                InstallHooks();
+            }
+        } else {
+            if(g_mouseHook || g_kbHook) {    // フックが登録されている場合のみ
+                UninstallHooks();
+            }
         }
     }
 
