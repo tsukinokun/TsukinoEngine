@@ -41,4 +41,18 @@ namespace Tsukino::Core::Math {
     bool Intersects(const hlslpp::float2& min1, const hlslpp::float2& size1, const hlslpp::float2& min2, const hlslpp::float2& size2) {
         return (min1.x < min2.x + size2.x) && (min1.x + size1.x > min2.x) && (min1.y < min2.y + size2.y) && (min1.y + size1.y > min2.y);
     }
+
+    //--------------------------------------------------------------
+    //! @brief 中心点とサイズから、点が矩形内にあるか判定する関数
+    //! @param [in] point 判定する点の座標
+    //! @param [in] center 矩形の中心座標
+    //! @param [in] size 矩形のサイズ
+    //! @return 点が矩形内にある場合はtrue、そうでない場合はfalse
+    //--------------------------------------------------------------
+    inline [[nodiscard]]
+    bool IsPointInRect(const hlslpp::float2& point, const hlslpp::float2& center, const hlslpp::float2& size) {
+        hlslpp::float2 halfSize = size * 0.5f;
+        return (point.x >= center.x - halfSize.x) && (point.x <= center.x + halfSize.x) && (point.y >= center.y - halfSize.y)
+               && (point.y <= center.y + halfSize.y);
+    }
 }    // namespace Tsukino::Core::Math

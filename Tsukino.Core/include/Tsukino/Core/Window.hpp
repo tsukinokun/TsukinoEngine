@@ -124,7 +124,7 @@ namespace Tsukino::Core {
         //! @brief ウィンドウ更新モードを設定する関数
         //! @param mode [in] ウィンドウ更新モード
         //--------------------------------------------------------------
-        void SetUpdateMode(UpdateMode mode) { m_updateMode = mode; }
+        void SetUpdateMode(UpdateMode mode);
 
         //--------------------------------------------------------------
         //! @brief フックからコールバックを呼び出すための公開メソッド
@@ -156,6 +156,12 @@ namespace Tsukino::Core {
         //! @brief クリックスルーの場合に、フックを有効化する関数
         //--------------------------------------------------------------
         void EnableHooksIfClickThrough();
+
+        //--------------------------------------------------------------
+        //! @brief フックの状態を更新する関数
+        //! @param shouldInstall [in] true: フックをインストール, false: フックをアンインストール
+        //--------------------------------------------------------------
+        void UpdateHookState(bool shouldInstall);
 
         HWND m_hWnd;      // ウィンドウハンドル
         int  m_width;     // ウィンドウの幅
