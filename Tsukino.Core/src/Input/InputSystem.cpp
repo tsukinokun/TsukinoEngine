@@ -63,6 +63,19 @@ namespace Tsukino::Input {
     }
 
     //--------------------------------------------------------------
+    //! @brief どのキーでも押された瞬間か
+    //--------------------------------------------------------------
+    bool InputSystem::AnyKeyPressed() const {
+        for(size_t i = 0; i < m_currentKeys.size(); ++i) {
+            // 「前フレームで押されておらず、今フレームで押されている」キーが一つでもあれば true
+            if(!m_previousKeys[i] && m_currentKeys[i]) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    //--------------------------------------------------------------
     //! @brief マウスのスクリーン座標を取得
     //--------------------------------------------------------------
     void InputSystem::GetMousePosition(i32* x, i32* y) const {
