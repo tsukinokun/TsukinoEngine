@@ -14,7 +14,6 @@
 #include <Tsukino/Engine/ECS/Prefab/PrefabFactory.hpp>
 #include <Tsukino/EngineIntegration/Scene/GameSceneManager.hpp>
 
-
 #include <Tsukino/BuiltIn/ECS/Component/TransformComponent.hpp>
 #include <Tsukino/BuiltIn/ECS/Component/CameraComponent.hpp>
 #include <Tsukino/BuiltIn/ECS/Component/SpriteComponent.hpp>
@@ -58,6 +57,10 @@ namespace Tsukino::Sandbox {
         // このアプリは常にアクティブ
         //--------------------------------------------------------------
         context->window->SetUpdateMode(Tsukino::Core::Window::UpdateMode::AlwaysResident);
+        //--------------------------------------------------------------
+        // フルスクリーンモードにする
+        //--------------------------------------------------------------
+        context->window->SetFullscreen(true);
 
         //--------------------------------------------------------------
         // システムの生成と追加
@@ -97,8 +100,8 @@ namespace Tsukino::Sandbox {
         // CameraComponent (投影設定)
         Tsukino::BuiltIn::ECS::CameraComponent& camera2D = registry.AddComponent<Tsukino::BuiltIn::ECS::CameraComponent>(cameraEntity2D);
         camera2D.projectionType                          = Tsukino::BuiltIn::ECS::CameraComponent::ProjectionType::Orthographic;
-        camera2D.orthoSize                               = 1000.0f;    // 画面の縦幅を 1000 ユニットにする
-        camera2D.isPrimary                               = false;      // これをメインカメラにしない
+        camera2D.orthoSize                               = context->window->GetHeight();    // ウィンドウの縦ピクセル数を表示幅にする
+        camera2D.isPrimary                               = false;                           // これをメインカメラにしない
 
         //--------------------------------------------------------------
         // ペンギンアニメーターエンティティの生成

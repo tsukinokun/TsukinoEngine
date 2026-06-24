@@ -309,4 +309,51 @@ namespace Tsukino::Core {
             InstallHooks();
         }
     }
+
+    //--------------------------------------------------------------
+    //! @brief 全画面表示の切り替え
+    //--------------------------------------------------------------
+    void Window::SetFullscreen(bool enable) {
+        if(!m_hWnd)
+            return;
+        if(m_isFullscreen == enable)
+            return;
+
+        m_isFullscreen = enable;
+
+        if(m_style == WindowStyle::ClickThrough) {
+            // ClickThroughの場合は「デスクトップ全体を覆う」挙動にする
+            if(enable) {
+                int screenW = GetSystemMetrics(SM_CXSCREEN);
+                int screenH = GetSystemMetrics(SM_CYSCREEN);
+                SetWindowPos(m_hWnd, HWND_TOPMOST, 0, 0, screenW, screenH, SWP_FRAMECHANGED | SWP_NOACTIVATE);
+            } else {
+                // 元のサイズ（または任意のデスクトップ固定サイズ）に戻す処理
+                // 必要に応じて適切な位置・サイズを指定してください
+                SetWindowPos(m_hWnd, HWND_TOPMOST, 0, 0, m_width, m_height, SWP_FRAMECHANGED | SWP_NOACTIVATE);
+            }
+        } else {
+            // 通常のウィンドウモードの切り替え
+            if(enable) {
+                // 現在の位置とサイズを保存
+                GetWindowRect(m_hWnd, &m_preFullscreenRect);
+
+                // 枠なしにしてフルスクリーン化
+                SetWindowLong(m_hWnd, GWL_STYLE, WS_POPUP | WS_VISIBLE);
+                int screenW = GetSystemMetrics(SM_CXSCREEN);
+                int screenH = GetSystemMetrics(SM_CYSCREEN);
+                SetWindowPos(m_hWnd, HWND_TOP, 0, 0, screenW, screenH, SWP_FRAMECHANGED);
+            } else {
+                // 枠ありに戻す
+                SetWindowLong(m_hWnd, GWL_STYLE, WS_OVERLAPPEDWINDOW | WS_VISIBLE);
+                SetWindowPos(m_hWnd,
+                             HWND_TOP,
+                             m_preFullscreenRect.left,
+                             m_preFullscreenRect.top,
+                             m_preFullscreenRect.right - m_preFullscreenRect.left,
+                             m_preFullscreenRect.bottom - m_preFullscreenRect.top,
+                             SWP_FRAMECHANGED);
+            }
+        }
+    }
 }    // namespace Tsukino::Core
