@@ -15,6 +15,7 @@
 
 #include <Tsukino/Core/Input/InputSystem.hpp>
 #include <Tsukino/Core/ECS/Registry/Registry.hpp>
+#include <Tsukino/Core/Math/MathHelper.hpp>
 
 #include <hlsl++.h>
 #include <entt/entt.hpp>
@@ -44,25 +45,31 @@ namespace Tsukino::BuiltIn::ECS {
             float w = static_cast<float>(textureAsset->width) * transform.scale.x;
             float h = static_cast<float>(textureAsset->height) * transform.scale.y;
 
-            // 3. 当たり判定（Transformの位置を左上と仮定）
-            bool isInside = (mousePos.x >= transform.position.x && mousePos.x <= transform.position.x + w && mousePos.y >= transform.position.y
-                             && mousePos.y <= transform.position.y + h);
+            //-------------------------------------------------------------
+            // 当たり判定
+            //-------------------------------------------------------------
+            hlslpp::float2 spriteSize = {static_cast<float>(textureAsset->width) * transform.scale.x,
+                                         static_cast<float>(textureAsset->height) * transform.scale.y};
+            hlslpp::float2 spritePos  = {transform.position.x, transform.position.y};
 
-            // 以下、ドラッグ処理（変更なし）
+            // マウスを「サイズ0の矩形」として Intersects に渡す
+            bool isInside = Tsukino::Core::Math::IsPointInRect(mousePos, spritePos, spriteSize);
+
+            // 以下、ドラッグ処理
             if(!draggable.isDragging && input->IsKeyPressed(Input::KeyCode::LButton) && isInside) {
-                draggable.isDragging = true;
-                draggable.dragOffset = mousePos - hlslpp::float2(transform.position.x, transform.position.y);
+            draggable.isDragging = true;
+            draggable.dragOffset = mousePos - hlslpp::float2(transform.position.x, transform.position.y);
             }
 
             if(draggable.isDragging) {
-                if(input->IsKeyDown(Input::KeyCode::LButton)) {
-                    transform.position.x = mousePos.x - draggable.dragOffset.x;
-                    transform.position.y = mousePos.y - draggable.dragOffset.y;
-                } else {
-                    draggable.isDragging = false;
-                }
+            if(input->IsKeyDown(Input::KeyCode::LButton)) {
+                transform.position.x = mousePos.x - draggable.dragOffset.x;
+                transform.position.y = mousePos.y - draggable.dragOffset.y;
+            } else {
+                draggable.isDragging = false;
             }
-        });
-    }
+            }
+    });
+}
 
 }    // namespace Tsukino::BuiltIn::ECS
