@@ -87,6 +87,9 @@ namespace Tsukino::Core {
         //--------------------------------------------------------------
         [[nodiscard]]
         int GetWidth() const {
+            if(m_isFullscreen) {
+                return GetSystemMetrics(SM_CXSCREEN);
+            }
             return m_width;
         }
 
@@ -96,6 +99,9 @@ namespace Tsukino::Core {
         //--------------------------------------------------------------
         [[nodiscard]]
         int GetHeight() const {
+            if(m_isFullscreen) {
+                return GetSystemMetrics(SM_CYSCREEN);
+            }
             return m_height;
         }
 
@@ -128,6 +134,12 @@ namespace Tsukino::Core {
         //--------------------------------------------------------------
         void InvokeCallback(UINT msg, WPARAM wParam, LPARAM lParam);
 
+        //--------------------------------------------------------------
+        //! @brief 全画面表示の切り替え
+        //! @param enable [in] true: 全画面表示, false: ウィンドウ表示
+        //--------------------------------------------------------------
+        void SetFullscreen(bool enable);
+
     private:
         //--------------------------------------------------------------
         // Win32 のウィンドウプロシージャ
@@ -156,5 +168,8 @@ namespace Tsukino::Core {
         UpdateMode m_updateMode = UpdateMode::ActiveOnly;    // デフォルトは通常
 
         MessageCallback m_callback;    // 連絡先を保存しておく変数
+
+        RECT m_preFullscreenRect;    // フルスクリーン前のサイズを保持
+        bool m_isFullscreen = false;
     };
 }    // namespace Tsukino::Core
