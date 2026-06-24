@@ -14,15 +14,17 @@
 #include <Tsukino/Engine/ECS/Prefab/PrefabFactory.hpp>
 #include <Tsukino/EngineIntegration/Scene/GameSceneManager.hpp>
 
+
 #include <Tsukino/BuiltIn/ECS/Component/TransformComponent.hpp>
 #include <Tsukino/BuiltIn/ECS/Component/CameraComponent.hpp>
 #include <Tsukino/BuiltIn/ECS/Component/SpriteComponent.hpp>
 #include <Tsukino/BuiltIn/ECS/Component/FontComponent.hpp>
-
+#include <Tsukino/BuiltIn/ECS/Component/DraggableComponent.hpp>
 #include <Tsukino/EngineIntegration/ECS/System/TransformSystem.hpp>
 #include <Tsukino/EngineIntegration/ECS/System/CameraSystem.hpp>
 #include <Tsukino/EngineIntegration/ECS/System/SpriteRendererSystem.hpp>
 #include <Tsukino/EngineIntegration/ECS/System/FontRendererSystem.hpp>
+#include <Tsukino/EngineIntegration/ECS/System/InteractionSystem.hpp>
 
 #include <Tsukino/Core/Path.hpp>
 #include <Tsukino/Core/Log.hpp>
@@ -63,6 +65,7 @@ namespace Tsukino::Sandbox {
         // enumを使って優先度を管理
         enum class SystemPriority : int {
             Transform        = 0,
+            Interaction      = 2,
             Camera           = 5,
             Font             = 9,
             Sprite           = 10,
@@ -71,6 +74,8 @@ namespace Tsukino::Sandbox {
 
         // Transformは一番最初に計算する
         m_scene.AddSystem(std::make_shared<Tsukino::BuiltIn::ECS::TransformSystem>(), static_cast<int>(SystemPriority::Transform));
+        // InteractionはTransformの後に計算する
+        m_scene.AddSystem(std::make_shared<Tsukino::BuiltIn::ECS::InteractionSystem>(), static_cast<int>(SystemPriority::Interaction));
         // カメラは描画前に更新する
         m_scene.AddSystem(std::make_shared<Tsukino::BuiltIn::ECS::CameraSystem>(), static_cast<int>(SystemPriority::Camera));
         // フォント描画
@@ -144,6 +149,8 @@ namespace Tsukino::Sandbox {
             sprite.uvRect                                  = hlslpp::float4(0.0f, 0.0f, 1.0f, 1.0f);
 
             animator.centerEntity = entity;    // センターエンティティをアニメーターに登録
+
+            registry.AddComponent<Tsukino::BuiltIn::ECS::DraggableComponent>(entity);
         }
 
         //--------------------------------------------------------------
@@ -167,6 +174,7 @@ namespace Tsukino::Sandbox {
             sprite.sortOrder                               = 1;    // 中央のペンギンより手前に描画
 
             animator.leftHandEntity = entity;    // 左手エンティティをアニメーターに登録
+            registry.AddComponent<Tsukino::BuiltIn::ECS::DraggableComponent>(entity);
         }
 
         //--------------------------------------------------------------
@@ -190,6 +198,7 @@ namespace Tsukino::Sandbox {
             sprite.sortOrder                               = 1;    // 中央のペンギンより手前に描画
 
             animator.rightHandEntity = entity;    // 右手エンティティをアニメーターに登録
+            registry.AddComponent<Tsukino::BuiltIn::ECS::DraggableComponent>(entity);
         }
     }
 
