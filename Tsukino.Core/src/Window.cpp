@@ -223,18 +223,6 @@ namespace Tsukino::Core {
 
             DispatchMessage(&msg);    // メッセージをウィンドウプロシージャに送る
         }
-
-        // 自動制御：ActiveOnlyなら「待機」してCPUを解放
-
-        // AlwaysResidentなら、そのままループを抜けて Update() へ進ませる
-
-        if(m_updateMode == UpdateMode::ActiveOnly) {
-            WaitMessage();    // メッセージが来るまでスリープ（CPU負荷低減）
-
-        } else {
-            Sleep(1);    // 常駐モード時の最低限の負荷抑制
-        }
-
         // メッセージの処理が完了したら true を返す（アプリケーションは継続）
         return true;
     }
