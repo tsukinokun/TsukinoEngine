@@ -29,7 +29,7 @@ int WINAPI WinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ LPSTR, _In_ int) {
     // ログの初期化
     Tsukino::EngineIntegration::EngineIntegration engineIntegration;
     // 初期化
-    if(!engineIntegration.Initialize(1700, 1000, Tsukino::Core::Window::WindowStyle::ClickThrough)) {
+    if(!engineIntegration.Initialize(1700, 1000)) {
         // 初期化に失敗した場合はエラーログを出力して終了
         Tsukino::Core::Log::Error("Failed to initialize EngineIntegration.");
         return false;
@@ -44,8 +44,8 @@ int WINAPI WinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ LPSTR, _In_ int) {
     //engineAPI.ChangeScene(std::make_unique<Tsukino::Sandbox::SampleScene1>());
     //engineAPI.ChangeScene(std::make_unique<Tsukino::Sandbox::JumpGameSampleScene>());
     //engineAPI.ChangeScene(std::make_unique<Tsukino::Sandbox::BlockBreakingSampleScene>());
-    //engineAPI.ChangeScene(std::make_unique<Tsukino::Sandbox::FishingGameSampleScene>());
-    engineAPI.ChangeScene(std::make_unique<Tsukino::Sandbox::PenguinGameScene>());
+    engineAPI.ChangeScene(std::make_unique<Tsukino::Sandbox::FishingGameSampleScene>());
+    //engineAPI.ChangeScene(std::make_unique<Tsukino::Sandbox::PenguinGameScene>());
 
     //--------------------------------------------------------------
     // メインループ
