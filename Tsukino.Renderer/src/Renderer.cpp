@@ -368,14 +368,6 @@ namespace Tsukino::Renderer {
             ExecuteDrawCommand(cmd);
         }
 
-        //------------------------------------------------------------
-        // Water パス
-        //------------------------------------------------------------
-        //{
-        //    ID3D11DeviceContext* context = m_graphicsContext.GetContext();
-        //    context->PSSetShaderResources(shadowSRVSlot, 1, m_shadowMapSRV.GetAddressOf());
-        //    context->PSSetSamplers(shadowSamplerSlot, 1, m_shadowSampler.GetAddressOf());
-        //}
         UpdateSceneBuffer(m_worldSceneData);
         for(const auto& cmd : commands) {
             if(cmd.pass != RenderPass::Water)
@@ -428,7 +420,7 @@ namespace Tsukino::Renderer {
 
             // ブレンドステート（不透明）と深度有効を設定（適宜CommonStates等で）
             context->OMSetBlendState(m_commonStatesTK->Opaque(), nullptr, 0xFFFFFFFF);
-            context->OMSetDepthStencilState(m_commonStatesTK->DepthDefault(), 0);
+            context->OMSetDepthStencilState(m_commonStatesTK->DepthReverseZ(), 0);
             // レンダリングステート設定（ここでは必要に応じてワイヤーフレーム用等の設定が必要になる可能性）
             context->RSSetState(m_commonStatesTK->CullNone());
 
