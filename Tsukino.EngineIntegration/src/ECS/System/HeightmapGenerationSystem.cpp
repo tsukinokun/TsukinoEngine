@@ -234,6 +234,7 @@ namespace Tsukino::BuiltIn::ECS {
             size_t         totalVertexCount = 0;
 
             for(const auto& mesh : modelAsset->modelData.meshes) {
+                // Y軸反転
                 hlslpp::float3 meshMin  = hlslpp::float3(mesh.bounds.min.x, -mesh.bounds.min.y, mesh.bounds.min.z);
                 hlslpp::float3 meshMax  = hlslpp::float3(mesh.bounds.max.x, -mesh.bounds.max.y, mesh.bounds.max.z);
                 minBound                = hlslpp::min(minBound, meshMin);
@@ -250,6 +251,7 @@ namespace Tsukino::BuiltIn::ECS {
                                          + " min.z=" + std::to_string(mesh.bounds.min.z) + " max.z=" + std::to_string(mesh.bounds.max.z));
             }
 
+            // Zはswapしてから反転する（Z軸の正方向が手前になるようにする）
             std::swap(minBound.z, maxBound.z);
 
             minBound.z *= -1;
