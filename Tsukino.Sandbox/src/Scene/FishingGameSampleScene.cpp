@@ -24,6 +24,7 @@
 #include <Tsukino/BuiltIn/ECS/Component/AnimationControllerComponent.hpp>
 #include <Tsukino/BuiltIn/ECS/Component/DirectionalLightComponent.hpp>
 #include <Tsukino/BuiltIn/ECS/Component/SkyAtmosphereComponent.hpp>
+#include <Tsukino/BuiltIn/ECS/Component/TerrainGenerationRequestComponent.hpp>
 
 #include <Tsukino/BuiltIn/ECS/Serialization/TransformComponentSerialization.hpp>
 #include <Tsukino/BuiltIn/ECS/Serialization/CameraComponentSerialization.hpp>
@@ -38,6 +39,7 @@
 #include <Tsukino/EngineIntegration/ECS/System/AnimationSystem.hpp>
 #include <Tsukino/EngineIntegration/ECS/System/DirectionalLightSystem.hpp>
 #include <Tsukino/EngineIntegration/ECS/System/SkyAtmosphereSystem.hpp>
+#include <Tsukino/EngineIntegration/ECS/System/HeightmapGenerationSystem.hpp>
 
 #include <Tsukino/EngineIntegration/EngineAPI.hpp>
 #include <Tsukino/EngineIntegration/EngineContext.hpp>
@@ -71,6 +73,7 @@ namespace Tsukino::Sandbox {
         enum class SystemPriority : int {
             Transform = 0,
             Animation,
+            HeightmapGeneration,
             Physics,
             DirectionalLightSystem,
             SkyAtmosphere,
@@ -86,6 +89,7 @@ namespace Tsukino::Sandbox {
         // 登録
         m_scene.AddSystem(std::make_shared<Tsukino::BuiltIn::ECS::TransformSystem>(), (int)SystemPriority::Transform);
         m_scene.AddSystem(std::make_shared<Tsukino::BuiltIn::ECS::AnimationSystem>(), (int)SystemPriority::Animation);
+        m_scene.AddSystem(std::make_shared<Tsukino::BuiltIn::ECS::HeightmapGenerationSystem>(), (int)SystemPriority::HeightmapGeneration);
         m_scene.AddSystem(std::make_shared<Tsukino::BuiltIn::ECS::PhysicsSystem>(eventBus), (int)SystemPriority::Physics);
         m_scene.AddSystem(std::make_shared<Tsukino::BuiltIn::ECS::DirectionalLightSystem>(), (int)SystemPriority::DirectionalLightSystem);
         m_scene.AddSystem(std::make_shared<Tsukino::BuiltIn::ECS::SkyAtmosphereSystem>(), (int)SystemPriority::SkyAtmosphere);
@@ -111,7 +115,7 @@ namespace Tsukino::Sandbox {
 
             // TransformComponent の追加と初期化
             Tsukino::BuiltIn::ECS::TransformComponent& groundTransform = registry.AddComponent<Tsukino::BuiltIn::ECS::TransformComponent>(groundEntity);
-            groundTransform.position                                   = hlslpp::float3(0.0f, -30.0f, 0.0f);
+            groundTransform.position                                   = hlslpp::float3(0.0f, 0.0f, 0.0f);
             groundTransform.rotation                                   = hlslpp::quaternion(0.0f, 0.0f, 0.0f, 1.0f);    // 無回転
             groundTransform.scale                                      = hlslpp::float3(1.0f, 1.0f, 1.0f);              // 土台
             groundTransform.dirty                                      = true;                                          // 初回計算のためフラグを立てる
@@ -124,10 +128,15 @@ namespace Tsukino::Sandbox {
 
             // CollisionComponent の追加
             Tsukino::BuiltIn::ECS::CollisionComponent& collision = registry.AddComponent<Tsukino::BuiltIn::ECS::CollisionComponent>(groundEntity);
-            collision.extent                                     = {50.0f, 5.0f, 50.0f};    // 土台の当たり判定
-            collision.offsetPosition                             = {0.0f, 2.5f, 0.0f};      // 土台の中心にオフセット
-            collision.type                                       = Tsukino::BuiltIn::ECS::ColliderType::Box;
+            collision.type                                       = Tsukino::BuiltIn::ECS::ColliderType::Heightfield;
             collision.isSensor                                   = false;    // 衝突判定を有効にする
+
+            Tsukino::BuiltIn::ECS::TerrainGenerationRequestComponent& req =
+                registry.AddComponent<Tsukino::BuiltIn::ECS::TerrainGenerationRequestComponent>(groundEntity);
+            req.amplitude      = 15.0f;
+            req.noiseFrequency = 0.08f;
+            req.seed           = 12345;
+            req.noiseType      = Tsukino::BuiltIn::ECS::TerrainNoiseType::Noise;
 
             // RBをつける
             Tsukino::BuiltIn::ECS::RigidbodyComponent& rb = registry.AddComponent<Tsukino::BuiltIn::ECS::RigidbodyComponent>(groundEntity);
