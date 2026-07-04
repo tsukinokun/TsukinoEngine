@@ -19,6 +19,7 @@
 #include <Tsukino/GraphicsCommon/Vertex/DebugVertex.hpp>
 
 #include <Tsukino/Core/ECS/Event/EventBus.hpp>
+#include <Tsukino/Core/Log.hpp>
 
 #include <hlsl++.h>
 #include <entt/entt.hpp>
@@ -38,6 +39,7 @@
 #include <Jolt/Physics/Body/BodyCreationSettings.h>
 #include <Jolt/Physics/Body/BodyActivationListener.h>
 #include <Jolt/Renderer/DebugRendererSimple.h>
+#include <Jolt/Physics/Collision/Shape/HeightFieldShape.h>
 
 #include <windows.h>
 // 名前空間 : Tsukino::BuiltIn::ECS
@@ -285,6 +287,8 @@ namespace Tsukino::BuiltIn::ECS {
         bool                                         isDebugDrawEnabled = false;      //!< デバッグ描画が有効か
         bool                                         f5WasDown          = false;      //!< 直前フレームでF5キーが押されていたか
         std::unordered_map<entt::entity, JPH::RVec3> prevPositions;
+        // ハイトマップ用キャッシュ（Shape を直接保持して使い回す）
+        std::unordered_map<uint64_t, JPH::Ref<JPH::HeightFieldShape>> heightfieldCache;
     };
 
     //-------------------------------------------------------------
@@ -355,6 +359,44 @@ namespace Tsukino::BuiltIn::ECS {
                     shape = new JPH::SphereShape(col.extent.x);
                 else if(col.type == ColliderType::Capsule)
                     shape = new JPH::CapsuleShape(col.extent.y, col.extent.x);
+                else if(col.type == ColliderType::Heightfield) {
+                    if(!col.heightfieldSamples.empty() && col.heightfieldSize > 0) {
+                        uint64_t cacheKey = (uint64_t)entity;
+
+                        auto cacheIt = m_impl->heightfieldCache.find(cacheKey);
+                        if(cacheIt != m_impl->heightfieldCache.end()) {
+                            shape = cacheIt->second;
+                        } else {
+                            // 修正：HeightFieldShapeSettings の第3引数(Scale)と第2引数(Offset)を確実に一致させる
+                            // col.heightfieldOffset は地形の左下隅(Min)を指すようにし、
+                            // col.heightfieldScale はグリッド1つあたりの間隔(サイズ)を指すようにする
+
+                            JPH::HeightFieldShapeSettings hfSettings(col.heightfieldSamples.data(),
+                                                                     JPH::Vec3(col.heightfieldOffset.x, col.heightfieldOffset.y, col.heightfieldOffset.z),
+                                                                     JPH::Vec3(col.heightfieldScale.x, col.heightfieldScale.y, col.heightfieldScale.z),
+                                                                     col.heightfieldSize);
+
+                            // このフラグが「地形の法線」を正しく計算させます
+                            hfSettings.mBlockSize = 2;    // デフォルトの2にする
+
+                            JPH::Shape::ShapeResult hfResult = hfSettings.Create();
+                            if(hfResult.IsValid()) {
+                                shape                              = hfResult.Get();
+                                m_impl->heightfieldCache[cacheKey] = (JPH::HeightFieldShape*)shape.GetPtr();
+                            
+                                JPH::AABox localBounds = shape->GetLocalBounds();
+                                Tsukino::Core::Log::Info("HeightField local bounds min=(" + std::to_string(localBounds.mMin.GetX()) + ","
+                                                         + std::to_string(localBounds.mMin.GetZ()) + ") max=(" + std::to_string(localBounds.mMax.GetX()) + ","
+                                                         + std::to_string(localBounds.mMax.GetZ()) + ")");
+                                Tsukino::Core::Log::Info("Requested offset=(" + std::to_string(col.heightfieldOffset.x) + ","
+                                                         + std::to_string(col.heightfieldOffset.z) + ") scale=(" + std::to_string(col.heightfieldScale.x) + ","
+                                                         + std::to_string(col.heightfieldScale.z) + ") size=" + std::to_string(col.heightfieldSize));
+                            } else {
+                                OutputDebugStringA(hfResult.GetError().c_str());
+                            }
+                        }
+                    }
+                }
 
                 if(shape) {
                     JPH::EMotionType motionType = JPH::EMotionType::Static;

@@ -18,7 +18,8 @@ namespace Tsukino::BuiltIn::ECS {
     enum class ColliderType {
         Box,
         Sphere,
-        Capsule
+        Capsule,
+        Heightfield
     };
 
     //-------------------------------------------------------------------------
@@ -47,6 +48,18 @@ namespace Tsukino::BuiltIn::ECS {
         // オフセット設定
         hlslpp::float3     offsetPosition = {0.0f, 0.0f, 0.0f};
         hlslpp::quaternion offsetRotation = hlslpp::quaternion::identity();
+
+        //---------------------------------------------------------------------
+        // ハイトフィールド専用データ（type == ColliderType::Heightfield の場合のみ使用）
+        //---------------------------------------------------------------------
+        // 高さサンプル配列（heightfieldSize * heightfieldSize 個、行優先で格納）
+        std::vector<float> heightfieldSamples;
+        // 1辺あたりのサンプル数（正方形グリッド。Joltの制約上、ブロックサイズの倍数である必要あり）
+        uint32_t heightfieldSize = 0;
+        // ローカル原点からのオフセット（ワールドではなくシェイプローカル）
+        hlslpp::float3 heightfieldOffset = {0.0f, 0.0f, 0.0f};
+        // スケール（x, z: サンプル間隔, y: 高さ方向の倍率）
+        hlslpp::float3 heightfieldScale = {1.0f, 1.0f, 1.0f};
 
         //---------------------------------------------------------------------
         // センサー設定

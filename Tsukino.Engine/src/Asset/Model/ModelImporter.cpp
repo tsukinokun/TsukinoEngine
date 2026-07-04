@@ -430,10 +430,14 @@ namespace Tsukino::Asset {
         //--------------------------------------------------------------
         // ノード
         //--------------------------------------------------------------
+        std::vector<hlslpp::float4x4> nodeWorldMatrices;    // ノードごとのワールド行列（indexはmodelData.nodesと対応）
+        
         if(scene->mRootNode) {
-            std::function<u32(const aiNode*, u32)> ProcessNode = [&](const aiNode* aiNode, u32 parentIndex) -> u32 {
+            std::function<u32(const aiNode*, u32, const hlslpp::float4x4&)> ProcessNode =
+                [&](const aiNode* aiNode, u32 parentIndex, const hlslpp::float4x4& parentWorld) -> u32 {
                 u32 currentIndex = static_cast<u32>(modelData.nodes.size());
                 modelData.nodes.emplace_back();
+                nodeWorldMatrices.emplace_back();    // ← 追加：nodeWorldMatricesもノードと1:1で増やす
 
                 std::string nodeName                      = aiNode->mName.C_Str();
                 modelData.nodes[currentIndex].name        = nodeName;
@@ -443,7 +447,6 @@ namespace Tsukino::Asset {
                     modelData.nodes[currentIndex].meshIndices.push_back(aiNode->mMeshes[i]);
                 }
 
-                // ボーンのNodeIndexを解決
                 auto it = boneNameToIndex.find(nodeName);
                 if(it != boneNameToIndex.end()) {
                     modelData.skeleton.bones[it->second].nodeIndex = currentIndex;
@@ -456,14 +459,45 @@ namespace Tsukino::Asset {
                 modelData.nodes[currentIndex].rotation    = hlslpp::float4(aiRot.x, aiRot.y, aiRot.z, aiRot.w);
                 modelData.nodes[currentIndex].scale       = hlslpp::float3(scaling.x, scaling.y, scaling.z);
 
+                const aiMatrix4x4& m = aiNode->mTransformation;
+                hlslpp::float4x4   localMat(m.a1, m.a2, m.a3, m.a4, m.b1, m.b2, m.b3, m.b4, m.c1, m.c2, m.c3, m.c4, m.d1, m.d2, m.d3, m.d4);
+                hlslpp::float4x4   worldMat     = hlslpp::mul(localMat, parentWorld);
+                nodeWorldMatrices[currentIndex] = worldMat;    // ← ここで初めて実際の行列を格納
+
                 for(u32 i = 0; i < aiNode->mNumChildren; ++i) {
-                    u32 childIndex = ProcessNode(aiNode->mChildren[i], currentIndex);
+                    u32 childIndex = ProcessNode(aiNode->mChildren[i], currentIndex, worldMat);    // ← worldMatを子に渡す
                     modelData.nodes[currentIndex].childIndices.push_back(childIndex);
                 }
                 return currentIndex;
             };
 
-            modelData.rootNodeIndex = ProcessNode(scene->mRootNode, UINT32_MAX);
+            modelData.rootNodeIndex = ProcessNode(scene->mRootNode, UINT32_MAX, hlslpp::float4x4::identity());
+        }
+
+        //--------------------------------------------------------------
+        // メッシュごとのワールド空間AABBを再計算
+        // （どのノードがそのメッシュを参照しているかを逆引きする）
+        //--------------------------------------------------------------
+        std::vector<hlslpp::float3> meshMinBound(scene->mNumMeshes, hlslpp::float3(FLT_MAX, FLT_MAX, FLT_MAX));
+        std::vector<hlslpp::float3> meshMaxBound(scene->mNumMeshes, hlslpp::float3(-FLT_MAX, -FLT_MAX, -FLT_MAX));
+
+        for(u32 nodeIdx = 0; nodeIdx < modelData.nodes.size(); ++nodeIdx) {
+            for(u32 meshIdx : modelData.nodes[nodeIdx].meshIndices) {
+                const aiMesh* aiMesh = scene->mMeshes[meshIdx];
+                for(u32 v = 0; v < aiMesh->mNumVertices; ++v) {
+                    hlslpp::float3 localPos(aiMesh->mVertices[v].x, aiMesh->mVertices[v].y, aiMesh->mVertices[v].z);
+                    hlslpp::float4 worldPos4 = hlslpp::mul(hlslpp::float4(localPos, 1.0f), nodeWorldMatrices[nodeIdx]);
+                    hlslpp::float3 worldPos(worldPos4.x, worldPos4.y, worldPos4.z);
+
+                    meshMinBound[meshIdx] = hlslpp::min(meshMinBound[meshIdx], worldPos);
+                    meshMaxBound[meshIdx] = hlslpp::max(meshMaxBound[meshIdx], worldPos);
+                }
+            }
+        }
+
+        for(u32 i = 0; i < scene->mNumMeshes; ++i) {
+            modelData.meshes[i].bounds.min = meshMinBound[i];
+            modelData.meshes[i].bounds.max = meshMaxBound[i];
         }
 
         //--------------------------------------------------------------

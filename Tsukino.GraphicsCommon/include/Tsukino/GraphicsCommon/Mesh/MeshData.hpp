@@ -10,6 +10,8 @@
 
 #include <vector>
 #include <cstdint>
+
+#include <hlsl++.h>
 // 名前空間 Tsukino::GraphicsCommon
 namespace Tsukino::GraphicsCommon {
     //--------------------------------------------------------------
@@ -27,8 +29,21 @@ namespace Tsukino::GraphicsCommon {
         //--------------------------------------------------------------
         template <class Archive>
         void serialize(Archive& ar) {
-            ar(boneIndices[0], boneIndices[1], boneIndices[2], boneIndices[3],
-               weights[0], weights[1], weights[2], weights[3]);
+            ar(boneIndices[0], boneIndices[1], boneIndices[2], boneIndices[3], weights[0], weights[1], weights[2], weights[3]);
+        }
+    };
+
+    //--------------------------------------------------------------
+    //! @struct AABB
+    //! @brief  バウンディングボックス
+    //--------------------------------------------------------------
+    struct AABB {
+        hlslpp::interop::float3 min;
+        hlslpp::interop::float3 max;
+
+        template <class Archive>
+        void serialize(Archive& ar) {
+            ar(min, max);
         }
     };
 
@@ -37,16 +52,18 @@ namespace Tsukino::GraphicsCommon {
     //! @brief  メッシュデータの構造体
     //--------------------------------------------------------------
     struct MeshData {
-        std::vector<u8>  vertexData;            // 生の頂点バイト列
-        std::vector<u32> indices;               // 頂点インデックス
+        std::vector<u8>         vertexData;     // 生の頂点バイト列
+        std::vector<u32>        indices;        // 頂点インデックス
         std::vector<BoneWeight> boneWeights;    // スキニング用のボーンウェイトデータ
 
-        u32 vertexStride = 0;    // 頂点データの1頂点あたりのバイト数
-        u32 vertexCount  = 0;    // 頂点の総数
-        u32 indexCount   = 0;    // 頂点インデックスの総数
-        u32 materialIndex = 0;   // マテリアルインデックス
+        u32 vertexStride  = 0;    // 頂点データの1頂点あたりのバイト数
+        u32 vertexCount   = 0;    // 頂点の総数
+        u32 indexCount    = 0;    // 頂点インデックスの総数
+        u32 materialIndex = 0;    // マテリアルインデックス
 
         VertexFormat format = VertexFormat::Unknown;    // 頂点のフォーマット
+
+        AABB bounds;    // モデル全体のバウンディングボックス
 
         //--------------------------------------------------------------
         //! @brief  シリアライズ関数
@@ -55,7 +72,7 @@ namespace Tsukino::GraphicsCommon {
         //--------------------------------------------------------------
         template <class Archive>
         void serialize(Archive& ar) {
-            ar(vertexData, indices, boneWeights, vertexStride, vertexCount, indexCount, materialIndex, format);
+            ar(vertexData, indices, boneWeights, vertexStride, vertexCount, indexCount, materialIndex, format, bounds);
         }
     };
 
