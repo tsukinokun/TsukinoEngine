@@ -1,5 +1,5 @@
 ﻿//-------------------------------------------------------------
-//! @file    FishingGameSampleScene.hpp
+//! @file    WaterGameSampleScene.hpp
 //! @brief   釣りゲームのサンプルシーンの宣言
 //! @author  山﨑愛
 //-------------------------------------------------------------
@@ -8,20 +8,20 @@
 // 名前空間 : Tsukino::Sandbox
 namespace Tsukino::Sandbox {
     //-------------------------------------------------------------
-    //! @class   FishingGameSampleScene
+    //! @class   WaterGameSampleScene
     //! @brief   釣りゲームのサンプルシーン
     //-------------------------------------------------------------
-    class FishingGameSampleScene : public Tsukino::EngineIntegration::GameSceneBase {
+    class WaterGameSampleScene : public Tsukino::EngineIntegration::GameSceneBase {
     public:
         //-------------------------------------------------------------
         //! @brief  コンストラクタ
         //-------------------------------------------------------------
-        FishingGameSampleScene() = default;
+        WaterGameSampleScene() = default;
 
         //-------------------------------------------------------------
         //! @brief  デストラクタ
         //-------------------------------------------------------------
-        ~FishingGameSampleScene() override = default;
+        ~WaterGameSampleScene() override = default;
 
         //-------------------------------------------------------------
         //! @brief  シーンの更新
