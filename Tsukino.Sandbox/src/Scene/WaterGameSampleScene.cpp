@@ -5,6 +5,11 @@
 //-------------------------------------------------------------
 #include <Tsukino/Sandbox/Scene/WaterGameSampleScene.hpp>
 
+#include <Tsukino/Sandbox/WaterGameSample/ECS/System/GameCameraSystem.hpp>
+
+#include <Tsukino/Sandbox/WaterGameSample/ECS/Component/GameCameraComponent.hpp>
+
+
 #ifdef _DEBUG
 #include <Tsukino/EngineIntegration/ECS/System/DebugCameraSystem.hpp>
 #include <Tsukino/BuiltIn/ECS/Component/DebugCameraComponent.hpp>
@@ -80,6 +85,7 @@ namespace Tsukino::Sandbox {
 #ifdef _DEBUG
             DebugCamera,
 #endif
+            GameCamera,
             Camera,
             Font,
             Render,
@@ -96,6 +102,7 @@ namespace Tsukino::Sandbox {
 #ifdef _DEBUG
         m_scene.AddSystem(std::make_shared<Tsukino::BuiltIn::ECS::DebugCameraSystem>(), (int)SystemPriority::DebugCamera);
 #endif
+        m_scene.AddSystem(std::make_shared<WaterGame::ECS::GameCameraSystem>(), (int)SystemPriority::GameCamera);
         m_scene.AddSystem(std::make_shared<Tsukino::BuiltIn::ECS::CameraSystem>(), (int)SystemPriority::Camera);
         m_scene.AddSystem(std::make_shared<Tsukino::BuiltIn::ECS::FontRendererSystem>(), (int)SystemPriority::Font);
         m_scene.AddSystem(std::make_shared<Tsukino::BuiltIn::ECS::SpriteRenderSystem>(), (int)SystemPriority::Render);
@@ -146,9 +153,9 @@ namespace Tsukino::Sandbox {
         //--------------------------------------------------------------
         // ボールエンティティの生成
         //--------------------------------------------------------------
+        Tsukino::ECS::Entity ballEntity = m_scene.CreateEntity();
+        
         {
-            Tsukino::ECS::Entity ballEntity = m_scene.CreateEntity();
-
             // TransformComponent の追加と初期化
             Tsukino::BuiltIn::ECS::TransformComponent& ballTransform = registry.AddComponent<Tsukino::BuiltIn::ECS::TransformComponent>(ballEntity);
             ballTransform.position                                   = hlslpp::float3(0.0f, 250.0f, 0.0f);
@@ -198,9 +205,13 @@ namespace Tsukino::Sandbox {
             // 3Dカメラエンティティの生成
             //--------------------------------------------------------------
             const std::string                       prefabPath = "Tsukino.Sandbox/Assets/WaterGameSample/Prefabs/3DCamera/Prefab.json";
-            entt::entity                            testEntity = context->prefabFactory->Instantiate(prefabPath, registry);
+            entt::entity                            cameraEntity = context->prefabFactory->Instantiate(prefabPath, registry);
             Tsukino::BuiltIn::ECS::CameraComponent& cam =
-                registry.GetComponent<Tsukino::BuiltIn::ECS::CameraComponent>(testEntity);    // これをメインカメラにする
+                registry.GetComponent<Tsukino::BuiltIn::ECS::CameraComponent>(cameraEntity);    // これをメインカメラにする
+
+            WaterGame::ECS::GameCameraComponent& gameCam = registry.AddComponent<WaterGame::ECS::GameCameraComponent>(cameraEntity);
+            gameCam.target                               = ballEntity;    // ボールを追従するように設定
+
         }
 
         //--------------------------------------------------------------
