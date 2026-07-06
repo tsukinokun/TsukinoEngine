@@ -501,6 +501,12 @@ namespace Tsukino::BuiltIn::ECS {
             if(col.isInitialized) {
                 JPH::BodyInterface& bi = m_impl->physicsSystem->GetBodyInterface();
                 bi.AddImpulse(col.bodyID, JPH::Vec3(ir.impulse.x, ir.impulse.y, ir.impulse.z));
+            
+                // 回転（トルク）の付与
+                JPH::Vec3 angImpulse(ir.angularImpulse.x, ir.angularImpulse.y, ir.angularImpulse.z);
+                if(!angImpulse.IsNearZero()) {
+                    bi.AddAngularImpulse(col.bodyID, angImpulse);
+                }
             }
             entitiesToRemoveImpulse.push_back(entity);
         });
@@ -540,6 +546,29 @@ namespace Tsukino::BuiltIn::ECS {
 
             if(currentJoltType != targetType) {
                 bodyInterface.SetMotionType(col.bodyID, targetType, JPH::EActivation::Activate);
+            }
+        }
+
+        //-------------------------------------------------------------
+        // Rigidbodyのforce/torqueを反映
+        //-------------------------------------------------------------
+        for(auto entity : view) {
+            auto& col = registry.GetComponent<CollisionComponent>(entity);
+            if(!col.isInitialized || !registry.HasComponent<RigidbodyComponent>(entity))
+                continue;
+
+            auto& rb = registry.GetComponent<RigidbodyComponent>(entity);
+            if(rb.type != RigidbodyType::Dynamic)
+                continue;
+
+            bool hasForce  = !(rb.force.x == 0.0f && rb.force.y == 0.0f && rb.force.z == 0.0f);
+            bool hasTorque = !(rb.torque.x == 0.0f && rb.torque.y == 0.0f && rb.torque.z == 0.0f);
+
+            if(hasForce) {
+                bodyInterface.AddForce(col.bodyID, JPH::Vec3(rb.force.x, rb.force.y, rb.force.z));
+            }
+            if(hasTorque) {
+                bodyInterface.AddTorque(col.bodyID, JPH::Vec3(rb.torque.x, rb.torque.y, rb.torque.z));
             }
         }
 

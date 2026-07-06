@@ -6,8 +6,10 @@
 #include <Tsukino/Sandbox/Scene/WaterGameSampleScene.hpp>
 
 #include <Tsukino/Sandbox/WaterGameSample/ECS/System/GameCameraSystem.hpp>
+#include <Tsukino/Sandbox/WaterGameSample/ECS/System/PlayerMovementSystem.hpp>
 
 #include <Tsukino/Sandbox/WaterGameSample/ECS/Component/GameCameraComponent.hpp>
+#include <Tsukino/Sandbox/WaterGameSample/ECS/Component/PlayerMovementComponent.hpp>
 
 
 #ifdef _DEBUG
@@ -87,6 +89,7 @@ namespace Tsukino::Sandbox {
 #endif
             GameCamera,
             Camera,
+            PlayerMovement,
             Font,
             Render,
             Audio,
@@ -104,6 +107,7 @@ namespace Tsukino::Sandbox {
 #endif
         m_scene.AddSystem(std::make_shared<WaterGame::ECS::GameCameraSystem>(), (int)SystemPriority::GameCamera);
         m_scene.AddSystem(std::make_shared<Tsukino::BuiltIn::ECS::CameraSystem>(), (int)SystemPriority::Camera);
+        m_scene.AddSystem(std::make_shared<WaterGame::ECS::PlayerMovementSystem>(), (int)SystemPriority::PlayerMovement);
         m_scene.AddSystem(std::make_shared<Tsukino::BuiltIn::ECS::FontRendererSystem>(), (int)SystemPriority::Font);
         m_scene.AddSystem(std::make_shared<Tsukino::BuiltIn::ECS::SpriteRenderSystem>(), (int)SystemPriority::Render);
         m_scene.AddSystem(std::make_shared<Tsukino::BuiltIn::ECS::ModelSystem>(), (int)SystemPriority::Render);
@@ -148,13 +152,16 @@ namespace Tsukino::Sandbox {
             // RBをつける
             Tsukino::BuiltIn::ECS::RigidbodyComponent& rb = registry.AddComponent<Tsukino::BuiltIn::ECS::RigidbodyComponent>(groundEntity);
             rb.type                                       = Tsukino::BuiltIn::ECS::RigidbodyType::Static;
+            rb.freezeRotationX                             = false;
+            rb.freezeRotationY                             = false;
+            rb.freezeRotationZ                             = false;
+            rb.gravityFactor                               = 100.0f;    // 重力を強めにする
         }
 
         //--------------------------------------------------------------
         // ボールエンティティの生成
         //--------------------------------------------------------------
         Tsukino::ECS::Entity ballEntity = m_scene.CreateEntity();
-        
         {
             // TransformComponent の追加と初期化
             Tsukino::BuiltIn::ECS::TransformComponent& ballTransform = registry.AddComponent<Tsukino::BuiltIn::ECS::TransformComponent>(ballEntity);
@@ -179,6 +186,9 @@ namespace Tsukino::Sandbox {
             Tsukino::BuiltIn::ECS::RigidbodyComponent& ballRb = registry.AddComponent<Tsukino::BuiltIn::ECS::RigidbodyComponent>(ballEntity);
             ballRb.type                                       = Tsukino::BuiltIn::ECS::RigidbodyType::Dynamic;
         }
+
+         // PlayerMovementComponent の追加
+        WaterGame::ECS::PlayerMovementComponent& playerMove = registry.AddComponent<WaterGame::ECS::PlayerMovementComponent>(ballEntity);
 
         //--------------------------------------------------------------
         // 2Dカメラエンティティの生成
@@ -212,6 +222,7 @@ namespace Tsukino::Sandbox {
             WaterGame::ECS::GameCameraComponent& gameCam = registry.AddComponent<WaterGame::ECS::GameCameraComponent>(cameraEntity);
             gameCam.target                               = ballEntity;    // ボールを追従するように設定
 
+            playerMove.cameraEntity = cameraEntity;    // プレイヤーの向きの基準にするカメラを設定
         }
 
         //--------------------------------------------------------------
