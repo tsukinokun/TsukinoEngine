@@ -131,12 +131,12 @@ namespace Tsukino::Sandbox {
             collision.type                                       = Tsukino::BuiltIn::ECS::ColliderType::Heightfield;
             collision.isSensor                                   = false;    // 衝突判定を有効にする
 
-            //Tsukino::BuiltIn::ECS::TerrainGenerationRequestComponent& req =
-            //    registry.AddComponent<Tsukino::BuiltIn::ECS::TerrainGenerationRequestComponent>(groundEntity);
-            //req.amplitude      = 15.0f;
-            //req.noiseFrequency = 0.08f;
-            //req.seed           = 12345;
-            //req.noiseType      = Tsukino::BuiltIn::ECS::TerrainNoiseType::Noise;
+            Tsukino::BuiltIn::ECS::TerrainGenerationRequestComponent& req =
+                registry.AddComponent<Tsukino::BuiltIn::ECS::TerrainGenerationRequestComponent>(groundEntity);
+            req.amplitude      = 15.0f;
+            req.noiseFrequency = 0.08f;
+            req.seed           = 12345;
+            req.noiseType      = Tsukino::BuiltIn::ECS::TerrainNoiseType::Noise;
 
             // RBをつける
             Tsukino::BuiltIn::ECS::RigidbodyComponent& rb = registry.AddComponent<Tsukino::BuiltIn::ECS::RigidbodyComponent>(groundEntity);
@@ -151,7 +151,7 @@ namespace Tsukino::Sandbox {
 
             // TransformComponent の追加と初期化
             Tsukino::BuiltIn::ECS::TransformComponent& ballTransform = registry.AddComponent<Tsukino::BuiltIn::ECS::TransformComponent>(ballEntity);
-            ballTransform.position                                   = hlslpp::float3(0.0f, 10.0f, 0.0f);
+            ballTransform.position                                   = hlslpp::float3(0.0f, 250.0f, 0.0f);
             ballTransform.rotation                                   = hlslpp::quaternion(0.0f, 0.0f, 0.0f, 1.0f);    // 無回転
             ballTransform.scale                                      = hlslpp::float3(1.0f, 1.0f, 1.0f);              // 土台
             ballTransform.dirty                                      = true;                                          // 初回計算のためフラグを立てる
@@ -161,6 +161,16 @@ namespace Tsukino::Sandbox {
             Tsukino::BuiltIn::ECS::ModelComponent& ballModel = registry.AddComponent<Tsukino::BuiltIn::ECS::ModelComponent>(ballEntity);
             ballModel.modelHandle = context->assetManager->Load(Tsukino::Core::Path("Tsukino.Sandbox/Assets/WaterGameSample/Models/Ball.fbx"));
             ballModel.visible     = true;
+
+            // CollisionComponent の追加
+            Tsukino::BuiltIn::ECS::CollisionComponent& ballCollision = registry.AddComponent<Tsukino::BuiltIn::ECS::CollisionComponent>(ballEntity);
+            ballCollision.type                                       = Tsukino::BuiltIn::ECS::ColliderType::Sphere;
+            ballCollision.extent.x                                   = 50.0f;    // 半径
+            ballCollision.isSensor                                   = false;    // 衝突判定を有効
+
+            // RBをつける
+            Tsukino::BuiltIn::ECS::RigidbodyComponent& ballRb = registry.AddComponent<Tsukino::BuiltIn::ECS::RigidbodyComponent>(ballEntity);
+            ballRb.type                                       = Tsukino::BuiltIn::ECS::RigidbodyType::Dynamic;
         }
 
         //--------------------------------------------------------------
