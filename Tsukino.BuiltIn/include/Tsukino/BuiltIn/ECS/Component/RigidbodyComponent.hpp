@@ -20,6 +20,7 @@ namespace Tsukino::BuiltIn::ECS {
 
     //-------------------------------------------------------------
     //! @struct RigidbodyComponent
+    //! @brief  剛体の物理特性を表すコンポーネント
     //-------------------------------------------------------------
     struct RigidbodyComponent {
         RigidbodyType type        = RigidbodyType::Dynamic;
@@ -32,6 +33,10 @@ namespace Tsukino::BuiltIn::ECS {
 
         hlslpp::float3 linearVelocity  = {0, 0, 0};    // 線速度
         hlslpp::float3 angularVelocity = {0, 0, 0};    // 角速度
+
+                // 継続的に加える力・トルク（Dynamic用。PhysicsSystemが毎フレームAddForce/AddTorqueして消費はしない）
+        hlslpp::float3 force  = {0, 0, 0};    //!< 加える力（他システムが毎フレーム上書きする想定）
+        hlslpp::float3 torque = {0, 0, 0};    //!< 加えるトルク
 
         // Jolt内部でボディを生成するためのトリガー
         bool isInitialized = false;

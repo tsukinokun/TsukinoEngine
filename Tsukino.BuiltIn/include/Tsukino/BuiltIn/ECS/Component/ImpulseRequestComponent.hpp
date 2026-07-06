@@ -15,6 +15,7 @@ namespace Tsukino::BuiltIn::ECS {
     //-------------------------------------------------------------
     struct ImpulseRequestComponent {
         hlslpp::float3 impulse;    //!< 衝撃のベクトル (方向と大きさ)
+        hlslpp::float3 angularImpulse = {0, 0, 0};    //!< 角力積（AddAngularImpulse用・トルク）
     };
 
 }    // namespace Tsukino::BuiltIn::ECS
