@@ -1,6 +1,6 @@
 ﻿//-------------------------------------------------------------
 //! @file    WaterGameSampleScene.cpp
-//! @brief   ブロック崩しサンプルの実装
+//! @brief   水ゲームサンプルの実装
 //! @author  山﨑愛
 //-------------------------------------------------------------
 #include <Tsukino/Sandbox/Scene/WaterGameSampleScene.hpp>
@@ -141,6 +141,26 @@ namespace Tsukino::Sandbox {
             // RBをつける
             Tsukino::BuiltIn::ECS::RigidbodyComponent& rb = registry.AddComponent<Tsukino::BuiltIn::ECS::RigidbodyComponent>(groundEntity);
             rb.type                                       = Tsukino::BuiltIn::ECS::RigidbodyType::Static;
+        }
+
+        //--------------------------------------------------------------
+        // ボールエンティティの生成
+        //--------------------------------------------------------------
+        {
+            Tsukino::ECS::Entity ballEntity = m_scene.CreateEntity();
+
+            // TransformComponent の追加と初期化
+            Tsukino::BuiltIn::ECS::TransformComponent& ballTransform = registry.AddComponent<Tsukino::BuiltIn::ECS::TransformComponent>(ballEntity);
+            ballTransform.position                                   = hlslpp::float3(0.0f, 10.0f, 0.0f);
+            ballTransform.rotation                                   = hlslpp::quaternion(0.0f, 0.0f, 0.0f, 1.0f);    // 無回転
+            ballTransform.scale                                      = hlslpp::float3(1.0f, 1.0f, 1.0f);              // 土台
+            ballTransform.dirty                                      = true;                                          // 初回計算のためフラグを立てる
+            ballTransform.parent                                     = entt::null;                                    // 親なし
+
+            // ModelComponent
+            Tsukino::BuiltIn::ECS::ModelComponent& ballModel = registry.AddComponent<Tsukino::BuiltIn::ECS::ModelComponent>(ballEntity);
+            ballModel.modelHandle = context->assetManager->Load(Tsukino::Core::Path("Tsukino.Sandbox/Assets/WaterGameSample/Models/Ball.fbx"));
+            ballModel.visible     = true;
         }
 
         //--------------------------------------------------------------
