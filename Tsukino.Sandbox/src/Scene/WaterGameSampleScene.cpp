@@ -364,6 +364,25 @@ namespace Tsukino::Sandbox {
     //-------------------------------------------------------------
     void WaterGameSampleScene::OnUpdate(Tsukino::EngineIntegration::EngineAPI& api, float deltaTime) {
         m_scene.Update(deltaTime);
+
+        Tsukino::EngineIntegration::EngineContext* context = m_scene.GetRegistry().GetContext<Tsukino::EngineIntegration::EngineContext*>();
+
+        // タイムが0になったら、遷移
+        if(m_gameState == GameState::Playing) {
+            auto view = m_scene.GetRegistry().View<WaterGame::ECS::TimerComponent>();
+            for(auto entity : view) {
+                auto& timer = view.get<WaterGame::ECS::TimerComponent>(entity);
+                if(timer.isFinished) {
+                    m_gameState = GameState::TimeUp;
+                    Tsukino::Core::Log::Info("Time is up! Press Space to restart.");
+                }
+            }
+        } else if(m_gameState == GameState::TimeUp) {
+            if(context->inputSystem->IsKeyDown(Tsukino::Input::KeyCode::Space)) {
+                // シーンを再読み込みしてリスタート
+                context->gameSceneManager->ChangeScene(std::make_unique<Tsukino::Sandbox::WaterGameSampleScene>());
+            }
+        }
     }
 
     //-------------------------------------------------------------
