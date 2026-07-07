@@ -15,6 +15,7 @@
 #include <Tsukino/Sandbox/WaterGameSample/ECS/Component/PlayerMovementComponent.hpp>
 #include <Tsukino/Sandbox/WaterGameSample/ECS/Component/DotSpawnerComponenet.hpp>
 #include <Tsukino/Sandbox/WaterGameSample/ECS/Component/DotComponenet.hpp>
+#include <Tsukino/Sandbox/WaterGameSample/ECS/Component/PlayerScoreComponent.hpp>
 #include <Tsukino/Sandbox/WaterGameSample/ECS/Component/TimerComponent.hpp>
 #include <Tsukino/Sandbox/WaterGameSample/ECS/Component/TimeUIComponent.hpp>
 #include <Tsukino/Sandbox/WaterGameSample/ECS/Component/ScoreUIComponent.hpp>
@@ -155,12 +156,12 @@ namespace Tsukino::Sandbox {
             collision.type                                       = Tsukino::BuiltIn::ECS::ColliderType::Heightfield;
             collision.isSensor                                   = false;    // 衝突判定を有効にする
 
-            //Tsukino::BuiltIn::ECS::TerrainGenerationRequestComponent& req =
-            //    registry.AddComponent<Tsukino::BuiltIn::ECS::TerrainGenerationRequestComponent>(groundEntity);
-            //req.amplitude      = 15.0f;
-            //req.noiseFrequency = 0.08f;
-            //req.seed           = 12345;
-            //req.noiseType      = Tsukino::BuiltIn::ECS::TerrainNoiseType::Noise;
+            Tsukino::BuiltIn::ECS::TerrainGenerationRequestComponent& req =
+                registry.AddComponent<Tsukino::BuiltIn::ECS::TerrainGenerationRequestComponent>(groundEntity);
+            req.amplitude      = 15.0f;
+            req.noiseFrequency = 0.08f;
+            req.seed           = 12345;
+            req.noiseType      = Tsukino::BuiltIn::ECS::TerrainNoiseType::Noise;
 
             // RBをつける
             Tsukino::BuiltIn::ECS::RigidbodyComponent& rb = registry.AddComponent<Tsukino::BuiltIn::ECS::RigidbodyComponent>(groundEntity);
@@ -305,6 +306,15 @@ namespace Tsukino::Sandbox {
         }
 
         //--------------------------------------------------------------
+        // スコア記録用エンティティの生成
+        //--------------------------------------------------------------
+        {
+            Tsukino::ECS::Entity scoreEntity = m_scene.CreateEntity();
+            auto&                score       = registry.AddComponent<WaterGame::ECS::PlayerScoreComponent>(scoreEntity);
+            score.score                      = 0;    // 初期スコアは0
+        }
+
+        //--------------------------------------------------------------
         // UIエンティティの生成
         //--------------------------------------------------------------
         //--------------------------------------------------------------
@@ -326,6 +336,26 @@ namespace Tsukino::Sandbox {
 
             // タイムUIコンポーネントの追加
             registry.AddComponent<WaterGame::ECS::TimeUIComponent>(timeUIEntity);
+        }
+
+        //--------------------------------------------------------------
+        // スコアUI
+        //--------------------------------------------------------------
+        {
+            Tsukino::ECS::Entity scoreUIEntity = m_scene.CreateEntity();
+            // TransformComponent の追加と初期化
+            Tsukino::BuiltIn::ECS::TransformComponent& scoreUITransform = registry.AddComponent<Tsukino::BuiltIn::ECS::TransformComponent>(scoreUIEntity);
+            scoreUITransform.position                                   = hlslpp::float3(0.0f, 50.0f, 0.0f);
+            scoreUITransform.rotation                                   = hlslpp::quaternion(0.0f, 0.0f, 0.0f, 1.0f);
+            scoreUITransform.scale                                      = hlslpp::float3(1.0f, 1.0f, 1.0f);
+            scoreUITransform.dirty                                      = true;
+            scoreUITransform.parent                                     = entt::null;
+            // FontComponent の追加と初期化
+            Tsukino::BuiltIn::ECS::FontComponent& fontComp = registry.AddComponent<Tsukino::BuiltIn::ECS::FontComponent>(scoreUIEntity);
+            fontComp.text                                  = L"Score: 0";
+            fontComp.color = hlslpp::float4(1.0f, 1.0f, 1.0f, 1.0f);    // 白色
+            // スコアUIコンポーネントの追加
+            registry.AddComponent<WaterGame::ECS::ScoreUIComponent>(scoreUIEntity);
         }
     }
 
