@@ -23,6 +23,7 @@
 #include <Tsukino/GraphicsCommon/Vertex/VertexFormat.hpp>
 
 #include <Tsukino/Core/Math/Matrix.hpp>
+#include <Tsukino/Core/Log.hpp>
 
 #include <entt/entt.hpp>
 #include <unordered_map>
@@ -99,11 +100,19 @@ namespace Tsukino::BuiltIn::ECS {
                             Tsukino::Core::Math::matrix::translate(hlslpp::float3(node.translation.x, node.translation.y, node.translation.z));
                         Tsukino::Core::Math::matrix nodeTransform = hlslpp::mul(hlslpp::mul(scaleMat, rotMat), transMat);
                         finalTransform                            = hlslpp::mul(nodeTransform, transform.worldMatrix);
+
+                        Tsukino::Core::Log::Info("node.translation = (" + std::to_string(node.translation.x) + ", " + std::to_string(node.translation.y) + ", "
+                                                 + std::to_string(node.translation.z) + ")");
                     }
 
                     // コリジョンオフセットの逆変換
                     auto* col = registry.try_get<CollisionComponent>(entity);
                     if(col && col->isInitialized) {
+                        Tsukino::Core::Log::Info("col->offsetPosition = (" + std::to_string(col->offsetPosition.x) + ", "
+                                                 + std::to_string(col->offsetPosition.y) + ", " + std::to_string(col->offsetPosition.z) + ") offsetRotation = ("
+                                                 + std::to_string(col->offsetRotation.x) + ", " + std::to_string(col->offsetRotation.y) + ", "
+                                                 + std::to_string(col->offsetRotation.z) + ", " + std::to_string(col->offsetRotation.w) + ")");
+
                         hlslpp::quaternion q = hlslpp::quaternion(col->offsetRotation.x, col->offsetRotation.y, col->offsetRotation.z, col->offsetRotation.w);
                         hlslpp::quaternion conj = hlslpp::quaternion(-q.x, -q.y, -q.z, q.w);
 

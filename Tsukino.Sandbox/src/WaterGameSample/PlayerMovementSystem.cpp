@@ -88,10 +88,10 @@ namespace WaterGame::ECS {
             //-------------------------------------------------------------
             // トルク（回転軸 = up × moveDir）
             //-------------------------------------------------------------
-            hlslpp::float3 up(0.0f, 1.0f, 0.0f);
-            hlslpp::float3 torqueAxis(up.y * moveDir.z - up.z * moveDir.y, up.z * moveDir.x - up.x * moveDir.z, up.x * moveDir.y - up.y * moveDir.x);
+            //hlslpp::float3 up(0.0f, 1.0f, 0.0f);
+            //hlslpp::float3 torqueAxis(up.y * moveDir.z - up.z * moveDir.y, up.z * moveDir.x - up.x * moveDir.z, up.x * moveDir.y - up.y * moveDir.x);
 
-            rb.torque = torqueAxis * move.torqueForce;
+            //rb.torque = torqueAxis * move.torqueForce;
         });
     }
 

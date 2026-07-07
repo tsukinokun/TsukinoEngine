@@ -47,16 +47,15 @@ namespace Tsukino::BuiltIn::ECS {
     //! @brief ローカル行列の更新
     //-------------------------------------------------------------
     void TransformSystem::UpdateLocalMatrix(TransformComponent& transform) noexcept {
-        // TRS行列の構築 (Translation * Rotation * Scale)
-        // 注意: hlsl++の行列乗算は右から左に適用される
+        // TRS行列の構築 (Scale * Rotation * Translation)
+        // 行ベクトル規約: mul(a, b) は a を先に適用してから b を適用する
         const auto scaleMatrix       = Tsukino::Core::Math::matrix::scale(transform.scale);
         const auto rotationMatrix    = Tsukino::Core::Math::matrix(hlslpp::float4x4(transform.rotation));
         const auto translationMatrix = Tsukino::Core::Math::matrix::translate(transform.position);
 
-        // ローカル行列 = 平行移動 * 回転 * スケール
-        transform.localMatrix = hlslpp::mul(translationMatrix, hlslpp::mul(rotationMatrix, scaleMatrix));
+        // ローカル行列 = スケール → 回転 → 平行移動 の順で適用
+        transform.localMatrix = hlslpp::mul(scaleMatrix, hlslpp::mul(rotationMatrix, translationMatrix));
 
-        // dirtyフラグをリセット
         transform.dirty = false;
     }
 
