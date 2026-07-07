@@ -12,6 +12,9 @@
 
 #include <Tsukino/BuiltIn/ECS/Component/TransformComponent.hpp>
 #include <Tsukino/BuiltIn/ECS/Component/CollisionComponent.hpp>
+#include <Tsukino/Sandbox/WaterGameSample/ECS/Component/ScoreUIComponent.hpp>
+
+#include <Tsukino/BuiltIn/ECS/Component/FontComponent.hpp>
 
 #include <Tsukino/Core/ECS/Event/EventBus.hpp>
 #include <Tsukino/Core/ECS/Registry/Registry.hpp>
@@ -75,6 +78,9 @@ namespace WaterGame::ECS {
 
             if(distSq <= eatRangeSq) {
                 score.score += dot.scoreValue;
+
+                auto scoreUIView = registry.View<ScoreUIComponent, Tsukino::BuiltIn::ECS::FontComponent>();
+                scoreUIView.each([&](auto uiEntity, auto& /*ui*/, auto& font) { font.text = L"Score: " + std::to_wstring(score.score); });
 
                 m_eventBus.Publish(DotEatenEvent{playerEntity, dotEntity, dot.scoreValue});
 
