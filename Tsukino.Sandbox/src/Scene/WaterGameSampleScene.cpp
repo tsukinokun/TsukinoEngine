@@ -9,11 +9,15 @@
 #include <Tsukino/Sandbox/WaterGameSample/ECS/System/PlayerMovementSystem.hpp>
 #include <Tsukino/Sandbox/WaterGameSample/ECS/System/DotSpawnSystem.hpp>
 #include <Tsukino/Sandbox/WaterGameSample/ECS/System/DotEatSystem.hpp>
+#include <Tsukino/Sandbox/WaterGameSample/ECS/System/TimerSystem.hpp>
 
 #include <Tsukino/Sandbox/WaterGameSample/ECS/Component/GameCameraComponent.hpp>
 #include <Tsukino/Sandbox/WaterGameSample/ECS/Component/PlayerMovementComponent.hpp>
 #include <Tsukino/Sandbox/WaterGameSample/ECS/Component/DotSpawnerComponenet.hpp>
 #include <Tsukino/Sandbox/WaterGameSample/ECS/Component/DotComponenet.hpp>
+#include <Tsukino/Sandbox/WaterGameSample/ECS/Component/TimerComponent.hpp>
+#include <Tsukino/Sandbox/WaterGameSample/ECS/Component/TimeUIComponent.hpp>
+#include <Tsukino/Sandbox/WaterGameSample/ECS/Component/ScoreUIComponent.hpp>
 
 #ifdef _DEBUG
 #include <Tsukino/EngineIntegration/ECS/System/DebugCameraSystem.hpp>
@@ -85,8 +89,8 @@ namespace Tsukino::Sandbox {
             Animation,
             HeightmapGeneration,
             Physics,
-            DotSpawn,    
-            DotEat,      
+            DotSpawn,
+            DotEat,
             DirectionalLightSystem,
             SkyAtmosphere,
 #ifdef _DEBUG
@@ -95,8 +99,9 @@ namespace Tsukino::Sandbox {
             GameCamera,
             Camera,
             PlayerMovement,
-            Font,
+            Timer,
             Render,
+            Font,
             Audio,
         };
 
@@ -115,6 +120,7 @@ namespace Tsukino::Sandbox {
         m_scene.AddSystem(std::make_shared<WaterGame::ECS::GameCameraSystem>(), (int)SystemPriority::GameCamera);
         m_scene.AddSystem(std::make_shared<Tsukino::BuiltIn::ECS::CameraSystem>(), (int)SystemPriority::Camera);
         m_scene.AddSystem(std::make_shared<WaterGame::ECS::PlayerMovementSystem>(), (int)SystemPriority::PlayerMovement);
+        m_scene.AddSystem(std::make_shared<WaterGame::ECS::TimerSystem>(eventBus), (int)SystemPriority::Timer);
         m_scene.AddSystem(std::make_shared<Tsukino::BuiltIn::ECS::FontRendererSystem>(), (int)SystemPriority::Font);
         m_scene.AddSystem(std::make_shared<Tsukino::BuiltIn::ECS::SpriteRenderSystem>(), (int)SystemPriority::Render);
         m_scene.AddSystem(std::make_shared<Tsukino::BuiltIn::ECS::ModelSystem>(), (int)SystemPriority::Render);
@@ -149,12 +155,12 @@ namespace Tsukino::Sandbox {
             collision.type                                       = Tsukino::BuiltIn::ECS::ColliderType::Heightfield;
             collision.isSensor                                   = false;    // 衝突判定を有効にする
 
-            Tsukino::BuiltIn::ECS::TerrainGenerationRequestComponent& req =
-                registry.AddComponent<Tsukino::BuiltIn::ECS::TerrainGenerationRequestComponent>(groundEntity);
-            req.amplitude      = 15.0f;
-            req.noiseFrequency = 0.08f;
-            req.seed           = 12345;
-            req.noiseType      = Tsukino::BuiltIn::ECS::TerrainNoiseType::Noise;
+            //Tsukino::BuiltIn::ECS::TerrainGenerationRequestComponent& req =
+            //    registry.AddComponent<Tsukino::BuiltIn::ECS::TerrainGenerationRequestComponent>(groundEntity);
+            //req.amplitude      = 15.0f;
+            //req.noiseFrequency = 0.08f;
+            //req.seed           = 12345;
+            //req.noiseType      = Tsukino::BuiltIn::ECS::TerrainNoiseType::Noise;
 
             // RBをつける
             Tsukino::BuiltIn::ECS::RigidbodyComponent& rb = registry.AddComponent<Tsukino::BuiltIn::ECS::RigidbodyComponent>(groundEntity);
@@ -208,6 +214,7 @@ namespace Tsukino::Sandbox {
             spawner.areaHalfSize               = 500.0f;    // 地形の実際の範囲に合わせて調整
             spawner.heightOffset               = 20.0f;
         }
+
         //--------------------------------------------------------------
         // 2Dカメラエンティティの生成
         //--------------------------------------------------------------
@@ -285,6 +292,40 @@ namespace Tsukino::Sandbox {
         {
             Tsukino::ECS::Entity skyEntity = m_scene.CreateEntity();
             registry.AddComponent<Tsukino::BuiltIn::ECS::SkyAtmosphereComponent>(skyEntity);
+        }
+
+        //--------------------------------------------------------------
+        // タイマーエンティティの生成
+        //--------------------------------------------------------------
+        {
+            Tsukino::ECS::Entity timerEntity = m_scene.CreateEntity();
+            auto&                timer       = registry.AddComponent<WaterGame::ECS::TimerComponent>(timerEntity);
+            timer.duration                   = 30.0f;
+            timer.remainingTime              = 30.0f;    // durationと同じ値で初期化
+        }
+
+        //--------------------------------------------------------------
+        // UIエンティティの生成
+        //--------------------------------------------------------------
+        //--------------------------------------------------------------
+        // タイムUI
+        //--------------------------------------------------------------
+        {
+            Tsukino::ECS::Entity timeUIEntity = m_scene.CreateEntity();
+            // TransformComponent の追加と初期化
+            Tsukino::BuiltIn::ECS::TransformComponent& timeUITransform = registry.AddComponent<Tsukino::BuiltIn::ECS::TransformComponent>(timeUIEntity);
+            timeUITransform.position                                   = hlslpp::float3(0.0f, 0.0f, 0.0f);
+            timeUITransform.rotation                                   = hlslpp::quaternion(0.0f, 0.0f, 0.0f, 1.0f);
+            timeUITransform.scale                                      = hlslpp::float3(1.0f, 1.0f, 1.0f);
+            timeUITransform.dirty                                      = true;
+            timeUITransform.parent                                     = entt::null;
+            // FontComponent の追加と初期化
+            Tsukino::BuiltIn::ECS::FontComponent& fontComp = registry.AddComponent<Tsukino::BuiltIn::ECS::FontComponent>(timeUIEntity);
+            fontComp.text                                  = L"Time: 00:00";
+            fontComp.color = hlslpp::float4(1.0f, 1.0f, 1.0f, 1.0f);    // 白色
+
+            // タイムUIコンポーネントの追加
+            registry.AddComponent<WaterGame::ECS::TimeUIComponent>(timeUIEntity);
         }
     }
 
