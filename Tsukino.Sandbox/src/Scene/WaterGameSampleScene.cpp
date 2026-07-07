@@ -166,9 +166,6 @@ namespace Tsukino::Sandbox {
             // RBをつける
             Tsukino::BuiltIn::ECS::RigidbodyComponent& rb = registry.AddComponent<Tsukino::BuiltIn::ECS::RigidbodyComponent>(groundEntity);
             rb.type                                       = Tsukino::BuiltIn::ECS::RigidbodyType::Static;
-            rb.freezeRotationX                            = false;
-            rb.freezeRotationY                            = false;
-            rb.freezeRotationZ                            = false;
         }
 
         //--------------------------------------------------------------
@@ -200,6 +197,10 @@ namespace Tsukino::Sandbox {
             ballRb.type                                       = Tsukino::BuiltIn::ECS::RigidbodyType::Dynamic;
             ballRb.mass                                       = 10.0f;
             ballRb.gravityFactor                              = 10.0f;
+
+                        ballRb.freezeRotationX = false;
+            ballRb.freezeRotationY = false;
+                        ballRb.freezeRotationZ = false;
         }
 
         // PlayerMovementComponent の追加
