@@ -7,10 +7,13 @@
 
 #include <Tsukino/Sandbox/WaterGameSample/ECS/System/GameCameraSystem.hpp>
 #include <Tsukino/Sandbox/WaterGameSample/ECS/System/PlayerMovementSystem.hpp>
+#include <Tsukino/Sandbox/WaterGameSample/ECS/System/DotSpawnSystem.hpp>
+#include <Tsukino/Sandbox/WaterGameSample/ECS/System/DotEatSystem.hpp>
 
 #include <Tsukino/Sandbox/WaterGameSample/ECS/Component/GameCameraComponent.hpp>
 #include <Tsukino/Sandbox/WaterGameSample/ECS/Component/PlayerMovementComponent.hpp>
-
+#include <Tsukino/Sandbox/WaterGameSample/ECS/Component/DotSpawnerComponenet.hpp>
+#include <Tsukino/Sandbox/WaterGameSample/ECS/Component/DotComponenet.hpp>
 
 #ifdef _DEBUG
 #include <Tsukino/EngineIntegration/ECS/System/DebugCameraSystem.hpp>
@@ -82,6 +85,8 @@ namespace Tsukino::Sandbox {
             Animation,
             HeightmapGeneration,
             Physics,
+            DotSpawn,    
+            DotEat,      
             DirectionalLightSystem,
             SkyAtmosphere,
 #ifdef _DEBUG
@@ -100,6 +105,8 @@ namespace Tsukino::Sandbox {
         m_scene.AddSystem(std::make_shared<Tsukino::BuiltIn::ECS::AnimationSystem>(), (int)SystemPriority::Animation);
         m_scene.AddSystem(std::make_shared<Tsukino::BuiltIn::ECS::HeightmapGenerationSystem>(), (int)SystemPriority::HeightmapGeneration);
         m_scene.AddSystem(std::make_shared<Tsukino::BuiltIn::ECS::PhysicsSystem>(eventBus), (int)SystemPriority::Physics);
+        m_scene.AddSystem(std::make_shared<WaterGame::ECS::DotSpawnSystem>(), (int)SystemPriority::DotSpawn);
+        m_scene.AddSystem(std::make_shared<WaterGame::ECS::DotEatSystem>(eventBus), (int)SystemPriority::DotEat);
         m_scene.AddSystem(std::make_shared<Tsukino::BuiltIn::ECS::DirectionalLightSystem>(), (int)SystemPriority::DirectionalLightSystem);
         m_scene.AddSystem(std::make_shared<Tsukino::BuiltIn::ECS::SkyAtmosphereSystem>(), (int)SystemPriority::SkyAtmosphere);
 #ifdef _DEBUG
@@ -152,10 +159,9 @@ namespace Tsukino::Sandbox {
             // RBをつける
             Tsukino::BuiltIn::ECS::RigidbodyComponent& rb = registry.AddComponent<Tsukino::BuiltIn::ECS::RigidbodyComponent>(groundEntity);
             rb.type                                       = Tsukino::BuiltIn::ECS::RigidbodyType::Static;
-            rb.freezeRotationX                             = false;
-            rb.freezeRotationY                             = false;
-            rb.freezeRotationZ                             = false;
-            rb.gravityFactor                               = 100.0f;    // 重力を強めにする
+            rb.freezeRotationX                            = false;
+            rb.freezeRotationY                            = false;
+            rb.freezeRotationZ                            = false;
         }
 
         //--------------------------------------------------------------
@@ -185,11 +191,23 @@ namespace Tsukino::Sandbox {
             // RBをつける
             Tsukino::BuiltIn::ECS::RigidbodyComponent& ballRb = registry.AddComponent<Tsukino::BuiltIn::ECS::RigidbodyComponent>(ballEntity);
             ballRb.type                                       = Tsukino::BuiltIn::ECS::RigidbodyType::Dynamic;
+            ballRb.mass                                       = 10.0f;
+            ballRb.gravityFactor                              = 10.0f;
         }
 
-         // PlayerMovementComponent の追加
+        // PlayerMovementComponent の追加
         WaterGame::ECS::PlayerMovementComponent& playerMove = registry.AddComponent<WaterGame::ECS::PlayerMovementComponent>(ballEntity);
 
+        //--------------------------------------------------------------
+        // ドットエンティティ(ターゲット)
+        //--------------------------------------------------------------
+        {
+            Tsukino::ECS::Entity spawnerEntity = m_scene.CreateEntity();
+            auto&                spawner       = registry.AddComponent<WaterGame::ECS::DotSpawnerComponent>(spawnerEntity);
+            spawner.dotCount                   = 50;
+            spawner.areaHalfSize               = 500.0f;    // 地形の実際の範囲に合わせて調整
+            spawner.heightOffset               = 20.0f;
+        }
         //--------------------------------------------------------------
         // 2Dカメラエンティティの生成
         //--------------------------------------------------------------
@@ -214,7 +232,7 @@ namespace Tsukino::Sandbox {
             //--------------------------------------------------------------
             // 3Dカメラエンティティの生成
             //--------------------------------------------------------------
-            const std::string                       prefabPath = "Tsukino.Sandbox/Assets/WaterGameSample/Prefabs/3DCamera/Prefab.json";
+            const std::string                       prefabPath   = "Tsukino.Sandbox/Assets/WaterGameSample/Prefabs/3DCamera/Prefab.json";
             entt::entity                            cameraEntity = context->prefabFactory->Instantiate(prefabPath, registry);
             Tsukino::BuiltIn::ECS::CameraComponent& cam =
                 registry.GetComponent<Tsukino::BuiltIn::ECS::CameraComponent>(cameraEntity);    // これをメインカメラにする

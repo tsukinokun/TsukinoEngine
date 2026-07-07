@@ -9,6 +9,8 @@
 #include <Jolt/Jolt.h>
 #include <Jolt/Physics/Body/BodyID.h>
 #include <DirectXMath.h>
+
+#include <hlsl++.h>
 // 名前空間 : Tsukino::BuiltIn::ECS
 namespace Tsukino::BuiltIn::ECS {
     //-------------------------------------------------------------------------
