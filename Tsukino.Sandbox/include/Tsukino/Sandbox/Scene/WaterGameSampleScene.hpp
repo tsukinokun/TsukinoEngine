@@ -41,5 +41,16 @@ namespace Tsukino::Sandbox {
         //! @param  api [in] エンジンから提供されるAPIへの参照
         //-------------------------------------------------------------
         void OnInitialize(Tsukino::EngineIntegration::EngineAPI& api) override;
+
+    private:
+        //-------------------------------------------------------------
+        //! @enum class GameState
+        //-------------------------------------------------------------
+        enum class GameState {
+            Playing,    //!< プレイ中
+            TimeUp      //!< 時間切れ。スペースキー待機中
+        };
+
+        GameState m_gameState = GameState::Playing;    //!< ゲームの状態
     };
 }    // namespace Tsukino::Sandbox
