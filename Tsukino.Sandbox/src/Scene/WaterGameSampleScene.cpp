@@ -19,6 +19,7 @@
 #include <Tsukino/Sandbox/WaterGameSample/ECS/Component/TimerComponent.hpp>
 #include <Tsukino/Sandbox/WaterGameSample/ECS/Component/TimeUIComponent.hpp>
 #include <Tsukino/Sandbox/WaterGameSample/ECS/Component/ScoreUIComponent.hpp>
+#include <Tsukino/Sandbox/WaterGameSample/ECS/Component/NaviUIComponent.hpp>
 
 #ifdef _DEBUG
 #include <Tsukino/EngineIntegration/ECS/System/DebugCameraSystem.hpp>
@@ -394,6 +395,26 @@ namespace Tsukino::Sandbox {
             // スコアUIコンポーネントの追加
             registry.AddComponent<WaterGame::ECS::ScoreUIComponent>(scoreUIEntity);
         }
+
+        //--------------------------------------------------------------
+        // ナビUI
+        //--------------------------------------------------------------
+        {
+            Tsukino::ECS::Entity navUIEntity = m_scene.CreateEntity();
+            // TransformComponent の追加と初期化
+            Tsukino::BuiltIn::ECS::TransformComponent& navUITransform = registry.AddComponent<Tsukino::BuiltIn::ECS::TransformComponent>(navUIEntity);
+            navUITransform.position                                   = hlslpp::float3(100.0f, 200.0f, 0.0f);
+            navUITransform.rotation                                   = hlslpp::quaternion(0.0f, 0.0f, 0.0f, 1.0f);
+            navUITransform.scale                                      = hlslpp::float3(1.0f, 1.0f, 1.0f);
+            navUITransform.dirty                                      = true;
+            navUITransform.parent                                     = entt::null;
+            // FontComponent の追加と初期化
+            Tsukino::BuiltIn::ECS::FontComponent& fontComp = registry.AddComponent<Tsukino::BuiltIn::ECS::FontComponent>(navUIEntity);
+            fontComp.text                                  = L"";
+            fontComp.color                                 = hlslpp::float4(1.0f, 1.0f, 1.0f, 1.0f);    // 白色
+            // ナビUIコンポーネントの追加
+            registry.AddComponent<WaterGame::ECS::NaviUIComponent>(navUIEntity);
+        }
     }
 
     //-------------------------------------------------------------
@@ -410,8 +431,28 @@ namespace Tsukino::Sandbox {
             for(auto entity : view) {
                 auto& timer = view.get<WaterGame::ECS::TimerComponent>(entity);
                 if(timer.isFinished) {
+                    //--------------------------------------------------------------
+                    // ナビUIにSpaceキーでリスタートする旨を表示
+                    //--------------------------------------------------------------
+                    auto naviView = m_scene.GetRegistry().View<WaterGame::ECS::NaviUIComponent>();
+
+                    for(auto naviEntity : naviView) {
+                        Tsukino::BuiltIn::ECS::FontComponent& naviUI = m_scene.GetRegistry().GetComponent<Tsukino::BuiltIn::ECS::FontComponent>(naviEntity);
+                        naviUI.text                                  = L"Time's up! Press Space to restart.";
+                    }
+
+                    //--------------------------------------------------------------
+                    // ボールの動きを止める
+                    //--------------------------------------------------------------
+                    auto playerView = m_scene.GetRegistry().View<WaterGame::ECS::PlayerMovementComponent>();
+                    for(auto playerEntity : playerView) {
+                        Tsukino::BuiltIn::ECS::RigidbodyComponent& rb =
+                            m_scene.GetRegistry().GetComponent<Tsukino::BuiltIn::ECS::RigidbodyComponent>(playerEntity);
+                        rb.type        = Tsukino::BuiltIn::ECS::RigidbodyType::Static;
+                        rb.isTypeDirty = true;
+                    }
+
                     m_gameState = GameState::TimeUp;
-                    Tsukino::Core::Log::Info("Time is up! Press Space to restart.");
                 }
             }
         } else if(m_gameState == GameState::TimeUp) {

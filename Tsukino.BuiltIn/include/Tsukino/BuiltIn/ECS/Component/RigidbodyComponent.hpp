@@ -53,5 +53,7 @@ namespace Tsukino::BuiltIn::ECS {
         bool freezeRotationX = true;    
         bool freezeRotationY = true;
         bool freezeRotationZ = true;
+
+        bool isFreezeDirty = false;    // freeze系フラグが変更されたか（DOFの再計算が必要）
     };
 }    // namespace Tsukino::BuiltIn::ECS

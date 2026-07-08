@@ -550,6 +550,71 @@ namespace Tsukino::BuiltIn::ECS {
         }
 
         //-------------------------------------------------------------
+        // Freezeフラグ（AllowedDOFs）の変更を反映
+        //-------------------------------------------------------------
+        for(auto entity : view) {
+            if(!registry.HasComponent<RigidbodyComponent>(entity))
+                continue;
+            auto& rb  = registry.GetComponent<RigidbodyComponent>(entity);
+            auto& col = registry.GetComponent<CollisionComponent>(entity);
+            if(!col.isInitialized)
+                continue;
+
+            if(!rb.isFreezeDirty)
+                continue;
+
+            JPH::EAllowedDOFs dofs = JPH::EAllowedDOFs::All;
+            if(rb.freezePositionX)
+                dofs &= ~JPH::EAllowedDOFs::TranslationX;
+            if(rb.freezePositionY)
+                dofs &= ~JPH::EAllowedDOFs::TranslationY;
+            if(rb.freezePositionZ)
+                dofs &= ~JPH::EAllowedDOFs::TranslationZ;
+            if(rb.freezeRotationX)
+                dofs &= ~JPH::EAllowedDOFs::RotationX;
+            if(rb.freezeRotationY)
+                dofs &= ~JPH::EAllowedDOFs::RotationY;
+            if(rb.freezeRotationZ)
+                dofs &= ~JPH::EAllowedDOFs::RotationZ;
+
+            // BodyLockWrite で MotionProperties を直接書き換える
+            JPH::BodyLockWrite lock(m_impl->physicsSystem->GetBodyLockInterface(), col.bodyID);
+            if(lock.Succeeded()) {
+                JPH::Body& body = lock.GetBody();
+                if(body.GetMotionType() == JPH::EMotionType::Dynamic) {
+                    JPH::MotionProperties* mp = body.GetMotionProperties();
+
+                    // 現在の質量を保ったままDOFのみ変更したいので、既存の質量から MassProperties を組み直す
+                    JPH::MassProperties massProps;
+                    massProps.mMass    = rb.mass;
+                    massProps.mInertia = mp->GetLocalSpaceInverseInertia().Inversed3x3();
+                    mp->SetMassProperties(dofs, massProps);
+
+                    // フリーズした軸の残存速度をゼロにしておく（急な巻き戻り防止）
+                    JPH::Vec3 lv = mp->GetLinearVelocity();
+                    JPH::Vec3 av = mp->GetAngularVelocity();
+                    if(rb.freezePositionX)
+                        lv.SetX(0.0f);
+                    if(rb.freezePositionY)
+                        lv.SetY(0.0f);
+                    if(rb.freezePositionZ)
+                        lv.SetZ(0.0f);
+                    if(rb.freezeRotationX)
+                        av.SetX(0.0f);
+                    if(rb.freezeRotationY)
+                        av.SetY(0.0f);
+                    if(rb.freezeRotationZ)
+                        av.SetZ(0.0f);
+                    mp->SetLinearVelocity(lv);
+                    mp->SetAngularVelocity(av);
+                }
+                // Static / Kinematic は mAllowedDOFs が実質意味を持たないため何もしない
+            }
+
+            rb.isFreezeDirty = false;
+        }
+
+        //-------------------------------------------------------------
         // Rigidbodyのforce/torqueを反映
         //-------------------------------------------------------------
         for(auto entity : view) {
