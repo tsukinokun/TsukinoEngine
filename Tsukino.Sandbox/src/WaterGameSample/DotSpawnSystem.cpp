@@ -82,7 +82,7 @@ namespace WaterGame::ECS {
             return;
 
         //-------------------------------------------------------------
-        // 1. 地形（Heightfield）のCollisionComponentを1つ探す
+        // 地形（Heightfield）のCollisionComponentを1つ探す
         //-------------------------------------------------------------
         const Tsukino::BuiltIn::ECS::CollisionComponent* terrainCol = nullptr;
 
@@ -99,7 +99,7 @@ namespace WaterGame::ECS {
             return;    // 地形データがまだ生成されていない（HeightmapGenerationSystem待ち）
 
         //-------------------------------------------------------------
-        // 2. スポーン処理
+        // スポーン処理
         //-------------------------------------------------------------
         auto spawnerView = registry.View<DotSpawnerComponent>();
 
@@ -108,7 +108,16 @@ namespace WaterGame::ECS {
                 return;
 
             std::mt19937                          rng(spawner.seed);
-            std::uniform_real_distribution<float> dist(-spawner.areaHalfSize, spawner.areaHalfSize);
+            // 形の範囲を考慮した動的な生成範囲にする
+            float minX = terrainCol->heightfieldOffset.x;
+            float maxX = minX + (float)(terrainCol->heightfieldSize - 1) * terrainCol->heightfieldScale.x;
+            float minZ = terrainCol->heightfieldOffset.z;
+            float maxZ = minZ + (float)(terrainCol->heightfieldSize - 1) * terrainCol->heightfieldScale.z;
+
+            // 原点を中心に広げたい場合は、地形の範囲と areaHalfSize の交差領域を使う
+            // あるいはシンプルに地形全域に生成するなら以下のようにします
+            std::uniform_real_distribution<float> distX(minX, maxX);
+            std::uniform_real_distribution<float> distZ(minZ, maxZ);
 
             int       spawnedCount = 0;
             int       attempts     = 0;
@@ -117,8 +126,8 @@ namespace WaterGame::ECS {
             while(spawnedCount < spawner.dotCount && attempts < maxAttempts) {
                 attempts++;
 
-                float worldX = dist(rng);
-                float worldZ = dist(rng);
+                float worldX = distX(rng);
+                float worldZ = distZ(rng);
 
                 float groundHeight = 0.0f;
                 if(!TryGetHeightFromHeightfield(*terrainCol, worldX, worldZ, groundHeight))
