@@ -15,7 +15,7 @@ namespace WaterGame::ECS {
     //-------------------------------------------------------------
     struct DotSpawnerComponent {
         int          dotCount     = 50;        //!< 生成するドットの数
-        float        areaHalfSize = 500.0f;    //!< スポーン範囲（原点中心の正方形の半辺長）※地形サイズに合わせて調整
+        float        areaHalfSize = 500.0f;    //!< スポーン範囲（原点中心の正方形の半辺長）
         float        heightOffset = 20.0f;     //!< 地形表面からの高さオフセット（ドットが浮いて見える分）
         float        dotRadius    = 15.0f;     //!< 見た目上の半径（EatSystemの当たり判定にも使用）
         unsigned int seed         = 777;       //!< 乱数シード

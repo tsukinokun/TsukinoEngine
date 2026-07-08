@@ -147,6 +147,14 @@ namespace Tsukino::BuiltIn::ECS {
                 const hlslpp::float3& v2 = vertices[indices[i + 2]];
 
                 auto hit = RayTriangleIntersectVertical(rayOrigin, rayLength, v0, v1, v2);
+
+                //if(hit.has_value()) {
+                //    Tsukino::Core::Log::Info("HIT SUCCESS: Y=" + std::to_string(*hit));
+                //} else {
+                //    // 最初の三角形にすら当たらないなら、レイの原点か向きが完全にズレている
+                //    Tsukino::Core::Log::Info("MISS: RayOrigin=(" + std::to_string(rayOrigin.x) + ")");
+                //}
+
                 if(hit.has_value()) {
                     if(!hitAny || *hit > bestHeight) {    // 複数ヒットしたら一番高い面を採用（地形の上面）
                         bestHeight = *hit;
@@ -241,14 +249,14 @@ namespace Tsukino::BuiltIn::ECS {
                 maxBound                = hlslpp::max(maxBound, meshMax);
                 totalVertexCount       += mesh.vertexCount;
 
-                std::string matName = "(不明)";
-                if(mesh.materialIndex < modelAsset->modelData.materials.size()) {
-                    matName = modelAsset->modelData.materials[mesh.materialIndex].name;
-                }
+                //std::string matName = "(不明)";
+                //if(mesh.materialIndex < modelAsset->modelData.materials.size()) {
+                //    matName = modelAsset->modelData.materials[mesh.materialIndex].name;
+                //}
 
-                Tsukino::Core::Log::Info("mesh materialIndex=" + std::to_string(mesh.materialIndex) + " materialName=" + matName
-                                         + " min.y=" + std::to_string(mesh.bounds.min.y) + " max.y=" + std::to_string(mesh.bounds.max.y)
-                                         + " min.z=" + std::to_string(mesh.bounds.min.z) + " max.z=" + std::to_string(mesh.bounds.max.z));
+                //Tsukino::Core::Log::Info("mesh materialIndex=" + std::to_string(mesh.materialIndex) + " materialName=" + matName
+                //                         + " min.y=" + std::to_string(mesh.bounds.min.y) + " max.y=" + std::to_string(mesh.bounds.max.y)
+                //                         + " min.z=" + std::to_string(mesh.bounds.min.z) + " max.z=" + std::to_string(mesh.bounds.max.z));
             }
 
             // Zはswapしてから反転する（Z軸の正方向が手前になるようにする）
@@ -274,6 +282,24 @@ namespace Tsukino::BuiltIn::ECS {
             float rayStartY = maxBound.y + 50.0f;
             float rayLength = (maxBound.y - minBound.y) + 100.0f;
 
+            // --- [診断用ログ追加] ---
+            // 1. バウンディングボックスの確認
+            Tsukino::Core::Log::Info("Bounds -> Min:(" + std::to_string(minBound.x) + ", " + std::to_string(minBound.y) + ", " + std::to_string(minBound.z)
+                                     + ")");
+            Tsukino::Core::Log::Info("Bounds -> Max:(" + std::to_string(maxBound.x) + ", " + std::to_string(maxBound.y) + ", " + std::to_string(maxBound.z)
+                                     + ")");
+
+            // 2. 頂点数の確認
+            Tsukino::Core::Log::Info("Collected Verts count: " + std::to_string(worldVerts.size()));
+
+            // 3. サンプリング統計の確認（ループ直前に追加）
+            uint32_t hitCount = 0;
+            // ... (サンプリングループの処理) ...
+            // ループ内の hitAny が true になる箇所で hitCount++;
+
+            Tsukino::Core::Log::Info("Sampling hit rate: " + std::to_string(hitCount) + " / " + std::to_string(size * size));
+            // ----------------------
+
             std::vector<float> samples(size * size);
             for(uint32_t z = 0; z < size; ++z) {
                 for(uint32_t x = 0; x < size; ++x) {
@@ -298,7 +324,7 @@ namespace Tsukino::BuiltIn::ECS {
             entitiesToRemoveRequest.push_back(entity);
         });
 
-        for(auto entity : entitiesToRemoveRequest) {    // ← 抜けていた削除処理
+        for(auto entity : entitiesToRemoveRequest) {   
             registry.RemoveComponent<TerrainGenerationRequestComponent>(entity);
         }
     }

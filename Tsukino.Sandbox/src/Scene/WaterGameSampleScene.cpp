@@ -133,7 +133,7 @@ namespace Tsukino::Sandbox {
         // ステージモデルの生成
         //--------------------------------------------------------------
         //--------------------------------------------------------------
-        // 地面エンティティの生成
+        // 地面エンティティ(見た目)の生成
         //--------------------------------------------------------------
         {
             Tsukino::ECS::Entity groundEntity = m_scene.CreateEntity();
@@ -150,6 +150,42 @@ namespace Tsukino::Sandbox {
             Tsukino::BuiltIn::ECS::ModelComponent& model = registry.AddComponent<Tsukino::BuiltIn::ECS::ModelComponent>(groundEntity);
             model.modelHandle = context->assetManager->Load(Tsukino::Core::Path("Tsukino.Sandbox/Assets/WaterGameSample/Models/Stage.fbx"));
             model.visible     = true;
+
+            //// CollisionComponent の追加
+            //Tsukino::BuiltIn::ECS::CollisionComponent& collision = registry.AddComponent<Tsukino::BuiltIn::ECS::CollisionComponent>(groundEntity);
+            //collision.type                                       = Tsukino::BuiltIn::ECS::ColliderType::Heightfield;
+            //collision.isSensor                                   = false;    // 衝突判定を有効にする
+
+            //Tsukino::BuiltIn::ECS::TerrainGenerationRequestComponent& req =
+            //    registry.AddComponent<Tsukino::BuiltIn::ECS::TerrainGenerationRequestComponent>(groundEntity);
+            //req.amplitude      = 15.0f;
+            //req.noiseFrequency = 0.08f;
+            //req.seed           = 12345;
+            //req.noiseType      = Tsukino::BuiltIn::ECS::TerrainNoiseType::Noise;
+
+            //// RBをつける
+            //Tsukino::BuiltIn::ECS::RigidbodyComponent& rb = registry.AddComponent<Tsukino::BuiltIn::ECS::RigidbodyComponent>(groundEntity);
+            //rb.type                                       = Tsukino::BuiltIn::ECS::RigidbodyType::Static;
+        }
+
+        //--------------------------------------------------------------
+        // 地面エンティティ(コリジョン)の生成
+        //--------------------------------------------------------------
+        {
+            Tsukino::ECS::Entity groundEntity = m_scene.CreateEntity();
+
+            // TransformComponent の追加と初期化
+            Tsukino::BuiltIn::ECS::TransformComponent& groundTransform = registry.AddComponent<Tsukino::BuiltIn::ECS::TransformComponent>(groundEntity);
+            groundTransform.position                                   = hlslpp::float3(0.0f, 0.0f, 0.0f);
+            groundTransform.rotation                                   = hlslpp::quaternion(0.0f, 0.0f, 0.0f, 1.0f);    // 無回転
+            groundTransform.scale                                      = hlslpp::float3(1.0f, 1.0f, 1.0f);              // 土台
+            groundTransform.dirty                                      = true;                                          // 初回計算のためフラグを立てる
+            groundTransform.parent                                     = entt::null;                                    // 親なし
+
+            // ModelComponent
+            Tsukino::BuiltIn::ECS::ModelComponent& model = registry.AddComponent<Tsukino::BuiltIn::ECS::ModelComponent>(groundEntity);
+            model.modelHandle = context->assetManager->Load(Tsukino::Core::Path("Tsukino.Sandbox/Assets/WaterGameSample/Models/StageCol.fbx"));
+            model.visible     = false;
 
             // CollisionComponent の追加
             Tsukino::BuiltIn::ECS::CollisionComponent& collision = registry.AddComponent<Tsukino::BuiltIn::ECS::CollisionComponent>(groundEntity);
@@ -198,9 +234,9 @@ namespace Tsukino::Sandbox {
             ballRb.mass                                       = 10.0f;
             ballRb.gravityFactor                              = 10.0f;
 
-                        ballRb.freezeRotationX = false;
+            ballRb.freezeRotationX = false;
             ballRb.freezeRotationY = false;
-                        ballRb.freezeRotationZ = false;
+            ballRb.freezeRotationZ = false;
         }
 
         // PlayerMovementComponent の追加
@@ -333,7 +369,7 @@ namespace Tsukino::Sandbox {
             // FontComponent の追加と初期化
             Tsukino::BuiltIn::ECS::FontComponent& fontComp = registry.AddComponent<Tsukino::BuiltIn::ECS::FontComponent>(timeUIEntity);
             fontComp.text                                  = L"Time: 00:00";
-            fontComp.color = hlslpp::float4(1.0f, 1.0f, 1.0f, 1.0f);    // 白色
+            fontComp.color                                 = hlslpp::float4(1.0f, 1.0f, 1.0f, 1.0f);    // 白色
 
             // タイムUIコンポーネントの追加
             registry.AddComponent<WaterGame::ECS::TimeUIComponent>(timeUIEntity);
@@ -354,7 +390,7 @@ namespace Tsukino::Sandbox {
             // FontComponent の追加と初期化
             Tsukino::BuiltIn::ECS::FontComponent& fontComp = registry.AddComponent<Tsukino::BuiltIn::ECS::FontComponent>(scoreUIEntity);
             fontComp.text                                  = L"Score: 0";
-            fontComp.color = hlslpp::float4(1.0f, 1.0f, 1.0f, 1.0f);    // 白色
+            fontComp.color                                 = hlslpp::float4(1.0f, 1.0f, 1.0f, 1.0f);    // 白色
             // スコアUIコンポーネントの追加
             registry.AddComponent<WaterGame::ECS::ScoreUIComponent>(scoreUIEntity);
         }

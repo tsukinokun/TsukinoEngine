@@ -17,7 +17,7 @@ namespace WaterGame::ECS {
     struct PlayerMovementComponent {
         entt::entity cameraEntity = entt::null;    //!< 向きの基準にするゲームカメラのエンティティ
 
-        float moveForce = 1000.0f;    //!< 1秒あたりに加える力の大きさ（質量・摩擦に応じて要調整）
+        float moveForce = 2000.0f;    //!< 1秒あたりに加える力の大きさ（質量・摩擦に応じて要調整）
         float torqueForce = 800.0f;    //!< 転がり回転用のトルク係数
     };
 
