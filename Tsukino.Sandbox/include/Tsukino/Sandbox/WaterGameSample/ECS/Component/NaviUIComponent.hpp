@@ -1,0 +1,18 @@
+﻿//-------------------------------------------------------------
+//! @file   NaviUIComponent.hpp
+//! @brief  ナビゲーションUI用コンポーネント
+//! @author 山﨑愛
+//-------------------------------------------------------------
+#pragma once
+
+// 名前空間 : WaterGame::ECS
+namespace WaterGame::ECS {
+
+    //-------------------------------------------------------------
+    //! @struct NaviUIComponent
+    //-------------------------------------------------------------
+    struct NaviUIComponent {
+        bool dummy = false;    //!< ダミー変数
+    };
+
+}    // namespace WaterGame::ECS
