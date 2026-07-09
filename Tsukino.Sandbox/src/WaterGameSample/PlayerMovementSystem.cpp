@@ -84,14 +84,6 @@ namespace WaterGame::ECS {
             // 力（毎フレーム加え続ける。deltaTimeは掛けない = F = m * a の"力"そのもの）
             //-------------------------------------------------------------
             rb.force = moveDir * move.moveForce;
-
-            //-------------------------------------------------------------
-            // トルク（回転軸 = up × moveDir）
-            //-------------------------------------------------------------
-            //hlslpp::float3 up(0.0f, 1.0f, 0.0f);
-            //hlslpp::float3 torqueAxis(up.y * moveDir.z - up.z * moveDir.y, up.z * moveDir.x - up.x * moveDir.z, up.x * moveDir.y - up.y * moveDir.x);
-
-            //rb.torque = torqueAxis * move.torqueForce;
         });
     }
 
