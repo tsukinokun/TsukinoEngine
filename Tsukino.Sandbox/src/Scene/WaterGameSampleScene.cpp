@@ -151,22 +151,6 @@ namespace Tsukino::Sandbox {
             Tsukino::BuiltIn::ECS::ModelComponent& model = registry.AddComponent<Tsukino::BuiltIn::ECS::ModelComponent>(groundEntity);
             model.modelHandle = context->assetManager->Load(Tsukino::Core::Path("Tsukino.Sandbox/Assets/WaterGameSample/Models/Stage.fbx"));
             model.visible     = true;
-
-            //// CollisionComponent の追加
-            //Tsukino::BuiltIn::ECS::CollisionComponent& collision = registry.AddComponent<Tsukino::BuiltIn::ECS::CollisionComponent>(groundEntity);
-            //collision.type                                       = Tsukino::BuiltIn::ECS::ColliderType::Heightfield;
-            //collision.isSensor                                   = false;    // 衝突判定を有効にする
-
-            //Tsukino::BuiltIn::ECS::TerrainGenerationRequestComponent& req =
-            //    registry.AddComponent<Tsukino::BuiltIn::ECS::TerrainGenerationRequestComponent>(groundEntity);
-            //req.amplitude      = 15.0f;
-            //req.noiseFrequency = 0.08f;
-            //req.seed           = 12345;
-            //req.noiseType      = Tsukino::BuiltIn::ECS::TerrainNoiseType::Noise;
-
-            //// RBをつける
-            //Tsukino::BuiltIn::ECS::RigidbodyComponent& rb = registry.AddComponent<Tsukino::BuiltIn::ECS::RigidbodyComponent>(groundEntity);
-            //rb.type                                       = Tsukino::BuiltIn::ECS::RigidbodyType::Static;
         }
 
         //--------------------------------------------------------------
@@ -203,6 +187,45 @@ namespace Tsukino::Sandbox {
             // RBをつける
             Tsukino::BuiltIn::ECS::RigidbodyComponent& rb = registry.AddComponent<Tsukino::BuiltIn::ECS::RigidbodyComponent>(groundEntity);
             rb.type                                       = Tsukino::BuiltIn::ECS::RigidbodyType::Static;
+        }
+
+        //--------------------------------------------------------------
+        // 壁エンティティの生成
+        //--------------------------------------------------------------
+        {
+            //--------------------------------------------------------------
+            // WallInfo構造体の定義
+            //--------------------------------------------------------------
+            struct WallInfo {
+                hlslpp::float3 position;
+                hlslpp::float3 extent;
+            };
+
+            std::array<WallInfo, 4> walls = {
+                {{hlslpp::float3(0.0f, 0.0f, 700.0f), hlslpp::float3(1500.0f, 500.0f, 1.0f)},
+                 {hlslpp::float3(0.0f, 0.0f, -1500.0f), hlslpp::float3(1500.0f, 500.0f, 1.0f)},
+                 {hlslpp::float3(1300.0f, 0.0f, 0.0f), hlslpp::float3(1.0f, 500.0f, 1500.0f)},
+                 {hlslpp::float3(-1500.0f, 0.0f, 0.0f), hlslpp::float3(1.0f, 500.0f, 1500.0f)}}
+            };
+
+            for(auto& wall : walls) {
+                Tsukino::ECS::Entity wallEntity = m_scene.CreateEntity();
+                // TransformComponent の追加と初期化
+                Tsukino::BuiltIn::ECS::TransformComponent& wallTransform = registry.AddComponent<Tsukino::BuiltIn::ECS::TransformComponent>(wallEntity);
+                wallTransform.position                                   = wall.position;
+                wallTransform.rotation                                   = hlslpp::quaternion(0.0f, 0.0f, 0.0f, 1.0f);    // 無回転
+                wallTransform.scale                                      = hlslpp::float3(1.0f, 1.0f, 1.0f);              // 土台
+                wallTransform.dirty                                      = true;                                          // 初回計算のためフラグを立てる
+                wallTransform.parent                                     = entt::null;                                    // 親なし
+                // CollisionComponent の追加
+                Tsukino::BuiltIn::ECS::CollisionComponent& collision = registry.AddComponent<Tsukino::BuiltIn::ECS::CollisionComponent>(wallEntity);
+                collision.type                                       = Tsukino::BuiltIn::ECS::ColliderType::Box;
+                collision.isSensor                                   = false;      // 衝突判定
+                collision.extent                                     = wall.extent; // 幅と高さを設定
+                // RBをつける
+                Tsukino::BuiltIn::ECS::RigidbodyComponent& rb = registry.AddComponent<Tsukino::BuiltIn::ECS::RigidbodyComponent>(wallEntity);
+                rb.type                                       = Tsukino::BuiltIn::ECS::RigidbodyType::Static;
+            }
         }
 
         //--------------------------------------------------------------
