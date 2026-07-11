@@ -5,6 +5,19 @@
 //--------------------------------------------------------------
 #pragma pack_matrix(row_major)
 
+//--------------------------------------------------------------
+//! @brief ACESトーンマッピング
+//--------------------------------------------------------------
+float3 ACES(float3 x)
+{
+    float a = 2.51f;
+    float b = 0.03f;
+    float c = 2.43f;
+    float d = 0.59f;
+    float e = 0.14f;
+    return saturate((x * (a * x + b)) / (x * (c * x + d) + e));
+}
+
 // 円周率を定義
 static const float PI = 3.14159265358979323846f;
 
@@ -70,6 +83,7 @@ struct PSInput
     float3 normal : NORMAL;
     float2 uv : TEXCOORD0;
 };
+
 //--------------------------------------------------------------
 //! @brief PCFシャドウサンプリング
 //! @return 遮蔽量 0.0f(暗) - 1.0f(明)
@@ -170,7 +184,7 @@ float4 PSMain(PSInput input) : SV_TARGET
     // テクスチャがない場合はCBufferMaterialの定数値で代用
     //----------------------------------------------------------
     float4 albedoSample = albedoTexture.Sample(albedoSampler, input.uv);
-    float3 albedo = albedoSample.rgb * baseColor.rgb; // テクスチャ × 定数色
+    float3 albedo = ACES(albedoSample.rgb * baseColor.rgb); // テクスチャ × 定数色
     float met = metallic;
     float rough = max(roughness, 0.15f); // 0に近いと分母が発散するので下限を設ける
 
