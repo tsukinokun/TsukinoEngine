@@ -22,6 +22,9 @@
 #include <Tsukino/EngineIntegration/ECS/System/PhysicsSystem.hpp>
 #include <Tsukino/EngineIntegration/ECS/System/ModelSystem.hpp>
 #include <Tsukino/EngineIntegration/ECS/System/AnimationSystem.hpp>
+#include <Tsukino/EngineIntegration/ECS/System/DirectionalLightSystem.hpp>
+#include <Tsukino/EngineIntegration/ECS/System/SkyAtmosphereSystem.hpp>
+#include <Tsukino/EngineIntegration/ECS/System/DebugCameraSystem.hpp>
 
 #include <Tsukino/BuiltIn/ECS/Component/TransformComponent.hpp>
 #include <Tsukino/BuiltIn/ECS/Component/CameraComponent.hpp>
@@ -33,6 +36,9 @@
 #include <Tsukino/BuiltIn/ECS/Component/SkeletonOutputComponent.hpp>
 #include <Tsukino/BuiltIn/ECS/Component/CollisionComponent.hpp>
 #include <Tsukino/BuiltIn/ECS/Component/RigidBodyComponent.hpp>
+#include <Tsukino/BuiltIn/ECS/Component/AnimationControllerComponent.hpp>
+#include <Tsukino/BuiltIn/ECS/Component/DirectionalLightComponent.hpp>
+#include <Tsukino/BuiltIn/ECS/Component/SkyAtmosphereComponent.hpp>
 
 #include <Tsukino/BuiltIn/ECS/Serialization/TransformComponentSerialization.hpp>
 #include <Tsukino/BuiltIn/ECS/Serialization/CameraComponentSerialization.hpp>
@@ -78,6 +84,14 @@ namespace Tsukino::Sandbox {
         m_scene.AddSystem(std::make_shared<Tsukino::BuiltIn::ECS::AudioSystem>(), 11);
         // コリジョンの更新は最後に行う (優先度 12)
         m_scene.AddSystem(std::make_shared<Tsukino::BuiltIn::ECS::PhysicsSystem>(eventBus), 12);
+        // ライトの更新 (優先度 13)
+        m_scene.AddSystem(std::make_shared<Tsukino::BuiltIn::ECS::DirectionalLightSystem>(), 13);
+        // スカイアトモスフィアの更新 (優先度 14)
+        m_scene.AddSystem(std::make_shared<Tsukino::BuiltIn::ECS::SkyAtmosphereSystem>(), 14);
+#ifdef _DEBUG
+        // デバッグカメラの更新 (優先度 15)
+        m_scene.AddSystem(std::make_shared<Tsukino::BuiltIn::ECS::DebugCameraSystem>(), 15);
+#endif
 
         //--------------------------------------------------------------
         // アセットのロード
@@ -86,9 +100,9 @@ namespace Tsukino::Sandbox {
 
         Tsukino::Asset::AssetHandle audioHandle = context->assetManager->Load(Tsukino::Core::Path("Tsukino.Sandbox/Assets/Sounds/cat1.wav"));
 
-        Tsukino::Asset::AssetHandle modelHandle = context->assetManager->Load(Tsukino::Core::Path("Tsukino.Sandbox/Assets/Models/Arissa.fbx"));
+        Tsukino::Asset::AssetHandle modelHandle = context->assetManager->Load(Tsukino::Core::Path("Tsukino.Sandbox/Assets/Models/Maria WProp J J Ong.fbx"));
 
-        Tsukino::Asset::AssetHandle animationHandle = context->assetManager->Load(Tsukino::Core::Path("Tsukino.Sandbox/Assets/Anims/Typing.fbx"));
+        Tsukino::Asset::AssetHandle animationHandle = context->assetManager->Load(Tsukino::Core::Path("Tsukino.Sandbox/Assets/Anims/RunTest.fbx"));
 
         Tsukino::ECS::Registry& registry = m_scene.GetRegistry();
 
@@ -189,7 +203,7 @@ namespace Tsukino::Sandbox {
         Tsukino::BuiltIn::ECS::CameraComponent& camera2D = registry.AddComponent<Tsukino::BuiltIn::ECS::CameraComponent>(cameraEntity2D);
         camera2D.projectionType                          = Tsukino::BuiltIn::ECS::CameraComponent::ProjectionType::Orthographic;
         camera2D.orthoSize                               = 1000.0f;    // 画面の縦幅を 720 ユニットにする
-        camera2D.isPrimary                               = false;     // これをメインカメラにしない
+        camera2D.isPrimary                               = false;      // これをメインカメラにしない
 
         //--------------------------------------------------------------
         //! @brief     PrefabFactory のテスト：PrefabのJSONから3Dカメラエンティティを生成してみる
@@ -259,6 +273,25 @@ namespace Tsukino::Sandbox {
         //}
 
         //Tsukino::Core::Log::Info("=== [PrefabFactory] Instantiate Test End ===");
+
+        //--------------------------------------------------------------
+        // ディレクショナルライトエンティティの生成
+        //--------------------------------------------------------------
+        {
+            Tsukino::ECS::Entity                              lightEntity = m_scene.CreateEntity();
+            Tsukino::BuiltIn::ECS::DirectionalLightComponent& light = registry.AddComponent<Tsukino::BuiltIn::ECS::DirectionalLightComponent>(lightEntity);
+            light.direction                                         = hlslpp::float3(0.0f, -1.0f, -1.0f);    // 斜め上から照らす
+            light.color                                             = hlslpp::float3(1.0f, 1.0f, 1.0f);
+            light.intensity                                               = 5.0f;
+            light.castShadow                                              = true;
+        }
+        //--------------------------------------------------------------
+        // エンティティ生成（ディレクショナルライトと同じエンティティでもOK）
+        //--------------------------------------------------------------
+        {
+            Tsukino::ECS::Entity skyEntity = m_scene.CreateEntity();
+            registry.AddComponent<Tsukino::BuiltIn::ECS::SkyAtmosphereComponent>(skyEntity);
+        }
     }
 
     //-------------------------------------------------------------
