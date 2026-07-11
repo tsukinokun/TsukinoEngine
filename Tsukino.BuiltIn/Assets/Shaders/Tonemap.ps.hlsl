@@ -41,7 +41,7 @@ float4 PSMain(PSInput input) : SV_TARGET
     float4 hdrColor = hdrTexture.Sample(hdrSampler, uv);
 
     // ACESトーンマッピング（RGBのみ）
-    float3 ldrColor = ACES(hdrColor.rgb);
+    float3 ldrColor = ACES(hdrColor.rgb * 0.6);
 
     // Premultiplied Alpha: RGBにアルファを乗算してから返す
     return float4(ldrColor * hdrColor.a, hdrColor.a);
