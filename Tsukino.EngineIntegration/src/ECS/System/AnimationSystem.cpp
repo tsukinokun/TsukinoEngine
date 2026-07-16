@@ -285,16 +285,29 @@ namespace Tsukino::BuiltIn::ECS {
                         springBone.chains.clear();
 
                         for(const auto& def : springBone.chainDefs) {
-                            auto anchorIt = nameToIndex.find(def.anchorNodeName);
-                            if(anchorIt == nameToIndex.end()) {
-                                Tsukino::Core::Log::Error("SpringBone: anchor node not found: " + def.anchorNodeName);
-                                continue;
-                            }
-
                             std::unordered_set<std::string> excludeSet(def.excludeNodeNames.begin(), def.excludeNodeNames.end());
 
-                            auto chain = Tsukino::Physics::SpringBonePhysics::BuildChainFromHierarchy(
-                                def.name, anchorIt->second, modelAss->modelData.nodes, excludeSet, def.maxDepth, def.settings);
+                            Tsukino::Physics::SpringBoneChain chain;
+
+                            if(!def.rootNodeName.empty()) {
+                                // 特定の1本から始める（兄弟を巻き込まない）
+                                auto rootIt = nameToIndex.find(def.rootNodeName);
+                                if(rootIt == nameToIndex.end()) {
+                                    Tsukino::Core::Log::Error("SpringBone: root node not found: " + def.rootNodeName);
+                                    continue;
+                                }
+                                chain = Tsukino::Physics::SpringBonePhysics::BuildChainFromRoot(
+                                    def.name, rootIt->second, modelAss->modelData.nodes, excludeSet, def.maxDepth, def.settings);
+                            } else {
+                                // アンカーの子孫を全部揺らす（髪など）
+                                auto anchorIt = nameToIndex.find(def.anchorNodeName);
+                                if(anchorIt == nameToIndex.end()) {
+                                    Tsukino::Core::Log::Error("SpringBone: anchor node not found: " + def.anchorNodeName);
+                                    continue;
+                                }
+                                chain = Tsukino::Physics::SpringBonePhysics::BuildChainFromHierarchy(
+                                    def.name, anchorIt->second, modelAss->modelData.nodes, excludeSet, def.maxDepth, def.settings);
+                            }
 
                             for(const auto& colliderDef : def.colliders) {
                                 Tsukino::Physics::SpringColliderSphere collider;
@@ -315,6 +328,22 @@ namespace Tsukino::BuiltIn::ECS {
                         }
 
                         springBone.resolved = true;
+
+                        //---------------------------------------------------------
+                        // 【一度だけ】チェーン構築結果のサマリ。
+                        // ここで各ノードの実名・親・restLengthが分かる。
+                        //---------------------------------------------------------
+                        for(const auto& chain : springBone.chains) {
+                            const std::string anchorName =
+                                (chain.anchorNodeIndex < modelAss->modelData.nodes.size()) ? modelAss->modelData.nodes[chain.anchorNodeIndex].name : "(none)";
+                            Tsukino::Core::Log::Info("SpringBone chain '" + chain.name + "' resolved: " + std::to_string(chain.nodes.size())
+                                                     + " nodes, anchor=" + std::to_string(chain.anchorNodeIndex) + " (" + anchorName + ")");
+                            for(const auto& n : chain.nodes) {
+                                const auto& nd = modelAss->modelData.nodes[n.nodeIndex];
+                                Tsukino::Core::Log::Info("  node=" + std::to_string(n.nodeIndex) + " (" + nd.name + ")"
+                                                         + " parentIndex=" + std::to_string(nd.parentIndex) + " restLength=" + std::to_string(n.restLength));
+                            }
+                        }
                     }
 
                     // 毎フレーム更新して、対象ノードのglobalNodeMatricesを上書き
@@ -331,7 +360,7 @@ namespace Tsukino::BuiltIn::ECS {
                         }
                     }
 
-                     //---------------------------------------------------------
+                    //---------------------------------------------------------
                     // 【毎フレーム、間引き】Jiggle(揺れ)の数値デバッグ。
                     // - pos          : 物理適用後の実座標(world)。これが時間で
                     //                  変化していれば「動いている」証拠。

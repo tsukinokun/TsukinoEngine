@@ -1,7 +1,7 @@
 ﻿//-------------------------------------------------------------
 //! @file   SpringBoneComponent.hpp
 //! @brief  SpringBoneComponentクラスの宣言
-//! @author 山﨑 愛
+//! @author 山﨑愛
 //-------------------------------------------------------------
 #pragma once
 #include <Tsukino/Engine/Physics/SpringBone/SpringBoneData.hpp>
@@ -31,8 +31,10 @@ namespace Tsukino::BuiltIn::ECS {
         //! @brief  1本の揺れ物チェーンの定義（ノードは名前で指定）
         //-------------------------------------------------------------
         struct ChainDef {
-            std::string                          name;
-            std::string                          anchorNodeName;
+            std::string name;
+            std::string anchorNodeName;    // BuildChainFromHierarchy用：この子孫を全部揺らす（例：髪）
+            std::string rootNodeName;      // BuildChainFromRoot用：このボーン自身から揺らす、兄弟は巻き込まない（例：胸）
+                                           // ※ rootNodeNameが空でなければこちらを優先し、anchorNodeNameは無視する
             std::vector<std::string>             excludeNodeNames;
             u32                                  maxDepth = 0;
             Tsukino::Physics::SpringBoneSettings settings;

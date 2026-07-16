@@ -192,14 +192,25 @@ namespace Tsukino::Sandbox {
 
         Tsukino::BuiltIn::ECS::SpringBoneComponent::ChainDef breastL;
         breastL.name                   = "Breast_L";
-        breastL.anchorNodeName         = "L_breast_01";    // Breast_Lの親ノード名に置き換えてください
-        breastL.maxDepth               = 1;           // Spine2の直接の子だけを対象に（他の子がいても1階層目全部拾うので注意）
-        breastL.settings.stiffness     = 0.0f;     // アニメ位置に戻す力を完全に切る
-        breastL.settings.drag          = 0.02f;    // ほぼ減衰なし
-        breastL.settings.inertia       = 0.0f;     // キャラの動きの影響も受けず、自由落下寄りに
-        breastL.settings.gravityScale  = 10000000.0f;    // 前回の「極端テスト」と同じ考え方
-        breastL.settings.angleLimitDeg = 0.0f;     // 角度制限も切って、動ける限り動かす
+        breastL.rootNodeName           = "L_breast_01";
+        breastL.maxDepth               = 1;
+        breastL.settings.stiffness     = 0.4f;     // リアル(0.55)より少し柔らかく、揺れ幅を出す
+        breastL.settings.drag          = 0.13f;    // 収まりをやや長めに（2〜3往復くらい残る）
+        breastL.settings.inertia       = 0.45f;    // 体の動きに対して、わずかに「置いていかれる」感を演出
+        breastL.settings.gravityScale  = 1.0f;
+        breastL.settings.angleLimitDeg = 26.0f;     
         springBone.chainDefs.push_back(breastL);
+
+        Tsukino::BuiltIn::ECS::SpringBoneComponent::ChainDef breastR;
+        breastR.name                   = "Breast_R";
+        breastR.rootNodeName           = "R_breast_01";
+        breastR.maxDepth               = 1;
+        breastR.settings.stiffness     = 0.4f;
+        breastR.settings.drag          = 0.13f;
+        breastR.settings.inertia       = 0.45f;
+        breastR.settings.gravityScale  = 1.0f;
+        breastR.settings.angleLimitDeg = 26.0f;   
+        springBone.chainDefs.push_back(breastR);
 
         // 計算されたボーン行列の出力先（スキニング用）コンポーネント
         Tsukino::BuiltIn::ECS::SkeletonOutputComponent& skeletonOutput = registry.AddComponent<Tsukino::BuiltIn::ECS::SkeletonOutputComponent>(modelEntity);
