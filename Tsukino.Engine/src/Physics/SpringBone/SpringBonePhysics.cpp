@@ -68,6 +68,52 @@ namespace Tsukino::Physics::SpringBonePhysics {
     }
 
     //--------------------------------------------------------------
+    //! @brief 特定の1本のボーン(rootNodeIndex)を起点にチェーンを構築する。
+    //--------------------------------------------------------------
+    SpringBoneChain BuildChainFromRoot(const std::string&                           name,
+                                       u32                                          rootNodeIndex,
+                                       const std::vector<GraphicsCommon::NodeData>& nodes,
+                                       const std::unordered_set<std::string>&       excludeNodeNames,
+                                       u32                                          maxDepth,
+                                       const SpringBoneSettings&                    settings) {
+        SpringBoneChain chain;
+        chain.name = name;
+
+        if(rootNodeIndex >= nodes.size()) {
+            Tsukino::Core::Log::Error("SpringBonePhysics: invalid root node for chain '" + name + "'");
+            return chain;
+        }
+
+        // rootNodeIndex自身の親を「動かないアンカー」として使う。
+        // BuildChainFromHierarchyと違い、アンカーの他の子（兄弟）は一切辿らない。
+        chain.anchorNodeIndex = nodes[rootNodeIndex].parentIndex;
+        chain.settings        = settings;
+
+        // DFSでrootNodeIndex自身とその子孫を辿る（rootNodeIndex自身も対象に含める）。
+        std::function<void(u32, i32, u32)> Visit = [&](u32 nodeIndex, i32 parentIndexInChain, u32 depth) {
+            if(maxDepth != 0 && depth > maxDepth) {
+                return;
+            }
+            if(excludeNodeNames.count(nodes[nodeIndex].name) > 0) {
+                return;
+            }
+
+            SpringBoneNode n;
+            n.nodeIndex          = nodeIndex;
+            n.parentIndexInChain = parentIndexInChain;
+            chain.nodes.push_back(n);
+            i32 myIndexInChain = static_cast<i32>(chain.nodes.size() - 1);
+
+            for(u32 childIndex : nodes[nodeIndex].childIndices) {
+                Visit(childIndex, myIndexInChain, depth + 1);
+            }
+        };
+
+        Visit(rootNodeIndex, -1, 1);
+        return chain;
+    }
+
+    //--------------------------------------------------------------
     //! @brief  揺れ物チェーンの初期化
     //--------------------------------------------------------------
     void InitializeChain(SpringBoneChain& chain, const std::vector<WorldPose>& animatedPoses) {

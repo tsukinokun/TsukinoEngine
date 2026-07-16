@@ -30,6 +30,27 @@ namespace Tsukino::Physics::SpringBonePhysics {
                                             const SpringBoneSettings&                    settings);
 
     //--------------------------------------------------------------
+    //! @brief  特定の1本のボーン(rootNodeIndex)を起点にチェーンを構築する。
+    //!         その親を「動かないアンカー」として自動的に使うが、
+    //!         アンカーの他の子（兄弟ボーン）は一切巻き込まない。
+    //!         胸のように「特定の1本だけを、共通の親を基準に揺らしたい」
+    //!         ケース向け（BuildChainFromHierarchyだと親の子を全部拾ってしまう）。
+    //! @param  name             デバッグ用名前
+    //! @param  rootNodeIndex    チェーンの起点となる、実際に揺らしたいボーン
+    //!                          （このノード自身が最初のシミュレーション対象になる）
+    //! @param  nodes            モデル全体のノード配列（ModelData.nodes）
+    //! @param  excludeNodeNames ここに含まれる名前のノードから先は辿らない
+    //! @param  maxDepth         rootNodeIndexから何階層まで辿るか（0で無制限、1ならrootNodeIndex単体）
+    //! @param  settings         チェーンの物理パラメータ
+    //--------------------------------------------------------------
+    SpringBoneChain BuildChainFromRoot(const std::string&                           name,
+                                       u32                                          rootNodeIndex,
+                                       const std::vector<GraphicsCommon::NodeData>& nodes,
+                                       const std::unordered_set<std::string>&       excludeNodeNames,
+                                       u32                                          maxDepth,
+                                       const SpringBoneSettings&                    settings);
+
+    //--------------------------------------------------------------
     //! @brief  現在の姿勢でシミュレーション状態を初期化する
     //!         （SpringBoneComponent登録直後、物理を破綻させないために
     //!         Update()の前に一度呼ぶ）
