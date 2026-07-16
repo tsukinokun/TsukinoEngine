@@ -330,6 +330,37 @@ namespace Tsukino::BuiltIn::ECS {
                             globalNodeMatrices[node.nodeIndex]   = hlslpp::mul(rotMat, transMat);
                         }
                     }
+
+                     //---------------------------------------------------------
+                    // 【毎フレーム、間引き】Jiggle(揺れ)の数値デバッグ。
+                    // - pos          : 物理適用後の実座標(world)。これが時間で
+                    //                  変化していれば「動いている」証拠。
+                    // - displacement : アニメだけの位置との差。0でなければ
+                    //                  物理が何かしている証拠。
+                    // - このログを2〜3秒分並べて見た時、displacementが
+                    //   一方向に増え続けるなら「発散」、上下に振れているなら
+                    //   「揺れ(jiggle)」、ずっと同じ値なら「静止して釣り合っている」。
+                    //---------------------------------------------------------
+                    static float debugTimer  = 0.0f;
+                    debugTimer              += deltaTime;
+                    if(debugTimer > 0.2f) {
+                        debugTimer = 0.0f;
+                        for(const auto& chain : springBone.chains) {
+                            for(const auto& node : chain.nodes) {
+                                if(node.nodeIndex >= worldPoses.size())
+                                    continue;
+
+                                const hlslpp::float3 animOnlyPos = worldPoses[node.nodeIndex].position;
+                                const hlslpp::float3 physicsPos  = node.currentPosition;
+                                const hlslpp::float3 diff        = physicsPos - animOnlyPos;
+                                const float          diffLen     = float(hlslpp::length(diff));
+
+                                Tsukino::Core::Log::Info("JIGGLE '" + chain.name + "' node=" + std::to_string(node.nodeIndex) + " pos=("
+                                                         + std::to_string(physicsPos.x) + ", " + std::to_string(physicsPos.y) + ", "
+                                                         + std::to_string(physicsPos.z) + ")" + " displacement=" + std::to_string(diffLen));
+                            }
+                        }
+                    }
                 }
             }
 

@@ -108,10 +108,6 @@ namespace Tsukino::BuiltIn::ECS {
                     // コリジョンオフセットの逆変換
                     auto* col = registry.try_get<CollisionComponent>(entity);
                     if(col && col->isInitialized) {
-                        Tsukino::Core::Log::Info("col->offsetPosition = (" + std::to_string(col->offsetPosition.x) + ", "
-                                                 + std::to_string(col->offsetPosition.y) + ", " + std::to_string(col->offsetPosition.z) + ") offsetRotation = ("
-                                                 + std::to_string(col->offsetRotation.x) + ", " + std::to_string(col->offsetRotation.y) + ", "
-                                                 + std::to_string(col->offsetRotation.z) + ", " + std::to_string(col->offsetRotation.w) + ")");
 
                         hlslpp::quaternion q = hlslpp::quaternion(col->offsetRotation.x, col->offsetRotation.y, col->offsetRotation.z, col->offsetRotation.w);
                         hlslpp::quaternion conj = hlslpp::quaternion(-q.x, -q.y, -q.z, q.w);

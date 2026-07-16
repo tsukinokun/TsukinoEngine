@@ -39,6 +39,7 @@
 #include <Tsukino/BuiltIn/ECS/Component/AnimationControllerComponent.hpp>
 #include <Tsukino/BuiltIn/ECS/Component/DirectionalLightComponent.hpp>
 #include <Tsukino/BuiltIn/ECS/Component/SkyAtmosphereComponent.hpp>
+#include <Tsukino/BuiltIn/ECS/Component/SpringBoneComponent.hpp>
 
 #include <Tsukino/BuiltIn/ECS/Serialization/TransformComponentSerialization.hpp>
 #include <Tsukino/BuiltIn/ECS/Serialization/CameraComponentSerialization.hpp>
@@ -100,9 +101,9 @@ namespace Tsukino::Sandbox {
 
         Tsukino::Asset::AssetHandle audioHandle = context->assetManager->Load(Tsukino::Core::Path("Tsukino.Sandbox/Assets/Sounds/cat1.wav"));
 
-        Tsukino::Asset::AssetHandle modelHandle = context->assetManager->Load(Tsukino::Core::Path("Tsukino.Sandbox/Assets/Models/Maria WProp J J Ong.fbx"));
+        Tsukino::Asset::AssetHandle modelHandle = context->assetManager->Load(Tsukino::Core::Path("Tsukino.Sandbox/Assets/Models/Test2.fbx"));
 
-        Tsukino::Asset::AssetHandle animationHandle = context->assetManager->Load(Tsukino::Core::Path("Tsukino.Sandbox/Assets/Anims/RunTest.fbx"));
+        Tsukino::Asset::AssetHandle animationHandle = context->assetManager->Load(Tsukino::Core::Path("Tsukino.Sandbox/Assets/Anims/Test2Anim.fbx"));
 
         Tsukino::ECS::Registry& registry = m_scene.GetRegistry();
 
@@ -183,9 +184,22 @@ namespace Tsukino::Sandbox {
         animPlayer.current_clip_id                                  = animationHandle;    // ロー等速再生ドした testAnim.fbx のハンドルを渡す
         animPlayer.animation_index                                  = 1;                  // 再生するアニメーションのインデックスを指定
         animPlayer.elapsed_time                                     = 0.0f;               // 0秒からスタート
-        animPlayer.playback_speed                                   = 1.0f;               //
+        animPlayer.playback_speed                                   = 0.5f;               //
         animPlayer.is_looping                                       = true;               // ループさせる
         animPlayer.is_playing                                       = true;               // 再生状態にする
+
+        Tsukino::BuiltIn::ECS::SpringBoneComponent& springBone = registry.AddComponent<Tsukino::BuiltIn::ECS::SpringBoneComponent>(modelEntity);
+
+        Tsukino::BuiltIn::ECS::SpringBoneComponent::ChainDef breastL;
+        breastL.name                   = "Breast_L";
+        breastL.anchorNodeName         = "L_breast_01";    // Breast_Lの親ノード名に置き換えてください
+        breastL.maxDepth               = 1;           // Spine2の直接の子だけを対象に（他の子がいても1階層目全部拾うので注意）
+        breastL.settings.stiffness     = 0.0f;     // アニメ位置に戻す力を完全に切る
+        breastL.settings.drag          = 0.02f;    // ほぼ減衰なし
+        breastL.settings.inertia       = 0.0f;     // キャラの動きの影響も受けず、自由落下寄りに
+        breastL.settings.gravityScale  = 10000000.0f;    // 前回の「極端テスト」と同じ考え方
+        breastL.settings.angleLimitDeg = 0.0f;     // 角度制限も切って、動ける限り動かす
+        springBone.chainDefs.push_back(breastL);
 
         // 計算されたボーン行列の出力先（スキニング用）コンポーネント
         Tsukino::BuiltIn::ECS::SkeletonOutputComponent& skeletonOutput = registry.AddComponent<Tsukino::BuiltIn::ECS::SkeletonOutputComponent>(modelEntity);
@@ -282,8 +296,8 @@ namespace Tsukino::Sandbox {
             Tsukino::BuiltIn::ECS::DirectionalLightComponent& light = registry.AddComponent<Tsukino::BuiltIn::ECS::DirectionalLightComponent>(lightEntity);
             light.direction                                         = hlslpp::float3(0.0f, -1.0f, -1.0f);    // 斜め上から照らす
             light.color                                             = hlslpp::float3(1.0f, 1.0f, 1.0f);
-            light.intensity                                               = 5.0f;
-            light.castShadow                                              = true;
+            light.intensity                                         = 5.0f;
+            light.castShadow                                        = true;
         }
         //--------------------------------------------------------------
         // エンティティ生成（ディレクショナルライトと同じエンティティでもOK）
