@@ -238,10 +238,16 @@ float4 PSMain(PSInput input) : SV_TARGET
     // シャドウ係数とライト放射輝度 (radiance) を取得
     //----------------------------------------------------------
     float shadow = GetShadowPCF(input.worldPos);
+    
+    // 影の値を「0.0～1.0」ではなく「minShadow～1.0」の範囲にする
+    float minShadow = 0.25f; // 0.0にすると真っ黒、0.3くらいにすると少し明るい影になる
+    shadow = max(shadow, minShadow);
+    
     float3 radiance = lightColor.rgb * lightColor.w; // 色 × 強度
 
     // 直接照明 = BRDF × radiance × NdotL × shadow
     float3 directLight = (diff + spec) * radiance * NdotL * shadow;
+    //float3 directLight = (diff + spec) * radiance * NdotL;
 
     //----------------------------------------------------------
     // アンビエント（IBLの代わりの定数環境光）
@@ -256,6 +262,12 @@ float4 PSMain(PSInput input) : SV_TARGET
     //   emissive: 自発光（ライティング非依存）
     //----------------------------------------------------------
     float3 finalColor = ambient + directLight + emissive;
+    
+    //----------------------------------------------------------
+    // 法線デバッグ
+    //----------------------------------------------------------
+    //float3 debugNormal = normalize(input.normal); // 頂点法線を正規化
+    //return float4(debugNormal * 0.5f + 0.5f, 1.0f); // -1..1 を 0..1 に変換
 
     return float4(finalColor, baseColor.a * albedoSample.a);
 }
