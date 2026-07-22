@@ -290,7 +290,6 @@ namespace Tsukino::Asset {
             Tsukino::Core::Path tsmDir      = (outputDirectory / inputPath).parent_path();
             Tsukino::Core::Path ddsPath     = tsmDir / ddsFilename;
 
-
             hr = DirectX::SaveToDDSFile(
                 compressed.GetImages(), compressed.GetImageCount(), compressed.GetMetadata(), DirectX::DDS_FLAGS_NONE, ddsPath.ToWString().c_str());
             if(FAILED(hr)) {
@@ -370,8 +369,7 @@ namespace Tsukino::Asset {
                 const aiBone* aiBone   = aiMesh->mBones[b];
                 std::string   boneName = aiBone->mName.C_Str();
 
-                            Tsukino::Core::Log::Info("Debug: Bone[" + std::to_string(b) + "] Name: " + boneName + ", Weights: " + std::to_string(aiBone->mNumWeights));
-
+                Tsukino::Core::Log::Info("Debug: Bone[" + std::to_string(b) + "] Name: " + boneName + ", Weights: " + std::to_string(aiBone->mNumWeights));
 
                 Tsukino::Core::Log::Info("bone count = " + std::to_string(modelData.skeleton.bones.size()));
 
@@ -406,6 +404,24 @@ namespace Tsukino::Asset {
                 }
             }
 
+            // 正規化
+            for(u32 v = 0; v < aiMesh->mNumVertices; ++v) {
+                auto& bw  = dstMesh.boneWeights[v];
+                float sum = bw.weights[0] + bw.weights[1] + bw.weights[2] + bw.weights[3];
+
+                if(sum > 1e-6f) {
+                    float invSum   = 1.0f / sum;
+                    bw.weights[0] *= invSum;
+                    bw.weights[1] *= invSum;
+                    bw.weights[2] *= invSum;
+                    bw.weights[3] *= invSum;
+                } else if(aiMesh->mNumBones > 0) {
+                    // どのボーンにも紐付いていない頂点への保険
+                    bw.boneIndices[0] = 0;
+                    bw.weights[0]     = 1.0f;
+                }
+            }
+
             dstMesh.indices.reserve(aiMesh->mNumFaces * 3);
             for(u32 f = 0; f < aiMesh->mNumFaces; ++f) {
                 const aiFace& face = aiMesh->mFaces[f];
@@ -434,7 +450,7 @@ namespace Tsukino::Asset {
         // ノード
         //--------------------------------------------------------------
         std::vector<hlslpp::float4x4> nodeWorldMatrices;    // ノードごとのワールド行列（indexはmodelData.nodesと対応）
-        
+
         if(scene->mRootNode) {
             std::function<u32(const aiNode*, u32, const hlslpp::float4x4&)> ProcessNode =
                 [&](const aiNode* aiNode, u32 parentIndex, const hlslpp::float4x4& parentWorld) -> u32 {
