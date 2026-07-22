@@ -255,6 +255,7 @@ float4 PSMain(PSInput input) : SV_TARGET
     //----------------------------------------------------------
     float3 ambient = float3(0.03f, 0.03f, 0.03f) * albedo;
 
+
     //----------------------------------------------------------
     // 最終カラー合成
     //   ambient: 間接光の簡易近似
@@ -262,6 +263,23 @@ float4 PSMain(PSInput input) : SV_TARGET
     //   emissive: 自発光（ライティング非依存）
     //----------------------------------------------------------
     float3 finalColor = ambient + directLight + emissive;
+    
+    //----------------------------------------------------------
+    // UVデバッグ
+    //----------------------------------------------------------
+    //float4 lightSpace = mul(float4(input.worldPos, 1.0f), lightViewProj);
+    //float2 shadowUV = lightSpace.xy * float2(0.5f, -0.5f) + 0.5f;
+
+    //// UV範囲外（影の描画領域外）はマゼンタ（紫ピンク）で分かりやすくする
+    //if (any(shadowUV < 0.0f) || any(1.0f < shadowUV))
+    //{
+    //    return float4(1.0f, 0.0f, 1.0f, 1.0f);
+    //}
+    
+    // 範囲内は UV座標をそのまま RGB カラーとして出力
+    // R: shadowUV.x (左が黒、右が赤)
+    // G: shadowUV.y (上が黒、下が緑)
+    //return float4(shadowUV, 0.0f, 1.0f);
     
     //----------------------------------------------------------
     // 法線デバッグ
