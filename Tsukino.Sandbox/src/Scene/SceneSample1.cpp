@@ -189,29 +189,29 @@ namespace Tsukino::Sandbox {
         animPlayer.is_looping                                       = true;               // ループさせる
         animPlayer.is_playing                                       = true;               // 再生状態にする
 
-        //Tsukino::BuiltIn::ECS::SpringBoneComponent& springBone = registry.AddComponent<Tsukino::BuiltIn::ECS::SpringBoneComponent>(modelEntity);
+        Tsukino::BuiltIn::ECS::SpringBoneComponent& springBone = registry.AddComponent<Tsukino::BuiltIn::ECS::SpringBoneComponent>(modelEntity);
 
-        //Tsukino::BuiltIn::ECS::SpringBoneComponent::ChainDef breastL;
-        //breastL.name                   = "Breast_L";
-        //breastL.rootNodeName           = "L_breast_01";
-        //breastL.maxDepth               = 1;
-        //breastL.settings.stiffness     = 0.4f;     // リアル(0.55)より少し柔らかく、揺れ幅を出す
-        //breastL.settings.drag          = 0.13f;    // 収まりをやや長めに（2〜3往復くらい残る）
-        //breastL.settings.inertia       = 0.25f;    // 体の動きに対して、わずかに「置いていかれる」感を演出
-        //breastL.settings.gravityScale  = 1.0f;
-        //breastL.settings.angleLimitDeg = 26.0f;
-        //springBone.chainDefs.push_back(breastL);
+        Tsukino::BuiltIn::ECS::SpringBoneComponent::ChainDef breastL;
+        breastL.name                   = "Breast_L";
+        breastL.rootNodeName           = "L_breast_01";
+        breastL.maxDepth               = 1;
+        breastL.settings.stiffness     = 0.4f;     // リアル(0.55)より少し柔らかく、揺れ幅を出す
+        breastL.settings.drag          = 0.13f;    // 収まりをやや長めに（2〜3往復くらい残る）
+        breastL.settings.inertia       = 0.25f;    // 体の動きに対して、わずかに「置いていかれる」感を演出
+        breastL.settings.gravityScale  = 1.0f;
+        breastL.settings.angleLimitDeg = 26.0f;
+        springBone.chainDefs.push_back(breastL);
 
-        //Tsukino::BuiltIn::ECS::SpringBoneComponent::ChainDef breastR;
-        //breastR.name                   = "Breast_R";
-        //breastR.rootNodeName           = "R_breast_01";
-        //breastR.maxDepth               = 1;
-        //breastR.settings.stiffness     = 0.4f;
-        //breastR.settings.drag          = 0.13f;
-        //breastR.settings.inertia       = 0.25f;
-        //breastR.settings.gravityScale  = 1.0f;
-        //breastR.settings.angleLimitDeg = 26.0f;
-        //springBone.chainDefs.push_back(breastR);
+        Tsukino::BuiltIn::ECS::SpringBoneComponent::ChainDef breastR;
+        breastR.name                   = "Breast_R";
+        breastR.rootNodeName           = "R_breast_01";
+        breastR.maxDepth               = 1;
+        breastR.settings.stiffness     = 0.4f;
+        breastR.settings.drag          = 0.13f;
+        breastR.settings.inertia       = 0.25f;
+        breastR.settings.gravityScale  = 1.0f;
+        breastR.settings.angleLimitDeg = 26.0f;
+        springBone.chainDefs.push_back(breastR);
 
         // 計算されたボーン行列の出力先（スキニング用）コンポーネント
         Tsukino::BuiltIn::ECS::SkeletonOutputComponent& skeletonOutput = registry.AddComponent<Tsukino::BuiltIn::ECS::SkeletonOutputComponent>(modelEntity);
