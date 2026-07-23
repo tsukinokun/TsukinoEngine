@@ -532,18 +532,23 @@ project "Tsukino.EngineIntegration"
     }
 
     includedirs {
+        "Tsukino.EngineIntegration/include",
         "Tsukino.GraphicsCommon/include",
         "Tsukino.Audio/include",
         "Tsukino.Engine/include",
         "Tsukino.Renderer/include",
         "Tsukino.Core/include",
         "Tsukino.BuiltIn/include",
-        "Tsukino.EngineIntegration/include",
         --"Tsukino.Physics/include",
         "External/cereal/include",
         "External/hlslpp/include",
         "External/entt/single_include",
         "External/JoltPhysics",
+        "External/Effekseer/Dev/Cpp",
+        "External/Effekseer/Dev/Cpp/Effekseer",
+        "External/Effekseer/Dev/Cpp/EffekseerRendererDX11",
+        "External/Effekseer/Dev/Cpp/EffekseerRendererCommon",
+        "External/Effekseer/Dev/Cpp/3rdParty",
         ".build/packages/directxtk_desktop_win10.2026.4.1.1/include",
     }
 
@@ -621,6 +626,11 @@ project "Tsukino.Sandbox"
         "External/hlslpp/include",
         "External/entt/single_include",
         "External/JoltPhysics",
+        "External/Effekseer/Dev/Cpp",
+        "External/Effekseer/Dev/Cpp/Effekseer",
+        "External/Effekseer/Dev/Cpp/EffekseerRendererDX11",
+        "External/Effekseer/Dev/Cpp/EffekseerRendererCommon",
+        "External/Effekseer/Dev/Cpp/3rdParty",
     }
 
     links {
