@@ -37,6 +37,11 @@ namespace Tsukino::Asset {
     class TextureAsset;    // 前方宣言
 }
 
+// 前方宣言
+namespace Tsukino::BuiltIn::ECS {
+    class EffectSystem;
+}
+
 // 名前空間 : Tsukino::Renderer
 namespace Tsukino::Renderer {
     struct CBufferScene;    // 前方宣言
@@ -79,7 +84,7 @@ namespace Tsukino::Renderer {
         //------------------------------------------------------------
         // 描画処理
         //------------------------------------------------------------
-        void Render();
+        void Render(class Tsukino::BuiltIn::ECS::EffectSystem* effectSystem = nullptr);
 
         //------------------------------------------------------------
         // 描画領域のクリアカラーを設定

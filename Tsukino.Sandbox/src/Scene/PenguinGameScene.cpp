@@ -24,6 +24,7 @@
 #include <Tsukino/EngineIntegration/ECS/System/SpriteRendererSystem.hpp>
 #include <Tsukino/EngineIntegration/ECS/System/FontRendererSystem.hpp>
 #include <Tsukino/EngineIntegration/ECS/System/InteractionSystem.hpp>
+#include <Tsukino/EngineIntegration/ECS/System/EffectSystem.hpp>
 
 #include <Tsukino/Core/Path.hpp>
 #include <Tsukino/Core/Log.hpp>

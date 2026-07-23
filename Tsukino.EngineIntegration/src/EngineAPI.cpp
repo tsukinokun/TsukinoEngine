@@ -16,6 +16,8 @@
 #include <Tsukino/Core/Input/InputSystem.hpp>
 #include <Tsukino/Audio/AudioManager.hpp>
 
+#include <Tsukino/EngineIntegration/ECS/System/EffectSystem.hpp>
+
 #include <memory>
 
 // 名前空間 : Tsukino::EngineIntegration
@@ -62,6 +64,6 @@ namespace Tsukino::EngineIntegration {
     //! @brief 描画関数
     //------------------------------------------------------------
     void EngineAPI::Render() {
-        m_context.renderer->Render();
+        m_context.renderer->Render(m_context.effectSystem);
     }
 }    // namespace Tsukino::EngineIntegration

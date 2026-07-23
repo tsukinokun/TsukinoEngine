@@ -24,6 +24,9 @@
 #include <Tsukino/EngineIntegration/ECS/System/CameraSystem.hpp>
 #include <Tsukino/EngineIntegration/ECS/System/FontRendererSystem.hpp>
 #include <Tsukino/EngineIntegration/ECS/System/PhysicsSystem.hpp>
+#include <Tsukino/EngineIntegration/ECS/System/AnimationSystem.hpp>
+#include <Tsukino/EngineIntegration/ECS/System/DebugCameraSystem.hpp>
+#include <Tsukino/EngineIntegration/ECS/System/EffectSystem.hpp>
 #include <Tsukino/EngineIntegration/Scene/GameSceneManager.hpp>
 
 #include <Tsukino/BuiltIn/ECS/Component/TransformComponent.hpp>

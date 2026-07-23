@@ -25,6 +25,7 @@
 #include <Tsukino/EngineIntegration/ECS/System/DirectionalLightSystem.hpp>
 #include <Tsukino/EngineIntegration/ECS/System/SkyAtmosphereSystem.hpp>
 #include <Tsukino/EngineIntegration/ECS/System/DebugCameraSystem.hpp>
+#include <Tsukino/EngineIntegration/ECS/System/EffectSystem.hpp>
 
 #include <Tsukino/BuiltIn/ECS/Component/TransformComponent.hpp>
 #include <Tsukino/BuiltIn/ECS/Component/CameraComponent.hpp>
@@ -86,6 +87,13 @@ namespace Tsukino::Sandbox {
         m_scene.AddSystem(std::make_shared<Tsukino::BuiltIn::ECS::SpriteRenderSystem>(), 10);
         // モデル描画 (優先度 10)
         m_scene.AddSystem(std::make_shared<Tsukino::BuiltIn::ECS::ModelSystem>(), 10);
+        // エフェクト描画 (優先度 10)
+        {
+            auto effectSystem = std::make_shared<Tsukino::BuiltIn::ECS::EffectSystem>();
+            m_scene.AddSystem(effectSystem, 10);
+            effectSystem->Initialize(m_scene.GetRegistry(), eventBus);
+            context->effectSystem = effectSystem.get();
+        }
         // オーディオの更新 (優先度 11)
         m_scene.AddSystem(std::make_shared<Tsukino::BuiltIn::ECS::AudioSystem>(), 11);
         // コリジョンの更新は最後に行う (優先度 12)

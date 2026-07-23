@@ -13,6 +13,8 @@
 #include <Tsukino/Engine/Asset/Audio/AudioLoader.hpp>
 #include <Tsukino/Engine/Asset/Model/ModelLoader.hpp>
 #include <Tsukino/Engine/Asset/Cubemap/CubemapLoader.hpp>
+#include <Tsukino/Engine/Asset/Effect/EffectLoader.hpp>
+#include <Tsukino/Engine/Asset/Effect/EffectImporter.hpp>
 
 #include <Tsukino/Engine/Asset/Texture/TextureImporter.hpp>
 #include <Tsukino/Engine/Asset/Shader/ShaderImporter.hpp>
@@ -23,7 +25,6 @@
 
 #include <Tsukino/Core/IO/FileSystem.hpp>
 #include <Tsukino/Core/Log.hpp>
-// 名前空間 : Tsukino::Asset
 // 名前空間 : Tsukino::Asset
 namespace Tsukino::Asset {
     //--------------------------------------------------------------
@@ -47,6 +48,7 @@ namespace Tsukino::Asset {
         RegisterLoader(Tsukino::Core::CreateRef<AudioLoader>());        // オーディオローダーを登録
         RegisterLoader(Tsukino::Core::CreateRef<ModelLoader>(this));    // モデルローダーを登録
         RegisterLoader(Tsukino::Core::CreateRef<CubemapLoader>());      // キューブマップローダーを登録
+        RegisterLoader(Tsukino::Core::CreateRef<EffectLoader>());       // エフェクトローダーを登録
 
         //--------------------------------------------------------------
         // インポーター登録
@@ -57,6 +59,7 @@ namespace Tsukino::Asset {
         RegisterImporter(AssetType::Audio, Tsukino::Core::CreateRef<AudioImporter>());        // オーディオインポーターの登録
         RegisterImporter(AssetType::Model, Tsukino::Core::CreateRef<ModelImporter>());        // モデルインポーターの登録
         RegisterImporter(AssetType::Cubemap, Tsukino::Core::CreateRef<CubemapImporter>());    // キューブマップインポーターを登録
+        RegisterImporter(AssetType::Effect, Tsukino::Core::CreateRef<EffectImporter>());      // エフェクトインポーターを登録
     }
 
     //--------------------------------------------------------------
@@ -208,6 +211,8 @@ namespace Tsukino::Asset {
 
             {".cubemap", AssetType::Cubemap},
             {".tcc",     AssetType::Cubemap},
+
+            {".efk",     AssetType::Effect  },
         };
 
         if(auto it = extensionToAssetType.find(ext); it != extensionToAssetType.end())
@@ -245,6 +250,8 @@ namespace Tsukino::Asset {
             // Cubemap
             {".cubemap", ".tcc"       },
             {".tcc",     ".tcc"       },
+
+            {".efk",     ".efk"       },
         };
 
         auto [sourceBase, sourceFragment] = Tsukino::Core::Path::SplitPathAndFragment(sourcePath.string());

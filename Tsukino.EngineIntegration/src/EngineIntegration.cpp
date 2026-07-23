@@ -11,9 +11,12 @@
 #include <Tsukino/BuiltIn/ECS/Component/TransformComponent.hpp>
 #include <Tsukino/BuiltIn/ECS/Component/RigidbodyComponent.hpp>
 
+#include <Tsukino/BuiltIn/ECS/Component/EffectComponent.hpp>
+
 #include <Tsukino/BuiltIn/ECS/Serialization/CameraComponentSerialization.hpp>
 #include <Tsukino/BuiltIn/ECS/Serialization/TransformComponentSerialization.hpp>
 #include <Tsukino/BuiltIn/ECS/Serialization/RigidbodyComponentSerialization.hpp>
+#include <Tsukino/BuiltIn/ECS/Serialization/EffectComponentSerialization.hpp>
 
 #include <Tsukino/Core/Log.hpp>
 
@@ -184,5 +187,6 @@ namespace Tsukino::EngineIntegration {
         m_prefabFactory->RegisterComponent<Tsukino::BuiltIn::ECS::TransformComponent>("TransformComponent");
         m_prefabFactory->RegisterComponent<Tsukino::BuiltIn::ECS::CameraComponent>("CameraComponent");
         m_prefabFactory->RegisterComponent<Tsukino::BuiltIn::ECS::RigidbodyComponent>("RigidbodyComponent");
+        m_prefabFactory->RegisterComponent<Tsukino::BuiltIn::ECS::EffectComponent>("EffectComponent");
     }
 }    // namespace Tsukino::EngineIntegration

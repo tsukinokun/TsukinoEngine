@@ -6,6 +6,9 @@
 #pragma once
 // 名前空間 : Tsukino
 namespace Tsukino {
+    namespace BuiltIn::ECS {
+        class EffectSystem;
+    }
     namespace Renderer {
         class Renderer;
     }
@@ -51,5 +54,6 @@ namespace Tsukino::EngineIntegration {
         GameSceneManager*                            gameSceneManager = nullptr;
         Tsukino::Audio::AudioManager*                audioManager     = nullptr;
         Tsukino::Engine::ECS::Prefab::PrefabFactory* prefabFactory    = nullptr;
+        Tsukino::BuiltIn::ECS::EffectSystem*         effectSystem     = nullptr;
     };
 }    // namespace Tsukino::EngineIntegration
