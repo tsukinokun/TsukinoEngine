@@ -21,6 +21,7 @@ namespace Tsukino::Asset {
         Font,        // フォント
         Audio,       // オーディオ
         Cubemap,     // キューブマップ
+        Effect,      // エフェクト
     };
 
 }    // namespace Tsukino::Asset
