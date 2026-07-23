@@ -41,3 +41,6 @@ Cache/
 # doxygen関連
 html/
 latex/
+
+# kilo
+.kilo/
