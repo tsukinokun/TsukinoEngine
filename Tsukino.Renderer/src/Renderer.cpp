@@ -10,6 +10,8 @@
 #include <Tsukino/Renderer/ConstantBuffer.hpp>
 #include <Tsukino/Renderer/ShaderSlots.hpp>
 
+#include <Tsukino/EngineIntegration/ECS/System/EffectSystem.hpp>
+
 #include <Tsukino/Engine/Asset/Shader/ShaderAsset.hpp>
 
 #include <Tsukino/GraphicsCommon/Mesh/MeshPrimitives.hpp>
@@ -301,7 +303,7 @@ namespace Tsukino::Renderer {
     //------------------------------------------------------------
     //! @brief 描画処理
     //------------------------------------------------------------
-    void Renderer::Render() {
+    void Renderer::Render(class Tsukino::BuiltIn::ECS::EffectSystem* effectSystem) {
         m_graphicsContext.BeginFrame(m_clearColor[0], m_clearColor[1], m_clearColor[2], m_clearColor[3]);
 
         const auto& commands = m_drawQueue.GetCommands();
@@ -398,6 +400,18 @@ namespace Tsukino::Renderer {
             if(cmd.pass != RenderPass::Overlay)
                 continue;
             ExecuteDrawCommand(cmd);
+        }
+
+        //------------------------------------------------------------
+        // エフェクト描画パス
+        //------------------------------------------------------------
+        if(effectSystem) {
+            ID3D11DeviceContext* context = m_graphicsContext.GetContext();
+            context->OMSetBlendState(m_commonStatesTK->AlphaBlend(), nullptr, 0xFFFFFFFF);
+            context->OMSetDepthStencilState(m_commonStatesTK->DepthNone(), 0);
+            effectSystem->RenderEffects(context);
+            context->OMSetBlendState(m_commonStatesTK->Opaque(), nullptr, 0xFFFFFFFF);
+            context->OMSetDepthStencilState(m_commonStatesTK->DepthDefault(), 0);
         }
 
         m_drawQueue.Clear();

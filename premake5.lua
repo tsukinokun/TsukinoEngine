@@ -163,6 +163,41 @@ project "Effekseer"
     filter {}
 
 ----------------------------------------
+-- Effekseer レンダラー共通
+--------------------------------------
+project "EffekseerRendererCommon"
+    location ".build/EffekseerRendererCommon"
+    kind "StaticLib"
+    language "C++"
+    cppdialect "C++20"
+
+    flags { "NoPCH" }
+
+    files {
+        "External/Effekseer/Dev/Cpp/EffekseerRendererCommon/EffekseerRendererCommon/**.h",
+        "External/Effekseer/Dev/Cpp/EffekseerRendererCommon/EffekseerRendererCommon/**.cpp",
+    }
+
+    includedirs {
+        "External/Effekseer/Dev/Cpp",
+        "External/Effekseer/Dev/Cpp/Effekseer",
+        "External/Effekseer/Dev/Cpp/3rdParty",
+        "External/Effekseer/Dev/Cpp/EffekseerRendererCommon",
+        "External/Effekseer/Dev/Cpp/EffekseerMaterialCompiler",
+    }
+
+    filter "system:windows"
+        defines { "WIN32", "_WIN32_WINNT=0x0A00" }
+    filter {}
+
+    links {
+        "Effekseer",
+        "d3d11",
+        "dxgi",
+        "d3dcompiler",
+    }
+
+----------------------------------------
 -- Effekseer DX11 レンダラー
 ---------------------------------------
 project "EffekseerRendererDX11"
@@ -176,12 +211,15 @@ project "EffekseerRendererDX11"
     files {
         "External/Effekseer/Dev/Cpp/EffekseerRendererDX11/EffekseerRendererDX11/**.h",
         "External/Effekseer/Dev/Cpp/EffekseerRendererDX11/EffekseerRendererDX11/**.cpp",
+        "External/Effekseer/Dev/Cpp/EffekseerMaterialCompiler/**.h",
+        "External/Effekseer/Dev/Cpp/EffekseerMaterialCompiler/**.cpp",
     }
 
     includedirs {
         "External/Effekseer/Dev/Cpp",
         "External/Effekseer/Dev/Cpp/Effekseer",
         "External/Effekseer/Dev/Cpp/EffekseerRendererDX11",
+        "External/Effekseer/Dev/Cpp/EffekseerMaterialCompiler",
         "External/Effekseer/Dev/Cpp/3rdParty",
         "External/Effekseer/Dev/Cpp/EffekseerRendererCommon",
     }
@@ -193,6 +231,7 @@ project "EffekseerRendererDX11"
     filter {}
 
     links {
+        "EffekseerRendererCommon",
         "Effekseer",
         "d3d11",
         "dxgi",
@@ -312,8 +351,9 @@ project "Tsukino.Engine"
         "Tsukino.Core",
         "Tsukino.GraphicsCommon",
         "DirectXTex",
-        "Effekseer",
         "EffekseerRendererDX11",
+        "EffekseerRendererCommon",
+        "Effekseer",
     }
 
     nuget {"AssimpCpp:5.0.1.6"}
@@ -350,7 +390,16 @@ project "Tsukino.Renderer"
         "Tsukino.Renderer/include",
         "Tsukino.GraphicsCommon/include",
         "Tsukino.Core/include",
-        "External/hlslpp/include", 
+        "Tsukino.BuiltIn/include",
+        "Tsukino.EngineIntegration/include",
+        "External/cereal/include",
+        "External/hlslpp/include",
+        "External/entt/single_include",
+        "External/Effekseer/Dev/Cpp",
+        "External/Effekseer/Dev/Cpp/Effekseer",
+        "External/Effekseer/Dev/Cpp/EffekseerRendererDX11",
+        "External/Effekseer/Dev/Cpp/EffekseerRendererCommon",
+        "External/Effekseer/Dev/Cpp/3rdParty",
         ".build/packages/directxtk_desktop_win10.2026.4.1.1/include",
     }
 
@@ -358,8 +407,9 @@ project "Tsukino.Renderer"
         "Tsukino.Core",
         "Tsukino.Engine",
         "Tsukino.GraphicsCommon",
-        "Effekseer",
         "EffekseerRendererDX11",
+        "EffekseerRendererCommon",
+        "Effekseer",
     }
 
     nuget { "directxtk_desktop_win10:2026.4.1.1" }
@@ -498,8 +548,9 @@ project "Tsukino.BuiltIn"
         "Tsukino.GraphicsCommon",
         "Tsukino.Core",
         "JoltPhysics",
-        "Effekseer",
         "EffekseerRendererDX11",
+        "EffekseerRendererCommon",
+        "Effekseer",
     }
 
     nuget { "directxtk_desktop_win10:2026.4.1.1" }
@@ -561,6 +612,9 @@ project "Tsukino.EngineIntegration"
         "Tsukino.Core",
         "JoltPhysics",
         --"Tsukino.Physics",
+        "EffekseerRendererDX11",
+        "EffekseerRendererCommon",
+        "Effekseer",
         "d3d11", 
         "dxgi",
         "d3dcompiler"
@@ -643,11 +697,12 @@ project "Tsukino.Sandbox"
         "JoltPhysics",
         --"Tsukino.Physics",
         "Tsukino.Core",
+        "EffekseerRendererDX11",
+        "EffekseerRendererCommon",
+        "Effekseer",
         "d3d11", 
         "dxgi",
         "d3dcompiler",
-        "Effekseer",
-        "EffekseerRendererDX11",
     }
 
     nuget { "directxtk_desktop_win10:2026.4.1.1",

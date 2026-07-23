@@ -56,6 +56,7 @@
 #include <Tsukino/EngineIntegration/ECS/System/DirectionalLightSystem.hpp>
 #include <Tsukino/EngineIntegration/ECS/System/SkyAtmosphereSystem.hpp>
 #include <Tsukino/EngineIntegration/ECS/System/HeightmapGenerationSystem.hpp>
+#include <Tsukino/EngineIntegration/ECS/System/EffectSystem.hpp>
 
 #include <Tsukino/EngineIntegration/EngineAPI.hpp>
 #include <Tsukino/EngineIntegration/EngineContext.hpp>
