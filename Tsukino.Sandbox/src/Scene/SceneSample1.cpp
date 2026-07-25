@@ -115,8 +115,7 @@ namespace Tsukino::Sandbox {
 
         Tsukino::Asset::AssetHandle animationHandle = context->assetManager->Load(Tsukino::Core::Path("Tsukino.Sandbox/Assets/Anims/Test2Anim.fbx"));
 
-        Tsukino::Asset::AssetHandle effectHandle = context->assetManager->Load(
-            Tsukino::Core::Path("Tsukino.Sandbox/Assets/Effects/Simple_Track1.efk"));
+        Tsukino::Asset::AssetHandle effectHandle = context->assetManager->Load(Tsukino::Core::Path("Tsukino.Sandbox/Assets/Effects/Laser01.efkefc"));
 
         Tsukino::ECS::Registry& registry = m_scene.GetRegistry();
 
@@ -343,7 +342,7 @@ namespace Tsukino::Sandbox {
         {
             Tsukino::ECS::Entity                              lightEntity = m_scene.CreateEntity();
             Tsukino::BuiltIn::ECS::DirectionalLightComponent& light = registry.AddComponent<Tsukino::BuiltIn::ECS::DirectionalLightComponent>(lightEntity);
-            light.direction                                         = hlslpp::float3(0.0f, -0.5f, -1.0f);    
+            light.direction                                         = hlslpp::float3(0.0f, -0.5f, -1.0f);
             light.color                                             = hlslpp::float3(1.0f, 1.0f, 1.0f);
             light.intensity                                         = 5.0f;
             light.castShadow                                        = true;
@@ -362,16 +361,15 @@ namespace Tsukino::Sandbox {
         //--------------------------------------------------------------
         Tsukino::ECS::Entity effectEntity = m_scene.CreateEntity();
 
-        Tsukino::BuiltIn::ECS::TransformComponent& effectTransform =
-            registry.AddComponent<Tsukino::BuiltIn::ECS::TransformComponent>(effectEntity);
-        effectTransform.position = hlslpp::float3(0.0f, 100.0f, 0.0f);
-        effectTransform.dirty    = true;
+        Tsukino::BuiltIn::ECS::TransformComponent& effectTransform = registry.AddComponent<Tsukino::BuiltIn::ECS::TransformComponent>(effectEntity);
+        effectTransform.position                                   = hlslpp::float3(0.0f, 200.0f, 0.0f);
+        effectTransform.dirty                                      = true;
 
-        Tsukino::BuiltIn::ECS::EffectComponent& effectComp =
-            registry.AddComponent<Tsukino::BuiltIn::ECS::EffectComponent>(effectEntity);
-        effectComp.effectAsset = effectHandle;
-        effectComp.active      = true;
-        effectComp.looping     = true;
+        Tsukino::BuiltIn::ECS::EffectComponent& effectComp = registry.AddComponent<Tsukino::BuiltIn::ECS::EffectComponent>(effectEntity);
+        effectComp.effectAsset                             = effectHandle;
+        effectComp.active                                  = true;
+        effectComp.looping                                 = false;
+        effectComp.playSpeed                               = 1.0f;
     }
 
     //-------------------------------------------------------------
