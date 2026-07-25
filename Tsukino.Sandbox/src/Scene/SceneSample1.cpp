@@ -43,6 +43,7 @@
 #include <Tsukino/BuiltIn/ECS/Component/SpringBoneComponent.hpp>
 #include <Tsukino/BuiltIn/ECS/Component/DebugCameraComponent.hpp>
 #include <Tsukino/BuiltIn/ECS/Component/DebugCameraTag.hpp>
+#include <Tsukino/BuiltIn/ECS/Component/EffectComponent.hpp>
 
 #include <Tsukino/BuiltIn/ECS/Serialization/TransformComponentSerialization.hpp>
 #include <Tsukino/BuiltIn/ECS/Serialization/CameraComponentSerialization.hpp>
@@ -114,6 +115,9 @@ namespace Tsukino::Sandbox {
 
         Tsukino::Asset::AssetHandle animationHandle = context->assetManager->Load(Tsukino::Core::Path("Tsukino.Sandbox/Assets/Anims/Test2Anim.fbx"));
 
+        Tsukino::Asset::AssetHandle effectHandle = context->assetManager->Load(
+            Tsukino::Core::Path("Tsukino.Sandbox/Assets/Effects/Simple_Track1.efk"));
+
         Tsukino::ECS::Registry& registry = m_scene.GetRegistry();
 
         //--------------------------------------------------------------
@@ -177,7 +181,7 @@ namespace Tsukino::Sandbox {
         // ModelComponent の追加
         Tsukino::BuiltIn::ECS::ModelComponent& model = registry.AddComponent<Tsukino::BuiltIn::ECS::ModelComponent>(modelEntity);
         model.modelHandle                            = modelHandle;
-        model.visible                                = true;
+        model.visible                                = false;
 
         // モデルにコリジョンをつける
         Tsukino::BuiltIn::ECS::CollisionComponent& collision = registry.AddComponent<Tsukino::BuiltIn::ECS::CollisionComponent>(modelEntity);
@@ -344,13 +348,30 @@ namespace Tsukino::Sandbox {
             light.intensity                                         = 5.0f;
             light.castShadow                                        = true;
         }
+
         //--------------------------------------------------------------
-        // エンティティ生成（ディレクショナルライトと同じエンティティでもOK）
+        // スカイアトモスフィアエンティティの生成
         //--------------------------------------------------------------
         {
             Tsukino::ECS::Entity skyEntity = m_scene.CreateEntity();
             registry.AddComponent<Tsukino::BuiltIn::ECS::SkyAtmosphereComponent>(skyEntity);
         }
+
+        //--------------------------------------------------------------
+        // エフェクトエンティティの生成
+        //--------------------------------------------------------------
+        Tsukino::ECS::Entity effectEntity = m_scene.CreateEntity();
+
+        Tsukino::BuiltIn::ECS::TransformComponent& effectTransform =
+            registry.AddComponent<Tsukino::BuiltIn::ECS::TransformComponent>(effectEntity);
+        effectTransform.position = hlslpp::float3(0.0f, 100.0f, 0.0f);
+        effectTransform.dirty    = true;
+
+        Tsukino::BuiltIn::ECS::EffectComponent& effectComp =
+            registry.AddComponent<Tsukino::BuiltIn::ECS::EffectComponent>(effectEntity);
+        effectComp.effectAsset = effectHandle;
+        effectComp.active      = true;
+        effectComp.looping     = true;
     }
 
     //-------------------------------------------------------------
