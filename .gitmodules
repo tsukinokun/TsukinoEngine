@@ -13,6 +13,3 @@
 [submodule "External/JoltPhysics"]
 	path = External/JoltPhysics
 	url = https://github.com/jrouwe/JoltPhysics.git
-[submodule "External/Effekseer"]
-	path = External/Effekseer
-	url = https://github.com/effekseer/Effekseer.git
