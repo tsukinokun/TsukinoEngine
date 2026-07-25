@@ -256,7 +256,12 @@ namespace Tsukino::BuiltIn::ECS {
             return;
         }
 
-        m_manager->Update(deltaTime);
+        const float targetFps = 60.0f;    // 基準とするFPS
+
+        float deltaFrame = deltaTime * targetFps;
+
+        // エフェクシアにはフレームを渡す
+        m_manager->Update(deltaFrame);
 
         auto view = registry.View<EffectComponent>();
         for(Tsukino::ECS::Entity entity : view) {
@@ -309,10 +314,20 @@ namespace Tsukino::BuiltIn::ECS {
     //! @brief  エフェクトの描画（D3D11デバイスコンテキストでEffekseerを実行）
     //! @param  dc  [in] D3D11 デバイスコンテキスト
     //--------------------------------------------------------------
-    void EffectSystem::RenderEffects(ID3D11DeviceContext* dc) {
+    void EffectSystem::RenderEffects(ID3D11DeviceContext* dc,
+                                      const Tsukino::Core::Math::matrix& view,
+                                      const Tsukino::Core::Math::matrix& projection) {
         if(!m_initialized || !m_renderer || !dc) {
             return;
         }
+
+        ::Effekseer::Matrix44 efkView{};
+        ::Effekseer::Matrix44 efkProj{};
+        std::memcpy(efkView.Values, &view, sizeof(Tsukino::Core::Math::matrix));
+        std::memcpy(efkProj.Values, &projection, sizeof(Tsukino::Core::Math::matrix));
+
+        m_renderer->SetCameraMatrix(efkView);
+        m_renderer->SetProjectionMatrix(efkProj);
 
         m_renderer->BeginRendering();
         m_manager->Draw();

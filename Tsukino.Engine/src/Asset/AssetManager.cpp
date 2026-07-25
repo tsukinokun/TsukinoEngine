@@ -212,7 +212,8 @@ namespace Tsukino::Asset {
             {".cubemap", AssetType::Cubemap},
             {".tcc",     AssetType::Cubemap},
 
-            {".efk",     AssetType::Effect  },
+            {".efk",     AssetType::Effect },
+            {".efkefc",  AssetType::Effect },
         };
 
         if(auto it = extensionToAssetType.find(ext); it != extensionToAssetType.end())
@@ -252,6 +253,7 @@ namespace Tsukino::Asset {
             {".tcc",     ".tcc"       },
 
             {".efk",     ".efk"       },
+            {".efkefc",  ".efkefc"    },
         };
 
         auto [sourceBase, sourceFragment] = Tsukino::Core::Path::SplitPathAndFragment(sourcePath.string());

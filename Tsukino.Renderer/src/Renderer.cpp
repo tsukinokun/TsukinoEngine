@@ -409,7 +409,7 @@ namespace Tsukino::Renderer {
             ID3D11DeviceContext* context = m_graphicsContext.GetContext();
             context->OMSetBlendState(m_commonStatesTK->AlphaBlend(), nullptr, 0xFFFFFFFF);
             context->OMSetDepthStencilState(m_commonStatesTK->DepthNone(), 0);
-            effectSystem->RenderEffects(context);
+            effectSystem->RenderEffects(context, m_worldSceneData.view, m_worldSceneData.projection);
             context->OMSetBlendState(m_commonStatesTK->Opaque(), nullptr, 0xFFFFFFFF);
             context->OMSetDepthStencilState(m_commonStatesTK->DepthDefault(), 0);
         }

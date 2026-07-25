@@ -13,7 +13,7 @@ namespace Tsukino::Asset {
     //! @brief 対応する拡張子か判定する関数
     //--------------------------------------------------------------
     bool EffectLoader::CanLoad(const std::string& ext) const {
-        return ext == ".efk";
+        return ext == ".efk" || ext == ".efkefc";
     }
 
     //--------------------------------------------------------------

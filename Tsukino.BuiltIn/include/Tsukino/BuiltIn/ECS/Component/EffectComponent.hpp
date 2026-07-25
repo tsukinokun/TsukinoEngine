@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 //--------------------------------------------------------------
 //! @file   EffectComponent.hpp
 //! @brief  エフェクトコンポーネントの定義
@@ -14,11 +14,11 @@ namespace Tsukino::BuiltIn::ECS {
     //! @brief  Effekseerエフェクトを再生するためのコンポーネント
     //--------------------------------------------------------------
     struct EffectComponent {
-        Tsukino::Asset::AssetHandle effectAsset;   //!< .efk アセット
-        int                         handle = -1;   //!< Effekseer インスタンスハンドル
-        float                       playSpeed = 1.0f;  //!< 再生速度
-        bool                        looping = false;    //!< ループ再生フラグ
-        bool                        stopped = false;    //!< 停止フラグ
-        bool                        active = false;     //!< 再生中フラグ
+        Tsukino::Asset::AssetHandle effectAsset;          //!< .efk アセット
+        int                         handle    = -1;       //!< Effekseer インスタンスハンドル
+        float                       playSpeed = 1.0f;     //!< 再生速度
+        bool                        looping   = false;    //!< ループ再生フラグ
+        bool                        stopped   = false;    //!< 停止フラグ
+        bool                        active    = false;    //!< 再生中フラグ
     };
-}
+}    // namespace Tsukino::BuiltIn::ECS
