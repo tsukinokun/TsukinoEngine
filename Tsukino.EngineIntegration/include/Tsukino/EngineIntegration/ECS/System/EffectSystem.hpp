@@ -16,8 +16,12 @@
 
 #include <Effekseer.h>
 #include <EffekseerRendererDX11.h>
+#include <EffekseerRendererCommon/EffekseerRendererCommon/TextureLoader.h>
+#include <Tsukino/EngineIntegration/IO/EffectFileInterface.hpp>
 #include <unordered_map>
 #include <functional>
+#include <vector>
+#include <memory>
 
 // 前方宣言
 struct ID3D11DeviceContext;
@@ -133,6 +137,37 @@ namespace Tsukino::BuiltIn::ECS {
         //-------------------------------------------------------------
         void Finalize();
 
+        //-------------------------------------------------------------
+        //! @brief  エフェクトテクスチャを設定する
+        //! @param  handle   [in] エフェクトハンドル
+        //! @param  layer    [in] テクスチャレイヤー（0-31）
+        //! @param  texturePath  [in] テクスチャパス
+        //-------------------------------------------------------------
+        void SetEffectTexture(int handle, int layer, const Tsukino::Core::Path& texturePath);
+
+        //-------------------------------------------------------------
+        //! @brief  エフェクトテクスチャをロードして設定する
+        //! @param  handle   [in] エフェクトハンドル
+        //! @param  layer    [in] テクスチャレイヤー（0-31）
+        //! @param  texturePath  [in] テクスチャパス
+        //-------------------------------------------------------------
+        void LoadAndSetEffectTexture(int handle, int layer, const Tsukino::Core::Path& texturePath);
+
+        //-------------------------------------------------------------
+        //! @brief  エフェクトテクスチャを元に戻す
+        //! @param  handle  [in] エフェクトハンドル
+        //! @param  layer   [in] テクスチャレイヤー（0-31）
+        //-------------------------------------------------------------
+        void ResetEffectTexture(int handle, int layer);
+
+        //-------------------------------------------------------------
+        //! @brief  エフェクトのテクスチャバインドを適用する
+        //! @param  effect   [in] エフェクト
+        //! @param  texturePath  [in] テクスチャパス
+        //! @param  layer    [in] テクスチャレイヤー
+        //-------------------------------------------------------------
+        void ApplyTextureBinding(Effekseer::EffectRef effect, const Tsukino::Core::Path& texturePath, int layer);
+
     private:
         //-------------------------------------------------------------
         //! @brief  エンティティ破棄時のコールバック
@@ -148,6 +183,18 @@ namespace Tsukino::BuiltIn::ECS {
 
         Tsukino::ECS::Registry*        m_registry = nullptr;
         Tsukino::ECS::ScopedConnection m_entityDestroyedConn;
+
+        Effekseer::TextureLoaderRef m_textureLoader;
+
+        struct TextureBindingInfo {
+            int layer;
+            Tsukino::Core::Path originalPath;
+            Tsukino::Asset::AssetHandle textureAsset;
+        };
+
+        std::unordered_map<int, TextureBindingInfo> m_textureBindings;
+
+        std::vector<uint8_t> ReadTextureFile(const std::string& path);
 
         bool m_initialized = false;
     };
