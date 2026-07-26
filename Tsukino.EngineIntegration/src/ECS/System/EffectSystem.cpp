@@ -5,14 +5,22 @@
 //--------------------------------------------------------------
 #include <Tsukino/EngineIntegration/ECS/System/EffectSystem.hpp>
 #include <Tsukino/EngineIntegration/EngineContext.hpp>
+#include <Tsukino/EngineIntegration/IO/EffectFileInterface.hpp>
 #include <Tsukino/Engine/Asset/AssetManager.hpp>
 #include <Tsukino/Engine/Asset/Effect/EffectAsset.hpp>
+#include <Tsukino/Engine/Asset/Texture/TextureAsset.hpp>
 #include <Tsukino/BuiltIn/ECS/Component/EffectComponent.hpp>
 #include <Tsukino/BuiltIn/ECS/Component/TransformComponent.hpp>
 #include <Tsukino/Renderer/Renderer.hpp>
+#include <Tsukino/Core/Log.hpp>
+#include <Tsukino/Core/IO/FileSystem.hpp>
+#include <Tsukino/Core/Path.hpp>
+#include <Tsukino/Engine/Asset/AssetHandle.hpp>
 #include <Tsukino/Engine/ECS/EngineEvent/EntityEvent.hpp>
 #include <Effekseer.h>
 #include <EffekseerRendererDX11.h>
+#include <EffekseerRendererCommon/EffekseerRendererCommon/TextureLoader.h>
+#include <filesystem>
 
 // 名前空間 : Tsukino::BuiltIn::ECS
 namespace Tsukino::BuiltIn::ECS {
@@ -60,6 +68,12 @@ namespace Tsukino::BuiltIn::ECS {
 
         m_manager->SetSpriteRenderer(m_renderer->CreateSpriteRenderer());
         m_manager->SetModelRenderer(m_renderer->CreateModelRenderer());
+
+        m_textureLoader = EffekseerRenderer::CreateTextureLoader(
+            m_renderer->GetGraphicsDevice(), 
+            Effekseer::MakeRefPtr<Tsukino::EngineIntegration::EffectFileInterface>()
+        );
+        m_manager->SetTextureLoader(m_textureLoader);
 
         m_entityDestroyedConn            = eventBus.Subscribe<Tsukino::ECS::EngineEvent::EntityDestroyedEvent>(
             [this](const Tsukino::ECS::EngineEvent::EntityDestroyedEvent& event) { OnEffectEntityDestroyed(event); });
@@ -288,6 +302,15 @@ namespace Tsukino::BuiltIn::ECS {
                 int newHandle = PlayEffect(registry, comp.effectAsset, pos, comp.looping);
                 if(newHandle >= 0) {
                     comp.handle = newHandle;
+                    
+                    if(!comp.textureBindings.empty()) {
+                        Effekseer::EffectRef effect = m_manager->GetEffect(newHandle);
+                        if(effect) {
+                            for(const auto& bindingInfo : comp.textureBindings) {
+                                ApplyTextureBinding(effect, bindingInfo.texturePath, bindingInfo.layer);
+                            }
+                        }
+                    }
                 } else {
                     comp.active = false;
                 }
@@ -332,6 +355,143 @@ namespace Tsukino::BuiltIn::ECS {
         m_renderer->BeginRendering();
         m_manager->Draw();
         m_renderer->EndRendering();
+    }
+
+    //--------------------------------------------------------------
+    //! @brief  エフェクトテクスチャを設定する
+    //--------------------------------------------------------------
+    void EffectSystem::SetEffectTexture(int handle, int layer, const Tsukino::Core::Path& texturePath) {
+        if(handle < 0 || !m_manager || !m_renderer || !m_textureLoader) {
+            return;
+        }
+
+        if(layer < 0 || layer >= Effekseer::Manager::LayerCount) {
+            return;
+        }
+
+        Effekseer::EffectRef effect = m_manager->GetEffect(handle);
+        if(!effect) {
+            return;
+        }
+
+        auto texturePathStr = texturePath.string();
+        std::vector<char16_t> path16(texturePathStr.size() * 2 + 1, 0);
+        Effekseer::ConvertUtf8ToUtf16(path16.data(), static_cast<int32_t>(path16.size()), texturePathStr.c_str());
+        
+        auto texture = m_textureLoader->Load(path16.data(), Effekseer::TextureType::Color);
+        if(!texture) {
+            texture = m_textureLoader->Load(path16.data(), Effekseer::TextureType::Normal);
+        }
+        if(!texture) {
+            texture = m_textureLoader->Load(path16.data(), Effekseer::TextureType::Distortion);
+        }
+
+        if(texture) {
+            effect->SetTexture(layer, Effekseer::TextureType::Color, texture);
+            m_textureBindings[handle] = { layer, texturePath, Tsukino::Asset::AssetHandle() };
+        }
+    }
+
+    //--------------------------------------------------------------
+    //! @brief  エフェクトテクスチャをロードして設定する
+    //--------------------------------------------------------------
+    void EffectSystem::LoadAndSetEffectTexture(int handle, int layer, const Tsukino::Core::Path& texturePath) {
+        if(!m_initialized || !m_manager) {
+            return;
+        }
+
+        Tsukino::EngineIntegration::EngineContext* context = m_registry ? 
+            m_registry->GetContext<Tsukino::EngineIntegration::EngineContext*>() : nullptr;
+        if(!context || !context->assetManager) {
+            return;
+        }
+
+        auto textureAsset = context->assetManager->Load(texturePath);
+        if(!textureAsset.IsValid()) {
+            return;
+        }
+
+        SetEffectTexture(handle, layer, texturePath);
+        m_textureBindings[handle].textureAsset = textureAsset;
+    }
+
+    //--------------------------------------------------------------
+    //! @brief  エフェクトテクスチャを元に戻す
+    //--------------------------------------------------------------
+    void EffectSystem::ResetEffectTexture(int handle, int layer) {
+        if(handle < 0 || !m_manager) {
+            return;
+        }
+
+        auto it = m_textureBindings.find(handle);
+        if(it == m_textureBindings.end()) {
+            return;
+        }
+
+        Effekseer::EffectRef effect = m_manager->GetEffect(handle);
+        if(!effect) {
+            return;
+        }
+
+        effect->SetTexture(layer, Effekseer::TextureType::Color, nullptr);
+        m_textureBindings.erase(it);
+    }
+
+    //--------------------------------------------------------------
+    //! @brief  エフェクトのテクスチャバインドを適用する
+    //--------------------------------------------------------------
+    void EffectSystem::ApplyTextureBinding(Effekseer::EffectRef effect, const Tsukino::Core::Path& texturePath, int layer) {
+        if(!effect || layer < 0 || layer >= Effekseer::Manager::LayerCount) {
+            return;
+        }
+
+        if(!m_renderer || !m_textureLoader) {
+            Tsukino::Core::Log::Error("[EffectSystem] renderer or textureLoader is null");
+            return;
+        }
+
+        auto texturePathStr = texturePath.string();
+        Tsukino::Core::Log::Info("[EffectSystem] Loading texture from: " + texturePathStr);
+        
+        auto textureData = ReadTextureFile(texturePathStr);
+        if(!textureData.empty()) {
+            auto texture = m_textureLoader->Load(textureData.data(), static_cast<int32_t>(textureData.size()), Effekseer::TextureType::Color, false);
+            if(!texture) {
+                texture = m_textureLoader->Load(textureData.data(), static_cast<int32_t>(textureData.size()), Effekseer::TextureType::Normal, false);
+            }
+            if(!texture) {
+                texture = m_textureLoader->Load(textureData.data(), static_cast<int32_t>(textureData.size()), Effekseer::TextureType::Distortion, false);
+            }
+
+            if(texture) {
+                Tsukino::Core::Log::Info("[EffectSystem] Texture loaded successfully, binding to layer " + std::to_string(layer));
+                effect->SetTexture(layer, Effekseer::TextureType::Color, texture);
+            } else {
+                Tsukino::Core::Log::Error("[EffectSystem] Failed to load texture from: " + texturePathStr);
+            }
+        } else {
+            Tsukino::Core::Log::Error("[EffectSystem] Failed to read texture file: " + texturePathStr);
+        }
+    }
+
+    std::vector<uint8_t> EffectSystem::ReadTextureFile(const std::string& path) {
+        std::vector<std::string> searchPaths = {
+            "Assets/Effects/Texture/" + std::filesystem::path(path).filename().string(),
+            "Assets/Texture/" + std::filesystem::path(path).filename().string(),
+            "Texture/" + std::filesystem::path(path).filename().string(),
+            "Assets/" + path,
+            path
+        };
+        
+        for (const auto& searchPath : searchPaths) {
+            if (Tsukino::IO::FileSystem::Exists(Tsukino::Core::Path(searchPath))) {
+                Tsukino::Core::Log::Info("[EffectSystem::ReadTextureFile] Found texture at: " + searchPath);
+                return Tsukino::IO::FileSystem::ReadBinary(Tsukino::Core::Path(searchPath));
+            }
+        }
+        
+        Tsukino::Core::Log::Error("[EffectSystem::ReadTextureFile] Texture NOT found: " + path);
+        return {};
     }
 
 }    // namespace Tsukino::BuiltIn::ECS

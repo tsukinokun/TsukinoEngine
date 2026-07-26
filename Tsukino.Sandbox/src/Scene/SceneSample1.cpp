@@ -115,7 +115,7 @@ namespace Tsukino::Sandbox {
 
         Tsukino::Asset::AssetHandle animationHandle = context->assetManager->Load(Tsukino::Core::Path("Tsukino.Sandbox/Assets/Anims/Test2Anim.fbx"));
 
-        Tsukino::Asset::AssetHandle effectHandle = context->assetManager->Load(Tsukino::Core::Path("Tsukino.Sandbox/Assets/Effects/Laser01.efkefc"));
+        Tsukino::Asset::AssetHandle effectHandle = context->assetManager->Load(Tsukino::Core::Path("Tsukino.Sandbox/Assets/Effects/Effekseer01/Laser01.efkefc"));
 
         Tsukino::ECS::Registry& registry = m_scene.GetRegistry();
 
@@ -370,6 +370,12 @@ namespace Tsukino::Sandbox {
         effectComp.active                                  = true;
         effectComp.looping                                 = false;
         effectComp.playSpeed                               = 1.0f;
+
+        Tsukino::BuiltIn::ECS::TextureBinding textureBinding;
+        textureBinding.texturePath = Tsukino::Core::Path("Assets/Texture/LaserMain01.png");
+        textureBinding.layer = 0;
+        textureBinding.isOverride = false;
+        effectComp.textureBindings.push_back(textureBinding);
     }
 
     //-------------------------------------------------------------
