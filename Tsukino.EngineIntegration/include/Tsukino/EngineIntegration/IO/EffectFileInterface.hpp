@@ -12,12 +12,16 @@ public:
     EffectFileInterface() = default;
     ~EffectFileInterface() override = default;
 
+    void SetBaseDirectory(const Tsukino::Core::Path& baseDir);
+
     Effekseer::FileReaderRef OpenRead(const EFK_CHAR* path) override;
     Effekseer::FileWriterRef OpenWrite(const EFK_CHAR* path) override;
 
 private:
     static std::vector<uint8_t> ReadFile(const std::string& path);
     static bool FileExists(const std::string& path);
+
+    Tsukino::Core::Path m_baseDirectory;
 };
 
 class EffectFileReader : public Effekseer::FileReader {

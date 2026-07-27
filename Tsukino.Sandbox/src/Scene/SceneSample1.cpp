@@ -367,15 +367,10 @@ namespace Tsukino::Sandbox {
 
         Tsukino::BuiltIn::ECS::EffectComponent& effectComp = registry.AddComponent<Tsukino::BuiltIn::ECS::EffectComponent>(effectEntity);
         effectComp.effectAsset                             = effectHandle;
+        effectComp.effectPath                              = Tsukino::Core::Path("Tsukino.Sandbox/Assets/Effects/Effekseer01/Laser01.efkefc");
         effectComp.active                                  = true;
         effectComp.looping                                 = false;
         effectComp.playSpeed                               = 1.0f;
-
-        Tsukino::BuiltIn::ECS::TextureBinding textureBinding;
-        textureBinding.texturePath = Tsukino::Core::Path("Assets/Texture/LaserMain01.png");
-        textureBinding.layer = 0;
-        textureBinding.isOverride = false;
-        effectComp.textureBindings.push_back(textureBinding);
     }
 
     //-------------------------------------------------------------
