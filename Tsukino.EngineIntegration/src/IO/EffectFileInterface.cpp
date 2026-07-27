@@ -6,35 +6,16 @@
 
 namespace Tsukino::EngineIntegration {
 
+void EffectFileInterface::SetBaseDirectory(const Tsukino::Core::Path& baseDir) {
+    m_baseDirectory = baseDir;
+}
+
 std::vector<uint8_t> EffectFileInterface::ReadFile(const std::string& path) {
     return Tsukino::IO::FileSystem::ReadBinary(Tsukino::Core::Path(path));
 }
 
 bool EffectFileInterface::FileExists(const std::string& path) {
     return Tsukino::IO::FileSystem::Exists(Tsukino::Core::Path(path));
-}
-
-static bool TextureFileExists(const std::string& filename) {
-    std::vector<std::string> paths = {
-        "Assets/Effects/Texture/" + filename,
-        "Assets/Texture/" + filename,
-        "Texture/" + filename,
-        filename
-    };
-    
-    Tsukino::Core::Log::Info("[TextureFileExists] Checking for: " + filename);
-    
-    for (const auto& path : paths) {
-        bool exists = Tsukino::IO::FileSystem::Exists(Tsukino::Core::Path(path));
-        Tsukino::Core::Log::Info("[TextureFileExists] Checking: " + path + " -> " + std::string(exists ? "EXISTS" : "NOT FOUND"));
-        if (exists) {
-            Tsukino::Core::Log::Info("[EffectFileInterface] Texture found at: " + path);
-            return true;
-        }
-    }
-    
-    Tsukino::Core::Log::Error("[EffectFileInterface] Texture NOT found: " + filename);
-    return false;
 }
 
 Effekseer::FileReaderRef EffectFileInterface::OpenRead(const EFK_CHAR* path) {
@@ -49,20 +30,23 @@ Effekseer::FileReaderRef EffectFileInterface::OpenRead(const EFK_CHAR* path) {
 
     std::string pathStr = path8.data();
     std::string filename = std::filesystem::path(pathStr).filename().string();
-    
+
     Tsukino::Core::Log::Info("[EffectFileInterface::OpenRead] Current working directory: " + std::filesystem::current_path().string());
     Tsukino::Core::Log::Info("[EffectFileInterface::OpenRead] path: " + pathStr + ", filename: " + filename);
-    
-    TextureFileExists(filename);
-    
-    std::vector<std::string> searchPaths = {
-        "Assets/Effects/Texture/" + filename,
-        "Assets/Texture/" + filename,
-        "Texture/" + filename,
-        "Assets/" + pathStr,
-        pathStr
-    };
-    
+
+    std::vector<std::string> searchPaths;
+
+    if(!m_baseDirectory.string().empty()) {
+        searchPaths.push_back(m_baseDirectory.string() + "/" + pathStr);
+        searchPaths.push_back(m_baseDirectory.string() + "/" + filename);
+    }
+
+    searchPaths.push_back("Assets/Effects/Texture/" + filename);
+    searchPaths.push_back("Assets/Texture/" + filename);
+    searchPaths.push_back("Texture/" + filename);
+    searchPaths.push_back("Assets/" + pathStr);
+    searchPaths.push_back(pathStr);
+
     for (const auto& searchPath : searchPaths) {
         if(FileExists(searchPath)) {
             Tsukino::Core::Log::Info("[EffectFileInterface::OpenRead] Found file at: " + searchPath);
@@ -71,7 +55,7 @@ Effekseer::FileReaderRef EffectFileInterface::OpenRead(const EFK_CHAR* path) {
             return Effekseer::MakeRefPtr<EffectFileReader>(data);
         }
     }
-    
+
     Tsukino::Core::Log::Error("[EffectFileInterface::OpenRead] File NOT found in any path for: " + pathStr);
     return nullptr;
 }

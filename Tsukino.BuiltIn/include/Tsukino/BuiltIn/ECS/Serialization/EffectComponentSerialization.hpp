@@ -18,8 +18,9 @@ namespace Tsukino::BuiltIn::ECS {
     template <class Archive>
     void save(Archive& archive, const EffectComponent& effect) {
         archive(cereal::make_nvp("effectAsset", effect.effectAsset),
-                cereal::make_nvp("playSpeed",  effect.playSpeed),
-                cereal::make_nvp("looping",    effect.looping));
+                cereal::make_nvp("effectPath",   effect.effectPath.string()),
+                cereal::make_nvp("playSpeed",    effect.playSpeed),
+                cereal::make_nvp("looping",      effect.looping));
     }
 
     //--------------------------------------------------------------
@@ -27,10 +28,12 @@ namespace Tsukino::BuiltIn::ECS {
     //--------------------------------------------------------------
     template <class Archive>
     void load(Archive& archive, EffectComponent& effect) {
-        archive(effect.effectAsset, effect.playSpeed, effect.looping);
-        effect.handle  = -1;
-        effect.stopped = false;
-        effect.active  = false;
+        std::string effectPathStr;
+        archive(effect.effectAsset, effectPathStr, effect.playSpeed, effect.looping);
+        effect.effectPath   = Tsukino::Core::Path(effectPathStr);
+        effect.handle       = -1;
+        effect.stopped      = false;
+        effect.active       = false;
     }
 
 }    // namespace Tsukino::BuiltIn::ECS
