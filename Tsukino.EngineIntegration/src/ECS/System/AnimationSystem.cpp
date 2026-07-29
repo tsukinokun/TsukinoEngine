@@ -354,6 +354,25 @@ namespace Tsukino::BuiltIn::ECS {
                             if(node.nodeIndex >= globalNodeMatrices.size())
                                 continue;
 
+                            // ============================================================
+                            // [BUG NOTE] マトリックスの乗算順序が不正確
+                            // 現在: mul(rotMat, transMat) = R * T (回転 × 平行移動)
+                            // 正しい: mul(transMat, rotMat) = T * R (平行移動 × 回転)
+                            // 
+                            // さらに重要な問題: これはワールド座象系の行列を作っているが、
+                            // 元の実装では globalNodeMatrices = localMat * parentGlobalMatrix
+                            // の順序で計算されている。
+                            // 
+                            // SpringBoneは物理シミュレーションでワールド座標系の位置を
+                            // 求めるが、出力時には親のグローバル行列を考慮したい。
+                            // 
+                            // 修正案:
+                            // 1. localMat = translate(position) * rotate(rotation) を作成
+                            // 2. globalNodeMatrices[nodeIndex] = mul(localMat, parentGlobalMatrix)
+                            // 
+                            // ただし、SpringBoneチェーン内の場合、parentIndexInChainを使用
+                            // してチェーン内の親のシミュレーション位置を参照する必要がある。
+                            // ============================================================
                             Tsukino::Core::Math::matrix rotMat   = Tsukino::Core::Math::matrix::rotate(node.correctedRotation);
                             Tsukino::Core::Math::matrix transMat = Tsukino::Core::Math::matrix::translate(node.currentPosition);
                             globalNodeMatrices[node.nodeIndex]   = hlslpp::mul(rotMat, transMat);

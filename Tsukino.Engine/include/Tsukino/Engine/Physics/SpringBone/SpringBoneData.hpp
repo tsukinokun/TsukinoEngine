@@ -32,6 +32,24 @@ namespace Tsukino::Physics {
         hlslpp::float3 localOffset     = hlslpp::float3(0.0f, 0.0f, 0.0f);
         float          radius          = 0.1f;
 
+        // ============================================================
+        // [NOTE] コライダーの回転処理
+        // 
+        // AnimationSystem.cppで以下のように回転を適用している:
+        // colliderPos = pose.position + hlslpp::mul(collider.localOffset, pose.rotation);
+        // 
+        // hlslpp++のmul(A, B)は「Aを適用してからBを適用する」仕様
+        // ベクトルに対するクォータニオンの乗算は、通常 mul(quat, vec) または
+        // quat * vec の形で行うことが多い。
+        // 
+        // 現在の実装は正しいか検証が必要。UnityChanでは:
+        // colliderPos = collider.transform.position + 
+        //              collider.transform.rotation * collider.offset
+        // 
+        // したがって、hlslpp::mul(pose.rotation, collider.localOffset) の方が
+        // 正しい可能性がある。
+        // ============================================================
+
         //--------------------------------------------------------------
         //! @brief  シリアライズ関数
         //--------------------------------------------------------------
@@ -52,6 +70,22 @@ namespace Tsukino::Physics {
         float          gravityScale = 1.0f;     //!< 重力の強さ倍率
         hlslpp::float3 gravityDir   = hlslpp::float3(0.0f, -1.0f, 0.0f);
 
+        // ============================================================
+        // [TODO] boneAxis パラメータの追加が必要
+        // UnityChanToonShader実装:
+        //   public Vector3 boneAxis = new Vector3 (-1.0f, 0.0f, 0.0f);
+        // VRM仕様:
+        //   boneAxis: The direction of the bone in its rest state
+        // 
+        // 現在の実装は「アニメーション姿勢の方向」を基準に角度制限を行うが、
+        // これはUnityChan/VRMと異なる振る舞いを示す。
+        // 
+        // 推奨: boneAxisを追加し、以下の点で使用する
+        // 1. 角度制限の基準方向
+        // 2. stiffnessの適用方向（boneAxis * stiffnessForce）
+        // 3. 長さ制約の基準方向
+        // ============================================================
+        
         float boneRadius    = 0.03f;    //!< 各ボーンの太さ（コライダー衝突判定用）
         float angleLimitDeg = 45.0f;    //!< 親ボーン方向からの最大曲げ角度（0以下で無制限）
 
@@ -75,6 +109,10 @@ namespace Tsukino::Physics {
         i32 parentIndexInChain = -1;            //!< チェーン内での親インデックス（-1ならアンカー直下）
 
         float restLength = 0.0f;    //!< 親からのバインドポーズ距離（伸びない棒として扱う）
+                                    // ============================================================
+                                    // [NOTE] restLength = 0 の場合、ApplyLengthConstraint()で
+                                    // normalize()がNaNを生成するため、使用側で注意が必要
+                                    // ============================================================
 
         hlslpp::float3     currentPosition   = hlslpp::float3(0.0f, 0.0f, 0.0f);              //!< 現在のシミュレーション位置(world)
         hlslpp::float3     previousPosition  = hlslpp::float3(0.0f, 0.0f, 0.0f);              //!< 1フレーム前のシミュレーション位置(world)
@@ -98,6 +136,21 @@ namespace Tsukino::Physics {
         // 直前フレームのアンカー位置（慣性計算用）
         hlslpp::float3 previousAnchorPosition = hlslpp::float3(0.0f, 0.0f, 0.0f);
         bool           anchorInitialized      = false;
+
+        // ============================================================
+        // [NOTE] コライダー衝突解決の注意点
+        // 
+        // UpdateChain()の衝突処理は、各イテレーションで:
+        // 1. 全コライダーに対して衝突判定
+        // 2. 衝突していればノードを押し出し
+        // 3. 長さ制約を適用
+        // 
+        // ただし、複数のコライダーが重なる場合や、押し出し後に
+        // 別のコライダーと衝突する場合、イテレーション内で
+        // 再チェックされないため、位置が不自然に押し出されることがある。
+        // 
+        // 推奨: collisionIterationsを増やす、または反復的ソルバー方式に変更
+        // ============================================================
     };
 
 }    // namespace Tsukino::Physics
