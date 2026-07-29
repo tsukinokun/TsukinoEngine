@@ -111,9 +111,9 @@ namespace Tsukino::Sandbox {
 
         Tsukino::Asset::AssetHandle audioHandle = context->assetManager->Load(Tsukino::Core::Path("Tsukino.Sandbox/Assets/Sounds/cat1.wav"));
 
-        Tsukino::Asset::AssetHandle modelHandle = context->assetManager->Load(Tsukino::Core::Path("Tsukino.Sandbox/Assets/Models/Test2.fbx"));
+        Tsukino::Asset::AssetHandle modelHandle = context->assetManager->Load(Tsukino::Core::Path("Tsukino.Sandbox/Assets/Models/CharaTest.fbx"));
 
-        Tsukino::Asset::AssetHandle animationHandle = context->assetManager->Load(Tsukino::Core::Path("Tsukino.Sandbox/Assets/Anims/Test2Anim.fbx"));
+        Tsukino::Asset::AssetHandle animationHandle = context->assetManager->Load(Tsukino::Core::Path("Tsukino.Sandbox/Assets/Anims/Slow Run.fbx"));
 
         Tsukino::Asset::AssetHandle effectHandle = context->assetManager->Load(Tsukino::Core::Path("Tsukino.Sandbox/Assets/Effects/Effekseer01/Laser01.efkefc"));
 
@@ -180,7 +180,7 @@ namespace Tsukino::Sandbox {
         // ModelComponent の追加
         Tsukino::BuiltIn::ECS::ModelComponent& model = registry.AddComponent<Tsukino::BuiltIn::ECS::ModelComponent>(modelEntity);
         model.modelHandle                            = modelHandle;
-        model.visible                                = false;
+        model.visible                                = true;
 
         // モデルにコリジョンをつける
         Tsukino::BuiltIn::ECS::CollisionComponent& collision = registry.AddComponent<Tsukino::BuiltIn::ECS::CollisionComponent>(modelEntity);
@@ -204,7 +204,7 @@ namespace Tsukino::Sandbox {
 
         Tsukino::BuiltIn::ECS::SpringBoneComponent::ChainDef breastL;
         breastL.name                   = "Breast_L";
-        breastL.rootNodeName           = "L_breast_01";
+        breastL.rootNodeName           = "Breast_L";
         breastL.maxDepth               = 1;
         breastL.settings.stiffness     = 0.4f;     // リアル(0.55)より少し柔らかく、揺れ幅を出す
         breastL.settings.drag          = 0.13f;    // 収まりをやや長めに（2〜3往復くらい残る）
@@ -215,7 +215,7 @@ namespace Tsukino::Sandbox {
 
         Tsukino::BuiltIn::ECS::SpringBoneComponent::ChainDef breastR;
         breastR.name                   = "Breast_R";
-        breastR.rootNodeName           = "R_breast_01";
+        breastR.rootNodeName           = "Breast_R";
         breastR.maxDepth               = 1;
         breastR.settings.stiffness     = 0.4f;
         breastR.settings.drag          = 0.13f;
