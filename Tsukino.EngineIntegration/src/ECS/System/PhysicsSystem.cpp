@@ -550,6 +550,20 @@ namespace Tsukino::BuiltIn::ECS {
             Tsukino::Core::Log::Info("CharacterVirtual created for entity id=" + std::to_string((uint32_t)entity));
         });
 
+        // 破棄されたCharacterVirtualのクリーンアップ
+        {
+            std::vector<entt::entity> toErase;
+            for(auto& [entity, handle] : m_impl->characters) {
+                // エンティティ自体が破棄済み、またはCharacterControllerComponentが外された場合
+                if(!registry.IsValid(entity) || !registry.HasComponent<CharacterControllerComponent>(entity)) {
+                    toErase.push_back(entity);
+                }
+            }
+            for(auto entity : toErase) {
+                m_impl->characters.erase(entity);
+            }
+        }
+
         for(auto entity : view) {
             auto& col = registry.GetComponent<CollisionComponent>(entity);
             if(!registry.HasComponent<RigidbodyComponent>(entity))
