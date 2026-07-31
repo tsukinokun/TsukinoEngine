@@ -767,6 +767,33 @@ namespace Tsukino::BuiltIn::ECS {
             }
         }
 
+         charView.each([&](auto entity, auto& cc, auto& tf) {
+            auto it = m_impl->characters.find(entity);
+            if(it == m_impl->characters.end())
+                return;
+
+            JPH::CharacterVirtual* character = it->second.character;
+
+            JPH::CharacterVirtual::ExtendedUpdateSettings updateSettings;
+
+            character->ExtendedUpdate(stepTime,
+                                      m_impl->physicsSystem->GetGravity(),
+                                      updateSettings,
+                                      m_impl->physicsSystem->GetDefaultBroadPhaseLayerFilter(Layers::MOVING),
+                                      m_impl->physicsSystem->GetDefaultLayerFilter(Layers::MOVING),
+                                      {},    // BodyFilter
+                                      {},    // ShapeFilter
+                                      *m_impl->tempAllocator);
+
+            cc.isGrounded = character->IsSupported();
+
+            JPH::RVec3 pos = character->GetPosition();
+            JPH::Quat  rot = character->GetRotation();
+            tf.position    = hlslpp::float3(pos.GetX(), pos.GetY(), pos.GetZ());
+            tf.rotation    = hlslpp::quaternion(rot.GetX(), rot.GetY(), rot.GetZ(), rot.GetW());
+            tf.dirty       = true;
+        });
+
         // デバッグ描画
         bool f5IsDown = (::GetAsyncKeyState(VK_F5) & 0x8000) != 0;
         if(f5IsDown && !m_impl->f5WasDown) {
