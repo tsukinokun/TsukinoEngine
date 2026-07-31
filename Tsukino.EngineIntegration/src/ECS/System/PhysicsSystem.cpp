@@ -522,6 +522,34 @@ namespace Tsukino::BuiltIn::ECS {
 
         float stepTime = deltaTime > 0.0f ? deltaTime : 1.0f / 60.0f;
 
+         // CharacterVirtualの生成処理
+        auto charView = registry.View<CharacterControllerComponent, TransformComponent>();
+        charView.each([&](auto entity, auto& cc, auto& tf) {
+            if(cc.isInitialized)
+                return;
+
+            JPH::RefConst<JPH::Shape> shape = new JPH::CapsuleShape(cc.halfHeight, cc.radius);
+
+            JPH::CharacterVirtualSettings settings;
+            settings.mShape         = shape;
+            settings.mMaxSlopeAngle = JPH::DegreesToRadians(cc.maxSlopeDeg);
+            settings.mMass          = cc.mass;
+            // 接地判定に使う平面。カプセル底面付近を接地面とみなす
+            settings.mSupportingVolume = JPH::Plane(JPH::Vec3::sAxisY(), -cc.radius);
+
+            JPH::RVec3 pos(tf.position.x, tf.position.y, tf.position.z);
+            JPH::Quat  rot(tf.rotation.x, tf.rotation.y, tf.rotation.z, tf.rotation.w);
+
+            JPH::Ref<JPH::CharacterVirtual> character = new JPH::CharacterVirtual(&settings, pos, rot, (uint64_t)entity, m_impl->physicsSystem);
+
+            character->SetListener(&m_impl->characterContactListener);
+
+            m_impl->characters[entity] = Impl::CharacterHandle{character};
+            cc.isInitialized           = true;
+
+            Tsukino::Core::Log::Info("CharacterVirtual created for entity id=" + std::to_string((uint32_t)entity));
+        });
+
         for(auto entity : view) {
             auto& col = registry.GetComponent<CollisionComponent>(entity);
             if(!registry.HasComponent<RigidbodyComponent>(entity))
