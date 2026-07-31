@@ -12,6 +12,7 @@
 #include <Tsukino/BuiltIn/ECS/Component/RigidBodyComponent.hpp>
 #include <Tsukino/BuiltIn/ECS/Component/TransformComponent.hpp>
 #include <Tsukino/BuiltIn/ECS/Component/ImpulseRequestComponent.hpp>
+#include <Tsukino/BuiltIn/ECS/Component/CharacterControllerComponent.hpp>
 #include <Tsukino/BuiltIn/ECS/Event/CollisionEnterEvent.hpp>
 
 #include <Tsukino/Renderer/Renderer.hpp>
@@ -40,6 +41,7 @@
 #include <Jolt/Physics/Body/BodyActivationListener.h>
 #include <Jolt/Renderer/DebugRendererSimple.h>
 #include <Jolt/Physics/Collision/Shape/HeightFieldShape.h>
+#include <Jolt/Physics/Character/CharacterVirtual.h>
 
 #include <windows.h>
 // 名前空間 : Tsukino::BuiltIn::ECS
@@ -224,6 +226,45 @@ namespace Tsukino::BuiltIn::ECS {
     };
 
     //-------------------------------------------------------------
+    //! @class  CharacterContactListenerImpl
+    //! @brief  CharacterVirtualの接触イベントを受け取るリスナー（他Dynamicボディを押す処理）
+    //-------------------------------------------------------------
+    class CharacterContactListenerImpl : public JPH::CharacterContactListener {
+    public:
+        JPH::PhysicsSystem* physicsSystem = nullptr;    //!< 押し出し計算に使う物理システム参照
+
+        //-------------------------------------------------------------
+        //! @brief  CharacterVirtualが他ボディに接触した際に呼ばれるコールバック
+        //! @param  inCharacter       [in] 接触したキャラクター本体
+        //! @param  inBodyID2         [in] 接触相手のボディID
+        //! @param  inSubShapeID2     [in] 接触相手のサブシェイプID
+        //! @param  inContactPosition [in] 接触位置（ワールド座標）
+        //! @param  inContactNormal   [in] 接触法線
+        //! @param  ioSettings        [in/out] 接触設定（押し出し無効化等のオーバーライド可能）
+        //-------------------------------------------------------------
+        void OnContactAdded(const JPH::CharacterVirtual*   inCharacter,
+                            const JPH::BodyID&             inBodyID2,
+                            const JPH::SubShapeID&         inSubShapeID2,
+                            JPH::RVec3Arg                  inContactPosition,
+                            JPH::Vec3Arg                   inContactNormal,
+                            JPH::CharacterContactSettings& ioSettings) override {
+            if(!physicsSystem)
+                return;
+
+            JPH::BodyInterface& bodyInterface = physicsSystem->GetBodyInterface();
+            if(bodyInterface.GetMotionType(inBodyID2) != JPH::EMotionType::Dynamic)
+                return;
+
+            // キャラクターの移動方向に押し出す（Step 7で本格実装予定。現状は仮のロジック）
+            JPH::Vec3 characterVelocity = inCharacter->GetLinearVelocity();
+            float     pushDot           = characterVelocity.Dot(-inContactNormal);
+            if(pushDot > 0.0f) {
+                bodyInterface.AddImpulse(inBodyID2, -inContactNormal * pushDot * inCharacter->GetMass() * 0.1f, inContactPosition);
+            }
+        }
+    };
+
+    //-------------------------------------------------------------
     //! @class  JoltDebugRendererImpl
     //! @brief  Jolt Physics のデバッグ描画を Tsukino::Renderer に中継するクラス
     //-------------------------------------------------------------
@@ -289,6 +330,17 @@ namespace Tsukino::BuiltIn::ECS {
         std::unordered_map<entt::entity, JPH::RVec3> prevPositions;
         // ハイトマップ用キャッシュ（Shape を直接保持して使い回す）
         std::unordered_map<uint64_t, JPH::Ref<JPH::HeightFieldShape>> heightfieldCache;
+
+        //-------------------------------------------------------------
+        //! @struct CharacterHandle
+        //! @brief  CharacterVirtual本体を保持するハンドル
+        //-------------------------------------------------------------
+        struct CharacterHandle {
+            JPH::Ref<JPH::CharacterVirtual> character;    //!< CharacterVirtual実体
+        };
+
+        CharacterContactListenerImpl                      characterContactListener;    //!< Character用接触リスナー
+        std::unordered_map<entt::entity, CharacterHandle> characters;                  //!< エンティティ毎のCharacterVirtual
     };
 
     //-------------------------------------------------------------
@@ -321,6 +373,7 @@ namespace Tsukino::BuiltIn::ECS {
         // ContactListenerにイベントバスの参照を渡す
         m_impl->contactListener->eventBus = &eventBus;
         m_impl->physicsSystem->SetContactListener(m_impl->contactListener);
+        m_impl->characterContactListener.physicsSystem = m_impl->physicsSystem;
 
         m_impl->debugRenderer = new JoltDebugRendererImpl();
     }
@@ -383,7 +436,7 @@ namespace Tsukino::BuiltIn::ECS {
                             if(hfResult.IsValid()) {
                                 shape                              = hfResult.Get();
                                 m_impl->heightfieldCache[cacheKey] = (JPH::HeightFieldShape*)shape.GetPtr();
-                            
+
                                 JPH::AABox localBounds = shape->GetLocalBounds();
                                 Tsukino::Core::Log::Info("HeightField local bounds min=(" + std::to_string(localBounds.mMin.GetX()) + ","
                                                          + std::to_string(localBounds.mMin.GetZ()) + ") max=(" + std::to_string(localBounds.mMax.GetX()) + ","
@@ -501,7 +554,7 @@ namespace Tsukino::BuiltIn::ECS {
             if(col.isInitialized) {
                 JPH::BodyInterface& bi = m_impl->physicsSystem->GetBodyInterface();
                 bi.AddImpulse(col.bodyID, JPH::Vec3(ir.impulse.x, ir.impulse.y, ir.impulse.z));
-            
+
                 // 回転（トルク）の付与
                 JPH::Vec3 angImpulse(ir.angularImpulse.x, ir.angularImpulse.y, ir.angularImpulse.z);
                 if(!angImpulse.IsNearZero()) {
