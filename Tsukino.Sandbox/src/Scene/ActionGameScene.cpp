@@ -110,7 +110,7 @@ namespace Tsukino::Sandbox {
 
         Tsukino::Asset::AssetHandle modelHandle = context->assetManager->Load(Tsukino::Core::Path("Tsukino.Sandbox/Assets/Models/CharaTest.fbx"));
 
-        Tsukino::Asset::AssetHandle animationHandle = context->assetManager->Load(Tsukino::Core::Path("Tsukino.Sandbox/Assets/Anims/Slow Run.fbx"));
+        Tsukino::Asset::AssetHandle animationHandle = context->assetManager->Load(Tsukino::Core::Path("Tsukino.Sandbox/Assets/Anims/Jump.fbx"));
 
         Tsukino::ECS::Registry& registry = m_scene.GetRegistry();
 
@@ -146,7 +146,7 @@ namespace Tsukino::Sandbox {
         Tsukino::BuiltIn::ECS::TransformComponent& modelTransform = registry.AddComponent<Tsukino::BuiltIn::ECS::TransformComponent>(modelEntity);
         modelTransform.position                                   = hlslpp::float3(0.0f, 0.0f, 0.0f);
         modelTransform.rotation                                   = hlslpp::quaternion(0.0f, 0.0f, 0.0f, 1.0f);    // 無回転
-        modelTransform.scale                                      = hlslpp::float3(1.0f, 1.0f, 1.0f);
+        modelTransform.scale                                      = hlslpp::float3(2.0f, 2.0f, 2.0f);
         modelTransform.dirty                                      = true;          // 初回計算のためフラグを立てる
         modelTransform.parent                                     = entt::null;    // 親なし
 
@@ -169,7 +169,7 @@ namespace Tsukino::Sandbox {
         animPlayer.current_clip_id                                  = animationHandle;    // ロー等速再生ドした testAnim.fbx のハンドルを渡す
         animPlayer.animation_index                                  = 1;                  // 再生するアニメーションのインデックスを指定
         animPlayer.elapsed_time                                     = 2.2f;               // 0秒からスタート
-        animPlayer.playback_speed                                   = 0.5f;               //
+        animPlayer.playback_speed                                   = 0.7f;               //
         animPlayer.is_looping                                       = true;               // ループさせる
         animPlayer.is_playing                                       = true;               // 再生状態にする
 
@@ -179,9 +179,9 @@ namespace Tsukino::Sandbox {
         breastL.name                   = "Breast_L";
         breastL.rootNodeName           = "Breast_L";
         breastL.maxDepth               = 1;
-        breastL.settings.stiffness     = 0.4f;     // リアル(0.55)より少し柔らかく、揺れ幅を出す
+        breastL.settings.stiffness     = 0.35f;     // リアル(0.55)より少し柔らかく、揺れ幅を出す
         breastL.settings.drag          = 0.13f;    // 収まりをやや長めに（2〜3往復くらい残る）
-        breastL.settings.inertia       = 0.25f;    // 体の動きに対して、わずかに「置いていかれる」感を演出
+        breastL.settings.inertia       = 0.5f;    // 体の動きに対して、わずかに「置いていかれる」感を演出
         breastL.settings.gravityScale  = 1.0f;
         breastL.settings.angleLimitDeg = 26.0f;
         springBone.chainDefs.push_back(breastL);
@@ -190,9 +190,9 @@ namespace Tsukino::Sandbox {
         breastR.name                   = "Breast_R";
         breastR.rootNodeName           = "Breast_R";
         breastR.maxDepth               = 1;
-        breastR.settings.stiffness     = 0.4f;
+        breastR.settings.stiffness     = 0.35f;
         breastR.settings.drag          = 0.13f;
-        breastR.settings.inertia       = 0.25f;
+        breastR.settings.inertia       = 0.5f;
         breastR.settings.gravityScale  = 1.0f;
         breastR.settings.angleLimitDeg = 26.0f;
         springBone.chainDefs.push_back(breastR);
