@@ -18,7 +18,7 @@ namespace Tsukino::Physics::SpringBonePhysics {
         constexpr float kDegToRad     = 3.14159265358979323846f / 180.0f;
     }    // namespace
 
-//--------------------------------------------------------------
+    //--------------------------------------------------------------
     //! @brief  ノード階層をDFSで辿り、揺れ物チェーンを構築する
     //--------------------------------------------------------------
     SpringBoneChain BuildChainFromHierarchy(const std::string&                           name,
@@ -274,10 +274,17 @@ namespace Tsukino::Physics::SpringBonePhysics {
             // ============================================================
             hlslpp::float3 prevPos = node.previousPosition + anchorDelta * inertiaKeep;
 
+            //-------------------------------------------------------------
             // Verlet積分
-            const float    dragKeep = 1.0f - std::clamp(s.drag, 0.0f, 1.0f);
+            //-------------------------------------------------------------
+            // 減衰係数（ドラッグ・空気抵抗の残り具合）を計算する
+            const float dragKeep = 1.0f - std::clamp(s.drag, 0.0f, 1.0f);
+
+            // 前フレームからの変位（速度）に減衰係数を掛け、抵抗を反映した実際の速度ベクトルを算出する
             hlslpp::float3 velocity = (node.currentPosition - prevPos) * dragKeep;
-            hlslpp::float3 newPos   = node.currentPosition + velocity + gravityStep;
+
+            // 計算した速度と重力による移動量を足し合わせて、新しい位置を決定する
+            hlslpp::float3 newPos = node.currentPosition + velocity + gravityStep;
 
             node.previousPosition = node.currentPosition;
 

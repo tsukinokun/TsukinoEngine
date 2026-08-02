@@ -767,17 +767,38 @@ namespace Tsukino::BuiltIn::ECS {
             }
         }
 
-         charView.each([&](auto entity, auto& cc, auto& tf) {
+         // CharacterVirtualの同期（移動・ジャンプ対応）
+        JPH::Vec3 gravity = m_impl->physicsSystem->GetGravity();
+
+        charView.each([&](auto entity, auto& cc, auto& tf) {
             auto it = m_impl->characters.find(entity);
             if(it == m_impl->characters.end())
                 return;
 
             JPH::CharacterVirtual* character = it->second.character;
 
+            bool wasGrounded = character->IsSupported();
+
+            // 縦方向速度の更新
+            float vertY = cc.verticalVelocity.y;
+            if(wasGrounded && vertY < 0.0f) {
+                vertY = -0.1f;    // 地面に張り付かせる程度の小さい下向き速度（斜面を滑り落ちないように）
+            }
+            if(cc.jumpRequested && wasGrounded) {
+                vertY = cc.jumpSpeed;
+            }
+            cc.jumpRequested = false;    // 消費して1フレームでリセット
+
+            vertY += gravity.GetY() * stepTime;
+
+            // 水平（moveInput）＋垂直を合成して速度としてセット
+            JPH::Vec3 desiredVelocity(cc.moveInput.x, vertY, cc.moveInput.z);
+            character->SetLinearVelocity(desiredVelocity);
+
             JPH::CharacterVirtual::ExtendedUpdateSettings updateSettings;
 
             character->ExtendedUpdate(stepTime,
-                                      m_impl->physicsSystem->GetGravity(),
+                                      gravity,
                                       updateSettings,
                                       m_impl->physicsSystem->GetDefaultBroadPhaseLayerFilter(Layers::MOVING),
                                       m_impl->physicsSystem->GetDefaultLayerFilter(Layers::MOVING),
@@ -785,7 +806,8 @@ namespace Tsukino::BuiltIn::ECS {
                                       {},    // ShapeFilter
                                       *m_impl->tempAllocator);
 
-            cc.isGrounded = character->IsSupported();
+            cc.isGrounded         = character->IsSupported();
+            cc.verticalVelocity.y = character->GetLinearVelocity().GetY();    // ExtendedUpdate後の実際の縦速度を書き戻す
 
             JPH::RVec3 pos = character->GetPosition();
             JPH::Quat  rot = character->GetRotation();
