@@ -161,7 +161,7 @@ namespace Tsukino::Sandbox {
 
             // TransformComponent の追加と初期化
             Tsukino::BuiltIn::ECS::TransformComponent& modelTransform = registry.AddComponent<Tsukino::BuiltIn::ECS::TransformComponent>(modelEntity);
-            modelTransform.position                                   = hlslpp::float3(0.0f, 20.0f, 0.0f);
+            modelTransform.position                                   = hlslpp::float3(0.0f, 10.0f, 3.0f);
             modelTransform.rotation                                   = hlslpp::quaternion(0.0f, 0.0f, 0.0f, 1.0f);    // 無回転
             modelTransform.scale                                      = hlslpp::float3(1.0f, 1.0f, 1.0f);
             modelTransform.dirty                                      = true;          // 初回計算のためフラグを立てる
@@ -175,14 +175,14 @@ namespace Tsukino::Sandbox {
             // モデルにコリジョンをつける
             Tsukino::BuiltIn::ECS::CollisionComponent& collision = registry.AddComponent<Tsukino::BuiltIn::ECS::CollisionComponent>(modelEntity);
             collision.type                                       = Tsukino::BuiltIn::ECS::ColliderType::Box;
-            collision.extent                                     = hlslpp::float3(3.0f, 3.0f, 3.0f);
+            collision.extent                                     = hlslpp::float3(0.8f, 0.8f, 0.8f);
             collision.isSensor                                   = false;    // 衝突判定を有効にする
 
             // RBをつける
             Tsukino::BuiltIn::ECS::RigidbodyComponent& rb = registry.AddComponent<Tsukino::BuiltIn::ECS::RigidbodyComponent>(modelEntity);
             rb.type                                       = Tsukino::BuiltIn::ECS::RigidbodyType::Dynamic;
-            rb.mass                                       = 10.0f;
-            rb.gravityFactor                              = 10.0f;
+            rb.mass                                       = 1.0f;
+            rb.gravityFactor                              = 1.0f;
         }
 
         //--------------------------------------------------------------
