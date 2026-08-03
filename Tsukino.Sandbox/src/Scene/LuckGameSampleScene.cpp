@@ -26,6 +26,7 @@
 #include <Tsukino/EngineIntegration/ECS/System/SkyAtmosphereSystem.hpp>
 #include <Tsukino/EngineIntegration/ECS/System/DebugCameraSystem.hpp>
 #include <Tsukino/EngineIntegration/ECS/System/EffectSystem.hpp>
+#include <Tsukino/EngineIntegration/ECS/System/HeightmapGenerationSystem.hpp>
 
 #include <Tsukino/BuiltIn/ECS/Component/TransformComponent.hpp>
 #include <Tsukino/BuiltIn/ECS/Component/CameraComponent.hpp>
@@ -44,6 +45,7 @@
 #include <Tsukino/BuiltIn/ECS/Component/DebugCameraComponent.hpp>
 #include <Tsukino/BuiltIn/ECS/Component/DebugCameraTag.hpp>
 #include <Tsukino/BuiltIn/ECS/Component/EffectComponent.hpp>
+#include <Tsukino/BuiltIn/ECS/Component/TerrainGenerationRequestComponent.hpp>
 
 #include <Tsukino/BuiltIn/ECS/Serialization/TransformComponentSerialization.hpp>
 #include <Tsukino/BuiltIn/ECS/Serialization/CameraComponentSerialization.hpp>
@@ -77,6 +79,9 @@ namespace Tsukino::Sandbox {
         m_scene.AddSystem(std::make_shared<Tsukino::BuiltIn::ECS::TransformSystem>(), 0);
         // アニメーションはTransformの後に更新する (優先度 2)
         m_scene.AddSystem(std::make_shared<Tsukino::BuiltIn::ECS::AnimationSystem>(), 2);
+
+        m_scene.AddSystem(std::make_shared<Tsukino::BuiltIn::ECS::HeightmapGenerationSystem>(), 3);
+
 #ifdef _DEBUG
         m_scene.AddSystem(std::make_shared<Tsukino::BuiltIn::ECS::DebugCameraSystem>(), 4);
 #endif
@@ -108,97 +113,77 @@ namespace Tsukino::Sandbox {
         // アセットのロード
         //--------------------------------------------------------------
 
-        Tsukino::Asset::AssetHandle modelHandle = context->assetManager->Load(Tsukino::Core::Path("Tsukino.Sandbox/Assets/Models/CharaTest.fbx"));
-
-        Tsukino::Asset::AssetHandle animationHandle = context->assetManager->Load(Tsukino::Core::Path("Tsukino.Sandbox/Assets/Anims/Jump.fbx"));
+        Tsukino::Asset::AssetHandle modelHandle = context->assetManager->Load(Tsukino::Core::Path("Tsukino.Sandbox/Assets/LuckGameSample/Models/Bowl.fbx"));
 
         Tsukino::ECS::Registry& registry = m_scene.GetRegistry();
 
         //--------------------------------------------------------------
-        // 地面エンティティ
+        // お椀エンティティ生成
         //--------------------------------------------------------------
         {
-            Tsukino::ECS::Entity groundEntity = m_scene.CreateEntity();
+            Tsukino::ECS::Entity modelEntity = m_scene.CreateEntity();
+
             // TransformComponent の追加と初期化
-            Tsukino::BuiltIn::ECS::TransformComponent& groundTransform = registry.AddComponent<Tsukino::BuiltIn::ECS::TransformComponent>(groundEntity);
-            groundTransform.position                                   = hlslpp::float3(0.0f, 0.0f, 0.0f);
-            groundTransform.rotation                                   = hlslpp::quaternion(0.0f, 0.0f, 0.0f, 1.0f);    // 無回転
-            groundTransform.scale                                      = hlslpp::float3(1.0f, 1.0f, 1.0f);
-            groundTransform.dirty                                      = true;          // 初回計算のためフラグを立てる
-            groundTransform.parent                                     = entt::null;    // 親なし
-        
-            // コリジョンをつける
-            Tsukino::BuiltIn::ECS::CollisionComponent& collision = registry.AddComponent<Tsukino::BuiltIn::ECS::CollisionComponent>(groundEntity);
-            collision.extent                                     = {150.0f, 150.0f, 150.0f};    // 大きめの当たり判定
-            collision.type                                       = Tsukino::BuiltIn::ECS::ColliderType::Box;
-        
+            Tsukino::BuiltIn::ECS::TransformComponent& modelTransform = registry.AddComponent<Tsukino::BuiltIn::ECS::TransformComponent>(modelEntity);
+            modelTransform.position                                   = hlslpp::float3(0.0f, 0.0f, 0.0f);
+            modelTransform.rotation                                   = hlslpp::quaternion(0.0f, 0.0f, 0.0f, 1.0f);    // 無回転
+            modelTransform.scale                                      = hlslpp::float3(1.0f, 1.0f, 1.0f);
+            modelTransform.dirty                                      = true;          // 初回計算のためフラグを立てる
+            modelTransform.parent                                     = entt::null;    // 親なし
+
+            // ModelComponent の追加
+            Tsukino::BuiltIn::ECS::ModelComponent& model = registry.AddComponent<Tsukino::BuiltIn::ECS::ModelComponent>(modelEntity);
+            model.modelHandle                            = modelHandle;
+            model.visible                                = true;
+
+            // モデルにコリジョンをつける
+            Tsukino::BuiltIn::ECS::CollisionComponent& collision = registry.AddComponent<Tsukino::BuiltIn::ECS::CollisionComponent>(modelEntity);
+            collision.type                                       = Tsukino::BuiltIn::ECS::ColliderType::Heightfield;
+            collision.isSensor                                   = false;    // 衝突判定を有効にする
+
+            Tsukino::BuiltIn::ECS::TerrainGenerationRequestComponent& req =
+                registry.AddComponent<Tsukino::BuiltIn::ECS::TerrainGenerationRequestComponent>(modelEntity);
+            req.amplitude      = 15.0f;
+            req.noiseFrequency = 0.08f;
+            req.seed           = 12345;
+            req.noiseType      = Tsukino::BuiltIn::ECS::TerrainNoiseType::Noise;
+
             // RBをつける
-            Tsukino::BuiltIn::ECS::RigidbodyComponent& rb = registry.AddComponent<Tsukino::BuiltIn::ECS::RigidbodyComponent>(groundEntity);
+            Tsukino::BuiltIn::ECS::RigidbodyComponent& rb = registry.AddComponent<Tsukino::BuiltIn::ECS::RigidbodyComponent>(modelEntity);
             rb.type                                       = Tsukino::BuiltIn::ECS::RigidbodyType::Static;
         }
 
         //--------------------------------------------------------------
-        // Modelエンティティ生成
+        // ダイスエンティティの生成
         //--------------------------------------------------------------
-        Tsukino::ECS::Entity modelEntity = m_scene.CreateEntity();
+        {
+            Tsukino::ECS::Entity modelEntity = m_scene.CreateEntity();
 
-        // TransformComponent の追加と初期化
-        Tsukino::BuiltIn::ECS::TransformComponent& modelTransform = registry.AddComponent<Tsukino::BuiltIn::ECS::TransformComponent>(modelEntity);
-        modelTransform.position                                   = hlslpp::float3(0.0f, 0.0f, 0.0f);
-        modelTransform.rotation                                   = hlslpp::quaternion(0.0f, 0.0f, 0.0f, 1.0f);    // 無回転
-        modelTransform.scale                                      = hlslpp::float3(2.0f, 2.0f, 2.0f);
-        modelTransform.dirty                                      = true;          // 初回計算のためフラグを立てる
-        modelTransform.parent                                     = entt::null;    // 親なし
+            // TransformComponent の追加と初期化
+            Tsukino::BuiltIn::ECS::TransformComponent& modelTransform = registry.AddComponent<Tsukino::BuiltIn::ECS::TransformComponent>(modelEntity);
+            modelTransform.position                                   = hlslpp::float3(0.0f, 20.0f, 0.0f);
+            modelTransform.rotation                                   = hlslpp::quaternion(0.0f, 0.0f, 0.0f, 1.0f);    // 無回転
+            modelTransform.scale                                      = hlslpp::float3(1.0f, 1.0f, 1.0f);
+            modelTransform.dirty                                      = true;          // 初回計算のためフラグを立てる
+            modelTransform.parent                                     = entt::null;    // 親なし
 
-        // ModelComponent の追加
-        Tsukino::BuiltIn::ECS::ModelComponent& model = registry.AddComponent<Tsukino::BuiltIn::ECS::ModelComponent>(modelEntity);
-        model.modelHandle                            = modelHandle;
-        model.visible                                = true;
+            // ModelComponent の追加
+            Tsukino::BuiltIn::ECS::ModelComponent& model = registry.AddComponent<Tsukino::BuiltIn::ECS::ModelComponent>(modelEntity);
+            model.modelHandle = context->assetManager->Load(Tsukino::Core::Path("Tsukino.Sandbox/Assets/LuckGameSample/Models/Dice.fbx"));
+            model.visible     = true;
 
-        // モデルにコリジョンをつける
-        Tsukino::BuiltIn::ECS::CollisionComponent& collision = registry.AddComponent<Tsukino::BuiltIn::ECS::CollisionComponent>(modelEntity);
-        collision.extent                                     = {150.0f, 150.0f, 150.0f};    // 大きめの当たり判定
-        collision.type                                       = Tsukino::BuiltIn::ECS::ColliderType::Sphere;
+            // モデルにコリジョンをつける
+            Tsukino::BuiltIn::ECS::CollisionComponent& collision = registry.AddComponent<Tsukino::BuiltIn::ECS::CollisionComponent>(modelEntity);
+            collision.type                                       = Tsukino::BuiltIn::ECS::ColliderType::Box;
+            collision.extent                                     = hlslpp::float3(3.0f, 3.0f, 3.0f);
+            collision.isSensor                                   = false;    // 衝突判定を有効にする
 
-        // RBをつける
-        Tsukino::BuiltIn::ECS::RigidbodyComponent& rb = registry.AddComponent<Tsukino::BuiltIn::ECS::RigidbodyComponent>(modelEntity);
-        rb.type                                       = Tsukino::BuiltIn::ECS::RigidbodyType::Kinematic;
-
-        // アニメーションを再生・制御するコンポーネント
-        Tsukino::BuiltIn::ECS::AnimationPlayerComponent& animPlayer = registry.AddComponent<Tsukino::BuiltIn::ECS::AnimationPlayerComponent>(modelEntity);
-        animPlayer.current_clip_id                                  = animationHandle;    // ロー等速再生ドした testAnim.fbx のハンドルを渡す
-        animPlayer.animation_index                                  = 1;                  // 再生するアニメーションのインデックスを指定
-        animPlayer.elapsed_time                                     = 2.2f;               // 0秒からスタート
-        animPlayer.playback_speed                                   = 0.7f;               //
-        animPlayer.is_looping                                       = true;               // ループさせる
-        animPlayer.is_playing                                       = true;               // 再生状態にする
-
-        Tsukino::BuiltIn::ECS::SpringBoneComponent& springBone = registry.AddComponent<Tsukino::BuiltIn::ECS::SpringBoneComponent>(modelEntity);
-
-        Tsukino::BuiltIn::ECS::SpringBoneComponent::ChainDef breastL;
-        breastL.name                   = "Breast_L";
-        breastL.rootNodeName           = "Breast_L";
-        breastL.maxDepth               = 1;
-        breastL.settings.stiffness     = 0.35f;     // リアル(0.55)より少し柔らかく、揺れ幅を出す
-        breastL.settings.drag          = 0.13f;    // 収まりをやや長めに（2〜3往復くらい残る）
-        breastL.settings.inertia       = 0.5f;    // 体の動きに対して、わずかに「置いていかれる」感を演出
-        breastL.settings.gravityScale  = 1.0f;
-        breastL.settings.angleLimitDeg = 26.0f;
-        springBone.chainDefs.push_back(breastL);
-
-        Tsukino::BuiltIn::ECS::SpringBoneComponent::ChainDef breastR;
-        breastR.name                   = "Breast_R";
-        breastR.rootNodeName           = "Breast_R";
-        breastR.maxDepth               = 1;
-        breastR.settings.stiffness     = 0.35f;
-        breastR.settings.drag          = 0.13f;
-        breastR.settings.inertia       = 0.5f;
-        breastR.settings.gravityScale  = 1.0f;
-        breastR.settings.angleLimitDeg = 26.0f;
-        springBone.chainDefs.push_back(breastR);
-
-        // 計算されたボーン行列の出力先（スキニング用）コンポーネント
-        Tsukino::BuiltIn::ECS::SkeletonOutputComponent& skeletonOutput = registry.AddComponent<Tsukino::BuiltIn::ECS::SkeletonOutputComponent>(modelEntity);
+            // RBをつける
+            Tsukino::BuiltIn::ECS::RigidbodyComponent& rb = registry.AddComponent<Tsukino::BuiltIn::ECS::RigidbodyComponent>(modelEntity);
+            rb.type                                       = Tsukino::BuiltIn::ECS::RigidbodyType::Dynamic;
+            rb.mass                                       = 10.0f;
+            rb.gravityFactor                              = 10.0f;
+        }
 
         //--------------------------------------------------------------
         // 2Dカメラエンティティの生成
@@ -215,9 +200,14 @@ namespace Tsukino::Sandbox {
         camera2D.orthoSize                               = 1000.0f;    // 画面の縦幅を 720 ユニットにする
         camera2D.isPrimary                               = false;      // これをメインカメラにしない
 
-        const std::string prefabPath = "Tsukino.Sandbox/Assets/Prefabs/TestPrefab.json";
+        //--------------------------------------------------------------
+        // 3Dカメラエンティティの生成
+        //--------------------------------------------------------------
+        {
+            const std::string prefabPath = "Tsukino.Sandbox/Assets/LuckGameSample/Prefabs/3DCamera/Prefab.json";
 
-        entt::entity testEntity = context->prefabFactory->Instantiate(prefabPath, registry);
+            entt::entity testEntity = context->prefabFactory->Instantiate(prefabPath, registry);
+        }
 
         //--------------------------------------------------------------
         // デバッグカメラエンティティの生成 (デバッグビルドのみ)
