@@ -183,6 +183,10 @@ namespace Tsukino::Sandbox {
             rb.type                                       = Tsukino::BuiltIn::ECS::RigidbodyType::Dynamic;
             rb.mass                                       = 1.0f;
             rb.gravityFactor                              = 1.0f;
+            rb.restitution                                = 0.3f;
+            rb.freezeRotationX                            = false;
+            rb.freezeRotationY                            = false;
+            rb.freezeRotationZ                            = false;
         }
 
         //--------------------------------------------------------------
