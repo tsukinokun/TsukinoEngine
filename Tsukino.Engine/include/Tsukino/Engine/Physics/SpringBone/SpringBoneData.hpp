@@ -68,7 +68,7 @@ namespace Tsukino::Physics {
         float          drag         = 0.15f;    //!< 減衰。大きいほど揺れがすぐ収まる (0-1)
         float          inertia      = 0.6f;     //!< ルート(アンカー)の移動をどれだけ子に伝えるか (0=完全に置いてかれる, 1=完全追従)
         float          gravityScale = 1.0f;     //!< 重力の強さ倍率
-        hlslpp::float3 gravityDir   = hlslpp::float3(0.0f, 1.0f, 0.0f);
+        hlslpp::float3 gravityDir   = hlslpp::float3(0.0f, -1.0f, 0.0f);
 
         // ============================================================
         // [TODO] boneAxis パラメータの追加が必要
