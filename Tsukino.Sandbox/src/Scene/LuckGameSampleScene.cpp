@@ -50,6 +50,11 @@
 #include <Tsukino/BuiltIn/ECS/Serialization/TransformComponentSerialization.hpp>
 #include <Tsukino/BuiltIn/ECS/Serialization/CameraComponentSerialization.hpp>
 
+// フェーズ2：サイコロの静止判定・出目確定（お椀1個・サイコロ1個の現状構成のまま検証）
+#include <Tsukino/Sandbox/LuckGameSampleScene/ECS/Component/DiceComponent.hpp>
+#include <Tsukino/Sandbox/LuckGameSampleScene/ECS/System/DiceRestDetectionSystem.hpp>
+#include <Tsukino/Sandbox/LuckGameSampleScene/ECS/System/DiceFaceReadSystem.hpp>
+
 #include <entt/entt.hpp>
 #include <hlsl++.h>
 // 名前空間 : Tsukino::Sandbox
@@ -108,6 +113,14 @@ namespace Tsukino::Sandbox {
         m_scene.AddSystem(std::make_shared<Tsukino::BuiltIn::ECS::DirectionalLightSystem>(), 13);
         // スカイアトモスフィアの更新 (優先度 14)
         m_scene.AddSystem(std::make_shared<Tsukino::BuiltIn::ECS::SkyAtmosphereSystem>(), 14);
+
+        //--------------------------------------------------------------
+        // フェーズ2：サイコロの静止判定・出目確定
+        // PhysicsSystem(優先度12)より後、次フェーズで追加する判定系に備えて
+        // 実装手順書の最終並びに合わせ優先度16/17をあらかじめ使っておく
+        //--------------------------------------------------------------
+        m_scene.AddSystem(std::make_shared<::LuckGameSampleScene::ECS::DiceRestDetectionSystem>(), 16);
+        m_scene.AddSystem(std::make_shared<::LuckGameSampleScene::ECS::DiceFaceReadSystem>(), 17);
 
         //--------------------------------------------------------------
         // アセットのロード
@@ -187,6 +200,11 @@ namespace Tsukino::Sandbox {
             rb.freezeRotationX                            = false;
             rb.freezeRotationY                            = false;
             rb.freezeRotationZ                            = false;
+
+            //--------------------------------------------------------------
+            // フェーズ2：静止判定・出目確定の動作確認用にDiceComponentを追加
+            //--------------------------------------------------------------
+            registry.AddComponent<::LuckGameSampleScene::ECS::DiceComponent>(modelEntity);
         }
 
         //--------------------------------------------------------------
