@@ -55,8 +55,16 @@
 #include <Tsukino/Sandbox/LuckGameSampleScene/ECS/System/DiceRestDetectionSystem.hpp>
 #include <Tsukino/Sandbox/LuckGameSampleScene/ECS/System/DiceFaceReadSystem.hpp>
 
+// フェーズ3：役判定（サイコロを3個に増やしRoundComponentで束ねる）
+#include <Tsukino/Sandbox/LuckGameSampleScene/ECS/Component/RoundComponent.hpp>
+#include <Tsukino/Sandbox/LuckGameSampleScene/ECS/System/HandJudgeSystem.hpp>
+#ifdef _DEBUG
+#include <Tsukino/Sandbox/LuckGameSampleScene/ECS/System/DiceDebugOverrideSystem.hpp>
+#endif
+
 #include <entt/entt.hpp>
 #include <hlsl++.h>
+#include <array>
 // 名前空間 : Tsukino::Sandbox
 namespace Tsukino::Sandbox {
     //-------------------------------------------------------------
@@ -123,6 +131,16 @@ namespace Tsukino::Sandbox {
         m_scene.AddSystem(std::make_shared<::LuckGameSampleScene::ECS::DiceFaceReadSystem>(), 17);
 
         //--------------------------------------------------------------
+        // フェーズ3：役判定
+        //--------------------------------------------------------------
+        m_scene.AddSystem(std::make_shared<::LuckGameSampleScene::ECS::HandJudgeSystem>(), 18);
+
+#ifdef _DEBUG
+        // フェーズ3検証用：数字キーで役を強制発生させる（動作確認が終わったら削除してよい）
+        m_scene.AddSystem(std::make_shared<::LuckGameSampleScene::ECS::DiceDebugOverrideSystem>(), 15);
+#endif
+
+        //--------------------------------------------------------------
         // アセットのロード
         //--------------------------------------------------------------
 
@@ -167,44 +185,59 @@ namespace Tsukino::Sandbox {
         }
 
         //--------------------------------------------------------------
-        // ダイスエンティティの生成
+        // ダイスエンティティの生成（フェーズ3：役判定のため3個生成しRoundComponentで束ねる）
         //--------------------------------------------------------------
         {
-            Tsukino::ECS::Entity modelEntity = m_scene.CreateEntity();
+            Tsukino::Asset::AssetHandle diceModelHandle =
+                context->assetManager->Load(Tsukino::Core::Path("Tsukino.Sandbox/Assets/LuckGameSample/Models/Dice.fbx"));
 
-            // TransformComponent の追加と初期化
-            Tsukino::BuiltIn::ECS::TransformComponent& modelTransform = registry.AddComponent<Tsukino::BuiltIn::ECS::TransformComponent>(modelEntity);
-            modelTransform.position                                   = hlslpp::float3(0.0f, 10.0f, 3.0f);
-            modelTransform.rotation                                   = hlslpp::quaternion(0.0f, 0.0f, 0.0f, 1.0f);    // 無回転
-            modelTransform.scale                                      = hlslpp::float3(1.0f, 1.0f, 1.0f);
-            modelTransform.dirty                                      = true;          // 初回計算のためフラグを立てる
-            modelTransform.parent                                     = entt::null;    // 親なし
+            std::array<Tsukino::ECS::Entity, 3> diceEntities{};
 
-            // ModelComponent の追加
-            Tsukino::BuiltIn::ECS::ModelComponent& model = registry.AddComponent<Tsukino::BuiltIn::ECS::ModelComponent>(modelEntity);
-            model.modelHandle = context->assetManager->Load(Tsukino::Core::Path("Tsukino.Sandbox/Assets/LuckGameSample/Models/Dice.fbx"));
-            model.visible     = true;
+            for(int i = 0; i < 3; ++i) {
+                Tsukino::ECS::Entity modelEntity = m_scene.CreateEntity();
 
-            // モデルにコリジョンをつける
-            Tsukino::BuiltIn::ECS::CollisionComponent& collision = registry.AddComponent<Tsukino::BuiltIn::ECS::CollisionComponent>(modelEntity);
-            collision.type                                       = Tsukino::BuiltIn::ECS::ColliderType::Box;
-            collision.extent                                     = hlslpp::float3(0.8f, 0.8f, 0.8f);
-            collision.isSensor                                   = false;    // 衝突判定を有効にする
+                // TransformComponent の追加と初期化
+                // 3個が重ならないよう、投下位置をX方向に少しずつずらす
+                Tsukino::BuiltIn::ECS::TransformComponent& modelTransform = registry.AddComponent<Tsukino::BuiltIn::ECS::TransformComponent>(modelEntity);
+                modelTransform.position                                   = hlslpp::float3(static_cast<float>(i - 1) * 4.0f, 10.0f, 3.0f);
+                modelTransform.rotation                                   = hlslpp::quaternion(0.0f, 0.0f, 0.0f, 1.0f);    // 無回転
+                modelTransform.scale                                      = hlslpp::float3(1.0f, 1.0f, 1.0f);
+                modelTransform.dirty                                      = true;          // 初回計算のためフラグを立てる
+                modelTransform.parent                                     = entt::null;    // 親なし
 
-            // RBをつける
-            Tsukino::BuiltIn::ECS::RigidbodyComponent& rb = registry.AddComponent<Tsukino::BuiltIn::ECS::RigidbodyComponent>(modelEntity);
-            rb.type                                       = Tsukino::BuiltIn::ECS::RigidbodyType::Dynamic;
-            rb.mass                                       = 1.0f;
-            rb.gravityFactor                              = 1.0f;
-            rb.restitution                                = 0.3f;
-            rb.freezeRotationX                            = false;
-            rb.freezeRotationY                            = false;
-            rb.freezeRotationZ                            = false;
+                // ModelComponent の追加
+                Tsukino::BuiltIn::ECS::ModelComponent& model = registry.AddComponent<Tsukino::BuiltIn::ECS::ModelComponent>(modelEntity);
+                model.modelHandle                            = diceModelHandle;
+                model.visible                                = true;
+
+                // モデルにコリジョンをつける
+                Tsukino::BuiltIn::ECS::CollisionComponent& collision = registry.AddComponent<Tsukino::BuiltIn::ECS::CollisionComponent>(modelEntity);
+                collision.type                                       = Tsukino::BuiltIn::ECS::ColliderType::Box;
+                collision.extent                                     = hlslpp::float3(0.8f, 0.8f, 0.8f);
+                collision.isSensor                                   = false;    // 衝突判定を有効にする
+
+                // RBをつける
+                Tsukino::BuiltIn::ECS::RigidbodyComponent& rb = registry.AddComponent<Tsukino::BuiltIn::ECS::RigidbodyComponent>(modelEntity);
+                rb.type                                       = Tsukino::BuiltIn::ECS::RigidbodyType::Dynamic;
+                rb.mass                                       = 1.0f;
+                rb.gravityFactor                              = 1.0f;
+                rb.restitution                                = 0.3f;
+                rb.freezeRotationX                            = false;
+                rb.freezeRotationY                            = false;
+                rb.freezeRotationZ                            = false;
+
+                // フェーズ2：静止判定・出目確定用
+                registry.AddComponent<::LuckGameSampleScene::ECS::DiceComponent>(modelEntity);
+
+                diceEntities[i] = modelEntity;
+            }
 
             //--------------------------------------------------------------
-            // フェーズ2：静止判定・出目確定の動作確認用にDiceComponentを追加
+            // フェーズ3：3個のダイスをRoundComponentで束ねる
             //--------------------------------------------------------------
-            registry.AddComponent<::LuckGameSampleScene::ECS::DiceComponent>(modelEntity);
+            Tsukino::ECS::Entity                        roundEntity = m_scene.CreateEntity();
+            ::LuckGameSampleScene::ECS::RoundComponent& round       = registry.AddComponent<::LuckGameSampleScene::ECS::RoundComponent>(roundEntity);
+            round.dice                                              = diceEntities;
         }
 
         //--------------------------------------------------------------
