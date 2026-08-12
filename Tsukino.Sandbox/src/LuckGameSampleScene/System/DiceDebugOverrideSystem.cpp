@@ -45,7 +45,8 @@ namespace LuckGameSampleScene::ECS {
 
         auto& input = *context->inputSystem;
 
-        // このシーンにはRoundComponentが1つしかない前提（フェーズ3時点）
+        // フェーズ4以降はRoundComponentが2つ（プレイヤー/CPU）存在するため、
+        // キー入力時は両方に同じ強制出目を適用する
         auto view = registry.View<RoundComponent>();
 
         view.each([&](entt::entity, RoundComponent& round) {
