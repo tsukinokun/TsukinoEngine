@@ -17,6 +17,7 @@
 #include <Tsukino/Core/Log.hpp>
 #include <Tsukino/Core/Math/Matrix.hpp>
 
+#include <algorithm>
 #include <cmath>
 #include <vector>
 #include <optional>
@@ -127,7 +128,10 @@ namespace Tsukino::BuiltIn::ECS {
         }
 
         //-------------------------------------------------------------
-        //! @brief  指定した(worldX, worldZ)の真下にある三角形群から、最も高い交点のY座標を返す
+        //! @brief  指定した(worldX, worldZ)の真下にある候補三角形群から、最も高い交点のY座標を返す
+        //! @param  candidateTriangleStarts [in] 判定対象とする三角形の先頭インデックス
+        //!         （indices配列内の、3の倍数のオフセット）の一覧。
+        //!         BuildTriangleBucketsで(worldX, worldZ)が属するセルに登録されたものを渡す想定。
         //-------------------------------------------------------------
         float SampleHeightAt(float                              worldX,
                              float                              worldZ,
@@ -135,25 +139,19 @@ namespace Tsukino::BuiltIn::ECS {
                              float                              rayLength,
                              const std::vector<hlslpp::float3>& vertices,
                              const std::vector<uint32_t>&       indices,
+                             const std::vector<uint32_t>&       candidateTriangleStarts,
                              float                              fallbackHeight) {
             hlslpp::float3 rayOrigin(worldX, rayStartY, worldZ);
 
             float bestHeight = fallbackHeight;
             bool  hitAny     = false;
 
-            for(size_t i = 0; i + 2 < indices.size(); i += 3) {
+            for(uint32_t i : candidateTriangleStarts) {
                 const hlslpp::float3& v0 = vertices[indices[i]];
                 const hlslpp::float3& v1 = vertices[indices[i + 1]];
                 const hlslpp::float3& v2 = vertices[indices[i + 2]];
 
                 auto hit = RayTriangleIntersectVertical(rayOrigin, rayLength, v0, v1, v2);
-
-                //if(hit.has_value()) {
-                //    Tsukino::Core::Log::Info("HIT SUCCESS: Y=" + std::to_string(*hit));
-                //} else {
-                //    // 最初の三角形にすら当たらないなら、レイの原点か向きが完全にズレている
-                //    Tsukino::Core::Log::Info("MISS: RayOrigin=(" + std::to_string(rayOrigin.x) + ")");
-                //}
 
                 if(hit.has_value()) {
                     if(!hitAny || *hit > bestHeight) {    // 複数ヒットしたら一番高い面を採用（地形の上面）
@@ -163,6 +161,56 @@ namespace Tsukino::BuiltIn::ECS {
                 }
             }
             return bestHeight;
+        }
+
+        //-------------------------------------------------------------
+        //! @brief  サンプルグリッドと同じ解像度でXZ平面をセル分割し、
+        //!         各セルにXZ投影のAABBが重なる三角形の先頭インデックスを登録する。
+        //!         レイは常に真下(-Y方向)に飛ばすため、(worldX, worldZ)を含むセルに
+        //!         登録された三角形だけを調べれば全当たり判定と同じ結果が得られる。
+        //! @param  gridSize  [in] グリッドの一辺のセル数（サンプル数と同じにする）
+        //! @param  minX,minZ [in] グリッド原点（サンプル(0,0)のワールド座標）
+        //! @param  cellSizeX,cellSizeZ [in] 1セルのワールドサイズ（サンプル間隔と同じにする）
+        //-------------------------------------------------------------
+        std::vector<std::vector<uint32_t>> BuildTriangleBuckets(const std::vector<hlslpp::float3>& vertices,
+                                                                 const std::vector<uint32_t>&       indices,
+                                                                 uint32_t                            gridSize,
+                                                                 float                                minX,
+                                                                 float                                minZ,
+                                                                 float                                cellSizeX,
+                                                                 float                                cellSizeZ) {
+            std::vector<std::vector<uint32_t>> buckets(static_cast<size_t>(gridSize) * gridSize);
+
+            const int32_t maxCellIndex = static_cast<int32_t>(gridSize) - 1;
+
+            for(size_t i = 0; i + 2 < indices.size(); i += 3) {
+                const hlslpp::float3& v0 = vertices[indices[i]];
+                const hlslpp::float3& v1 = vertices[indices[i + 1]];
+                const hlslpp::float3& v2 = vertices[indices[i + 2]];
+
+                float triMinX = std::min({v0.x, v1.x, v2.x});
+                float triMaxX = std::max({v0.x, v1.x, v2.x});
+                float triMinZ = std::min({v0.z, v1.z, v2.z});
+                float triMaxZ = std::max({v0.z, v1.z, v2.z});
+
+                int32_t cellMinX = static_cast<int32_t>(std::floor((triMinX - minX) / cellSizeX));
+                int32_t cellMaxX = static_cast<int32_t>(std::floor((triMaxX - minX) / cellSizeX));
+                int32_t cellMinZ = static_cast<int32_t>(std::floor((triMinZ - minZ) / cellSizeZ));
+                int32_t cellMaxZ = static_cast<int32_t>(std::floor((triMaxZ - minZ) / cellSizeZ));
+
+                cellMinX = std::clamp(cellMinX, 0, maxCellIndex);
+                cellMaxX = std::clamp(cellMaxX, 0, maxCellIndex);
+                cellMinZ = std::clamp(cellMinZ, 0, maxCellIndex);
+                cellMaxZ = std::clamp(cellMaxZ, 0, maxCellIndex);
+
+                for(int32_t cz = cellMinZ; cz <= cellMaxZ; ++cz) {
+                    for(int32_t cx = cellMinX; cx <= cellMaxX; ++cx) {
+                        buckets[static_cast<size_t>(cz) * gridSize + static_cast<size_t>(cx)].push_back(static_cast<uint32_t>(i));
+                    }
+                }
+            }
+
+            return buckets;
         }
 
         //-------------------------------------------------------------
@@ -230,7 +278,11 @@ namespace Tsukino::BuiltIn::ECS {
 
         auto view = registry.View<TerrainGenerationRequestComponent, ModelComponent>();
         view.each([&](auto entity, auto& req, auto& modelComp) {
-            Tsukino::Core::Ref<Tsukino::Asset::IAsset>     asset      = context->assetManager->Get(modelComp.modelHandle);
+            // 地形生成専用のモデル（軽量なコリジョンメッシュ等）が指定されていればそちらを使う。
+            // 未指定なら従来どおり表示用モデルをそのまま使う。
+            Tsukino::Asset::AssetHandle collisionModelHandle = req.collisionModelHandle.IsValid() ? req.collisionModelHandle : modelComp.modelHandle;
+
+            Tsukino::Core::Ref<Tsukino::Asset::IAsset>     asset      = context->assetManager->Get(collisionModelHandle);
             Tsukino::Core::Ref<Tsukino::Asset::ModelAsset> modelAsset = std::static_pointer_cast<Tsukino::Asset::ModelAsset>(asset);
 
             if(!modelAsset || modelAsset->modelData.meshes.empty())
@@ -282,23 +334,17 @@ namespace Tsukino::BuiltIn::ECS {
             float rayStartY = maxBound.y + 50.0f;
             float rayLength = (maxBound.y - minBound.y) + 100.0f;
 
-            // --- [診断用ログ追加] ---
-            // 1. バウンディングボックスの確認
+            // 診断用ログ：バウンディングボックスと頂点数の確認
             Tsukino::Core::Log::Info("Bounds -> Min:(" + std::to_string(minBound.x) + ", " + std::to_string(minBound.y) + ", " + std::to_string(minBound.z)
                                      + ")");
             Tsukino::Core::Log::Info("Bounds -> Max:(" + std::to_string(maxBound.x) + ", " + std::to_string(maxBound.y) + ", " + std::to_string(maxBound.z)
                                      + ")");
-
-            // 2. 頂点数の確認
             Tsukino::Core::Log::Info("Collected Verts count: " + std::to_string(worldVerts.size()));
 
-            // 3. サンプリング統計の確認（ループ直前に追加）
-            uint32_t hitCount = 0;
-            // ... (サンプリングループの処理) ...
-            // ループ内の hitAny が true になる箇所で hitCount++;
-
-            Tsukino::Core::Log::Info("Sampling hit rate: " + std::to_string(hitCount) + " / " + std::to_string(size * size));
-            // ----------------------
+            // サンプルグリッドと同じ解像度でXZ平面をセル分割し、各サンプルは自セルに
+            // 登録された三角形だけを判定する（全三角形との総当たりを回避する）
+            std::vector<std::vector<uint32_t>> triangleBuckets =
+                BuildTriangleBuckets(worldVerts, worldIndices, size, minBound.x, minBound.z, sampleSpacingX, sampleSpacingZ);
 
             std::vector<float> samples(size * size);
             for(uint32_t z = 0; z < size; ++z) {
@@ -306,8 +352,10 @@ namespace Tsukino::BuiltIn::ECS {
                     float worldX = minBound.x + (float)x * sampleSpacingX;
                     float worldZ = minBound.z + (float)z * sampleSpacingZ;
 
+                    const std::vector<uint32_t>& candidates = triangleBuckets[static_cast<size_t>(z) * size + x];
+
                     // 絶対Yを取得
-                    float absoluteY = SampleHeightAt(worldX, worldZ, rayStartY, rayLength, worldVerts, worldIndices, minBound.y);
+                    float absoluteY = SampleHeightAt(worldX, worldZ, rayStartY, rayLength, worldVerts, worldIndices, candidates, minBound.y);
 
                     // 最低点を 0 に正規化する（相対高さに変換）
                     samples[z * size + x] = absoluteY - minBound.y;

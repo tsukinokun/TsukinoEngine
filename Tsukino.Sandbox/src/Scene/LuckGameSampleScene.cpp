@@ -83,14 +83,15 @@ namespace {
 
     //-------------------------------------------------------------
     //! @brief  お椀エンティティを生成する
-    //! @param  scene           [in] 生成先のシーン
-    //! @param  registry        [in] ECSレジストリ
-    //! @param  bowlModelHandle [in] お椀モデルのアセットハンドル
-    //! @param  centerX         [in] お椀の中心X座標（左右の配置に使用）
-    //! @param  terrainSeed     [in] 地形生成の乱数シード（左右で同じ形にならないよう変える）
+    //! @param  scene               [in] 生成先のシーン
+    //! @param  registry            [in] ECSレジストリ
+    //! @param  bowlModelHandle     [in] お椀の表示用モデルのアセットハンドル
+    //! @param  bowlColModelHandle  [in] お椀の地形生成（コリジョン）専用の軽量モデルのアセットハンドル
+    //! @param  centerX             [in] お椀の中心X座標（左右の配置に使用）
+    //! @param  terrainSeed         [in] 地形生成の乱数シード（左右で同じ形にならないよう変える）
     //-------------------------------------------------------------
     Tsukino::ECS::Entity CreateBowl(Tsukino::ECS::Scene& scene, Tsukino::ECS::Registry& registry, Tsukino::Asset::AssetHandle bowlModelHandle,
-                                     float centerX, uint32_t terrainSeed) {
+                                     Tsukino::Asset::AssetHandle bowlColModelHandle, float centerX, uint32_t terrainSeed) {
         Tsukino::ECS::Entity bowlEntity = scene.CreateEntity();
 
         Tsukino::BuiltIn::ECS::TransformComponent& transform = registry.AddComponent<Tsukino::BuiltIn::ECS::TransformComponent>(bowlEntity);
@@ -111,10 +112,11 @@ namespace {
 
         Tsukino::BuiltIn::ECS::TerrainGenerationRequestComponent& req =
             registry.AddComponent<Tsukino::BuiltIn::ECS::TerrainGenerationRequestComponent>(bowlEntity);
-        req.amplitude      = 15.0f;
-        req.noiseFrequency = 0.08f;
-        req.seed           = terrainSeed;
-        req.noiseType      = Tsukino::BuiltIn::ECS::TerrainNoiseType::Noise;
+        req.amplitude          = 15.0f;
+        req.noiseFrequency     = 0.08f;
+        req.seed               = terrainSeed;
+        req.noiseType          = Tsukino::BuiltIn::ECS::TerrainNoiseType::Noise;
+        req.collisionModelHandle = bowlColModelHandle;    // 表示用より軽いメッシュで地形生成する
 
         // RBをつける
         Tsukino::BuiltIn::ECS::RigidbodyComponent& rb = registry.AddComponent<Tsukino::BuiltIn::ECS::RigidbodyComponent>(bowlEntity);
@@ -297,6 +299,10 @@ namespace Tsukino::Sandbox {
         // アセットのロード
         //--------------------------------------------------------------
         Tsukino::Asset::AssetHandle bowlModelHandle = context->assetManager->Load(Tsukino::Core::Path("Tsukino.Sandbox/Assets/LuckGameSample/Models/Bowl.fbx"));
+        // 地形生成（ヒートフィールドのレイキャストサンプリング）専用の軽量メッシュ。
+        // 表示用のBowl.fbxをそのまま使うと三角形数が多く負荷が高いため分離している。
+        Tsukino::Asset::AssetHandle bowlColModelHandle =
+            context->assetManager->Load(Tsukino::Core::Path("Tsukino.Sandbox/Assets/LuckGameSample/Models/Bowl_col.fbx"));
         Tsukino::Asset::AssetHandle diceModelHandle = context->assetManager->Load(Tsukino::Core::Path("Tsukino.Sandbox/Assets/LuckGameSample/Models/Dice.fbx"));
 
         Tsukino::ECS::Registry& registry = m_scene.GetRegistry();
@@ -314,8 +320,8 @@ namespace Tsukino::Sandbox {
         const hlslpp::float3 cpuBowlCenter    = hlslpp::float3(-kBowlOffsetX, 0.0f, 0.0f);
         const hlslpp::float3 playerBowlCenter = hlslpp::float3(kBowlOffsetX, 0.0f, 0.0f);
 
-        CreateBowl(m_scene, registry, bowlModelHandle, cpuBowlCenter.x, kCpuTerrainSeed);
-        CreateBowl(m_scene, registry, bowlModelHandle, playerBowlCenter.x, kPlayerTerrainSeed);
+        CreateBowl(m_scene, registry, bowlModelHandle, bowlColModelHandle, cpuBowlCenter.x, kCpuTerrainSeed);
+        CreateBowl(m_scene, registry, bowlModelHandle, bowlColModelHandle, playerBowlCenter.x, kPlayerTerrainSeed);
 
         std::array<Tsukino::ECS::Entity, 3> cpuDiceEntities    = CreateDiceSet(m_scene, registry, diceModelHandle, cpuBowlCenter);
         std::array<Tsukino::ECS::Entity, 3> playerDiceEntities = CreateDiceSet(m_scene, registry, diceModelHandle, playerBowlCenter);
