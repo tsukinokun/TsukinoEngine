@@ -101,8 +101,8 @@ namespace Tsukino::BuiltIn::ECS {
                         Tsukino::Core::Math::matrix nodeTransform = hlslpp::mul(hlslpp::mul(scaleMat, rotMat), transMat);
                         finalTransform                            = hlslpp::mul(nodeTransform, transform.worldMatrix);
 
-                        Tsukino::Core::Log::Info("node.translation = (" + std::to_string(node.translation.x) + ", " + std::to_string(node.translation.y) + ", "
-                                                 + std::to_string(node.translation.z) + ")");
+                       /* Tsukino::Core::Log::Info("node.translation = (" + std::to_string(node.translation.x) + ", " + std::to_string(node.translation.y) + ", "
+                                                 + std::to_string(node.translation.z) + ")");*/
                     }
 
                     // コリジョンオフセットの逆変換

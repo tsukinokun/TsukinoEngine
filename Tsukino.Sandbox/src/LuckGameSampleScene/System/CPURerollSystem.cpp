@@ -19,21 +19,30 @@ namespace LuckGameSampleScene::ECS {
         auto view = registry.View<PlayerComponent, CPUControllerComponent>();
 
         view.each([&](entt::entity, PlayerComponent& player, CPUControllerComponent& cpuController) {
-            // タイマーが動いていない（＝振り直し待ちではない）間は何もしない
-            if(cpuController.rerollDelayTimer <= 0.0f) {
+            if(!cpuController.isDropPending) {
+                // タイマーが動いていない（＝振り直し待ちではない）間は何もしない
+                if(cpuController.rerollDelayTimer <= 0.0f) {
+                    return;
+                }
+
+                cpuController.rerollDelayTimer -= deltaTime;
+                if(cpuController.rerollDelayTimer > 0.0f) {
+                    return;    // まだ「考え中」
+                }
+
+                cpuController.rerollDelayTimer = 0.0f;
+                cpuController.isDropPending    = true;
+            }
+
+            // 考え中タイマーは消化済み。リスポン（Kinematicテレポート→Hovering）が完了するまで
+            // DropDiceSetは何もしないので、完了し次第このフレームで投下される
+            RoundComponent& round = registry.GetComponent<RoundComponent>(player.roundEntity);
+            if(!DropDiceSet(registry, round)) {
                 return;
             }
 
-            cpuController.rerollDelayTimer -= deltaTime;
-            if(cpuController.rerollDelayTimer > 0.0f) {
-                return;    // まだ「考え中」
-            }
-
-            cpuController.rerollDelayTimer = 0.0f;
-
-            RoundComponent& round = registry.GetComponent<RoundComponent>(player.roundEntity);
-            ThrowDiceSet(registry, round);
-            player.phase = TurnPhase::Rolling;
+            cpuController.isDropPending = false;
+            player.phase                 = TurnPhase::Rolling;
         });
     }
 

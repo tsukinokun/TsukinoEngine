@@ -40,15 +40,17 @@ namespace LuckGameSampleScene::ECS {
         }
 
         if(state.phase == GamePhase::Ready) {
-            // 開始入力：両者同時にサイコロを投げる
+            // 開始入力：それまで空中で回転しながら待機していた両者のサイコロを、
+            // このタイミングで同時に投下する（DropDiceSetはHovering以外のサイコロには
+            // 作用しないため、この分岐に万一複数回入っても多重投下にはならない）
             PlayerComponent& player = registry.GetComponent<PlayerComponent>(state.player);
             PlayerComponent& cpu    = registry.GetComponent<PlayerComponent>(state.cpu);
 
             RoundComponent& playerRound = registry.GetComponent<RoundComponent>(player.roundEntity);
             RoundComponent& cpuRound    = registry.GetComponent<RoundComponent>(cpu.roundEntity);
 
-            ThrowDiceSet(registry, playerRound);
-            ThrowDiceSet(registry, cpuRound);
+            (void)DropDiceSet(registry, playerRound);
+            (void)DropDiceSet(registry, cpuRound);
 
             player.phase = TurnPhase::Rolling;
             cpu.phase    = TurnPhase::Rolling;
@@ -57,13 +59,17 @@ namespace LuckGameSampleScene::ECS {
         }
 
         if(state.phase == GamePhase::Rolling) {
-            // 目なし/ヒフミで待機中の人間側のみ、再度のスペース入力で振り直す
-            // （CPU側は CPURerollSystem がタイマーで自動的に振り直すため、ここでは扱わない）
+            // 目なし/ヒフミで待機中の人間側のみ、再度のスペース入力で投下する
+            // （リスポン後の投下待ち中はDiceRollState::Hoveringなので、DropDiceSetで投下できる。
+            // 　CPU側は CPURerollSystem がタイマーで自動的に投下するため、ここでは扱わない）
             PlayerComponent& player = registry.GetComponent<PlayerComponent>(state.player);
             if(player.phase == TurnPhase::Waiting) {
                 RoundComponent& playerRound = registry.GetComponent<RoundComponent>(player.roundEntity);
-                ThrowDiceSet(registry, playerRound);
-                player.phase = TurnPhase::Rolling;
+                // リスポン直後でまだHoveringに達していない（Respawning中の）可能性があるため、
+                // 実際に投下できた場合のみ手番を進める
+                if(DropDiceSet(registry, playerRound)) {
+                    player.phase = TurnPhase::Rolling;
+                }
             }
         }
     }
