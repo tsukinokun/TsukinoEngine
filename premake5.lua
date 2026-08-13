@@ -504,15 +504,29 @@ project "Tsukino.BuiltIn"
     targetdir ("bin/%{cfg.buildcfg}")
     objdir ("bin-int/%{cfg.buildcfg}")
 
-    -- デバッグ時：ルートを参照、コピーもしない
+    local BUILTIN_ROOT     = path.getdirectory(_SCRIPT)  -- このプロジェクトが実際に置かれているディレクトリ（Engineルート）
+    local IS_SAME_AS_ROOT  = (path.getabsolute(BUILTIN_ROOT) == path.getabsolute(_MAIN_SCRIPT_DIR))
+
+    -- デバッグ時：Engineがworkspaceルート直下にある（単体ビルド）ならコピーせず直接参照
     filter "configurations:Debug"
         debugdir "%{wks.location}/.."
+    filter {}
 
-    -- リリース（配布）時：exeの場所を参照、アセットをコピーする
+    if not IS_SAME_AS_ROOT then
+        -- サブモジュール等でEngineルート≠workspaceルートの場合は、Debugでも
+        -- Engine自身のAssetsをworkspaceルート直下へ同期する
+        filter "configurations:Debug"
+            postbuildcommands {
+                "{COPYDIR} " .. BUILTIN_ROOT .. "/Tsukino.BuiltIn/Assets %{wks.location}/../Tsukino.BuiltIn/Assets"
+            }
+        filter {}
+    end
+
+    -- リリース（配布）時：exeの場所を参照し、Engine自身のAssetsをそこへコピーする
     filter "configurations:Release"
         debugdir "%{cfg.targetdir}"
         postbuildcommands {
-            "{COPYDIR} %{wks.location}/../Tsukino.BuiltIn/Assets %{cfg.targetdir}/Assets"
+            "{COPYDIR} " .. BUILTIN_ROOT .. "/Tsukino.BuiltIn/Assets %{cfg.targetdir}/Tsukino.BuiltIn/Assets"
         }
     filter {}
 
@@ -642,15 +656,29 @@ project "Tsukino.Sandbox"
     targetdir ("bin/%{cfg.buildcfg}")
     objdir ("bin-int/%{cfg.buildcfg}")
 
-    -- デバッグ時：ルートを参照、コピーもしない
+    local SANDBOX_ROOT     = path.getdirectory(_SCRIPT)  -- このプロジェクトが実際に置かれているディレクトリ
+    local IS_SAME_AS_ROOT  = (path.getabsolute(SANDBOX_ROOT) == path.getabsolute(_MAIN_SCRIPT_DIR))
+
+    -- デバッグ時：workspaceルート直下にある（単体ビルド）ならコピーせず直接参照
     filter "configurations:Debug"
         debugdir "%{wks.location}/.."
+    filter {}
 
-    -- リリース（配布）時：exeの場所を参照、アセットをコピーする
+    if not IS_SAME_AS_ROOT then
+        -- サブモジュール等でこのプロジェクトのルート≠workspaceルートの場合は、Debugでも
+        -- 自身のAssetsをworkspaceルート直下へ同期する
+        filter "configurations:Debug"
+            postbuildcommands {
+                "{COPYDIR} " .. SANDBOX_ROOT .. "/Tsukino.Sandbox/Assets %{wks.location}/../Tsukino.Sandbox/Assets"
+            }
+        filter {}
+    end
+
+    -- リリース（配布）時：exeの場所を参照し、自身のAssetsをそこへコピーする
     filter "configurations:Release"
         debugdir "%{cfg.targetdir}"
         postbuildcommands {
-            "{COPYDIR} %{wks.location}/../Tsukino.Sandbox/Assets %{cfg.targetdir}/Assets",
+            "{COPYDIR} " .. SANDBOX_ROOT .. "/Tsukino.Sandbox/Assets %{cfg.targetdir}/Tsukino.Sandbox/Assets",
         }
     filter {}
 
