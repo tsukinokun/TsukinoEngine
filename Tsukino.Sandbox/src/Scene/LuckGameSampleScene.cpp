@@ -1,4 +1,4 @@
-//-------------------------------------------------------------
+﻿//-------------------------------------------------------------
 //! @file    LuckGameSampleScene.cpp
 //! @brief   チンチロゲームの実装
 //! @author  山﨑愛
@@ -58,12 +58,15 @@
 #include <Tsukino/Sandbox/LuckGameSampleScene/ECS/Component/CPUControllerComponent.hpp>
 #include <Tsukino/Sandbox/LuckGameSampleScene/ECS/Component/GameStateComponent.hpp>
 #include <Tsukino/Sandbox/LuckGameSampleScene/ECS/Component/UILabelTags.hpp>
+#include <Tsukino/Sandbox/LuckGameSampleScene/ECS/Util/DiceThrowUtil.hpp>
 
 // チンチロ固有のシステム
 #include <Tsukino/Sandbox/LuckGameSampleScene/ECS/System/DiceRestDetectionSystem.hpp>
 #include <Tsukino/Sandbox/LuckGameSampleScene/ECS/System/DiceFaceReadSystem.hpp>
 #include <Tsukino/Sandbox/LuckGameSampleScene/ECS/System/HandJudgeSystem.hpp>
 #include <Tsukino/Sandbox/LuckGameSampleScene/ECS/System/DiceBoundsSystem.hpp>
+#include <Tsukino/Sandbox/LuckGameSampleScene/ECS/System/DiceRespawnSystem.hpp>
+#include <Tsukino/Sandbox/LuckGameSampleScene/ECS/System/DiceHoverLimitSystem.hpp>
 #include <Tsukino/Sandbox/LuckGameSampleScene/ECS/System/TurnRuleSystem.hpp>
 #include <Tsukino/Sandbox/LuckGameSampleScene/ECS/System/CompareSystem.hpp>
 #include <Tsukino/Sandbox/LuckGameSampleScene/ECS/System/RollTriggerSystem.hpp>
@@ -107,8 +110,9 @@ namespace {
 
         // モデルにコリジョンをつける
         Tsukino::BuiltIn::ECS::CollisionComponent& collision = registry.AddComponent<Tsukino::BuiltIn::ECS::CollisionComponent>(bowlEntity);
-        collision.type                                       = Tsukino::BuiltIn::ECS::ColliderType::Heightfield;
+        collision.type                                       = Tsukino::BuiltIn::ECS::ColliderType::Box;
         collision.isSensor                                   = false;    // 衝突判定を有効にする
+        collision.extent                                     = 100.0f;
 
         Tsukino::BuiltIn::ECS::TerrainGenerationRequestComponent& req =
             registry.AddComponent<Tsukino::BuiltIn::ECS::TerrainGenerationRequestComponent>(bowlEntity);
@@ -140,9 +144,10 @@ namespace {
             Tsukino::ECS::Entity diceEntity = scene.CreateEntity();
 
             // TransformComponent の追加と初期化
-            // 3個が重ならないよう、投下位置をX方向に少しずつずらす
+            // 3個ともお椀の中に収まり、かつ重ならないよう、投下待ち位置をX方向に少しずつずらす
+            // （リスポン時の位置と一致させるため、ComputeDiceSpawnOffsetを共通で使う）
             Tsukino::BuiltIn::ECS::TransformComponent& transform = registry.AddComponent<Tsukino::BuiltIn::ECS::TransformComponent>(diceEntity);
-            transform.position                                   = bowlCenter + hlslpp::float3(static_cast<float>(i - 1) * 4.0f, 10.0f, 3.0f);
+            transform.position = bowlCenter + ::LuckGameSampleScene::ECS::ComputeDiceSpawnOffset(i);
             transform.rotation                                   = hlslpp::quaternion(0.0f, 0.0f, 0.0f, 1.0f);    // 無回転
             transform.scale                                      = hlslpp::float3(1.0f, 1.0f, 1.0f);
             transform.dirty                                      = true;          // 初回計算のためフラグを立てる
@@ -164,7 +169,7 @@ namespace {
             rb.type                                       = Tsukino::BuiltIn::ECS::RigidbodyType::Dynamic;
             rb.mass                                       = 1.0f;
             rb.gravityFactor                              = 1.0f;
-            rb.restitution                                = 0.3f;
+            rb.restitution                                = 0.5f;
             rb.freezeRotationX                            = false;
             rb.freezeRotationY                            = false;
             rb.freezeRotationZ                            = false;
@@ -176,6 +181,9 @@ namespace {
             ::LuckGameSampleScene::ECS::RoundOwnerComponent& owner =
                 registry.AddComponent<::LuckGameSampleScene::ECS::RoundOwnerComponent>(diceEntity);
             owner.bowlCenter = bowlCenter;
+
+            // スペース入力で投下されるまで、空中で静止＋回転しながら待機させる
+            ::LuckGameSampleScene::ECS::SetupDiceHover(registry, diceEntity);
 
             diceEntities[i] = diceEntity;
         }
@@ -269,6 +277,12 @@ namespace Tsukino::Sandbox {
         m_scene.AddSystem(std::make_shared<Tsukino::BuiltIn::ECS::PhysicsSystem>(eventBus), 12);
         // 場外に出たサイコロをお椀中心へ戻す (優先度 13)
         m_scene.AddSystem(std::make_shared<::LuckGameSampleScene::ECS::DiceBoundsSystem>(), 13);
+        // リスポン中（Kinematicテレポート）のサイコロを、PhysicsSystemがテレポートを
+        // 反映した後にHovering（投下待ち）へ引き継ぐ (優先度 13。PhysicsSystemより後段であればよい)
+        m_scene.AddSystem(std::make_shared<::LuckGameSampleScene::ECS::DiceRespawnSystem>(), 13);
+        // 投下待ち中のサイコロの角速度に上限をかける（待機時間に比例して勢いが
+        // 増え続け、着地が乱れて出目誤判定の原因になっていた） (優先度 13)
+        m_scene.AddSystem(std::make_shared<::LuckGameSampleScene::ECS::DiceHoverLimitSystem>(), 13);
         // ライトの更新 (優先度 14)
         m_scene.AddSystem(std::make_shared<Tsukino::BuiltIn::ECS::DirectionalLightSystem>(), 14);
         // スカイアトモスフィアの更新 (優先度 15)
@@ -312,8 +326,10 @@ namespace Tsukino::Sandbox {
         // CPU側 = 左（X-）、プレイヤー側 = 右（X+）
         //--------------------------------------------------------------
         // モデルアセットは実寸に近いスケールで作られている（お椀の実測AABBは約12x12x6ユニット）ため、
-        // お椀の間隔もそれに合わせた現実的な値にする
-        constexpr float kBowlOffsetX  = 20.0f;
+        // お椀の間隔もそれに合わせた現実的な値にする。
+        // kOutOfBoundsRadius（DiceBoundsSystem.cpp、14.0f）より必ず大きい値にすること
+        // （それより狭いと、自分のお椀から場外判定される前に隣のお椀へ到達してしまう）
+        constexpr float kBowlOffsetX  = 16.0f;
         constexpr uint32_t kCpuTerrainSeed    = 12345;
         constexpr uint32_t kPlayerTerrainSeed = 54321;    // 左右で同じ地形にならないようシードを変える
 

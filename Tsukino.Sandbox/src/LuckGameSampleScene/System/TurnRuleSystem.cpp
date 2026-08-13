@@ -70,8 +70,9 @@ namespace LuckGameSampleScene::ECS {
                 return;
             }
 
-            // 役なし・再挑戦可能なので、投げ直さずに待機状態へ戻す
-            ResetRoundToIdle(registry, round);
+            // 役なし・再挑戦可能なので、着地した位置から揺すり直すのではなく、
+            // お椀中心上空の投下待ち位置へリスポンさせる
+            RespawnDiceSet(registry, round);
             player.phase = TurnPhase::Waiting;
 
             if(CPUControllerComponent* cpuController = registry.try_get<CPUControllerComponent>(playerEntity)) {

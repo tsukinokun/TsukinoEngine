@@ -744,10 +744,18 @@ namespace Tsukino::BuiltIn::ECS {
                     auto&      tf      = registry.GetComponent<TransformComponent>(entity);
                     JPH::RVec3 bodyPos = bodyInterface.GetPosition(col.bodyID);
                     JPH::Quat  bodyRot = bodyInterface.GetRotation(col.bodyID);
+                    JPH::Vec3  bodyLinVel = bodyInterface.GetLinearVelocity(col.bodyID);
+                    JPH::Vec3  bodyAngVel = bodyInterface.GetAngularVelocity(col.bodyID);
 
                     tf.position = hlslpp::float3(bodyPos.GetX(), bodyPos.GetY(), bodyPos.GetZ());
                     tf.rotation = hlslpp::quaternion(bodyRot.GetX(), bodyRot.GetY(), bodyRot.GetZ(), bodyRot.GetW());
                     tf.dirty    = true;
+
+                    // rb.linearVelocity/angularVelocityは静止判定など他システムが実測値として
+                    // 参照するため、Joltの実速度をここで書き戻しておく（従来は書き戻されておらず、
+                    // 常に初期値の0のまま扱われてしまっていた）
+                    rb.linearVelocity  = hlslpp::float3(bodyLinVel.GetX(), bodyLinVel.GetY(), bodyLinVel.GetZ());
+                    rb.angularVelocity = hlslpp::float3(bodyAngVel.GetX(), bodyAngVel.GetY(), bodyAngVel.GetZ());
 
                     JPH::BoxShape                                             checkShape(JPH::Vec3(rb.groundCheckRadius, 0.05f, rb.groundCheckRadius));
                     JPH::RVec3                                                checkPos(tf.position.x, tf.position.y - rb.groundCheckDistance, tf.position.z);

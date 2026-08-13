@@ -6,6 +6,7 @@
 #include <Tsukino/Sandbox/LuckGameSampleScene/ECS/System/LuckGameSampleSceneUISystem.hpp>
 #include <Tsukino/Sandbox/LuckGameSampleScene/ECS/Component/PlayerComponent.hpp>
 #include <Tsukino/Sandbox/LuckGameSampleScene/ECS/Component/RoundComponent.hpp>
+#include <Tsukino/Sandbox/LuckGameSampleScene/ECS/Component/DiceComponent.hpp>
 #include <Tsukino/Sandbox/LuckGameSampleScene/ECS/Component/CPUControllerComponent.hpp>
 #include <Tsukino/Sandbox/LuckGameSampleScene/ECS/Component/GameStateComponent.hpp>
 #include <Tsukino/Sandbox/LuckGameSampleScene/ECS/Component/UILabelTags.hpp>
@@ -55,6 +56,25 @@ namespace LuckGameSampleScene::ECS {
             auto view = registry.View<TagComponent, Tsukino::BuiltIn::ECS::FontComponent>();
             view.each([&](entt::entity, TagComponent&, Tsukino::BuiltIn::ECS::FontComponent& font) { font.text = text; });
         }
+
+#ifdef _DEBUG
+        //-------------------------------------------------------------
+        //! @brief  デバッグ用：3つのサイコロの実際の出目を "[2,4,4]" 形式で返す
+        //!         （出目未確定のものは "?" とする）
+        //-------------------------------------------------------------
+        std::wstring DiceValuesDebugLabel(Tsukino::ECS::Registry& registry, const RoundComponent& round) {
+            std::wstring text = L" [";
+            for(std::size_t i = 0; i < round.dice.size(); ++i) {
+                DiceComponent& dice = registry.GetComponent<DiceComponent>(round.dice[i]);
+                text += dice.confirmed ? std::to_wstring(dice.confirmedValue) : L"?";
+                if(i + 1 < round.dice.size()) {
+                    text += L",";
+                }
+            }
+            text += L"]";
+            return text;
+        }
+#endif
     }    // namespace
 
     //-------------------------------------------------------------
@@ -116,8 +136,20 @@ namespace LuckGameSampleScene::ECS {
             break;
         }
 
-        UpdateLabelText<PlayerHandLabelTag>(registry, HandToLabel(playerRound, player.eliminated));
-        UpdateLabelText<CpuHandLabelTag>(registry, HandToLabel(cpuRound, cpu.eliminated));
+        // お椀のどちらが自分/敵か一目で分かるよう先頭に付ける
+        // （CPU=画面左のお椀、YOU=画面右のお椀。5-4節のカメラ回転の都合でこの左右になる）
+        std::wstring playerLabel = L"YOU: " + HandToLabel(playerRound, player.eliminated);
+        std::wstring cpuLabel    = L"CPU: " + HandToLabel(cpuRound, cpu.eliminated);
+
+#ifdef _DEBUG
+        // デバッグ時のみ、役だけでなく実際の出目も表示する（本来は隠し情報だが、
+        // 検証しやすいようDebugビルド限定でCPU側も含めて表示する）
+        playerLabel += DiceValuesDebugLabel(registry, playerRound);
+        cpuLabel += DiceValuesDebugLabel(registry, cpuRound);
+#endif
+
+        UpdateLabelText<PlayerHandLabelTag>(registry, playerLabel);
+        UpdateLabelText<CpuHandLabelTag>(registry, cpuLabel);
         UpdateLabelText<MessageLabelTag>(registry, message);
     }
 
