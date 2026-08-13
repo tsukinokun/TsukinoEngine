@@ -1,33 +1,43 @@
+-- このファイルが実際に置かれているディレクトリ（Engineルート）
+local ROOT_ENGINE_ROOT     = path.getdirectory(_SCRIPT)
+-- TsukinoEngine自身がルートスクリプト（単体ビルド）かどうか
+local ROOT_IS_SAME_AS_ROOT = (path.getabsolute(ROOT_ENGINE_ROOT) == path.getabsolute(_MAIN_SCRIPT_DIR))
+
+-- 単体ビルド時のみworkspaceを宣言する。
+-- 外部の親premake5.lua（サブモジュールとして取り込んだ側）からinclude()された場合は、
+-- 親側が既にworkspaceを宣言している前提のためここではスキップする。
+if ROOT_IS_SAME_AS_ROOT then
 workspace "TsukinoEngine"                   -- ソリューション名
     architecture "x64"                      -- アーキテクチャ
     configurations { "Debug", "Release" }   -- ビルド構成
 
     startproject "Tsukino.Sandbox"          -- スタートアッププロジェクト
-    location ".build"                       -- ビルドファイルの出力先 
-    multiprocessorcompile "On"              -- マルチプロセッサコンパイルを有効化    
+    location ".build"                       -- ビルドファイルの出力先
+    multiprocessorcompile "On"              -- マルチプロセッサコンパイルを有効化
     exceptionhandling "On"                  -- 例外処理を有効化
-    
+
     filter "configurations:*"
         defines { "JPH_DEBUG_RENDERER" } -- 値は1でなくても定義されていることが重要
     filter {}
 
-    filter "configurations:Debug" 
-        optimize "Off" 
-        symbols "On" 
+    filter "configurations:Debug"
+        optimize "Off"
+        symbols "On"
 
-    filter "action:vs*" 
+    filter "action:vs*"
         buildoptions { "/utf-8" }
     filter {}
-    
+
     filter "configurations:Release"
         optimize "Full"
-        symbols "On" 
-        
+        symbols "On"
+
     filter {}
 
     filter "configurations:*"
         linkoptions { "/IGNORE:4006" }
     filter {}
+end
 
 ----------------------------------------
 -- DirectXTexプロジェクトを追加
@@ -252,7 +262,12 @@ project "Tsukino.Core"
         buildoptions { "/permissive-" }
     filter {}
 
-    pchheader "pch.h" 
+    -- エンジン自身のソースツリー上の絶対パスをコンパイル時定数として注入する。
+    -- GetEngineAssetRootPath()(Debugビルド用)が参照し、Tools/やTsukino.BuiltIn/Assetsを
+    -- 取り込み側リポジトリへコピー・リンクせずに直接解決できるようにする。
+    defines { 'TSUKINO_ENGINE_ROOT="' .. ROOT_ENGINE_ROOT .. '"' }
+
+    pchheader "pch.h"
     pchsource "Tsukino.Core/pch.cpp"
 
     targetdir ("bin/%{cfg.buildcfg}")
@@ -330,18 +345,10 @@ project "Tsukino.Engine"
     targetdir ("bin/%{cfg.buildcfg}")
     objdir ("bin-int/%{cfg.buildcfg}")
 
-    local ENGINE_ROOT     = path.getdirectory(_SCRIPT)  -- このプロジェクトが実際に置かれているディレクトリ（Engineルート）
-    local IS_SAME_AS_ROOT = (path.getabsolute(ENGINE_ROOT) == path.getabsolute(_MAIN_SCRIPT_DIR))
+    local ENGINE_ROOT = path.getdirectory(_SCRIPT)  -- このプロジェクトが実際に置かれているディレクトリ（Engineルート）
 
-    if not IS_SAME_AS_ROOT then
-        -- サブモジュール等でEngineルート≠workspaceルートの場合は、Debugでも
-        -- FontImporter/AudioImporterが参照する外部ツール(Tools/)をworkspaceルート直下へ同期する
-        filter "configurations:Debug"
-            postbuildcommands {
-                "{COPYDIR} " .. ENGINE_ROOT .. "/Tools %{wks.location}/../Tools"
-            }
-        filter {}
-    end
+    -- Debug時：Tools/の実体解決はGetEngineAssetRootPath()(コンパイル時に注入したTSUKINO_ENGINE_ROOT)が
+    -- 直接エンジンのソースツリーを参照するため、取り込み側リポジトリへのコピー・リンクは不要。
 
     -- リリース時：exeの場所(GetAssetRootPath())基準になるため、
     -- FontImporter(MakeSpriteFont.exe)・AudioImporter(XWBTool.exe)が使う
@@ -526,23 +533,15 @@ project "Tsukino.BuiltIn"
     targetdir ("bin/%{cfg.buildcfg}")
     objdir ("bin-int/%{cfg.buildcfg}")
 
-    local BUILTIN_ROOT     = path.getdirectory(_SCRIPT)  -- このプロジェクトが実際に置かれているディレクトリ（Engineルート）
-    local IS_SAME_AS_ROOT  = (path.getabsolute(BUILTIN_ROOT) == path.getabsolute(_MAIN_SCRIPT_DIR))
+    local BUILTIN_ROOT = path.getdirectory(_SCRIPT)  -- このプロジェクトが実際に置かれているディレクトリ（Engineルート）
 
     -- デバッグ時：Engineがworkspaceルート直下にある（単体ビルド）ならコピーせず直接参照
     filter "configurations:Debug"
         debugdir "%{wks.location}/.."
     filter {}
 
-    if not IS_SAME_AS_ROOT then
-        -- サブモジュール等でEngineルート≠workspaceルートの場合は、Debugでも
-        -- Engine自身のAssetsをworkspaceルート直下へ同期する
-        filter "configurations:Debug"
-            postbuildcommands {
-                "{COPYDIR} " .. BUILTIN_ROOT .. "/Tsukino.BuiltIn/Assets %{wks.location}/../Tsukino.BuiltIn/Assets"
-            }
-        filter {}
-    end
+    -- Debug時：Assets/の実体解決はGetEngineAssetRootPath()(コンパイル時に注入したTSUKINO_ENGINE_ROOT)が
+    -- 直接エンジンのソースツリーを参照するため、取り込み側リポジトリへのコピー・リンクは不要。
 
     -- リリース（配布）時：exeの場所を参照し、Engine自身のAssetsをそこへコピーする
     filter "configurations:Release"
@@ -660,7 +659,9 @@ project "Tsukino.EngineIntegration"
 
 ----------------------------------------
 -- サンドボックス（実行ファイル）
+-- 単体ビルド時のみ有効。サブモジュールとして外部から取り込まれた場合はスキップされる。
 ----------------------------------------
+if ROOT_IS_SAME_AS_ROOT then
 project "Tsukino.Sandbox"
     location ".build/Tsukino.Sandbox"
     kind "WindowedApp"   
@@ -758,3 +759,4 @@ project "Tsukino.Sandbox"
     nuget { "directxtk_desktop_win10:2026.4.1.1",
             "AssimpCpp:5.0.1.6",
     }
+end

@@ -100,4 +100,39 @@ namespace Tsukino::IO {
         return Tsukino::Core::Path(std::filesystem::path(exePath).parent_path().string());
 #endif
     }
+
+    //---------------------------------------------------------
+    //! @brief  エンジン自身のリソースのルートパスを取得する
+    //---------------------------------------------------------
+    Tsukino::Core::Path FileSystem::GetEngineAssetRootPath() {
+#ifdef _DEBUG
+        // デバッグ時：エンジン自身のソースツリー上の絶対パス（Premakeがコンパイル時に注入）を直接参照する。
+        // 取り込み側リポジトリのルートへTools/やTsukino.BuiltIn/Assetsをコピー・リンクする必要がなくなる。
+        return Tsukino::Core::Path(TSUKINO_ENGINE_ROOT);
+#else
+        // リリース時：GetAssetRootPath()と同じ（exeの隣に配置される配布物を前提とする）
+        return GetAssetRootPath();
+#endif
+    }
+
+    //---------------------------------------------------------
+    //! @brief  絶対パスをエンジンルートからの相対パスへ変換する
+    //---------------------------------------------------------
+    Tsukino::Core::Path FileSystem::ToEngineRelativePath(const Tsukino::Core::Path& maybeAbsolutePath) {
+        std::filesystem::path srcFsPath(maybeAbsolutePath.string());
+        if(!srcFsPath.is_absolute()) {
+            // 相対パスはそのまま返す（従来通りの挙動。ゲーム自身のアセット等はここに該当）
+            return maybeAbsolutePath;
+        }
+
+        std::filesystem::path engineRoot(GetEngineAssetRootPath().string());
+        std::error_code       ec;
+        std::filesystem::path rel = std::filesystem::relative(srcFsPath, engineRoot, ec);
+        if(ec || rel.empty() || rel.native()[0] == L'.') {
+            // エンジンルート配下でない絶対パスは変換できないためそのまま返す
+            return maybeAbsolutePath;
+        }
+
+        return Tsukino::Core::Path(rel.generic_string());
+    }
 }    // namespace Tsukino::IO

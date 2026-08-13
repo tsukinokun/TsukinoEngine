@@ -61,6 +61,24 @@ namespace Tsukino::IO {
         //---------------------------------------------------------
         [[nodiscard]]
         static Tsukino::Core::Path GetAssetRootPath();
+
+        //---------------------------------------------------------
+        // エンジン自身のリソース(Tools/, Tsukino.BuiltIn/Assets/等)のルートパスを取得する
+        //! @return Debug: エンジンのソースツリー上の絶対パス（コンパイル時にPremakeが注入）
+        //!         Release: GetAssetRootPath()と同じ（exeの隣に配置される配布物を前提とする）
+        //---------------------------------------------------------
+        [[nodiscard]]
+        static Tsukino::Core::Path GetEngineAssetRootPath();
+
+        //---------------------------------------------------------
+        // 絶対パスをエンジンルート(GetEngineAssetRootPath())からの相対パスへ変換する
+        //! @param  maybeAbsolutePath [in] 絶対または相対のパス
+        //! @return 絶対パスでエンジンルート配下にある場合は相対パスに変換したもの。
+        //!         それ以外（相対パスのまま、またはエンジンルート配下でない絶対パス）は
+        //!         そのまま返す。
+        //---------------------------------------------------------
+        [[nodiscard]]
+        static Tsukino::Core::Path ToEngineRelativePath(const Tsukino::Core::Path& maybeAbsolutePath);
     };
 
 }    // namespace Tsukino::IO

@@ -77,8 +77,9 @@ namespace Tsukino::Asset {
 
         //--------------------------------------------------------------
         // 出力パスの構築
+        // (inputPathが絶対パスの場合はToEngineRelativePath()で相対パスに戻してから結合する)
         //--------------------------------------------------------------
-        Tsukino::Core::Path tempPath = inputPath;
+        Tsukino::Core::Path tempPath = Tsukino::IO::FileSystem::ToEngineRelativePath(inputPath);
         tempPath.replace_extension(".tsm");
         Tsukino::Core::Path outputPath = outputDirectory / tempPath;
 
@@ -286,9 +287,10 @@ namespace Tsukino::Asset {
                 continue;
             }
             // 保存
-            std::string         ddsFilename = modelBaseName + "_" + std::to_string(i) + ".dds";
-            Tsukino::Core::Path tsmDir      = (outputDirectory / inputPath).parent_path();
-            Tsukino::Core::Path ddsPath     = tsmDir / ddsFilename;
+            std::string         ddsFilename        = modelBaseName + "_" + std::to_string(i) + ".dds";
+            Tsukino::Core::Path relativeInputPath   = Tsukino::IO::FileSystem::ToEngineRelativePath(inputPath);
+            Tsukino::Core::Path tsmDir              = (outputDirectory / relativeInputPath).parent_path();
+            Tsukino::Core::Path ddsPath             = tsmDir / ddsFilename;
 
             hr = DirectX::SaveToDDSFile(
                 compressed.GetImages(), compressed.GetImageCount(), compressed.GetMetadata(), DirectX::DDS_FLAGS_NONE, ddsPath.ToWString().c_str());
@@ -297,7 +299,15 @@ namespace Tsukino::Asset {
                 continue;
             }
 
-            embeddedTexIndexToDDSPath[i] = ddsPath.string();
+            // マテリアルに焼き込む参照パスは、他のゲームアセットと同じ「GetAssetRootPath()からの
+            // 相対パス(Cache/を含まない)」規約にする。AssetManager::Load()が"Cache/"を付与して
+            // 実ファイル(ddsPathと同じ場所)を解決する。
+            // (ddsPathのような絶対パス、かつ既にCache/を含むパスをそのまま焼き込むと、
+            //  AssetManager::Load()経由で再度Cache/が付与されてしまい、二重になったパスが
+            //  実在せずロードに失敗する。特にRelease構成ではGetEngineAssetRootPath()と
+            //  GetAssetRootPath()が同じディレクトリを指すため、この問題が顕在化する)
+            Tsukino::Core::Path materialRefPath = relativeInputPath.parent_path() / ddsFilename;
+            embeddedTexIndexToDDSPath[i]        = materialRefPath.string();
         }
 
         auto GetTexPath = [&](const aiMaterial* mat, aiTextureType type) -> std::string {

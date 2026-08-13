@@ -44,8 +44,9 @@ namespace Tsukino::Asset {
 
         //--------------------------------------------------------------
         // outputDirectory(Cache/) に inputPath(相対) を結合して階層を維持
+        // (inputPathが絶対パスの場合はToEngineRelativePath()で相対パスに戻してから結合する)
         //--------------------------------------------------------------
-        Tsukino::Core::Path outputPath = outputDirectory / inputPath;
+        Tsukino::Core::Path outputPath = outputDirectory / Tsukino::IO::FileSystem::ToEngineRelativePath(inputPath);
         outputPath.replace_extension(".dds");    // 拡張子をDDSに変更
 
         //--------------------------------------------------------------
