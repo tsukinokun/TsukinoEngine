@@ -330,6 +330,28 @@ project "Tsukino.Engine"
     targetdir ("bin/%{cfg.buildcfg}")
     objdir ("bin-int/%{cfg.buildcfg}")
 
+    local ENGINE_ROOT     = path.getdirectory(_SCRIPT)  -- このプロジェクトが実際に置かれているディレクトリ（Engineルート）
+    local IS_SAME_AS_ROOT = (path.getabsolute(ENGINE_ROOT) == path.getabsolute(_MAIN_SCRIPT_DIR))
+
+    if not IS_SAME_AS_ROOT then
+        -- サブモジュール等でEngineルート≠workspaceルートの場合は、Debugでも
+        -- FontImporter/AudioImporterが参照する外部ツール(Tools/)をworkspaceルート直下へ同期する
+        filter "configurations:Debug"
+            postbuildcommands {
+                "{COPYDIR} " .. ENGINE_ROOT .. "/Tools %{wks.location}/../Tools"
+            }
+        filter {}
+    end
+
+    -- リリース時：exeの場所(GetAssetRootPath())基準になるため、
+    -- FontImporter(MakeSpriteFont.exe)・AudioImporter(XWBTool.exe)が使う
+    -- 外部ツール(Tools/)もexeの隣へコピーする
+    filter "configurations:Release"
+        postbuildcommands {
+            "{COPYDIR} " .. ENGINE_ROOT .. "/Tools %{cfg.targetdir}/Tools"
+        }
+    filter {}
+
     files {
         "Tsukino.Engine/src/**.cpp",
         "Tsukino.Engine/include/**.hpp",
