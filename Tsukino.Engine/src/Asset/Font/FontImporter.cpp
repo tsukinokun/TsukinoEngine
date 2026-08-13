@@ -118,15 +118,21 @@ namespace Tsukino::Asset {
 
         //--------------------------------------------------------------
         // 出力パスの決定
+        // (inputPathがエンジン組み込みアセット由来の絶対パスの場合、そのまま
+        //  outputDirectory / inputPath とすると絶対パスへ丸ごと置き換わってしまい、
+        //  エンジンのソースツリー内に.spritefontを書き込んでしまう。
+        //  ToEngineRelativePath()で相対パスに戻してから結合する)
         //--------------------------------------------------------------
-        Tsukino::Core::Path outputPath = outputDirectory / inputPath;
+        Tsukino::Core::Path outputPath = outputDirectory / Tsukino::IO::FileSystem::ToEngineRelativePath(inputPath);
         outputPath.replace_extension(".spritefont");
         Tsukino::IO::FileSystem::CreateDirectories(outputPath.parent_path());
 
         //--------------------------------------------------------------
         // MakeSpriteFont.exe のパス
+        // (エンジン自身が所有するツールのため、取り込み側リポジトリの
+        //  GetAssetRootPath()ではなくGetEngineAssetRootPath()から解決する)
         //--------------------------------------------------------------
-        Tsukino::Core::Path toolPath = baseDir / "Tools/MakeSpriteFont.exe";
+        Tsukino::Core::Path toolPath = Tsukino::IO::FileSystem::GetEngineAssetRootPath() / "Tools/MakeSpriteFont.exe";
 
         //--------------------------------------------------------------
         // オプションを連結

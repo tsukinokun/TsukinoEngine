@@ -80,8 +80,12 @@ namespace Tsukino::Asset {
 
         //--------------------------------------------------------------
         // 出力パスの決定（.xwb）
+        // (baseInputPathがエンジン組み込みアセット由来の絶対パスの場合、そのまま
+        //  outputDirectory / baseInputPath とすると絶対パスへ丸ごと置き換わってしまい、
+        //  エンジンのソースツリー内に.xwbを書き込んでしまう。
+        //  ToEngineRelativePath()で相対パスに戻してから結合する)
         //--------------------------------------------------------------
-        Tsukino::Core::Path outputPath = outputDirectory / baseInputPath;
+        Tsukino::Core::Path outputPath = outputDirectory / Tsukino::IO::FileSystem::ToEngineRelativePath(baseInputPath);
         outputPath.replace_extension(".xwb");
 
         //--------------------------------------------------------------
@@ -91,8 +95,10 @@ namespace Tsukino::Asset {
 
         //--------------------------------------------------------------
         // XWBTool.exe のパス
+        // (エンジン自身が所有するツールのため、取り込み側リポジトリの
+        //  GetAssetRootPath()ではなくGetEngineAssetRootPath()から解決する)
         //--------------------------------------------------------------
-        Tsukino::Core::Path toolPath = baseDir / "Tools/XWBTool.exe";
+        Tsukino::Core::Path toolPath = Tsukino::IO::FileSystem::GetEngineAssetRootPath() / "Tools/XWBTool.exe";
 
         //--------------------------------------------------------------
         // 引数を作成して変換実行

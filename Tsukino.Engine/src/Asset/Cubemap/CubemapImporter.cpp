@@ -165,8 +165,9 @@ namespace Tsukino::Asset {
 
         //--------------------------------------------------------------
         // 出力パスの構築・保存
+        // (inputPathが絶対パスの場合はToEngineRelativePath()で相対パスに戻してから結合する)
         //--------------------------------------------------------------
-        Tsukino::Core::Path tempPath = inputPath;
+        Tsukino::Core::Path tempPath = Tsukino::IO::FileSystem::ToEngineRelativePath(inputPath);
         tempPath.replace_extension(".tcc");
         Tsukino::Core::Path outputPath = outputDirectory / tempPath;
 

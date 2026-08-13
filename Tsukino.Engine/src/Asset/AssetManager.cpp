@@ -25,6 +25,8 @@
 
 #include <Tsukino/Core/IO/FileSystem.hpp>
 #include <Tsukino/Core/Log.hpp>
+
+#include <filesystem>
 // 名前空間 : Tsukino::Asset
 namespace Tsukino::Asset {
     //--------------------------------------------------------------
@@ -259,7 +261,16 @@ namespace Tsukino::Asset {
         auto [sourceBase, sourceFragment] = Tsukino::Core::Path::SplitPathAndFragment(sourcePath.string());
         Tsukino::Core::Path sourceBasePath(sourceBase);
 
-        Tsukino::Core::Path cacheBasePath = Tsukino::IO::FileSystem::GetAssetRootPath() / "Cache" / sourceBasePath;
+        // 絶対パス(エンジン自身が所有するTools/やTsukino.BuiltIn/Assetsなど、
+        // GetEngineAssetRootPath()経由で解決されたもの)の場合、そのまま
+        // GetAssetRootPath() / "Cache" / sourceBasePath とすると、std::filesystem::path の
+        // 標準セマンティクスにより絶対パスであるsourceBasePathへ丸ごと置き換わってしまい、
+        // エンジンのソースツリー内にキャッシュを書き込んでしまう。
+        // それを防ぐため、絶対パスの場合はエンジンルートからの相対パスに変換してから
+        // Cache/ 以下に組み込む(相対パスのまま渡される通常のゲームアセットは対象外で挙動は変わらない)。
+        Tsukino::Core::Path cacheRelativeSource = Tsukino::IO::FileSystem::ToEngineRelativePath(sourceBasePath);
+
+        Tsukino::Core::Path cacheBasePath = Tsukino::IO::FileSystem::GetAssetRootPath() / "Cache" / cacheRelativeSource;
 
         std::string ext = Tsukino::Core::Path::ToLower(sourceBasePath.extension());
         if(auto it = extensionMap.find(ext); it != extensionMap.end()) {
