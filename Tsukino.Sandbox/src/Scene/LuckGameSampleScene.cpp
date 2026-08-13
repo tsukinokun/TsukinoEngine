@@ -380,10 +380,10 @@ namespace Tsukino::Sandbox {
         // UIラベルエンティティの生成（画面は1700x1000を想定した暫定配置）
         //--------------------------------------------------------------
         {
-            Tsukino::ECS::Entity cpuLabelEntity = CreateLabel(m_scene, registry, hlslpp::float3(40.0f, 40.0f, 0.0f));
+            Tsukino::ECS::Entity cpuLabelEntity = CreateLabel(m_scene, registry, hlslpp::float3(1350.0f, 40.0f, 0.0f));
             registry.AddComponent<::LuckGameSampleScene::ECS::CpuHandLabelTag>(cpuLabelEntity);
 
-            Tsukino::ECS::Entity playerLabelEntity = CreateLabel(m_scene, registry, hlslpp::float3(1350.0f, 40.0f, 0.0f));
+            Tsukino::ECS::Entity playerLabelEntity = CreateLabel(m_scene, registry, hlslpp::float3(40.0f, 40.0f, 0.0f));
             registry.AddComponent<::LuckGameSampleScene::ECS::PlayerHandLabelTag>(playerLabelEntity);
 
             Tsukino::ECS::Entity messageLabelEntity = CreateLabel(m_scene, registry, hlslpp::float3(550.0f, 900.0f, 0.0f));
