@@ -102,9 +102,14 @@ namespace Tsukino::Engine::ECS::Prefab {
 
                 //--------------------------------------------------------------
                 // ロード処理（シリアライズ対応型のみ実行）
+                // 注意：archive(...)が呼べるかどうかをrequires式で直接判定すると、
+                // cereal側の「対応する記法が無い場合のフォールバック実装」が
+                // オーバーロード解決自体には成功してしまい、実際に呼び出した瞬間に
+                // static_assertで強制終了する（SFINAEで弾かれない）。
+                // そのためcereal::traits::is_input_serializableで安全に判定する。
                 //--------------------------------------------------------------
                 auto& component = registry.GetComponent<ComponentType>(entity);
-                if constexpr(requires(cereal::JSONInputArchive& archive) { archive(cereal::make_nvp(typeName, component)); }) {
+                if constexpr(cereal::traits::is_input_serializable<ComponentType, cereal::JSONInputArchive>::value) {
                     std::ifstream is(compJsonPath);
                     if(is.is_open()) {
                         cereal::JSONInputArchive archive(is);
@@ -118,7 +123,7 @@ namespace Tsukino::Engine::ECS::Prefab {
             //--------------------------------------------------------------
             // セーブ対応型（save()が定義されている型）のみ、ラウンドトリップ保存用の関数も登録する
             //--------------------------------------------------------------
-            if constexpr(requires(cereal::JSONOutputArchive& archive, const ComponentType& component) { archive(cereal::make_nvp(typeName, component)); }) {
+            if constexpr(cereal::traits::is_output_serializable<ComponentType, cereal::JSONOutputArchive>::value) {
                 m_savers[typeName] = [typeName](Tsukino::ECS::Registry& registry, entt::entity entity, const std::string& outDir, std::string& outPath) -> bool {
                     if(!registry.HasComponent<ComponentType>(entity)) {
                         return false;
