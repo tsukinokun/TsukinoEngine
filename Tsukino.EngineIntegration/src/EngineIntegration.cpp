@@ -12,11 +12,15 @@
 #include <Tsukino/BuiltIn/ECS/Component/RigidbodyComponent.hpp>
 
 #include <Tsukino/BuiltIn/ECS/Component/EffectComponent.hpp>
+#include <Tsukino/BuiltIn/ECS/Component/DirectionalLightComponent.hpp>
+#include <Tsukino/BuiltIn/ECS/Component/SkyAtmosphereComponent.hpp>
 
 #include <Tsukino/BuiltIn/ECS/Serialization/CameraComponentSerialization.hpp>
 #include <Tsukino/BuiltIn/ECS/Serialization/TransformComponentSerialization.hpp>
 #include <Tsukino/BuiltIn/ECS/Serialization/RigidbodyComponentSerialization.hpp>
 #include <Tsukino/BuiltIn/ECS/Serialization/EffectComponentSerialization.hpp>
+#include <Tsukino/BuiltIn/ECS/Serialization/DirectionalLightComponentSerialization.hpp>
+#include <Tsukino/BuiltIn/ECS/Serialization/SkyAtmosphereComponentSerialization.hpp>
 
 #include <Tsukino/Core/Log.hpp>
 
@@ -188,5 +192,7 @@ namespace Tsukino::EngineIntegration {
         m_prefabFactory->RegisterComponent<Tsukino::BuiltIn::ECS::CameraComponent>("CameraComponent");
         m_prefabFactory->RegisterComponent<Tsukino::BuiltIn::ECS::RigidbodyComponent>("RigidbodyComponent");
         m_prefabFactory->RegisterComponent<Tsukino::BuiltIn::ECS::EffectComponent>("EffectComponent");
+        m_prefabFactory->RegisterComponent<Tsukino::BuiltIn::ECS::DirectionalLightComponent>("DirectionalLightComponent");
+        m_prefabFactory->RegisterComponent<Tsukino::BuiltIn::ECS::SkyAtmosphereComponent>("SkyAtmosphereComponent");
     }
 }    // namespace Tsukino::EngineIntegration

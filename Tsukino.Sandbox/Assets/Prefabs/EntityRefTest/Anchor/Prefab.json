@@ -1,0 +1,8 @@
+{
+    "Components": [
+        {
+            "key": "TransformComponent",
+            "value": "Tsukino.Sandbox/Assets/Prefabs/EntityRefTest/Anchor/Transform.json"
+        }
+    ]
+}

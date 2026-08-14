@@ -20,7 +20,7 @@ namespace Tsukino::BuiltIn::ECS {
         Tsukino::Core::Math::matrix localMatrix;    // ローカル行列
         Tsukino::Core::Math::matrix worldMatrix;    // ワールド行列
 
-        Tsukino::ECS::Entity parent;           // 親エンティティ
+        Tsukino::ECS::Entity parent = entt::null;    // 親エンティティ
         bool                 dirty = false;    // ワールド行列が更新されているか
     };
 

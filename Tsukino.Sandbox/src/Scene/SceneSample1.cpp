@@ -12,6 +12,7 @@
 
 #include <Tsukino/Core/Path.hpp>
 #include <Tsukino/Core/Log.hpp>
+#include <Tsukino/Core/ECS/EntityRef/EntityRef.hpp>
 
 // 必要なシステムとコンポーネントのインクルード
 #include <Tsukino/EngineIntegration/ECS/System/TransformSystem.hpp>
@@ -52,6 +53,24 @@
 #include <hlsl++.h>
 // 名前空間 : Tsukino::Sandbox
 namespace Tsukino::Sandbox {
+
+    //-------------------------------------------------------------
+    //! @brief  PrefabFactory::InstantiateGroup のEntityRef解決を検証するためのテスト専用コンポーネント
+    //-------------------------------------------------------------
+    struct TestLinkComponent {
+        Tsukino::ECS::EntityRef target;
+    };
+
+    template <class Archive>
+    void save(Archive& archive, const TestLinkComponent& link) {
+        archive(cereal::make_nvp("target", link.target));
+    }
+
+    template <class Archive>
+    void load(Archive& archive, TestLinkComponent& link) {
+        archive(cereal::make_nvp("target", link.target));
+    }
+
     //-------------------------------------------------------------
     //! @brief  シーン固有の初期化処理
     //-------------------------------------------------------------
@@ -245,71 +264,132 @@ namespace Tsukino::Sandbox {
         //--------------------------------------------------------------
         //! @brief     PrefabFactory のテスト：PrefabのJSONから3Dカメラエンティティを生成してみる
         //--------------------------------------------------------------
-        //Tsukino::Core::Log::Info("=== [PrefabFactory] Instantiate Test Start ===");
+        Tsukino::Core::Log::Info("=== [PrefabFactory] Instantiate Test Start ===");
 
-        //const std::string instTransformPath = "Tsukino.Sandbox/Assets/Prefabs/TestPrefab_Transform.json";
-        //const std::string instCameraPath    = "Tsukino.Sandbox/Assets/Prefabs/TestPrefab_Camera.json";
         const std::string prefabPath = "Tsukino.Sandbox/Assets/Prefabs/TestPrefab.json";
+        entt::entity      testEntity = context->prefabFactory->Instantiate(prefabPath, registry);
 
-        // 各コンポーネントのJSONを生成（初回のみ）
-        //if(!std::filesystem::exists(instTransformPath)) {
-        //    Tsukino::BuiltIn::ECS::TransformComponent t{};
-        //    t.position = hlslpp::float3(7.0f, 8.0f, 9.0f);
-        //    t.rotation = hlslpp::quaternion(0.0f, 0.0f, 0.0f, 1.0f);
-        //    t.scale    = hlslpp::float3(1.0f, 1.0f, 1.0f);
-        //    context->prefabFactory->Save(instTransformPath, "Transform", t);
-        //}
+        if(testEntity == entt::null) {
+            Tsukino::Core::Log::Error("Instantiate FAILED: returned entt::null");
+        } else {
+            Tsukino::Core::Log::Info("Instantiate OK: entity created");
 
-        //if(!std::filesystem::exists(instCameraPath)) {
-        //    Tsukino::BuiltIn::ECS::CameraComponent c{};
-        //    c.projectionType = Tsukino::BuiltIn::ECS::CameraComponent::ProjectionType::Perspective;
-        //    c.fov            = 75.0f;
-        //    c.nearZ          = 0.1f;
-        //    c.farZ           = 500.0f;
-        //    c.isPrimary      = false;
-        //    context->prefabFactory->Save(instCameraPath, "Camera", c);
-        //}
+            auto* t = registry.try_get<Tsukino::BuiltIn::ECS::TransformComponent>(testEntity);
+            if(t) {
+                Tsukino::Core::Log::Info("Transform.position = (" + std::to_string(t->position.x) + ", " + std::to_string(t->position.y) + ", " + std::to_string(t->position.z) + ")");
+            } else {
+                Tsukino::Core::Log::Error("TransformComponent NOT attached!");
+            }
 
-        //// 目次JSONを生成（初回のみ）
-        //if(!std::filesystem::exists(prefabPath)) {
-        //    std::map<std::string, std::string> componentList = {
-        //        {"Transform", instTransformPath},
-        //        {"Camera",    instCameraPath   }
-        //    };
-        //    std::ofstream             os(prefabPath);
-        //    cereal::JSONOutputArchive archive(os);
-        //    archive(cereal::make_nvp("Components", componentList));
-        //    Tsukino::Core::Log::Info("Created TestPrefab.json");
-        //}
+            auto* c = registry.try_get<Tsukino::BuiltIn::ECS::CameraComponent>(testEntity);
+            if(c) {
+                Tsukino::Core::Log::Info("Camera.fov = " + std::to_string(c->fov) + ", Camera.farZ = " + std::to_string(c->farZ));
+            } else {
+                Tsukino::Core::Log::Error("CameraComponent NOT attached!");
+            }
+        }
 
-        entt::entity testEntity = context->prefabFactory->Instantiate(prefabPath, registry);
+        Tsukino::Core::Log::Info("=== [PrefabFactory] Instantiate Test End ===");
 
-        //if(testEntity == entt::null) {
-        //    Tsukino::Core::Log::Error("Instantiate FAILED: returned entt::null");
-        //} else {
-        //    Tsukino::Core::Log::Info("Instantiate OK: entity created");
+        //--------------------------------------------------------------
+        //! @brief     PrefabFactory::ApplyOverride のテスト：インスタンス化直後にTransformを個別上書きする
+        //--------------------------------------------------------------
+        Tsukino::Core::Log::Info("=== [PrefabFactory] ApplyOverride Test Start ===");
 
-        //    // Transform の確認（期待値: 7, 8, 9）
-        //    auto* t = registry.try_get<Tsukino::BuiltIn::ECS::TransformComponent>(testEntity);
-        //    if(t) {
-        //        Tsukino::Core::Log::Info("Transform.position.x = " + std::to_string(t->position.x) + " (expect 7)");
-        //        Tsukino::Core::Log::Info("Transform.position.y = " + std::to_string(t->position.y) + " (expect 8)");
-        //        Tsukino::Core::Log::Info("Transform.position.z = " + std::to_string(t->position.z) + " (expect 9)");
-        //    } else {
-        //        Tsukino::Core::Log::Error("TransformComponent NOT attached!");
-        //    }
+        if(testEntity != entt::null) {
+            Tsukino::BuiltIn::ECS::TransformComponent overrideTransform{};
+            overrideTransform.position = hlslpp::float3(42.0f, 43.0f, 44.0f);
+            overrideTransform.rotation = hlslpp::quaternion(0.0f, 0.0f, 0.0f, 1.0f);
+            overrideTransform.scale    = hlslpp::float3(1.0f, 1.0f, 1.0f);
+            context->prefabFactory->ApplyOverride<Tsukino::BuiltIn::ECS::TransformComponent>(registry, testEntity, overrideTransform);
 
-        //    // Camera の確認（期待値: fov=75, farZ=500）
-        //    auto* c = registry.try_get<Tsukino::BuiltIn::ECS::CameraComponent>(testEntity);
-        //    if(c) {
-        //        Tsukino::Core::Log::Info("Camera.fov  = " + std::to_string(c->fov) + " (expect 75)");
-        //        Tsukino::Core::Log::Info("Camera.farZ = " + std::to_string(c->farZ) + " (expect 500)");
-        //    } else {
-        //        Tsukino::Core::Log::Error("CameraComponent NOT attached!");
-        //    }
-        //}
+            auto* t = registry.try_get<Tsukino::BuiltIn::ECS::TransformComponent>(testEntity);
+            const bool overrideOk = t && t->position.x == 42.0f && t->position.y == 43.0f && t->position.z == 44.0f;
+            Tsukino::Core::Log::Info(overrideOk ? "ApplyOverride OK: position = (42, 43, 44)" : "ApplyOverride FAILED");
+        }
 
-        //Tsukino::Core::Log::Info("=== [PrefabFactory] Instantiate Test End ===");
+        Tsukino::Core::Log::Info("=== [PrefabFactory] ApplyOverride Test End ===");
+
+        //--------------------------------------------------------------
+        //! @brief     PrefabFactory::CaptureEntity のテスト：エンティティを丸ごとJSONへ書き出し、
+        //!            書き出した先から再度Instantiateしてラウンドトリップを確認する
+        //--------------------------------------------------------------
+        Tsukino::Core::Log::Info("=== [PrefabFactory] CaptureEntity Test Start ===");
+
+        if(testEntity != entt::null) {
+            const std::string captureDir = "Tsukino.Sandbox/Assets/Prefabs/CaptureTest";
+            if(context->prefabFactory->CaptureEntity(registry, testEntity, captureDir)) {
+                entt::entity capturedEntity = context->prefabFactory->Instantiate(captureDir + "/Prefab.json", registry);
+                auto*        t              = capturedEntity != entt::null ? registry.try_get<Tsukino::BuiltIn::ECS::TransformComponent>(capturedEntity) : nullptr;
+                const bool   captureOk       = t && t->position.x == 42.0f && t->position.y == 43.0f && t->position.z == 44.0f;
+                Tsukino::Core::Log::Info(captureOk ? "CaptureEntity round-trip OK: position = (42, 43, 44)" : "CaptureEntity round-trip FAILED");
+            } else {
+                Tsukino::Core::Log::Error("CaptureEntity FAILED");
+            }
+        }
+
+        Tsukino::Core::Log::Info("=== [PrefabFactory] CaptureEntity Test End ===");
+
+        //--------------------------------------------------------------
+        //! @brief     PrefabFactory::InstantiateGroup + EntityRef のテスト：
+        //!            バッチ内の他エンティティへの参照が名前解決されることを確認する
+        //--------------------------------------------------------------
+        Tsukino::Core::Log::Info("=== [PrefabFactory] InstantiateGroup EntityRef Test Start ===");
+        {
+            context->prefabFactory->RegisterComponent<Tsukino::Sandbox::TestLinkComponent>("TestLinkComponent");
+
+            const std::string anchorDir = "Tsukino.Sandbox/Assets/Prefabs/EntityRefTest/Anchor";
+            const std::string linkerDir = "Tsukino.Sandbox/Assets/Prefabs/EntityRefTest/Linker";
+
+            const std::string anchorTransformPath = anchorDir + "/Transform.json";
+            const std::string anchorPrefabPath    = anchorDir + "/Prefab.json";
+            if(!std::filesystem::exists(anchorPrefabPath)) {
+                std::filesystem::create_directories(anchorDir);
+                Tsukino::BuiltIn::ECS::TransformComponent anchorTransform{};
+                context->prefabFactory->Save(anchorTransformPath, "TransformComponent", anchorTransform);
+
+                std::map<std::string, std::string> anchorComponents = {
+                    {"TransformComponent", anchorTransformPath}
+                };
+                std::ofstream             os(anchorPrefabPath);
+                cereal::JSONOutputArchive archive(os);
+                archive(cereal::make_nvp("Components", anchorComponents));
+            }
+
+            const std::string linkTargetPath = linkerDir + "/TestLinkComponent.json";
+            const std::string linkerPrefabPath = linkerDir + "/Prefab.json";
+            if(!std::filesystem::exists(linkerPrefabPath)) {
+                std::filesystem::create_directories(linkerDir);
+                Tsukino::Sandbox::TestLinkComponent link{};
+                link.target.localName = "#Anchor";
+                context->prefabFactory->Save(linkTargetPath, "TestLinkComponent", link);
+
+                std::map<std::string, std::string> linkerComponents = {
+                    {"TestLinkComponent", linkTargetPath}
+                };
+                std::ofstream             os(linkerPrefabPath);
+                cereal::JSONOutputArchive archive(os);
+                archive(cereal::make_nvp("Components", linkerComponents));
+            }
+
+            Tsukino::Engine::ECS::Prefab::PrefabFactory::PrefabInstance group = context->prefabFactory->InstantiateGroup(
+                std::vector<Tsukino::Engine::ECS::Prefab::PrefabFactory::GroupEntry>{
+                    {"Anchor", anchorPrefabPath},
+                    {"Linker", linkerPrefabPath}
+            },
+                registry);
+
+            auto anchorIt = group.find("Anchor");
+            auto linkerIt = group.find("Linker");
+            if(anchorIt == group.end() || linkerIt == group.end()) {
+                Tsukino::Core::Log::Error("InstantiateGroup FAILED: missing named entity");
+            } else {
+                auto* link = registry.try_get<Tsukino::Sandbox::TestLinkComponent>(linkerIt->second);
+                const bool resolveOk = link && link->target.entity == anchorIt->second;
+                Tsukino::Core::Log::Info(resolveOk ? "InstantiateGroup EntityRef resolution OK" : "InstantiateGroup EntityRef resolution FAILED");
+            }
+        }
+        Tsukino::Core::Log::Info("=== [PrefabFactory] InstantiateGroup EntityRef Test End ===");
 
         //--------------------------------------------------------------
         // デバッグカメラエンティティの生成 (デバッグビルドのみ)
