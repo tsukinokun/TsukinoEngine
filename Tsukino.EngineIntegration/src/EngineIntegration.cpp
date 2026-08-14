@@ -14,6 +14,9 @@
 #include <Tsukino/BuiltIn/ECS/Component/EffectComponent.hpp>
 #include <Tsukino/BuiltIn/ECS/Component/DirectionalLightComponent.hpp>
 #include <Tsukino/BuiltIn/ECS/Component/SkyAtmosphereComponent.hpp>
+#include <Tsukino/BuiltIn/ECS/Component/DebugCameraComponent.hpp>
+#include <Tsukino/BuiltIn/ECS/Component/DebugCameraTag.hpp>
+#include <Tsukino/BuiltIn/ECS/Component/FontComponent.hpp>
 
 #include <Tsukino/BuiltIn/ECS/Serialization/CameraComponentSerialization.hpp>
 #include <Tsukino/BuiltIn/ECS/Serialization/TransformComponentSerialization.hpp>
@@ -21,6 +24,7 @@
 #include <Tsukino/BuiltIn/ECS/Serialization/EffectComponentSerialization.hpp>
 #include <Tsukino/BuiltIn/ECS/Serialization/DirectionalLightComponentSerialization.hpp>
 #include <Tsukino/BuiltIn/ECS/Serialization/SkyAtmosphereComponentSerialization.hpp>
+#include <Tsukino/BuiltIn/ECS/Serialization/DebugCameraComponentSerialization.hpp>
 
 #include <Tsukino/Core/Log.hpp>
 
@@ -194,5 +198,11 @@ namespace Tsukino::EngineIntegration {
         m_prefabFactory->RegisterComponent<Tsukino::BuiltIn::ECS::EffectComponent>("EffectComponent");
         m_prefabFactory->RegisterComponent<Tsukino::BuiltIn::ECS::DirectionalLightComponent>("DirectionalLightComponent");
         m_prefabFactory->RegisterComponent<Tsukino::BuiltIn::ECS::SkyAtmosphereComponent>("SkyAtmosphereComponent");
+        m_prefabFactory->RegisterComponent<Tsukino::BuiltIn::ECS::DebugCameraComponent>("DebugCameraComponent");
+        // タグのみのコンポーネントはシリアライズ対応不要（アタッチのみでよい）
+        m_prefabFactory->RegisterComponent<Tsukino::BuiltIn::ECS::DebugCameraTag>("DebugCameraTag");
+        // fontHandleがAssetHandle（プロセス内限定でシリアライズ不可）を持つため、
+        // 現状シリアライザは未実装。デフォルト値でのアタッチのみ対応する。
+        m_prefabFactory->RegisterComponent<Tsukino::BuiltIn::ECS::FontComponent>("FontComponent");
     }
 }    // namespace Tsukino::EngineIntegration
