@@ -1,18 +1,24 @@
 [submodule "External/hlslpp"]
 	path = External/hlslpp
 	url = https://github.com/redorav/hlslpp.git
+	shallow = true
 [submodule "External/entt"]
 	path = External/entt
 	url = https://github.com/skypjack/entt.git
+	shallow = true
 [submodule "External/DirectXTex"]
 	path = External/DirectXTex
 	url = https://github.com/microsoft/DirectXTex.git
+	shallow = true
 [submodule "External/cereal"]
 	path = External/cereal
 	url = https://github.com/USCiLab/cereal.git
+	shallow = true
 [submodule "External/JoltPhysics"]
 	path = External/JoltPhysics
 	url = https://github.com/jrouwe/JoltPhysics.git
+	shallow = true
 [submodule "External/Effekseer"]
 	path = External/Effekseer
 	url = https://github.com/tsukinokun/Effekseer.git
+	shallow = true
