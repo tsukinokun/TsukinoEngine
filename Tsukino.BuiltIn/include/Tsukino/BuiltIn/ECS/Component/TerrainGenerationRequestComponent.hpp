@@ -4,7 +4,7 @@
 //! @author 山﨑愛
 //-------------------------------------------------------------
 #pragma once
-#include <Tsukino/Engine/Asset/AssetHandle.hpp>
+#include <Tsukino/Engine/Asset/AssetRef.hpp>
 
 #include <cstdint>
 // 名前空間 : Tsukino::BuiltIn::ECS
@@ -33,6 +33,6 @@ namespace Tsukino::BuiltIn::ECS {
         // 地形生成（レイキャストによる高さサンプリング）に使うモデルを、表示用モデルとは
         // 別に指定したい場合に設定する（軽量なコリジョン専用メッシュなど）。
         // 無効なハンドルのままなら、従来どおり ModelComponent::modelHandle を使用する。
-        Tsukino::Asset::AssetHandle collisionModelHandle;
+        Tsukino::Asset::AssetRef collisionModelHandle;
     };
 }    // namespace Tsukino::BuiltIn::ECS

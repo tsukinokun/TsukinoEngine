@@ -9,6 +9,9 @@
 #include <Tsukino/Core/ECS/Registry/Registry.hpp>
 #include <Tsukino/Core/ECS/EntityRef/EntityRef.hpp>
 #include <Tsukino/Core/ECS/EntityRef/EntityRefResolverArchive.hpp>
+#include <Tsukino/Engine/Asset/AssetManager.hpp>
+#include <Tsukino/Engine/Asset/AssetRef.hpp>
+#include <Tsukino/Engine/Asset/AssetRefResolverArchive.hpp>
 
 #include <cereal/cereal.hpp>
 #include <cereal/archives/json.hpp>
@@ -46,6 +49,11 @@ namespace Tsukino::Engine::ECS::Prefab {
         // EntityRef解決関数の型定義（アタッチ済みコンポーネントをEntityRefResolverArchiveで再訪問する）
         //--------------------------------------------------------------
         using ComponentResolver = std::function<void(Tsukino::ECS::Registry&, entt::entity, Tsukino::ECS::EntityRefResolverArchive&)>;
+
+        //--------------------------------------------------------------
+        // AssetRef解決関数の型定義（アタッチ済みコンポーネントをAssetRefResolverArchiveで再訪問する）
+        //--------------------------------------------------------------
+        using ComponentAssetResolver = std::function<void(Tsukino::ECS::Registry&, entt::entity, Tsukino::Asset::AssetRefResolverArchive&)>;
 
         //--------------------------------------------------------------
         // Instantiate/InstantiateGroupで生成するエンティティ1体の記述（名前 + Prefab目次JSONパス）
@@ -158,6 +166,26 @@ namespace Tsukino::Engine::ECS::Prefab {
                     }
                 };
             }
+
+            //--------------------------------------------------------------
+            // AssetRefフィールドを持ちうる型（load()が定義されている型）のみ、
+            // Instantiate直後にその場でパス解決できるよう登録する
+            //--------------------------------------------------------------
+            if constexpr(requires(Tsukino::Asset::AssetRefResolverArchive& archive, ComponentType& component) { load(archive, component); }) {
+                m_assetRefResolvers[typeName] = [](Tsukino::ECS::Registry& registry, entt::entity entity, Tsukino::Asset::AssetRefResolverArchive& archive) {
+                    if(registry.HasComponent<ComponentType>(entity)) {
+                        load(archive, registry.GetComponent<ComponentType>(entity));
+                    }
+                };
+            }
+        }
+
+        //--------------------------------------------------------------
+        //! @brief     AssetRefフィールドの解決に使うAssetManagerを設定する
+        //! @param     assetManager [in] パスからアセットハンドルを解決するために使うAssetManager
+        //--------------------------------------------------------------
+        void SetAssetManager(Tsukino::Asset::AssetManager* assetManager) {
+            m_assetManager = assetManager;
         }
 
         //--------------------------------------------------------------
@@ -393,6 +421,18 @@ namespace Tsukino::Engine::ECS::Prefab {
                     if(outTypeNames) {
                         outTypeNames->push_back(typeName);
                     }
+
+                    //--------------------------------------------------------------
+                    // AssetRefフィールドを持つ型なら、その場でパスをハンドルへ解決する
+                    // （EntityRefと異なりバッチ内の順序に依存しないため即時解決でよい）
+                    //--------------------------------------------------------------
+                    if(m_assetManager) {
+                        auto assetIt = m_assetRefResolvers.find(typeName);
+                        if(assetIt != m_assetRefResolvers.end()) {
+                            Tsukino::Asset::AssetRefResolverArchive assetArchive(*m_assetManager);
+                            assetIt->second(registry, newEntity, assetArchive);
+                        }
+                    }
                 } else {
                     Tsukino::Core::Log::Warn("Unknown component type written in Prefab: " + typeName + " (Did you forget to register?)");
                 }
@@ -409,6 +449,12 @@ namespace Tsukino::Engine::ECS::Prefab {
 
         // 各コンポーネントの文字列キーと、EntityRef解決用ラムダを保持するマップ（load()対応型のみ）
         std::unordered_map<std::string, ComponentResolver> m_resolvers;
+
+        // 各コンポーネントの文字列キーと、AssetRef解決用ラムダを保持するマップ（load()対応型のみ）
+        std::unordered_map<std::string, ComponentAssetResolver> m_assetRefResolvers;
+
+        // AssetRef解決に使うAssetManager（SetAssetManagerで設定されるまではnullptrで、解決をスキップする）
+        Tsukino::Asset::AssetManager* m_assetManager = nullptr;
     };
 
 }    // namespace Tsukino::Engine::ECS::Prefab
