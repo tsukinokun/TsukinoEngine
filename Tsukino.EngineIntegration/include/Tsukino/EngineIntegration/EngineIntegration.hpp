@@ -20,6 +20,7 @@
 #include <Tsukino/Audio/AudioManager.hpp>
 
 #include <memory>
+#include <string>
 
 // 名前空間 : Tsukino::Integration
 namespace Tsukino::EngineIntegration {
@@ -43,10 +44,12 @@ namespace Tsukino::EngineIntegration {
         // エンジンの初期化関数
         //! @param width  [in] ウィンドウ幅
         //! @param height [in] ウィンドウ高さ
+        //! @param title  [in] ウィンドウタイトル
         //! @return true: 初期化成功, false: 初期化失敗
         //------------------------------------------------------------
         [[nodiscard]]
-        bool Initialize(int width, int height, Tsukino::Core::Window::WindowStyle style = Tsukino::Core::Window::WindowStyle::Default);
+        bool Initialize(int width, int height, const std::string& title = "TsukinoEngine",
+                         Tsukino::Core::Window::WindowStyle style = Tsukino::Core::Window::WindowStyle::Default);
 
         //------------------------------------------------------------
         //! @brief  エンジン全体で共有されるクラスを取得する関数
