@@ -17,6 +17,9 @@
 #include <Tsukino/BuiltIn/ECS/Component/DebugCameraComponent.hpp>
 #include <Tsukino/BuiltIn/ECS/Component/DebugCameraTag.hpp>
 #include <Tsukino/BuiltIn/ECS/Component/FontComponent.hpp>
+#include <Tsukino/BuiltIn/ECS/Component/ModelComponent.hpp>
+#include <Tsukino/BuiltIn/ECS/Component/CollisionComponent.hpp>
+#include <Tsukino/BuiltIn/ECS/Component/TerrainGenerationRequestComponent.hpp>
 
 #include <Tsukino/BuiltIn/ECS/Serialization/CameraComponentSerialization.hpp>
 #include <Tsukino/BuiltIn/ECS/Serialization/TransformComponentSerialization.hpp>
@@ -25,6 +28,9 @@
 #include <Tsukino/BuiltIn/ECS/Serialization/DirectionalLightComponentSerialization.hpp>
 #include <Tsukino/BuiltIn/ECS/Serialization/SkyAtmosphereComponentSerialization.hpp>
 #include <Tsukino/BuiltIn/ECS/Serialization/DebugCameraComponentSerialization.hpp>
+#include <Tsukino/BuiltIn/ECS/Serialization/ModelComponentSerialization.hpp>
+#include <Tsukino/BuiltIn/ECS/Serialization/CollisionComponentSerialization.hpp>
+#include <Tsukino/BuiltIn/ECS/Serialization/TerrainGenerationRequestComponentSerialization.hpp>
 
 #include <Tsukino/Core/Log.hpp>
 
@@ -59,6 +65,11 @@ namespace Tsukino::EngineIntegration {
         m_ctx.inputSystem      = m_inputSystem.get();
         m_ctx.audioManager     = m_audioManager.get();
         m_ctx.prefabFactory    = m_prefabFactory.get();
+
+        //------------------------------------------------------------
+        // PrefabFactoryがAssetRefを解決できるようAssetManagerを渡しておく
+        //------------------------------------------------------------
+        m_prefabFactory->SetAssetManager(m_assetManager.get());
     }
 
     //------------------------------------------------------------
@@ -204,5 +215,8 @@ namespace Tsukino::EngineIntegration {
         // fontHandleがAssetHandle（プロセス内限定でシリアライズ不可）を持つため、
         // 現状シリアライザは未実装。デフォルト値でのアタッチのみ対応する。
         m_prefabFactory->RegisterComponent<Tsukino::BuiltIn::ECS::FontComponent>("FontComponent");
+        m_prefabFactory->RegisterComponent<Tsukino::BuiltIn::ECS::ModelComponent>("ModelComponent");
+        m_prefabFactory->RegisterComponent<Tsukino::BuiltIn::ECS::CollisionComponent>("CollisionComponent");
+        m_prefabFactory->RegisterComponent<Tsukino::BuiltIn::ECS::TerrainGenerationRequestComponent>("TerrainGenerationRequestComponent");
     }
 }    // namespace Tsukino::EngineIntegration

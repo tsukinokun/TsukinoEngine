@@ -22,7 +22,13 @@ namespace Tsukino::BuiltIn::ECS {
                 cereal::make_nvp("restitution", rb.restitution),
                 cereal::make_nvp("gravityFactor", rb.gravityFactor),
                 cereal::make_nvp("linearVelocity", rb.linearVelocity),
-                cereal::make_nvp("angularVelocity", rb.angularVelocity));
+                cereal::make_nvp("angularVelocity", rb.angularVelocity),
+                cereal::make_nvp("freezePositionX", rb.freezePositionX),
+                cereal::make_nvp("freezePositionY", rb.freezePositionY),
+                cereal::make_nvp("freezePositionZ", rb.freezePositionZ),
+                cereal::make_nvp("freezeRotationX", rb.freezeRotationX),
+                cereal::make_nvp("freezeRotationY", rb.freezeRotationY),
+                cereal::make_nvp("freezeRotationZ", rb.freezeRotationZ));
     }
 
     //--------------------------------------------------------------
@@ -30,7 +36,8 @@ namespace Tsukino::BuiltIn::ECS {
     //--------------------------------------------------------------
     template <class Archive>
     void load(Archive& archive, RigidbodyComponent& rb) {
-        archive(rb.type, rb.mass, rb.friction, rb.restitution, rb.gravityFactor, rb.linearVelocity, rb.angularVelocity);
+        archive(rb.type, rb.mass, rb.friction, rb.restitution, rb.gravityFactor, rb.linearVelocity, rb.angularVelocity, rb.freezePositionX,
+                rb.freezePositionY, rb.freezePositionZ, rb.freezeRotationX, rb.freezeRotationY, rb.freezeRotationZ);
 
         // ロード時は必ず初期化未完了状態にする
         rb.isInitialized = false;
