@@ -8,6 +8,7 @@
 #include <Tsukino/Core/typedef.hpp>
 
 #include <cereal/cereal.hpp>
+#include <cereal/specialize.hpp>
 
 #include <string>
 
@@ -31,8 +32,19 @@ namespace Tsukino::Asset {
         std::string path;      // JSON上のアセットパス
 
         AssetRef() = default;
-        AssetRef(AssetHandle h)
+        // 暗黙変換にすると、cerealがAssetHandle自体のシリアライズ可否をSFINAEで
+        // 判定する際にこのコンストラクタ経由でAssetRefのsave_minimal/load_minimal
+        // へ暗黙変換できてしまい、"cereal found more than one compatible
+        // serialization function" という無関係な型の判定エラーを引き起こす。
+        // そのためexplicitにし、従来通り「field = handle;」で代入できるよう
+        // operator=を別途用意する。
+        explicit AssetRef(AssetHandle h)
             : handle(h) {}
+
+        AssetRef& operator=(AssetHandle h) {
+            handle = h;
+            return *this;
+        }
 
         operator AssetHandle() const { return handle; }
 
@@ -54,19 +66,33 @@ namespace Tsukino::Asset {
 
     //--------------------------------------------------------------------
     //! @brief  cereal用：保存処理（pathのみを書き出す）
+    //! @note   save/loadではなくsave_minimal/load_minimalを使う理由：
+    //!         通常のsave/loadだと、cerealはAssetRefを「ノード（オブジェクト）を
+    //!         持つ複合型」とみなしstartNode()/finishNode()で入れ子構造を作ってしまう
+    //!         （JSON上は "modelHandle": {"value0": "path"} のような形になる）。
+    //!         AssetRefをJSON上で単純な文字列（"modelHandle": "path"）として
+    //!         扱いたいため、cerealに「この型はスカラー値として保存する」と
+    //!         明示するsave_minimal/load_minimalを使う（EntityRefと同じ理由）。
     //--------------------------------------------------------------------
     template <class Archive>
-    void save(Archive& archive, const AssetRef& ref) {
-        archive(ref.path);
+    std::string save_minimal(const Archive&, const AssetRef& ref) {
+        return ref.path;
     }
 
     //--------------------------------------------------------------------
     //! @brief  cereal用：読み込み処理（pathのみを読み込む。handleの解決はAssetRefResolverArchiveが行う）
     //--------------------------------------------------------------------
     template <class Archive>
-    void load(Archive& archive, AssetRef& ref) {
-        archive(ref.path);
+    void load_minimal(const Archive&, AssetRef& ref, const std::string& value) {
+        ref.path   = value;
         ref.handle = AssetHandle::Invalid();
     }
 
 }    // namespace Tsukino::Asset
+
+//--------------------------------------------------------------------
+// AssetRef は AssetHandle への暗黙変換（operator AssetHandle）を持つため、
+// cerealがAssetHandle用のsave/loadも「変換すれば呼べる候補」として拾ってしまい、
+// save_minimal/load_minimalと衝突してあいまいになる。明示的に使用方式を指定して解消する。
+//--------------------------------------------------------------------
+CEREAL_SPECIALIZE_FOR_ALL_ARCHIVES(Tsukino::Asset::AssetRef, cereal::specialization::non_member_load_save_minimal)
