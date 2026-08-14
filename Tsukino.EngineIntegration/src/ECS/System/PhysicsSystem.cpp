@@ -21,6 +21,7 @@
 
 #include <Tsukino/Core/ECS/Event/EventBus.hpp>
 #include <Tsukino/Core/Log.hpp>
+#include <Tsukino/Core/DebugTools/DebugFeatures.hpp>
 
 #include <hlsl++.h>
 #include <entt/entt.hpp>
@@ -325,8 +326,10 @@ namespace Tsukino::BuiltIn::ECS {
         JPH::PhysicsSystem*                          physicsSystem      = nullptr;    //!< Jolt物理システム本体
         MyContactListener*                           contactListener    = nullptr;    //!< 衝突イベントリスナー
         JoltDebugRendererImpl*                       debugRenderer      = nullptr;    //!< デバッグ描画インターフェース
+#ifdef TSUKINO_DEBUG_COLLISION_DRAW
         bool                                         isDebugDrawEnabled = false;      //!< デバッグ描画が有効か
         bool                                         f5WasDown          = false;      //!< 直前フレームでF5キーが押されていたか
+#endif    // TSUKINO_DEBUG_COLLISION_DRAW
         std::unordered_map<entt::entity, JPH::RVec3> prevPositions;
         // ハイトマップ用キャッシュ（Shape を直接保持して使い回す）
         std::unordered_map<uint64_t, JPH::Ref<JPH::HeightFieldShape>> heightfieldCache;
@@ -825,6 +828,7 @@ namespace Tsukino::BuiltIn::ECS {
         });
 
         // デバッグ描画
+#ifdef TSUKINO_DEBUG_COLLISION_DRAW
         bool f5IsDown = (::GetAsyncKeyState(VK_F5) & 0x8000) != 0;
         if(f5IsDown && !m_impl->f5WasDown) {
             m_impl->isDebugDrawEnabled = !m_impl->isDebugDrawEnabled;
@@ -896,6 +900,7 @@ namespace Tsukino::BuiltIn::ECS {
                 ctx->renderer->PushDrawCommand(cmd);
             }
         }
+#endif    // TSUKINO_DEBUG_COLLISION_DRAW
     }
 
 }    // namespace Tsukino::BuiltIn::ECS
