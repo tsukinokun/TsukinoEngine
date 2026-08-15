@@ -387,4 +387,38 @@ namespace Tsukino::Core {
             }
         }
     }
+
+    //--------------------------------------------------------------
+    //! @brief OSカーソルの表示/非表示を切り替える関数
+    //--------------------------------------------------------------
+    void Window::SetCursorVisible(bool visible) {
+        if(m_cursorVisible == visible)
+            return;    // 状態が変わらないならShowCursorの参照カウントを崩さないよう何もしない
+
+        m_cursorVisible = visible;
+        ::ShowCursor(visible ? TRUE : FALSE);
+    }
+
+    //--------------------------------------------------------------
+    //! @brief ウィンドウがフォアグラウンドかを取得する関数
+    //--------------------------------------------------------------
+    bool Window::IsFocused() const {
+        return m_hWnd && GetForegroundWindow() == m_hWnd;
+    }
+
+    //--------------------------------------------------------------
+    //! @brief OSカーソルをクライアント領域の中央へ移動する関数
+    //--------------------------------------------------------------
+    void Window::CenterCursor() {
+        if(!m_hWnd)
+            return;
+
+        RECT rc{};
+        GetClientRect(m_hWnd, &rc);
+
+        POINT center{(rc.right - rc.left) / 2, (rc.bottom - rc.top) / 2};
+        ClientToScreen(m_hWnd, &center);
+
+        ::SetCursorPos(center.x, center.y);
+    }
 }    // namespace Tsukino::Core

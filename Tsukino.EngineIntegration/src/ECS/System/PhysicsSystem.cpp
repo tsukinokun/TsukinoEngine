@@ -800,7 +800,7 @@ namespace Tsukino::BuiltIn::ECS {
             }
             cc.jumpRequested = false;    // 消費して1フレームでリセット
 
-            vertY += gravity.GetY() * stepTime;
+            vertY += gravity.GetY() * cc.gravityFactor * stepTime;
 
             // 水平（moveInput）＋垂直を合成して速度としてセット
             JPH::Vec3 desiredVelocity(cc.moveInput.x, vertY, cc.moveInput.z);
@@ -858,6 +858,17 @@ namespace Tsukino::BuiltIn::ECS {
                     ds.mDrawShapeWireframe = true;
 
                     body.GetShape()->Draw(m_impl->debugRenderer, transform, JPH::Vec3::sReplicate(1.0f), JPH::Color::sGreen, false, false);
+                }
+
+                // CharacterVirtual（CollisionComponentを持たないため上のループでは描画されない）のカプセルを描画
+                for(auto& [entity, handle] : m_impl->characters) {
+                    JPH::CharacterVirtual* character = handle.character.GetPtr();
+                    if(!character)
+                        continue;
+
+                    JPH::ColorArg color = character->IsSupported() ? JPH::Color::sGreen : JPH::Color::sYellow;
+                    character->GetShape()->Draw(
+                        m_impl->debugRenderer, character->GetWorldTransform(), JPH::Vec3::sReplicate(1.0f), color, false, false);
                 }
 
                 // isGrounded判定Box描画

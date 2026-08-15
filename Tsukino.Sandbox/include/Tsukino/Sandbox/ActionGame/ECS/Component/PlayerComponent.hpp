@@ -1,24 +1,20 @@
-﻿//-------------------------------------------------------------
-//! @file   PaddleSystem.hpp
-//! @brief  PaddleSystemクラスの宣言
+//-------------------------------------------------------------
+//! @file   PlayerComponent.hpp
+//! @brief  PlayerComponent構造体の宣言
 //! @author 山﨑愛
 //-------------------------------------------------------------
 #pragma once
-#include <Tsukino/Core/ECS/System/ISystem.hpp>
-#include <Tsukino/Core/Math/Matrix.hpp>
-// 名前空間 : BlockBreakingSample::ECS
-namespace BlockBreakingSample::ECS {
+#include <Tsukino/Core/ECS/Entity/Entity.hpp>
+// 名前空間 : ActionGame::ECS
+namespace ActionGame::ECS {
     //-------------------------------------------------------------
-    //! @class  PaddleSystem
-    //! @brief  CameraComponentを持つエンティティのビュー行列と
+    //! @struct PlayerComponent
+    //! @brief  プレイヤーエンティティであることを表すコンポーネント
     //-------------------------------------------------------------
-    class PaddleSystem : public Tsukino::ECS::ISystem {
-    public:
-        //-------------------------------------------------------------
-        //! @brief 更新処理
-        //! @param registry  [in] エンジンのECSレジストリのラッパー
-        //! @param deltaTime [in] デルタタイム
-        //-------------------------------------------------------------
-        void Update(Tsukino::ECS::Registry& registry, float deltaTime) override;
+    struct PlayerComponent {
+        float moveSpeed = 300.0f;    //!< 水平移動速度（1ユニット≒1cm規約。軽いジョグ程度）
+        float turnLerpSpeed = 12.0f; //!< 移動方向への向き直しの補間速度（大きいほど素早く向く）
+
+        Tsukino::ECS::Entity weaponEntity = entt::null;    //!< 装備中の武器エンティティ（WeaponComponentを持つ）
     };
-}    // namespace BlockBreakingSample::ECS
+}    // namespace ActionGame::ECS

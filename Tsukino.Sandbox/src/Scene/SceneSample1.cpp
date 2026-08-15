@@ -205,6 +205,7 @@ namespace Tsukino::Sandbox {
         Tsukino::BuiltIn::ECS::CollisionComponent& collision = registry.AddComponent<Tsukino::BuiltIn::ECS::CollisionComponent>(modelEntity);
         collision.extent                                     = {150.0f, 150.0f, 150.0f};    // 大きめの当たり判定
         collision.type                                       = Tsukino::BuiltIn::ECS::ColliderType::Sphere;
+        collision.isSensor                                   = true;    // Kinematicで見た目上動くだけなので、物理的な押し返しは不要
 
         // RBをつける
         Tsukino::BuiltIn::ECS::RigidbodyComponent& rb = registry.AddComponent<Tsukino::BuiltIn::ECS::RigidbodyComponent>(modelEntity);

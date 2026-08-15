@@ -14,10 +14,11 @@ namespace Tsukino::BuiltIn::ECS {
     //-------------------------------------------------------------
     struct CharacterControllerComponent {
         // 形状パラメータ（生成時のみ使用）
-        float radius      = 0.3f;     //!< カプセル半径
-        float halfHeight  = 0.6f;     //!< カプセル円柱部分の半分の高さ
-        float maxSlopeDeg = 45.0f;    //!< 登れる最大斜面角度
-        float mass        = 70.0f;    //!< 押し出し計算用の仮想質量
+        float radius        = 0.3f;     //!< カプセル半径
+        float halfHeight    = 0.6f;     //!< カプセル円柱部分の半分の高さ
+        float maxSlopeDeg   = 45.0f;    //!< 登れる最大斜面角度
+        float mass          = 70.0f;    //!< 押し出し計算用の仮想質量
+        float gravityFactor = 1.0f;     //!< 重力の掛かり具合（RigidbodyComponent::gravityFactorと同様。ワールドの単位スケールに応じて調整する）
 
         // Jolt内部でCharacterVirtualを生成するためのトリガー
         bool isInitialized = false;
