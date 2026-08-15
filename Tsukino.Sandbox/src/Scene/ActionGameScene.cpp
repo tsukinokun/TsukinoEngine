@@ -83,54 +83,52 @@ namespace Tsukino::Sandbox {
         //--------------------------------------------------------------
         // システムの生成と追加
         //--------------------------------------------------------------
-        // Transformは一番最初に計算する (優先度 0)
-        m_scene.AddSystem(std::make_shared<Tsukino::BuiltIn::ECS::TransformSystem>(), 0);
-        // プレイヤーの入力はTransformの後、Physicsの前に反映する (優先度 1)
-        m_scene.AddSystem(std::make_shared<ActionGame::ECS::PlayerSystem>(), 1);
-        // 敵の追跡AI（移動）もプレイヤー入力と同じタイミングで反映する (優先度 1)
-        m_scene.AddSystem(std::make_shared<ActionGame::ECS::EnemySystem>(), 1);
-        // 武器の追従・攻撃判定・ダメージ処理はプレイヤー/敵の移動が確定した後に行う (優先度 2)
-        m_scene.AddSystem(std::make_shared<ActionGame::ECS::CombatSystem>(), 2);
-        // プレイヤーのアニメーションステートマシン。移動確定後、AnimationSystemに切替要求が
-        // 反映されるようアニメーション更新の前後どちらでも良い程度の位置に置く (優先度 2)
-        m_scene.AddSystem(std::make_shared<ActionGame::ECS::PlayerAnimationSystem>(), 2);
-        // アニメーションはTransformの後に更新する (優先度 2)
-        m_scene.AddSystem(std::make_shared<Tsukino::BuiltIn::ECS::AnimationSystem>(), 2);
-        // TPSカメラの追従はプレイヤーの移動が確定した後、カメラ行列計算の前に行う (優先度 4)
-        m_scene.AddSystem(std::make_shared<ActionGame::ECS::TpsCameraSystem>(), 4);
+        enum class SystemPriority : int {
+            Transform = 0,    // 一番最初に計算する
+            Movement,         // プレイヤー入力・敵AIの移動をTransformの後、Physicsの前に反映する
+            Gameplay,         // 攻撃判定・ダメージ処理・アニメーション更新は移動確定後に行う
+            Camera3D,         // TPS/デバッグカメラの追従は移動確定後、カメラ行列計算の前に行う
+            Camera,           // カメラ行列は描画前に計算する
+            Font,
+            Render,
+            Audio,
+            Physics,          // コリジョンの更新は最後に行う
+            DirectionalLight,
+            SkyAtmosphere,
+        };
+
+        // 登録
+        m_scene.AddSystem(std::make_shared<Tsukino::BuiltIn::ECS::TransformSystem>(), (int)SystemPriority::Transform);
+        m_scene.AddSystem(std::make_shared<ActionGame::ECS::PlayerSystem>(), (int)SystemPriority::Movement);
+        m_scene.AddSystem(std::make_shared<ActionGame::ECS::EnemySystem>(), (int)SystemPriority::Movement);
+        m_scene.AddSystem(std::make_shared<ActionGame::ECS::CombatSystem>(), (int)SystemPriority::Gameplay);
+        m_scene.AddSystem(std::make_shared<ActionGame::ECS::PlayerAnimationSystem>(), (int)SystemPriority::Gameplay);
+        m_scene.AddSystem(std::make_shared<Tsukino::BuiltIn::ECS::AnimationSystem>(), (int)SystemPriority::Gameplay);
+        m_scene.AddSystem(std::make_shared<ActionGame::ECS::TpsCameraSystem>(), (int)SystemPriority::Camera3D);
 #ifdef _DEBUG
-        m_scene.AddSystem(std::make_shared<Tsukino::BuiltIn::ECS::DebugCameraSystem>(), 4);
+        m_scene.AddSystem(std::make_shared<Tsukino::BuiltIn::ECS::DebugCameraSystem>(), (int)SystemPriority::Camera3D);
 #endif
-        // カメラは描画前に更新する (優先度 5)
-        m_scene.AddSystem(std::make_shared<Tsukino::BuiltIn::ECS::CameraSystem>(), 5);
-        // フォント描画 (優先度 9)
-        m_scene.AddSystem(std::make_shared<Tsukino::BuiltIn::ECS::FontRendererSystem>(), 9);
-        // スプライトなど描画用のコマンド生成は後で行う (優先度 10)
-        m_scene.AddSystem(std::make_shared<Tsukino::BuiltIn::ECS::SpriteRenderSystem>(), 10);
-        // モデル描画 (優先度 10)
-        m_scene.AddSystem(std::make_shared<Tsukino::BuiltIn::ECS::ModelSystem>(), 10);
-        // エフェクト描画 (優先度 10)
+        m_scene.AddSystem(std::make_shared<Tsukino::BuiltIn::ECS::CameraSystem>(), (int)SystemPriority::Camera);
+        m_scene.AddSystem(std::make_shared<Tsukino::BuiltIn::ECS::FontRendererSystem>(), (int)SystemPriority::Font);
+        m_scene.AddSystem(std::make_shared<Tsukino::BuiltIn::ECS::SpriteRenderSystem>(), (int)SystemPriority::Render);
+        m_scene.AddSystem(std::make_shared<Tsukino::BuiltIn::ECS::ModelSystem>(), (int)SystemPriority::Render);
         {
             auto effectSystem = std::make_shared<Tsukino::BuiltIn::ECS::EffectSystem>();
-            m_scene.AddSystem(effectSystem, 10);
+            m_scene.AddSystem(effectSystem, (int)SystemPriority::Render);
             effectSystem->Initialize(m_scene.GetRegistry(), eventBus);
             context->effectSystem = effectSystem.get();
         }
-        // オーディオの更新 (優先度 11)
-        m_scene.AddSystem(std::make_shared<Tsukino::BuiltIn::ECS::AudioSystem>(), 11);
-        // コリジョンの更新は最後に行う (優先度 12)
+        m_scene.AddSystem(std::make_shared<Tsukino::BuiltIn::ECS::AudioSystem>(), (int)SystemPriority::Audio);
         {
             auto physicsSystem = std::make_shared<Tsukino::BuiltIn::ECS::PhysicsSystem>(eventBus);
 #ifdef TSUKINO_DEBUG_COLLISION_DRAW
             // ActionGameSampleでは常にコリジョンのワイヤーフレームを表示する（F5で従来通りOFFも可能）
             physicsSystem->SetDebugDrawEnabled(true);
 #endif
-            m_scene.AddSystem(physicsSystem, 12);
+            m_scene.AddSystem(physicsSystem, (int)SystemPriority::Physics);
         }
-        // ライトの更新 (優先度 13)
-        m_scene.AddSystem(std::make_shared<Tsukino::BuiltIn::ECS::DirectionalLightSystem>(), 13);
-        // スカイアトモスフィアの更新 (優先度 14)
-        m_scene.AddSystem(std::make_shared<Tsukino::BuiltIn::ECS::SkyAtmosphereSystem>(), 14);
+        m_scene.AddSystem(std::make_shared<Tsukino::BuiltIn::ECS::DirectionalLightSystem>(), (int)SystemPriority::DirectionalLight);
+        m_scene.AddSystem(std::make_shared<Tsukino::BuiltIn::ECS::SkyAtmosphereSystem>(), (int)SystemPriority::SkyAtmosphere);
 
         //--------------------------------------------------------------
         // アセットのロード
