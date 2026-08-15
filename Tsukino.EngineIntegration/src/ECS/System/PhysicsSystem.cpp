@@ -834,6 +834,13 @@ namespace Tsukino::BuiltIn::ECS {
             JPH::Vec3 desiredVelocity(cc.moveInput.x, vertY, cc.moveInput.z);
             character->SetLinearVelocity(desiredVelocity);
 
+            // PlayerSystem等が今フレーム書き込んだ向きをキャラクターへ反映する
+            // （反映しないとExtendedUpdate後のGetRotation()が常にidentityのままとなり、
+            //   下のtf.rotation書き戻しでプレイヤーの回転が毎フレーム上書きされてしまう）
+            // slerpをtf.rotation⇔Jolt間で毎フレーム往復させると誤差が蓄積し非正規化するため、
+            // Jolt側のIsNormalized()アサートに引っかからないよう明示的に正規化してから渡す
+            character->SetRotation(JPH::Quat(tf.rotation.x, tf.rotation.y, tf.rotation.z, tf.rotation.w).Normalized());
+
             JPH::CharacterVirtual::ExtendedUpdateSettings updateSettings;
 
             character->ExtendedUpdate(stepTime,
