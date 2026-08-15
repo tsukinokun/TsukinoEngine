@@ -8,7 +8,6 @@
 #include <Tsukino/Sandbox/ActionGame/ECS/Component/PlayerAnimationSetComponent.hpp>
 
 #include <Tsukino/BuiltIn/ECS/Component/CharacterControllerComponent.hpp>
-#include <Tsukino/BuiltIn/ECS/Component/AnimationPlayerComponent.hpp>
 #include <Tsukino/BuiltIn/ECS/Component/AnimationControllerComponent.hpp>
 
 #include <Tsukino/Core/typedef.hpp>
@@ -17,27 +16,32 @@
 // 名前空間 : ActionGame::ECS
 namespace ActionGame::ECS {
     namespace {
+        //! @brief ステート切り替え時のデフォルトクロスフェード時間（秒）
+        constexpr float kAnimBlendTime = 0.15f;
+
         //-------------------------------------------------------------
-        //! @brief  「指定クリップに即時切り替える」OnEnterコールバックを作るヘルパー
+        //! @brief  「指定クリップへクロスフェードする」OnEnterコールバックを作るヘルパー
         //! @param  clipMember     [in] PlayerAnimationSetComponentが持つクリップハンドルへのメンバポインタ
         //! @param  animationIndex [in] AnimationControllerComponentへ渡す再生インデックス
         //! @param  looping        [in] ループ再生するか
+        //! @param  fadeTime       [in] クロスフェードにかける時間（秒）
         //-------------------------------------------------------------
         StateMachine<PlayerAnimState>::Callback MakeClipEnterCallback(Tsukino::Asset::AssetHandle PlayerAnimationSetComponent::* clipMember,
                                                                         u32                                                        animationIndex,
-                                                                        bool                                                       looping) {
-            return [clipMember, animationIndex, looping](Tsukino::ECS::Registry& registry, Tsukino::ECS::Entity entity) {
+                                                                        bool                                                       looping,
+                                                                        float                                                      fadeTime = kAnimBlendTime) {
+            return [clipMember, animationIndex, looping, fadeTime](Tsukino::ECS::Registry& registry, Tsukino::ECS::Entity entity) {
                 Tsukino::Asset::AssetHandle clip = registry.GetComponent<PlayerAnimationSetComponent>(entity).*clipMember;
                 if(!clip.IsValid())
                     return;
 
                 auto& animController = registry.GetComponent<Tsukino::BuiltIn::ECS::AnimationControllerComponent>(entity);
-                auto& animPlayer     = registry.GetComponent<Tsukino::BuiltIn::ECS::AnimationPlayerComponent>(entity);
 
                 animController.next.clip            = clip;
                 animController.next.animation_index = animationIndex;
-                animController.next.immediate       = true;    // ループ中クリップの即時切り替え（クロスフェードは未対応のため）
-                animPlayer.is_looping                = looping;
+                animController.next.fade_time       = fadeTime;
+                animController.next.immediate       = false;    // クロスフェードで切り替える
+                animController.next.is_looping      = looping;
             };
         }
     }    // namespace

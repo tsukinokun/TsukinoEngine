@@ -99,19 +99,43 @@ namespace Tsukino::BuiltIn::ECS {
                 controller = &registry.GetComponent<AnimationControllerComponent>(entity);
             }
 
-            if(controller) {
-                if(controller->next.clip.IsValid()) {
-                    if(controller->next.immediate) {
-                        player.current_clip_id       = controller->next.clip;
-                        player.animation_index       = controller->next.animation_index;
-                        player.elapsed_time          = 0.0f;
-                        controller->next.clip        = Tsukino::Asset::AssetHandle{};
-                        controller->is_transitioning = false;
-                        controller->blend_alpha      = 0.0f;
-                    } else {
-                        // Blend logic implementation
-                        // [Simplified] for demonstration
-                    }
+            if(controller && controller->next.clip.IsValid()) {
+                if(controller->next.immediate) {
+                    player.current_clip_id       = controller->next.clip;
+                    player.animation_index       = controller->next.animation_index;
+                    player.elapsed_time          = 0.0f;
+                    player.is_looping            = controller->next.is_looping;
+                    controller->is_transitioning = false;
+                    controller->blend_alpha      = 0.0f;
+                } else {
+                    // 新クリップを即座に時間0から再生開始し、旧クリップ（現在playerが指していたもの）は
+                    // outgoingとしてスナップショットして自分の経過時間を保ったまま並行フェードアウトさせる。
+                    // 遷移中に更に別の遷移が来た場合も、その時点でplayerが指しているクリップが新たなoutgoingに
+                    // なるだけなので同じロジックで自然に処理される。
+                    controller->outgoing.clip            = player.current_clip_id;
+                    controller->outgoing.animation_index = player.animation_index;
+                    controller->outgoing.elapsed_time    = player.elapsed_time;
+                    controller->outgoing.is_looping       = player.is_looping;
+
+                    player.current_clip_id = controller->next.clip;
+                    player.animation_index = controller->next.animation_index;
+                    player.elapsed_time    = 0.0f;
+                    player.is_looping      = controller->next.is_looping;
+
+                    controller->is_transitioning = true;
+                    controller->blend_alpha      = 0.0f;
+                }
+                controller->next.clip = Tsukino::Asset::AssetHandle{};    // 消費済み（fade_timeはブレンド中に参照するため残す）
+            }
+
+            if(controller && controller->is_transitioning) {
+                controller->blend_alpha += deltaTime / std::max(controller->next.fade_time, 0.0001f);
+                if(player.is_playing) {
+                    controller->outgoing.elapsed_time += deltaTime * player.playback_speed;
+                }
+                if(controller->blend_alpha >= 1.0f) {
+                    controller->blend_alpha      = 1.0f;
+                    controller->is_transitioning = false;
                 }
             }
 
@@ -139,46 +163,31 @@ namespace Tsukino::BuiltIn::ECS {
                 animTime = animData.duration;
             }
 
-            // Next anim blend logic
+            // Outgoing anim blend logic: 遷移中は、フェードアウトしていくoutgoingクリップを
+            // 自分自身の経過時間(controller->outgoing.elapsed_time)で独立して評価する
             float                                         finalBlendAlpha = 0.0f;
             const Tsukino::GraphicsCommon::AnimationData* blendAnimData   = nullptr;
             float                                         blendAnimTime   = 0.0f;
 
-            AnimationControllerComponent* pController = nullptr;
-            if(registry.HasComponent<AnimationControllerComponent>(entity)) {
-                pController = &registry.GetComponent<AnimationControllerComponent>(entity);
-            }
-
-            if(pController && pController->is_transitioning && pController->next.clip.IsValid()) {
-                auto nextAsset = ctx->assetManager->Get(pController->next.clip);
-                if(nextAsset && nextAsset->GetType() == Tsukino::Asset::AssetType::Model) {
-                    auto nextModelAss = std::static_pointer_cast<Tsukino::Asset::ModelAsset>(nextAsset);
-                    if(!nextModelAss->modelData.animations.empty()) {
-                        u32 nextAnimIndex = pController->next.animation_index;
-                        if(nextAnimIndex >= nextModelAss->modelData.animations.size()) {
-                            nextAnimIndex = 0;
+            if(controller && controller->is_transitioning && controller->outgoing.clip.IsValid()) {
+                auto outAsset = ctx->assetManager->Get(controller->outgoing.clip);
+                if(outAsset && outAsset->GetType() == Tsukino::Asset::AssetType::Model) {
+                    auto outModelAss = std::static_pointer_cast<Tsukino::Asset::ModelAsset>(outAsset);
+                    if(!outModelAss->modelData.animations.empty()) {
+                        u32 outAnimIndex = controller->outgoing.animation_index;
+                        if(outAnimIndex >= outModelAss->modelData.animations.size()) {
+                            outAnimIndex = 0;
                         }
-                        blendAnimData             = &nextModelAss->modelData.animations[nextAnimIndex];
-                        pController->blend_alpha += deltaTime / pController->next.fade_time;
-                        if(pController->blend_alpha >= 1.0f) {
-                            pController->blend_alpha      = 1.0f;
-                            pController->is_transitioning = false;
-                            player.current_clip_id        = pController->next.clip;
-                            player.animation_index        = pController->next.animation_index;
-                            player.elapsed_time           = 0.0f;    // Simplified, in reality would have to keep track of both times
-                            pController->next.clip        = Tsukino::Asset::AssetHandle{};
-                        }
-                        finalBlendAlpha = pController->blend_alpha;
+                        blendAnimData = &outModelAss->modelData.animations[outAnimIndex];
 
-                        // we need elapsed time of the next animation, let's just make it 0 for now for simplification or use controller fade progress
-                        float blendTicks = (pController->blend_alpha * pController->next.fade_time) * blendAnimData->ticksPerSecond;
-                        blendAnimTime    = std::fmod(blendTicks, blendAnimData->duration);
+                        float outTicks = controller->outgoing.elapsed_time * blendAnimData->ticksPerSecond;
+                        blendAnimTime  = std::fmod(outTicks, blendAnimData->duration);
+                        if(!controller->outgoing.is_looping && outTicks >= blendAnimData->duration) {
+                            blendAnimTime = blendAnimData->duration;
+                        }
+
+                        finalBlendAlpha = controller->blend_alpha;
                     }
-                }
-            } else if(pController && !pController->is_transitioning && pController->next.clip.IsValid() && !pController->next.immediate) {
-                if(!player.is_looping && ticks >= animData.duration) {
-                    pController->is_transitioning = true;
-                    pController->blend_alpha      = 0.0f;
                 }
             }
 
@@ -230,9 +239,19 @@ namespace Tsukino::BuiltIn::ECS {
                     }
 
                     if(channelFound || blendChannelFound) {
-                        pos   = hlslpp::lerp(pos, blendPos, finalBlendAlpha);
-                        rot   = hlslpp::slerp(rot, blendRot, finalBlendAlpha);
-                        scale = hlslpp::lerp(scale, blendScale, finalBlendAlpha);
+                        // クォータニオンは二重被覆（qと-qが同じ回転）のため、内積が負なら
+                        // 片方を反転して最短経路でslerpする（SlerpQuaternion内の処理と同じ理由）。
+                        // これをしないと関節が遠回りの経路で回転し、膝などが不自然に曲がって見える
+                        float dot = blendRot.x * rot.x + blendRot.y * rot.y + blendRot.z * rot.z + blendRot.w * rot.w;
+                        if(dot < 0.0f) {
+                            rot = hlslpp::quaternion(-rot.x, -rot.y, -rot.z, -rot.w);
+                        }
+
+                        // pos/rot/scale = 遷移先(新)クリップ、blendPos/blendRot/blendScale = 遷移元(旧)クリップ。
+                        // finalBlendAlphaは0(旧のまま)→1(新のまま)へ進むので、旧を起点にlerpする
+                        pos   = hlslpp::lerp(blendPos, pos, finalBlendAlpha);
+                        rot   = hlslpp::slerp(blendRot, rot, finalBlendAlpha);
+                        scale = hlslpp::lerp(blendScale, scale, finalBlendAlpha);
                     }
                 }
 

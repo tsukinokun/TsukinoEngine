@@ -24,7 +24,19 @@ namespace Tsukino::BuiltIn::ECS {
             u32                         animation_index = 0;        // 次に再生するアニメーションのインデックス
             float                       fade_time       = 0.0f;     // フェード時間（秒）
             bool                        immediate       = false;    // 即座に切り替えるか、今のが終わってからか
+            bool                        is_looping      = true;     // 切り替え後のループ再生フラグ
         } next;
+
+        //-------------------------------------------------------------
+        //! @struct  OutgoingAnimation
+        //! @brief  ブレンド元（フェードアウト中）のアニメーションのスナップショット
+        //-------------------------------------------------------------
+        struct OutgoingAnimation {
+            Tsukino::Asset::AssetHandle clip;                       // リソースマネージャ内のID
+            u32                         animation_index = 0;        // 再生するアニメーションのインデックス
+            float                       elapsed_time    = 0.0f;     // 遷移開始時点から独立して進む経過時間（秒）
+            bool                        is_looping      = true;     // ループ再生フラグ
+        } outgoing;
     };
 
 }    // namespace Tsukino::BuiltIn::ECS
