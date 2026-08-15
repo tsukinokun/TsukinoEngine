@@ -21,6 +21,7 @@
 
 #include <Tsukino/Core/Path.hpp>
 #include <Tsukino/Core/Log.hpp>
+#include <Tsukino/Core/DebugTools/DebugFeatures.hpp>
 
 // 必要なシステムとコンポーネントのインクルード
 #include <Tsukino/EngineIntegration/ECS/System/TransformSystem.hpp>
@@ -113,7 +114,14 @@ namespace Tsukino::Sandbox {
         // オーディオの更新 (優先度 11)
         m_scene.AddSystem(std::make_shared<Tsukino::BuiltIn::ECS::AudioSystem>(), 11);
         // コリジョンの更新は最後に行う (優先度 12)
-        m_scene.AddSystem(std::make_shared<Tsukino::BuiltIn::ECS::PhysicsSystem>(eventBus), 12);
+        {
+            auto physicsSystem = std::make_shared<Tsukino::BuiltIn::ECS::PhysicsSystem>(eventBus);
+#ifdef TSUKINO_DEBUG_COLLISION_DRAW
+            // ActionGameSampleでは常にコリジョンのワイヤーフレームを表示する（F5で従来通りOFFも可能）
+            physicsSystem->SetDebugDrawEnabled(true);
+#endif
+            m_scene.AddSystem(physicsSystem, 12);
+        }
         // ライトの更新 (優先度 13)
         m_scene.AddSystem(std::make_shared<Tsukino::BuiltIn::ECS::DirectionalLightSystem>(), 13);
         // スカイアトモスフィアの更新 (優先度 14)
@@ -155,44 +163,49 @@ namespace Tsukino::Sandbox {
         }
 
         //--------------------------------------------------------------
-        // Modelエンティティ生成
+        // プレイヤーエンティティ生成
         //--------------------------------------------------------------
-        Tsukino::ECS::Entity modelEntity = m_scene.CreateEntity();
+        Tsukino::ECS::Entity playerEntity = m_scene.CreateEntity();
 
         // TransformComponent の追加と初期化
-        // JumpGameSample等と同じ「1ユニット≒1cm」規約。地面の上面はy=0なので、カプセル(halfHeight+radius=105)が
-        // 埋まった状態で出現しないよう少し余裕を持たせてy=110から開始する
-        Tsukino::BuiltIn::ECS::TransformComponent& modelTransform = registry.AddComponent<Tsukino::BuiltIn::ECS::TransformComponent>(modelEntity);
-        modelTransform.position                                   = hlslpp::float3(0.0f, 110.0f, 0.0f);
-        modelTransform.rotation                                   = hlslpp::quaternion(0.0f, 0.0f, 0.0f, 1.0f);    // 無回転
-        modelTransform.scale                                      = hlslpp::float3(1.0f, 1.0f, 1.0f);
-        modelTransform.dirty                                      = true;          // 初回計算のためフラグを立てる
-        modelTransform.parent                                     = entt::null;    // 親なし
-
-        // ModelComponent の追加
-        Tsukino::BuiltIn::ECS::ModelComponent& model = registry.AddComponent<Tsukino::BuiltIn::ECS::ModelComponent>(modelEntity);
-        model.modelHandle                            = modelHandle;
-        model.visible                                = true;
+        // CharacterControllerComponent.centerOffsetを使うため、position＝カプセル底面（足元/接地位置）
+        // を表す。地面の上面はy=0なので、埋まった状態で出現しないよう少し余裕を持たせてy=5から開始する
+        Tsukino::BuiltIn::ECS::TransformComponent& playerTransform = registry.AddComponent<Tsukino::BuiltIn::ECS::TransformComponent>(playerEntity);
+        playerTransform.position                                   = hlslpp::float3(0.0f, 5.0f, 0.0f);
+        playerTransform.rotation                                   = hlslpp::quaternion(0.0f, 0.0f, 0.0f, 1.0f);    // 無回転
+        // CharaTest.fbxの実寸を計測したところ身長はY=0〜100（足元がローカルY=0）で、想定していた
+        // 「身長約210」の半分以下だったため、2.1倍(=210/100)スケールして合わせる
+        playerTransform.scale  = hlslpp::float3(2.1f, 2.1f, 2.1f);
+        playerTransform.dirty  = true;          // 初回計算のためフラグを立てる
+        playerTransform.parent = entt::null;    // 親なし
 
         // プレイヤーとして動かすためCharacterControllerComponentをつける
         // （JumpGameSampleのカプセル(radius=35, halfHeight=70)と同じ規約に合わせる。
         //   CharacterVirtualの重力計算は手動なので、gravityFactorで底上げしないとほぼ落下しない）
         Tsukino::BuiltIn::ECS::CharacterControllerComponent& characterController =
-            registry.AddComponent<Tsukino::BuiltIn::ECS::CharacterControllerComponent>(modelEntity);
+            registry.AddComponent<Tsukino::BuiltIn::ECS::CharacterControllerComponent>(playerEntity);
         characterController.radius        = 35.0f;
         characterController.halfHeight    = 70.0f;
         characterController.maxSlopeDeg   = 45.0f;
         characterController.gravityFactor = 100.0f;    // 1ユニット=1cm換算でほぼ実重力(9.81m/s^2)相当
         characterController.jumpSpeed     = 300.0f;    // 約45cm跳ぶ想定（v^2 / (2*981)）
+        // カプセル中心をTransform位置から (halfHeight+radius) だけ上にずらし、
+        // Transform位置＝カプセル底面（足元）を表すようにする（モデルの足元原点と揃えるため）
+        characterController.centerOffset = hlslpp::float3(0.0f, characterController.halfHeight + characterController.radius, 0.0f);
 
         // プレイヤーコンポーネントをつける（PlayerSystemが入力を読み取るための目印）
-        ActionGame::ECS::PlayerComponent& player = registry.AddComponent<ActionGame::ECS::PlayerComponent>(modelEntity);
+        ActionGame::ECS::PlayerComponent& player = registry.AddComponent<ActionGame::ECS::PlayerComponent>(playerEntity);
 
         // HPを持たせる（Phase A: 敵の接触ダメージ計算に使用）
-        registry.AddComponent<ActionGame::ECS::HealthComponent>(modelEntity);
+        registry.AddComponent<ActionGame::ECS::HealthComponent>(playerEntity);
+
+        // ModelComponent の追加
+        Tsukino::BuiltIn::ECS::ModelComponent& model = registry.AddComponent<Tsukino::BuiltIn::ECS::ModelComponent>(playerEntity);
+        model.modelHandle                            = modelHandle;
+        model.visible                                = true;
 
         // アニメーションを再生・制御するコンポーネント
-        Tsukino::BuiltIn::ECS::AnimationPlayerComponent& animPlayer = registry.AddComponent<Tsukino::BuiltIn::ECS::AnimationPlayerComponent>(modelEntity);
+        Tsukino::BuiltIn::ECS::AnimationPlayerComponent& animPlayer = registry.AddComponent<Tsukino::BuiltIn::ECS::AnimationPlayerComponent>(playerEntity);
         animPlayer.current_clip_id                                  = animationHandle;    // ロー等速再生ドした testAnim.fbx のハンドルを渡す
         animPlayer.animation_index                                  = 1;                  // 再生するアニメーションのインデックスを指定
         animPlayer.elapsed_time                                     = 2.2f;               // 0秒からスタート
@@ -200,7 +213,7 @@ namespace Tsukino::Sandbox {
         animPlayer.is_looping                                       = true;               // ループさせる
         animPlayer.is_playing                                       = true;               // 再生状態にする
 
-        Tsukino::BuiltIn::ECS::SpringBoneComponent& springBone = registry.AddComponent<Tsukino::BuiltIn::ECS::SpringBoneComponent>(modelEntity);
+        Tsukino::BuiltIn::ECS::SpringBoneComponent& springBone = registry.AddComponent<Tsukino::BuiltIn::ECS::SpringBoneComponent>(playerEntity);
 
         Tsukino::BuiltIn::ECS::SpringBoneComponent::ChainDef breastL;
         breastL.name                   = "Breast_L";
@@ -225,7 +238,7 @@ namespace Tsukino::Sandbox {
         springBone.chainDefs.push_back(breastR);
 
         // 計算されたボーン行列の出力先（スキニング用）コンポーネント
-        Tsukino::BuiltIn::ECS::SkeletonOutputComponent& skeletonOutput = registry.AddComponent<Tsukino::BuiltIn::ECS::SkeletonOutputComponent>(modelEntity);
+        Tsukino::BuiltIn::ECS::SkeletonOutputComponent& skeletonOutput = registry.AddComponent<Tsukino::BuiltIn::ECS::SkeletonOutputComponent>(playerEntity);
 
         //--------------------------------------------------------------
         // 武器エンティティ生成（Phase A: 本番の剣アセットが無いため、既存のPaddle.fbxを仮の剣として流用）
@@ -235,7 +248,7 @@ namespace Tsukino::Sandbox {
             Tsukino::ECS::Entity weaponEntity = m_scene.CreateEntity();
 
             Tsukino::BuiltIn::ECS::TransformComponent& weaponTransform = registry.AddComponent<Tsukino::BuiltIn::ECS::TransformComponent>(weaponEntity);
-            weaponTransform.position                                   = modelTransform.position;    // 初期値。以後CombatSystemが上書きする
+            weaponTransform.position                                   = playerTransform.position;    // 初期値。以後CombatSystemが上書きする
             weaponTransform.rotation                                   = hlslpp::quaternion(0.0f, 0.0f, 0.0f, 1.0f);
             weaponTransform.scale                                      = hlslpp::float3(0.4f, 0.4f, 1.4f);    // 仮の剣らしいシルエットにする簡易スケール
             weaponTransform.dirty                                      = true;
@@ -247,7 +260,7 @@ namespace Tsukino::Sandbox {
             weaponModel.visible                                = true;
 
             ActionGame::ECS::WeaponComponent& weapon = registry.AddComponent<ActionGame::ECS::WeaponComponent>(weaponEntity);
-            weapon.owner                              = modelEntity;
+            weapon.owner                              = playerEntity;
 
             // プレイヤーに装備中の武器エンティティを紐付ける（PlayerSystemが攻撃入力時に参照する）
             player.weaponEntity = weaponEntity;
@@ -306,7 +319,7 @@ namespace Tsukino::Sandbox {
             Tsukino::ECS::Entity tpsCameraEntity = m_scene.CreateEntity();
 
             Tsukino::BuiltIn::ECS::TransformComponent& tpsCamTransform = registry.AddComponent<Tsukino::BuiltIn::ECS::TransformComponent>(tpsCameraEntity);
-            tpsCamTransform.position                                    = modelTransform.position + hlslpp::float3(0.0f, 95.0f, -300.0f);
+            tpsCamTransform.position                                    = playerTransform.position + hlslpp::float3(0.0f, 200.0f, -300.0f);
             tpsCamTransform.dirty                                       = true;
 
             Tsukino::BuiltIn::ECS::CameraComponent& tpsCam = registry.AddComponent<Tsukino::BuiltIn::ECS::CameraComponent>(tpsCameraEntity);
@@ -315,11 +328,11 @@ namespace Tsukino::Sandbox {
             tpsCam.nearZ                                   = 0.3f;
             tpsCam.farZ                                    = 2000.0f;
             tpsCam.useLookAt                               = true;
-            tpsCam.lookAtTarget                            = modelTransform.position;
+            tpsCam.lookAtTarget                            = playerTransform.position;
             tpsCam.isPrimary                               = true;
 
             ActionGame::ECS::TpsCameraComponent& tpsCameraComponent = registry.AddComponent<ActionGame::ECS::TpsCameraComponent>(tpsCameraEntity);
-            tpsCameraComponent.target                                 = modelEntity;
+            tpsCameraComponent.target                                 = playerEntity;
         }
 
         //--------------------------------------------------------------

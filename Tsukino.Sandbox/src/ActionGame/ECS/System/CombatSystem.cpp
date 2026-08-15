@@ -55,7 +55,10 @@ namespace ActionGame::ECS {
                     if(enemyHealth.isDead)
                         return;
 
-                    float distance = hlslpp::length(transform.position - enemyTransform.position);
+                    // 高さ方向のずれに判定が左右されないよう、水平（XZ）距離のみで判定する
+                    hlslpp::float3 toEnemy = transform.position - enemyTransform.position;
+                    toEnemy.y              = 0.0f;
+                    float distance         = hlslpp::length(toEnemy);
                     if(distance <= weapon.range + enemy.bodyRadius) {
                         enemyHealth.currentHealth -= weapon.damage;
                         if(enemyHealth.currentHealth <= 0.0f) {
@@ -124,7 +127,11 @@ namespace ActionGame::ECS {
             if(!playerTransform || !playerHealth || playerHealth->isDead)
                 return;
 
-            float distance = hlslpp::length(enemyTransform.position - playerTransform->position);
+            // 高さ方向のずれ（プレイヤー/敵モデルの原点位置の違いなど）に接触判定が
+            // 左右されないよう、水平（XZ）距離のみで判定する
+            hlslpp::float3 toPlayer = enemyTransform.position - playerTransform->position;
+            toPlayer.y              = 0.0f;
+            float distance          = hlslpp::length(toPlayer);
             if(distance <= enemy.bodyRadius + playerRadius) {
                 playerHealth->currentHealth -= enemy.contactDamage;
                 if(playerHealth->currentHealth <= 0.0f) {

@@ -42,6 +42,7 @@
 #include <Jolt/Physics/Body/BodyActivationListener.h>
 #include <Jolt/Renderer/DebugRendererSimple.h>
 #include <Jolt/Physics/Collision/Shape/HeightFieldShape.h>
+#include <Jolt/Physics/Collision/Shape/RotatedTranslatedShape.h>
 #include <Jolt/Physics/Character/CharacterVirtual.h>
 
 #include <windows.h>
@@ -327,7 +328,11 @@ namespace Tsukino::BuiltIn::ECS {
         MyContactListener*                           contactListener    = nullptr;    //!< 衝突イベントリスナー
         JoltDebugRendererImpl*                       debugRenderer      = nullptr;    //!< デバッグ描画インターフェース
 #ifdef TSUKINO_DEBUG_COLLISION_DRAW
+#ifdef TSUKINO_DEBUG_COLLISION_DRAW_ALWAYS_ON
+        bool                                         isDebugDrawEnabled = true;       //!< デバッグ描画が有効か（ALWAYS_ONマクロにより起動時からON）
+#else
         bool                                         isDebugDrawEnabled = false;      //!< デバッグ描画が有効か
+#endif    // TSUKINO_DEBUG_COLLISION_DRAW_ALWAYS_ON
         bool                                         f5WasDown          = false;      //!< 直前フレームでF5キーが押されていたか
 #endif    // TSUKINO_DEBUG_COLLISION_DRAW
         std::unordered_map<entt::entity, JPH::RVec3> prevPositions;
@@ -380,6 +385,15 @@ namespace Tsukino::BuiltIn::ECS {
 
         m_impl->debugRenderer = new JoltDebugRendererImpl();
     }
+
+#ifdef TSUKINO_DEBUG_COLLISION_DRAW
+    //-------------------------------------------------------------
+    // 物理コリジョンのデバッグワイヤーフレーム描画を有効/無効にする
+    //-------------------------------------------------------------
+    void PhysicsSystem::SetDebugDrawEnabled(bool enabled) {
+        m_impl->isDebugDrawEnabled = enabled;
+    }
+#endif    // TSUKINO_DEBUG_COLLISION_DRAW
 
     //-------------------------------------------------------------
     // デストラクタ
@@ -531,14 +545,24 @@ namespace Tsukino::BuiltIn::ECS {
             if(cc.isInitialized)
                 return;
 
-            JPH::RefConst<JPH::Shape> shape = new JPH::CapsuleShape(cc.halfHeight, cc.radius);
+            JPH::RefConst<JPH::Shape> capsuleShape = new JPH::CapsuleShape(cc.halfHeight, cc.radius);
+
+            // centerOffsetが設定されている場合、カプセル中心をTransform位置からずらす
+            // （Unityの CharacterController.center と同様。例えば (0,halfHeight+radius,0) を指定すると
+            //   Transform位置＝カプセル底面＝足元、を表せるようになる）
+            JPH::RefConst<JPH::Shape> shape = capsuleShape;
+            if(cc.centerOffset.x != 0.0f || cc.centerOffset.y != 0.0f || cc.centerOffset.z != 0.0f) {
+                shape = new JPH::RotatedTranslatedShape(
+                    JPH::Vec3(cc.centerOffset.x, cc.centerOffset.y, cc.centerOffset.z), JPH::Quat::sIdentity(), capsuleShape);
+            }
 
             JPH::CharacterVirtualSettings settings;
             settings.mShape         = shape;
             settings.mMaxSlopeAngle = JPH::DegreesToRadians(cc.maxSlopeDeg);
             settings.mMass          = cc.mass;
             // 接地判定に使う平面。カプセル底面付近を接地面とみなす
-            settings.mSupportingVolume = JPH::Plane(JPH::Vec3::sAxisY(), -cc.radius);
+            // （centerOffsetでカプセル中心をずらした分、判定面もTransform位置基準で追従させる）
+            settings.mSupportingVolume = JPH::Plane(JPH::Vec3::sAxisY(), cc.centerOffset.y - cc.radius);
 
             JPH::RVec3 pos(tf.position.x, tf.position.y, tf.position.z);
             JPH::Quat  rot(tf.rotation.x, tf.rotation.y, tf.rotation.z, tf.rotation.w);
@@ -867,8 +891,11 @@ namespace Tsukino::BuiltIn::ECS {
                         continue;
 
                     JPH::ColorArg color = character->IsSupported() ? JPH::Color::sGreen : JPH::Color::sYellow;
+                    // Shape::Draw()はCenter of Mass基準の変換を期待するため、GetWorldTransform()
+                    // （position基準。centerOffsetがあるとカプセル中心とはズレる）ではなく
+                    // GetCenterOfMassTransform()を使う（centerOffset=0の場合は同じ結果になる）
                     character->GetShape()->Draw(
-                        m_impl->debugRenderer, character->GetWorldTransform(), JPH::Vec3::sReplicate(1.0f), color, false, false);
+                        m_impl->debugRenderer, character->GetCenterOfMassTransform(), JPH::Vec3::sReplicate(1.0f), color, false, false);
                 }
 
                 // isGrounded判定Box描画

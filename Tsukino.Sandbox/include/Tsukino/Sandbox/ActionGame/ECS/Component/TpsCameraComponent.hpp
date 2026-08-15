@@ -15,8 +15,10 @@ namespace ActionGame::ECS {
         Tsukino::ECS::Entity target = entt::null;    //!< 追従対象のエンティティ（プレイヤー）
 
         float distance  = 300.0f;    //!< 対象からのカメラの距離
-        float height     = 35.0f;     //!< 対象の位置からの基準高さオフセット（頭の少し上あたりを狙う）
-        float lookHeight = 110.0f;    //!< 注視点の高さオフセット（頭の少し上あたりを見る）
+        // 対象のTransform位置は足元（CharacterControllerComponent.centerOffset採用後）を表す。
+        // 頭の少し上あたりを狙うため、身長210cm相当を見込んだオフセットにしている
+        float height     = 140.0f;    //!< 対象の位置（足元）からの基準高さオフセット（頭の少し上あたりを狙う）
+        float lookHeight = 215.0f;    //!< 注視点の高さオフセット（頭の少し上あたりを見る）
 
         float followLerpSpeed = 8.0f;    //!< 位置追従の補間速度（大きいほど素早く追従する）
 
