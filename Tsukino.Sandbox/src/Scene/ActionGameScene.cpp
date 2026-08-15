@@ -86,7 +86,12 @@ namespace Tsukino::Sandbox {
         enum class SystemPriority : int {
             Transform = 0,    // 一番最初に計算する
             Movement,         // プレイヤー入力・敵AIの移動をTransformの後、Physicsの前に反映する
-            Gameplay,         // 攻撃判定・ダメージ処理・アニメーション更新は移動確定後に行う
+            Gameplay,         // ダメージ処理・アニメーション更新は移動確定後に行う
+            WeaponAttach,     // 武器の追従（ボーンアタッチ）はAnimationSystemが今フレームのボーン姿勢を書き込んだ後に行う
+            TransformLate,    // Movement/WeaponAttachで更新したposition/rotationをworldMatrixへ反映する2回目のTransformSystem。
+                              // これが無いと、このフレームで更新された所有者の回転がworldMatrix（描画に使われる）へ
+                              // 反映されるのは次フレームになり、武器はowner.rotationを直接読むため1フレーム分
+                              // 先行してしまい、回転中（旋回中）だけ武器の位置が体からずれて見える不具合が起きる
             Camera3D,         // TPS/デバッグカメラの追従は移動確定後、カメラ行列計算の前に行う
             Camera,           // カメラ行列は描画前に計算する
             Font,
@@ -101,9 +106,10 @@ namespace Tsukino::Sandbox {
         m_scene.AddSystem(std::make_shared<Tsukino::BuiltIn::ECS::TransformSystem>(), (int)SystemPriority::Transform);
         m_scene.AddSystem(std::make_shared<ActionGame::ECS::PlayerSystem>(), (int)SystemPriority::Movement);
         m_scene.AddSystem(std::make_shared<ActionGame::ECS::EnemySystem>(), (int)SystemPriority::Movement);
-        m_scene.AddSystem(std::make_shared<ActionGame::ECS::CombatSystem>(), (int)SystemPriority::Gameplay);
         m_scene.AddSystem(std::make_shared<ActionGame::ECS::PlayerAnimationSystem>(), (int)SystemPriority::Gameplay);
         m_scene.AddSystem(std::make_shared<Tsukino::BuiltIn::ECS::AnimationSystem>(), (int)SystemPriority::Gameplay);
+        m_scene.AddSystem(std::make_shared<ActionGame::ECS::CombatSystem>(), (int)SystemPriority::WeaponAttach);
+        m_scene.AddSystem(std::make_shared<Tsukino::BuiltIn::ECS::TransformSystem>(), (int)SystemPriority::TransformLate);
         m_scene.AddSystem(std::make_shared<ActionGame::ECS::TpsCameraSystem>(), (int)SystemPriority::Camera3D);
 #ifdef _DEBUG
         m_scene.AddSystem(std::make_shared<Tsukino::BuiltIn::ECS::DebugCameraSystem>(), (int)SystemPriority::Camera3D);
@@ -161,7 +167,7 @@ namespace Tsukino::Sandbox {
 
             // コリジョンをつける（一辺1000 x 厚さ10の床）
             Tsukino::BuiltIn::ECS::CollisionComponent& collision = registry.AddComponent<Tsukino::BuiltIn::ECS::CollisionComponent>(groundEntity);
-            collision.extent                                     = {500.0f, 5.0f, 500.0f};
+            collision.extent                                     = {5000.0f, 5.0f, 5000.0f};
             collision.type                                       = Tsukino::BuiltIn::ECS::ColliderType::Box;
             collision.isSensor                                   = false;    // 明示的にソリッド判定にする（デフォルトも今はfalse）
         
@@ -260,8 +266,8 @@ namespace Tsukino::Sandbox {
         Tsukino::BuiltIn::ECS::SkeletonOutputComponent& skeletonOutput = registry.AddComponent<Tsukino::BuiltIn::ECS::SkeletonOutputComponent>(playerEntity);
 
         //--------------------------------------------------------------
-        // 武器エンティティ生成（Phase A: 本番の剣アセットが無いため、既存のPaddle.fbxを仮の剣として流用）
-        // 位置はCombatSystemが毎フレーム所有者（プレイヤー）に追従させる
+        // 武器エンティティ生成（warhammer.fbxをプレイヤーの右手ボーンにアタッチする）
+        // 位置・回転はCombatSystemが毎フレーム所有者（プレイヤー）の手ボーンへ追従させる
         //--------------------------------------------------------------
         {
             Tsukino::ECS::Entity weaponEntity = m_scene.CreateEntity();
@@ -269,17 +275,28 @@ namespace Tsukino::Sandbox {
             Tsukino::BuiltIn::ECS::TransformComponent& weaponTransform = registry.AddComponent<Tsukino::BuiltIn::ECS::TransformComponent>(weaponEntity);
             weaponTransform.position                                   = playerTransform.position;    // 初期値。以後CombatSystemが上書きする
             weaponTransform.rotation                                   = hlslpp::quaternion(0.0f, 0.0f, 0.0f, 1.0f);
-            weaponTransform.scale                                      = hlslpp::float3(0.4f, 0.4f, 1.4f);    // 仮の剣らしいシルエットにする簡易スケール
+            weaponTransform.scale                                      = hlslpp::float3(1.0f, 1.0f, 1.0f);    // 暫定値。実機で見た目を確認しながら調整する
             weaponTransform.dirty                                      = true;
             weaponTransform.parent                                     = entt::null;
 
-            Tsukino::Asset::AssetHandle weaponModelHandle = context->assetManager->Load(Tsukino::Core::Path("Tsukino.Sandbox/Assets/ActionGameSample/Models/Paddle.fbx"));
+            Tsukino::Asset::AssetHandle weaponModelHandle = context->assetManager->Load(Tsukino::Core::Path("Tsukino.Sandbox/Assets/ActionGameSample/Models/warhammer.fbx"));
             Tsukino::BuiltIn::ECS::ModelComponent& weaponModel = registry.AddComponent<Tsukino::BuiltIn::ECS::ModelComponent>(weaponEntity);
             weaponModel.modelHandle                            = weaponModelHandle;
             weaponModel.visible                                = true;
 
             ActionGame::ECS::WeaponComponent& weapon = registry.AddComponent<ActionGame::ECS::WeaponComponent>(weaponEntity);
             weapon.owner                              = playerEntity;
+            // 右手ボーンへのアタッチは、Idle.fbx（アニメーションクリップ）側のボーン姿勢データが実際の見た目の
+            // ポーズと一致しない（別アセットのため、ボーン名は一致してもリグの前提が食い違っている）ため使わない。
+            // handTrackingWeight=0で所有者のルートTransformからの固定オフセットにのみ追従させ、
+            // floatEnabledで「手に持つ」のではなく肩の斜め上をふわふわ浮遊する演出にする（旋回はしない）。
+            // localOffsetは所有者のローカル空間でのオフセットなので、どの向きでも所有者に対する相対位置・
+            // 相対姿勢が変わらない（実機で目視確認済み）。gripRotationOffsetは武器がなるべく縦向きになるよう
+            // 実機で見た目を確認しながら調整した値。
+            weapon.localOffset         = hlslpp::float3(35.0f, 170.0f, -20.0f);
+            weapon.gripRotationOffset = hlslpp::quaternion::rotation_x(1.5708f);
+            weapon.handTrackingWeight = 0.0f;
+            weapon.floatEnabled         = true;
 
             // プレイヤーに装備中の武器エンティティを紐付ける（PlayerSystemが攻撃入力時に参照する）
             player.weaponEntity = weaponEntity;

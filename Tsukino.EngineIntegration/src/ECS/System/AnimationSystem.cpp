@@ -8,6 +8,7 @@
 #include <Tsukino/BuiltIn/ECS/Component/AnimationPlayerComponent.hpp>
 #include <Tsukino/BuiltIn/ECS/Component/AnimationControllerComponent.hpp>
 #include <Tsukino/BuiltIn/ECS/Component/SkeletonOutputComponent.hpp>
+#include <Tsukino/BuiltIn/ECS/Component/NodeWorldPoseComponent.hpp>
 #include <Tsukino/BuiltIn/ECS/Component/SpringBoneComponent.hpp>
 #include <Tsukino/Engine/Asset/AssetManager.hpp>
 #include <Tsukino/Engine/Asset/Model/ModelAsset.hpp>
@@ -285,6 +286,17 @@ namespace Tsukino::BuiltIn::ECS {
                     worldPoses[i].rotation = rot;
                     worldPoses[i].position = pos;
                 }
+            }
+
+            //-------------------------------------------------------------
+            // 他エンティティ（武器のボーンアタッチ等）から参照できるよう、
+            // 各ノードのワールド姿勢（モデルローカル空間）を公開する
+            //-------------------------------------------------------------
+            {
+                auto& poseOut = registry.HasComponent<NodeWorldPoseComponent>(entity)
+                                    ? registry.GetComponent<NodeWorldPoseComponent>(entity)
+                                    : registry.AddComponent<NodeWorldPoseComponent>(entity);
+                poseOut.poses = worldPoses;
             }
 
             //-------------------------------------------------------------
