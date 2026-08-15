@@ -14,7 +14,7 @@ namespace ActionGame::ECS {
     struct TpsCameraComponent {
         Tsukino::ECS::Entity target = entt::null;    //!< 追従対象のエンティティ（プレイヤー）
 
-        float distance  = 300.0f;    //!< 対象からのカメラの距離
+        float distance  = 400.0f;    //!< 対象からのカメラの距離
         // 対象のTransform位置は足元（CharacterControllerComponent.centerOffset採用後）を表す。
         // 頭の少し上あたりを狙うため、身長210cm相当を見込んだオフセットにしている
         float height     = 140.0f;    //!< 対象の位置（足元）からの基準高さオフセット（頭の少し上あたりを狙う）

@@ -561,8 +561,12 @@ namespace Tsukino::BuiltIn::ECS {
             settings.mMaxSlopeAngle = JPH::DegreesToRadians(cc.maxSlopeDeg);
             settings.mMass          = cc.mass;
             // 接地判定に使う平面。カプセル底面付近を接地面とみなす
-            // （centerOffsetでカプセル中心をずらした分、判定面もTransform位置基準で追従させる）
-            settings.mSupportingVolume = JPH::Plane(JPH::Vec3::sAxisY(), cc.centerOffset.y - cc.radius);
+            // （Jolt基準: SignedDistance(p)=p.y+constantが0以下の点だけが支持候補になる。
+            //   centerOffsetによりキャラクターの原点はカプセル底面＝足元になっているため、
+            //   「足元から radius だけ上まで」を許容範囲とするには constant=-radius が正しい。
+            //   （+cc.centerOffset.yを足していた以前の実装は符号が逆で、足元(y≈0)の接触点が
+            //    常に許容範囲外になり、isGroundedが恒久的にfalseのままになってしまっていた）
+            settings.mSupportingVolume = JPH::Plane(JPH::Vec3::sAxisY(), -cc.radius);
 
             JPH::RVec3 pos(tf.position.x, tf.position.y, tf.position.z);
             JPH::Quat  rot(tf.rotation.x, tf.rotation.y, tf.rotation.z, tf.rotation.w);

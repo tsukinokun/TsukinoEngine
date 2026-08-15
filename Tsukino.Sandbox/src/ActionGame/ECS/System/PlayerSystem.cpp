@@ -73,8 +73,12 @@ namespace ActionGame::ECS {
             if(len > 0.001f) {
                 moveDir = moveDir / len;
 
+                // Shift押下中はスプリント（PlayerAnimationSystemがFastRun状態の判定に使う）
+                player.isSprinting  = inputSystem->IsKeyDown(Tsukino::Input::KeyCode::Shift);
+                float currentSpeed = player.isSprinting ? player.moveSpeed * player.sprintSpeedMultiplier : player.moveSpeed;
+
                 // CharacterControllerComponentへ水平方向の希望移動速度を渡す
-                cc.moveInput = moveDir * player.moveSpeed;
+                cc.moveInput = moveDir * currentSpeed;
 
                 // 移動方向へ向き直す（瞬時に向かず、slerpで滑らかに補間する）
                 float               yawRad         = std::atan2(moveDir.x, moveDir.z);
@@ -83,7 +87,8 @@ namespace ActionGame::ECS {
                 transform.rotation                 = hlslpp::slerp(transform.rotation, targetRotation, turnT);
                 transform.dirty                     = true;
             } else {
-                cc.moveInput = hlslpp::float3(0.0f, 0.0f, 0.0f);
+                player.isSprinting = false;
+                cc.moveInput         = hlslpp::float3(0.0f, 0.0f, 0.0f);
             }
 
             //-------------------------------------------------------------

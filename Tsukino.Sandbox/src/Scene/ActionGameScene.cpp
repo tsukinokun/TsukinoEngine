@@ -10,10 +10,12 @@
 #include <Tsukino/Sandbox/ActionGame/ECS/Component/WeaponComponent.hpp>
 #include <Tsukino/Sandbox/ActionGame/ECS/Component/EnemyComponent.hpp>
 #include <Tsukino/Sandbox/ActionGame/ECS/Component/TpsCameraComponent.hpp>
+#include <Tsukino/Sandbox/ActionGame/ECS/Component/PlayerAnimationSetComponent.hpp>
 #include <Tsukino/Sandbox/ActionGame/ECS/System/PlayerSystem.hpp>
 #include <Tsukino/Sandbox/ActionGame/ECS/System/CombatSystem.hpp>
 #include <Tsukino/Sandbox/ActionGame/ECS/System/EnemySystem.hpp>
 #include <Tsukino/Sandbox/ActionGame/ECS/System/TpsCameraSystem.hpp>
+#include <Tsukino/Sandbox/ActionGame/ECS/System/PlayerAnimationSystem.hpp>
 
 #include <Tsukino/EngineIntegration/EngineAPI.hpp>
 #include <Tsukino/EngineIntegration/EngineContext.hpp>
@@ -89,6 +91,9 @@ namespace Tsukino::Sandbox {
         m_scene.AddSystem(std::make_shared<ActionGame::ECS::EnemySystem>(), 1);
         // 武器の追従・攻撃判定・ダメージ処理はプレイヤー/敵の移動が確定した後に行う (優先度 2)
         m_scene.AddSystem(std::make_shared<ActionGame::ECS::CombatSystem>(), 2);
+        // プレイヤーのアニメーションステートマシン。移動確定後、AnimationSystemに切替要求が
+        // 反映されるようアニメーション更新の前後どちらでも良い程度の位置に置く (優先度 2)
+        m_scene.AddSystem(std::make_shared<ActionGame::ECS::PlayerAnimationSystem>(), 2);
         // アニメーションはTransformの後に更新する (優先度 2)
         m_scene.AddSystem(std::make_shared<Tsukino::BuiltIn::ECS::AnimationSystem>(), 2);
         // TPSカメラの追従はプレイヤーの移動が確定した後、カメラ行列計算の前に行う (優先度 4)
@@ -134,6 +139,11 @@ namespace Tsukino::Sandbox {
         Tsukino::Asset::AssetHandle modelHandle = context->assetManager->Load(Tsukino::Core::Path("Tsukino.Sandbox/Assets/ActionGameSample/Models/CharaTest.fbx"));
 
         Tsukino::Asset::AssetHandle animationHandle = context->assetManager->Load(Tsukino::Core::Path("Tsukino.Sandbox/Assets/ActionGameSample/Anims/Jump.fbx"));
+
+        // プレイヤーのアニメーションステートマシン（PlayerAnimationSystem）が使うクリップ
+        Tsukino::Asset::AssetHandle idleAnimHandle    = context->assetManager->Load(Tsukino::Core::Path("Tsukino.Sandbox/Assets/ActionGameSample/Anims/Idle.fbx"));
+        Tsukino::Asset::AssetHandle runAnimHandle     = context->assetManager->Load(Tsukino::Core::Path("Tsukino.Sandbox/Assets/ActionGameSample/Anims/Run.fbx"));
+        Tsukino::Asset::AssetHandle fastRunAnimHandle = context->assetManager->Load(Tsukino::Core::Path("Tsukino.Sandbox/Assets/ActionGameSample/Anims/Fast Run.fbx"));
 
         Tsukino::ECS::Registry& registry = m_scene.GetRegistry();
 
@@ -204,14 +214,25 @@ namespace Tsukino::Sandbox {
         model.modelHandle                            = modelHandle;
         model.visible                                = true;
 
-        // アニメーションを再生・制御するコンポーネント
+        // アニメーションを再生・制御するコンポーネント（初期状態はIdle。以後はPlayerAnimationSystemが管理する）
         Tsukino::BuiltIn::ECS::AnimationPlayerComponent& animPlayer = registry.AddComponent<Tsukino::BuiltIn::ECS::AnimationPlayerComponent>(playerEntity);
-        animPlayer.current_clip_id                                  = animationHandle;    // ロー等速再生ドした testAnim.fbx のハンドルを渡す
-        animPlayer.animation_index                                  = 1;                  // 再生するアニメーションのインデックスを指定
-        animPlayer.elapsed_time                                     = 2.2f;               // 0秒からスタート
-        animPlayer.playback_speed                                   = 0.7f;               //
-        animPlayer.is_looping                                       = true;               // ループさせる
-        animPlayer.is_playing                                       = true;               // 再生状態にする
+        animPlayer.current_clip_id                                  = idleAnimHandle;
+        animPlayer.animation_index                                  = 0;
+        animPlayer.elapsed_time                                     = 0.0f;
+        animPlayer.playback_speed                                   = 1.0f;
+        animPlayer.is_looping                                       = true;    // ループさせる
+        animPlayer.is_playing                                       = true;    // 再生状態にする
+
+        // クリップの切り替え（AnimationSystemが読む「次に再生するクリップ」の受け皿）
+        registry.AddComponent<Tsukino::BuiltIn::ECS::AnimationControllerComponent>(playerEntity);
+
+        // PlayerAnimationSystemが参照する、ステートごとのアニメーションクリップ一式
+        ActionGame::ECS::PlayerAnimationSetComponent& animSet = registry.AddComponent<ActionGame::ECS::PlayerAnimationSetComponent>(playerEntity);
+        animSet.idleClip                                       = idleAnimHandle;
+        animSet.runClip                                        = runAnimHandle;
+        animSet.fastRunClip                                    = fastRunAnimHandle;
+        animSet.jumpClip                                       = animationHandle;
+        animSet.currentState                                   = ActionGame::ECS::PlayerAnimState::Idle;
 
         Tsukino::BuiltIn::ECS::SpringBoneComponent& springBone = registry.AddComponent<Tsukino::BuiltIn::ECS::SpringBoneComponent>(playerEntity);
 
@@ -319,7 +340,7 @@ namespace Tsukino::Sandbox {
             Tsukino::ECS::Entity tpsCameraEntity = m_scene.CreateEntity();
 
             Tsukino::BuiltIn::ECS::TransformComponent& tpsCamTransform = registry.AddComponent<Tsukino::BuiltIn::ECS::TransformComponent>(tpsCameraEntity);
-            tpsCamTransform.position                                    = playerTransform.position + hlslpp::float3(0.0f, 200.0f, -300.0f);
+            tpsCamTransform.position                                    = playerTransform.position + hlslpp::float3(0.0f, 200.0f, -400.0f);
             tpsCamTransform.dirty                                       = true;
 
             Tsukino::BuiltIn::ECS::CameraComponent& tpsCam = registry.AddComponent<Tsukino::BuiltIn::ECS::CameraComponent>(tpsCameraEntity);
