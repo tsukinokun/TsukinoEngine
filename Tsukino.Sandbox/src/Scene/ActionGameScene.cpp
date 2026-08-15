@@ -123,9 +123,9 @@ namespace Tsukino::Sandbox {
         // アセットのロード
         //--------------------------------------------------------------
 
-        Tsukino::Asset::AssetHandle modelHandle = context->assetManager->Load(Tsukino::Core::Path("Tsukino.Sandbox/Assets/Models/CharaTest.fbx"));
+        Tsukino::Asset::AssetHandle modelHandle = context->assetManager->Load(Tsukino::Core::Path("Tsukino.Sandbox/Assets/ActionGameSample/Models/CharaTest.fbx"));
 
-        Tsukino::Asset::AssetHandle animationHandle = context->assetManager->Load(Tsukino::Core::Path("Tsukino.Sandbox/Assets/Anims/Jump.fbx"));
+        Tsukino::Asset::AssetHandle animationHandle = context->assetManager->Load(Tsukino::Core::Path("Tsukino.Sandbox/Assets/ActionGameSample/Anims/Jump.fbx"));
 
         Tsukino::ECS::Registry& registry = m_scene.GetRegistry();
 
@@ -241,7 +241,7 @@ namespace Tsukino::Sandbox {
             weaponTransform.dirty                                      = true;
             weaponTransform.parent                                     = entt::null;
 
-            Tsukino::Asset::AssetHandle weaponModelHandle = context->assetManager->Load(Tsukino::Core::Path("Tsukino.Sandbox/Assets/Models/Paddle.fbx"));
+            Tsukino::Asset::AssetHandle weaponModelHandle = context->assetManager->Load(Tsukino::Core::Path("Tsukino.Sandbox/Assets/ActionGameSample/Models/Paddle.fbx"));
             Tsukino::BuiltIn::ECS::ModelComponent& weaponModel = registry.AddComponent<Tsukino::BuiltIn::ECS::ModelComponent>(weaponEntity);
             weaponModel.modelHandle                            = weaponModelHandle;
             weaponModel.visible                                = true;
@@ -266,7 +266,7 @@ namespace Tsukino::Sandbox {
             enemyTransform.dirty                                      = true;
             enemyTransform.parent                                     = entt::null;
 
-            Tsukino::Asset::AssetHandle enemyModelHandle = context->assetManager->Load(Tsukino::Core::Path("Tsukino.Sandbox/Assets/Models/Block.fbx"));
+            Tsukino::Asset::AssetHandle enemyModelHandle = context->assetManager->Load(Tsukino::Core::Path("Tsukino.Sandbox/Assets/ActionGameSample/Models/Block.fbx"));
             Tsukino::BuiltIn::ECS::ModelComponent& enemyModel = registry.AddComponent<Tsukino::BuiltIn::ECS::ModelComponent>(enemyEntity);
             enemyModel.modelHandle                            = enemyModelHandle;
             enemyModel.visible                                = true;
