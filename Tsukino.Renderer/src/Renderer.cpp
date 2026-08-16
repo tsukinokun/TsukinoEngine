@@ -370,6 +370,21 @@ namespace Tsukino::Renderer {
             ExecuteDrawCommand(cmd);
         }
 
+        //------------------------------------------------------------
+        // Transparent パス（不透明の後、水面の前）
+        //
+        // ブレンドと深度の設定は各コマンドの PipelineState が持っているため、
+        // ここでは実行順を分けるだけでよい。
+        // 半透明同士の前後関係を正しく出すには奥から手前への
+        // ソートが必要だが、それはコマンドキュー側の課題として未対応。
+        //------------------------------------------------------------
+        UpdateSceneBuffer(m_worldSceneData);
+        for(const auto& cmd : commands) {
+            if(cmd.pass != RenderPass::Transparent)
+                continue;
+            ExecuteDrawCommand(cmd);
+        }
+
         UpdateSceneBuffer(m_worldSceneData);
         for(const auto& cmd : commands) {
             if(cmd.pass != RenderPass::Water)
@@ -472,6 +487,25 @@ namespace Tsukino::Renderer {
                 }
                 m_debugTriangleVertices.clear();
             }
+        }
+    }
+
+    //------------------------------------------------------------
+    //! @brief 描画領域のリサイズ
+    //------------------------------------------------------------
+    void Renderer::Resize(uint32_t width, uint32_t height) {
+        //------------------------------------------------------------
+        // GraphicsContext::ClearState() でパイプラインの状態が全て落ちるため、
+        // 積み残しの描画コマンドは破棄しておく。
+        // コマンドが指す Material / MeshBuffer はシステム側が所有しており、
+        // 次フレームの Update で改めて積み直される。
+        //------------------------------------------------------------
+        m_drawQueue.Clear();
+        m_debugLineVertices.clear();
+        m_debugTriangleVertices.clear();
+
+        if(!m_graphicsContext.Resize(width, height)) {
+            Tsukino::Core::Log::Error("Renderer::Resize - failed to resize the swap chain. Rendering continues at the previous size.");
         }
     }
 
@@ -1035,11 +1069,8 @@ namespace Tsukino::Renderer {
         //------------------------------------------------------
         // MeshBuffer をセット
         //------------------------------------------------------
-        UINT          stride = cmd.mesh->stride;
-        UINT          offset = 0;
-        ID3D11Buffer* vb     = cmd.mesh->vertexBuffer.Get();
-
-        context->IASetVertexBuffers(0, 1, &vb, &stride, &offset);
+        // どちらの分岐もスロット0と1をまとめて設定するので、
+        // ここで先にスロット0だけを設定しても上書きされるだけになる。
         if(cmd.boneMatrices && cmd.boneCount > 0 && cmd.mesh->boneWeightBuffer.Get() != nullptr) {
             // ボーンあり：スロット0と1をバインド
             ID3D11Buffer* vbs[]     = {cmd.mesh->vertexBuffer.Get(), cmd.mesh->boneWeightBuffer.Get()};
@@ -1048,13 +1079,9 @@ namespace Tsukino::Renderer {
             context->IASetVertexBuffers(0, 2, vbs, strides, offsets);
         } else {
             // ボーンなし：スロット0のみバインドし、スロット1は必ず明示的にクリア！
-            UINT          stride = cmd.mesh->stride;
-            UINT          offset = 0;
-            ID3D11Buffer* vb     = cmd.mesh->vertexBuffer.Get();
-
-            // スロット0に頂点バッファ、スロット1にNULLをセットしてクリアする
-            ID3D11Buffer* vbs[]     = {vb, nullptr};
-            UINT          strides[] = {stride, 0};
+            // クリアしないと直前に描いたスキンメッシュのボーンウェイトが残る
+            ID3D11Buffer* vbs[]     = {cmd.mesh->vertexBuffer.Get(), nullptr};
+            UINT          strides[] = {cmd.mesh->stride, 0};
             UINT          offsets[] = {0, 0};
             context->IASetVertexBuffers(0, 2, vbs, strides, offsets);
         }

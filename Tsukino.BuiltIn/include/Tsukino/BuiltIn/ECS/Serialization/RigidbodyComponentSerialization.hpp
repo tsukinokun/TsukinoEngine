@@ -3,6 +3,7 @@
 //! @brief  RigidbodyComponentに対するcerealシリアライズ定義
 //! @author 山﨑愛
 //--------------------------------------------------------------
+#pragma once
 #include <Tsukino/BuiltIn/ECS/Component/RigidbodyComponent.hpp>
 
 #include <Tsukino/Core/Math/Serialization/HlslppSerialization.hpp>

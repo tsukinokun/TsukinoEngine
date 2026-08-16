@@ -40,6 +40,17 @@ namespace Tsukino::Core {
         using MessageCallback = std::function<void(UINT, WPARAM, LPARAM)>;
 
         //--------------------------------------------------------------
+        // リサイズ通知コールバックの型エイリアス
+        //! @note 引数は新しいクライアント領域の幅・高さ（ピクセル）
+        //--------------------------------------------------------------
+        using ResizeCallback = std::function<void(int, int)>;
+
+        //--------------------------------------------------------------
+        // フォーカス喪失通知コールバックの型エイリアス
+        //--------------------------------------------------------------
+        using FocusLostCallback = std::function<void()>;
+
+        //--------------------------------------------------------------
         // コンストラクタ
         //--------------------------------------------------------------
         Window();
@@ -71,6 +82,23 @@ namespace Tsukino::Core {
         //! @param callback [in] メッセージコールバック関数
         //--------------------------------------------------------------
         void SetMessageCallback(MessageCallback callback) { m_callback = callback; }
+
+        //--------------------------------------------------------------
+        // リサイズ通知コールバックを設定する関数
+        //! @param callback [in] クライアント領域のサイズが変わったときに呼ばれる関数
+        //! @note  スワップチェインの再構築に使う。設定しないとウィンドウを
+        //!        リサイズしても描画解像度が追従せず、映像が引き伸ばされる。
+        //--------------------------------------------------------------
+        void SetResizeCallback(ResizeCallback callback) { m_resizeCallback = std::move(callback); }
+
+        //--------------------------------------------------------------
+        // フォーカス喪失通知コールバックを設定する関数
+        //! @param callback [in] ウィンドウが入力フォーカスを失ったときに呼ばれる関数
+        //! @note  キーの押下状態をクリアするために使う。
+        //!        WM_KEYUP はフォーカス移動先のウィンドウへ届くため、
+        //!        これを行わないと Alt+Tab でキーが押しっぱなしのまま残る。
+        //--------------------------------------------------------------
+        void SetFocusLostCallback(FocusLostCallback callback) { m_focusLostCallback = std::move(callback); }
 
         //--------------------------------------------------------------
         // Rendererが必要とするHWND
@@ -195,7 +223,9 @@ namespace Tsukino::Core {
 
         UpdateMode m_updateMode = UpdateMode::ActiveOnly;    // デフォルトは通常
 
-        MessageCallback m_callback;    // 連絡先を保存しておく変数
+        MessageCallback   m_callback;             // 連絡先を保存しておく変数
+        ResizeCallback    m_resizeCallback;       // クライアント領域のサイズ変更通知先
+        FocusLostCallback m_focusLostCallback;    // フォーカス喪失通知先
 
         RECT m_preFullscreenRect;    // フルスクリーン前のサイズを保持
         bool m_isFullscreen = false;

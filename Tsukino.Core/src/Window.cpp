@@ -266,6 +266,41 @@ namespace Tsukino::Core {
         }
 
         //--------------------------------------------------------------
+        // クライアント領域のサイズ変更をレンダラーへ伝える
+        //
+        // これを行わないとスワップチェインのバックバッファが元のサイズのまま
+        // 残り、映像が引き伸ばされてアスペクト比が崩れる。
+        //--------------------------------------------------------------
+        if(pWindow && msg == WM_SIZE) {
+            const int newWidth  = static_cast<int>(LOWORD(lParam));
+            const int newHeight = static_cast<int>(HIWORD(lParam));
+
+            // 最小化時は 0x0 が来る。0 サイズのバッファは作れないので無視する
+            if(wParam != SIZE_MINIMIZED && newWidth > 0 && newHeight > 0) {
+                pWindow->m_width  = newWidth;
+                pWindow->m_height = newHeight;
+
+                if(pWindow->m_resizeCallback) {
+                    pWindow->m_resizeCallback(newWidth, newHeight);
+                }
+            }
+        }
+
+        //--------------------------------------------------------------
+        // フォーカスを失ったら入力状態をクリアさせる
+        //
+        // キーを押したまま Alt+Tab すると WM_KEYUP は移動先のウィンドウへ
+        // 届くため、こちらには「離した」通知が来ない。
+        // クリアしないとそのキーが押されっぱなしとして残り続ける。
+        //--------------------------------------------------------------
+        if(pWindow && pWindow->m_focusLostCallback) {
+            const bool lostFocus = (msg == WM_KILLFOCUS) || (msg == WM_ACTIVATEAPP && wParam == FALSE);
+            if(lostFocus) {
+                pWindow->m_focusLostCallback();
+            }
+        }
+
+        //--------------------------------------------------------------
         // ウィンドウが破棄されたときの処理
         //--------------------------------------------------------------
         if(msg == WM_DESTROY) {
@@ -297,10 +332,16 @@ namespace Tsukino::Core {
     void Window::SetUpdateMode(UpdateMode mode) {
         m_updateMode = mode;
 
-        if(GetForegroundWindow() == m_hWnd) {
-            UpdateHookState(m_updateMode != UpdateMode::ActiveOnly || true);    // ロジックに応じた制御
-        }
+        //--------------------------------------------------------------
+        // AlwaysResident なら常にフックを掛ける。
+        // ActiveOnly なら自分が前面にあるときだけ掛ける。
+        //
+        // 以前は `m_updateMode != UpdateMode::ActiveOnly || true` と書かれており、
+        // 右辺の true によって式全体が常に true になっていた（モード指定が無効だった）。
+        //--------------------------------------------------------------
+        const bool shouldInstall = (m_updateMode == UpdateMode::AlwaysResident) || (GetForegroundWindow() == m_hWnd);
 
+        UpdateHookState(shouldInstall);
     }
 
     //--------------------------------------------------------------

@@ -403,7 +403,8 @@ namespace Tsukino::Sandbox {
                 });
 
                 const auto& ballView = registry.View<BlockBreakingSample::ECS::BallComponent>();
-                ballView.each([&](entt::entity entity, BlockBreakingSample::ECS::BallComponent& ball) { registry.DestroyEntity(entity); });
+                // view の反復中なので破棄は予約のみ（Scene::Update が更新後にまとめて処理する）
+                    ballView.each([&](entt::entity entity, BlockBreakingSample::ECS::BallComponent& ball) { registry.QueueDestroy(entity); });
             }
             // クリア条件の例: ブロックが全て壊れたらクリア
             {
@@ -414,7 +415,8 @@ namespace Tsukino::Sandbox {
                     fontView.each([&](entt::entity entity, Tsukino::BuiltIn::ECS::FontComponent& font) {
                         font.text            = L"Clear";    // 描画するテキスト
                         const auto& ballView = registry.View<BlockBreakingSample::ECS::BallComponent>();
-                        ballView.each([&](entt::entity entity, BlockBreakingSample::ECS::BallComponent& ball) { registry.DestroyEntity(entity); });
+                        // view の反復中なので破棄は予約のみ（Scene::Update が更新後にまとめて処理する）
+                    ballView.each([&](entt::entity entity, BlockBreakingSample::ECS::BallComponent& ball) { registry.QueueDestroy(entity); });
                     });
                 }
             }

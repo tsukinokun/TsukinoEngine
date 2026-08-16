@@ -14,9 +14,10 @@
 #include <Tsukino/Sandbox/Scene/PenguinGameScene.hpp>
 
 #include <Windows.h>
-#include <memory>
-#include <chrono>
 #include <algorithm>
+#include <chrono>
+#include <cstdlib>
+#include <memory>
 
 //--------------------------------------------------------------
 // アプリケーションのエントリポイント
@@ -34,8 +35,9 @@ int WINAPI WinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ LPSTR, _In_ int) {
     // 初期化
     if(!engineIntegration.Initialize(1700, 1000)) {
         // 初期化に失敗した場合はエラーログを出力して終了
+        // (以前は return false と書かれており、失敗なのに終了コード 0＝成功を返していた)
         Tsukino::Core::Log::Error("Failed to initialize EngineIntegration.");
-        return false;
+        return EXIT_FAILURE;
     }
 
     Tsukino::EngineIntegration::EngineContext& engineContext = engineIntegration.GetContext();
@@ -44,8 +46,8 @@ int WINAPI WinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ LPSTR, _In_ int) {
     //--------------------------------------------------------------
     // 最初のシーンを登録・開始
     //--------------------------------------------------------------
-    engineAPI.ChangeScene(std::make_unique<Tsukino::Sandbox::SampleScene1>());
-    //engineAPI.ChangeScene(std::make_unique<Tsukino::Sandbox::ActionGameScene>());
+    //engineAPI.ChangeScene(std::make_unique<Tsukino::Sandbox::SampleScene1>());
+    engineAPI.ChangeScene(std::make_unique<Tsukino::Sandbox::ActionGameScene>());
     //engineAPI.ChangeScene(std::make_unique<Tsukino::Sandbox::JumpGameSampleScene>());
     //engineAPI.ChangeScene(std::make_unique<Tsukino::Sandbox::BlockBreakingSampleScene>());
     //engineAPI.ChangeScene(std::make_unique<Tsukino::Sandbox::WaterGameSampleScene>());

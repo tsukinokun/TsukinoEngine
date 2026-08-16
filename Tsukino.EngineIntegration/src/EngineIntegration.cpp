@@ -73,6 +73,19 @@ namespace Tsukino::EngineIntegration {
     }
 
     //------------------------------------------------------------
+    //! @brief デストラクタ
+    //! @note  メンバの破棄はこの本体が走る前に行われるため、
+    //!        CoUninitialize() は全てのCOM利用者（Renderer, AudioManager等）が
+    //!        解放された後に呼ばれることが保証される。
+    //------------------------------------------------------------
+    EngineIntegration::~EngineIntegration() {
+        if(m_comInitialized) {
+            CoUninitialize();
+            m_comInitialized = false;
+        }
+    }
+
+    //------------------------------------------------------------
     //! @brief  エンジンの初期化関数
     //------------------------------------------------------------
     bool EngineIntegration::Initialize(int width, int height, const std::string& title, Tsukino::Core::Window::WindowStyle style) {
@@ -85,6 +98,8 @@ namespace Tsukino::EngineIntegration {
             Tsukino::Core::Log::Error("Failed to initialize COM library.");
             return false;
         }
+        // 成功した場合のみ、デストラクタで対になる CoUninitialize を呼ぶ
+        m_comInitialized = true;
 
         //--------------------------------------------------------------
         // BuiltInのCopmonentをPrefabFactoryに登録
@@ -168,6 +183,24 @@ namespace Tsukino::EngineIntegration {
                 float delta = static_cast<float>(GET_WHEEL_DELTA_WPARAM(wp)) / static_cast<float>(WHEEL_DELTA);
                 m_inputSystem->AddWheelDelta(delta);
                 break;
+            }
+        });
+
+        //--------------------------------------------------------------
+        // フォーカス喪失時に入力状態をクリアする
+        // （キーを押したまま Alt+Tab したときの押しっぱなし対策）
+        //--------------------------------------------------------------
+        m_window->SetFocusLostCallback([this]() { m_inputSystem->ClearAllKeys(); });
+
+        //--------------------------------------------------------------
+        // ウィンドウのリサイズをスワップチェインへ伝える
+        //
+        // Renderer より先に登録しても、実際に呼ばれるのは
+        // メッセージループが回り始めてからなので問題ない。
+        //--------------------------------------------------------------
+        m_window->SetResizeCallback([this](int newWidth, int newHeight) {
+            if(m_renderer) {
+                m_renderer->Resize(static_cast<uint32_t>(newWidth), static_cast<uint32_t>(newHeight));
             }
         });
 

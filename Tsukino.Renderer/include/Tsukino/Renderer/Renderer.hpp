@@ -87,6 +87,16 @@ namespace Tsukino::Renderer {
         void Render(class Tsukino::BuiltIn::ECS::EffectSystem* effectSystem = nullptr);
 
         //------------------------------------------------------------
+        //! @brief 描画領域のリサイズ
+        //! @param width  [in] 新しい幅（ピクセル）
+        //! @param height [in] 新しい高さ（ピクセル）
+        //! @note  ウィンドウの WM_SIZE から呼ばれる。スワップチェインと
+        //!        画面サイズ依存のリソースを作り直す。
+        //!        シャドウマップは固定解像度のため作り直さない。
+        //------------------------------------------------------------
+        void Resize(uint32_t width, uint32_t height);
+
+        //------------------------------------------------------------
         // 描画領域のクリアカラーを設定
         //! @param r [in] 赤成分 (0.0f - 1.0f)
         //! @param g [in] 緑成分 (0.0f - 1.0f)

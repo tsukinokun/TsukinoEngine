@@ -26,10 +26,6 @@
 #include <Tsukino/Core/Log.hpp>
 
 #include <entt/entt.hpp>
-#include <unordered_map>
-
-// メッシュキャッシュ
-static std::unordered_map<uint64_t, std::vector<Tsukino::Renderer::MeshBuffer>> s_modelMeshCache;
 
 namespace Tsukino::BuiltIn::ECS {
 
@@ -65,13 +61,13 @@ namespace Tsukino::BuiltIn::ECS {
             //--------------------------------------------------------------
             // メッシュバッファのキャッシュ取得
             //--------------------------------------------------------------
-            auto meshCacheIt = s_modelMeshCache.find(handleVal);
-            if(meshCacheIt == s_modelMeshCache.end()) {
+            auto meshCacheIt = m_modelMeshCache.find(handleVal);
+            if(meshCacheIt == m_modelMeshCache.end()) {
                 std::vector<Tsukino::Renderer::MeshBuffer> buffers;
                 for(const auto& mesh : modelAsset->modelData.meshes) {
                     buffers.push_back(Tsukino::Renderer::CreateMeshBuffer(ctx->renderer->GetDevice(), mesh));
                 }
-                auto result = s_modelMeshCache.emplace(handleVal, std::move(buffers));
+                auto result = m_modelMeshCache.emplace(handleVal, std::move(buffers));
                 meshCacheIt = result.first;
             }
             const auto& meshBuffers = meshCacheIt->second;

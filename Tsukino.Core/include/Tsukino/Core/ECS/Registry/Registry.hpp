@@ -6,6 +6,9 @@
 #pragma once
 #include <entt/entt.hpp>
 #include <Tsukino/Core/ECS/Entity/Entity.hpp>
+
+#include <algorithm>
+#include <vector>
 // 名前空間 : Tsukino::ECS
 namespace Tsukino::ECS {
     //--------------------------------------------------------------------
@@ -24,10 +27,87 @@ namespace Tsukino::ECS {
         }
 
         //--------------------------------------------------------------------
-        //! @brief  エンティティの破棄
+        //! @brief  エンティティの破棄（即時）
         //! @param  entity [in] 破棄するエンティティ
+        //! @warning View の反復中に呼んではならない。EnTT はコンポーネントプールの
+        //!          要素を入れ替えて詰めるため、反復中に破棄するとイテレータが壊れる。
+        //!          System の中から破棄する場合は必ず QueueDestroy() を使うこと。
         //--------------------------------------------------------------------
         void DestroyEntity(Entity entity) { registry.destroy(entity); }
+
+        //--------------------------------------------------------------------
+        //! @brief  エンティティの破棄を予約する
+        //! @param  entity [in] 破棄するエンティティ
+        //! @details
+        //! View の反復中でも安全に呼べる。実際の破棄は FlushDestroyQueue() が
+        //! 全 System の更新後に行うため、反復中のイテレータ破壊が起きない。
+        //--------------------------------------------------------------------
+        void QueueDestroy(Entity entity) {
+            if(entity == entt::null)
+                return;
+
+            m_destroyQueue.push_back(entity);
+        }
+
+        //--------------------------------------------------------------------
+        //! @brief  破棄予約されたエンティティをまとめて破棄する
+        //! @details
+        //! Scene::Update() が全 System の更新後に呼ぶ。
+        //! - 同一エンティティが複数回予約されることを想定し、重複を除去する
+        //! - 破棄処理の中で更に QueueDestroy() されうる（親が子を巻き込む等）ため、
+        //!   キューが空になるまで繰り返す。相互参照による無限ループを避けるため
+        //!   反復回数に上限を設ける。
+        //--------------------------------------------------------------------
+        void FlushDestroyQueue() {
+            constexpr int kMaxPasses = 8;
+
+            for(int pass = 0; pass < kMaxPasses && !m_destroyQueue.empty(); ++pass) {
+                //--------------------------------------------------------------------
+                // 破棄中に積まれた分を次のパスへ回すため、いったん退避してから空にする
+                //--------------------------------------------------------------------
+                std::vector<Entity> pending;
+                pending.swap(m_destroyQueue);
+
+                std::sort(pending.begin(), pending.end());
+                pending.erase(std::unique(pending.begin(), pending.end()), pending.end());
+
+                for(const Entity entity : pending) {
+                    // 予約後に別経路で破棄された可能性があるため、都度検証する
+                    if(registry.valid(entity)) {
+                        registry.destroy(entity);
+                    }
+                }
+            }
+
+            // 上限まで回っても空にならない場合は相互に破棄を積み合っている
+            m_destroyQueue.clear();
+        }
+
+        //--------------------------------------------------------------------
+        //! @brief  コンポーネント追加シグナルの取得
+        //! @tparam T コンポーネントの型
+        //! @return 接続用の sink。ハンドラは void(entt::registry&, entt::entity)
+        //--------------------------------------------------------------------
+        template <typename T>
+        [[nodiscard]]
+        auto OnConstruct() {
+            return registry.template on_construct<T>();
+        }
+
+        //--------------------------------------------------------------------
+        //! @brief  コンポーネント破棄シグナルの取得
+        //! @tparam T コンポーネントの型
+        //! @return 接続用の sink。ハンドラは void(entt::registry&, entt::entity)
+        //! @details
+        //! エンティティ破棄・コンポーネント削除のどの経路を通っても必ず発火するため、
+        //! GPU リソースや物理ボディのような「所有権が ECS の外にあるもの」の
+        //! 回収はイベントバスではなくこちらで行うこと。
+        //--------------------------------------------------------------------
+        template <typename T>
+        [[nodiscard]]
+        auto OnDestroy() {
+            return registry.template on_destroy<T>();
+        }
 
         //--------------------------------------------------------------------
         //! @brief  コンポーネントの追加
@@ -167,7 +247,8 @@ namespace Tsukino::ECS {
         }
 
     private:
-        entt::registry registry;    //!< 内部のレジストリ
+        entt::registry       registry;         //!< 内部のレジストリ
+        std::vector<Entity>  m_destroyQueue;   //!< 破棄予約されたエンティティ（FlushDestroyQueue でまとめて処理）
     };
 
 }    // namespace Tsukino::ECS

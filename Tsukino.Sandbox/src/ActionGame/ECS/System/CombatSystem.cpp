@@ -248,7 +248,9 @@ namespace ActionGame::ECS {
             // 死亡していたら破棄のみ行う
             //-------------------------------------------------------------
             if(enemyHealth.isDead) {
-                registry.DestroyEntity(entity);
+                // view の反復中なので即時破棄してはならない（イテレータが壊れる）。
+                // 予約だけ行い、実際の破棄は Scene::Update() が全 System の更新後に行う。
+                registry.QueueDestroy(entity);
                 return;
             }
 

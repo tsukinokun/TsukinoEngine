@@ -9,7 +9,7 @@
 #include <Tsukino/EngineIntegration/ECS/System/PhysicsSystem.hpp>
 
 #include <Tsukino/BuiltIn/ECS/Component/CollisionComponent.hpp>
-#include <Tsukino/BuiltIn/ECS/Component/RigidBodyComponent.hpp>
+#include <Tsukino/BuiltIn/ECS/Component/RigidbodyComponent.hpp>
 #include <Tsukino/BuiltIn/ECS/Component/TransformComponent.hpp>
 #include <Tsukino/BuiltIn/ECS/Component/ImpulseRequestComponent.hpp>
 #include <Tsukino/BuiltIn/ECS/Component/CharacterControllerComponent.hpp>
@@ -399,6 +399,17 @@ namespace Tsukino::BuiltIn::ECS {
     // デストラクタ
     //-------------------------------------------------------------
     PhysicsSystem::~PhysicsSystem() {
+        //-------------------------------------------------------------
+        // 先にレジストリのシグナル購読を解除する。
+        // System は Registry より先に破棄されるため、解除しないと
+        // レジストリ側の後始末で破棄済みの this が呼ばれてしまう。
+        //-------------------------------------------------------------
+        if(m_connectedRegistry) {
+            m_connectedRegistry->OnDestroy<CollisionComponent>().disconnect(this);
+            m_connectedRegistry->OnDestroy<CharacterControllerComponent>().disconnect(this);
+            m_connectedRegistry = nullptr;
+        }
+
         if(m_impl) {
             delete m_impl->debugRenderer;
             delete m_impl->contactListener;
@@ -410,9 +421,68 @@ namespace Tsukino::BuiltIn::ECS {
     }
 
     //-------------------------------------------------------------
+    // レジストリの破棄シグナルへ購読する
+    //-------------------------------------------------------------
+    void PhysicsSystem::ConnectRegistrySignals(Tsukino::ECS::Registry& registry) {
+        if(m_connectedRegistry == &registry)
+            return;    // 購読済み
+
+        registry.OnDestroy<CollisionComponent>().connect<&PhysicsSystem::OnCollisionComponentDestroyed>(*this);
+        registry.OnDestroy<CharacterControllerComponent>().connect<&PhysicsSystem::OnCharacterControllerDestroyed>(*this);
+
+        m_connectedRegistry = &registry;
+    }
+
+    //-------------------------------------------------------------
+    // CollisionComponent 破棄時に Jolt の Body を回収する
+    //-------------------------------------------------------------
+    void PhysicsSystem::OnCollisionComponentDestroyed(entt::registry& registry, entt::entity entity) {
+        if(!m_impl || !m_impl->physicsSystem)
+            return;
+
+        //-------------------------------------------------------------
+        // EnTT は「取り外す直前」に呼ぶので、この時点ではまだ読める
+        //-------------------------------------------------------------
+        if(const CollisionComponent* col = registry.try_get<CollisionComponent>(entity)) {
+            if(col->isInitialized && !col->bodyID.IsInvalid()) {
+                JPH::BodyInterface& bodyInterface = m_impl->physicsSystem->GetBodyInterface();
+
+                // AddBody していた場合のみ RemoveBody する
+                if(bodyInterface.IsAdded(col->bodyID)) {
+                    bodyInterface.RemoveBody(col->bodyID);
+                }
+                bodyInterface.DestroyBody(col->bodyID);
+            }
+        }
+
+        //-------------------------------------------------------------
+        // エンティティをキーにした付随データも一緒に片付ける。
+        // ここを漏らすとフレームごとに増え続けるだけのマップになる。
+        //-------------------------------------------------------------
+        m_impl->prevPositions.erase(entity);
+        m_impl->heightfieldCache.erase(static_cast<uint64_t>(entity));
+    }
+
+    //-------------------------------------------------------------
+    // CharacterControllerComponent 破棄時に CharacterVirtual を回収する
+    //-------------------------------------------------------------
+    void PhysicsSystem::OnCharacterControllerDestroyed(entt::registry& registry, entt::entity entity) {
+        if(!m_impl)
+            return;
+
+        m_impl->characters.erase(entity);
+    }
+
+    //-------------------------------------------------------------
     // システムの更新処理
     //-------------------------------------------------------------
     void PhysicsSystem::Update(Tsukino::ECS::Registry& registry, float deltaTime) {
+        //-------------------------------------------------------------
+        // レジストリはコンストラクタ時点では手に入らないため、
+        // 初回 Update で一度だけ破棄シグナルへ購読する
+        //-------------------------------------------------------------
+        ConnectRegistrySignals(registry);
+
         m_impl->contactListener->registry = &registry;
         JPH::BodyInterface& bodyInterface = m_impl->physicsSystem->GetBodyInterface();
 
@@ -581,19 +651,10 @@ namespace Tsukino::BuiltIn::ECS {
             Tsukino::Core::Log::Info("CharacterVirtual created for entity id=" + std::to_string((uint32_t)entity));
         });
 
-        // 破棄されたCharacterVirtualのクリーンアップ
-        {
-            std::vector<entt::entity> toErase;
-            for(auto& [entity, handle] : m_impl->characters) {
-                // エンティティ自体が破棄済み、またはCharacterControllerComponentが外された場合
-                if(!registry.IsValid(entity) || !registry.HasComponent<CharacterControllerComponent>(entity)) {
-                    toErase.push_back(entity);
-                }
-            }
-            for(auto entity : toErase) {
-                m_impl->characters.erase(entity);
-            }
-        }
+        // 破棄されたCharacterVirtualの回収は OnCharacterControllerDestroyed() が行う。
+        // 以前はここで毎フレーム characters を全走査していたが、
+        // EnTT の破棄シグナルはコンポーネント削除・エンティティ破棄の
+        // どちらでも必ず発火するため、この走査は不要になった。
 
         for(auto entity : view) {
             auto& col = registry.GetComponent<CollisionComponent>(entity);

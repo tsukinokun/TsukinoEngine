@@ -7,6 +7,8 @@
 
 #include <Tsukino/Renderer/DX11/PipelineState.hpp>
 #include <Tsukino/Renderer/DX11/Material.hpp>
+
+#include <Tsukino/Core/Log.hpp>
 // 名前空間 : Tsukino::Renderer
 namespace Tsukino::Renderer {
     //--------------------------------------------------------------
@@ -54,11 +56,46 @@ namespace Tsukino::Renderer {
             return false;
         }
 
+        //--------------------------------------------------------------
+        // 画面サイズに依存するリソース（RTV / DSV / HDRバッファ）を作成する
+        //--------------------------------------------------------------
+        return CreateSizeDependentResources(width, height);
+    }
+
+    //--------------------------------------------------------------
+    //! @brief 画面サイズに依存するリソースを解放する
+    //--------------------------------------------------------------
+    void GraphicsContext::ReleaseSizeDependentResources() {
+        //--------------------------------------------------------------
+        // ResizeBuffers はバックバッファへの参照が1つでも生きていると
+        // DXGI_ERROR_INVALID_CALL で失敗する。
+        // ビューを手放したうえで、デバイスコンテキストにバインドされた
+        // 状態もクリアしてからでないと参照カウントが落ちない。
+        //--------------------------------------------------------------
+        if(m_context) {
+            ID3D11RenderTargetView* nullRTV[1] = {nullptr};
+            m_context->OMSetRenderTargets(1, nullRTV, nullptr);
+            m_context->ClearState();
+            m_context->Flush();
+        }
+
+        m_hdrSRV.Reset();
+        m_hdrRTV.Reset();
+        m_hdrTex.Reset();
+        m_dsv.Reset();
+        m_rtv.Reset();
+    }
+
+    //--------------------------------------------------------------
+    //! @brief 画面サイズに依存するリソースを生成する
+    //--------------------------------------------------------------
+    bool GraphicsContext::CreateSizeDependentResources(UINT width, UINT height) {
         // バックバッファ取得
         Microsoft::WRL::ComPtr<ID3D11Texture2D> backBuffer;
-        hr = m_swapChain->GetBuffer(0, __uuidof(ID3D11Texture2D), reinterpret_cast<void**>(backBuffer.GetAddressOf()));
+        HRESULT hr = m_swapChain->GetBuffer(0, __uuidof(ID3D11Texture2D), reinterpret_cast<void**>(backBuffer.GetAddressOf()));
 
         if(FAILED(hr)) {
+            Tsukino::Core::Log::Error("GraphicsContext: Failed to get the swap chain back buffer. Rendering cannot continue.");
             return false;
         }
 
@@ -66,6 +103,7 @@ namespace Tsukino::Renderer {
         hr = m_device->CreateRenderTargetView(backBuffer.Get(), nullptr, m_rtv.GetAddressOf());
 
         if(FAILED(hr)) {
+            Tsukino::Core::Log::Error("GraphicsContext: Failed to create the back buffer render target view.");
             return false;
         }
 
@@ -95,10 +133,18 @@ namespace Tsukino::Renderer {
         depthDesc.SampleDesc.Count     = 1;
         depthDesc.BindFlags            = D3D11_BIND_DEPTH_STENCIL;
 
-        m_device->CreateTexture2D(&depthDesc, nullptr, depthTex.GetAddressOf());
+        hr = m_device->CreateTexture2D(&depthDesc, nullptr, depthTex.GetAddressOf());
+        if(FAILED(hr)) {
+            Tsukino::Core::Log::Error("GraphicsContext: Failed to create the depth buffer texture. Depth testing would be disabled.");
+            return false;
+        }
 
         // DSV 作成
-        m_device->CreateDepthStencilView(depthTex.Get(), nullptr, m_dsv.GetAddressOf());
+        hr = m_device->CreateDepthStencilView(depthTex.Get(), nullptr, m_dsv.GetAddressOf());
+        if(FAILED(hr)) {
+            Tsukino::Core::Log::Error("GraphicsContext: Failed to create the depth stencil view. Depth testing would be disabled.");
+            return false;
+        }
 
         //--------------------------------------------------------------
         // HDRレンダーターゲットの作成
@@ -115,16 +161,19 @@ namespace Tsukino::Renderer {
 
         hr = m_device->CreateTexture2D(&hdrDesc, nullptr, m_hdrTex.GetAddressOf());
         if(FAILED(hr)) {
+            Tsukino::Core::Log::Error("GraphicsContext: Failed to create the HDR color buffer.");
             return false;
         }
 
         hr = m_device->CreateRenderTargetView(m_hdrTex.Get(), nullptr, m_hdrRTV.GetAddressOf());
         if(FAILED(hr)) {
+            Tsukino::Core::Log::Error("GraphicsContext: Failed to create the HDR render target view.");
             return false;
         }
 
         hr = m_device->CreateShaderResourceView(m_hdrTex.Get(), nullptr, m_hdrSRV.GetAddressOf());
         if(FAILED(hr)) {
+            Tsukino::Core::Log::Error("GraphicsContext: Failed to create the HDR shader resource view.");
             return false;
         }
 
@@ -133,6 +182,36 @@ namespace Tsukino::Renderer {
         m_height = height;
 
         return true;
+    }
+
+    //--------------------------------------------------------------
+    //! @brief 描画領域のリサイズ
+    //--------------------------------------------------------------
+    bool GraphicsContext::Resize(UINT width, UINT height) {
+        if(!m_swapChain || !m_device || !m_context)
+            return false;
+
+        // 最小化などで 0 が来た場合は何もしない（0 サイズのバッファは作れない）
+        if(width == 0 || height == 0)
+            return true;
+
+        // サイズが変わっていなければ作り直す意味がない
+        if(width == m_width && height == m_height)
+            return true;
+
+        //--------------------------------------------------------------
+        // バックバッファへの参照を全て手放してから ResizeBuffers を呼ぶ
+        //--------------------------------------------------------------
+        ReleaseSizeDependentResources();
+
+        // 0 を渡すと既存のバッファ数・フォーマットが維持される
+        HRESULT hr = m_swapChain->ResizeBuffers(0, width, height, DXGI_FORMAT_UNKNOWN, 0);
+        if(FAILED(hr)) {
+            Tsukino::Core::Log::Error("GraphicsContext: IDXGISwapChain::ResizeBuffers failed. The window size change was not applied.");
+            return false;
+        }
+
+        return CreateSizeDependentResources(width, height);
     }
 
     //--------------------------------------------------------------

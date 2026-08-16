@@ -101,17 +101,23 @@ namespace Tsukino::Asset {
         [[nodiscard]]
         Tsukino::Core::Path ConvertToCachePath(const Tsukino::Core::Path& sourcePath);
 
+        //--------------------------------------------------------------
+        // 以下は AssetManager インスタンスごとのメンバであり、静的変数ではない。
+        // 以前は s_ プレフィックス（コーディング規約では静的メンバ用）が
+        // 付いていて、グローバルな共有状態と読み違えやすかったため m_ に改めた。
+        //--------------------------------------------------------------
+
         // AssetManagerがアセットの共有所有者
-        AssetMap s_Assets;
+        AssetMap m_assets;
 
         // LoaderもAssetManagerが共有所有
-        std::vector<Tsukino::Core::Ref<IAssetLoader>> s_Loaders;
+        std::vector<Tsukino::Core::Ref<IAssetLoader>> m_loaders;
 
         // AssetTypeごとにインポーターを管理するマップのエイリアス
         using ImporterMap = std::unordered_map<AssetType, Tsukino::Core::Ref<IAssetImporter>>;
 
         // ImporterもAssetManagerが共有所有
-        ImporterMap s_Importers;
+        ImporterMap m_importers;
     };
 
 }    // namespace Tsukino::Asset
