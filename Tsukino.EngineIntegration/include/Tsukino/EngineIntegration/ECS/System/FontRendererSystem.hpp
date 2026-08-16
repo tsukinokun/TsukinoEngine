@@ -7,6 +7,7 @@
 #include <Tsukino/Core/ECS/System/ISystem.hpp>
 
 #include <Tsukino/Renderer/Renderer.hpp>
+#include <Tsukino/Renderer/Text/DynamicFontAtlas.hpp>
 
 #include <Tsukino/Engine/Asset/AssetHandle.hpp>
 
@@ -42,8 +43,10 @@ namespace Tsukino::BuiltIn::ECS {
 
     private:
         // スプライトバッチのキャッシュ
-        std::unordered_map<Tsukino::Asset::AssetHandle, std::unique_ptr<DirectX::SpriteFont>> m_fontCache;
-        std::unique_ptr<DirectX::SpriteBatch>                                                 m_spriteBatch;
+        std::unordered_map<Tsukino::Asset::AssetHandle, std::unique_ptr<DirectX::SpriteFont>>              m_fontCache;
+        // 動的フォントアトラスのキャッシュ（オンデマンドグリフラスタライズ用）
+        std::unordered_map<Tsukino::Asset::AssetHandle, std::unique_ptr<Tsukino::Renderer::DynamicFontAtlas>> m_dynamicFontCache;
+        std::unique_ptr<DirectX::SpriteBatch>                                                               m_spriteBatch;
     };
 
 }    // namespace Tsukino::BuiltIn::ECS

@@ -65,6 +65,17 @@ namespace ActionGame::ECS {
             }
 
             //-------------------------------------------------------------
+            // isAttackingはPlayerAnimationSystem（本Systemより後に実行される）が
+            // 今フレーム確定させる値なので、ここではまだ前フレームの値のまま＝
+            // 攻撃ボタンを押した瞬間のフレームだけ「攻撃中ではない」と誤判定してしまい、
+            // その時点の移動入力へ向き直りが1フレーム分だけ紛れ込む
+            // （攻撃開始時の向き、ひいてはハンマーの振り始めの向きが移動入力に左右されてしまう
+            //   不具合の原因だった）。攻撃ボタンの入力自体はこのSystem内で直接見られるので、
+            // 「今フレーム攻撃がトリガーされるか」も向き直り抑制条件に含めて1フレームの遅れを潰す
+            //-------------------------------------------------------------
+            bool attackTriggeredThisFrame = inputSystem->IsKeyPressed(Tsukino::Input::KeyCode::LButton);
+
+            //-------------------------------------------------------------
             // 移動方向の入力を取得（カメラの向きを基準にしたXZ平面）
             //-------------------------------------------------------------
             hlslpp::float3 moveDir = hlslpp::float3(0.0f, 0.0f, 0.0f);
@@ -89,7 +100,7 @@ namespace ActionGame::ECS {
                 // CharacterControllerComponentへ水平方向の希望移動速度を渡す
                 cc.moveInput = moveDir * currentSpeed;
 
-                if(!isAttacking) {
+                if(!isAttacking && !attackTriggeredThisFrame) {
                     // 移動方向へ向き直す（瞬時に向かず、slerpで滑らかに補間する）
                     float               yawRad         = std::atan2(moveDir.x, moveDir.z);
                     hlslpp::quaternion targetRotation = hlslpp::quaternion::rotation_y(yawRad);

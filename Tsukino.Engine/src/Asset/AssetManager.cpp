@@ -10,6 +10,7 @@
 #include <Tsukino/Engine/Asset/Texture/TextureLoder.hpp>
 #include <Tsukino/Engine/Asset/Shader/ShaderLoader.hpp>
 #include <Tsukino/Engine/Asset/Font/FontLoader.hpp>
+#include <Tsukino/Engine/Asset/Font/DynamicFontLoader.hpp>
 #include <Tsukino/Engine/Asset/Audio/AudioLoader.hpp>
 #include <Tsukino/Engine/Asset/Model/ModelLoader.hpp>
 #include <Tsukino/Engine/Asset/Cubemap/CubemapLoader.hpp>
@@ -19,6 +20,7 @@
 #include <Tsukino/Engine/Asset/Texture/TextureImporter.hpp>
 #include <Tsukino/Engine/Asset/Shader/ShaderImporter.hpp>
 #include <Tsukino/Engine/Asset/Font/FontImporter.hpp>
+#include <Tsukino/Engine/Asset/Font/DynamicFontImporter.hpp>
 #include <Tsukino/Engine/Asset/Audio/AudioImporter.hpp>
 #include <Tsukino/Engine/Asset/Model/ModelImporter.hpp>
 #include <Tsukino/Engine/Asset/Cubemap/CubemapImporter.hpp>
@@ -47,6 +49,7 @@ namespace Tsukino::Asset {
         RegisterLoader(Tsukino::Core::CreateRef<ShaderLoader>());       // シェーダローダーを登録
         RegisterLoader(Tsukino::Core::CreateRef<TextureLoader>());      // テクスチャローダーを登録
         RegisterLoader(Tsukino::Core::CreateRef<FontLoader>());         // フォントローダーを登録
+        RegisterLoader(Tsukino::Core::CreateRef<DynamicFontLoader>());  // 動的フォントローダーを登録
         RegisterLoader(Tsukino::Core::CreateRef<AudioLoader>());        // オーディオローダーを登録
         RegisterLoader(Tsukino::Core::CreateRef<ModelLoader>(this));    // モデルローダーを登録
         RegisterLoader(Tsukino::Core::CreateRef<CubemapLoader>());      // キューブマップローダーを登録
@@ -58,6 +61,7 @@ namespace Tsukino::Asset {
         RegisterImporter(AssetType::Shader, Tsukino::Core::CreateRef<ShaderImporter>());      // シェーダーインポーターの登録
         RegisterImporter(AssetType::Texture, Tsukino::Core::CreateRef<TextureImporter>());    // テクスチャインポーターを登録
         RegisterImporter(AssetType::Font, Tsukino::Core::CreateRef<FontImporter>());          // フォントインポーターの登録
+        RegisterImporter(AssetType::DynamicFont, Tsukino::Core::CreateRef<DynamicFontImporter>());    // 動的フォントインポーターの登録
         RegisterImporter(AssetType::Audio, Tsukino::Core::CreateRef<AudioImporter>());        // オーディオインポーターの登録
         RegisterImporter(AssetType::Model, Tsukino::Core::CreateRef<ModelImporter>());        // モデルインポーターの登録
         RegisterImporter(AssetType::Cubemap, Tsukino::Core::CreateRef<CubemapImporter>());    // キューブマップインポーターを登録
@@ -210,6 +214,7 @@ namespace Tsukino::Asset {
             {".wav",     AssetType::Audio  },
 
             {".font",    AssetType::Font   },
+            {".dfont",   AssetType::DynamicFont},
 
             {".cubemap", AssetType::Cubemap},
             {".tcc",     AssetType::Cubemap},

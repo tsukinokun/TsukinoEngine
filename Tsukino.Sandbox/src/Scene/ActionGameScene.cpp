@@ -1,6 +1,6 @@
 ﻿//-------------------------------------------------------------
 //! @file    ActionGameScene.cpp
-//! @brief   サンプルシーン1の実装
+//! @brief   アクションゲームシーンの実装
 //! @author  山﨑愛
 //-------------------------------------------------------------
 #include <Tsukino/Sandbox/Scene/ActionGameScene.hpp>
@@ -97,7 +97,7 @@ namespace Tsukino::Sandbox {
             Font,
             Render,
             Audio,
-            Physics,          // コリジョンの更新は最後に行う
+            Physics,    // コリジョンの更新は最後に行う
             DirectionalLight,
             SkyAtmosphere,
         };
@@ -140,15 +140,19 @@ namespace Tsukino::Sandbox {
         // アセットのロード
         //--------------------------------------------------------------
 
-        Tsukino::Asset::AssetHandle modelHandle = context->assetManager->Load(Tsukino::Core::Path("Tsukino.Sandbox/Assets/ActionGameSample/Models/CharaTest.fbx"));
+        Tsukino::Asset::AssetHandle modelHandle =
+            context->assetManager->Load(Tsukino::Core::Path("Tsukino.Sandbox/Assets/ActionGameSample/Models/CharaTest.fbx"));
 
-        Tsukino::Asset::AssetHandle animationHandle = context->assetManager->Load(Tsukino::Core::Path("Tsukino.Sandbox/Assets/ActionGameSample/Anims/Jump.fbx"));
+        Tsukino::Asset::AssetHandle animationHandle =
+            context->assetManager->Load(Tsukino::Core::Path("Tsukino.Sandbox/Assets/ActionGameSample/Anims/Jump.fbx"));
 
         // プレイヤーのアニメーションステートマシン（PlayerAnimationSystem）が使うクリップ
-        Tsukino::Asset::AssetHandle idleAnimHandle    = context->assetManager->Load(Tsukino::Core::Path("Tsukino.Sandbox/Assets/ActionGameSample/Anims/Idle.fbx"));
-        Tsukino::Asset::AssetHandle runAnimHandle     = context->assetManager->Load(Tsukino::Core::Path("Tsukino.Sandbox/Assets/ActionGameSample/Anims/Run.fbx"));
-        Tsukino::Asset::AssetHandle fastRunAnimHandle = context->assetManager->Load(Tsukino::Core::Path("Tsukino.Sandbox/Assets/ActionGameSample/Anims/Fast Run.fbx"));
-        Tsukino::Asset::AssetHandle attackAnimHandle  = context->assetManager->Load(Tsukino::Core::Path("Tsukino.Sandbox/Assets/Anims/Standing Melee Attack Horizontal.fbx"));
+        Tsukino::Asset::AssetHandle idleAnimHandle = context->assetManager->Load(Tsukino::Core::Path("Tsukino.Sandbox/Assets/ActionGameSample/Anims/Idle.fbx"));
+        Tsukino::Asset::AssetHandle runAnimHandle  = context->assetManager->Load(Tsukino::Core::Path("Tsukino.Sandbox/Assets/ActionGameSample/Anims/Run.fbx"));
+        Tsukino::Asset::AssetHandle fastRunAnimHandle =
+            context->assetManager->Load(Tsukino::Core::Path("Tsukino.Sandbox/Assets/ActionGameSample/Anims/Fast Run.fbx"));
+        Tsukino::Asset::AssetHandle attackAnimHandle =
+            context->assetManager->Load(Tsukino::Core::Path("Tsukino.Sandbox/Assets/Anims/Standing Melee Attack Horizontal.fbx"));
 
         Tsukino::ECS::Registry& registry = m_scene.GetRegistry();
 
@@ -171,7 +175,7 @@ namespace Tsukino::Sandbox {
             collision.extent                                     = {5000.0f, 5.0f, 5000.0f};
             collision.type                                       = Tsukino::BuiltIn::ECS::ColliderType::Box;
             collision.isSensor                                   = false;    // 明示的にソリッド判定にする（デフォルトも今はfalse）
-        
+
             // RBをつける
             Tsukino::BuiltIn::ECS::RigidbodyComponent& rb = registry.AddComponent<Tsukino::BuiltIn::ECS::RigidbodyComponent>(groundEntity);
             rb.type                                       = Tsukino::BuiltIn::ECS::RigidbodyType::Static;
@@ -233,12 +237,12 @@ namespace Tsukino::Sandbox {
 
         // PlayerAnimationSystemが参照する、ステートごとのアニメーションクリップ一式
         ActionGame::ECS::PlayerAnimationSetComponent& animSet = registry.AddComponent<ActionGame::ECS::PlayerAnimationSetComponent>(playerEntity);
-        animSet.idleClip                                       = idleAnimHandle;
-        animSet.runClip                                        = runAnimHandle;
-        animSet.fastRunClip                                    = fastRunAnimHandle;
-        animSet.jumpClip                                       = animationHandle;
-        animSet.attackClip                                     = attackAnimHandle;
-        animSet.currentState                                   = ActionGame::ECS::PlayerAnimState::Idle;
+        animSet.idleClip                                      = idleAnimHandle;
+        animSet.runClip                                       = runAnimHandle;
+        animSet.fastRunClip                                   = fastRunAnimHandle;
+        animSet.jumpClip                                      = animationHandle;
+        animSet.attackClip                                    = attackAnimHandle;
+        animSet.currentState                                  = ActionGame::ECS::PlayerAnimState::Idle;
 
         Tsukino::BuiltIn::ECS::SpringBoneComponent& springBone = registry.AddComponent<Tsukino::BuiltIn::ECS::SpringBoneComponent>(playerEntity);
 
@@ -246,9 +250,9 @@ namespace Tsukino::Sandbox {
         breastL.name                   = "Breast_L";
         breastL.rootNodeName           = "Breast_L";
         breastL.maxDepth               = 1;
-        breastL.settings.stiffness     = 0.35f;     // リアル(0.55)より少し柔らかく、揺れ幅を出す
+        breastL.settings.stiffness     = 0.35f;    // リアル(0.55)より少し柔らかく、揺れ幅を出す
         breastL.settings.drag          = 0.13f;    // 収まりをやや長めに（2〜3往復くらい残る）
-        breastL.settings.inertia       = 0.5f;    // 体の動きに対して、わずかに「置いていかれる」感を演出
+        breastL.settings.inertia       = 0.5f;     // 体の動きに対して、わずかに「置いていかれる」感を演出
         breastL.settings.gravityScale  = 1.0f;
         breastL.settings.angleLimitDeg = 26.0f;
         springBone.chainDefs.push_back(breastL);
@@ -281,13 +285,14 @@ namespace Tsukino::Sandbox {
             weaponTransform.dirty                                      = true;
             weaponTransform.parent                                     = entt::null;
 
-            Tsukino::Asset::AssetHandle weaponModelHandle = context->assetManager->Load(Tsukino::Core::Path("Tsukino.Sandbox/Assets/ActionGameSample/Models/warhammer.fbx"));
+            Tsukino::Asset::AssetHandle weaponModelHandle =
+                context->assetManager->Load(Tsukino::Core::Path("Tsukino.Sandbox/Assets/ActionGameSample/Models/warhammer.fbx"));
             Tsukino::BuiltIn::ECS::ModelComponent& weaponModel = registry.AddComponent<Tsukino::BuiltIn::ECS::ModelComponent>(weaponEntity);
             weaponModel.modelHandle                            = weaponModelHandle;
             weaponModel.visible                                = true;
 
             ActionGame::ECS::WeaponComponent& weapon = registry.AddComponent<ActionGame::ECS::WeaponComponent>(weaponEntity);
-            weapon.owner                              = playerEntity;
+            weapon.owner                             = playerEntity;
             // 非攻撃時：右手ボーンへのアタッチは、Idle.fbx（アニメーションクリップ）側のボーン姿勢データが
             // 実際の見た目のポーズと一致しない（別アセットのため、ボーン名は一致してもリグの前提が食い違っている）
             // ため使わない。handTrackingWeight=0で所有者のルートTransformからの固定オフセットにのみ追従させ、
@@ -298,17 +303,17 @@ namespace Tsukino::Sandbox {
             // 攻撃時：PlayerAnimationSystemがWeaponComponent::isAttackingをセットし、CombatSystemはこの間
             // floatEnabledを無視してattackHandTrackingWeight（既定1.0=完全追従）でAttackクリップの
             // 右手ボーン姿勢へ追従させる（Idleと違い、Attackクリップ自体の腕の振りに合わせて動くため）。
-            weapon.localOffset         = hlslpp::float3(35.0f, 170.0f, -20.0f);
-            weapon.gripRotationOffset = hlslpp::quaternion::rotation_x(1.5708f);
-            weapon.handTrackingWeight = 0.0f;
+            weapon.localOffset              = hlslpp::float3(35.0f, 170.0f, -20.0f);
+            weapon.gripRotationOffset       = hlslpp::quaternion::rotation_x(1.5708f);
+            weapon.handTrackingWeight       = 0.0f;
             weapon.attackHandTrackingWeight = 1.0f;
             // idleと同じく、武器メッシュのデフォルト向き（エクスポート時の軸）を握り姿勢へ補正する。
             // 未設定のままだと攻撃中だけこの補正が抜け落ち、手の回転がそのままメッシュの想定外の軸に
             // 乗ってしまい暴れて見える原因になっていた。attackLocalOffsetはボーンソケット化した後の
             // 実機の見た目を見ながら微調整する（手のひら付近の小さいオフセットを想定）。
             weapon.attackGripRotationOffset = hlslpp::quaternion::rotation_x(1.5708f);
-            weapon.attackLocalOffset         = hlslpp::float3(0.0f, 0.0f, 0.0f);
-            weapon.floatEnabled         = true;
+            weapon.attackLocalOffset        = hlslpp::float3(0.0f, 0.0f, 0.0f);
+            weapon.floatEnabled             = true;
 
             // プレイヤーに装備中の武器エンティティを紐付ける（PlayerSystemが攻撃入力時に参照する）
             player.weaponEntity = weaponEntity;
@@ -327,22 +332,23 @@ namespace Tsukino::Sandbox {
             enemyTransform.dirty                                      = true;
             enemyTransform.parent                                     = entt::null;
 
-            Tsukino::Asset::AssetHandle enemyModelHandle = context->assetManager->Load(Tsukino::Core::Path("Tsukino.Sandbox/Assets/ActionGameSample/Models/Block.fbx"));
+            Tsukino::Asset::AssetHandle enemyModelHandle =
+                context->assetManager->Load(Tsukino::Core::Path("Tsukino.Sandbox/Assets/ActionGameSample/Models/Block.fbx"));
             Tsukino::BuiltIn::ECS::ModelComponent& enemyModel = registry.AddComponent<Tsukino::BuiltIn::ECS::ModelComponent>(enemyEntity);
             enemyModel.modelHandle                            = enemyModelHandle;
             enemyModel.visible                                = true;
 
             ActionGame::ECS::EnemyComponent& enemy = registry.AddComponent<ActionGame::ECS::EnemyComponent>(enemyEntity);
-            enemy.moveSpeed                          = moveSpeed;
+            enemy.moveSpeed                        = moveSpeed;
 
             ActionGame::ECS::HealthComponent& enemyHealth = registry.AddComponent<ActionGame::ECS::HealthComponent>(enemyEntity);
-            enemyHealth.maxHealth                          = maxHealth;
-            enemyHealth.currentHealth                      = maxHealth;
+            enemyHealth.maxHealth                         = maxHealth;
+            enemyHealth.currentHealth                     = maxHealth;
         };
 
-        spawnEnemy(hlslpp::float3(200.0f, 20.0f, 200.0f), 100.0f, 40.0f);     // 弱い近接タイプ
-        spawnEnemy(hlslpp::float3(-200.0f, 20.0f, 200.0f), 80.0f, 80.0f);     // やや硬い近接タイプ
-        spawnEnemy(hlslpp::float3(0.0f, 20.0f, -250.0f), 90.0f, 60.0f);       // 3体目
+        spawnEnemy(hlslpp::float3(200.0f, 20.0f, 200.0f), 100.0f, 40.0f);    // 弱い近接タイプ
+        spawnEnemy(hlslpp::float3(-200.0f, 20.0f, 200.0f), 80.0f, 80.0f);    // やや硬い近接タイプ
+        spawnEnemy(hlslpp::float3(0.0f, 20.0f, -250.0f), 90.0f, 60.0f);      // 3体目
 
         //--------------------------------------------------------------
         // 2Dカメラエンティティの生成
@@ -367,8 +373,8 @@ namespace Tsukino::Sandbox {
             Tsukino::ECS::Entity tpsCameraEntity = m_scene.CreateEntity();
 
             Tsukino::BuiltIn::ECS::TransformComponent& tpsCamTransform = registry.AddComponent<Tsukino::BuiltIn::ECS::TransformComponent>(tpsCameraEntity);
-            tpsCamTransform.position                                    = playerTransform.position + hlslpp::float3(0.0f, 200.0f, -400.0f);
-            tpsCamTransform.dirty                                       = true;
+            tpsCamTransform.position                                   = playerTransform.position + hlslpp::float3(0.0f, 200.0f, -400.0f);
+            tpsCamTransform.dirty                                      = true;
 
             Tsukino::BuiltIn::ECS::CameraComponent& tpsCam = registry.AddComponent<Tsukino::BuiltIn::ECS::CameraComponent>(tpsCameraEntity);
             tpsCam.projectionType                          = Tsukino::BuiltIn::ECS::CameraComponent::ProjectionType::Perspective;
@@ -380,7 +386,7 @@ namespace Tsukino::Sandbox {
             tpsCam.isPrimary                               = true;
 
             ActionGame::ECS::TpsCameraComponent& tpsCameraComponent = registry.AddComponent<ActionGame::ECS::TpsCameraComponent>(tpsCameraEntity);
-            tpsCameraComponent.target                                 = playerEntity;
+            tpsCameraComponent.target                               = playerEntity;
         }
 
         //--------------------------------------------------------------

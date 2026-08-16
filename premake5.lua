@@ -650,9 +650,10 @@ project "Tsukino.EngineIntegration"
         "EffekseerRendererDX11",
         "EffekseerRendererCommon",
         "Effekseer",
-        "d3d11", 
+        "d3d11",
         "dxgi",
-        "d3dcompiler"
+        "d3dcompiler",
+        "dwrite"
     }
 
     nuget { "directxtk_desktop_win10:2026.4.1.1" }
@@ -751,9 +752,10 @@ project "Tsukino.Sandbox"
         "EffekseerRendererDX11",
         "EffekseerRendererCommon",
         "Effekseer",
-        "d3d11", 
+        "d3d11",
         "dxgi",
         "d3dcompiler",
+        "dwrite",
     }
 
     nuget { "directxtk_desktop_win10:2026.4.1.1",

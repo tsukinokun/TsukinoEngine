@@ -65,14 +65,22 @@ namespace ActionGame::ECS {
                     }
                 }
 
-                // 攻撃中はattackHandTrackingWeight（通常1.0=完全追従）、それ以外は従来通り
-                // handTrackingWeightを使う。非攻撃時は浮遊演出があるため0のままでよい。
-                // localOffset/gripRotationOffsetも同様に攻撃中専用の値へ差し替える。
+                // isAttackingがfalse/trueへ瞬時に切り替わっても追従先の「目標」自体が不連続にジャンプ
+                // しないよう、0(非攻撃)↔1(攻撃)の連続値attackBlendを指数減衰で追従させ、
+                // 追従パラメータはこのattackBlendで連続的に補間する（末尾のexp減衰補間は目標への
+                // 追従を滑らかにするだけで、目標自体の飛びは吸収しきれず「カクッ」とスナップして
+                // 見える不具合の原因だったため、目標を作る側で先に連続化する）
+                float attackBlendTarget = weapon.isAttacking ? 1.0f : 0.0f;
+                float attackBlendLerpT  = 1.0f - std::exp(-weapon.attackBlendSpeed * deltaTime);
+                weapon.attackBlend += (attackBlendTarget - weapon.attackBlend) * attackBlendLerpT;
+
+                // attackBlendが1に近いほどattackHandTrackingWeight/attackLocalOffset/attackGripRotationOffsetへ、
+                // 0に近いほど通常値へ連続的に補間する。
                 // localOffsetは「ほぼ静止した基準点からの浮遊位置」として調整された大きい値（170ユニット近く）
                 // なので、実際に振られる手ボーンにそのまま適用するとテコの原理で武器が大きく・速く振り回されてしまう
-                float                     trackingWeight = weapon.isAttacking ? weapon.attackHandTrackingWeight : weapon.handTrackingWeight;
-                const hlslpp::float3&     gripOffset       = weapon.isAttacking ? weapon.attackLocalOffset : weapon.localOffset;
-                const hlslpp::quaternion& gripRotOffset   = weapon.isAttacking ? weapon.attackGripRotationOffset : weapon.gripRotationOffset;
+                float              trackingWeight = weapon.handTrackingWeight + (weapon.attackHandTrackingWeight - weapon.handTrackingWeight) * weapon.attackBlend;
+                hlslpp::float3     gripOffset     = hlslpp::lerp(weapon.localOffset, weapon.attackLocalOffset, weapon.attackBlend);
+                hlslpp::quaternion gripRotOffset = hlslpp::slerp(weapon.gripRotationOffset, weapon.attackGripRotationOffset, weapon.attackBlend);
 
                 // ボーンが解決できていれば手のボーンへアタッチする。できなければ従来通り
                 // ルートTransformへ固定オフセットで追従させる（フォールバック）。
@@ -123,31 +131,33 @@ namespace ActionGame::ECS {
                 // 手に持つのではなく所有者の周りをふわふわ浮遊させる演出
                 // （旋回はさせず、localOffsetの位置を基準に上下・左右前後へゆったり漂わせ、
                 //   姿勢もわずかに前後へ傾けるだけに留めてほぼ縦向きを保つ）。
-                // 攻撃中はボーン追従で計算した位置・姿勢をそのまま使うため、この演出はスキップする
-                if(weapon.floatEnabled && !weapon.isAttacking) {
+                // isAttackingでの完全な有効/無効切り替えはやめ、常に浮遊姿勢・漂いを計算した上で
+                // attackBlendによりボーン追従の姿勢と連続的にブレンドする（攻撃開始/終了の瞬間に
+                // 回転が浮遊姿勢↔ボーン追従で不連続に入れ替わってスナップして見える不具合の原因だったため）
+                if(weapon.floatEnabled) {
                     weapon.floatTime += deltaTime;
 
-                    // 姿勢は所有者の向き（旋回）やボーン姿勢の影響を受けないよう固定する。
+                    // 姿勢はほぼ縦向きを保ったまま、わずかに前後・左右へ揺れるだけ（旋回はしない）。
                     // gripRotationOffsetは「手に持つ」ときの握り角度調整用のオフセットで、
                     // モデル自体がエクスポート時点で既に縦向き（Y-up）のため、浮遊時には適用しない
-                    targetRotation = hlslpp::quaternion(0.0f, 0.0f, 0.0f, 1.0f);
+                    float               swayX = std::sin(weapon.floatTime * weapon.floatSwaySpeed) * weapon.floatSwayAngle;
+                    float               swayZ = std::cos(weapon.floatTime * weapon.floatSwaySpeed * 0.8f) * weapon.floatSwayAngle;
+                    hlslpp::quaternion floatRotation = hlslpp::mul(hlslpp::quaternion::rotation_x(swayX), hlslpp::quaternion::rotation_z(swayZ));
 
-                    // 上下方向の漂い（ワールドYはどの向きでも共通なのでそのまま加算）
-                    float bobOffset = std::sin(weapon.floatTime * weapon.floatBobSpeed) * weapon.floatBobAmplitude;
+                    // attackBlendが1に近いほどボーン追従の姿勢（targetRotation）、0に近いほど浮遊姿勢へ
+                    targetRotation = hlslpp::slerp(floatRotation, targetRotation, weapon.attackBlend);
+
+                    // 上下方向の漂い（ワールドYはどの向きでも共通なのでそのまま加算）。
+                    // attackBlendが1に近づくほど自然にゼロへ収束させる
+                    float bobOffset = std::sin(weapon.floatTime * weapon.floatBobSpeed) * weapon.floatBobAmplitude * (1.0f - weapon.attackBlend);
                     targetPosition.y += bobOffset;
 
                     // 左右・前後方向の漂い。所有者のローカル空間で計算してからownerの向きで回転することで、
-                    // 所有者に対する相対的な漂い方がどの向きでも同じになるようにする
+                    // 所有者に対する相対的な漂い方がどの向きでも同じになるようにする（こちらもattackBlendでゼロへ収束）
                     hlslpp::float3 localDrift(std::sin(weapon.floatTime * weapon.floatDriftSpeed) * weapon.floatDriftAmplitude,
                                               0.0f,
                                               std::cos(weapon.floatTime * weapon.floatDriftSpeed * 0.7f) * weapon.floatDriftAmplitude);
-                    targetPosition += hlslpp::mul(localDrift, ownerTransform.rotation);
-
-                    // 姿勢はほぼ縦向きを保ったまま、わずかに前後・左右へ揺れるだけ（旋回はしない）
-                    float               swayX = std::sin(weapon.floatTime * weapon.floatSwaySpeed) * weapon.floatSwayAngle;
-                    float               swayZ = std::cos(weapon.floatTime * weapon.floatSwaySpeed * 0.8f) * weapon.floatSwayAngle;
-                    hlslpp::quaternion sway   = hlslpp::mul(hlslpp::quaternion::rotation_x(swayX), hlslpp::quaternion::rotation_z(swayZ));
-                    targetRotation             = hlslpp::mul(sway, targetRotation);
+                    targetPosition += hlslpp::mul(localDrift, ownerTransform.rotation) * (1.0f - weapon.attackBlend);
                 }
 
                 // 攻撃モーションへの出入りやフォールバック切り替えで目標位置・姿勢が

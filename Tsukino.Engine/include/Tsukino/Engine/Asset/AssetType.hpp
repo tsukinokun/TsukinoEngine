@@ -19,6 +19,7 @@ namespace Tsukino::Asset {
         Model,       // モデル
         Material,    // マテリアル
         Font,        // フォント
+        DynamicFont, // 動的フォント（オンデマンドグリフラスタライズ）
         Audio,       // オーディオ
         Cubemap,     // キューブマップ
         Effect,      // エフェクト

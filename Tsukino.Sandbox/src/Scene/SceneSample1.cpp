@@ -181,7 +181,7 @@ namespace Tsukino::Sandbox {
 
         // FontRendererComponent の追加
         Tsukino::BuiltIn::ECS::FontComponent& font = registry.AddComponent<Tsukino::BuiltIn::ECS::FontComponent>(fontEntity);
-        font.text                                  = L"Hello, Tsukino!";    // 描画するテキスト
+        font.text                                  = L"こんにちは, Tsukino!";    // 描画するテキスト
 
         //--------------------------------------------------------------
         // Modelエンティティ生成

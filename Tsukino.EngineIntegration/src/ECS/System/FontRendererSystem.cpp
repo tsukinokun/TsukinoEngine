@@ -12,6 +12,7 @@
 
 #include <Tsukino/Engine/Asset/AssetManager.hpp>
 #include <Tsukino/Engine/Asset/Font/FontAsset.hpp>
+#include <Tsukino/Engine/Asset/Font/DynamicFontAsset.hpp>
 
 #include <Tsukino/Renderer/DrawCommand.hpp>
 
@@ -51,22 +52,9 @@ namespace Tsukino::BuiltIn::ECS {
                 fontHandle = ctx->builtinAssets->fonts.defaultFont;
             }
 
-            // キャッシュから SpriteFont を取得、なければ生成
-            auto& spriteFont = m_fontCache[fontHandle];
-
-            if(!spriteFont) {
-                // アセットマネージャーからバイナリを取得
-                Tsukino::Core::Ref<Tsukino::Asset::IAsset>    asset     = ctx->assetManager->Get(fontHandle);
-                Tsukino::Core::Ref<Tsukino::Asset::FontAsset> fontAsset = std::static_pointer_cast<Tsukino::Asset::FontAsset>(asset);
-
-                if(!fontAsset)
-                    return;
-
-                //-------------------------------------------------------------
-                // フォントを生成してキャッシュに保存
-                //-------------------------------------------------------------
-                spriteFont = ctx->renderer->CreateSpriteFont(fontAsset->m_binaryData.data(), fontAsset->m_binaryData.size());
-            }
+            Tsukino::Core::Ref<Tsukino::Asset::IAsset> asset = ctx->assetManager->Get(fontHandle);
+            if(!asset)
+                return;
 
             //-------------------------------------------------------------
             // Transformから情報を抽出
@@ -74,36 +62,105 @@ namespace Tsukino::BuiltIn::ECS {
             hlslpp::float3 worldPos   = transform.worldMatrix[3].xyz;
             float          finalScale = hlslpp::length(transform.worldMatrix[0].xyz);
 
+            DirectX::CommonStates* states = ctx->renderer->GetCommonStatesTK();
+
             //-------------------------------------------------------------
             // 描画コマンドの作成
             //-------------------------------------------------------------
             Tsukino::Renderer::DrawCommand cmd{};
 
-            // キャプチャ：SpriteFont の生ポインタを渡す
-            DirectX::SpriteFont* nativeFont = spriteFont.get();
+            if(asset->GetType() == Tsukino::Asset::AssetType::DynamicFont) {
+                //-------------------------------------------------------------
+                // 動的フォントアトラス経路（オンデマンドグリフラスタライズ、日本語などに対応）
+                //-------------------------------------------------------------
+                auto& atlas = m_dynamicFontCache[fontHandle];
 
-            DirectX::CommonStates* states = ctx->renderer->GetCommonStatesTK();
+                if(!atlas) {
+                    Tsukino::Core::Ref<Tsukino::Asset::DynamicFontAsset> dynamicAsset =
+                        std::static_pointer_cast<Tsukino::Asset::DynamicFontAsset>(asset);
 
-            cmd.customDraw =
-                [this, nativeFont, text = font.text, color = font.color, origin = font.origin, worldPos, finalScale, states](ID3D11DeviceContext* context) {
-                    m_spriteBatch->Begin(DirectX::SpriteSortMode_Deferred,    // 描画順を自動整理
-                                         states->NonPremultiplied(),          // 一般的なアルファブレンドを強制
-                                         nullptr,                             // サンプラーステート（デフォルトでOK）
-                                         states->DepthRead(),                 // 奥行きを読み取るけど書き込まない
-                                         nullptr                              // ラスタライザステート
-                    );
+                    atlas = std::make_unique<Tsukino::Renderer::DynamicFontAtlas>(
+                        ctx->renderer->GetDevice(), dynamicAsset->m_fontFileData.data(), dynamicAsset->m_fontFileData.size(), dynamicAsset->m_pixelSize);
+                }
 
-                    DirectX::XMFLOAT4 dxColor(color.x, color.y, color.z, color.w);
-                    nativeFont->DrawString(m_spriteBatch.get(),
-                                           text.c_str(),
-                                           DirectX::XMFLOAT2(worldPos.x, worldPos.y),
-                                           DirectX::XMLoadFloat4(&dxColor),
-                                           0.0f,
-                                           DirectX::XMFLOAT2(origin.x, origin.y),
-                                           finalScale);
+                // キャプチャ：DynamicFontAtlas の生ポインタを渡す
+                Tsukino::Renderer::DynamicFontAtlas* nativeAtlas = atlas.get();
 
-                    m_spriteBatch->End();
-                };
+                cmd.customDraw =
+                    [this, nativeAtlas, text = font.text, color = font.color, origin = font.origin, worldPos, finalScale, states](ID3D11DeviceContext* context) {
+                        m_spriteBatch->Begin(DirectX::SpriteSortMode_Deferred,    // 描画順を自動整理
+                                             states->NonPremultiplied(),          // 一般的なアルファブレンドを強制
+                                             nullptr,                             // サンプラーステート（デフォルトでOK）
+                                             states->DepthRead(),                 // 奥行きを読み取るけど書き込まない
+                                             nullptr                              // ラスタライザステート
+                        );
+
+                        nativeAtlas->DrawString(
+                            m_spriteBatch.get(), context, text, hlslpp::float2(worldPos.x, worldPos.y), color, origin, finalScale);
+
+                        m_spriteBatch->End();
+                    };
+            } else {
+                //-------------------------------------------------------------
+                // 事前ベイクされたSpriteFont経路（既存）
+                //-------------------------------------------------------------
+                auto& spriteFont = m_fontCache[fontHandle];
+
+                if(!spriteFont) {
+                    Tsukino::Core::Ref<Tsukino::Asset::FontAsset> fontAsset = std::static_pointer_cast<Tsukino::Asset::FontAsset>(asset);
+
+                    if(!fontAsset)
+                        return;
+
+                    //-------------------------------------------------------------
+                    // フォントを生成してキャッシュに保存
+                    //-------------------------------------------------------------
+                    spriteFont = ctx->renderer->CreateSpriteFont(fontAsset->m_binaryData.data(), fontAsset->m_binaryData.size());
+                }
+
+                // キャプチャ：SpriteFont の生ポインタを渡す
+                DirectX::SpriteFont* nativeFont = spriteFont.get();
+
+                //-------------------------------------------------------------
+                // フォントに存在しない文字をそのままDrawStringへ渡すと例外で落ちるため、
+                // 事前にフォントが持つ文字だけへ安全側に置換する
+                // (日本語未対応のベイク済みフォントに日本語テキストを渡した場合など)
+                //-------------------------------------------------------------
+                std::wstring safeText;
+                safeText.reserve(font.text.size());
+                for(wchar_t ch : font.text) {
+                    if(nativeFont->ContainsCharacter(ch)) {
+                        safeText.push_back(ch);
+                    } else if(nativeFont->ContainsCharacter(L'?')) {
+                        safeText.push_back(L'?');
+                    }
+                }
+
+                if(safeText.empty())
+                    return;
+
+                cmd.customDraw =
+                    [this, nativeFont, text = std::move(safeText), color = font.color, origin = font.origin, worldPos, finalScale, states](
+                        ID3D11DeviceContext* context) {
+                        m_spriteBatch->Begin(DirectX::SpriteSortMode_Deferred,    // 描画順を自動整理
+                                             states->NonPremultiplied(),          // 一般的なアルファブレンドを強制
+                                             nullptr,                             // サンプラーステート（デフォルトでOK）
+                                             states->DepthRead(),                 // 奥行きを読み取るけど書き込まない
+                                             nullptr                              // ラスタライザステート
+                        );
+
+                        DirectX::XMFLOAT4 dxColor(color.x, color.y, color.z, color.w);
+                        nativeFont->DrawString(m_spriteBatch.get(),
+                                               text.c_str(),
+                                               DirectX::XMFLOAT2(worldPos.x, worldPos.y),
+                                               DirectX::XMLoadFloat4(&dxColor),
+                                               0.0f,
+                                               DirectX::XMFLOAT2(origin.x, origin.y),
+                                               finalScale);
+
+                        m_spriteBatch->End();
+                    };
+            }
 
             ctx->renderer->PushDrawCommand(cmd);
         });
