@@ -148,6 +148,7 @@ namespace Tsukino::Sandbox {
         Tsukino::Asset::AssetHandle idleAnimHandle    = context->assetManager->Load(Tsukino::Core::Path("Tsukino.Sandbox/Assets/ActionGameSample/Anims/Idle.fbx"));
         Tsukino::Asset::AssetHandle runAnimHandle     = context->assetManager->Load(Tsukino::Core::Path("Tsukino.Sandbox/Assets/ActionGameSample/Anims/Run.fbx"));
         Tsukino::Asset::AssetHandle fastRunAnimHandle = context->assetManager->Load(Tsukino::Core::Path("Tsukino.Sandbox/Assets/ActionGameSample/Anims/Fast Run.fbx"));
+        Tsukino::Asset::AssetHandle attackAnimHandle  = context->assetManager->Load(Tsukino::Core::Path("Tsukino.Sandbox/Assets/Anims/Standing Melee Attack Horizontal.fbx"));
 
         Tsukino::ECS::Registry& registry = m_scene.GetRegistry();
 
@@ -236,6 +237,7 @@ namespace Tsukino::Sandbox {
         animSet.runClip                                        = runAnimHandle;
         animSet.fastRunClip                                    = fastRunAnimHandle;
         animSet.jumpClip                                       = animationHandle;
+        animSet.attackClip                                     = attackAnimHandle;
         animSet.currentState                                   = ActionGame::ECS::PlayerAnimState::Idle;
 
         Tsukino::BuiltIn::ECS::SpringBoneComponent& springBone = registry.AddComponent<Tsukino::BuiltIn::ECS::SpringBoneComponent>(playerEntity);
@@ -286,16 +288,26 @@ namespace Tsukino::Sandbox {
 
             ActionGame::ECS::WeaponComponent& weapon = registry.AddComponent<ActionGame::ECS::WeaponComponent>(weaponEntity);
             weapon.owner                              = playerEntity;
-            // 右手ボーンへのアタッチは、Idle.fbx（アニメーションクリップ）側のボーン姿勢データが実際の見た目の
-            // ポーズと一致しない（別アセットのため、ボーン名は一致してもリグの前提が食い違っている）ため使わない。
-            // handTrackingWeight=0で所有者のルートTransformからの固定オフセットにのみ追従させ、
+            // 非攻撃時：右手ボーンへのアタッチは、Idle.fbx（アニメーションクリップ）側のボーン姿勢データが
+            // 実際の見た目のポーズと一致しない（別アセットのため、ボーン名は一致してもリグの前提が食い違っている）
+            // ため使わない。handTrackingWeight=0で所有者のルートTransformからの固定オフセットにのみ追従させ、
             // floatEnabledで「手に持つ」のではなく肩の斜め上をふわふわ浮遊する演出にする（旋回はしない）。
             // localOffsetは所有者のローカル空間でのオフセットなので、どの向きでも所有者に対する相対位置・
             // 相対姿勢が変わらない（実機で目視確認済み）。gripRotationOffsetは武器がなるべく縦向きになるよう
             // 実機で見た目を確認しながら調整した値。
+            // 攻撃時：PlayerAnimationSystemがWeaponComponent::isAttackingをセットし、CombatSystemはこの間
+            // floatEnabledを無視してattackHandTrackingWeight（既定1.0=完全追従）でAttackクリップの
+            // 右手ボーン姿勢へ追従させる（Idleと違い、Attackクリップ自体の腕の振りに合わせて動くため）。
             weapon.localOffset         = hlslpp::float3(35.0f, 170.0f, -20.0f);
             weapon.gripRotationOffset = hlslpp::quaternion::rotation_x(1.5708f);
             weapon.handTrackingWeight = 0.0f;
+            weapon.attackHandTrackingWeight = 1.0f;
+            // idleと同じく、武器メッシュのデフォルト向き（エクスポート時の軸）を握り姿勢へ補正する。
+            // 未設定のままだと攻撃中だけこの補正が抜け落ち、手の回転がそのままメッシュの想定外の軸に
+            // 乗ってしまい暴れて見える原因になっていた。attackLocalOffsetはボーンソケット化した後の
+            // 実機の見た目を見ながら微調整する（手のひら付近の小さいオフセットを想定）。
+            weapon.attackGripRotationOffset = hlslpp::quaternion::rotation_x(1.5708f);
+            weapon.attackLocalOffset         = hlslpp::float3(0.0f, 0.0f, 0.0f);
             weapon.floatEnabled         = true;
 
             // プレイヤーに装備中の武器エンティティを紐付ける（PlayerSystemが攻撃入力時に参照する）

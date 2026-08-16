@@ -143,5 +143,17 @@ namespace Tsukino::Core::Math {
         //--------------------------------------------------------------
         static [[nodiscard]] matrix rotate(const hlslpp::quaternion& q);
         //@}
+
+        //--------------------------------------------------------------
+        // 行列から位置・回転（クォータニオン）を取り出す。
+        // スケール／シアーは除去し（3x3回転部分をグラム・シュミット法で直交化した上で
+        // 単位化してから）、回転のみを取り出す。平行移動は4行目（m[3].xyz）に
+        // そのまま入っている（行ベクトル規約）。ボーンソケット等、スケール込みの
+        // ワールド行列から見た目通りの位置・回転だけを取り出したい場合に使う。
+        //! @param  [in]    m               分解元の行列（スケール込みでよい）
+        //! @param  [out]   outPosition     取り出した位置（m[3].xyz）
+        //! @param  [out]   outRotation     取り出した回転（スケール／シアー除去後）
+        //--------------------------------------------------------------
+        static void decomposePositionRotation(const matrix& m, hlslpp::float3& outPosition, hlslpp::quaternion& outRotation);
     };
 }    // namespace Tsukino::Core::Math

@@ -15,6 +15,8 @@
 
 #include <Windows.h>
 #include <memory>
+#include <chrono>
+#include <algorithm>
 
 //--------------------------------------------------------------
 // アプリケーションのエントリポイント
@@ -51,14 +53,20 @@ int WINAPI WinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ LPSTR, _In_ int) {
 
     //--------------------------------------------------------------
     // メインループ
+    // deltaTimeは実測の経過時間を使う。固定値（1/60）だとPresent(1,0)のVSyncが
+    // 60Hzより高いリフレッシュレートのディスプレイに同期した場合、実際のフレーム間隔より
+    // 大きい値としてシミュレーションが進んでしまい、アニメーション等が実際より速く再生される
+    // （攻撃モーションが暴れて見える不具合の原因だった）
     //--------------------------------------------------------------
-    // テスト用の固定デルタタイム
-    const float deltaTime = 1.0f / 60.0f;
+    auto lastTime = std::chrono::steady_clock::now();
 
-    //--------------------------------------------------------------
-    // メインループ
-    //--------------------------------------------------------------
     while(engineAPI.ProcessMessages()) {
+        auto  currentTime = std::chrono::steady_clock::now();
+        float deltaTime    = std::chrono::duration<float>(currentTime - lastTime).count();
+        lastTime            = currentTime;
+        // ウィンドウドラッグ等で1フレームが極端に長くなった場合の暴走を防ぐ上限
+        deltaTime = std::min(deltaTime, 1.0f / 15.0f);
+
         // 一括更新
         engineAPI.Update(deltaTime);
         // 描画処理

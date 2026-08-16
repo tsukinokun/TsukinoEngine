@@ -13,6 +13,7 @@
 #include <Tsukino/BuiltIn/ECS/Component/CharacterControllerComponent.hpp>
 #include <Tsukino/BuiltIn/ECS/Component/AnimationPlayerComponent.hpp>
 #include <Tsukino/BuiltIn/ECS/Component/NodeWorldPoseComponent.hpp>
+#include <Tsukino/BuiltIn/ECS/Component/NodeWorldMatrixComponent.hpp>
 
 #include <Tsukino/EngineIntegration/EngineContext.hpp>
 #include <Tsukino/Engine/Asset/AssetManager.hpp>
@@ -42,62 +43,84 @@ namespace ActionGame::ECS {
                 // NodeWorldPoseComponentはAnimationSystemが「現在再生中のアニメーションクリップ」の
                 // modelData.nodesを基準に書き出すため（プレイヤー本体のModelComponentのモデルとは
                 // 別アセットで、ノード構成が一致するとは限らない）、解決もクリップ側のノード一覧に対して行う。
-                // クリップ未ロード等で解決できない場合は、ロードされるまで毎フレーム再試行する。
-                if(!weapon.boneResolved && ctx && ctx->assetManager
+                // Idle/Run/Attack等、クリップごとに別アセット＝別のnode配列なので、一度解決したインデックスを
+                // 使い回すと別クリップ再生中に誤ったノードを指してしまう。再生中のクリップが変わるたびに
+                // 再解決する（クリップ未ロード等で解決できない場合は、ロードされるまで毎フレーム再試行する）。
+                if(ctx && ctx->assetManager
                    && registry.HasComponent<Tsukino::BuiltIn::ECS::AnimationPlayerComponent>(weapon.owner)) {
                     auto& ownerAnim = registry.GetComponent<Tsukino::BuiltIn::ECS::AnimationPlayerComponent>(weapon.owner);
-                    auto  asset      = ctx->assetManager->Get(ownerAnim.current_clip_id);
-                    if(asset && asset->GetType() == Tsukino::Asset::AssetType::Model) {
-                        auto modelAss = std::static_pointer_cast<Tsukino::Asset::ModelAsset>(asset);
-                        for(u32 i = 0; i < modelAss->modelData.nodes.size(); ++i) {
-                            if(modelAss->modelData.nodes[i].name == weapon.handBoneName) {
-                                weapon.handBoneNodeIndex = i;
-                                break;
+                    if(weapon.resolvedAgainstClip != ownerAnim.current_clip_id) {
+                        auto asset = ctx->assetManager->Get(ownerAnim.current_clip_id);
+                        if(asset && asset->GetType() == Tsukino::Asset::AssetType::Model) {
+                            auto modelAss           = std::static_pointer_cast<Tsukino::Asset::ModelAsset>(asset);
+                            weapon.handBoneNodeIndex = UINT32_MAX;
+                            for(u32 i = 0; i < modelAss->modelData.nodes.size(); ++i) {
+                                if(modelAss->modelData.nodes[i].name == weapon.handBoneName) {
+                                    weapon.handBoneNodeIndex = i;
+                                    break;
+                                }
                             }
+                            weapon.resolvedAgainstClip = ownerAnim.current_clip_id;    // アセットが読めた時点で確定（見つからなければUINT32_MAXのまま）
                         }
-                        weapon.boneResolved = true;    // アセットが読めた時点で確定（見つからなければUINT32_MAXのまま）
                     }
                 }
+
+                // 攻撃中はattackHandTrackingWeight（通常1.0=完全追従）、それ以外は従来通り
+                // handTrackingWeightを使う。非攻撃時は浮遊演出があるため0のままでよい。
+                // localOffset/gripRotationOffsetも同様に攻撃中専用の値へ差し替える。
+                // localOffsetは「ほぼ静止した基準点からの浮遊位置」として調整された大きい値（170ユニット近く）
+                // なので、実際に振られる手ボーンにそのまま適用するとテコの原理で武器が大きく・速く振り回されてしまう
+                float                     trackingWeight = weapon.isAttacking ? weapon.attackHandTrackingWeight : weapon.handTrackingWeight;
+                const hlslpp::float3&     gripOffset       = weapon.isAttacking ? weapon.attackLocalOffset : weapon.localOffset;
+                const hlslpp::quaternion& gripRotOffset   = weapon.isAttacking ? weapon.attackGripRotationOffset : weapon.gripRotationOffset;
 
                 // ボーンが解決できていれば手のボーンへアタッチする。できなければ従来通り
                 // ルートTransformへ固定オフセットで追従させる（フォールバック）
                 bool attachedToBone = false;
                 if(weapon.handBoneNodeIndex != UINT32_MAX
-                   && registry.HasComponent<Tsukino::BuiltIn::ECS::NodeWorldPoseComponent>(weapon.owner)) {
-                    auto& ownerPoses = registry.GetComponent<Tsukino::BuiltIn::ECS::NodeWorldPoseComponent>(weapon.owner);
-                    if(weapon.handBoneNodeIndex < ownerPoses.poses.size()) {
-                        const auto& handPose = ownerPoses.poses[weapon.handBoneNodeIndex];
+                   && registry.HasComponent<Tsukino::BuiltIn::ECS::NodeWorldMatrixComponent>(weapon.owner)) {
+                    auto& ownerMatrices = registry.GetComponent<Tsukino::BuiltIn::ECS::NodeWorldMatrixComponent>(weapon.owner);
+                    if(weapon.handBoneNodeIndex < ownerMatrices.matrices.size()) {
+                        // Unityのボーンソケットと同じ考え方：実際にスキンメッシュを描画するのに使う
+                        // スケール込みのボーン行列（globalNodeMatrices由来）から位置・回転を取り出す。
+                        // NodeWorldPoseComponent（スケール1近似の軽量版。揺れ物物理専用）は使わない
+                        // ——これが攻撃中に武器が暴れる不具合の原因だった。
+                        hlslpp::float3     handBonePos;
+                        hlslpp::quaternion handBoneRot;
+                        Tsukino::Core::Math::matrix::decomposePositionRotation(
+                            ownerMatrices.matrices[weapon.handBoneNodeIndex], handBonePos, handBoneRot);
 
                         // モデルローカルのボーン姿勢 → ワールド空間（所有者のTransformを反映）
                         hlslpp::float3 handWorldPos =
-                            ownerTransform.position + hlslpp::mul(handPose.position * ownerTransform.scale, ownerTransform.rotation);
-                        hlslpp::quaternion handWorldRot = hlslpp::mul(handPose.rotation, ownerTransform.rotation);
+                            ownerTransform.position + hlslpp::mul(handBonePos * ownerTransform.scale, ownerTransform.rotation);
+                        hlslpp::quaternion handWorldRot = hlslpp::mul(handBoneRot, ownerTransform.rotation);
 
-                        // handTrackingWeightで手ボーン姿勢への追従度を位置・回転の両方に一貫して適用する
+                        // trackingWeightで手ボーン姿勢への追従度を位置・回転の両方に一貫して適用する
                         // （アニメーションクリップのボーン姿勢が信頼できない/振り幅が大きい場合に下げて使う。
                         //   0にすると所有者のルートTransformにのみ追従する）
-                        hlslpp::float3     worldPos = hlslpp::lerp(ownerTransform.position, handWorldPos, weapon.handTrackingWeight);
-                        hlslpp::quaternion worldRot = hlslpp::slerp(ownerTransform.rotation, handWorldRot, weapon.handTrackingWeight);
+                        hlslpp::float3     worldPos = hlslpp::lerp(ownerTransform.position, handWorldPos, trackingWeight);
+                        hlslpp::quaternion worldRot = hlslpp::slerp(ownerTransform.rotation, handWorldRot, trackingWeight);
 
                         // 握り位置・向きの微調整（WeaponComponentのオフセットをボーンローカル空間で適用）
-                        transform.position = worldPos + hlslpp::mul(weapon.localOffset, worldRot);
-                        transform.rotation = hlslpp::mul(weapon.gripRotationOffset, worldRot);
+                        transform.position = worldPos + hlslpp::mul(gripOffset, worldRot);
+                        transform.rotation = hlslpp::mul(gripRotOffset, worldRot);
                         transform.dirty     = true;
                         attachedToBone       = true;
                     }
                 }
 
                 if(!attachedToBone) {
-                    hlslpp::float3 rotatedOffset = hlslpp::mul(ownerTransform.rotation, weapon.localOffset);
+                    hlslpp::float3 rotatedOffset = hlslpp::mul(ownerTransform.rotation, gripOffset);
                     transform.position           = ownerTransform.position + rotatedOffset;
-                    transform.rotation           = ownerTransform.rotation;
+                    transform.rotation           = hlslpp::mul(gripRotOffset, ownerTransform.rotation);
                     transform.dirty              = true;
                 }
 
                 // 手に持つのではなく所有者の周りをふわふわ浮遊させる演出
                 // （旋回はさせず、localOffsetの位置を基準に上下・左右前後へゆったり漂わせ、
-                //   姿勢もわずかに前後へ傾けるだけに留めてほぼ縦向きを保つ）
-                if(weapon.floatEnabled) {
+                //   姿勢もわずかに前後へ傾けるだけに留めてほぼ縦向きを保つ）。
+                // 攻撃中はボーン追従で計算した位置・姿勢をそのまま使うため、この演出はスキップする
+                if(weapon.floatEnabled && !weapon.isAttacking) {
                     weapon.floatTime += deltaTime;
 
                     // 姿勢は所有者の向き（旋回）やボーン姿勢の影響を受けないよう固定する。

@@ -6,9 +6,11 @@
 #include <Tsukino/Sandbox/ActionGame/ECS/System/PlayerAnimationSystem.hpp>
 #include <Tsukino/Sandbox/ActionGame/ECS/Component/PlayerComponent.hpp>
 #include <Tsukino/Sandbox/ActionGame/ECS/Component/PlayerAnimationSetComponent.hpp>
+#include <Tsukino/Sandbox/ActionGame/ECS/Component/WeaponComponent.hpp>
 
 #include <Tsukino/BuiltIn/ECS/Component/CharacterControllerComponent.hpp>
 #include <Tsukino/BuiltIn/ECS/Component/AnimationControllerComponent.hpp>
+#include <Tsukino/BuiltIn/ECS/Component/AnimationPlayerComponent.hpp>
 
 #include <Tsukino/Core/typedef.hpp>
 
@@ -56,24 +58,59 @@ namespace ActionGame::ECS {
         m_stateMachine.RegisterState(PlayerAnimState::Run, MakeClipEnterCallback(&PlayerAnimationSetComponent::runClip, 1, true));
         m_stateMachine.RegisterState(PlayerAnimState::FastRun, MakeClipEnterCallback(&PlayerAnimationSetComponent::fastRunClip, 1, true));
         m_stateMachine.RegisterState(PlayerAnimState::Jump, MakeClipEnterCallback(&PlayerAnimationSetComponent::jumpClip, 1, false));
+        // 攻撃はループさせず、素早く反応するよう短めのフェードで切り替える
+        m_stateMachine.RegisterState(PlayerAnimState::Attack, MakeClipEnterCallback(&PlayerAnimationSetComponent::attackClip, 1, false, 0.05f));
     }
 
     //-------------------------------------------------------------
     //! @brief システムの更新
     //-------------------------------------------------------------
     void PlayerAnimationSystem::Update(Tsukino::ECS::Registry& registry, float deltaTime) {
-        auto view = registry.View<PlayerComponent, Tsukino::BuiltIn::ECS::CharacterControllerComponent, PlayerAnimationSetComponent>();
+        auto view = registry.View<PlayerComponent,
+                                  Tsukino::BuiltIn::ECS::CharacterControllerComponent,
+                                  PlayerAnimationSetComponent,
+                                  Tsukino::BuiltIn::ECS::AnimationPlayerComponent>();
         view.each([&](entt::entity                                          entity,
                      PlayerComponent&                                      player,
                      Tsukino::BuiltIn::ECS::CharacterControllerComponent& cc,
-                     PlayerAnimationSetComponent&                          animSet) {
+                     PlayerAnimationSetComponent&                          animSet,
+                     Tsukino::BuiltIn::ECS::AnimationPlayerComponent&     animPlayer) {
+            //-------------------------------------------------------------
+            // 既にAttack中なら、実クリップの再生完了（AnimationPlayerComponent::is_finished）
+            // をもって終了とする。attackTimeoutSafetyは、クリップ未設定等でis_finishedが
+            // 立たなかった場合にAttackへ無限に留まるのを防ぐ保険（通常は発火しない）
+            //-------------------------------------------------------------
+            bool isStillAttacking = animSet.currentState == PlayerAnimState::Attack
+                                     && !animPlayer.is_finished
+                                     && animSet.attackTimer < animSet.attackTimeoutSafety;
+            if(isStillAttacking) {
+                animSet.attackTimer += deltaTime;
+            }
+
+            //-------------------------------------------------------------
+            // 左クリックによる攻撃要求（WeaponComponent::attackRequested）を見る。
+            // 攻撃継続中は新規トリガーを受け付けない（単発仕様。将来コンボにする際はここを拡張する）
+            //-------------------------------------------------------------
+            bool attackJustRequested = false;
+            if(!isStillAttacking && player.weaponEntity != entt::null
+               && registry.HasComponent<WeaponComponent>(player.weaponEntity)) {
+                WeaponComponent& weapon = registry.GetComponent<WeaponComponent>(player.weaponEntity);
+                if(weapon.attackRequested) {
+                    attackJustRequested   = true;
+                    animSet.attackTimer   = 0.0f;
+                }
+            }
+
             //-------------------------------------------------------------
             // 現在のプレイヤーの状態から、あるべきアニメーションステートを決定する
+            // （攻撃中は移動・ジャンプの状態より優先する）
             //-------------------------------------------------------------
             float moveInputLen = hlslpp::length(cc.moveInput);
 
             PlayerAnimState desiredState;
-            if(!cc.isGrounded) {
+            if(isStillAttacking || attackJustRequested) {
+                desiredState = PlayerAnimState::Attack;
+            } else if(!cc.isGrounded) {
                 desiredState = PlayerAnimState::Jump;
             } else if(moveInputLen > 1.0f) {
                 desiredState = player.isSprinting ? PlayerAnimState::FastRun : PlayerAnimState::Run;
@@ -86,6 +123,15 @@ namespace ActionGame::ECS {
             // 変化していればOnExit→OnEnterの順でコールバックが呼ばれ、クリップが切り替わる）
             //-------------------------------------------------------------
             m_stateMachine.TransitionTo(animSet.currentState, desiredState, registry, entity);
+
+            //-------------------------------------------------------------
+            // 装備中の武器へ「攻撃アニメーション再生中か」を伝える
+            // （CombatSystemがこれを見て、浮遊演出のON/OFFと手ボーンへの追従度を切り替える）
+            //-------------------------------------------------------------
+            if(player.weaponEntity != entt::null && registry.HasComponent<WeaponComponent>(player.weaponEntity)) {
+                registry.GetComponent<WeaponComponent>(player.weaponEntity).isAttacking =
+                    isStillAttacking || attackJustRequested;
+            }
         });
     }
 }    // namespace ActionGame::ECS

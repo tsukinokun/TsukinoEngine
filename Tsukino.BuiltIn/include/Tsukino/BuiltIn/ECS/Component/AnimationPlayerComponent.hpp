@@ -18,5 +18,10 @@ namespace Tsukino::BuiltIn::ECS {
         float                       playback_speed;     // 1.0f = 等速
         bool                        is_looping;         // ループ再生フラグ
         bool                        is_playing;         // 一時停止フラグ
+
+        // ループしない（is_looping=false）クリップが最後まで再生し終えたか。
+        // AnimationSystemが毎フレーム再計算するポーリング値であり、終了した瞬間だけtrueになる
+        // イベントではない（クリップが切り替わるまでtrueが継続する）
+        bool                        is_finished = false;
     };
 }    // namespace Tsukino::BuiltIn::ECS

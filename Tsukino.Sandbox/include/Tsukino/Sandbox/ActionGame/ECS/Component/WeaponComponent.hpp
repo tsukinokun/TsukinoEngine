@@ -6,6 +6,7 @@
 #pragma once
 #include <Tsukino/Core/ECS/Entity/Entity.hpp>
 #include <Tsukino/Core/typedef.hpp>
+#include <Tsukino/Engine/Asset/AssetHandle.hpp>
 
 #include <hlsl++.h>
 
@@ -24,12 +25,29 @@ namespace ActionGame::ECS {
 
         std::string handBoneName      = "mixamorig:RightHand";    //!< アタッチ対象ボーン名
         u32          handBoneNodeIndex = UINT32_MAX;                //!< 解決済みノードindex（未解決/見つからない場合はUINT32_MAX）
-        bool         boneResolved      = false;                     //!< ボーン名の解決を試みたか（一度だけ解決するためのフラグ）
+
+        //-------------------------------------------------------------
+        // ボーン解決は「どのクリップのnode配列に対して行ったか」をキャッシュし、
+        // 再生中のクリップが変わるたびに再解決する（Idle.fbxとAttack.fbx等、別アセットの
+        // クリップ間でnode配列のインデックスが一致するとは限らないため、一度解決したら
+        // 使い回すのではなく、クリップが変わったら都度解決し直す必要がある）
+        //-------------------------------------------------------------
+        Tsukino::Asset::AssetHandle resolvedAgainstClip;    //!< 最後にボーン解決を行った時点のクリップ（比較して再解決要否を判定する）
 
         hlslpp::float3     localOffset         = hlslpp::float3(30.0f, 100.0f, 60.0f);    //!< アタッチボーンのローカル空間での握り位置オフセット（ボーン未解決時はルートTransformからのオフセットとして使われる）
         hlslpp::quaternion gripRotationOffset = hlslpp::quaternion(0.0f, 0.0f, 0.0f, 1.0f);    //!< 握り方調整用の追加回転
         float               handTrackingWeight = 1.0f;    //!< 手ボーン位置への追従度（0=ルート位置に留まる, 1=手ボーンに完全追従）。
                                                             //!< アニメーションクリップの腕の振り幅が大きく武器が体から離れすぎる場合に下げて使う
+
+        //-------------------------------------------------------------
+        // 攻撃中（isAttacking=true）はlocalOffset/gripRotationOffsetの代わりにこちらを使う。
+        // localOffsetは「ほぼ静止した基準点からの浮遊位置」として調整された値（170ユニット近く離れている）で、
+        // 実際に振られる手ボーンにそのまま適用するとテコの原理で大きく・速く振り回されてしまう
+        // （振った時に武器が暴れる不具合の原因）。攻撃時は手のひら付近の小さいオフセットを別途用意する
+        //-------------------------------------------------------------
+        float               attackHandTrackingWeight  = 1.0f;    //!< 攻撃中に代わりに使う追従度。振りの動きにしっかり追従させるため通常1.0
+        hlslpp::float3     attackLocalOffset          = hlslpp::float3(0.0f, 0.0f, 0.0f);    //!< 攻撃中の握り位置オフセット（手ボーンローカル空間）。実機で見た目を確認しながら調整する
+        hlslpp::quaternion attackGripRotationOffset  = hlslpp::quaternion(0.0f, 0.0f, 0.0f, 1.0f);    //!< 攻撃中の握り角度オフセット。実機で見た目を確認しながら調整する
 
         //-------------------------------------------------------------
         // 「手に持つ」のではなく所有者の周りをふわふわ浮遊させる演出用パラメータ。
@@ -54,5 +72,8 @@ namespace ActionGame::ECS {
         bool  isActive        = false;    //!< 現在当たり判定が有効か
         float activeTimer     = 0.0f;     //!< 当たり判定有効時間の残り
         float cooldownTimer   = 0.0f;     //!< クールダウンの残り
+
+        bool  isAttacking = false;    //!< 攻撃アニメーション再生中か（PlayerAnimationSystemが毎フレームセットする）。
+                                       //!< trueの間はfloatEnabledによる浮遊演出を止め、attackHandTrackingWeightで手に追従させる
     };
 }    // namespace ActionGame::ECS

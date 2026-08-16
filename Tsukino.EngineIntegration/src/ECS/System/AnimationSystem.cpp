@@ -9,6 +9,7 @@
 #include <Tsukino/BuiltIn/ECS/Component/AnimationControllerComponent.hpp>
 #include <Tsukino/BuiltIn/ECS/Component/SkeletonOutputComponent.hpp>
 #include <Tsukino/BuiltIn/ECS/Component/NodeWorldPoseComponent.hpp>
+#include <Tsukino/BuiltIn/ECS/Component/NodeWorldMatrixComponent.hpp>
 #include <Tsukino/BuiltIn/ECS/Component/SpringBoneComponent.hpp>
 #include <Tsukino/Engine/Asset/AssetManager.hpp>
 #include <Tsukino/Engine/Asset/Model/ModelAsset.hpp>
@@ -161,7 +162,10 @@ namespace Tsukino::BuiltIn::ECS {
             float ticks    = player.elapsed_time * animData.ticksPerSecond;
             float animTime = std::fmod(ticks, animData.duration);
             if(!player.is_looping && ticks >= animData.duration) {
-                animTime = animData.duration;
+                animTime           = animData.duration;
+                player.is_finished = true;
+            } else {
+                player.is_finished = false;
             }
 
             // Outgoing anim blend logic: 遷移中は、フェードアウトしていくoutgoingクリップを
@@ -422,6 +426,18 @@ namespace Tsukino::BuiltIn::ECS {
                         }
                     }
                 }
+            }
+
+            //-------------------------------------------------------------
+            // 他エンティティ（武器のボーンソケットアタッチ等）から参照できるよう、
+            // 各ノードのスケール込みグローバル行列を公開する（揺れ物補正後の最終値。
+            // これがそのままスキニングにも使われるため、見た目と完全に一致する）
+            //-------------------------------------------------------------
+            {
+                auto& matrixOut = registry.HasComponent<NodeWorldMatrixComponent>(entity)
+                                       ? registry.GetComponent<NodeWorldMatrixComponent>(entity)
+                                       : registry.AddComponent<NodeWorldMatrixComponent>(entity);
+                matrixOut.matrices = globalNodeMatrices;
             }
 
             //-------------------------------------------------------------
