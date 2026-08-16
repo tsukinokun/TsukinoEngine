@@ -56,6 +56,15 @@ namespace ActionGame::ECS {
                       PlayerComponent&                                player,
                       Tsukino::BuiltIn::ECS::CharacterControllerComponent& cc) {
             //-------------------------------------------------------------
+            // 攻撃中か（前フレームにPlayerAnimationSystemが確定した値）を取得。
+            // 攻撃モーション中は移動方向への向き直しを止める
+            //-------------------------------------------------------------
+            bool isAttacking = false;
+            if(player.weaponEntity != entt::null && registry.HasComponent<WeaponComponent>(player.weaponEntity)) {
+                isAttacking = registry.GetComponent<WeaponComponent>(player.weaponEntity).isAttacking;
+            }
+
+            //-------------------------------------------------------------
             // 移動方向の入力を取得（カメラの向きを基準にしたXZ平面）
             //-------------------------------------------------------------
             hlslpp::float3 moveDir = hlslpp::float3(0.0f, 0.0f, 0.0f);
@@ -80,12 +89,14 @@ namespace ActionGame::ECS {
                 // CharacterControllerComponentへ水平方向の希望移動速度を渡す
                 cc.moveInput = moveDir * currentSpeed;
 
-                // 移動方向へ向き直す（瞬時に向かず、slerpで滑らかに補間する）
-                float               yawRad         = std::atan2(moveDir.x, moveDir.z);
-                hlslpp::quaternion targetRotation = hlslpp::quaternion::rotation_y(yawRad);
-                float               turnT          = 1.0f - std::exp(-player.turnLerpSpeed * deltaTime);
-                transform.rotation                 = hlslpp::slerp(transform.rotation, targetRotation, turnT);
-                transform.dirty                     = true;
+                if(!isAttacking) {
+                    // 移動方向へ向き直す（瞬時に向かず、slerpで滑らかに補間する）
+                    float               yawRad         = std::atan2(moveDir.x, moveDir.z);
+                    hlslpp::quaternion targetRotation = hlslpp::quaternion::rotation_y(yawRad);
+                    float               turnT          = 1.0f - std::exp(-player.turnLerpSpeed * deltaTime);
+                    transform.rotation                 = hlslpp::slerp(transform.rotation, targetRotation, turnT);
+                    transform.dirty                     = true;
+                }
             } else {
                 player.isSprinting = false;
                 cc.moveInput         = hlslpp::float3(0.0f, 0.0f, 0.0f);
