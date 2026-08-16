@@ -75,7 +75,13 @@ namespace ActionGame::ECS {
                 const hlslpp::quaternion& gripRotOffset   = weapon.isAttacking ? weapon.attackGripRotationOffset : weapon.gripRotationOffset;
 
                 // ボーンが解決できていれば手のボーンへアタッチする。できなければ従来通り
-                // ルートTransformへ固定オフセットで追従させる（フォールバック）
+                // ルートTransformへ固定オフセットで追従させる（フォールバック）。
+                // ここではtransformへ直接書き込まず、まず目標位置・姿勢を求める
+                // （攻撃モーションへの出入りでgripOffset/trackingWeightが瞬時に切り替わっても
+                //   目標そのものが動くだけで、実際の反映は末尾のexp減衰補間に任せるため）
+                hlslpp::float3     targetPosition = transform.position;
+                hlslpp::quaternion targetRotation = transform.rotation;
+
                 bool attachedToBone = false;
                 if(weapon.handBoneNodeIndex != UINT32_MAX
                    && registry.HasComponent<Tsukino::BuiltIn::ECS::NodeWorldMatrixComponent>(weapon.owner)) {
@@ -102,18 +108,16 @@ namespace ActionGame::ECS {
                         hlslpp::quaternion worldRot = hlslpp::slerp(ownerTransform.rotation, handWorldRot, trackingWeight);
 
                         // 握り位置・向きの微調整（WeaponComponentのオフセットをボーンローカル空間で適用）
-                        transform.position = worldPos + hlslpp::mul(gripOffset, worldRot);
-                        transform.rotation = hlslpp::mul(gripRotOffset, worldRot);
-                        transform.dirty     = true;
-                        attachedToBone       = true;
+                        targetPosition = worldPos + hlslpp::mul(gripOffset, worldRot);
+                        targetRotation = hlslpp::mul(gripRotOffset, worldRot);
+                        attachedToBone  = true;
                     }
                 }
 
                 if(!attachedToBone) {
                     hlslpp::float3 rotatedOffset = hlslpp::mul(ownerTransform.rotation, gripOffset);
-                    transform.position           = ownerTransform.position + rotatedOffset;
-                    transform.rotation           = hlslpp::mul(gripRotOffset, ownerTransform.rotation);
-                    transform.dirty              = true;
+                    targetPosition                = ownerTransform.position + rotatedOffset;
+                    targetRotation                = hlslpp::mul(gripRotOffset, ownerTransform.rotation);
                 }
 
                 // 手に持つのではなく所有者の周りをふわふわ浮遊させる演出
@@ -126,27 +130,34 @@ namespace ActionGame::ECS {
                     // 姿勢は所有者の向き（旋回）やボーン姿勢の影響を受けないよう固定する。
                     // gripRotationOffsetは「手に持つ」ときの握り角度調整用のオフセットで、
                     // モデル自体がエクスポート時点で既に縦向き（Y-up）のため、浮遊時には適用しない
-                    transform.rotation = hlslpp::quaternion(0.0f, 0.0f, 0.0f, 1.0f);
+                    targetRotation = hlslpp::quaternion(0.0f, 0.0f, 0.0f, 1.0f);
 
                     // 上下方向の漂い（ワールドYはどの向きでも共通なのでそのまま加算）
                     float bobOffset = std::sin(weapon.floatTime * weapon.floatBobSpeed) * weapon.floatBobAmplitude;
-                    transform.position.y += bobOffset;
+                    targetPosition.y += bobOffset;
 
                     // 左右・前後方向の漂い。所有者のローカル空間で計算してからownerの向きで回転することで、
                     // 所有者に対する相対的な漂い方がどの向きでも同じになるようにする
                     hlslpp::float3 localDrift(std::sin(weapon.floatTime * weapon.floatDriftSpeed) * weapon.floatDriftAmplitude,
                                               0.0f,
                                               std::cos(weapon.floatTime * weapon.floatDriftSpeed * 0.7f) * weapon.floatDriftAmplitude);
-                    transform.position += hlslpp::mul(localDrift, ownerTransform.rotation);
+                    targetPosition += hlslpp::mul(localDrift, ownerTransform.rotation);
 
                     // 姿勢はほぼ縦向きを保ったまま、わずかに前後・左右へ揺れるだけ（旋回はしない）
                     float               swayX = std::sin(weapon.floatTime * weapon.floatSwaySpeed) * weapon.floatSwayAngle;
                     float               swayZ = std::cos(weapon.floatTime * weapon.floatSwaySpeed * 0.8f) * weapon.floatSwayAngle;
                     hlslpp::quaternion sway   = hlslpp::mul(hlslpp::quaternion::rotation_x(swayX), hlslpp::quaternion::rotation_z(swayZ));
-                    transform.rotation         = hlslpp::mul(sway, transform.rotation);
-
-                    transform.dirty = true;
+                    targetRotation             = hlslpp::mul(sway, targetRotation);
                 }
+
+                // 攻撃モーションへの出入りやフォールバック切り替えで目標位置・姿勢が
+                // 瞬時に変わっても瞬間移動しないよう、指数減衰で現在値から追従させる
+                // （PlayerSystem.cppの向き直し補間と同じ手法。フレームレート非依存）
+                float positionLerpT = 1.0f - std::exp(-weapon.attachPositionLerpSpeed * deltaTime);
+                float rotationLerpT = 1.0f - std::exp(-weapon.attachRotationLerpSpeed * deltaTime);
+                transform.position   = hlslpp::lerp(transform.position, targetPosition, positionLerpT);
+                transform.rotation   = hlslpp::slerp(transform.rotation, targetRotation, rotationLerpT);
+                transform.dirty       = true;
             }
 
             if(weapon.cooldownTimer > 0.0f) {

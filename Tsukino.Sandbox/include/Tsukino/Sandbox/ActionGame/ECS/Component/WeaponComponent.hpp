@@ -75,5 +75,13 @@ namespace ActionGame::ECS {
 
         bool  isAttacking = false;    //!< 攻撃アニメーション再生中か（PlayerAnimationSystemが毎フレームセットする）。
                                        //!< trueの間はfloatEnabledによる浮遊演出を止め、attackHandTrackingWeightで手に追従させる
+
+        //-------------------------------------------------------------
+        // 攻撃モーションへの出入りやフォールバック切り替えでオフセットが瞬時に変わっても
+        // 武器が瞬間移動しないよう、目標位置・姿勢へ指数減衰で追従させる際の速度
+        // （大きいほど素早く吸い付く。PlayerComponent::turnLerpSpeedと同じ考え方）
+        //-------------------------------------------------------------
+        float attachPositionLerpSpeed = 18.0f;    //!< 目標位置への追従速度
+        float attachRotationLerpSpeed = 18.0f;    //!< 目標姿勢への追従速度
     };
 }    // namespace ActionGame::ECS
