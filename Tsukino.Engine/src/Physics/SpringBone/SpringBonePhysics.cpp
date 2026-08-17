@@ -337,12 +337,8 @@ namespace Tsukino::Physics::SpringBonePhysics {
                     hlslpp::float3 colliderPos = collider.localOffset;
                     if(collider.attachNodeIndex != UINT32_MAX && collider.attachNodeIndex < animatedPoses.size()) {
                         const WorldPose& pose = animatedPoses[collider.attachNodeIndex];
-                        // ============================================================
-                        // [BUG NOTE] コライダー位置の回転適用
-                        // hlslpp::mul(localOffset, rotation) の順序が正しいか要検証
-                        // hlslpp++のmul(A,B)は「Aを適用してからBを適用する」仕様
-                        // ベクトルにクォータニオンを掛ける場合は mul(rotation, vector) が正しい可能性
-                        // ============================================================
+                        // ベクトルをクォータニオンで回すのは mul(vector, rotation)（前方回転）が正しい。
+                        // mul(rotation, vector) は _hlslpp_quat_mul_vec_inv_ps を呼ぶ「逆回転」の別関数なので誤り
                         colliderPos           = pose.position + hlslpp::mul(collider.localOffset, pose.rotation);
                     }
 
@@ -372,8 +368,11 @@ namespace Tsukino::Physics::SpringBonePhysics {
             hlslpp::float3 animRestDir  = hlslpp::normalize(animatedTargetPos - parentSimPos);
             hlslpp::float3 correctedDir = hlslpp::normalize(newPos - parentSimPos);
 
+            // swingはワールド空間の方向ベクトルから作られる「ワールド空間の差分回転」なので、
+            // アニメのワールド回転の“後”に適用する。hlsl++のクォータニオン積は
+            // mul(A, B) = 「Bを適用してからAを適用する」（行列積とは逆）ため、後から効かせる側を左に置く
             hlslpp::quaternion swing = QuatFromToRotation(animRestDir, correctedDir);
-            node.correctedRotation   = hlslpp::normalize(hlslpp::mul(animatedPoses[node.nodeIndex].rotation, swing));
+            node.correctedRotation   = hlslpp::normalize(hlslpp::mul(swing, animatedPoses[node.nodeIndex].rotation));
         }
     }
 

@@ -105,9 +105,18 @@ namespace ActionGame::ECS {
                             ownerMatrices.matrices[weapon.handBoneNodeIndex], handBonePos, handBoneRot);
 
                         // モデルローカルのボーン姿勢 → ワールド空間（所有者のTransformを反映）
+                        //
+                        // 【重要】hlsl++のクォータニオン積は行列積と合成順が逆。
+                        //   「Aを適用してからBを適用する」合成は、
+                        //     行列          : hlslpp::mul(A, B)   （行ベクトル規約。TransformSystem等と同じ）
+                        //     クォータニオン: hlslpp::mul(B, A)   （Hamilton積。親を左に置く）
+                        //   （hlslpp本体のunit_tests_quaternion.cpp「M_AB = M_A * M_B / Q_AB = Q_B * Q_A」参照）
+                        //   ここを行列と同じ順で書くと、実効的にボーンの回転軸が所有者の向きの逆回転で
+                        //   回ってしまい、「攻撃の振りの軌道がキャラクターの向きによって変わる」不具合になる。
+                        //   なおベクトルの回転は mul(v, q) が前方回転で、mul(q, v) は逆回転（別関数）なので混同しない
                         hlslpp::float3 handWorldPos =
                             ownerTransform.position + hlslpp::mul(handBonePos * ownerTransform.scale, ownerTransform.rotation);
-                        hlslpp::quaternion handWorldRot = hlslpp::mul(handBoneRot, ownerTransform.rotation);
+                        hlslpp::quaternion handWorldRot = hlslpp::mul(ownerTransform.rotation, handBoneRot);
 
                         // trackingWeightで手ボーン姿勢への追従度を位置・回転の両方に一貫して適用する
                         // （アニメーションクリップのボーン姿勢が信頼できない/振り幅が大きい場合に下げて使う。
@@ -115,21 +124,25 @@ namespace ActionGame::ECS {
                         hlslpp::float3     worldPos = hlslpp::lerp(ownerTransform.position, handWorldPos, trackingWeight);
                         hlslpp::quaternion worldRot = hlslpp::slerp(ownerTransform.rotation, handWorldRot, trackingWeight);
 
-                        // 握り位置・向きの微調整（WeaponComponentのオフセットをボーンローカル空間で適用）
+                        // 握り位置・向きの微調整（WeaponComponentのオフセットをボーンローカル空間で適用）。
+                        // gripRotOffsetは「手のローカル軸まわりの補正」なので、上と同じ理由で
+                        // 親（worldRot）を左に置く（逆にするとワールド軸まわりの補正になってしまう）
                         targetPosition = worldPos + hlslpp::mul(gripOffset, worldRot);
-                        targetRotation = hlslpp::mul(gripRotOffset, worldRot);
+                        targetRotation = hlslpp::mul(worldRot, gripRotOffset);
                         attachedToBone  = true;
                     }
                 }
 
                 if(!attachedToBone) {
-                    hlslpp::float3 rotatedOffset = hlslpp::mul(ownerTransform.rotation, gripOffset);
+                    // ボーン追従側（上）と同じ規約に揃える。
+                    // mul(q, v)は逆回転になる別関数なので、位置オフセットの回転はmul(v, q)を使う
+                    hlslpp::float3 rotatedOffset = hlslpp::mul(gripOffset, ownerTransform.rotation);
                     targetPosition                = ownerTransform.position + rotatedOffset;
-                    targetRotation                = hlslpp::mul(gripRotOffset, ownerTransform.rotation);
+                    targetRotation                = hlslpp::mul(ownerTransform.rotation, gripRotOffset);
                 }
 
                 // 手に持つのではなく所有者の周りをふわふわ浮遊させる演出
-                // （旋回はさせず、localOffsetの位置を基準に上下・左右前後へゆったり漂わせ、
+                // （localOffsetの位置を基準に上下・左右前後へゆったり漂わせ、
                 //   姿勢もわずかに前後へ傾けるだけに留めてほぼ縦向きを保つ）。
                 // isAttackingでの完全な有効/無効切り替えはやめ、常に浮遊姿勢・漂いを計算した上で
                 // attackBlendによりボーン追従の姿勢と連続的にブレンドする（攻撃開始/終了の瞬間に
@@ -137,12 +150,18 @@ namespace ActionGame::ECS {
                 if(weapon.floatEnabled) {
                     weapon.floatTime += deltaTime;
 
-                    // 姿勢はほぼ縦向きを保ったまま、わずかに前後・左右へ揺れるだけ（旋回はしない）。
+                    // 所有者に対してほぼ縦向きを保ったまま、わずかに前後・左右へ揺れるだけ。
                     // gripRotationOffsetは「手に持つ」ときの握り角度調整用のオフセットで、
-                    // モデル自体がエクスポート時点で既に縦向き（Y-up）のため、浮遊時には適用しない
+                    // モデル自体がエクスポート時点で既に縦向き（Y-up）のため、浮遊時には適用しない。
+                    //
+                    // 揺れは所有者のローカル空間で作ってから所有者の向きで回す（漂いの位置と同じ考え方）。
+                    // ワールド絶対姿勢のままにすると、下のattackBlendによるブレンドが
+                    // 「浮遊姿勢→手ボーン姿勢」へ辿る経路がキャラクターの向きごとに変わってしまい、
+                    // 攻撃の入り／抜けの動きが向きによって違って見える原因になる
                     float               swayX = std::sin(weapon.floatTime * weapon.floatSwaySpeed) * weapon.floatSwayAngle;
                     float               swayZ = std::cos(weapon.floatTime * weapon.floatSwaySpeed * 0.8f) * weapon.floatSwayAngle;
-                    hlslpp::quaternion floatRotation = hlslpp::mul(hlslpp::quaternion::rotation_x(swayX), hlslpp::quaternion::rotation_z(swayZ));
+                    hlslpp::quaternion localSway    = hlslpp::mul(hlslpp::quaternion::rotation_x(swayX), hlslpp::quaternion::rotation_z(swayZ));
+                    hlslpp::quaternion floatRotation = hlslpp::mul(ownerTransform.rotation, localSway);
 
                     // attackBlendが1に近いほどボーン追従の姿勢（targetRotation）、0に近いほど浮遊姿勢へ
                     targetRotation = hlslpp::slerp(floatRotation, targetRotation, weapon.attackBlend);

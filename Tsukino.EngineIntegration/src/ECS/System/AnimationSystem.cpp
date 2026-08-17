@@ -277,14 +277,19 @@ namespace Tsukino::BuiltIn::ECS {
                     globalNodeMatrices[i] = localMat;
                 }
 
-                // ワールド姿勢（位置・回転のみ）も同じ合成順（子のローカルが先、親が後）で並行計算
-                // mul(A,B) は「Aを適用してからBを適用する」規則（globalNodeMatricesの
-                //   mul(localMat, parentWorld)と同じ規則）に合わせてある
+                // ワールド姿勢（位置・回転のみ）も同じ合成（子のローカルが先、親が後）で並行計算。
+                //
+                // 【重要】hlsl++は行列とクォータニオンで合成順の規約が逆。
+                //   「ローカルを適用してから親を適用する」合成は、
+                //     行列          : hlslpp::mul(localMat, parentWorld)  （上のglobalNodeMatricesと同じ）
+                //     クォータニオン: hlslpp::mul(parentRot, localRot)    （Hamilton積。親を左に置く）
+                //   （hlslpp本体のunit_tests_quaternion.cpp「M_AB = M_A * M_B / Q_AB = Q_B * Q_A」参照）
+                //   ベクトルの回転は mul(v, q) が前方回転（mul(q, v) は逆回転の別関数）
                 const bool hasParent = (node.parentIndex != UINT32_MAX && node.parentIndex < worldPoses.size());
                 if(hasParent) {
                     const auto& parentPose = worldPoses[node.parentIndex];
 
-                    worldPoses[i].rotation = hlslpp::mul(rot, parentPose.rotation);
+                    worldPoses[i].rotation = hlslpp::mul(parentPose.rotation, rot);
                     worldPoses[i].position = parentPose.position + hlslpp::mul(pos, parentPose.rotation);
                 } else {
                     worldPoses[i].rotation = rot;
