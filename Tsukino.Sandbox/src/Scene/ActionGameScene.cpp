@@ -272,10 +272,11 @@ namespace Tsukino::Sandbox {
         Tsukino::BuiltIn::ECS::SkeletonOutputComponent& skeletonOutput = registry.AddComponent<Tsukino::BuiltIn::ECS::SkeletonOutputComponent>(playerEntity);
 
         //--------------------------------------------------------------
-        // 武器エンティティ生成（warhammer.fbxをプレイヤーの右手ボーンにアタッチする）
-        // 位置・回転はCombatSystemが毎フレーム所有者（プレイヤー）の手ボーンへ追従させる
+        // 武器エンティティ生成（プレイヤーの周りをふわふわ浮遊させる演出）。
+        // 複数の武器を同時に浮遊させられるよう、1本分の生成処理を共通化する。
+        // 位置・回転はCombatSystemが毎フレーム所有者（プレイヤー）を基準に計算する
         //--------------------------------------------------------------
-        {
+        auto spawnFloatingWeapon = [&](const Tsukino::Core::Path& modelPath, const hlslpp::float3& localOffset) -> Tsukino::ECS::Entity {
             Tsukino::ECS::Entity weaponEntity = m_scene.CreateEntity();
 
             Tsukino::BuiltIn::ECS::TransformComponent& weaponTransform = registry.AddComponent<Tsukino::BuiltIn::ECS::TransformComponent>(weaponEntity);
@@ -285,8 +286,7 @@ namespace Tsukino::Sandbox {
             weaponTransform.dirty                                      = true;
             weaponTransform.parent                                     = entt::null;
 
-            Tsukino::Asset::AssetHandle weaponModelHandle =
-                context->assetManager->Load(Tsukino::Core::Path("Tsukino.Sandbox/Assets/ActionGameSample/Models/warhammer.fbx"));
+            Tsukino::Asset::AssetHandle weaponModelHandle = context->assetManager->Load(modelPath);
             Tsukino::BuiltIn::ECS::ModelComponent& weaponModel = registry.AddComponent<Tsukino::BuiltIn::ECS::ModelComponent>(weaponEntity);
             weaponModel.modelHandle                            = weaponModelHandle;
             weaponModel.visible                                = true;
@@ -304,7 +304,7 @@ namespace Tsukino::Sandbox {
             // 攻撃時：PlayerAnimationSystemがWeaponComponent::isAttackingをセットし、CombatSystemはこの間
             // floatEnabledを無視してattackHandTrackingWeight（既定1.0=完全追従）でAttackクリップの
             // 右手ボーン姿勢へ追従させる（Idleと違い、Attackクリップ自体の腕の振りに合わせて動くため）。
-            weapon.localOffset              = hlslpp::float3(35.0f, 170.0f, -20.0f);
+            weapon.localOffset              = localOffset;
             weapon.gripRotationOffset       = hlslpp::quaternion::rotation_x(1.5708f);
             weapon.handTrackingWeight       = 0.0f;
             weapon.attackHandTrackingWeight = 1.0f;
@@ -316,9 +316,21 @@ namespace Tsukino::Sandbox {
             weapon.attackLocalOffset        = hlslpp::float3(0.0f, 0.0f, 0.0f);
             weapon.floatEnabled             = true;
 
-            // プレイヤーに装備中の武器エンティティを紐付ける（PlayerSystemが攻撃入力時に参照する）
-            player.weaponEntity = weaponEntity;
-        }
+            return weaponEntity;
+        };
+
+        // warhammer：プレイヤーの右肩斜め上で浮遊させ、装備中の武器としてPlayerComponentに紐付ける
+        // （PlayerSystemが攻撃入力時にplayer.weaponEntityを参照する）
+        Tsukino::ECS::Entity warhammerEntity = spawnFloatingWeapon(
+            Tsukino::Core::Path("Tsukino.Sandbox/Assets/ActionGameSample/Models/warhammer.fbx"),
+            hlslpp::float3(35.0f, 170.0f, -20.0f));
+        player.weaponEntity = warhammerEntity;
+
+        // greatsword：warhammerと左右反対側（左肩斜め上）で浮遊させ、重ならないようにする。
+        // 現時点では見た目の浮遊のみで、装備切り替え（player.weaponEntityの差し替え）は未実装
+        spawnFloatingWeapon(
+            Tsukino::Core::Path("Tsukino.Sandbox/Assets/ActionGameSample/Models/greatsword.fbx"),
+            hlslpp::float3(-35.0f, 170.0f, -20.0f));
 
         //--------------------------------------------------------------
         // 敵エンティティ生成（Phase A: 本番の敵アセットが無いため、既存のBlock.fbxを仮の敵体として流用）
