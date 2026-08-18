@@ -177,6 +177,12 @@ namespace ActionGame::ECS {
                                               0.0f,
                                               std::cos(weapon.floatTime * weapon.floatDriftSpeed * 0.7f) * weapon.floatDriftAmplitude);
                     targetPosition += hlslpp::mul(localDrift, ownerTransform.rotation) * (1.0f - weapon.attackBlend);
+
+                    // 選択中の武器だけ高く浮かせて、どれが使用中かを視覚的に示す
+                    // （attachPositionLerpSpeedによる指数減衰で自然に上下するので、切り替え時のジャンプ処理は不要）
+                    if(weapon.floatSelected) {
+                        targetPosition.y += weapon.floatSelectedHeightBoost * (1.0f - weapon.attackBlend);
+                    }
                 }
 
                 // 攻撃モーションへの出入りやフォールバック切り替えで目標位置・姿勢が

@@ -319,18 +319,22 @@ namespace Tsukino::Sandbox {
             return weaponEntity;
         };
 
-        // warhammer：プレイヤーの右肩斜め上で浮遊させ、装備中の武器としてPlayerComponentに紐付ける
-        // （PlayerSystemが攻撃入力時にplayer.weaponEntityを参照する）
+        // warhammer：プレイヤーの右肩斜め上で浮遊させる
         Tsukino::ECS::Entity warhammerEntity = spawnFloatingWeapon(
             Tsukino::Core::Path("Tsukino.Sandbox/Assets/ActionGameSample/Models/warhammer.fbx"),
             hlslpp::float3(35.0f, 170.0f, -20.0f));
-        player.weaponEntity = warhammerEntity;
 
-        // greatsword：warhammerと左右反対側（左肩斜め上）で浮遊させ、重ならないようにする。
-        // 現時点では見た目の浮遊のみで、装備切り替え（player.weaponEntityの差し替え）は未実装
-        spawnFloatingWeapon(
+        // greatsword：warhammerと左右反対側（左肩斜め上）で浮遊させ、重ならないようにする
+        Tsukino::ECS::Entity greatswordEntity = spawnFloatingWeapon(
             Tsukino::Core::Path("Tsukino.Sandbox/Assets/ActionGameSample/Models/greatsword.fbx"),
             hlslpp::float3(-35.0f, 170.0f, -20.0f));
+
+        // 切り替え対象の武器一覧（PlayerSystemがマウスホイール入力でここを順送りする）。
+        // 初期状態はwarhammerを選択中とし、装備中の武器としてPlayerComponentに紐付け、視覚的にも高く浮かせる
+        player.weaponInventory     = {warhammerEntity, greatswordEntity};
+        player.selectedWeaponIndex = 0;
+        player.weaponEntity         = warhammerEntity;
+        registry.GetComponent<ActionGame::ECS::WeaponComponent>(warhammerEntity).floatSelected = true;
 
         //--------------------------------------------------------------
         // 敵エンティティ生成（Phase A: 本番の敵アセットが無いため、既存のBlock.fbxを仮の敵体として流用）

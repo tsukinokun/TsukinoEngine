@@ -63,6 +63,10 @@ namespace ActionGame::ECS {
         float floatSwaySpeed      = 1.1f;      //!< 姿勢の揺れの角速度（rad/sec）
         float floatTime            = 0.0f;      //!< 浮遊演出用の経過時間（CombatSystemが毎フレーム加算する）
 
+        bool  floatSelected            = false;    //!< 選択中の武器か。trueの間は浮遊位置を通常より高くする。
+                                                     //!< PlayerSystemが武器切り替え時に更新する
+        float floatSelectedHeightBoost = 40.0f;    //!< floatSelected中に追加で浮かせる高さ
+
         float damage         = 20.0f;    //!< 命中時に与えるダメージ
         float range           = 90.0f;   //!< 攻撃判定の到達距離（武器位置からの単純な距離判定に使用）
         float activeDuration = 0.25f;    //!< 攻撃入力後、当たり判定が有効な時間（秒）

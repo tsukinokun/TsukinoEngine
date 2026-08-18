@@ -130,6 +130,28 @@ namespace ActionGame::ECS {
                 WeaponComponent& weapon = registry.GetComponent<WeaponComponent>(player.weaponEntity);
                 weapon.attackRequested  = true;
             }
+
+            //-------------------------------------------------------------
+            // マウスホイールで装備中の武器を切り替える（1ノッチ=±1.0）。
+            // 攻撃中に切り替わると持ち替えの見た目が破綻するため、攻撃中は入力を無視する
+            // （isAttacking/attackTriggeredThisFrameは上の向き直り抑制と同じ判定を流用）
+            //-------------------------------------------------------------
+            float wheelDelta = inputSystem->GetWheelDelta();
+            if(!isAttacking && !attackTriggeredThisFrame &&
+               wheelDelta != 0.0f && player.weaponInventory.size() > 1) {
+                int direction   = wheelDelta > 0.0f ? 1 : -1;
+                int weaponCount = static_cast<int>(player.weaponInventory.size());
+
+                // 今まで選択していた武器の浮遊ブーストを解除してから、新しい武器へ差し替える
+                if(registry.HasComponent<WeaponComponent>(player.weaponEntity))
+                    registry.GetComponent<WeaponComponent>(player.weaponEntity).floatSelected = false;
+
+                player.selectedWeaponIndex = (player.selectedWeaponIndex + direction + weaponCount) % weaponCount;
+                player.weaponEntity         = player.weaponInventory[player.selectedWeaponIndex];
+
+                if(registry.HasComponent<WeaponComponent>(player.weaponEntity))
+                    registry.GetComponent<WeaponComponent>(player.weaponEntity).floatSelected = true;
+            }
         });
     }
 }    // namespace ActionGame::ECS
