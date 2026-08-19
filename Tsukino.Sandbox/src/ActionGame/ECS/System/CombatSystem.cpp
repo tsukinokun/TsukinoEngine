@@ -185,14 +185,54 @@ namespace ActionGame::ECS {
                     }
                 }
 
-                // 攻撃モーションへの出入りやフォールバック切り替えで目標位置・姿勢が
-                // 瞬時に変わっても瞬間移動しないよう、指数減衰で現在値から追従させる
-                // （PlayerSystem.cppの向き直し補間と同じ手法。フレームレート非依存）
-                float positionLerpT = 1.0f - std::exp(-weapon.attachPositionLerpSpeed * deltaTime);
-                float rotationLerpT = 1.0f - std::exp(-weapon.attachRotationLerpSpeed * deltaTime);
-                transform.position   = hlslpp::lerp(transform.position, targetPosition, positionLerpT);
-                transform.rotation   = hlslpp::slerp(transform.rotation, targetRotation, rotationLerpT);
-                transform.dirty       = true;
+                // gripPointLocalが手のひら位置（targetPosition）に来るよう、姿勢確定後に
+                // 位置側だけを引く。姿勢（targetRotation）で回してから引くことで、角度調整と
+                // 位置調整を独立に行える（角度を振るたびに位置オフセットを取り直さずに済む）。
+                // 攻撃中のみ効かせたいのでattackBlendで重み付けする（浮遊演出時は影響しない）
+                targetPosition -= hlslpp::mul(weapon.gripPointLocal * transform.scale, targetRotation) * weapon.attackBlend;
+
+                // 攻撃中、目標へ十分近づいたら指数減衰をやめて目標へ直接スナップする（ビタ置き）。
+                // 指数減衰は原理上どれだけ速くしても定常的な遅れが残り（速度/lerpSpeed相当）、
+                // 速い振りでは「手から遅れて武器がついてくる」ように見えてしまうため、
+                // もう遅れが気にならない距離・角度まで来た時点で追従方式を切り替える。
+                // ボーンが解決できていない（フォールバック）間はスナップしない
+                bool canSnap = weapon.isAttacking && attachedToBone;
+                if(!canSnap) {
+                    weapon.isSnapped = false;
+                } else if(!weapon.isSnapped) {
+                    float distance = hlslpp::length(targetPosition - transform.position);
+
+                    // クォータニオンの内積 = cos(角度差/2)。二重被覆（qと-qが同じ回転）を
+                    // 考慮して絶対値を取ってから比較する
+                    float rotDot = transform.rotation.x * targetRotation.x + transform.rotation.y * targetRotation.y
+                                   + transform.rotation.z * targetRotation.z + transform.rotation.w * targetRotation.w;
+                    float angleDot = std::cos(weapon.attackSnapAngleDeg * (3.14159265f / 180.0f) * 0.5f);
+
+                    if(distance <= weapon.attackSnapDistance && std::abs(rotDot) >= angleDot) {
+                        weapon.isSnapped = true;
+                    }
+                }
+
+                if(weapon.isSnapped) {
+                    // ビタ置き：手のひらの動きにそのまま一致させる（遅れなし）
+                    transform.position = targetPosition;
+                    transform.rotation = targetRotation;
+                } else {
+                    // スナップに至るまでは指数減衰で目標へ追従させる。攻撃モーションへの出入りや
+                    // フォールバック切り替えで目標位置・姿勢が瞬時に変わっても瞬間移動しないための
+                    // ものだが、攻撃中はattackBlendによりattackApproachLerpSpeedへ連続的に速度を
+                    // 上げ、スナップ圏内へ素早く入れるようにする
+                    // （PlayerSystem.cppの向き直し補間と同じ手法。フレームレート非依存）
+                    float positionSpeed = weapon.attachPositionLerpSpeed
+                                           + (weapon.attackApproachLerpSpeed - weapon.attachPositionLerpSpeed) * weapon.attackBlend;
+                    float rotationSpeed = weapon.attachRotationLerpSpeed
+                                           + (weapon.attackApproachLerpSpeed - weapon.attachRotationLerpSpeed) * weapon.attackBlend;
+                    float positionLerpT = 1.0f - std::exp(-positionSpeed * deltaTime);
+                    float rotationLerpT = 1.0f - std::exp(-rotationSpeed * deltaTime);
+                    transform.position   = hlslpp::lerp(transform.position, targetPosition, positionLerpT);
+                    transform.rotation   = hlslpp::slerp(transform.rotation, targetRotation, rotationLerpT);
+                }
+                transform.dirty = true;
             }
 
             if(weapon.cooldownTimer > 0.0f) {

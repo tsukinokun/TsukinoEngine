@@ -19,6 +19,10 @@
 #include <Tsukino/Sandbox/ActionGame/ECS/System/TpsCameraSystem.hpp>
 #include <Tsukino/Sandbox/ActionGame/ECS/System/PlayerAnimationSystem.hpp>
 #include <Tsukino/Sandbox/ActionGame/ECS/System/PickupSystem.hpp>
+#ifdef _DEBUG
+#include <Tsukino/Sandbox/ActionGame/ECS/System/WeaponGripDebugSystem.hpp>
+#include <Tsukino/Sandbox/ActionGame/ECS/Component/WeaponGripDebugComponent.hpp>
+#endif
 
 #include <Tsukino/EngineIntegration/EngineAPI.hpp>
 #include <Tsukino/EngineIntegration/EngineContext.hpp>
@@ -91,6 +95,9 @@ namespace Tsukino::Sandbox {
             Transform = 0,    // 一番最初に計算する
             Movement,         // プレイヤー入力・敵AIの移動をTransformの後、Physicsの前に反映する
             Gameplay,         // ダメージ処理・アニメーション更新は移動確定後に行う
+            WeaponGripDebug,  // （デバッグビルドのみ）握り位置調整はisAttackingを上書きするため、
+                              // PlayerAnimationSystem（Gameplay）が今フレームのisAttackingを確定させた後、
+                              // CombatSystem（WeaponAttach）がそれを読む前に割り込む
             WeaponAttach,     // 武器の追従（ボーンアタッチ）はAnimationSystemが今フレームのボーン姿勢を書き込んだ後に行う
             TransformLate,    // Movement/WeaponAttachで更新したposition/rotationをworldMatrixへ反映する2回目のTransformSystem。
                               // これが無いと、このフレームで更新された所有者の回転がworldMatrix（描画に使われる）へ
@@ -115,6 +122,11 @@ namespace Tsukino::Sandbox {
         m_scene.AddSystem(std::make_shared<ActionGame::ECS::EnemySystem>(), (int)SystemPriority::Movement);
         m_scene.AddSystem(std::make_shared<ActionGame::ECS::PlayerAnimationSystem>(), (int)SystemPriority::Gameplay);
         m_scene.AddSystem(std::make_shared<Tsukino::BuiltIn::ECS::AnimationSystem>(), (int)SystemPriority::Gameplay);
+#ifdef _DEBUG
+        // 武器の握り位置・角度を実機で調整するためのデバッグ操作（F6で有効化）。
+        // 詳細はWeaponGripDebugSystem.cppを参照
+        m_scene.AddSystem(std::make_shared<ActionGame::ECS::WeaponGripDebugSystem>(), (int)SystemPriority::WeaponGripDebug);
+#endif
         m_scene.AddSystem(std::make_shared<ActionGame::ECS::CombatSystem>(), (int)SystemPriority::WeaponAttach);
         m_scene.AddSystem(std::make_shared<Tsukino::BuiltIn::ECS::TransformSystem>(), (int)SystemPriority::TransformLate);
         m_scene.AddSystem(std::make_shared<ActionGame::ECS::TpsCameraSystem>(), (int)SystemPriority::Camera3D);
@@ -285,7 +297,9 @@ namespace Tsukino::Sandbox {
         // 複数の武器を同時に浮遊させられるよう、1本分の生成処理を共通化する。
         // 位置・回転はCombatSystemが毎フレーム所有者（プレイヤー）を基準に計算する
         //--------------------------------------------------------------
-        auto spawnFloatingWeapon = [&](const Tsukino::Core::Path& modelPath, const hlslpp::float3& localOffset) -> Tsukino::ECS::Entity {
+        auto spawnFloatingWeapon = [&](const Tsukino::Core::Path& modelPath, const hlslpp::float3& localOffset,
+                                       const hlslpp::float3& gripPointLocal, const hlslpp::float3& attackLocalOffset,
+                                       const hlslpp::quaternion& attackGripRotationOffset) -> Tsukino::ECS::Entity {
             Tsukino::ECS::Entity weaponEntity = m_scene.CreateEntity();
 
             Tsukino::BuiltIn::ECS::TransformComponent& weaponTransform = registry.AddComponent<Tsukino::BuiltIn::ECS::TransformComponent>(weaponEntity);
@@ -319,19 +333,25 @@ namespace Tsukino::Sandbox {
             weapon.attackHandTrackingWeight = 1.0f;
             // idleと同じく、武器メッシュのデフォルト向き（エクスポート時の軸）を握り姿勢へ補正する。
             // 未設定のままだと攻撃中だけこの補正が抜け落ち、手の回転がそのままメッシュの想定外の軸に
-            // 乗ってしまい暴れて見える原因になっていた。attackLocalOffsetはボーンソケット化した後の
-            // 実機の見た目を見ながら微調整する（手のひら付近の小さいオフセットを想定）。
-            weapon.attackGripRotationOffset = hlslpp::quaternion::rotation_x(1.5708f);
-            weapon.attackLocalOffset        = hlslpp::float3(0.0f, 0.0f, 0.0f);
+            // 乗ってしまい暴れて見える原因になっていた。gripPointLocal/attackLocalOffset/
+            // attackGripRotationOffsetはWeaponGripDebugSystem（_DEBUGビルドのF6調整モード）で
+            // 実機の見た目を確認しながら武器ごとに調整し、確定値をここへ焼き込む
+            weapon.gripPointLocal           = gripPointLocal;
+            weapon.attackGripRotationOffset = attackGripRotationOffset;
+            weapon.attackLocalOffset        = attackLocalOffset;
             weapon.floatEnabled             = true;
 
             return weaponEntity;
         };
 
-        // warhammer：プレイヤーの右肩斜め上で浮遊させる（最初から装備している唯一の武器）
+        // warhammer：プレイヤーの右肩斜め上で浮遊させる（最初から装備している唯一の武器）。
+        // 握りパラメータはWeaponGripDebugSystemで実機調整済みの値
         Tsukino::ECS::Entity warhammerEntity = spawnFloatingWeapon(
             Tsukino::Core::Path("Tsukino.Sandbox/Assets/ActionGameSample/Models/warhammer.fbx"),
-            hlslpp::float3(35.0f, 170.0f, -20.0f));
+            hlslpp::float3(35.0f, 170.0f, -20.0f),
+            hlslpp::float3(0.0f, 0.0f, 10.0f),
+            hlslpp::float3(0.0f, 0.0f, 0.0f),
+            hlslpp::quaternion(0.5f, 0.5f, -0.5f, 0.5f));
 
         // 切り替え対象の武器一覧（PlayerSystemがマウスホイール入力でここを順送りする）。
         // 初期状態はwarhammerのみ。他の武器はワールドに落ちており、Fキーで拾うとここに増える
@@ -348,7 +368,10 @@ namespace Tsukino::Sandbox {
         //--------------------------------------------------------------
         auto spawnWorldWeapon = [&](const Tsukino::Core::Path& modelPath,
                                     const hlslpp::float3&      worldPosition,
-                                    const std::wstring&        displayName) -> Tsukino::ECS::Entity {
+                                    const std::wstring&        displayName,
+                                    const hlslpp::float3&      gripPointLocal,
+                                    const hlslpp::float3&      attackLocalOffset,
+                                    const hlslpp::quaternion&  attackGripRotationOffset) -> Tsukino::ECS::Entity {
             Tsukino::ECS::Entity weaponEntity = m_scene.CreateEntity();
 
             Tsukino::BuiltIn::ECS::TransformComponent& transform = registry.AddComponent<Tsukino::BuiltIn::ECS::TransformComponent>(weaponEntity);
@@ -366,7 +389,10 @@ namespace Tsukino::Sandbox {
             weapon.owner                              = entt::null;    // 未所有＝ワールドに落ちている状態
             weapon.localOffset                        = hlslpp::float3(35.0f, 170.0f, -20.0f);
             weapon.gripRotationOffset                 = hlslpp::quaternion::rotation_x(1.5708f);
-            weapon.attackGripRotationOffset           = hlslpp::quaternion::rotation_x(1.5708f);
+            // 握りパラメータは呼び出し側で武器ごとに指定する（WeaponGripDebugSystemで実機調整した値）
+            weapon.gripPointLocal                     = gripPointLocal;
+            weapon.attackGripRotationOffset           = attackGripRotationOffset;
+            weapon.attackLocalOffset                  = attackLocalOffset;
             weapon.handTrackingWeight                 = 0.0f;
             weapon.floatEnabled                       = false;    // 拾った時にPickupSystemがtrueにする
 
@@ -378,11 +404,20 @@ namespace Tsukino::Sandbox {
             return weaponEntity;
         };
 
-        // 動作確認用に近い位置へ2本まとめて置き、「同時に範囲内でも1つだけ光る」ことを確認できるようにする
+        // 動作確認用に近い位置へ2本まとめて置き、「同時に範囲内でも1つだけ光る」ことを確認できるようにする。
+        // greatswordはwarhammerと同じ調整済み値を暫定適用（メッシュが違うため厳密には別値が必要になりうる。
+        // ずれる場合はWeaponGripDebugSystemのF6調整モードで別途詰める）
         spawnWorldWeapon(Tsukino::Core::Path("Tsukino.Sandbox/Assets/ActionGameSample/Models/greatsword.fbx"),
-                         hlslpp::float3(250.0f, 10.0f, 0.0f), L"グレートソード");
+                         hlslpp::float3(250.0f, 10.0f, 0.0f), L"グレートソード",
+                         hlslpp::float3(0.0f, 0.0f, 10.0f),
+                         hlslpp::float3(0.0f, 0.0f, 0.0f),
+                         hlslpp::quaternion(0.5f, 0.5f, -0.5f, 0.5f));
+        // warhammerは最初から装備している個体（spawnFloatingWeapon）と同じモデルのため、同じ調整済み値を使う
         spawnWorldWeapon(Tsukino::Core::Path("Tsukino.Sandbox/Assets/ActionGameSample/Models/warhammer.fbx"),
-                         hlslpp::float3(340.0f, 10.0f, 0.0f), L"ウォーハンマー");
+                         hlslpp::float3(340.0f, 10.0f, 0.0f), L"ウォーハンマー",
+                         hlslpp::float3(0.0f, 0.0f, 10.0f),
+                         hlslpp::float3(0.0f, 0.0f, 0.0f),
+                         hlslpp::quaternion(0.5f, 0.5f, -0.5f, 0.5f));
 
         //--------------------------------------------------------------
         // 敵エンティティ生成（Phase A: 本番の敵アセットが無いため、既存のBlock.fbxを仮の敵体として流用）
@@ -449,6 +484,28 @@ namespace Tsukino::Sandbox {
         // 日本語をそのまま渡してよい（旧Arial.spritefontはASCII専用でDirectXTKが例外を投げる）
 
         registry.AddComponent<ActionGame::ECS::PickupPromptComponent>(pickupPromptEntity);
+
+#ifdef _DEBUG
+        //--------------------------------------------------------------
+        // 武器の握り位置・角度を調整するデバッグHUD用エンティティ（F6で調整モードON時のみ表示）。
+        // 上の「Fキーで拾う」ラベルと同じ作り。WeaponGripDebugSystemがtextを毎フレーム書き換える
+        //--------------------------------------------------------------
+        Tsukino::ECS::Entity weaponGripDebugHudEntity = m_scene.CreateEntity();
+
+        Tsukino::BuiltIn::ECS::TransformComponent& gripHudTransform =
+            registry.AddComponent<Tsukino::BuiltIn::ECS::TransformComponent>(weaponGripDebugHudEntity);
+        gripHudTransform.position = hlslpp::float3(10.0f, 10.0f, 0.0f);    // 画面左上（生スクリーンピクセル座標）
+        gripHudTransform.scale    = hlslpp::float3(1.0f, 1.0f, 1.0f);
+        gripHudTransform.dirty    = true;
+
+        Tsukino::BuiltIn::ECS::FontComponent& gripHudFont =
+            registry.AddComponent<Tsukino::BuiltIn::ECS::FontComponent>(weaponGripDebugHudEntity);
+        gripHudFont.text   = L"";    // 空文字の間はFontRendererSystemが描画しない
+        gripHudFont.color  = hlslpp::float4(1.0f, 1.0f, 0.3f, 1.0f);
+        gripHudFont.origin = hlslpp::float2(0.0f, 0.0f);
+
+        registry.AddComponent<ActionGame::ECS::WeaponGripDebugComponent>(weaponGripDebugHudEntity);
+#endif
 
         //--------------------------------------------------------------
         // TPS（三人称視点）カメラエンティティの生成
