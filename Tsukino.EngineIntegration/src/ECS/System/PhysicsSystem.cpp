@@ -421,6 +421,30 @@ namespace Tsukino::BuiltIn::ECS {
     }
 
     //-------------------------------------------------------------
+    //! @brief  指定のカプセル形状と現在重なっている全エンティティを取得する
+    //-------------------------------------------------------------
+    std::vector<entt::entity> PhysicsSystem::OverlapCapsule(const hlslpp::float3& center, const hlslpp::quaternion& rotation, float radius, float halfHeight) {
+        std::vector<entt::entity> result;
+        if(!m_impl || !m_impl->physicsSystem)
+            return result;
+
+        JPH::CapsuleShape capsuleShape(halfHeight, radius);
+        JPH::RMat44       transform =
+            JPH::RMat44::sRotationTranslation(JPH::Quat(rotation.x, rotation.y, rotation.z, rotation.w), JPH::RVec3(center.x, center.y, center.z));
+
+        JPH::AllHitCollisionCollector<JPH::CollideShapeCollector> collector;
+        m_impl->physicsSystem->GetNarrowPhaseQuery().CollideShape(
+            &capsuleShape, JPH::Vec3::sReplicate(1.0f), transform, JPH::CollideShapeSettings(), JPH::RVec3::sZero(), collector);
+
+        JPH::BodyInterface& bodyInterface = m_impl->physicsSystem->GetBodyInterface();
+        result.reserve(collector.mHits.size());
+        for(const auto& hit : collector.mHits) {
+            result.push_back(static_cast<entt::entity>(bodyInterface.GetUserData(hit.mBodyID2)));
+        }
+        return result;
+    }
+
+    //-------------------------------------------------------------
     // レジストリの破棄シグナルへ購読する
     //-------------------------------------------------------------
     void PhysicsSystem::ConnectRegistrySignals(Tsukino::ECS::Registry& registry) {

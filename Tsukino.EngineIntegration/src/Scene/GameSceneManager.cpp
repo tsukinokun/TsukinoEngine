@@ -23,7 +23,8 @@ namespace Tsukino::EngineIntegration {
             if(!context)
                 return;
 
-            context->effectSystem = nullptr;
+            context->effectSystem  = nullptr;
+            context->physicsSystem = nullptr;
         }
     }    // namespace
 

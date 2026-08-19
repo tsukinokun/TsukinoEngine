@@ -153,6 +153,7 @@ namespace Tsukino::Sandbox {
             physicsSystem->SetDebugDrawEnabled(true);
 #endif
             m_scene.AddSystem(physicsSystem, (int)SystemPriority::Physics);
+            context->physicsSystem = physicsSystem.get();
         }
         m_scene.AddSystem(std::make_shared<Tsukino::BuiltIn::ECS::DirectionalLightSystem>(), (int)SystemPriority::DirectionalLight);
         m_scene.AddSystem(std::make_shared<Tsukino::BuiltIn::ECS::SkyAtmosphereSystem>(), (int)SystemPriority::SkyAtmosphere);
@@ -420,35 +421,61 @@ namespace Tsukino::Sandbox {
                          hlslpp::quaternion(0.5f, 0.5f, -0.5f, 0.5f));
 
         //--------------------------------------------------------------
-        // 敵エンティティ生成（Phase A: 本番の敵アセットが無いため、既存のBlock.fbxを仮の敵体として流用）
+        // 敵エンティティ生成（Phase A: 本番の敵アセットが無いため、既存のBlock.fbxを仮の敵体として流用）。
+        // 当たり判定はPhase Bとして物理形状（Joltのカプセルセンサー）ベースに差し替え済み。
+        // bodyRadius/bodyHalfHeightは呼び出し側でモデルの見た目に合わせて指定する
+        // （プレイヤーとの接触ダメージ判定は引き続きEnemyComponent::bodyRadiusを使った距離判定のまま）
         //--------------------------------------------------------------
-        auto spawnEnemy = [&](hlslpp::float3 spawnPosition, float moveSpeed, float maxHealth) {
+        auto spawnEnemy = [&](hlslpp::float3 spawnPosition, float moveSpeed, float maxHealth,
+                               const Tsukino::Core::Path& modelPath, hlslpp::float3 scale,
+                               float bodyRadius, float bodyHalfHeight) {
             Tsukino::ECS::Entity enemyEntity = m_scene.CreateEntity();
 
             Tsukino::BuiltIn::ECS::TransformComponent& enemyTransform = registry.AddComponent<Tsukino::BuiltIn::ECS::TransformComponent>(enemyEntity);
             enemyTransform.position                                   = spawnPosition;
             enemyTransform.rotation                                   = hlslpp::quaternion(0.0f, 0.0f, 0.0f, 1.0f);
-            enemyTransform.scale                                      = hlslpp::float3(1.5f, 1.5f, 1.5f);
+            enemyTransform.scale                                      = scale;
             enemyTransform.dirty                                      = true;
             enemyTransform.parent                                     = entt::null;
 
-            Tsukino::Asset::AssetHandle enemyModelHandle =
-                context->assetManager->Load(Tsukino::Core::Path("Tsukino.Sandbox/Assets/ActionGameSample/Models/Block.fbx"));
+            Tsukino::Asset::AssetHandle enemyModelHandle = context->assetManager->Load(modelPath);
             Tsukino::BuiltIn::ECS::ModelComponent& enemyModel = registry.AddComponent<Tsukino::BuiltIn::ECS::ModelComponent>(enemyEntity);
             enemyModel.modelHandle                            = enemyModelHandle;
             enemyModel.visible                                = true;
 
             ActionGame::ECS::EnemyComponent& enemy = registry.AddComponent<ActionGame::ECS::EnemyComponent>(enemyEntity);
             enemy.moveSpeed                        = moveSpeed;
+            enemy.bodyRadius                       = bodyRadius;
 
             ActionGame::ECS::HealthComponent& enemyHealth = registry.AddComponent<ActionGame::ECS::HealthComponent>(enemyEntity);
             enemyHealth.maxHealth                         = maxHealth;
             enemyHealth.currentHealth                     = maxHealth;
+
+            // 武器のヒット判定（CombatSystemのOverlapCapsule）に拾わせるためのカプセルセンサー。
+            // Kinematicにすることで、EnemySystemが毎フレーム書き換えるTransformへPhysicsSystemが
+            // 追従してくれる（Static/RigidbodyComponent無しだと初期位置に固定されたままになる）。
+            // isSensor=trueなので物理的な押し出し（ブロッキング）は発生しない
+            Tsukino::BuiltIn::ECS::RigidbodyComponent& enemyRigidbody = registry.AddComponent<Tsukino::BuiltIn::ECS::RigidbodyComponent>(enemyEntity);
+            enemyRigidbody.type                                       = Tsukino::BuiltIn::ECS::RigidbodyType::Kinematic;
+
+            Tsukino::BuiltIn::ECS::CollisionComponent& enemyCollision = registry.AddComponent<Tsukino::BuiltIn::ECS::CollisionComponent>(enemyEntity);
+            enemyCollision.type                                       = Tsukino::BuiltIn::ECS::ColliderType::Capsule;
+            enemyCollision.extent                                     = hlslpp::float3(bodyRadius, bodyHalfHeight, 0.0f);
+            enemyCollision.isSensor                                   = true;
+            // Transform位置＝足元とみなし、カプセル中心をそこから上へオフセットする
+            // （CharacterControllerComponent::centerOffsetと同じ考え方）
+            enemyCollision.offsetPosition = hlslpp::float3(0.0f, bodyHalfHeight + bodyRadius, 0.0f);
         };
 
-        spawnEnemy(hlslpp::float3(200.0f, 20.0f, 200.0f), 100.0f, 40.0f);    // 弱い近接タイプ
-        spawnEnemy(hlslpp::float3(-200.0f, 20.0f, 200.0f), 80.0f, 80.0f);    // やや硬い近接タイプ
-        spawnEnemy(hlslpp::float3(0.0f, 20.0f, -250.0f), 90.0f, 60.0f);      // 3体目
+        const Tsukino::Core::Path blockModelPath("Tsukino.Sandbox/Assets/ActionGameSample/Models/Block.fbx");
+        spawnEnemy(hlslpp::float3(200.0f, 20.0f, 200.0f), 100.0f, 40.0f, blockModelPath, hlslpp::float3(1.5f, 1.5f, 1.5f), 40.0f, 70.0f);    // 弱い近接タイプ
+        spawnEnemy(hlslpp::float3(-200.0f, 20.0f, 200.0f), 80.0f, 80.0f, blockModelPath, hlslpp::float3(1.5f, 1.5f, 1.5f), 40.0f, 70.0f);    // やや硬い近接タイプ
+        spawnEnemy(hlslpp::float3(0.0f, 20.0f, -250.0f), 90.0f, 60.0f, blockModelPath, hlslpp::float3(1.5f, 1.5f, 1.5f), 40.0f, 70.0f);      // 3体目
+
+        // BigZombie（Phase A: モデルは仮配置。カプセルサイズは見た目のスケール(2.2倍)に合わせて拡大している）
+        spawnEnemy(hlslpp::float3(-250.0f, 20.0f, -250.0f), 70.0f, 150.0f,
+                   Tsukino::Core::Path("Tsukino.Sandbox/Assets/ActionGameSample/Models/BigZombie.fbx"),
+                   hlslpp::float3(2.2f, 2.2f, 2.2f), 70.0f, 110.0f);
 
         //--------------------------------------------------------------
         // 2Dカメラエンティティの生成
@@ -582,7 +609,21 @@ namespace Tsukino::Sandbox {
     //! @brief  シーンの更新
     //-------------------------------------------------------------
     void ActionGameScene::OnUpdate(Tsukino::EngineIntegration::EngineAPI& api, float deltaTime) {
-        m_scene.Update(deltaTime);
+        auto* ctx = m_scene.GetRegistry().GetContext<Tsukino::EngineIntegration::EngineContext*>();
+
+        // ヒットストップ：ctx->hitStopTimerが残っている間、Sceneへ渡すdeltaTimeそのものを
+        // 縮小する（アニメーション・物理・カメラ追従まで一律にスローになる、意図的なグローバル停止）。
+        // hitStopTimer自体は実時間（縮小前のdeltaTime）で減算しないと、
+        // 停止時間そのものが引き伸ばされてしまう
+        float scaledDeltaTime = deltaTime;
+        if(ctx && ctx->hitStopTimer > 0.0f) {
+            scaledDeltaTime = deltaTime * ctx->hitStopScale;
+            ctx->hitStopTimer -= deltaTime;
+            if(ctx->hitStopTimer < 0.0f)
+                ctx->hitStopTimer = 0.0f;
+        }
+
+        m_scene.Update(scaledDeltaTime);
     }
 
     //-------------------------------------------------------------

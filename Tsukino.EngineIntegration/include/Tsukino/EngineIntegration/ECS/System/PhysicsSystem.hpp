@@ -7,6 +7,11 @@
 #include <Tsukino/Core/ECS/System/ISystem.hpp>
 #include <Tsukino/Core/DebugTools/DebugFeatures.hpp>
 
+#include <entt/entt.hpp>
+#include <hlsl++.h>
+
+#include <vector>
+
 namespace Tsukino::ECS {
     class EventBus;
 }
@@ -36,6 +41,17 @@ namespace Tsukino::BuiltIn::ECS {
         //! @param  deltaTime   [in] 前フレームからの経過時間
         //-------------------------------------------------------------
         void Update(Tsukino::ECS::Registry& registry, float deltaTime) override;
+
+        //-------------------------------------------------------------
+        //! @brief  指定のカプセル形状と現在重なっている全エンティティを取得する
+        //!         （センサー的な即時オーバーラップ判定。物理的な反発は起きない）
+        //! @param  center     [in] カプセル中心のワールド座標
+        //! @param  rotation   [in] カプセルの向き（Jolt内部のカプセルはローカルY軸方向が軸）
+        //! @param  radius     [in] カプセル半径
+        //! @param  halfHeight [in] カプセル円柱部分の半分の高さ
+        //! @return 重なっているエンティティの一覧（CollisionComponentを持つもののみ）
+        //-------------------------------------------------------------
+        std::vector<entt::entity> OverlapCapsule(const hlslpp::float3& center, const hlslpp::quaternion& rotation, float radius, float halfHeight);
 
 #ifdef TSUKINO_DEBUG_COLLISION_DRAW
         //-------------------------------------------------------------

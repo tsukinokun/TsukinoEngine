@@ -8,6 +8,7 @@
 #include <Tsukino/Sandbox/ActionGame/ECS/Component/WeaponComponent.hpp>
 #include <Tsukino/Sandbox/ActionGame/ECS/Component/EnemyComponent.hpp>
 #include <Tsukino/Sandbox/ActionGame/ECS/Component/HealthComponent.hpp>
+#include <Tsukino/Sandbox/ActionGame/ECS/Event/WeaponHitEvent.hpp>
 
 #include <Tsukino/BuiltIn/ECS/Component/TransformComponent.hpp>
 #include <Tsukino/BuiltIn/ECS/Component/CharacterControllerComponent.hpp>
@@ -16,22 +17,61 @@
 #include <Tsukino/BuiltIn/ECS/Component/NodeWorldMatrixComponent.hpp>
 
 #include <Tsukino/EngineIntegration/EngineContext.hpp>
+#include <Tsukino/EngineIntegration/ECS/System/PhysicsSystem.hpp>
 #include <Tsukino/Engine/Asset/AssetManager.hpp>
 #include <Tsukino/Engine/Asset/Model/ModelAsset.hpp>
 #include <Tsukino/GraphicsCommon/Model/ModelData.hpp>
+#include <Tsukino/Core/ECS/Event/EventBus.hpp>
+#ifdef _DEBUG
+#include <Tsukino/Renderer/Renderer.hpp>
+#include <Tsukino/GraphicsCommon/Vertex/DebugVertex.hpp>
+#endif
 
 #include <hlsl++.h>
+#include <algorithm>
 #include <cmath>
+#include <vector>
 // 名前空間 : ActionGame::ECS
 namespace ActionGame::ECS {
+    namespace {
+        //-------------------------------------------------------------
+        // ヒットストップの調整用定数（実機で見た目を確認しながら調整する）
+        //-------------------------------------------------------------
+        constexpr float kHitStopDuration = 0.12f;    //!< ヒット時にかかる減速の持続時間（実時間・秒）
+        constexpr float kHitStopScale    = 0.02f;    //!< 持続時間中のdeltaTimeへのスケール値（小さいほど強い停止）
+
+#ifdef _DEBUG
+        //-------------------------------------------------------------
+        //! @brief  当たり判定範囲を目視確認できるよう、XZ平面上の円をワイヤーフレームで描画する
+        //-------------------------------------------------------------
+        void DrawWireCircleXZ(Tsukino::Renderer::Renderer* renderer, const hlslpp::float3& center, float radius, const hlslpp::float4& color) {
+            constexpr int segments = 24;
+            Tsukino::GraphicsCommon::DebugVertex prev{
+                {center.x + radius, center.y, center.z},
+                {color.x, color.y, color.z, color.w}
+            };
+            for(int i = 1; i <= segments; ++i) {
+                float angle = (2.0f * 3.14159265f) * (static_cast<float>(i) / static_cast<float>(segments));
+                Tsukino::GraphicsCommon::DebugVertex next{
+                    {center.x + std::cos(angle) * radius, center.y, center.z + std::sin(angle) * radius},
+                    {color.x, color.y, color.z, color.w}
+                };
+                renderer->DrawDebugLine(prev, next);
+                prev = next;
+            }
+        }
+#endif
+    }    // namespace
+
     //-------------------------------------------------------------
     //! @brief システムの更新
     //-------------------------------------------------------------
     void CombatSystem::Update(Tsukino::ECS::Registry& registry, float deltaTime) {
-        auto* ctx = registry.GetContext<Tsukino::EngineIntegration::EngineContext*>();
+        auto* ctx      = registry.GetContext<Tsukino::EngineIntegration::EngineContext*>();
+        auto* eventBus = registry.GetContext<Tsukino::ECS::EventBus*>();
 
         //-------------------------------------------------------------
-        // 武器：所有者への追従、タイマー更新、攻撃発生時の距離判定ダメージ
+        // 武器：所有者への追従、タイマー更新、攻撃発生時のカプセルオーバーラップ判定によるダメージ
         //-------------------------------------------------------------
         auto weaponView = registry.View<WeaponComponent, Tsukino::BuiltIn::ECS::TransformComponent>();
         weaponView.each([&](entt::entity entity, WeaponComponent& weapon, Tsukino::BuiltIn::ECS::TransformComponent& transform) {
@@ -233,6 +273,19 @@ namespace ActionGame::ECS {
                     transform.rotation   = hlslpp::slerp(transform.rotation, targetRotation, rotationLerpT);
                 }
                 transform.dirty = true;
+
+#ifdef _DEBUG
+                // 当たり判定カプセルの足跡（グリップ側・刃先側の断面円）を可視化する。
+                // 当たり判定有効中は赤、それ以外はシアンにする
+                if(ctx && ctx->renderer) {
+                    hlslpp::float3 bladeDir = hlslpp::mul(hlslpp::float3(0.0f, 1.0f, 0.0f), transform.rotation);
+                    hlslpp::float3 tipPos   = transform.position + bladeDir * weapon.range;
+                    hlslpp::float4 color =
+                        weapon.isActive ? hlslpp::float4(1.0f, 0.2f, 0.0f, 1.0f) : hlslpp::float4(0.0f, 1.0f, 1.0f, 1.0f);
+                    DrawWireCircleXZ(ctx->renderer, transform.position, weapon.hitCapsuleRadius, color);
+                    DrawWireCircleXZ(ctx->renderer, tipPos, weapon.hitCapsuleRadius, color);
+                }
+#endif
             }
 
             if(weapon.cooldownTimer > 0.0f) {
@@ -245,31 +298,58 @@ namespace ActionGame::ECS {
                 weapon.cooldownTimer   = weapon.cooldown;
                 weapon.attackRequested = false;
 
-                // 攻撃発生の瞬間、武器の現在位置を中心に範囲内の敵へダメージを与える
-                // （1回の攻撃で同じ敵に何度も当たらないよう、判定は発生時の1フレームのみ行う）
-                auto enemyView = registry.View<EnemyComponent, Tsukino::BuiltIn::ECS::TransformComponent, HealthComponent>();
-                enemyView.each([&](entt::entity                                  enemyEntity,
-                                   EnemyComponent&                               enemy,
-                                   Tsukino::BuiltIn::ECS::TransformComponent&    enemyTransform,
-                                   HealthComponent&                              enemyHealth) {
-                    if(enemyHealth.isDead)
-                        return;
+                // 新しいアタックの開始。ヒット済み記録はここでのみクリアする
+                // （毎フレームの判定側でクリアすると同じ敵に何度もヒットしてしまう）
+                weapon.hitEnemiesThisAttack.clear();
+            }
 
-                    // 高さ方向のずれに判定が左右されないよう、水平（XZ）距離のみで判定する
-                    hlslpp::float3 toEnemy = transform.position - enemyTransform.position;
-                    toEnemy.y              = 0.0f;
-                    float distance         = hlslpp::length(toEnemy);
-                    if(distance <= weapon.range + enemy.bodyRadius) {
+            if(weapon.isActive) {
+                // 当たり判定が有効な間、毎フレーム武器の「今の」姿勢（スイング追従済みのtransform）を基準に
+                // グリップ(transform.position)から刃の向き（ローカルY軸）へrangeだけ伸びるカプセルを構築し、
+                // Jolt物理へオーバーラップ問い合わせする（PhysicsSystem::OverlapCapsule）。
+                // 1回のアタックで同じ敵に何度も当たらないよう、既にヒットした敵はhitEnemiesThisAttackに記録してスキップする
+                if(ctx && ctx->physicsSystem) {
+                    hlslpp::float3 bladeDir      = hlslpp::mul(hlslpp::float3(0.0f, 1.0f, 0.0f), transform.rotation);
+                    float          halfLen       = weapon.range * 0.5f;
+                    hlslpp::float3 capsuleCenter = transform.position + bladeDir * halfLen;
+
+                    std::vector<entt::entity> overlapping =
+                        ctx->physicsSystem->OverlapCapsule(capsuleCenter, transform.rotation, weapon.hitCapsuleRadius, halfLen);
+
+                    for(entt::entity hitEntity : overlapping) {
+                        if(!registry.HasComponent<EnemyComponent>(hitEntity) || !registry.HasComponent<HealthComponent>(hitEntity))
+                            continue;
+
+                        auto& enemyHealth = registry.GetComponent<HealthComponent>(hitEntity);
+                        if(enemyHealth.isDead)
+                            continue;
+
+                        if(std::find(weapon.hitEnemiesThisAttack.begin(), weapon.hitEnemiesThisAttack.end(), hitEntity)
+                           != weapon.hitEnemiesThisAttack.end())
+                            continue;
+
                         enemyHealth.currentHealth -= weapon.damage;
                         if(enemyHealth.currentHealth <= 0.0f) {
                             enemyHealth.currentHealth = 0.0f;
                             enemyHealth.isDead         = true;
                         }
-                    }
-                });
-            }
+                        weapon.hitEnemiesThisAttack.push_back(hitEntity);
 
-            if(weapon.isActive) {
+                        hlslpp::float3 hitPosition = capsuleCenter;
+                        if(registry.HasComponent<Tsukino::BuiltIn::ECS::TransformComponent>(hitEntity))
+                            hitPosition = registry.GetComponent<Tsukino::BuiltIn::ECS::TransformComponent>(hitEntity).position;
+
+                        // ヒット通知（エフェクト・SE等の副作用処理用）を発火する
+                        if(eventBus) {
+                            eventBus->Publish(WeaponHitEvent{weapon.owner, entity, hitEntity, hitPosition, weapon.damage});
+                        }
+
+                        // ヒットストップを要求する（同一フレームで複数ヒットしても同じ値で上書きされるだけで問題ない）
+                        ctx->hitStopTimer = kHitStopDuration;
+                        ctx->hitStopScale = kHitStopScale;
+                    }
+                }
+
                 weapon.activeTimer -= deltaTime;
                 if(weapon.activeTimer <= 0.0f) {
                     weapon.activeTimer = 0.0f;
@@ -343,5 +423,21 @@ namespace ActionGame::ECS {
                 enemy.attackTimer = enemy.attackInterval;
             }
         });
+
+#ifdef _DEBUG
+        // 敵の当たり判定範囲（EnemyComponent::bodyRadius）をワイヤーフレームで可視化する。
+        // 敵にはJolt物理コライダーが無く判定は距離計算のみのため、目視で確認する手段がこれまでなかった
+        if(ctx && ctx->renderer) {
+            enemyView.each([&](entt::entity, EnemyComponent& enemy, Tsukino::BuiltIn::ECS::TransformComponent& enemyTransform, HealthComponent& enemyHealth) {
+                if(enemyHealth.isDead)
+                    return;
+                DrawWireCircleXZ(ctx->renderer, enemyTransform.position, enemy.bodyRadius, hlslpp::float4(1.0f, 1.0f, 0.0f, 1.0f));
+            });
+
+            Tsukino::Renderer::DrawCommand cmd{};
+            cmd.customDraw = [renderer = ctx->renderer](ID3D11DeviceContext*) { renderer->FlushDebugDraw(); };
+            ctx->renderer->PushDrawCommand(cmd);
+        }
+#endif
     }
 }    // namespace ActionGame::ECS

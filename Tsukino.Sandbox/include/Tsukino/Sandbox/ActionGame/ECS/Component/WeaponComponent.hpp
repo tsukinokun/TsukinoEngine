@@ -11,6 +11,7 @@
 #include <hlsl++.h>
 
 #include <string>
+#include <vector>
 // 名前空間 : ActionGame::ECS
 namespace ActionGame::ECS {
     //-------------------------------------------------------------
@@ -18,7 +19,7 @@ namespace ActionGame::ECS {
     //! @brief  武器エンティティに付与するコンポーネント。
     //!         所有者（プレイヤー）の手ボーンにアタッチして追従しつつ、攻撃入力時に範囲内の敵へダメージを与える。
     //!         ボーンが解決できない場合は所有者のルートTransformからの固定オフセット追従にフォールバックする。
-    //!         当たり判定はJolt物理を使わず距離判定で簡易的に行う（Phase Bで本実装に差し替え予定）
+    //!         当たり判定はJolt物理のカプセルオーバーラップ判定（PhysicsSystem::OverlapCapsule）で行う
     //-------------------------------------------------------------
     struct WeaponComponent {
         Tsukino::ECS::Entity owner = entt::null;    //!< 武器を所持しているエンティティ
@@ -68,7 +69,11 @@ namespace ActionGame::ECS {
         float floatSelectedHeightBoost = 40.0f;    //!< floatSelected中に追加で浮かせる高さ
 
         float damage         = 20.0f;    //!< 命中時に与えるダメージ
-        float range           = 90.0f;   //!< 攻撃判定の到達距離（武器位置からの単純な距離判定に使用）
+        // 当たり判定はPhase B(Jolt物理)のカプセルで行う。グリップ位置(transform.position)を起点に
+        // 武器のローカルY軸（＝刃の向き。モデルがエクスポート時点でY-upのため）方向へrangeだけ伸びる
+        // カプセルを毎フレーム構築してCombatSystemがOverlapCapsuleへ渡す
+        float range            = 90.0f;    //!< 当たり判定カプセルの長さ（グリップから刃先までの到達距離）
+        float hitCapsuleRadius = 18.0f;    //!< 当たり判定カプセルの半径（刃の太さ相当）
         float activeDuration = 0.25f;    //!< 攻撃入力後、当たり判定が有効な時間（秒）
         float cooldown       = 0.4f;     //!< 攻撃後、再攻撃可能になるまでのクールダウン（秒）
 
@@ -76,6 +81,8 @@ namespace ActionGame::ECS {
         bool  isActive        = false;    //!< 現在当たり判定が有効か
         float activeTimer     = 0.0f;     //!< 当たり判定有効時間の残り
         float cooldownTimer   = 0.0f;     //!< クールダウンの残り
+
+        std::vector<Tsukino::ECS::Entity> hitEnemiesThisAttack;    //!< このアタックで既にヒットした敵の記録（多重ヒット防止）。isActiveがtrueになった瞬間のみクリアする
 
         bool  isAttacking = false;    //!< 攻撃アニメーション再生中か（PlayerAnimationSystemが毎フレームセットする）。
                                        //!< trueの間はfloatEnabledによる浮遊演出を止め、attackHandTrackingWeightで手に追従させる
