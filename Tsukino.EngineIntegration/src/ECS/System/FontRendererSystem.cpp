@@ -162,6 +162,11 @@ namespace Tsukino::BuiltIn::ECS {
                     };
             }
 
+            // UIはトーンマップ後のバックバッファへ描く（SpriteRendererSystemと揃える）。
+            // これを設定しないと既定のRenderPass::Worldに積まれ、3Dモデル(Render)より先に描かれて
+            // 後から上書きされてしまう上、トーンマップ前のHDRターゲットに描画されて発色もずれる
+            cmd.pass = Tsukino::Renderer::RenderPass::Overlay;
+
             ctx->renderer->PushDrawCommand(cmd);
         });
     }

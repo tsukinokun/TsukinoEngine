@@ -12,6 +12,7 @@
 #include <Tsukino/BuiltIn/ECS/Component/TransformComponent.hpp>
 #include <Tsukino/BuiltIn/ECS/Component/SkeletonOutputComponent.hpp>
 #include <Tsukino/BuiltIn/ECS/Component/CollisionComponent.hpp>
+#include <Tsukino/BuiltIn/ECS/Component/HighlightComponent.hpp>
 #include <Tsukino/Engine/Asset/AssetManager.hpp>
 #include <Tsukino/Engine/Asset/Model/ModelAsset.hpp>
 #include <Tsukino/Engine/Asset/Shader/ShaderAsset.hpp>
@@ -147,6 +148,12 @@ namespace Tsukino::BuiltIn::ECS {
                                 }
                             }
                         }
+                    }
+
+                    // エンティティ単位のハイライト上書き（マテリアルアセットより後に適用する）
+                    if(auto* highlight = registry.try_get<HighlightComponent>(entity); highlight && highlight->active) {
+                        cbMat.rimColor  = hlslpp::float4(highlight->rimColor, highlight->rimIntensity);
+                        cbMat.rimParams = hlslpp::float4(highlight->rimPower, highlight->glow, 0.0f, 0.0f);
                     }
 
                     m_cbufferMaterialBuffer.push_back(cbMat);

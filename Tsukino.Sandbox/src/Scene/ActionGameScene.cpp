@@ -11,11 +11,14 @@
 #include <Tsukino/Sandbox/ActionGame/ECS/Component/EnemyComponent.hpp>
 #include <Tsukino/Sandbox/ActionGame/ECS/Component/TpsCameraComponent.hpp>
 #include <Tsukino/Sandbox/ActionGame/ECS/Component/PlayerAnimationSetComponent.hpp>
+#include <Tsukino/Sandbox/ActionGame/ECS/Component/PickupComponent.hpp>
+#include <Tsukino/Sandbox/ActionGame/ECS/Component/PickupPromptComponent.hpp>
 #include <Tsukino/Sandbox/ActionGame/ECS/System/PlayerSystem.hpp>
 #include <Tsukino/Sandbox/ActionGame/ECS/System/CombatSystem.hpp>
 #include <Tsukino/Sandbox/ActionGame/ECS/System/EnemySystem.hpp>
 #include <Tsukino/Sandbox/ActionGame/ECS/System/TpsCameraSystem.hpp>
 #include <Tsukino/Sandbox/ActionGame/ECS/System/PlayerAnimationSystem.hpp>
+#include <Tsukino/Sandbox/ActionGame/ECS/System/PickupSystem.hpp>
 
 #include <Tsukino/EngineIntegration/EngineAPI.hpp>
 #include <Tsukino/EngineIntegration/EngineContext.hpp>
@@ -57,6 +60,7 @@
 #include <Tsukino/BuiltIn/ECS/Component/DebugCameraComponent.hpp>
 #include <Tsukino/BuiltIn/ECS/Component/DebugCameraTag.hpp>
 #include <Tsukino/BuiltIn/ECS/Component/EffectComponent.hpp>
+#include <Tsukino/BuiltIn/ECS/Component/HighlightComponent.hpp>
 
 #include <entt/entt.hpp>
 #include <hlsl++.h>
@@ -94,6 +98,9 @@ namespace Tsukino::Sandbox {
                               // 先行してしまい、回転中（旋回中）だけ武器の位置が体からずれて見える不具合が起きる
             Camera3D,         // TPS/デバッグカメラの追従は移動確定後、カメラ行列計算の前に行う
             Camera,           // カメラ行列は描画前に計算する
+            Pickup,           // 拾えるアイテムの判定・ハイライト演出・UI座標計算は今フレームのカメラ行列を使うためCameraの後に置く
+            TransformUI,      // PickupSystemが書いたUIラベルのposition（画面ピクセル座標）をworldMatrixへ反映する。
+                              // FontRendererSystemはworldMatrix[3]を読むため、これが無いと1フレーム遅れて表示がスウィムする
             Font,
             Render,
             Audio,
@@ -115,6 +122,8 @@ namespace Tsukino::Sandbox {
         m_scene.AddSystem(std::make_shared<Tsukino::BuiltIn::ECS::DebugCameraSystem>(), (int)SystemPriority::Camera3D);
 #endif
         m_scene.AddSystem(std::make_shared<Tsukino::BuiltIn::ECS::CameraSystem>(), (int)SystemPriority::Camera);
+        m_scene.AddSystem(std::make_shared<ActionGame::ECS::PickupSystem>(), (int)SystemPriority::Pickup);
+        m_scene.AddSystem(std::make_shared<Tsukino::BuiltIn::ECS::TransformSystem>(), (int)SystemPriority::TransformUI);
         m_scene.AddSystem(std::make_shared<Tsukino::BuiltIn::ECS::FontRendererSystem>(), (int)SystemPriority::Font);
         m_scene.AddSystem(std::make_shared<Tsukino::BuiltIn::ECS::SpriteRenderSystem>(), (int)SystemPriority::Render);
         m_scene.AddSystem(std::make_shared<Tsukino::BuiltIn::ECS::ModelSystem>(), (int)SystemPriority::Render);
@@ -319,22 +328,61 @@ namespace Tsukino::Sandbox {
             return weaponEntity;
         };
 
-        // warhammer：プレイヤーの右肩斜め上で浮遊させる
+        // warhammer：プレイヤーの右肩斜め上で浮遊させる（最初から装備している唯一の武器）
         Tsukino::ECS::Entity warhammerEntity = spawnFloatingWeapon(
             Tsukino::Core::Path("Tsukino.Sandbox/Assets/ActionGameSample/Models/warhammer.fbx"),
             hlslpp::float3(35.0f, 170.0f, -20.0f));
 
-        // greatsword：warhammerと左右反対側（左肩斜め上）で浮遊させ、重ならないようにする
-        Tsukino::ECS::Entity greatswordEntity = spawnFloatingWeapon(
-            Tsukino::Core::Path("Tsukino.Sandbox/Assets/ActionGameSample/Models/greatsword.fbx"),
-            hlslpp::float3(-35.0f, 170.0f, -20.0f));
-
         // 切り替え対象の武器一覧（PlayerSystemがマウスホイール入力でここを順送りする）。
-        // 初期状態はwarhammerを選択中とし、装備中の武器としてPlayerComponentに紐付け、視覚的にも高く浮かせる
-        player.weaponInventory     = {warhammerEntity, greatswordEntity};
+        // 初期状態はwarhammerのみ。他の武器はワールドに落ちており、Fキーで拾うとここに増える
+        player.weaponInventory     = {warhammerEntity};
         player.selectedWeaponIndex = 0;
         player.weaponEntity         = warhammerEntity;
         registry.GetComponent<ActionGame::ECS::WeaponComponent>(warhammerEntity).floatSelected = true;
+
+        //--------------------------------------------------------------
+        // 地面に落ちている武器の生成（Fキーで拾える）。
+        // ownerを設定しないため、CombatSystemの追従処理（owner != entt::nullが条件）には入らず
+        // その場に留まる。PickupSystemが範囲内・最近傍の1本だけをハイライトし、Fキーで
+        // WeaponComponent::ownerをプレイヤーへ設定して浮遊武器へ昇格させる
+        //--------------------------------------------------------------
+        auto spawnWorldWeapon = [&](const Tsukino::Core::Path& modelPath,
+                                    const hlslpp::float3&      worldPosition,
+                                    const std::wstring&        displayName) -> Tsukino::ECS::Entity {
+            Tsukino::ECS::Entity weaponEntity = m_scene.CreateEntity();
+
+            Tsukino::BuiltIn::ECS::TransformComponent& transform = registry.AddComponent<Tsukino::BuiltIn::ECS::TransformComponent>(weaponEntity);
+            transform.position                                   = worldPosition;
+            transform.rotation                                   = hlslpp::quaternion::rotation_x(1.5708f);    // 地面に横たわらせる
+            transform.scale                                      = hlslpp::float3(1.0f, 1.0f, 1.0f);
+            transform.dirty                                      = true;
+            transform.parent                                     = entt::null;
+
+            Tsukino::BuiltIn::ECS::ModelComponent& model = registry.AddComponent<Tsukino::BuiltIn::ECS::ModelComponent>(weaponEntity);
+            model.modelHandle                            = context->assetManager->Load(modelPath);
+            model.visible                                = true;
+
+            ActionGame::ECS::WeaponComponent& weapon = registry.AddComponent<ActionGame::ECS::WeaponComponent>(weaponEntity);
+            weapon.owner                              = entt::null;    // 未所有＝ワールドに落ちている状態
+            weapon.localOffset                        = hlslpp::float3(35.0f, 170.0f, -20.0f);
+            weapon.gripRotationOffset                 = hlslpp::quaternion::rotation_x(1.5708f);
+            weapon.attackGripRotationOffset           = hlslpp::quaternion::rotation_x(1.5708f);
+            weapon.handTrackingWeight                 = 0.0f;
+            weapon.floatEnabled                       = false;    // 拾った時にPickupSystemがtrueにする
+
+            ActionGame::ECS::PickupComponent& pickup = registry.AddComponent<ActionGame::ECS::PickupComponent>(weaponEntity);
+            pickup.displayName                        = displayName;
+
+            registry.AddComponent<Tsukino::BuiltIn::ECS::HighlightComponent>(weaponEntity);
+
+            return weaponEntity;
+        };
+
+        // 動作確認用に近い位置へ2本まとめて置き、「同時に範囲内でも1つだけ光る」ことを確認できるようにする
+        spawnWorldWeapon(Tsukino::Core::Path("Tsukino.Sandbox/Assets/ActionGameSample/Models/greatsword.fbx"),
+                         hlslpp::float3(250.0f, 10.0f, 0.0f), L"グレートソード");
+        spawnWorldWeapon(Tsukino::Core::Path("Tsukino.Sandbox/Assets/ActionGameSample/Models/warhammer.fbx"),
+                         hlslpp::float3(340.0f, 10.0f, 0.0f), L"ウォーハンマー");
 
         //--------------------------------------------------------------
         // 敵エンティティ生成（Phase A: 本番の敵アセットが無いため、既存のBlock.fbxを仮の敵体として流用）
@@ -381,6 +429,26 @@ namespace Tsukino::Sandbox {
         camera2D.projectionType                          = Tsukino::BuiltIn::ECS::CameraComponent::ProjectionType::Orthographic;
         camera2D.orthoSize                               = 1000.0f;    // 画面の縦幅を 720 ユニットにする
         camera2D.isPrimary                               = false;      // これをメインカメラにしない
+
+        //--------------------------------------------------------------
+        // 「Fキーで拾う」UIラベル用エンティティの生成。
+        // 毎フレーム生成せず1つを使い回し、PickupSystemがtext/positionを書き換える
+        //--------------------------------------------------------------
+        Tsukino::ECS::Entity pickupPromptEntity = m_scene.CreateEntity();
+
+        Tsukino::BuiltIn::ECS::TransformComponent& promptTransform = registry.AddComponent<Tsukino::BuiltIn::ECS::TransformComponent>(pickupPromptEntity);
+        promptTransform.position                                    = hlslpp::float3(0.0f, 0.0f, 0.0f);    // 以後PickupSystemが毎フレーム上書きする
+        promptTransform.scale                                       = hlslpp::float3(1.0f, 1.0f, 1.0f);
+        promptTransform.dirty                                       = true;
+
+        Tsukino::BuiltIn::ECS::FontComponent& promptFont = registry.AddComponent<Tsukino::BuiltIn::ECS::FontComponent>(pickupPromptEntity);
+        promptFont.text                                   = L"";    // 空文字の間はFontRendererSystemが描画しない
+        promptFont.color                                  = hlslpp::float4(1.0f, 1.0f, 1.0f, 1.0f);
+        promptFont.origin                                 = hlslpp::float2(0.0f, 0.0f);
+        // fontHandle未設定 → builtinAssets->fonts.defaultFont（Default.dfont、動的フォントアトラス経路）が使われるため
+        // 日本語をそのまま渡してよい（旧Arial.spritefontはASCII専用でDirectXTKが例外を投げる）
+
+        registry.AddComponent<ActionGame::ECS::PickupPromptComponent>(pickupPromptEntity);
 
         //--------------------------------------------------------------
         // TPS（三人称視点）カメラエンティティの生成

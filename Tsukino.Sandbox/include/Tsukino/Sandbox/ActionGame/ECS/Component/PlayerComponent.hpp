@@ -23,5 +23,7 @@ namespace ActionGame::ECS {
 
         std::vector<Tsukino::ECS::Entity> weaponInventory;      //!< 浮遊武器の一覧（切り替え対象）。シーン初期化時に設定する
         int                                selectedWeaponIndex = 0;    //!< weaponInventory内の現在選択インデックス。weaponEntityと同期させる
+
+        Tsukino::ECS::Entity pickupTarget = entt::null;    //!< 現在拾える対象（Fキーの対象）。PickupSystemが毎フレーム更新する
     };
 }    // namespace ActionGame::ECS

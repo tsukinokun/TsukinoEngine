@@ -54,7 +54,8 @@ cbuffer CBufferMaterial : register(b2)
     float metallic;
     float roughness;
     float specular;
-    float4 padding;
+    float4 rimColor;    // xyz: ふちの色, w: ふちの強さ
+    float4 rimParams;   // x: ふちの鋭さ(pow指数), y: 全体の白発光量, zw: 予約
 };
 
 //--------------------------------------------------------------
@@ -263,7 +264,17 @@ float4 PSMain(PSInput input) : SV_TARGET
     //   emissive: 自発光（ライティング非依存）
     //----------------------------------------------------------
     float3 finalColor = ambient + directLight + emissive;
-    
+
+    //----------------------------------------------------------
+    // ハイライト演出（拾えるアイテムの強調など）
+    //   リム : 視線に対して斜めを向いた面ほど光らせる（輪郭がネオンのように光る）
+    //   白発光: モデル全体を一律に持ち上げる。HDRターゲットへ書くため
+    //           1.0を超えた分はトーンマップで白へ寄っていく
+    //----------------------------------------------------------
+    float rim = pow(saturate(1.0f - NdotV), rimParams.x);
+    finalColor += rimColor.rgb * rim * rimColor.w;
+    finalColor += rimParams.y;
+
     //----------------------------------------------------------
     // UVデバッグ
     //----------------------------------------------------------
