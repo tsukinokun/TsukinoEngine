@@ -13,9 +13,14 @@
 #include <Tsukino/Sandbox/ActionGame/ECS/Component/PlayerAnimationSetComponent.hpp>
 #include <Tsukino/Sandbox/ActionGame/ECS/Component/PickupComponent.hpp>
 #include <Tsukino/Sandbox/ActionGame/ECS/Component/PickupPromptComponent.hpp>
+#include <Tsukino/Sandbox/ActionGame/ECS/Component/BehaviorTreeComponent.hpp>
+#include <Tsukino/Sandbox/ActionGame/ECS/Component/EnemyAnimationSetComponent.hpp>
+#include <Tsukino/Sandbox/ActionGame/ECS/AI/BigZombieBehavior.hpp>
 #include <Tsukino/Sandbox/ActionGame/ECS/System/PlayerSystem.hpp>
 #include <Tsukino/Sandbox/ActionGame/ECS/System/CombatSystem.hpp>
 #include <Tsukino/Sandbox/ActionGame/ECS/System/EnemySystem.hpp>
+#include <Tsukino/Sandbox/ActionGame/ECS/System/EnemyBehaviorSystem.hpp>
+#include <Tsukino/Sandbox/ActionGame/ECS/System/EnemyAnimationSystem.hpp>
 #include <Tsukino/Sandbox/ActionGame/ECS/System/TpsCameraSystem.hpp>
 #include <Tsukino/Sandbox/ActionGame/ECS/System/PlayerAnimationSystem.hpp>
 #include <Tsukino/Sandbox/ActionGame/ECS/System/PickupSystem.hpp>
@@ -120,7 +125,13 @@ namespace Tsukino::Sandbox {
         m_scene.AddSystem(std::make_shared<Tsukino::BuiltIn::ECS::TransformSystem>(), (int)SystemPriority::Transform);
         m_scene.AddSystem(std::make_shared<ActionGame::ECS::PlayerSystem>(), (int)SystemPriority::Movement);
         m_scene.AddSystem(std::make_shared<ActionGame::ECS::EnemySystem>(), (int)SystemPriority::Movement);
+        // BT駆動の敵（現状BigZombieのみ）。EnemyComponentは共有するがBehaviorTreeComponentの有無で
+        // EnemySystem（直進追跡のみ）とは排他に動く（EnemySystem::Update側でスキップする）
+        m_scene.AddSystem(std::make_shared<ActionGame::ECS::EnemyBehaviorSystem>(), (int)SystemPriority::Movement);
         m_scene.AddSystem(std::make_shared<ActionGame::ECS::PlayerAnimationSystem>(), (int)SystemPriority::Gameplay);
+        // EnemyAnimationSystemが書いたAnimationControllerComponent::nextを同フレームでAnimationSystemが
+        // 消費するため、PlayerAnimationSystemと同じくAnimationSystemより前に登録する
+        m_scene.AddSystem(std::make_shared<ActionGame::ECS::EnemyAnimationSystem>(), (int)SystemPriority::Gameplay);
         m_scene.AddSystem(std::make_shared<Tsukino::BuiltIn::ECS::AnimationSystem>(), (int)SystemPriority::Gameplay);
 #ifdef _DEBUG
         // 武器の握り位置・角度を実機で調整するためのデバッグ操作（F6で有効化）。
@@ -163,7 +174,7 @@ namespace Tsukino::Sandbox {
         //--------------------------------------------------------------
 
         Tsukino::Asset::AssetHandle modelHandle =
-            context->assetManager->Load(Tsukino::Core::Path("Tsukino.Sandbox/Assets/ActionGameSample/Models/CharaTest.fbx"));
+            context->assetManager->Load(Tsukino::Core::Path("Tsukino.Sandbox/Assets/ActionGameSample/Models/Player.fbx"));
 
         Tsukino::Asset::AssetHandle animationHandle =
             context->assetManager->Load(Tsukino::Core::Path("Tsukino.Sandbox/Assets/ActionGameSample/Anims/Jump.fbx"));
@@ -177,6 +188,13 @@ namespace Tsukino::Sandbox {
         // 同じハンドルを時間レンジだけ変えて3回参照する（下のattackSteps初期化を参照）
         Tsukino::Asset::AssetHandle attackAnimHandle =
             context->assetManager->Load(Tsukino::Core::Path("Tsukino.Sandbox/Assets/ActionGameSample/Anims/Weapon Attack.fbx"));
+
+        // BigZombie（EnemyAnimationSystem）が使うクリップ。Idle用クリップが無いため、
+        // 待機はMutant Walkingをin_place再生（その場足踏み）にして流用する
+        Tsukino::Asset::AssetHandle bigZombieWalkAnimHandle =
+            context->assetManager->Load(Tsukino::Core::Path("Tsukino.Sandbox/Assets/ActionGameSample/Anims/BigZombie/Mutant Walking.fbx"));
+        Tsukino::Asset::AssetHandle bigZombieAttackAnimHandle =
+            context->assetManager->Load(Tsukino::Core::Path("Tsukino.Sandbox/Assets/ActionGameSample/Anims/BigZombie/Mutant Swiping.fbx"));
 
         Tsukino::ECS::Registry& registry = m_scene.GetRegistry();
 
@@ -464,7 +482,7 @@ namespace Tsukino::Sandbox {
         //--------------------------------------------------------------
         auto spawnEnemy = [&](hlslpp::float3 spawnPosition, float moveSpeed, float maxHealth,
                                const Tsukino::Core::Path& modelPath, hlslpp::float3 scale,
-                               float bodyRadius, float bodyHalfHeight) {
+                               float bodyRadius, float bodyHalfHeight) -> Tsukino::ECS::Entity {
             Tsukino::ECS::Entity enemyEntity = m_scene.CreateEntity();
 
             Tsukino::BuiltIn::ECS::TransformComponent& enemyTransform = registry.AddComponent<Tsukino::BuiltIn::ECS::TransformComponent>(enemyEntity);
@@ -501,6 +519,8 @@ namespace Tsukino::Sandbox {
             // Transform位置＝足元とみなし、カプセル中心をそこから上へオフセットする
             // （CharacterControllerComponent::centerOffsetと同じ考え方）
             enemyCollision.offsetPosition = hlslpp::float3(0.0f, bodyHalfHeight + bodyRadius, 0.0f);
+
+            return enemyEntity;
         };
 
         const Tsukino::Core::Path blockModelPath("Tsukino.Sandbox/Assets/ActionGameSample/Models/Block.fbx");
@@ -509,9 +529,52 @@ namespace Tsukino::Sandbox {
         spawnEnemy(hlslpp::float3(0.0f, 20.0f, -250.0f), 90.0f, 60.0f, blockModelPath, hlslpp::float3(1.5f, 1.5f, 1.5f), 40.0f, 70.0f);      // 3体目
 
         // BigZombie（Phase A: モデルは仮配置。カプセルサイズは見た目のスケール(2.2倍)に合わせて拡大している）
-        spawnEnemy(hlslpp::float3(-250.0f, 20.0f, -250.0f), 70.0f, 150.0f,
-                   Tsukino::Core::Path("Tsukino.Sandbox/Assets/ActionGameSample/Models/BigZombie.fbx"),
-                   hlslpp::float3(2.2f, 2.2f, 2.2f), 70.0f, 110.0f);
+        Tsukino::ECS::Entity bigZombieEntity =
+            spawnEnemy(hlslpp::float3(-250.0f, 20.0f, -250.0f), 70.0f, 150.0f,
+                       Tsukino::Core::Path("Tsukino.Sandbox/Assets/ActionGameSample/Models/BigZombie.fbx"),
+                       hlslpp::float3(2.2f, 2.2f, 2.2f), 70.0f, 110.0f);
+
+        //--------------------------------------------------------------
+        // BigZombieはビヘイビアツリー駆動（歩いて近づき、射程内で攻撃する）にする。
+        // 他の敵（Block.fbxの3体）はEnemyComponentのみでBehaviorTreeComponentを持たないため
+        // 従来通りEnemySystemの直進追跡のまま
+        //--------------------------------------------------------------
+        {
+            // アニメーション再生・制御用コンポーネント（初期状態はIdle。以後はEnemyAnimationSystemが管理する）
+            Tsukino::BuiltIn::ECS::AnimationPlayerComponent& bigZombieAnimPlayer =
+                registry.AddComponent<Tsukino::BuiltIn::ECS::AnimationPlayerComponent>(bigZombieEntity);
+            bigZombieAnimPlayer.current_clip_id       = bigZombieWalkAnimHandle;
+            bigZombieAnimPlayer.animation_index       = 1;    // Mixamo製FBXはindex 0が1tickのスタブ、index 1が実モーション
+            bigZombieAnimPlayer.elapsed_time          = 0.0f;
+            bigZombieAnimPlayer.playback_speed        = 1.0f;
+            bigZombieAnimPlayer.is_looping            = true;
+            bigZombieAnimPlayer.is_playing            = true;
+            bigZombieAnimPlayer.in_place              = true;    // その場足踏み（移動はEnemyBehaviorSystemがTransformを直接書く）
+            bigZombieAnimPlayer.root_motion_node_name = "mixamorig:Hips";
+
+            // クリップの切り替え（AnimationSystemが読む「次に再生するクリップ」の受け皿）
+            registry.AddComponent<Tsukino::BuiltIn::ECS::AnimationControllerComponent>(bigZombieEntity);
+
+            // 計算されたボーン行列の出力先（スキニング用）コンポーネント。
+            // これが無いとAnimationSystemのView<AnimationPlayerComponent, SkeletonOutputComponent>に
+            // 乗らずアニメーションが再生されない
+            registry.AddComponent<Tsukino::BuiltIn::ECS::SkeletonOutputComponent>(bigZombieEntity);
+
+            // EnemyAnimationSystemが参照する、ステートごとのアニメーションクリップ一式
+            ActionGame::ECS::EnemyAnimationSetComponent& bigZombieAnimSet =
+                registry.AddComponent<ActionGame::ECS::EnemyAnimationSetComponent>(bigZombieEntity);
+            bigZombieAnimSet.walkClip   = bigZombieWalkAnimHandle;
+            bigZombieAnimSet.attackClip = bigZombieAttackAnimHandle;
+
+            // ビヘイビアツリー本体（歩く→射程内で攻撃、を行う）
+            ActionGame::ECS::BehaviorTreeComponent& bigZombieBehaviorTree =
+                registry.AddComponent<ActionGame::ECS::BehaviorTreeComponent>(bigZombieEntity);
+            bigZombieBehaviorTree.root = ActionGame::ECS::BuildBigZombieTree();
+
+            // 攻撃射程の調整。bodyRadius(70)+playerRadiusより広く取り、振りかぶる前に
+            // 接触ダメージ（CombatSystem）が先に成立しないようにする
+            registry.GetComponent<ActionGame::ECS::EnemyComponent>(bigZombieEntity).attackRange = 150.0f;
+        }
 
         //--------------------------------------------------------------
         // 2Dカメラエンティティの生成

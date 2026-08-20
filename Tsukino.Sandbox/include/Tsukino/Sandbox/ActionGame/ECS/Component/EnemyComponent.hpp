@@ -19,5 +19,15 @@ namespace ActionGame::ECS {
         float contactDamage  = 10.0f;     //!< プレイヤーに接触した際に与えるダメージ
         float attackInterval = 1.0f;      //!< 接触ダメージの再発生までのクールタイム（秒）
         float attackTimer    = 0.0f;      //!< クールタイムの残り
+
+        //-------------------------------------------------------------
+        // 以下3つはBehaviorTreeComponentを持つ敵（現状BigZombieのみ）だけが読み書きする。
+        // EnemySystem（従来の直進追跡のみを行う敵）は参照しないため、Block.fbxの敵3体には影響しない
+        //-------------------------------------------------------------
+        float attackRange         = 110.0f;    //!< ビヘイビアツリーが攻撃へ移る距離。
+                                                //!< CombatSystemの接触ダメージ成立距離（bodyRadius+playerRadius）以上にしないと、
+                                                //!< 振りかぶる前にダメージが入ってしまう
+        float attackCooldown      = 1.5f;      //!< 攻撃を終えてから次の攻撃までの最短間隔（秒）
+        float attackCooldownTimer = 0.0f;      //!< 残りクールタイム
     };
 }    // namespace ActionGame::ECS

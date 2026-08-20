@@ -6,6 +6,7 @@
 #include <Tsukino/Sandbox/ActionGame/ECS/System/EnemySystem.hpp>
 #include <Tsukino/Sandbox/ActionGame/ECS/Component/EnemyComponent.hpp>
 #include <Tsukino/Sandbox/ActionGame/ECS/Component/PlayerComponent.hpp>
+#include <Tsukino/Sandbox/ActionGame/ECS/Component/BehaviorTreeComponent.hpp>
 
 #include <Tsukino/BuiltIn/ECS/Component/TransformComponent.hpp>
 
@@ -38,6 +39,10 @@ namespace ActionGame::ECS {
         //-------------------------------------------------------------
         auto enemyView = registry.View<EnemyComponent, Tsukino::BuiltIn::ECS::TransformComponent>();
         enemyView.each([&](entt::entity entity, EnemyComponent& enemy, Tsukino::BuiltIn::ECS::TransformComponent& transform) {
+            // BT駆動の敵（現状BigZombieのみ）はEnemyBehaviorSystemがTransformを書くため、ここでは触らない（二重更新の防止）
+            if(registry.HasComponent<BehaviorTreeComponent>(entity))
+                return;
+
             hlslpp::float3 toPlayer = playerPosition - transform.position;
             toPlayer.y              = 0.0f;    // 水平面のみで追跡する
 
