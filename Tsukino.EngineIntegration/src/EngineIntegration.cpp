@@ -13,6 +13,8 @@
 
 #include <Tsukino/BuiltIn/ECS/Component/EffectComponent.hpp>
 #include <Tsukino/BuiltIn/ECS/Component/DirectionalLightComponent.hpp>
+#include <Tsukino/BuiltIn/ECS/Component/PointLightComponent.hpp>
+#include <Tsukino/BuiltIn/ECS/Component/SpotLightComponent.hpp>
 #include <Tsukino/BuiltIn/ECS/Component/SkyAtmosphereComponent.hpp>
 #include <Tsukino/BuiltIn/ECS/Component/DebugCameraComponent.hpp>
 #include <Tsukino/BuiltIn/ECS/Component/DebugCameraTag.hpp>
@@ -211,20 +213,22 @@ namespace Tsukino::EngineIntegration {
         auto shadowStaticVSAsset = std::static_pointer_cast<Tsukino::Asset::ShaderAsset>(m_assetManager->Get(m_builtinAssets->shaders.shadowStaticVS));
         auto shadowSkeletalVSAsset = std::static_pointer_cast<Tsukino::Asset::ShaderAsset>(m_assetManager->Get(m_builtinAssets->shaders.shadowVS));
         auto shadowPSAsset         = std::static_pointer_cast<Tsukino::Asset::ShaderAsset>(m_assetManager->Get(m_builtinAssets->shaders.shadowPS));
+        auto lightingPSAsset       = std::static_pointer_cast<Tsukino::Asset::ShaderAsset>(m_assetManager->Get(m_builtinAssets->shaders.lightingPS));
 
         //--------------------------------------------------------------
         // レンダラー生成
         //--------------------------------------------------------------
-        if(!m_renderer->Initialize(m_window->GetHWND(),
-                                   m_window->GetWidth(),
-                                   m_window->GetHeight(),
-                                   debugVsAsset.get(),
-                                   debugPsAsset.get(),
-                                   tonemapVSAsset.get(),
-                                   tonemapPSAsset.get(),
-                                   shadowStaticVSAsset.get(),
-                                   shadowSkeletalVSAsset.get(),
-                                   shadowPSAsset.get())) {
+        Tsukino::Renderer::RendererShaderSet shaderSet{};
+        shaderSet.debugVS          = debugVsAsset.get();
+        shaderSet.debugPS          = debugPsAsset.get();
+        shaderSet.tonemapVS        = tonemapVSAsset.get();
+        shaderSet.tonemapPS        = tonemapPSAsset.get();
+        shaderSet.shadowStaticVS   = shadowStaticVSAsset.get();
+        shaderSet.shadowSkeletalVS = shadowSkeletalVSAsset.get();
+        shaderSet.shadowPS         = shadowPSAsset.get();
+        shaderSet.lightingPS       = lightingPSAsset.get();
+
+        if(!m_renderer->Initialize(m_window->GetHWND(), m_window->GetWidth(), m_window->GetHeight(), shaderSet)) {
             return false;
         }
 
@@ -241,6 +245,9 @@ namespace Tsukino::EngineIntegration {
         m_prefabFactory->RegisterComponent<Tsukino::BuiltIn::ECS::RigidbodyComponent>("RigidbodyComponent");
         m_prefabFactory->RegisterComponent<Tsukino::BuiltIn::ECS::EffectComponent>("EffectComponent");
         m_prefabFactory->RegisterComponent<Tsukino::BuiltIn::ECS::DirectionalLightComponent>("DirectionalLightComponent");
+        // PointLight/SpotLightはDirectionalLightと異なりシリアライザ未実装（デフォルト値でのアタッチのみ対応）
+        m_prefabFactory->RegisterComponent<Tsukino::BuiltIn::ECS::PointLightComponent>("PointLightComponent");
+        m_prefabFactory->RegisterComponent<Tsukino::BuiltIn::ECS::SpotLightComponent>("SpotLightComponent");
         m_prefabFactory->RegisterComponent<Tsukino::BuiltIn::ECS::SkyAtmosphereComponent>("SkyAtmosphereComponent");
         m_prefabFactory->RegisterComponent<Tsukino::BuiltIn::ECS::DebugCameraComponent>("DebugCameraComponent");
         // タグのみのコンポーネントはシリアライズ対応不要（アタッチのみでよい）

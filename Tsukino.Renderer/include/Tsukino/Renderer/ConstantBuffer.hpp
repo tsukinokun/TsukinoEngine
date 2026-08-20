@@ -82,6 +82,33 @@ namespace Tsukino::Renderer {
     };
 
     //--------------------------------------------------------------
+    //! @struct GPULight
+    //! @brief  点光源・スポットライト1灯分のGPU転送用データ (64B)
+    //! @note   Lighting.hlsli の GPULight と1バイト単位で一致させること
+    //--------------------------------------------------------------
+    struct GPULight {
+        hlslpp::float4 positionRange;     //!< xyz: ワールド座標, w: 影響半径
+        hlslpp::float4 colorIntensity;    //!< xyz: 色(linear), w: 強度
+        hlslpp::float4 directionType;     //!< xyz: 方向（スポットのみ有効）, w: 0=Point, 1=Spot
+        hlslpp::float4 spotParams;        //!< x: cos(内側角), y: cos(外側角), zw: 予約
+    };
+
+    //--------------------------------------------------------------
+    //! @brief 同時に扱える点光源・スポットライトの上限数
+    //--------------------------------------------------------------
+    static constexpr unsigned int MAX_LIGHTS = 64;
+
+    //--------------------------------------------------------------
+    //! @struct CBufferLights
+    //! @brief  スロット6 (b6) 用：点光源・スポットライト配列（ディファードLightingパス用）
+    //--------------------------------------------------------------
+    struct CBufferLights {
+        unsigned int lightCount = 0;
+        unsigned int pad[3]{};
+        GPULight     lights[MAX_LIGHTS]{};
+    };
+
+    //--------------------------------------------------------------
     //! @struct CBufferWater
     //! @brief  スロット5 (b5) 用：水面パラメータ
     //--------------------------------------------------------------

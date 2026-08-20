@@ -8,6 +8,7 @@
 #include <d3d11.h>
 #include <dxgi.h>
 #include <wrl/client.h>
+#include <array>
 // 名前空間 : Tsukino::Renderer
 namespace Tsukino::Renderer {
     struct PipelineState;    // 前方宣言
@@ -89,6 +90,49 @@ namespace Tsukino::Renderer {
         void BindBackBuffer();
 
         //--------------------------------------------------------------
+        //! @brief G-Buffer（4枚）とDSVをバインドしてクリアする
+        //! @note  GBufferパスの先頭で呼ぶ
+        //--------------------------------------------------------------
+        void BeginGBufferPass();
+
+        //--------------------------------------------------------------
+        //! @brief HDRバッファへ戻す（クリアはしない）
+        //! @note  Lightingパス完了後、World/Transparent/Waterパスの前に呼ぶ
+        //--------------------------------------------------------------
+        void BindHDRRenderTarget();
+
+        //--------------------------------------------------------------
+        //! @brief HDRバッファのみをRTVにバインドする（DSVなし）
+        //! @note  ディファードLightingパス用。深度をSRVとして読む間は
+        //!        同じリソースをDSVとして同時バインドできないため。
+        //--------------------------------------------------------------
+        void BindHDRTargetOnly();
+
+        //--------------------------------------------------------------
+        //! @brief G-BufferのSRVを取得する
+        //! @param index [in] 0=Albedo, 1=Normal, 2=Material, 3=Emissive, 4=WorldPos
+        //! @return ID3D11ShaderResourceViewへのポインタ
+        //--------------------------------------------------------------
+        [[nodiscard]]
+        ID3D11ShaderResourceView* GetGBufferSRV(UINT index) const noexcept {
+            return (index < GBufferCount) ? m_gbufferSRV[index].Get() : nullptr;
+        }
+
+        //--------------------------------------------------------------
+        //! @brief 深度バッファのSRVを取得する（ディファードLightingパスで使用）
+        //! @return ID3D11ShaderResourceViewへのポインタ
+        //--------------------------------------------------------------
+        [[nodiscard]]
+        ID3D11ShaderResourceView* GetDepthSRV() const noexcept {
+            return m_depthSRV.Get();
+        }
+
+        //--------------------------------------------------------------
+        //! @brief G-Bufferの枚数
+        //--------------------------------------------------------------
+        static constexpr UINT GBufferCount = 5;
+
+        //--------------------------------------------------------------
         //! @brief  描画領域のリサイズ
         //! @param  width  [in] 新しい幅（ピクセル）
         //! @param  height [in] 新しい高さ（ピクセル）
@@ -153,12 +197,18 @@ namespace Tsukino::Renderer {
         Microsoft::WRL::ComPtr<ID3D11RenderTargetView> m_rtv;
 
         // DepthStencilView
-        Microsoft::WRL::ComPtr<ID3D11DepthStencilView> m_dsv;
+        Microsoft::WRL::ComPtr<ID3D11DepthStencilView>   m_dsv;
+        Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> m_depthSRV;    //!< 深度のSRVビュー（ディファードLightingパス用）
 
         // HDRレンダーターゲット（通常描画の出力先）
         Microsoft::WRL::ComPtr<ID3D11Texture2D>          m_hdrTex;    //!< HDRカラーバッファ
         Microsoft::WRL::ComPtr<ID3D11RenderTargetView>   m_hdrRTV;    //!< HDR用RTV
         Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> m_hdrSRV;    //!< トーンマッピングで読むSRV
+
+        // G-Buffer（ディファードGBufferパスの出力 / Lightingパスの入力）
+        std::array<Microsoft::WRL::ComPtr<ID3D11Texture2D>, GBufferCount>          m_gbufferTex;
+        std::array<Microsoft::WRL::ComPtr<ID3D11RenderTargetView>, GBufferCount>   m_gbufferRTV;
+        std::array<Microsoft::WRL::ComPtr<ID3D11ShaderResourceView>, GBufferCount> m_gbufferSRV;
 
         UINT m_width  = 0;    //!< 描画領域の幅
         UINT m_height = 0;    //!< 描画領域の高さ

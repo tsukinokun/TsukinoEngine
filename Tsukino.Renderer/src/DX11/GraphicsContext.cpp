@@ -7,8 +7,10 @@
 
 #include <Tsukino/Renderer/DX11/PipelineState.hpp>
 #include <Tsukino/Renderer/DX11/Material.hpp>
+#include <Tsukino/Renderer/ShaderSlots.hpp>
 
 #include <Tsukino/Core/Log.hpp>
+#include <string>
 // 名前空間 : Tsukino::Renderer
 namespace Tsukino::Renderer {
     //--------------------------------------------------------------
@@ -82,8 +84,15 @@ namespace Tsukino::Renderer {
         m_hdrSRV.Reset();
         m_hdrRTV.Reset();
         m_hdrTex.Reset();
+        m_depthSRV.Reset();
         m_dsv.Reset();
         m_rtv.Reset();
+
+        for(UINT i = 0; i < GBufferCount; ++i) {
+            m_gbufferSRV[i].Reset();
+            m_gbufferRTV[i].Reset();
+            m_gbufferTex[i].Reset();
+        }
     }
 
     //--------------------------------------------------------------
@@ -121,7 +130,12 @@ namespace Tsukino::Renderer {
 
         m_context->RSSetViewports(1, &vp);
 
+        //--------------------------------------------------------------
         // Depth buffer texture
+        // TYPELESS で確保し、DSV(D24_UNORM_S8_UINT) と SRV(R24_UNORM_X8_TYPELESS)
+        // の両方を同じテクスチャから作る。ディファードLightingパスが
+        // 深度をシェーダーリソースとして読むために必要（旧: D24_UNORM_S8_UINT固定・SRV化不可）。
+        //--------------------------------------------------------------
         Microsoft::WRL::ComPtr<ID3D11Texture2D> depthTex;
 
         D3D11_TEXTURE2D_DESC depthDesc = {};
@@ -129,9 +143,9 @@ namespace Tsukino::Renderer {
         depthDesc.Height               = height;
         depthDesc.MipLevels            = 1;
         depthDesc.ArraySize            = 1;
-        depthDesc.Format               = DXGI_FORMAT_D24_UNORM_S8_UINT;
+        depthDesc.Format               = DXGI_FORMAT_R24G8_TYPELESS;
         depthDesc.SampleDesc.Count     = 1;
-        depthDesc.BindFlags            = D3D11_BIND_DEPTH_STENCIL;
+        depthDesc.BindFlags            = D3D11_BIND_DEPTH_STENCIL | D3D11_BIND_SHADER_RESOURCE;
 
         hr = m_device->CreateTexture2D(&depthDesc, nullptr, depthTex.GetAddressOf());
         if(FAILED(hr)) {
@@ -140,9 +154,26 @@ namespace Tsukino::Renderer {
         }
 
         // DSV 作成
-        hr = m_device->CreateDepthStencilView(depthTex.Get(), nullptr, m_dsv.GetAddressOf());
+        D3D11_DEPTH_STENCIL_VIEW_DESC dsvDesc{};
+        dsvDesc.Format        = DXGI_FORMAT_D24_UNORM_S8_UINT;
+        dsvDesc.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2D;
+
+        hr = m_device->CreateDepthStencilView(depthTex.Get(), &dsvDesc, m_dsv.GetAddressOf());
         if(FAILED(hr)) {
             Tsukino::Core::Log::Error("GraphicsContext: Failed to create the depth stencil view. Depth testing would be disabled.");
+            return false;
+        }
+
+        // SRV 作成（ディファードLightingパスでの深度サンプリング用）
+        D3D11_SHADER_RESOURCE_VIEW_DESC depthSrvDesc{};
+        depthSrvDesc.Format                    = DXGI_FORMAT_R24_UNORM_X8_TYPELESS;
+        depthSrvDesc.ViewDimension             = D3D11_SRV_DIMENSION_TEXTURE2D;
+        depthSrvDesc.Texture2D.MipLevels       = 1;
+        depthSrvDesc.Texture2D.MostDetailedMip = 0;
+
+        hr = m_device->CreateShaderResourceView(depthTex.Get(), &depthSrvDesc, m_depthSRV.GetAddressOf());
+        if(FAILED(hr)) {
+            Tsukino::Core::Log::Error("GraphicsContext: Failed to create the depth shader resource view.");
             return false;
         }
 
@@ -175,6 +206,53 @@ namespace Tsukino::Renderer {
         if(FAILED(hr)) {
             Tsukino::Core::Log::Error("GraphicsContext: Failed to create the HDR shader resource view.");
             return false;
+        }
+
+        //--------------------------------------------------------------
+        // G-Buffer の作成（ディファードGBufferパスの出力先 / Lightingパスの入力）
+        //   0 : rgb = albedo
+        //   1 : rgb = ワールド法線 (n*0.5+0.5), a = ShadingModel ID
+        //   2 : r = metallic, g = roughness, b = AO, a = specular
+        //   3 : rgb = emissive（リム発光・全体白発光を含む）
+        //   4 : rgb = ワールド座標（頂点シェーダーの補間値をそのまま出力。
+        //             深度からの再構成はリバースZ+遠距離での精度劣化を避けるため使わない）
+        //--------------------------------------------------------------
+        static constexpr DXGI_FORMAT kGBufferFormats[GBufferCount] = {
+            DXGI_FORMAT_R8G8B8A8_UNORM,        // GBuffer0 : Albedo
+            DXGI_FORMAT_R10G10B10A2_UNORM,     // GBuffer1 : Normal + ShadingModel
+            DXGI_FORMAT_R8G8B8A8_UNORM,        // GBuffer2 : Metallic/Roughness/AO/Specular
+            DXGI_FORMAT_R11G11B10_FLOAT,       // GBuffer3 : Emissive
+            DXGI_FORMAT_R16G16B16A16_FLOAT,    // GBuffer4 : World Position
+        };
+
+        for(UINT i = 0; i < GBufferCount; ++i) {
+            D3D11_TEXTURE2D_DESC gbDesc{};
+            gbDesc.Width            = width;
+            gbDesc.Height           = height;
+            gbDesc.MipLevels        = 1;
+            gbDesc.ArraySize        = 1;
+            gbDesc.Format           = kGBufferFormats[i];
+            gbDesc.SampleDesc.Count = 1;
+            gbDesc.Usage            = D3D11_USAGE_DEFAULT;
+            gbDesc.BindFlags        = D3D11_BIND_RENDER_TARGET | D3D11_BIND_SHADER_RESOURCE;
+
+            hr = m_device->CreateTexture2D(&gbDesc, nullptr, m_gbufferTex[i].GetAddressOf());
+            if(FAILED(hr)) {
+                Tsukino::Core::Log::Error("GraphicsContext: Failed to create G-Buffer texture " + std::to_string(i) + ".");
+                return false;
+            }
+
+            hr = m_device->CreateRenderTargetView(m_gbufferTex[i].Get(), nullptr, m_gbufferRTV[i].GetAddressOf());
+            if(FAILED(hr)) {
+                Tsukino::Core::Log::Error("GraphicsContext: Failed to create G-Buffer RTV " + std::to_string(i) + ".");
+                return false;
+            }
+
+            hr = m_device->CreateShaderResourceView(m_gbufferTex[i].Get(), nullptr, m_gbufferSRV[i].GetAddressOf());
+            if(FAILED(hr)) {
+                Tsukino::Core::Log::Error("GraphicsContext: Failed to create G-Buffer SRV " + std::to_string(i) + ".");
+                return false;
+            }
         }
 
         // 画面サイズを保存
@@ -271,17 +349,21 @@ namespace Tsukino::Renderer {
 
     //--------------------------------------------------------------
     //! @brief  マテリアルをセット
+    //! @note   t0〜t4（Albedo/Normal/MetallicRoughness/Emissive/AO）を
+    //!         まとめてバインドする。未設定のスロットは nullptr のまま
+    //!         渡し、シェーダー側で未使用なら無害（DX11はnull SRVサンプリングで0を返す）。
     //--------------------------------------------------------------
     void GraphicsContext::SetMaterial(const Material& mat) {
         SetPipelineState(*mat.GetPipeline());    // マテリアルからパイプラインステートを取得してセット
 
         ID3D11DeviceContext* ctx = m_context.Get();    // コンテキストの生ポインタを取得
 
-        ID3D11ShaderResourceView* srv = mat.GetTexture();    // マテリアルからテクスチャを取得
-        ctx->PSSetShaderResources(0, 1, &srv);               // ピクセルシェーダーのスロット0にテクスチャをセット
+        constexpr UINT albedoSlot = static_cast<UINT>(SRVSlot::Albedo);
+        ctx->PSSetShaderResources(albedoSlot, static_cast<UINT>(Material::TextureSlotCount),
+                                  const_cast<ID3D11ShaderResourceView**>(mat.GetTextures()));
 
         ID3D11SamplerState* sampler = mat.GetSampler();    // マテリアルからサンプラーを取得
-        ctx->PSSetSamplers(0, 1, &sampler);                // ピクセルシェーダーのスロット0にサンプラーをセット
+        ctx->PSSetSamplers(static_cast<UINT>(SamplerSlot::Material), 1, &sampler);
     }
 
     //--------------------------------------------------------------
@@ -290,5 +372,38 @@ namespace Tsukino::Renderer {
     void GraphicsContext::BindBackBuffer() {
         // 深度なしでバックバッファにバインド（トーンマッピングは深度不要）
         m_context->OMSetRenderTargets(1, m_rtv.GetAddressOf(), nullptr);
+    }
+
+    //--------------------------------------------------------------
+    //! @brief G-Buffer（4枚）をRTVとして、DSVを深度書き込みありでバインドしてクリアする
+    //! @note  GBufferパスの先頭で呼ぶ。HDRバッファは対象外（Lightingパスの出力先）。
+    //--------------------------------------------------------------
+    void GraphicsContext::BeginGBufferPass() {
+        ID3D11RenderTargetView* rtvs[GBufferCount] = {m_gbufferRTV[0].Get(), m_gbufferRTV[1].Get(), m_gbufferRTV[2].Get(),
+                                                       m_gbufferRTV[3].Get(), m_gbufferRTV[4].Get()};
+
+        m_context->OMSetRenderTargets(GBufferCount, rtvs, m_dsv.Get());
+
+        // Albedo/Normal/Material/Emissive/WorldPos はすべて0クリアで無害
+        // （深度==0＝背景として扱うため、depth==0のピクセルはLightingパスでdiscardされる）
+        const float clear[4] = {0.0f, 0.0f, 0.0f, 0.0f};
+        for(UINT i = 0; i < GBufferCount; ++i) {
+            m_context->ClearRenderTargetView(m_gbufferRTV[i].Get(), clear);
+        }
+    }
+
+    //--------------------------------------------------------------
+    //! @brief HDRバッファへ戻す（Lightingパス完了後、Worldパス等の前に呼ぶ）
+    //! @note  BeginFrame と異なりクリアはしない（Lightingパスの結果を保持するため）。
+    //--------------------------------------------------------------
+    void GraphicsContext::BindHDRRenderTarget() {
+        m_context->OMSetRenderTargets(1, m_hdrRTV.GetAddressOf(), m_dsv.Get());
+    }
+
+    //--------------------------------------------------------------
+    //! @brief HDRバッファのみをRTVにバインドする（DSVなし）
+    //--------------------------------------------------------------
+    void GraphicsContext::BindHDRTargetOnly() {
+        m_context->OMSetRenderTargets(1, m_hdrRTV.GetAddressOf(), nullptr);
     }
 }    // namespace Tsukino::Renderer

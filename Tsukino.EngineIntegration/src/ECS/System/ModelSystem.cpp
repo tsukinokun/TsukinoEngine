@@ -167,8 +167,10 @@ namespace Tsukino::BuiltIn::ECS {
                     Tsukino::Renderer::CBufferMaterial* pCbMat = &m_cbufferMaterialBuffer.back();
 
                     // シェーダーアセットの取得
+                    // VSはワールド座標・法線・UVを出力するだけなので、フォワード(Water)/
+                    // ディファード(GBuffer)いずれのPSでも共用できる
                     Tsukino::Asset::AssetHandle vsHandle = isSkeletal ? ctx->builtinAssets->shaders.modelVS : ctx->builtinAssets->shaders.staticModelVS;
-                    Tsukino::Asset::AssetHandle psHandle = ctx->builtinAssets->shaders.modelPS;
+                    Tsukino::Asset::AssetHandle psHandle = ctx->builtinAssets->shaders.gbufferPS;
 
                     // ShadingModel を一度だけ取得
                     Tsukino::GraphicsCommon::ShadingModel shadingModel = Tsukino::GraphicsCommon::ShadingModel::PBR;
@@ -222,9 +224,10 @@ namespace Tsukino::BuiltIn::ECS {
                         cmd.boneMatrices = skeletonOut->local_matrices;
                         cmd.boneCount    = skeletonOut->bone_count;
                     }
-                    if(shadingModel == Tsukino::GraphicsCommon::ShadingModel::Water) {
-                        cmd.pass = Tsukino::Renderer::RenderPass::Water;
-                    }
+                    // Water はフォワードの専用パス（半透明のためディファード対象外）。
+                    // それ以外（PBR/Unlit/Toon）は不透明としてG-Bufferパスへ回す。
+                    cmd.pass = (shadingModel == Tsukino::GraphicsCommon::ShadingModel::Water) ? Tsukino::Renderer::RenderPass::Water
+                                                                                              : Tsukino::Renderer::RenderPass::GBuffer;
 
                     ctx->renderer->PushDrawCommand(cmd);
                 }

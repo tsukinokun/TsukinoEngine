@@ -555,11 +555,12 @@ project "Tsukino.BuiltIn"
         "Tsukino.BuiltIn/src/**.cpp",
         "Tsukino.BuiltIn/include/**.hpp",
         "Tsukino.BuiltIn/Assets/**.hlsl",
+        "Tsukino.BuiltIn/Assets/**.hlsli",
         "Tsukino.BuiltIn/pch.cpp"
     }
 
-    -- .hlslはビルド対象から除外
-    filter  "files:**.hlsl" 
+    -- .hlsl/.hlsliはビルド対象から除外（.hlsliはインクルード専用でコンパイル自体行われない）
+    filter  "files:**.hlsl or files:**.hlsli"
         buildaction "None"
     filter {}
 

@@ -45,6 +45,24 @@ namespace Tsukino::BuiltIn::ECS {
 // 名前空間 : Tsukino::Renderer
 namespace Tsukino::Renderer {
     struct CBufferScene;    // 前方宣言
+
+    //------------------------------------------------------------
+    //! @struct RendererShaderSet
+    //! @brief  Renderer::Initialize に渡すビルトインシェーダー一式
+    //! @note   位置引数の羅列が肥大化するのを防ぐための集約構造体。
+    //!         各メンバの実体は Tsukino::BuiltIn::BuiltInShaders が読み込んだアセット。
+    //------------------------------------------------------------
+    struct RendererShaderSet {
+        const Tsukino::Asset::ShaderAsset* debugVS          = nullptr;    //!< デバッグ線用VS
+        const Tsukino::Asset::ShaderAsset* debugPS          = nullptr;    //!< デバッグ線用PS
+        const Tsukino::Asset::ShaderAsset* tonemapVS        = nullptr;    //!< フルスクリーン三角形VS（Tonemap/Lighting共用）
+        const Tsukino::Asset::ShaderAsset* tonemapPS        = nullptr;    //!< トーンマッピング用PS
+        const Tsukino::Asset::ShaderAsset* shadowStaticVS   = nullptr;    //!< シャドウマップ用VS（スタティック）
+        const Tsukino::Asset::ShaderAsset* shadowSkeletalVS = nullptr;    //!< シャドウマップ用VS（スケルタル）
+        const Tsukino::Asset::ShaderAsset* shadowPS         = nullptr;    //!< シャドウマップ用PS
+        const Tsukino::Asset::ShaderAsset* lightingPS       = nullptr;    //!< ディファードLightingパス用PS（VSはtonemapVSを共用）
+    };
+
     //------------------------------------------------------------
     //! @class	 Renderer
     //! @brief	 レンダラークラス
@@ -64,22 +82,14 @@ namespace Tsukino::Renderer {
 
         //------------------------------------------------------------
         // レンダラーの初期化
-        //! @param hwnd   [in] 描画先のウィンドウハンドル
-        //! @param width  [in] 描画領域の幅
-        //! @param height [in] 描画領域の高さ
+        //! @param hwnd    [in] 描画先のウィンドウハンドル
+        //! @param width   [in] 描画領域の幅
+        //! @param height  [in] 描画領域の高さ
+        //! @param shaders [in] ビルトインシェーダー一式
         //! @return true: [in] 初期化成功, false: 初期化失敗
         //------------------------------------------------------------
         [[nodiscard]]
-        bool Initialize(HWND                               hwnd,
-                        uint32_t                           width,
-                        uint32_t                           height,
-                        const Tsukino::Asset::ShaderAsset* debugVS,
-                        const Tsukino::Asset::ShaderAsset* debugPS,
-                        const Tsukino::Asset::ShaderAsset* tonemapVS,
-                        const Tsukino::Asset::ShaderAsset* tonemapPS,
-                        const Tsukino::Asset::ShaderAsset* shadowStaticVS,
-                        const Tsukino::Asset::ShaderAsset* shadowSkeletalVS,
-                        const Tsukino::Asset::ShaderAsset* shadowPS);
+        bool Initialize(HWND hwnd, uint32_t width, uint32_t height, const RendererShaderSet& shaders);
 
         //------------------------------------------------------------
         // 描画処理
@@ -269,6 +279,13 @@ namespace Tsukino::Renderer {
         //------------------------------------------------------------
         void SetWaterPipeline(const Tsukino::Asset::ShaderAsset* vs, const Tsukino::Asset::ShaderAsset* ps);
 
+        //------------------------------------------------------------
+        //! @brief 点光源・スポットライト配列のセット（ディファードLightingパス用）
+        //! @param lights [in] GPULightの配列
+        //! @param count  [in] 配列の要素数（MAX_LIGHTSを超える分は切り捨てられる）
+        //------------------------------------------------------------
+        void SetLights(const GPULight* lights, u32 count);
+
     private:
         //------------------------------------------------------------
         // 定数バッファの作成
@@ -345,6 +362,19 @@ namespace Tsukino::Renderer {
         //! @brief スカイパスの実行
         //------------------------------------------------------------
         void ExecuteSkyPass();
+
+        //------------------------------------------------------------
+        //! @brief ディファードLightingパスの実行
+        //------------------------------------------------------------
+        void ExecuteLightingPass();
+
+        //------------------------------------------------------------
+        //! @brief ディファードLightingパイプラインのセット
+        //! @param ps [in] ピクセルシェーダーアセット（VSはTonemapと共用）
+        //! @return true: 成功, false: 失敗
+        //------------------------------------------------------------
+        [[nodiscard]]
+        bool SetLightingPipeline(const Tsukino::Asset::ShaderAsset* ps);
 
         //------------------------------------------------------------
         //! @brief トーンマッピングパスの実行
@@ -433,5 +463,12 @@ namespace Tsukino::Renderer {
 
         std::shared_ptr<PipelineState> m_waterPipeline;         //!< 水面用パイプラインキャッシュ
         ComPtr<ID3D11SamplerState>     m_waterShadowSampler;    //!< 水面用 PCF サンプラー (s8)
+
+        // ディファードLightingパス用リソース
+        ComPtr<ID3D11PixelShader> m_lightingPS;              //!< Lightingパス用PS（VSはm_tonemapVSを共用）
+        bool                      m_hasLighting = false;
+        ComPtr<ID3D11Buffer>      m_lightsBuffer;             //!< 点光源・スポットライト配列用定数バッファ (b6)
+        CBufferLights             m_lightsData{};              //!< CPU側のライト配列（毎フレームGPUへ転送）
+        bool                      m_lightOverflowWarned = false;    //!< MAX_LIGHTS超過の警告を1回だけ出すためのフラグ
     };
 }    // namespace Tsukino::Renderer

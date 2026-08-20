@@ -39,5 +39,7 @@ namespace Tsukino::BuiltIn {
         Tsukino::Asset::AssetHandle tonemapVS;         // トーンマップ用頂点シェーダーのハンドル
         Tsukino::Asset::AssetHandle tonemapPS;         // トーンマップ用ピクセルシェーダーのハンドル
         Tsukino::Asset::AssetHandle waterPS;           // 水面用ピクセルシェーダーのハンドル
+        Tsukino::Asset::AssetHandle gbufferPS;         // ディファードGBufferパス用ピクセルシェーダーのハンドル（VSはmodelVS/staticModelVSを共用）
+        Tsukino::Asset::AssetHandle lightingPS;        // ディファードLightingパス用ピクセルシェーダーのハンドル（VSはtonemapVSを共用）
     };
 }    // namespace Tsukino::BuiltIn
