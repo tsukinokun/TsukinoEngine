@@ -12,7 +12,7 @@
 
 #include <Tsukino/BuiltIn/ECS/Component/TransformComponent.hpp>
 #include <Tsukino/BuiltIn/ECS/Component/CharacterControllerComponent.hpp>
-#include <Tsukino/BuiltIn/ECS/Component/AnimationPlayerComponent.hpp>
+#include <Tsukino/BuiltIn/ECS/Component/ModelComponent.hpp>
 #include <Tsukino/BuiltIn/ECS/Component/NodeWorldPoseComponent.hpp>
 #include <Tsukino/BuiltIn/ECS/Component/NodeWorldMatrixComponent.hpp>
 
@@ -80,17 +80,16 @@ namespace ActionGame::ECS {
                     registry.GetComponent<Tsukino::BuiltIn::ECS::TransformComponent>(weapon.owner);
 
                 // 所有者のアタッチ対象ボーン名を解決してキャッシュする。
-                // NodeWorldPoseComponentはAnimationSystemが「現在再生中のアニメーションクリップ」の
-                // modelData.nodesを基準に書き出すため（プレイヤー本体のModelComponentのモデルとは
-                // 別アセットで、ノード構成が一致するとは限らない）、解決もクリップ側のノード一覧に対して行う。
-                // Idle/Run/Attack等、クリップごとに別アセット＝別のnode配列なので、一度解決したインデックスを
-                // 使い回すと別クリップ再生中に誤ったノードを指してしまう。再生中のクリップが変わるたびに
-                // 再解決する（クリップ未ロード等で解決できない場合は、ロードされるまで毎フレーム再試行する）。
+                // NodeWorldPoseComponent/NodeWorldMatrixComponentは、所有者のModelComponentが指す
+                // キャラクターモデル自身のmodelData.nodesを基準にAnimationSystemが書き出す
+                // （再生中のクリップのnode配列ではない。クリップ側は名前でチャンネルを引くためだけに
+                // 使われ、ノードindex空間はモデル側で固定される）。そのため解決もModelComponent側の
+                // ノード一覧に対して行い、再生中のクリップが切り替わっても再解決は不要になる
                 if(ctx && ctx->assetManager
-                   && registry.HasComponent<Tsukino::BuiltIn::ECS::AnimationPlayerComponent>(weapon.owner)) {
-                    auto& ownerAnim = registry.GetComponent<Tsukino::BuiltIn::ECS::AnimationPlayerComponent>(weapon.owner);
-                    if(weapon.resolvedAgainstClip != ownerAnim.current_clip_id) {
-                        auto asset = ctx->assetManager->Get(ownerAnim.current_clip_id);
+                   && registry.HasComponent<Tsukino::BuiltIn::ECS::ModelComponent>(weapon.owner)) {
+                    auto& ownerModel = registry.GetComponent<Tsukino::BuiltIn::ECS::ModelComponent>(weapon.owner);
+                    if(weapon.resolvedAgainstModel != ownerModel.modelHandle) {
+                        auto asset = ctx->assetManager->Get(ownerModel.modelHandle);
                         if(asset && asset->GetType() == Tsukino::Asset::AssetType::Model) {
                             auto modelAss           = std::static_pointer_cast<Tsukino::Asset::ModelAsset>(asset);
                             weapon.handBoneNodeIndex = UINT32_MAX;
@@ -100,7 +99,7 @@ namespace ActionGame::ECS {
                                     break;
                                 }
                             }
-                            weapon.resolvedAgainstClip = ownerAnim.current_clip_id;    // アセットが読めた時点で確定（見つからなければUINT32_MAXのまま）
+                            weapon.resolvedAgainstModel = ownerModel.modelHandle;    // アセットが読めた時点で確定（見つからなければUINT32_MAXのまま）
                         }
                     }
                 }

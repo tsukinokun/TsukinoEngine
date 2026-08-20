@@ -25,5 +25,13 @@ namespace ActionGame::ECS {
         int                                selectedWeaponIndex = 0;    //!< weaponInventory内の現在選択インデックス。weaponEntityと同期させる
 
         Tsukino::ECS::Entity pickupTarget = entt::null;    //!< 現在拾える対象（Fキーの対象）。PickupSystemが毎フレーム更新する
+
+        //-------------------------------------------------------------
+        // 左クリックの生入力。PlayerSystemが立て、PlayerAnimationSystemが消費してfalseへ戻す。
+        // WeaponComponent::attackRequestedとは意味が異なる点に注意：こちらは「入力があったか」、
+        // attackRequestedは「（コンボ受付を含めた判定の結果）攻撃スイングが実際に始まったか」を表す。
+        // 攻撃中の入力はすぐには反映されず、PlayerAnimationSystem側で1回だけ先行入力としてバッファされる
+        //-------------------------------------------------------------
+        bool attackInputPressed = false;
     };
 }    // namespace ActionGame::ECS

@@ -173,8 +173,10 @@ namespace Tsukino::Sandbox {
         Tsukino::Asset::AssetHandle runAnimHandle  = context->assetManager->Load(Tsukino::Core::Path("Tsukino.Sandbox/Assets/ActionGameSample/Anims/Run.fbx"));
         Tsukino::Asset::AssetHandle fastRunAnimHandle =
             context->assetManager->Load(Tsukino::Core::Path("Tsukino.Sandbox/Assets/ActionGameSample/Anims/Fast Run.fbx"));
+        // Weapon Attack.fbx は3回斬るモーションが1クリップに入っており、連撃の各段は
+        // 同じハンドルを時間レンジだけ変えて3回参照する（下のattackSteps初期化を参照）
         Tsukino::Asset::AssetHandle attackAnimHandle =
-            context->assetManager->Load(Tsukino::Core::Path("Tsukino.Sandbox/Assets/Anims/Standing Melee Attack Horizontal.fbx"));
+            context->assetManager->Load(Tsukino::Core::Path("Tsukino.Sandbox/Assets/ActionGameSample/Anims/Weapon Attack.fbx"));
 
         Tsukino::ECS::Registry& registry = m_scene.GetRegistry();
 
@@ -248,11 +250,15 @@ namespace Tsukino::Sandbox {
         // アニメーションを再生・制御するコンポーネント（初期状態はIdle。以後はPlayerAnimationSystemが管理する）
         Tsukino::BuiltIn::ECS::AnimationPlayerComponent& animPlayer = registry.AddComponent<Tsukino::BuiltIn::ECS::AnimationPlayerComponent>(playerEntity);
         animPlayer.current_clip_id                                  = idleAnimHandle;
-        animPlayer.animation_index                                  = 0;
+        // index 0はMixamo製FBX共通の1tickスタブ、index 1が実モーション（PlayerAnimationSystemと合わせる）
+        animPlayer.animation_index                                  = 1;
         animPlayer.elapsed_time                                     = 0.0f;
         animPlayer.playback_speed                                   = 1.0f;
         animPlayer.is_looping                                       = true;    // ループさせる
         animPlayer.is_playing                                       = true;    // 再生状態にする
+        // In Placeの固定対象ノード名（Mixamoのリグ命名。WeaponComponent::handBoneNameと同じ流儀）。
+        // 空にすると自動判定（スキニング対象ボーンのうち最も浅いもの）にフォールバックする
+        animPlayer.root_motion_node_name                            = "mixamorig:Hips";
 
         // クリップの切り替え（AnimationSystemが読む「次に再生するクリップ」の受け皿）
         registry.AddComponent<Tsukino::BuiltIn::ECS::AnimationControllerComponent>(playerEntity);
@@ -263,8 +269,23 @@ namespace Tsukino::Sandbox {
         animSet.runClip                                       = runAnimHandle;
         animSet.fastRunClip                                   = fastRunAnimHandle;
         animSet.jumpClip                                      = animationHandle;
-        animSet.attackClip                                    = attackAnimHandle;
         animSet.currentState                                  = ActionGame::ECS::PlayerAnimState::Idle;
+
+        // Weapon Attack.fbx は3回斬るモーションが1クリップ（30fps / 106フレーム = 3.5333秒）に
+        // 入っているため、等分した時間レンジで3段に切り出す。境界は実機で見ながら調整する前提の初期値
+        // （_DEBUGビルドのPlayerAnimationSystemが出すATTACKログとWeaponGripDebugSystemのF10/F11コマ送りで追い込む）
+        constexpr float kAttackClipDuration = 3.5333f;
+        constexpr float kAttackStepLength   = kAttackClipDuration / 3.0f;    // 約1.178秒 ≒ 35.3フレーム
+
+        for(u32 i = 0; i < ActionGame::ECS::PlayerAnimationSetComponent::kAttackComboCount; ++i) {
+            ActionGame::ECS::AttackStep& step = animSet.attackSteps[i];
+            step.clip                          = attackAnimHandle;
+            step.animationIndex                = 1;
+            step.startTime                     = kAttackStepLength * static_cast<float>(i);
+            step.endTime                        = kAttackStepLength * static_cast<float>(i + 1);
+            // 攻撃モーションのルート前進を殺す（コリジョンから離れる/戻る瞬間に吸い寄せられる問題への対処）
+            step.inPlace                        = true;
+        }
 
         Tsukino::BuiltIn::ECS::SpringBoneComponent& springBone = registry.AddComponent<Tsukino::BuiltIn::ECS::SpringBoneComponent>(playerEntity);
 

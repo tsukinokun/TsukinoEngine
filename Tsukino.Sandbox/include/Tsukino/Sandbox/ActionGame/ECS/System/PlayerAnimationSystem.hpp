@@ -11,8 +11,8 @@
 namespace ActionGame::ECS {
     //-------------------------------------------------------------
     //! @class  PlayerAnimationSystem
-    //! @brief  プレイヤーの状態（接地/移動/スプリント）を見て、
-    //!         Idle/Run/FastRun/Jumpのアニメーションステートマシンを進行させるシステム
+    //! @brief  プレイヤーの状態（接地/移動/スプリント/攻撃入力）を見て、
+    //!         Idle/Run/FastRun/Jump/Attack1-3のアニメーションステートマシンを進行させるシステム
     //-------------------------------------------------------------
     class PlayerAnimationSystem : public Tsukino::ECS::ISystem {
     public:
@@ -29,6 +29,6 @@ namespace ActionGame::ECS {
         void Update(Tsukino::ECS::Registry& registry, float deltaTime) override;
 
     private:
-        StateMachine<PlayerAnimState> m_stateMachine;    //!< Idle/Run/FastRun/Jumpの遷移とクリップ切り替えを管理する
+        StateMachine<PlayerAnimState> m_stateMachine;    //!< Idle/Run/FastRun/Jump/Attack1-3の遷移とクリップ切り替えを管理する
     };
 }    // namespace ActionGame::ECS

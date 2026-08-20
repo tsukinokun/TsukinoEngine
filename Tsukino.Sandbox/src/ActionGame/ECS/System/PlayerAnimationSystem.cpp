@@ -13,8 +13,10 @@
 #include <Tsukino/BuiltIn/ECS/Component/AnimationPlayerComponent.hpp>
 
 #include <Tsukino/Core/typedef.hpp>
+#include <Tsukino/Core/Log.hpp>
 
 #include <hlsl++.h>
+#include <algorithm>
 // 名前空間 : ActionGame::ECS
 namespace ActionGame::ECS {
     namespace {
@@ -31,8 +33,9 @@ namespace ActionGame::ECS {
         StateMachine<PlayerAnimState>::Callback MakeClipEnterCallback(Tsukino::Asset::AssetHandle PlayerAnimationSetComponent::* clipMember,
                                                                         u32                                                        animationIndex,
                                                                         bool                                                       looping,
-                                                                        float                                                      fadeTime = kAnimBlendTime) {
-            return [clipMember, animationIndex, looping, fadeTime](Tsukino::ECS::Registry& registry, Tsukino::ECS::Entity entity) {
+                                                                        float                                                      fadeTime = kAnimBlendTime,
+                                                                        bool                                                       inPlace  = false) {
+            return [clipMember, animationIndex, looping, fadeTime, inPlace](Tsukino::ECS::Registry& registry, Tsukino::ECS::Entity entity) {
                 Tsukino::Asset::AssetHandle clip = registry.GetComponent<PlayerAnimationSetComponent>(entity).*clipMember;
                 if(!clip.IsValid())
                     return;
@@ -44,7 +47,68 @@ namespace ActionGame::ECS {
                 animController.next.fade_time       = fadeTime;
                 animController.next.immediate       = false;    // クロスフェードで切り替える
                 animController.next.is_looping      = looping;
+                animController.next.clip_start_time = 0.0f;     // クリップ全体を再生（部分再生はAttack1-3のみ使う）
+                animController.next.clip_end_time   = 0.0f;
+                animController.next.in_place        = inPlace;
             };
+        }
+
+        //-------------------------------------------------------------
+        //! @brief  「連撃のN段目へ入る」OnEnterコールバックを作るヘルパー
+        //! @param  stepIndex [in] PlayerAnimationSetComponent::attackSteps のインデックス
+        //-------------------------------------------------------------
+        StateMachine<PlayerAnimState>::Callback MakeAttackStepEnterCallback(u32 stepIndex) {
+            return [stepIndex](Tsukino::ECS::Registry& registry, Tsukino::ECS::Entity entity) {
+                auto&       animSet = registry.GetComponent<PlayerAnimationSetComponent>(entity);
+                const auto& step    = animSet.attackSteps[stepIndex];
+                if(!step.clip.IsValid())
+                    return;
+
+                auto& animController = registry.GetComponent<Tsukino::BuiltIn::ECS::AnimationControllerComponent>(entity);
+
+                animController.next.clip            = step.clip;
+                animController.next.animation_index = step.animationIndex;
+                animController.next.fade_time       = step.fadeTime;
+                animController.next.immediate       = false;    // クロスフェードで切り替える
+                animController.next.is_looping      = false;    // 各段は単発再生（コンボ窓を過ぎたら次段かIdle等へ抜ける）
+                animController.next.clip_start_time = step.startTime;
+                animController.next.clip_end_time   = step.endTime;
+                animController.next.in_place        = step.inPlace;
+
+                animSet.attackComboIndex    = stepIndex;
+                animSet.attackStepElapsed   = 0.0f;
+                animSet.attackTimer         = 0.0f;
+
+                //-------------------------------------------------------------
+                // 武器の当たり判定を再アームする。WeaponComponent::cooldown（単発攻撃前提の値）が
+                // コンボ窓キャンセルのタイミングでまだ残っている可能性があるため、段の突入時に
+                // 明示的に0へ落として次段のヒット判定をブロックしないようにする
+                //-------------------------------------------------------------
+                auto& player = registry.GetComponent<PlayerComponent>(entity);
+                if(player.weaponEntity != entt::null && registry.HasComponent<WeaponComponent>(player.weaponEntity)) {
+                    auto& weapon            = registry.GetComponent<WeaponComponent>(player.weaponEntity);
+                    weapon.attackRequested = true;
+                    weapon.cooldownTimer   = 0.0f;
+                }
+            };
+        }
+
+        //-------------------------------------------------------------
+        //! @brief  0-basedの段インデックスを対応するPlayerAnimStateへ変換する
+        //-------------------------------------------------------------
+        PlayerAnimState AttackStateFromIndex(u32 index) {
+            switch(index) {
+            case 0: return PlayerAnimState::Attack1;
+            case 1: return PlayerAnimState::Attack2;
+            default: return PlayerAnimState::Attack3;
+            }
+        }
+
+        //-------------------------------------------------------------
+        //! @brief  指定ステートが連撃中（Attack1-3のいずれか）かを判定する
+        //-------------------------------------------------------------
+        bool IsAttackState(PlayerAnimState state) {
+            return state == PlayerAnimState::Attack1 || state == PlayerAnimState::Attack2 || state == PlayerAnimState::Attack3;
         }
     }    // namespace
 
@@ -52,14 +116,16 @@ namespace ActionGame::ECS {
     //! @brief コンストラクタ。各ステートのOnEnterコールバック（クリップ切り替え）を登録する
     //-------------------------------------------------------------
     PlayerAnimationSystem::PlayerAnimationSystem() {
-        // これらのMixamo由来のFBXは、いずれもindex 0が「Armature」レイヤーの1tickのみのスタブ、
+        // これらのMixamo由来のFBXは、いずれもindex 0が「Armature」レイヤーの1tickのスタブ、
         // index 1が実際の全ボーンモーション（52チャンネル）になっているため、再生には1を指定する
         m_stateMachine.RegisterState(PlayerAnimState::Idle, MakeClipEnterCallback(&PlayerAnimationSetComponent::idleClip, 1, true));
         m_stateMachine.RegisterState(PlayerAnimState::Run, MakeClipEnterCallback(&PlayerAnimationSetComponent::runClip, 1, true));
         m_stateMachine.RegisterState(PlayerAnimState::FastRun, MakeClipEnterCallback(&PlayerAnimationSetComponent::fastRunClip, 1, true));
         m_stateMachine.RegisterState(PlayerAnimState::Jump, MakeClipEnterCallback(&PlayerAnimationSetComponent::jumpClip, 1, false));
-        // 攻撃はループさせず、素早く反応するよう短めのフェードで切り替える
-        m_stateMachine.RegisterState(PlayerAnimState::Attack, MakeClipEnterCallback(&PlayerAnimationSetComponent::attackClip, 1, false, 0.05f));
+        // 連撃の各段は、Weapon Attack.fbx 1本を時間レンジで3分割して参照する（PlayerAnimationSetComponent::attackSteps）
+        m_stateMachine.RegisterState(PlayerAnimState::Attack1, MakeAttackStepEnterCallback(0));
+        m_stateMachine.RegisterState(PlayerAnimState::Attack2, MakeAttackStepEnterCallback(1));
+        m_stateMachine.RegisterState(PlayerAnimState::Attack3, MakeAttackStepEnterCallback(2));
     }
 
     //-------------------------------------------------------------
@@ -75,42 +141,65 @@ namespace ActionGame::ECS {
                      Tsukino::BuiltIn::ECS::CharacterControllerComponent& cc,
                      PlayerAnimationSetComponent&                          animSet,
                      Tsukino::BuiltIn::ECS::AnimationPlayerComponent&     animPlayer) {
-            //-------------------------------------------------------------
-            // 既にAttack中なら、実クリップの再生完了（AnimationPlayerComponent::is_finished）
-            // をもって終了とする。attackTimeoutSafetyは、クリップ未設定等でis_finishedが
-            // 立たなかった場合にAttackへ無限に留まるのを防ぐ保険（通常は発火しない）
-            //-------------------------------------------------------------
-            bool isStillAttacking = animSet.currentState == PlayerAnimState::Attack
-                                     && !animPlayer.is_finished
-                                     && animSet.attackTimer < animSet.attackTimeoutSafety;
-            if(isStillAttacking) {
-                animSet.attackTimer += deltaTime;
+            bool isAttacking = IsAttackState(animSet.currentState);
+
+            if(isAttacking) {
+                animSet.attackStepElapsed += deltaTime;
+                animSet.attackTimer       += deltaTime;
             }
 
             //-------------------------------------------------------------
-            // 左クリックによる攻撃要求（WeaponComponent::attackRequested）を見る。
-            // 攻撃継続中は新規トリガーを受け付けない（単発仕様。将来コンボにする際はここを拡張する）
+            // 左クリックの生入力（PlayerComponent::attackInputPressed）を消費する。
+            // 攻撃中でなければ即座に1段目を開始し、攻撃中ならコンボ窓に入るまで
+            // 1回だけ先行入力としてバッファする（連打しても2段先へは飛ばない）
             //-------------------------------------------------------------
-            bool attackJustRequested = false;
-            if(!isStillAttacking && player.weaponEntity != entt::null
-               && registry.HasComponent<WeaponComponent>(player.weaponEntity)) {
-                WeaponComponent& weapon = registry.GetComponent<WeaponComponent>(player.weaponEntity);
-                if(weapon.attackRequested) {
-                    attackJustRequested   = true;
-                    animSet.attackTimer   = 0.0f;
+            bool attackJustPressed     = player.attackInputPressed;
+            player.attackInputPressed = false;
+
+            bool hasWeapon = player.weaponEntity != entt::null && registry.HasComponent<WeaponComponent>(player.weaponEntity);
+
+            bool attackJustStarted = false;
+            if(attackJustPressed && hasWeapon) {
+                if(!isAttacking) {
+                    attackJustStarted = true;
+                } else {
+                    animSet.attackInputBuffered = true;
                 }
             }
 
             //-------------------------------------------------------------
+            // コンボ窓（現在の段の正規化時間がcomboWindowStartを超えた地点）に入っていて、
+            // 先行入力がバッファされていれば次段へキャンセル遷移する
+            //-------------------------------------------------------------
+            bool comboAdvance   = false;
+            u32  nextComboIndex = 0;
+            if(isAttacking && animSet.attackInputBuffered) {
+                const auto& currentStep = animSet.attackSteps[animSet.attackComboIndex];
+                float       stepLength  = std::max(currentStep.endTime - currentStep.startTime, 0.0001f);
+                float       normalized  = animSet.attackStepElapsed / stepLength;
+                if(normalized >= currentStep.comboWindowStart
+                   && animSet.attackComboIndex + 1 < PlayerAnimationSetComponent::kAttackComboCount) {
+                    comboAdvance   = true;
+                    nextComboIndex = animSet.attackComboIndex + 1;
+                }
+            }
+
+            //-------------------------------------------------------------
+            // 現在の段の終了判定は、原則としてAnimationPlayerComponent::is_finished
+            // （実クリップの再生完了）で行う。attackTimeoutSafetyはクリップ設定ミス等の保険
+            // （詳細はPlayerAnimationSetComponent::attackTimeoutSafetyのコメント参照）
+            //-------------------------------------------------------------
+            bool attackStepFinished = isAttacking && (animPlayer.is_finished || animSet.attackTimer >= animSet.attackTimeoutSafety);
+
+            //-------------------------------------------------------------
             // 現在のプレイヤーの状態から、あるべきアニメーションステートを決定する
-            // （攻撃中は移動・ジャンプの状態より優先する）
+            // （移動・ジャンプの判定はまず素で計算し、攻撃継続/開始/コンボ進行が
+            //   優先される場合はその後で上書きする）
             //-------------------------------------------------------------
             float moveInputLen = hlslpp::length(cc.moveInput);
 
             PlayerAnimState desiredState;
-            if(isStillAttacking || attackJustRequested) {
-                desiredState = PlayerAnimState::Attack;
-            } else if(!cc.isGrounded) {
+            if(!cc.isGrounded) {
                 desiredState = PlayerAnimState::Jump;
             } else if(moveInputLen > 1.0f) {
                 desiredState = player.isSprinting ? PlayerAnimState::FastRun : PlayerAnimState::Run;
@@ -118,11 +207,26 @@ namespace ActionGame::ECS {
                 desiredState = PlayerAnimState::Idle;
             }
 
+            if(attackJustStarted) {
+                desiredState = PlayerAnimState::Attack1;
+            } else if(comboAdvance) {
+                animSet.attackInputBuffered = false;
+                desiredState                 = AttackStateFromIndex(nextComboIndex);
+            } else if(isAttacking && !attackStepFinished) {
+                desiredState = animSet.currentState;    // 現在の段を継続（移動/ジャンプ判定より優先）
+            } else if(attackStepFinished) {
+                // コンボをリセットする。desiredStateは上で計算した移動/ジャンプ判定のまま使う
+                animSet.attackComboIndex    = 0;
+                animSet.attackInputBuffered = false;
+            }
+
+            bool willBeAttacking = IsAttackState(desiredState);
+
             //-------------------------------------------------------------
             // 攻撃中は移動させない（PlayerSystemが今フレーム書き込んだ
             // moveInputを、Physicsが消費する前にここで打ち消す）
             //-------------------------------------------------------------
-            if(desiredState == PlayerAnimState::Attack) {
+            if(willBeAttacking) {
                 cc.moveInput = hlslpp::float3(0.0f, 0.0f, 0.0f);
             }
 
@@ -136,10 +240,38 @@ namespace ActionGame::ECS {
             // 装備中の武器へ「攻撃アニメーション再生中か」を伝える
             // （CombatSystemがこれを見て、浮遊演出のON/OFFと手ボーンへの追従度を切り替える）
             //-------------------------------------------------------------
-            if(player.weaponEntity != entt::null && registry.HasComponent<WeaponComponent>(player.weaponEntity)) {
-                registry.GetComponent<WeaponComponent>(player.weaponEntity).isAttacking =
-                    isStillAttacking || attackJustRequested;
+            if(hasWeapon) {
+                registry.GetComponent<WeaponComponent>(player.weaponEntity).isAttacking = willBeAttacking;
             }
+
+#if defined(_DEBUG)
+            //-------------------------------------------------------------
+            // 連撃の分割点調整用ログ。0.1秒間隔に間引いて出す。
+            // WeaponGripDebugSystemのF10（ポーズ固定）/F11（1コマ送り）と併用し、
+            // フレーム番号を見ながらActionGameScene.cppの分割定数を追い込む
+            //-------------------------------------------------------------
+            if(willBeAttacking) {
+                static float debugLogTimer = 0.0f;
+                debugLogTimer              += deltaTime;
+                if(debugLogTimer > 0.1f) {
+                    debugLogTimer = 0.0f;
+
+                    const auto& step       = animSet.attackSteps[animSet.attackComboIndex];
+                    float       stepLength = std::max(step.endTime - step.startTime, 0.0001f);
+                    float       normalized = animSet.attackStepElapsed / stepLength;
+                    // ticksPerSecondを持たないためここでは30fps相当で概算する（実クリップのfpsとずれる場合がある点に注意）
+                    float       clipFrame  = (step.startTime + animSet.attackStepElapsed) * 30.0f;
+
+                    Tsukino::Core::Log::Info(
+                        "ATTACK step=" + std::to_string(animSet.attackComboIndex + 1) + "/"
+                        + std::to_string(PlayerAnimationSetComponent::kAttackComboCount)
+                        + "  frame=" + std::to_string(clipFrame)
+                        + " (clip " + std::to_string(step.startTime) + "-" + std::to_string(step.endTime) + "s)"
+                        + "  normalized=" + std::to_string(normalized)
+                        + "  buffered=" + std::to_string(animSet.attackInputBuffered ? 1 : 0));
+                }
+            }
+#endif
         });
     }
 }    // namespace ActionGame::ECS

@@ -121,14 +121,14 @@ namespace ActionGame::ECS {
             }
 
             //-------------------------------------------------------------
-            // 左クリックで攻撃要求を武器エンティティへ伝える
-            // （実際の当たり判定の有効化・タイマー管理はCombatSystemが行う）
+            // 左クリックの生入力をプレイヤーへ伝える。ここではまだ武器のattackRequestedは立てない：
+            // 連撃中の入力は「次段へのキャンセル」を意味することがあり、その判定はコンボ窓を
+            // 見ているPlayerAnimationSystemが行う（実際の当たり判定の有効化・タイマー管理はCombatSystemが行う）
             //-------------------------------------------------------------
             if(inputSystem->IsKeyPressed(Tsukino::Input::KeyCode::LButton) &&
                player.weaponEntity != entt::null &&
                registry.HasComponent<WeaponComponent>(player.weaponEntity)) {
-                WeaponComponent& weapon = registry.GetComponent<WeaponComponent>(player.weaponEntity);
-                weapon.attackRequested  = true;
+                player.attackInputPressed = true;
             }
 
             //-------------------------------------------------------------
