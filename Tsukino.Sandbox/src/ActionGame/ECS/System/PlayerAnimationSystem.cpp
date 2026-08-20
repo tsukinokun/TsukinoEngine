@@ -50,6 +50,10 @@ namespace ActionGame::ECS {
                 animController.next.clip_start_time = 0.0f;     // クリップ全体を再生（部分再生はAttack1-3のみ使う）
                 animController.next.clip_end_time   = 0.0f;
                 animController.next.in_place        = inPlace;
+
+                // 攻撃段のAttackStep::playbackSpeedが前段から持ち越されないよう、
+                // 攻撃以外のステートへ入るときは必ず等速へ戻す
+                registry.GetComponent<Tsukino::BuiltIn::ECS::AnimationPlayerComponent>(entity).playback_speed = 1.0f;
             };
         }
 
@@ -75,9 +79,13 @@ namespace ActionGame::ECS {
                 animController.next.clip_end_time   = step.endTime;
                 animController.next.in_place        = step.inPlace;
 
-                animSet.attackComboIndex    = stepIndex;
-                animSet.attackStepElapsed   = 0.0f;
-                animSet.attackTimer         = 0.0f;
+                // この段の再生速度倍率を適用する（攻撃モーションの速さの微調整用）。
+                // MakeClipEnterCallback側で他ステートに入るときに1.0へ戻すため、ここでの
+                // 変更が移動/待機アニメーションへ漏れることはない
+                registry.GetComponent<Tsukino::BuiltIn::ECS::AnimationPlayerComponent>(entity).playback_speed = step.playbackSpeed;
+
+                animSet.attackComboIndex = stepIndex;
+                animSet.attackTimer      = 0.0f;
 
                 //-------------------------------------------------------------
                 // 武器の当たり判定を再アームする。WeaponComponent::cooldown（単発攻撃前提の値）が
@@ -144,14 +152,15 @@ namespace ActionGame::ECS {
             bool isAttacking = IsAttackState(animSet.currentState);
 
             if(isAttacking) {
-                animSet.attackStepElapsed += deltaTime;
-                animSet.attackTimer       += deltaTime;
+                animSet.attackTimer += deltaTime;
             }
 
             //-------------------------------------------------------------
             // 左クリックの生入力（PlayerComponent::attackInputPressed）を消費する。
-            // 攻撃中でなければ即座に1段目を開始し、攻撃中ならコンボ窓に入るまで
-            // 1回だけ先行入力としてバッファする（連打しても2段先へは飛ばない）
+            // 攻撃中でなければ即座に1段目を開始し、攻撃中なら現在の段が終わるまで
+            // 1回だけ先行入力としてバッファする（連打しても2段先へは飛ばない）。
+            // バッファされた入力は現在の段を最後まで再生し終えてから消費するため、
+            // 再生中のモーションが途中でキャンセルされることはない
             //-------------------------------------------------------------
             bool attackJustPressed     = player.attackInputPressed;
             player.attackInputPressed = false;
@@ -164,23 +173,6 @@ namespace ActionGame::ECS {
                     attackJustStarted = true;
                 } else {
                     animSet.attackInputBuffered = true;
-                }
-            }
-
-            //-------------------------------------------------------------
-            // コンボ窓（現在の段の正規化時間がcomboWindowStartを超えた地点）に入っていて、
-            // 先行入力がバッファされていれば次段へキャンセル遷移する
-            //-------------------------------------------------------------
-            bool comboAdvance   = false;
-            u32  nextComboIndex = 0;
-            if(isAttacking && animSet.attackInputBuffered) {
-                const auto& currentStep = animSet.attackSteps[animSet.attackComboIndex];
-                float       stepLength  = std::max(currentStep.endTime - currentStep.startTime, 0.0001f);
-                float       normalized  = animSet.attackStepElapsed / stepLength;
-                if(normalized >= currentStep.comboWindowStart
-                   && animSet.attackComboIndex + 1 < PlayerAnimationSetComponent::kAttackComboCount) {
-                    comboAdvance   = true;
-                    nextComboIndex = animSet.attackComboIndex + 1;
                 }
             }
 
@@ -209,15 +201,22 @@ namespace ActionGame::ECS {
 
             if(attackJustStarted) {
                 desiredState = PlayerAnimState::Attack1;
-            } else if(comboAdvance) {
-                animSet.attackInputBuffered = false;
-                desiredState                 = AttackStateFromIndex(nextComboIndex);
             } else if(isAttacking && !attackStepFinished) {
-                desiredState = animSet.currentState;    // 現在の段を継続（移動/ジャンプ判定より優先）
+                desiredState = animSet.currentState;    // 現在の段を最後まで再生する（キャンセルしない）
             } else if(attackStepFinished) {
-                // コンボをリセットする。desiredStateは上で計算した移動/ジャンプ判定のまま使う
-                animSet.attackComboIndex    = 0;
-                animSet.attackInputBuffered = false;
+                bool isLastStep = animSet.attackComboIndex + 1 >= PlayerAnimationSetComponent::kAttackComboCount;
+                if(animSet.attackInputBuffered && !isLastStep) {
+                    // 先行入力があれば次段へ連撃継続する
+                    animSet.attackInputBuffered = false;
+                    u32 nextComboIndex          = animSet.attackComboIndex + 1;
+                    desiredState                 = AttackStateFromIndex(nextComboIndex);
+                } else {
+                    // コンボをリセットする。desiredStateは上で計算した移動/ジャンプ判定のまま使う。
+                    // 3段目が終わった直後は、先行入力が残っていても連撃を継続させず一度破棄する
+                    // （3段目終了＝一区切りとして、必ず新しい入力から次のコンボを始めさせる）
+                    animSet.attackComboIndex    = 0;
+                    animSet.attackInputBuffered = false;
+                }
             }
 
             bool willBeAttacking = IsAttackState(desiredState);
@@ -258,15 +257,19 @@ namespace ActionGame::ECS {
 
                     const auto& step       = animSet.attackSteps[animSet.attackComboIndex];
                     float       stepLength = std::max(step.endTime - step.startTime, 0.0001f);
-                    float       normalized = animSet.attackStepElapsed / stepLength;
+                    // animPlayer.elapsed_timeはこの段のクリップレンジ先頭からの経過秒（playbackSpeed適用済み）。
+                    // 段自身の経過を別途real timeで数えるより、実際に進んだクリップ位置を直接見る方が
+                    // playbackSpeedを変えたときもズレない
+                    float       normalized = animPlayer.elapsed_time / stepLength;
                     // ticksPerSecondを持たないためここでは30fps相当で概算する（実クリップのfpsとずれる場合がある点に注意）
-                    float       clipFrame  = (step.startTime + animSet.attackStepElapsed) * 30.0f;
+                    float       clipFrame  = (step.startTime + animPlayer.elapsed_time) * 30.0f;
 
                     Tsukino::Core::Log::Info(
                         "ATTACK step=" + std::to_string(animSet.attackComboIndex + 1) + "/"
                         + std::to_string(PlayerAnimationSetComponent::kAttackComboCount)
                         + "  frame=" + std::to_string(clipFrame)
                         + " (clip " + std::to_string(step.startTime) + "-" + std::to_string(step.endTime) + "s)"
+                        + "  speed=" + std::to_string(step.playbackSpeed)
                         + "  normalized=" + std::to_string(normalized)
                         + "  buffered=" + std::to_string(animSet.attackInputBuffered ? 1 : 0));
                 }

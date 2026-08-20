@@ -272,20 +272,35 @@ namespace Tsukino::Sandbox {
         animSet.currentState                                  = ActionGame::ECS::PlayerAnimState::Idle;
 
         // Weapon Attack.fbx は3回斬るモーションが1クリップ（30fps / 106フレーム = 3.5333秒）に
-        // 入っているため、等分した時間レンジで3段に切り出す。境界は実機で見ながら調整する前提の初期値
-        // （_DEBUGビルドのPlayerAnimationSystemが出すATTACKログとWeaponGripDebugSystemのF10/F11コマ送りで追い込む）
+        // 入っている。各段のstartTime/endTime/playbackSpeedは実機で見ながら個別に微調整する前提の
+        // 初期値（_DEBUGビルドのPlayerAnimationSystemが出すATTACKログとWeaponGripDebugSystemの
+        // F10/F11コマ送りで追い込む）。ループではなく段ごとに書き下すことで、1段ずつ独立して
+        // 長さ・速度を変えられるようにしている
         constexpr float kAttackClipDuration = 3.5333f;
         constexpr float kAttackStepLength   = kAttackClipDuration / 3.0f;    // 約1.178秒 ≒ 35.3フレーム
+        constexpr float kAttackPlaybackSpeed = 1.5f;    // 攻撃全体を等速より少し速く（1.0で従来通りの速さ）
 
-        for(u32 i = 0; i < ActionGame::ECS::PlayerAnimationSetComponent::kAttackComboCount; ++i) {
-            ActionGame::ECS::AttackStep& step = animSet.attackSteps[i];
-            step.clip                          = attackAnimHandle;
-            step.animationIndex                = 1;
-            step.startTime                     = kAttackStepLength * static_cast<float>(i);
-            step.endTime                        = kAttackStepLength * static_cast<float>(i + 1);
-            // 攻撃モーションのルート前進を殺す（コリジョンから離れる/戻る瞬間に吸い寄せられる問題への対処）
-            step.inPlace                        = true;
-        }
+        animSet.attackSteps[0].clip           = attackAnimHandle;
+        animSet.attackSteps[0].animationIndex = 1;
+        animSet.attackSteps[0].startTime      = kAttackStepLength * 0.0f;
+        animSet.attackSteps[0].endTime        = kAttackStepLength * 1.0f;
+        animSet.attackSteps[0].playbackSpeed  = kAttackPlaybackSpeed;
+        // 攻撃モーションのルート前進を殺す（コリジョンから離れる/戻る瞬間に吸い寄せられる問題への対処）
+        animSet.attackSteps[0].inPlace        = true;
+
+        animSet.attackSteps[1].clip           = attackAnimHandle;
+        animSet.attackSteps[1].animationIndex = 1;
+        animSet.attackSteps[1].startTime      = kAttackStepLength * 1.0f;
+        animSet.attackSteps[1].endTime        = kAttackStepLength * 1.3f;
+        animSet.attackSteps[1].playbackSpeed  = kAttackPlaybackSpeed;
+        animSet.attackSteps[1].inPlace        = true;
+
+        animSet.attackSteps[2].clip           = attackAnimHandle;
+        animSet.attackSteps[2].animationIndex = 1;
+        animSet.attackSteps[2].startTime      = kAttackStepLength * 1.3f;
+        animSet.attackSteps[2].endTime        = kAttackClipDuration;
+        animSet.attackSteps[2].playbackSpeed  = kAttackPlaybackSpeed;
+        animSet.attackSteps[2].inPlace        = true;
 
         Tsukino::BuiltIn::ECS::SpringBoneComponent& springBone = registry.AddComponent<Tsukino::BuiltIn::ECS::SpringBoneComponent>(playerEntity);
 

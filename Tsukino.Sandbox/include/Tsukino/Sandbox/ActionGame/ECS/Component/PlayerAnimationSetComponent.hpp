@@ -33,8 +33,9 @@ namespace ActionGame::ECS {
         u32   animationIndex   = 1;      //!< Mixamo製FBXはindex 0が1tickのスタブ、index 1が実モーション
         float startTime        = 0.0f;   //!< クリップ内の開始時刻（秒）
         float endTime          = 0.0f;   //!< クリップ内の終了時刻（秒）
-        float comboWindowStart = 0.5f;   //!< この段の正規化時間がこれを超えたら次段へキャンセルできる
+        float comboWindowStart = 0.5f;   //!< 現在未使用（将来のチューニング用に残置）。連撃は段の再生完了後にのみ進行する
         float fadeTime         = 0.05f;  //!< 段へ入るときのクロスフェード時間（素早く反応させるため短め）
+        float playbackSpeed    = 1.0f;   //!< この段の再生速度倍率（1.0が等速。大きいほど振りが速くなり、次段への移行も早まる）
         bool  inPlace          = true;   //!< 攻撃モーションのルート前進を殺す（移動はCharacterControllerが担当するため）
     };
 
@@ -56,7 +57,6 @@ namespace ActionGame::ECS {
 
         u32   attackComboIndex    = 0;        //!< 現在再生中の段（0..kAttackComboCount-1）
         bool  attackInputBuffered = false;    //!< 先行入力を1回だけ保持する（連打しても2段先へは飛ばない）
-        float attackStepElapsed   = 0.0f;     //!< 現在の段に入ってからの経過秒（コンボ窓の判定に使う）
 
         //-------------------------------------------------------------
         // 攻撃アニメーションの終了判定は、原則としてAnimationPlayerComponent::is_finished
