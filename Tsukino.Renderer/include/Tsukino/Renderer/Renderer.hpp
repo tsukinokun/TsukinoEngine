@@ -45,6 +45,25 @@ namespace Tsukino::BuiltIn::ECS {
 // 名前空間 : Tsukino::Renderer
 namespace Tsukino::Renderer {
     struct CBufferScene;    // 前方宣言
+
+    //------------------------------------------------------------
+    //! @struct RendererShaderSet
+    //! @brief  Renderer::Initialize に渡すビルトインシェーダー一式
+    //! @note   位置引数の羅列が肥大化するのを防ぐための集約構造体。
+    //!         各メンバの実体は Tsukino::BuiltIn::BuiltInShaders が読み込んだアセット。
+    //------------------------------------------------------------
+    struct RendererShaderSet {
+        const Tsukino::Asset::ShaderAsset* debugVS          = nullptr;    //!< デバッグ線用VS
+        const Tsukino::Asset::ShaderAsset* debugPS          = nullptr;    //!< デバッグ線用PS
+        const Tsukino::Asset::ShaderAsset* tonemapVS        = nullptr;    //!< フルスクリーン三角形VS（Tonemap/Lighting共用）
+        const Tsukino::Asset::ShaderAsset* tonemapPS        = nullptr;    //!< トーンマッピング用PS
+        const Tsukino::Asset::ShaderAsset* shadowStaticVS   = nullptr;    //!< シャドウマップ用VS（スタティック）
+        const Tsukino::Asset::ShaderAsset* shadowSkeletalVS = nullptr;    //!< シャドウマップ用VS（スケルタル）
+        const Tsukino::Asset::ShaderAsset* shadowPS         = nullptr;    //!< シャドウマップ用PS
+        const Tsukino::Asset::ShaderAsset* lightingPS       = nullptr;    //!< ディファードLightingパス用PS（VSはtonemapVSを共用）
+        const Tsukino::Asset::ShaderAsset* motionBlurPS     = nullptr;    //!< モーションブラーパス用PS（VSはtonemapVSを共用）
+    };
+
     //------------------------------------------------------------
     //! @class	 Renderer
     //! @brief	 レンダラークラス
@@ -64,27 +83,29 @@ namespace Tsukino::Renderer {
 
         //------------------------------------------------------------
         // レンダラーの初期化
-        //! @param hwnd   [in] 描画先のウィンドウハンドル
-        //! @param width  [in] 描画領域の幅
-        //! @param height [in] 描画領域の高さ
+        //! @param hwnd    [in] 描画先のウィンドウハンドル
+        //! @param width   [in] 描画領域の幅
+        //! @param height  [in] 描画領域の高さ
+        //! @param shaders [in] ビルトインシェーダー一式
         //! @return true: [in] 初期化成功, false: 初期化失敗
         //------------------------------------------------------------
         [[nodiscard]]
-        bool Initialize(HWND                               hwnd,
-                        uint32_t                           width,
-                        uint32_t                           height,
-                        const Tsukino::Asset::ShaderAsset* debugVS,
-                        const Tsukino::Asset::ShaderAsset* debugPS,
-                        const Tsukino::Asset::ShaderAsset* tonemapVS,
-                        const Tsukino::Asset::ShaderAsset* tonemapPS,
-                        const Tsukino::Asset::ShaderAsset* shadowStaticVS,
-                        const Tsukino::Asset::ShaderAsset* shadowSkeletalVS,
-                        const Tsukino::Asset::ShaderAsset* shadowPS);
+        bool Initialize(HWND hwnd, uint32_t width, uint32_t height, const RendererShaderSet& shaders);
 
         //------------------------------------------------------------
         // 描画処理
         //------------------------------------------------------------
         void Render(class Tsukino::BuiltIn::ECS::EffectSystem* effectSystem = nullptr);
+
+        //------------------------------------------------------------
+        //! @brief 描画領域のリサイズ
+        //! @param width  [in] 新しい幅（ピクセル）
+        //! @param height [in] 新しい高さ（ピクセル）
+        //! @note  ウィンドウの WM_SIZE から呼ばれる。スワップチェインと
+        //!        画面サイズ依存のリソースを作り直す。
+        //!        シャドウマップは固定解像度のため作り直さない。
+        //------------------------------------------------------------
+        void Resize(uint32_t width, uint32_t height);
 
         //------------------------------------------------------------
         // 描画領域のクリアカラーを設定
@@ -224,8 +245,20 @@ namespace Tsukino::Renderer {
         //------------------------------------------------------------
         //! @brief 白テクスチャのSRVを取得
         //! @return ID3D11ShaderResourceViewへのポインタ
+        //! @note  マテリアルテクスチャ未設定時のデフォルト。
+        //!        アルベド/MR/エミッシブ/AOはいずれもcbuffer定数との「乗算」で
+        //!        合成するため、白(=1.0)を掛ければ定数値がそのまま残る。
         //------------------------------------------------------------
         ID3D11ShaderResourceView* GetWhiteTextureSRV();
+
+        //------------------------------------------------------------
+        //! @brief フラット法線テクスチャのSRVを取得
+        //! @return ID3D11ShaderResourceViewへのポインタ
+        //! @note  ノーマルマップ未設定時のデフォルト。接空間の(0,0,1)を
+        //!        エンコードした値(R=0x80,G=0x80,B=0xFF)で、これを適用しても
+        //!        頂点法線がそのまま保たれる。白を使うと法線が斜めにずれる。
+        //------------------------------------------------------------
+        ID3D11ShaderResourceView* GetFlatNormalTextureSRV();
 
         //------------------------------------------------------------
         //! @brief 大気散乱パラメータのセット
@@ -258,6 +291,40 @@ namespace Tsukino::Renderer {
         //! @param ps [in] ピクセルシェーダーアセット
         //------------------------------------------------------------
         void SetWaterPipeline(const Tsukino::Asset::ShaderAsset* vs, const Tsukino::Asset::ShaderAsset* ps);
+
+        //------------------------------------------------------------
+        //! @brief 点光源・スポットライト配列のセット（ディファードLightingパス用）
+        //! @param lights [in] GPULightの配列
+        //! @param count  [in] 配列の要素数（MAX_LIGHTSを超える分は切り捨てられる）
+        //------------------------------------------------------------
+        void SetLights(const GPULight* lights, u32 count);
+
+        //------------------------------------------------------------
+        //! @brief モーションブラーパイプラインのセット
+        //! @param ps [in] ピクセルシェーダーアセット（VSはtonemapVSを共用する）
+        //! @return true: 成功, false: 失敗
+        //------------------------------------------------------------
+        bool SetMotionBlurPipeline(const Tsukino::Asset::ShaderAsset* ps);
+
+        //------------------------------------------------------------
+        //! @brief モーションブラーパラメータのセット
+        //! @param params [in] モーションブラー定数バッファデータ
+        //------------------------------------------------------------
+        void SetMotionBlurParameters(const CBufferMotionBlur& params);
+
+        //------------------------------------------------------------
+        //! @brief モーションブラーの有効・無効を切り替える
+        //! @param enabled [in] true: 有効, false: 無効
+        //! @note  このフラグはフレーム単位で、Render()の末尾で毎回falseへ戻る。
+        //!        有効にしたいフレームでは毎フレーム呼ぶこと（MotionBlurSystemの責務）。
+        //!        こうしておくと、MotionBlurSystemを持たないシーンへ切り替えたときに
+        //!        フラグが立ちっぱなしで残らない。
+        //!        無効時は速度バッファ用の前フレームボーン行列（8KB/ドロー）の
+        //!        転送もスキップされる。
+        //------------------------------------------------------------
+        void SetMotionBlurEnabled(bool enabled) noexcept {
+            m_motionBlurEnabled = enabled;
+        }
 
     private:
         //------------------------------------------------------------
@@ -328,8 +395,28 @@ namespace Tsukino::Renderer {
         //! @brief シャドウ用シェーダーと入力レイアウトの作成
         //! @return true: 作成成功, false: 作成失敗
         //------------------------------------------------------------
+        //------------------------------------------------------------
+        //! @brief 1x1のデフォルトテクスチャを作成する
+        //! @param rgba [in] ピクセル値。R8G8B8A8_UNORMはメモリ上のバイト順が
+        //!                  R,G,B,Aなので、リトルエンディアンでは0xAABBGGRRと書く
+        //!                  （例: フラット法線 R=0x80,G=0x80,B=0xFF,A=0xFF → 0xFFFF8080）
+        //! @param outTex [out] 作成したテクスチャ
+        //! @param outSRV [out] 作成したSRV
+        //! @param debugName [in] 失敗時のログに出す名前
+        //! @return true: 作成成功, false: 作成失敗
+        //------------------------------------------------------------
         [[nodiscard]]
-        bool CreateWhiteTexture();
+        bool Create1x1Texture(u32                                               rgba,
+                              Microsoft::WRL::ComPtr<ID3D11Texture2D>&          outTex,
+                              Microsoft::WRL::ComPtr<ID3D11ShaderResourceView>& outSRV,
+                              const char*                                       debugName);
+
+        //------------------------------------------------------------
+        //! @brief マテリアル用デフォルトテクスチャ（白・フラット法線）の作成
+        //! @return true: 作成成功, false: 作成失敗
+        //------------------------------------------------------------
+        [[nodiscard]]
+        bool CreateDefaultTextures();
 
         //------------------------------------------------------------
         //! @brief スカイパスの実行
@@ -337,9 +424,33 @@ namespace Tsukino::Renderer {
         void ExecuteSkyPass();
 
         //------------------------------------------------------------
-        //! @brief トーンマッピングパスの実行
+        //! @brief ディファードLightingパスの実行
         //------------------------------------------------------------
-        void ExecuteTonemapPass();
+        void ExecuteLightingPass();
+
+        //------------------------------------------------------------
+        //! @brief ディファードLightingパイプラインのセット
+        //! @param ps [in] ピクセルシェーダーアセット（VSはTonemapと共用）
+        //! @return true: 成功, false: 失敗
+        //------------------------------------------------------------
+        [[nodiscard]]
+        bool SetLightingPipeline(const Tsukino::Asset::ShaderAsset* ps);
+
+        //------------------------------------------------------------
+        //! @brief モーションブラーパスの実行
+        //! @return true: ブラーを実行してポストプロセスバッファへ書いた
+        //!         false: 無効なので何もしていない（HDRバッファがそのまま最新）
+        //! @note  HDRバッファを読み、ポストプロセス用中間バッファへ書く。
+        //!        Waterパスの直後・Tonemapパスの直前に呼ぶこと。
+        //------------------------------------------------------------
+        bool ExecuteMotionBlurPass();
+
+        //------------------------------------------------------------
+        //! @brief トーンマッピングパスの実行
+        //! @param source [in] 入力となるシーンカラーのSRV
+        //!                    （モーションブラーが走ったかどうかで切り替わる）
+        //------------------------------------------------------------
+        void ExecuteTonemapPass(ID3D11ShaderResourceView* source);
 
         //------------------------------------------------------------
         //! @brief トーンマッピングパイプラインのセット
@@ -361,6 +472,19 @@ namespace Tsukino::Renderer {
         ComPtr<ID3D11Buffer> m_sceneBuffer;       // シーンデータ用定数バッファ
         ComPtr<ID3D11Buffer> m_materialBuffer;    // マテリアルデータ用定数バッファ
         ComPtr<ID3D11Buffer> m_skinningBuffer;    // ボーン行列用バッファ
+
+        // モーションブラー用リソース
+        ComPtr<ID3D11Buffer>      m_prevSkinningBuffer;    //!< 前フレームのボーン行列用バッファ (b7)
+        ComPtr<ID3D11Buffer>      m_motionBlurBuffer;      //!< モーションブラーパラメータ用バッファ (b8)
+        ComPtr<ID3D11PixelShader> m_motionBlurPS;          //!< モーションブラー用PS（VSはm_tonemapVSを共用）
+        CBufferMotionBlur         m_motionBlurData{};      //!< CPU側のモーションブラーパラメータ
+        bool                      m_hasMotionBlur     = false;    //!< PSの構築が済んでいるか
+        bool                      m_motionBlurEnabled = false;    //!< 今フレームで有効か（MotionBlurSystemが毎フレーム設定）
+
+        //! @brief 前フレームのViewProjection行列
+        //! @note  CameraSystemはdirty時しか行列を再計算しないため、
+        //!        Render()の末尾でフレーム単位に退避するのが確実。
+        Tsukino::Core::Math::matrix m_prevWorldViewProj = Tsukino::Core::Math::matrix::identity();
 
         // シャドウマップ用リソース
         static constexpr uint32_t        SHADOW_MAP_SIZE = 2048;
@@ -399,9 +523,11 @@ namespace Tsukino::Renderer {
 
         std::unique_ptr<DirectX::CommonStates> m_commonStatesTK;
 
-        // 白テクスチャ用
+        // マテリアルテクスチャ未設定時のデフォルト
         Microsoft::WRL::ComPtr<ID3D11Texture2D>          m_whiteTex;
         Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> m_whiteSRV;
+        Microsoft::WRL::ComPtr<ID3D11Texture2D>          m_flatNormalTex;
+        Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> m_flatNormalSRV;
 
         // スカイ用リソース
         ComPtr<ID3D11VertexShader> m_skyVS;             //!< スカイ用頂点シェーダー
@@ -423,5 +549,12 @@ namespace Tsukino::Renderer {
 
         std::shared_ptr<PipelineState> m_waterPipeline;         //!< 水面用パイプラインキャッシュ
         ComPtr<ID3D11SamplerState>     m_waterShadowSampler;    //!< 水面用 PCF サンプラー (s8)
+
+        // ディファードLightingパス用リソース
+        ComPtr<ID3D11PixelShader> m_lightingPS;              //!< Lightingパス用PS（VSはm_tonemapVSを共用）
+        bool                      m_hasLighting = false;
+        ComPtr<ID3D11Buffer>      m_lightsBuffer;             //!< 点光源・スポットライト配列用定数バッファ (b6)
+        CBufferLights             m_lightsData{};              //!< CPU側のライト配列（毎フレームGPUへ転送）
+        bool                      m_lightOverflowWarned = false;    //!< MAX_LIGHTS超過の警告を1回だけ出すためのフラグ
     };
 }    // namespace Tsukino::Renderer

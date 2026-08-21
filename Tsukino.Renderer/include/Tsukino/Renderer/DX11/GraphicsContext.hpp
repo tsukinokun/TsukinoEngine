@@ -8,6 +8,7 @@
 #include <d3d11.h>
 #include <dxgi.h>
 #include <wrl/client.h>
+#include <array>
 // 名前空間 : Tsukino::Renderer
 namespace Tsukino::Renderer {
     struct PipelineState;    // 前方宣言
@@ -88,7 +89,116 @@ namespace Tsukino::Renderer {
         //--------------------------------------------------------------
         void BindBackBuffer();
 
+        //--------------------------------------------------------------
+        //! @brief G-Buffer（全枚数）とDSVをバインドしてクリアする
+        //! @note  GBufferパスの先頭で呼ぶ
+        //--------------------------------------------------------------
+        void BeginGBufferPass();
+
+        //--------------------------------------------------------------
+        //! @brief ポストプロセス用中間バッファのSRVを取得する
+        //! @note  モーションブラーパスの出力先。トーンマッピングの入力になる。
+        //! @return ID3D11ShaderResourceViewへのポインタ
+        //--------------------------------------------------------------
+        [[nodiscard]]
+        ID3D11ShaderResourceView* GetPostProcessSRV() const noexcept {
+            return m_postProcessSRV.Get();
+        }
+
+        //--------------------------------------------------------------
+        //! @brief ポストプロセス用中間バッファのみをRTVにバインドする（DSVなし）
+        //! @note  HDRバッファをSRVとして読みながら書き込むための出力先。
+        //!        同じリソースをRTVとSRVに同時バインドできないため別テクスチャが要る。
+        //--------------------------------------------------------------
+        void BindPostProcessTarget();
+
+        //--------------------------------------------------------------
+        //! @brief HDRバッファへ戻す（クリアはしない）
+        //! @note  Lightingパス完了後、World/Transparent/Waterパスの前に呼ぶ
+        //--------------------------------------------------------------
+        void BindHDRRenderTarget();
+
+        //--------------------------------------------------------------
+        //! @brief HDRバッファのみをRTVにバインドする（DSVなし）
+        //! @note  ディファードLightingパス用。深度をSRVとして読む間は
+        //!        同じリソースをDSVとして同時バインドできないため。
+        //--------------------------------------------------------------
+        void BindHDRTargetOnly();
+
+        //--------------------------------------------------------------
+        //! @brief G-BufferのSRVを取得する
+        //! @param index [in] 0=Albedo, 1=Normal, 2=Material, 3=Emissive, 4=WorldPos, 5=Velocity
+        //! @return ID3D11ShaderResourceViewへのポインタ
+        //--------------------------------------------------------------
+        [[nodiscard]]
+        ID3D11ShaderResourceView* GetGBufferSRV(UINT index) const noexcept {
+            return (index < GBufferCount) ? m_gbufferSRV[index].Get() : nullptr;
+        }
+
+        //--------------------------------------------------------------
+        //! @brief 深度バッファのSRVを取得する（ディファードLightingパスで使用）
+        //! @return ID3D11ShaderResourceViewへのポインタ
+        //--------------------------------------------------------------
+        [[nodiscard]]
+        ID3D11ShaderResourceView* GetDepthSRV() const noexcept {
+            return m_depthSRV.Get();
+        }
+
+        //--------------------------------------------------------------
+        //! @brief G-Bufferの枚数
+        //--------------------------------------------------------------
+        static constexpr UINT GBufferCount = 6;
+
+        //--------------------------------------------------------------
+        //! @brief  描画領域のリサイズ
+        //! @param  width  [in] 新しい幅（ピクセル）
+        //! @param  height [in] 新しい高さ（ピクセル）
+        //! @return true: 成功, false: 失敗
+        //! @details
+        //! スワップチェインのバックバッファと、画面サイズに依存する
+        //! すべてのリソース（RTV / DSV / HDRバッファ）を作り直す。
+        //! ResizeBuffers はバックバッファへの参照が1つでも残っていると
+        //! 失敗するため、先に全ビューを解放してから呼ぶ必要がある。
+        //--------------------------------------------------------------
+        [[nodiscard]]
+        bool Resize(UINT width, UINT height);
+
+        //--------------------------------------------------------------
+        //! @brief  現在の描画領域の幅を取得する
+        //--------------------------------------------------------------
+        [[nodiscard]]
+        UINT GetWidth() const noexcept {
+            return m_width;
+        }
+
+        //--------------------------------------------------------------
+        //! @brief  現在の描画領域の高さを取得する
+        //--------------------------------------------------------------
+        [[nodiscard]]
+        UINT GetHeight() const noexcept {
+            return m_height;
+        }
+
     private:
+        //--------------------------------------------------------------
+        //! @brief  画面サイズに依存するリソースを生成する
+        //! @param  width  [in] 幅（ピクセル）
+        //! @param  height [in] 高さ（ピクセル）
+        //! @return true: 成功, false: 失敗
+        //! @note   Initialize と Resize の両方から呼ばれる。
+        //!         生成手順を1箇所に集約することで、リサイズ時の
+        //!         作り忘れ・設定違いを防ぐ。
+        //--------------------------------------------------------------
+        [[nodiscard]]
+        bool CreateSizeDependentResources(UINT width, UINT height);
+
+        //--------------------------------------------------------------
+        //! @brief  画面サイズに依存するリソースを解放する
+        //! @note   ResizeBuffers の前にバックバッファへの参照を
+        //!         すべて手放すために使う
+        //--------------------------------------------------------------
+        void ReleaseSizeDependentResources();
+
         Microsoft::WRL::ComPtr<ID3D11Device> m_device;
 
         // DirectX DeviceContext
@@ -104,12 +214,23 @@ namespace Tsukino::Renderer {
         Microsoft::WRL::ComPtr<ID3D11RenderTargetView> m_rtv;
 
         // DepthStencilView
-        Microsoft::WRL::ComPtr<ID3D11DepthStencilView> m_dsv;
+        Microsoft::WRL::ComPtr<ID3D11DepthStencilView>   m_dsv;
+        Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> m_depthSRV;    //!< 深度のSRVビュー（ディファードLightingパス用）
 
         // HDRレンダーターゲット（通常描画の出力先）
         Microsoft::WRL::ComPtr<ID3D11Texture2D>          m_hdrTex;    //!< HDRカラーバッファ
         Microsoft::WRL::ComPtr<ID3D11RenderTargetView>   m_hdrRTV;    //!< HDR用RTV
         Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> m_hdrSRV;    //!< トーンマッピングで読むSRV
+
+        // ポストプロセス用中間バッファ（HDRと同フォーマット。モーションブラーの出力先）
+        Microsoft::WRL::ComPtr<ID3D11Texture2D>          m_postProcessTex;
+        Microsoft::WRL::ComPtr<ID3D11RenderTargetView>   m_postProcessRTV;
+        Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> m_postProcessSRV;
+
+        // G-Buffer（ディファードGBufferパスの出力 / Lightingパスの入力）
+        std::array<Microsoft::WRL::ComPtr<ID3D11Texture2D>, GBufferCount>          m_gbufferTex;
+        std::array<Microsoft::WRL::ComPtr<ID3D11RenderTargetView>, GBufferCount>   m_gbufferRTV;
+        std::array<Microsoft::WRL::ComPtr<ID3D11ShaderResourceView>, GBufferCount> m_gbufferSRV;
 
         UINT m_width  = 0;    //!< 描画領域の幅
         UINT m_height = 0;    //!< 描画領域の高さ

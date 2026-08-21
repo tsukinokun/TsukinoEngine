@@ -12,6 +12,9 @@
 #include <Tsukino/BuiltIn/ECS/Component/TransformComponent.hpp>
 #include <Tsukino/BuiltIn/ECS/Component/SkeletonOutputComponent.hpp>
 #include <Tsukino/BuiltIn/ECS/Component/CollisionComponent.hpp>
+#include <Tsukino/BuiltIn/ECS/Component/RigidbodyComponent.hpp>
+#include <Tsukino/BuiltIn/ECS/Component/HighlightComponent.hpp>
+#include <Tsukino/BuiltIn/ECS/Component/MotionVectorComponent.hpp>
 #include <Tsukino/Engine/Asset/AssetManager.hpp>
 #include <Tsukino/Engine/Asset/Model/ModelAsset.hpp>
 #include <Tsukino/Engine/Asset/Shader/ShaderAsset.hpp>
@@ -19,6 +22,7 @@
 #include <Tsukino/Engine/Asset/Texture/TextureAsset.hpp>
 #include <Tsukino/Renderer/Renderer.hpp>
 #include <Tsukino/Renderer/DX11/MeshBuffer.hpp>
+#include <Tsukino/Renderer/ShaderSlots.hpp>
 #include <Tsukino/GraphicsCommon/Model/ModelData.hpp>
 #include <Tsukino/GraphicsCommon/Vertex/VertexFormat.hpp>
 
@@ -26,10 +30,6 @@
 #include <Tsukino/Core/Log.hpp>
 
 #include <entt/entt.hpp>
-#include <unordered_map>
-
-// メッシュキャッシュ
-static std::unordered_map<uint64_t, std::vector<Tsukino::Renderer::MeshBuffer>> s_modelMeshCache;
 
 namespace Tsukino::BuiltIn::ECS {
 
@@ -65,19 +65,35 @@ namespace Tsukino::BuiltIn::ECS {
             //--------------------------------------------------------------
             // メッシュバッファのキャッシュ取得
             //--------------------------------------------------------------
-            auto meshCacheIt = s_modelMeshCache.find(handleVal);
-            if(meshCacheIt == s_modelMeshCache.end()) {
+            auto meshCacheIt = m_modelMeshCache.find(handleVal);
+            if(meshCacheIt == m_modelMeshCache.end()) {
                 std::vector<Tsukino::Renderer::MeshBuffer> buffers;
                 for(const auto& mesh : modelAsset->modelData.meshes) {
                     buffers.push_back(Tsukino::Renderer::CreateMeshBuffer(ctx->renderer->GetDevice(), mesh));
                 }
-                auto result = s_modelMeshCache.emplace(handleVal, std::move(buffers));
+                auto result = m_modelMeshCache.emplace(handleVal, std::move(buffers));
                 meshCacheIt = result.first;
             }
             const auto& meshBuffers = meshCacheIt->second;
 
             auto* skeletonOut = registry.try_get<SkeletonOutputComponent>(entity);
             bool  isSkeletal  = skeletonOut && skeletonOut->bone_count > 0;
+
+            //--------------------------------------------------------------
+            // モーションブラー用の前フレームデータ
+            //
+            // MotionVectorSnapshotSystem がフレーム先頭で退避した値。
+            // スキンメッシュの場合は前フレームのボーン本数が今フレームと
+            // 一致していることまで確認する。食い違ったまま渡すと、VS側で
+            // 前フレームのスキニング行列がゼロ行列になり、透視除算で
+            // w=0 → NaN になって画面が壊れる。
+            //--------------------------------------------------------------
+            auto* motionVec = registry.try_get<MotionVectorComponent>(entity);
+            bool  hasPrev   = motionVec && motionVec->valid;
+            if(hasPrev && isSkeletal && motionVec->prevBoneCount != skeletonOut->bone_count)
+                hasPrev = false;
+
+            const Tsukino::Core::Math::matrix prevWorldMatrix = hasPrev ? motionVec->prevWorld : transform.worldMatrix;
 
             // ノードとメッシュの巡回ループ
             for(const auto& node : modelAsset->modelData.nodes) {
@@ -89,9 +105,13 @@ namespace Tsukino::BuiltIn::ECS {
                     const auto& targetMeshBuffer = meshBuffers[meshIdx];
 
                     // 行列の計算
+                    // 前フレーム分も同じ組み立てで作る（ノード変換はモデル固有の
+                    // 静的値なので、ワールド行列だけ差し替えればよい）
                     Tsukino::Core::Math::matrix finalTransform;
+                    Tsukino::Core::Math::matrix prevFinalTransform;
                     if(isSkeletal) {
-                        finalTransform = transform.worldMatrix;
+                        finalTransform     = transform.worldMatrix;
+                        prevFinalTransform = prevWorldMatrix;
                     } else {
                         Tsukino::Core::Math::matrix scaleMat = Tsukino::Core::Math::matrix::scale(hlslpp::float3(node.scale.x, node.scale.y, node.scale.z));
                         Tsukino::Core::Math::matrix rotMat =
@@ -100,14 +120,21 @@ namespace Tsukino::BuiltIn::ECS {
                             Tsukino::Core::Math::matrix::translate(hlslpp::float3(node.translation.x, node.translation.y, node.translation.z));
                         Tsukino::Core::Math::matrix nodeTransform = hlslpp::mul(hlslpp::mul(scaleMat, rotMat), transMat);
                         finalTransform                            = hlslpp::mul(nodeTransform, transform.worldMatrix);
+                        prevFinalTransform                        = hlslpp::mul(nodeTransform, prevWorldMatrix);
 
                        /* Tsukino::Core::Log::Info("node.translation = (" + std::to_string(node.translation.x) + ", " + std::to_string(node.translation.y) + ", "
                                                  + std::to_string(node.translation.z) + ")");*/
                     }
 
                     // コリジョンオフセットの逆変換
+                    // ※この補正はRigidbodyType::Dynamicの場合のみ有効。DynamicはPhysicsSystemの「Dynamic同期」で
+                    //   TransformComponent.positionが毎フレーム物理ボディの中心位置へ上書きされるため、
+                    //   モデル（原点=足元）を正しい位置に描画するにはoffsetPositionを引き戻す必要がある。
+                    //   Kinematic/Static等はtf.positionが書き換えられず元の位置（=モデル原点と一致）のままなので、
+                    //   ここで補正をかけるとモデルだけ余計にズレてコリジョンと食い違ってしまう。
                     auto* col = registry.try_get<CollisionComponent>(entity);
-                    if(col && col->isInitialized) {
+                    auto* rb  = registry.try_get<RigidbodyComponent>(entity);
+                    if(col && col->isInitialized && rb && rb->type == RigidbodyType::Dynamic) {
 
                         hlslpp::quaternion q = hlslpp::quaternion(col->offsetRotation.x, col->offsetRotation.y, col->offsetRotation.z, col->offsetRotation.w);
                         hlslpp::quaternion conj = hlslpp::quaternion(-q.x, -q.y, -q.z, q.w);
@@ -118,6 +145,7 @@ namespace Tsukino::BuiltIn::ECS {
 
                         Tsukino::Core::Math::matrix invOffsetMat = hlslpp::mul(invRotMat, invTransMat);
                         finalTransform                           = hlslpp::mul(invOffsetMat, finalTransform);
+                        prevFinalTransform                       = hlslpp::mul(invOffsetMat, prevFinalTransform);
                     }
 
                     // マテリアル定数バッファの構築
@@ -128,7 +156,20 @@ namespace Tsukino::BuiltIn::ECS {
                     cbMat.roughness = 0.5f;
                     cbMat.specular  = 0.5f;
 
-                    ID3D11ShaderResourceView* srv = nullptr;
+                    //--------------------------------------------------------------
+                    // マテリアルテクスチャ（t0〜t4）の解決
+                    // 未設定のスロットはここでは nullptr のままにしておき、
+                    // Material構築時にデフォルトテクスチャへフォールバックさせる。
+                    // null SRV をそのままバインドするとサンプル結果が0になり、
+                    // 特に法線マップは DecodeNormal が normalize(-1,-1,-1) になって破綻する。
+                    //--------------------------------------------------------------
+                    ID3D11ShaderResourceView* albedoSRV   = nullptr;
+                    ID3D11ShaderResourceView* normalSRV   = nullptr;
+                    ID3D11ShaderResourceView* mrSRV       = nullptr;
+                    ID3D11ShaderResourceView* emissiveSRV = nullptr;
+                    ID3D11ShaderResourceView* aoSRV       = nullptr;
+
+                    Tsukino::GraphicsCommon::ShadingModel shadingModel = Tsukino::GraphicsCommon::ShadingModel::PBR;
 
                     if(meshData.materialIndex < modelAsset->materialHandles.size()) {
                         auto matHandle    = modelAsset->materialHandles[meshData.materialIndex];
@@ -143,34 +184,46 @@ namespace Tsukino::BuiltIn::ECS {
                             cbMat.roughness = matAsset->data.roughness;
                             cbMat.specular  = matAsset->data.specular;
 
-                            if(matAsset->albedoHandle.IsValid()) {
-                                auto texAssetBase = ctx->assetManager->Get(matAsset->albedoHandle);
-                                if(texAssetBase) {
-                                    auto texAsset = std::static_pointer_cast<Tsukino::Asset::TextureAsset>(texAssetBase);
-                                    srv           = ctx->renderer->GetTextureSRV(*texAsset);
-                                }
-                            }
+                            shadingModel = matAsset->data.shadingModel;
+
+                            // AssetHandle から SRV を引く（無効ハンドル・未ロードは nullptr）
+                            auto resolveSRV = [&](const Tsukino::Asset::AssetHandle& handle) -> ID3D11ShaderResourceView* {
+                                if(!handle.IsValid())
+                                    return nullptr;
+
+                                auto texAssetBase = ctx->assetManager->Get(handle);
+                                if(!texAssetBase)
+                                    return nullptr;
+
+                                auto texAsset = std::static_pointer_cast<Tsukino::Asset::TextureAsset>(texAssetBase);
+                                return ctx->renderer->GetTextureSRV(*texAsset);
+                            };
+
+                            albedoSRV   = resolveSRV(matAsset->albedoHandle);
+                            normalSRV   = resolveSRV(matAsset->normalHandle);
+                            mrSRV       = resolveSRV(matAsset->metallicRoughnessHandle);
+                            emissiveSRV = resolveSRV(matAsset->emissiveHandle);
+                            aoSRV       = resolveSRV(matAsset->aoHandle);
                         }
+                    }
+
+                    // エンティティ単位のハイライト上書き（マテリアルアセットより後に適用する）
+                    if(auto* highlight = registry.try_get<HighlightComponent>(entity); highlight && highlight->active) {
+                        cbMat.rimColor  = hlslpp::float4(highlight->rimColor, highlight->rimIntensity);
+                        cbMat.rimParams = hlslpp::float4(highlight->rimPower, highlight->glow, 0.0f, 0.0f);
                     }
 
                     m_cbufferMaterialBuffer.push_back(cbMat);
                     Tsukino::Renderer::CBufferMaterial* pCbMat = &m_cbufferMaterialBuffer.back();
 
                     // シェーダーアセットの取得
+                    // VSはワールド座標・法線・UVを出力するだけなので、フォワード(Water)/
+                    // ディファード(GBuffer)いずれのPSでも共用できる
                     Tsukino::Asset::AssetHandle vsHandle = isSkeletal ? ctx->builtinAssets->shaders.modelVS : ctx->builtinAssets->shaders.staticModelVS;
-                    Tsukino::Asset::AssetHandle psHandle = ctx->builtinAssets->shaders.modelPS;
-
-                    // ShadingModel を一度だけ取得
-                    Tsukino::GraphicsCommon::ShadingModel shadingModel = Tsukino::GraphicsCommon::ShadingModel::PBR;
-                    if(meshData.materialIndex < modelAsset->materialHandles.size()) {
-                        auto matAssetBase = ctx->assetManager->Get(modelAsset->materialHandles[meshData.materialIndex]);
-                        if(matAssetBase && matAssetBase->GetType() == Tsukino::Asset::AssetType::Material) {
-                            auto matAsset = std::static_pointer_cast<Tsukino::Asset::MaterialAsset>(matAssetBase);
-                            shadingModel  = matAsset->data.shadingModel;
-                        }
-                    }
+                    Tsukino::Asset::AssetHandle psHandle = ctx->builtinAssets->shaders.gbufferPS;
 
                     // ShadingModel に応じて PS と BlendMode を切り替え
+                    // （shadingModel はテクスチャ解決と同じ MaterialAsset 取得で拾っている）
                     Tsukino::Renderer::BlendMode blendMode = Tsukino::Renderer::BlendMode::Opaque;
                     if(shadingModel == Tsukino::GraphicsCommon::ShadingModel::Water) {
                         psHandle  = ctx->builtinAssets->shaders.waterPS;
@@ -198,7 +251,20 @@ namespace Tsukino::BuiltIn::ECS {
                     Tsukino::Renderer::Material mat{};
                     mat.SetPipeline(pipeline.get());
                     mat.SetSampler(ctx->renderer->GetSampler(Tsukino::GraphicsCommon::SamplerType::AnisotropicWrap));
-                    mat.SetTexture(srv ? srv : ctx->renderer->GetWhiteTextureSRV());
+
+                    //--------------------------------------------------------------
+                    // t0〜t4 をバインド。未設定はデフォルトへフォールバックする。
+                    //   白        : シェーダー側で cbuffer 定数との乗算になるため恒等元
+                    //   フラット法線: 適用しても頂点法線がそのまま保たれる
+                    //--------------------------------------------------------------
+                    ID3D11ShaderResourceView* whiteSRV      = ctx->renderer->GetWhiteTextureSRV();
+                    ID3D11ShaderResourceView* flatNormalSRV = ctx->renderer->GetFlatNormalTextureSRV();
+
+                    mat.SetTexture(Tsukino::Renderer::SRVSlot::Albedo, albedoSRV ? albedoSRV : whiteSRV);
+                    mat.SetTexture(Tsukino::Renderer::SRVSlot::Normal, normalSRV ? normalSRV : flatNormalSRV);
+                    mat.SetTexture(Tsukino::Renderer::SRVSlot::MetallicRoughness, mrSRV ? mrSRV : whiteSRV);
+                    mat.SetTexture(Tsukino::Renderer::SRVSlot::Emissive, emissiveSRV ? emissiveSRV : whiteSRV);
+                    mat.SetTexture(Tsukino::Renderer::SRVSlot::AO, aoSRV ? aoSRV : whiteSRV);
 
                     m_materialBuffer.push_back(mat);
 
@@ -212,9 +278,19 @@ namespace Tsukino::BuiltIn::ECS {
                         cmd.boneMatrices = skeletonOut->local_matrices;
                         cmd.boneCount    = skeletonOut->bone_count;
                     }
-                    if(shadingModel == Tsukino::GraphicsCommon::ShadingModel::Water) {
-                        cmd.pass = Tsukino::Renderer::RenderPass::Water;
-                    }
+
+                    //--------------------------------------------------------------
+                    // モーションブラー用の前フレームデータ
+                    // hasPrevFrame が false なら Renderer 側は一切読まない
+                    //--------------------------------------------------------------
+                    cmd.prevTransform = prevFinalTransform;
+                    cmd.hasPrevFrame  = hasPrev;
+                    if(hasPrev && isSkeletal)
+                        cmd.prevBoneMatrices = motionVec->prevBones;
+                    // Water はフォワードの専用パス（半透明のためディファード対象外）。
+                    // それ以外（PBR/Unlit/Toon）は不透明としてG-Bufferパスへ回す。
+                    cmd.pass = (shadingModel == Tsukino::GraphicsCommon::ShadingModel::Water) ? Tsukino::Renderer::RenderPass::Water
+                                                                                              : Tsukino::Renderer::RenderPass::GBuffer;
 
                     ctx->renderer->PushDrawCommand(cmd);
                 }

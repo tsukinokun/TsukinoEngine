@@ -9,7 +9,7 @@
 #include <Tsukino/EngineIntegration/ECS/System/PhysicsSystem.hpp>
 
 #include <Tsukino/BuiltIn/ECS/Component/CollisionComponent.hpp>
-#include <Tsukino/BuiltIn/ECS/Component/RigidBodyComponent.hpp>
+#include <Tsukino/BuiltIn/ECS/Component/RigidbodyComponent.hpp>
 #include <Tsukino/BuiltIn/ECS/Component/TransformComponent.hpp>
 #include <Tsukino/BuiltIn/ECS/Component/ImpulseRequestComponent.hpp>
 #include <Tsukino/BuiltIn/ECS/Component/CharacterControllerComponent.hpp>
@@ -42,9 +42,13 @@
 #include <Jolt/Physics/Body/BodyActivationListener.h>
 #include <Jolt/Renderer/DebugRendererSimple.h>
 #include <Jolt/Physics/Collision/Shape/HeightFieldShape.h>
+#include <Jolt/Physics/Collision/Shape/RotatedTranslatedShape.h>
 #include <Jolt/Physics/Character/CharacterVirtual.h>
 
 #include <windows.h>
+
+#include <mutex>
+#include <vector>
 // 名前空間 : Tsukino::BuiltIn::ECS
 namespace Tsukino::BuiltIn::ECS {
 
@@ -167,63 +171,68 @@ namespace Tsukino::BuiltIn::ECS {
     //-------------------------------------------------------------
     //! @class  MyContactListener
     //! @brief  Jolt Physicsからの衝突イベントを受け取るリスナー
+    //! @attention
+    //! Jolt は接触コールバックを **物理ジョブスレッドから並行に** 呼び出す。
+    //! EventBus も EnTT のレジストリもスレッドセーフではないため、
+    //! コールバック内でそれらに触ってはならない。
+    //! ここでは接触の事実だけをミューテックス保護されたバッファへ積み、
+    //! 実際のイベント発行・レジストリ操作は PhysicsSystem::Update() が
+    //! JPH::PhysicsSystem::Update() から戻った後、メインスレッドで行う。
     //-------------------------------------------------------------
     class MyContactListener : public JPH::ContactListener {
     public:
-        using Registry                   = Tsukino::ECS::Registry;
-        Registry*               registry = nullptr;    //!< コールバック実行用のレジストリ参照
-        Tsukino::ECS::EventBus* eventBus = nullptr;
+        //-------------------------------------------------------------
+        //! @struct PendingContact
+        //! @brief  ワーカースレッドで拾った接触を1件分だけ記録したもの
+        //-------------------------------------------------------------
+        struct PendingContact {
+            entt::entity   entityA;    //!< Body1 側のエンティティ
+            entt::entity   entityB;    //!< Body2 側のエンティティ
+            hlslpp::float3 normal;     //!< Body1 から見た接触法線
+        };
+
         //-------------------------------------------------------------
         //! @brief  衝突が追加された（当たった）際に呼ばれるコールバック
         //! @param  inBody1    [in] 衝突したボディ1
         //! @param  inBody2    [in] 衝突したボディ2
         //! @param  inManifold [in] マニフォールド情報（接触点等）
         //! @param  ioSettings [in/out] コンタクト設定（摩擦係数等のオーバーライド可能）
+        //! @note   複数のジョブスレッドから並行に呼ばれる。積むだけに留めること。
         //-------------------------------------------------------------
         void OnContactAdded(const JPH::Body&            inBody1,
                             const JPH::Body&            inBody2,
                             const JPH::ContactManifold& inManifold,
                             JPH::ContactSettings&       ioSettings) override {
-            JPH::Vec3 normal = inManifold.mWorldSpaceNormal;
             //-------------------------------------------------------------
             // 衝突時の法線（Body1から見たBody2への法線）
             // Joltの法線は「Body1から衝突点への方向」を指す
             //-------------------------------------------------------------
-            uint64_t id1 = inBody1.GetUserData();
-            uint64_t id2 = inBody2.GetUserData();
+            const JPH::Vec3 normal = inManifold.mWorldSpaceNormal;
 
-            // イベント発行（衝突の事実を双方向に通知）
-            if(eventBus) {
-                // Aから見たBへのイベント
-                eventBus->Publish(CollisionEnterEvent{
-                    (entt::entity)id1, (entt::entity)id2, {normal.GetX(), normal.GetY(), normal.GetZ()}
-                });
-                // Bから見たAへのイベント
-                eventBus->Publish(CollisionEnterEvent{
-                    (entt::entity)id2, (entt::entity)id1, {-normal.GetX(), -normal.GetY(), -normal.GetZ()}
-                });
-            }
-
-            // 2. 反射処理（Bodyそれぞれの計算）
-            auto applyReflection = [&](const JPH::Body& b, JPH::Vec3 n) {
-                entt::entity e = (entt::entity)b.GetUserData();
-                if(!registry->HasComponent<RigidbodyComponent>(e))
-                    return;
-
-                auto& rb = registry->GetComponent<RigidbodyComponent>(e);
-                if(rb.type == RigidbodyType::Kinematic) {
-                    hlslpp::float3 V   = rb.linearVelocity;
-                    hlslpp::float3 N   = {n.GetX(), n.GetY(), n.GetZ()};
-                    float          dot = hlslpp::dot(V, N);
-                    if(dot < 0.0f) {
-                        rb.linearVelocity = V - 2.0f * dot * N;
-                    }
-                }
+            const PendingContact contact{
+                (entt::entity)inBody1.GetUserData(),
+                (entt::entity)inBody2.GetUserData(),
+                {normal.GetX(), normal.GetY(), normal.GetZ()}
             };
 
-            applyReflection(inBody1, normal);
-            applyReflection(inBody2, -normal);
+            std::lock_guard<std::mutex> lock(m_pendingMutex);
+            m_pending.push_back(contact);
         }
+
+        //-------------------------------------------------------------
+        //! @brief  溜まった接触を取り出して空にする
+        //! @param  out [out] 取り出し先。呼び出し前の内容は破棄される
+        //! @note   メインスレッドから、Jolt の Update 完了後に呼ぶこと
+        //-------------------------------------------------------------
+        void DrainContacts(std::vector<PendingContact>& out) {
+            std::lock_guard<std::mutex> lock(m_pendingMutex);
+            out.swap(m_pending);
+            m_pending.clear();
+        }
+
+    private:
+        std::mutex                  m_pendingMutex;    //!< m_pending を保護する
+        std::vector<PendingContact> m_pending;         //!< 今フレームに発生した接触
     };
 
     //-------------------------------------------------------------
@@ -327,7 +336,11 @@ namespace Tsukino::BuiltIn::ECS {
         MyContactListener*                           contactListener    = nullptr;    //!< 衝突イベントリスナー
         JoltDebugRendererImpl*                       debugRenderer      = nullptr;    //!< デバッグ描画インターフェース
 #ifdef TSUKINO_DEBUG_COLLISION_DRAW
+#ifdef TSUKINO_DEBUG_COLLISION_DRAW_ALWAYS_ON
+        bool                                         isDebugDrawEnabled = true;       //!< デバッグ描画が有効か（ALWAYS_ONマクロにより起動時からON）
+#else
         bool                                         isDebugDrawEnabled = false;      //!< デバッグ描画が有効か
+#endif    // TSUKINO_DEBUG_COLLISION_DRAW_ALWAYS_ON
         bool                                         f5WasDown          = false;      //!< 直前フレームでF5キーが押されていたか
 #endif    // TSUKINO_DEBUG_COLLISION_DRAW
         std::unordered_map<entt::entity, JPH::RVec3> prevPositions;
@@ -344,6 +357,9 @@ namespace Tsukino::BuiltIn::ECS {
 
         CharacterContactListenerImpl                      characterContactListener;    //!< Character用接触リスナー
         std::unordered_map<entt::entity, CharacterHandle> characters;                  //!< エンティティ毎のCharacterVirtual
+
+        Tsukino::ECS::EventBus*                      eventBus = nullptr;    //!< 衝突イベントの発行先（メインスレッドからのみ使う）
+        std::vector<MyContactListener::PendingContact> drainedContacts;     //!< 接触の取り出し用バッファ（毎フレーム使い回す）
     };
 
     //-------------------------------------------------------------
@@ -373,18 +389,41 @@ namespace Tsukino::BuiltIn::ECS {
             cMaxBodies, cNumBodyMutexes, cMaxBodyPairs, cMaxContactConstraints, m_impl->bpLayerInterface, m_impl->objVsBpFilter, m_impl->objPairFilter);
 
         m_impl->contactListener = new MyContactListener();
-        // ContactListenerにイベントバスの参照を渡す
-        m_impl->contactListener->eventBus = &eventBus;
+        //-------------------------------------------------------------
+        // イベントバスは ContactListener ではなく Impl が持つ。
+        // 発行はワーカースレッドではなくメインスレッド（Update の末尾）で行うため。
+        //-------------------------------------------------------------
+        m_impl->eventBus = &eventBus;
         m_impl->physicsSystem->SetContactListener(m_impl->contactListener);
         m_impl->characterContactListener.physicsSystem = m_impl->physicsSystem;
 
         m_impl->debugRenderer = new JoltDebugRendererImpl();
     }
 
+#ifdef TSUKINO_DEBUG_COLLISION_DRAW
+    //-------------------------------------------------------------
+    // 物理コリジョンのデバッグワイヤーフレーム描画を有効/無効にする
+    //-------------------------------------------------------------
+    void PhysicsSystem::SetDebugDrawEnabled(bool enabled) {
+        m_impl->isDebugDrawEnabled = enabled;
+    }
+#endif    // TSUKINO_DEBUG_COLLISION_DRAW
+
     //-------------------------------------------------------------
     // デストラクタ
     //-------------------------------------------------------------
     PhysicsSystem::~PhysicsSystem() {
+        //-------------------------------------------------------------
+        // 先にレジストリのシグナル購読を解除する。
+        // System は Registry より先に破棄されるため、解除しないと
+        // レジストリ側の後始末で破棄済みの this が呼ばれてしまう。
+        //-------------------------------------------------------------
+        if(m_connectedRegistry) {
+            m_connectedRegistry->OnDestroy<CollisionComponent>().disconnect(this);
+            m_connectedRegistry->OnDestroy<CharacterControllerComponent>().disconnect(this);
+            m_connectedRegistry = nullptr;
+        }
+
         if(m_impl) {
             delete m_impl->debugRenderer;
             delete m_impl->contactListener;
@@ -396,10 +435,92 @@ namespace Tsukino::BuiltIn::ECS {
     }
 
     //-------------------------------------------------------------
+    //! @brief  指定のカプセル形状と現在重なっている全エンティティを取得する
+    //-------------------------------------------------------------
+    std::vector<entt::entity> PhysicsSystem::OverlapCapsule(const hlslpp::float3& center, const hlslpp::quaternion& rotation, float radius, float halfHeight) {
+        std::vector<entt::entity> result;
+        if(!m_impl || !m_impl->physicsSystem)
+            return result;
+
+        JPH::CapsuleShape capsuleShape(halfHeight, radius);
+        JPH::RMat44       transform =
+            JPH::RMat44::sRotationTranslation(JPH::Quat(rotation.x, rotation.y, rotation.z, rotation.w), JPH::RVec3(center.x, center.y, center.z));
+
+        JPH::AllHitCollisionCollector<JPH::CollideShapeCollector> collector;
+        m_impl->physicsSystem->GetNarrowPhaseQuery().CollideShape(
+            &capsuleShape, JPH::Vec3::sReplicate(1.0f), transform, JPH::CollideShapeSettings(), JPH::RVec3::sZero(), collector);
+
+        JPH::BodyInterface& bodyInterface = m_impl->physicsSystem->GetBodyInterface();
+        result.reserve(collector.mHits.size());
+        for(const auto& hit : collector.mHits) {
+            result.push_back(static_cast<entt::entity>(bodyInterface.GetUserData(hit.mBodyID2)));
+        }
+        return result;
+    }
+
+    //-------------------------------------------------------------
+    // レジストリの破棄シグナルへ購読する
+    //-------------------------------------------------------------
+    void PhysicsSystem::ConnectRegistrySignals(Tsukino::ECS::Registry& registry) {
+        if(m_connectedRegistry == &registry)
+            return;    // 購読済み
+
+        registry.OnDestroy<CollisionComponent>().connect<&PhysicsSystem::OnCollisionComponentDestroyed>(*this);
+        registry.OnDestroy<CharacterControllerComponent>().connect<&PhysicsSystem::OnCharacterControllerDestroyed>(*this);
+
+        m_connectedRegistry = &registry;
+    }
+
+    //-------------------------------------------------------------
+    // CollisionComponent 破棄時に Jolt の Body を回収する
+    //-------------------------------------------------------------
+    void PhysicsSystem::OnCollisionComponentDestroyed(entt::registry& registry, entt::entity entity) {
+        if(!m_impl || !m_impl->physicsSystem)
+            return;
+
+        //-------------------------------------------------------------
+        // EnTT は「取り外す直前」に呼ぶので、この時点ではまだ読める
+        //-------------------------------------------------------------
+        if(const CollisionComponent* col = registry.try_get<CollisionComponent>(entity)) {
+            if(col->isInitialized && !col->bodyID.IsInvalid()) {
+                JPH::BodyInterface& bodyInterface = m_impl->physicsSystem->GetBodyInterface();
+
+                // AddBody していた場合のみ RemoveBody する
+                if(bodyInterface.IsAdded(col->bodyID)) {
+                    bodyInterface.RemoveBody(col->bodyID);
+                }
+                bodyInterface.DestroyBody(col->bodyID);
+            }
+        }
+
+        //-------------------------------------------------------------
+        // エンティティをキーにした付随データも一緒に片付ける。
+        // ここを漏らすとフレームごとに増え続けるだけのマップになる。
+        //-------------------------------------------------------------
+        m_impl->prevPositions.erase(entity);
+        m_impl->heightfieldCache.erase(static_cast<uint64_t>(entity));
+    }
+
+    //-------------------------------------------------------------
+    // CharacterControllerComponent 破棄時に CharacterVirtual を回収する
+    //-------------------------------------------------------------
+    void PhysicsSystem::OnCharacterControllerDestroyed(entt::registry& registry, entt::entity entity) {
+        if(!m_impl)
+            return;
+
+        m_impl->characters.erase(entity);
+    }
+
+    //-------------------------------------------------------------
     // システムの更新処理
     //-------------------------------------------------------------
     void PhysicsSystem::Update(Tsukino::ECS::Registry& registry, float deltaTime) {
-        m_impl->contactListener->registry = &registry;
+        //-------------------------------------------------------------
+        // レジストリはコンストラクタ時点では手に入らないため、
+        // 初回 Update で一度だけ破棄シグナルへ購読する
+        //-------------------------------------------------------------
+        ConnectRegistrySignals(registry);
+
         JPH::BodyInterface& bodyInterface = m_impl->physicsSystem->GetBodyInterface();
 
         auto view = registry.View<CollisionComponent>();
@@ -531,13 +652,27 @@ namespace Tsukino::BuiltIn::ECS {
             if(cc.isInitialized)
                 return;
 
-            JPH::RefConst<JPH::Shape> shape = new JPH::CapsuleShape(cc.halfHeight, cc.radius);
+            JPH::RefConst<JPH::Shape> capsuleShape = new JPH::CapsuleShape(cc.halfHeight, cc.radius);
+
+            // centerOffsetが設定されている場合、カプセル中心をTransform位置からずらす
+            // （Unityの CharacterController.center と同様。例えば (0,halfHeight+radius,0) を指定すると
+            //   Transform位置＝カプセル底面＝足元、を表せるようになる）
+            JPH::RefConst<JPH::Shape> shape = capsuleShape;
+            if(cc.centerOffset.x != 0.0f || cc.centerOffset.y != 0.0f || cc.centerOffset.z != 0.0f) {
+                shape = new JPH::RotatedTranslatedShape(
+                    JPH::Vec3(cc.centerOffset.x, cc.centerOffset.y, cc.centerOffset.z), JPH::Quat::sIdentity(), capsuleShape);
+            }
 
             JPH::CharacterVirtualSettings settings;
             settings.mShape         = shape;
             settings.mMaxSlopeAngle = JPH::DegreesToRadians(cc.maxSlopeDeg);
             settings.mMass          = cc.mass;
             // 接地判定に使う平面。カプセル底面付近を接地面とみなす
+            // （Jolt基準: SignedDistance(p)=p.y+constantが0以下の点だけが支持候補になる。
+            //   centerOffsetによりキャラクターの原点はカプセル底面＝足元になっているため、
+            //   「足元から radius だけ上まで」を許容範囲とするには constant=-radius が正しい。
+            //   （+cc.centerOffset.yを足していた以前の実装は符号が逆で、足元(y≈0)の接触点が
+            //    常に許容範囲外になり、isGroundedが恒久的にfalseのままになってしまっていた）
             settings.mSupportingVolume = JPH::Plane(JPH::Vec3::sAxisY(), -cc.radius);
 
             JPH::RVec3 pos(tf.position.x, tf.position.y, tf.position.z);
@@ -553,19 +688,10 @@ namespace Tsukino::BuiltIn::ECS {
             Tsukino::Core::Log::Info("CharacterVirtual created for entity id=" + std::to_string((uint32_t)entity));
         });
 
-        // 破棄されたCharacterVirtualのクリーンアップ
-        {
-            std::vector<entt::entity> toErase;
-            for(auto& [entity, handle] : m_impl->characters) {
-                // エンティティ自体が破棄済み、またはCharacterControllerComponentが外された場合
-                if(!registry.IsValid(entity) || !registry.HasComponent<CharacterControllerComponent>(entity)) {
-                    toErase.push_back(entity);
-                }
-            }
-            for(auto entity : toErase) {
-                m_impl->characters.erase(entity);
-            }
-        }
+        // 破棄されたCharacterVirtualの回収は OnCharacterControllerDestroyed() が行う。
+        // 以前はここで毎フレーム characters を全走査していたが、
+        // EnTT の破棄シグナルはコンポーネント削除・エンティティ破棄の
+        // どちらでも必ず発火するため、この走査は不要になった。
 
         for(auto entity : view) {
             auto& col = registry.GetComponent<CollisionComponent>(entity);
@@ -800,11 +926,18 @@ namespace Tsukino::BuiltIn::ECS {
             }
             cc.jumpRequested = false;    // 消費して1フレームでリセット
 
-            vertY += gravity.GetY() * stepTime;
+            vertY += gravity.GetY() * cc.gravityFactor * stepTime;
 
             // 水平（moveInput）＋垂直を合成して速度としてセット
             JPH::Vec3 desiredVelocity(cc.moveInput.x, vertY, cc.moveInput.z);
             character->SetLinearVelocity(desiredVelocity);
+
+            // PlayerSystem等が今フレーム書き込んだ向きをキャラクターへ反映する
+            // （反映しないとExtendedUpdate後のGetRotation()が常にidentityのままとなり、
+            //   下のtf.rotation書き戻しでプレイヤーの回転が毎フレーム上書きされてしまう）
+            // slerpをtf.rotation⇔Jolt間で毎フレーム往復させると誤差が蓄積し非正規化するため、
+            // Jolt側のIsNormalized()アサートに引っかからないよう明示的に正規化してから渡す
+            character->SetRotation(JPH::Quat(tf.rotation.x, tf.rotation.y, tf.rotation.z, tf.rotation.w).Normalized());
 
             JPH::CharacterVirtual::ExtendedUpdateSettings updateSettings;
 
@@ -860,6 +993,20 @@ namespace Tsukino::BuiltIn::ECS {
                     body.GetShape()->Draw(m_impl->debugRenderer, transform, JPH::Vec3::sReplicate(1.0f), JPH::Color::sGreen, false, false);
                 }
 
+                // CharacterVirtual（CollisionComponentを持たないため上のループでは描画されない）のカプセルを描画
+                for(auto& [entity, handle] : m_impl->characters) {
+                    JPH::CharacterVirtual* character = handle.character.GetPtr();
+                    if(!character)
+                        continue;
+
+                    JPH::ColorArg color = character->IsSupported() ? JPH::Color::sGreen : JPH::Color::sYellow;
+                    // Shape::Draw()はCenter of Mass基準の変換を期待するため、GetWorldTransform()
+                    // （position基準。centerOffsetがあるとカプセル中心とはズレる）ではなく
+                    // GetCenterOfMassTransform()を使う（centerOffset=0の場合は同じ結果になる）
+                    character->GetShape()->Draw(
+                        m_impl->debugRenderer, character->GetCenterOfMassTransform(), JPH::Vec3::sReplicate(1.0f), color, false, false);
+                }
+
                 // isGrounded判定Box描画
                 for(auto entity : view) {
                     if(!registry.HasComponent<RigidbodyComponent>(entity))
@@ -901,6 +1048,58 @@ namespace Tsukino::BuiltIn::ECS {
             }
         }
 #endif    // TSUKINO_DEBUG_COLLISION_DRAW
+
+        //-------------------------------------------------------------
+        // 接触の後処理（メインスレッド）
+        //
+        // Jolt は OnContactAdded を物理ジョブスレッドから並行に呼ぶ。
+        // EventBus も EnTT のレジストリもスレッドセーフではないので、
+        // コールバック側では接触を積むだけにしてあり、
+        // イベント発行とレジストリ操作はここまで遅らせている。
+        //-------------------------------------------------------------
+        m_impl->contactListener->DrainContacts(m_impl->drainedContacts);
+
+        //-------------------------------------------------------------
+        // Kinematic ボディの速度を接触法線で反射させる
+        // （Dynamic は Jolt 側が解決するため対象外）
+        //-------------------------------------------------------------
+        auto applyReflection = [&registry](entt::entity e, const hlslpp::float3& n) {
+            if(!registry.HasComponent<RigidbodyComponent>(e))
+                return;
+
+            auto& rb = registry.GetComponent<RigidbodyComponent>(e);
+            if(rb.type != RigidbodyType::Kinematic)
+                return;
+
+            hlslpp::float3 V   = rb.linearVelocity;
+            float          dot = hlslpp::dot(V, n);
+            if(dot < 0.0f)
+                rb.linearVelocity = V - 2.0f * dot * n;
+        };
+
+        for(const auto& contact : m_impl->drainedContacts) {
+            //-------------------------------------------------------------
+            // 接触してから今ここへ来るまでの間にエンティティが破棄されている
+            // ことがあるため、触る前に生存を確認する
+            //-------------------------------------------------------------
+            if(!registry.IsValid(contact.entityA) || !registry.IsValid(contact.entityB))
+                continue;
+
+            const hlslpp::float3 reverseNormal = hlslpp::float3(-contact.normal.x, -contact.normal.y, -contact.normal.z);
+
+            // イベント発行（衝突の事実を双方向に通知）
+            if(m_impl->eventBus) {
+                // Aから見たBへのイベント
+                m_impl->eventBus->Publish(CollisionEnterEvent{contact.entityA, contact.entityB, contact.normal});
+                // Bから見たAへのイベント
+                m_impl->eventBus->Publish(CollisionEnterEvent{contact.entityB, contact.entityA, reverseNormal});
+            }
+
+            applyReflection(contact.entityA, contact.normal);
+            applyReflection(contact.entityB, reverseNormal);
+        }
+
+        m_impl->drainedContacts.clear();
     }
 
 }    // namespace Tsukino::BuiltIn::ECS

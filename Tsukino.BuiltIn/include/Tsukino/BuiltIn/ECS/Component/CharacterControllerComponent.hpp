@@ -14,10 +14,21 @@ namespace Tsukino::BuiltIn::ECS {
     //-------------------------------------------------------------
     struct CharacterControllerComponent {
         // 形状パラメータ（生成時のみ使用）
-        float radius      = 0.3f;     //!< カプセル半径
-        float halfHeight  = 0.6f;     //!< カプセル円柱部分の半分の高さ
-        float maxSlopeDeg = 45.0f;    //!< 登れる最大斜面角度
-        float mass        = 70.0f;    //!< 押し出し計算用の仮想質量
+        float radius        = 0.3f;     //!< カプセル半径
+        float halfHeight    = 0.6f;     //!< カプセル円柱部分の半分の高さ
+        float maxSlopeDeg   = 45.0f;    //!< 登れる最大斜面角度
+        float mass          = 70.0f;    //!< 押し出し計算用の仮想質量
+        float gravityFactor = 1.0f;     //!< 重力の掛かり具合（RigidbodyComponent::gravityFactorと同様。ワールドの単位スケールに応じて調整する）
+
+        //-------------------------------------------------------------
+        // カプセル中心の、Transform位置からのローカルオフセット（Unityの
+        // CharacterController.centerと同様の役割）。
+        // (0,0,0)のままなら従来通りTransform位置＝カプセル中心。
+        // (0, halfHeight+radius, 0) を指定すると、Transform位置がカプセル底面
+        // （＝足元/接地位置）を表すようになり、足元原点のモデルをそのまま
+        // 同じTransformで描画しても位置が一致しやすくなる。
+        //-------------------------------------------------------------
+        hlslpp::float3 centerOffset = {0.0f, 0.0f, 0.0f};
 
         // Jolt内部でCharacterVirtualを生成するためのトリガー
         bool isInitialized = false;

@@ -34,8 +34,9 @@ namespace BlockBreakingSample::ECS {
         auto view = registry.View<Tsukino::BuiltIn::ECS::TransformComponent, BrickComponent>();
         view.each([&](entt::entity entity, Tsukino::BuiltIn::ECS::TransformComponent& transform, BrickComponent& brick) {
             if(brick.dead) {
-                // ブロックが壊れている場合はエンティティを破棄
-                registry.DestroyEntity(entity);
+                // ブロックが壊れている場合はエンティティの破棄を予約する。
+                // view の反復中の即時破棄はイテレータを壊すため使えない。
+                registry.QueueDestroy(entity);
             }
         });
     }

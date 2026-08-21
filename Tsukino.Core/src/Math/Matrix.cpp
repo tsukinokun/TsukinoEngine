@@ -225,4 +225,21 @@ namespace Tsukino::Core::Math {
     matrix matrix::rotate(const hlslpp::quaternion& q) {
         return fromQuaternion(q);
     }
+
+    //---------------------------------------------------------------------------
+    //! 行列から位置・回転（クォータニオン）を取り出す
+    //---------------------------------------------------------------------------
+    void matrix::decomposePositionRotation(const matrix& m, hlslpp::float3& outPosition, hlslpp::quaternion& outRotation) {
+        outPosition = m[3].xyz;
+
+        // 3x3回転部分（スケール込み）を取り出し、グラム・シュミット法で直交化してから
+        // 単位化することでスケール／シアーを除去する（親子で異なるスケールが連鎖している
+        // 場合、各行を単純に単位化するだけでは直交性が保証されないため）
+        hlslpp::float3 axisX = normalize(m[0].xyz);
+        hlslpp::float3 axisY = normalize(m[1].xyz - axisX * dot(axisX, m[1].xyz));
+        hlslpp::float3 axisZ = cross(axisX, axisY);
+
+        hlslpp::float3x3 rotationOnly(axisX, axisY, axisZ);
+        outRotation = hlslpp::quaternion(rotationOnly);
+    }
 }    // namespace Tsukino::Core::Math

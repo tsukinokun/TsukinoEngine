@@ -3,6 +3,7 @@
 //! @brief  音声のアセットを管理するクラス
 //! @author 山﨑愛
 //--------------------------------------------------------------
+#pragma once
 #include <Tsukino/Engine/Asset/IAsset.hpp>
 #include <Tsukino/Core/typedef.hpp>
 

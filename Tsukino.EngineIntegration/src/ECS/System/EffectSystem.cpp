@@ -74,6 +74,12 @@ namespace Tsukino::BuiltIn::ECS {
         m_entityDestroyedConn = eventBus.Subscribe<Tsukino::ECS::EngineEvent::EntityDestroyedEvent>(
             [this](const Tsukino::ECS::EngineEvent::EntityDestroyedEvent& event) { OnEffectEntityDestroyed(event); });
 
+        //--------------------------------------------------------------
+        // 破棄経路によらず確実に回収するため、EnTT の破棄シグナルにも購読する。
+        // Finalize() で必ず解除すること（System は Registry より先に破棄されるため）。
+        //--------------------------------------------------------------
+        registry.OnDestroy<EffectComponent>().connect<&EffectSystem::OnEffectComponentDestroyed>(*this);
+
         m_initialized = true;
     }
 
@@ -86,6 +92,15 @@ namespace Tsukino::BuiltIn::ECS {
         }
 
         m_entityDestroyedConn.Disconnect();
+
+        //--------------------------------------------------------------
+        // Registry より先に破棄されるため、シグナル購読を必ず解除する。
+        // 解除し忘れると破棄済みの this へコールバックが飛ぶ。
+        //--------------------------------------------------------------
+        if(m_registry) {
+            m_registry->OnDestroy<EffectComponent>().disconnect(this);
+        }
+
         StopAllEffects();
         m_loadedEffects.clear();
         m_manager.Reset();
@@ -260,6 +275,28 @@ namespace Tsukino::BuiltIn::ECS {
             comp.active  = false;
             comp.stopped = false;
         }
+    }
+
+    //--------------------------------------------------------------
+    //! @brief  EffectComponent 破棄時に Effekseer のハンドルを停止する
+    //--------------------------------------------------------------
+    void EffectSystem::OnEffectComponentDestroyed(entt::registry& registry, entt::entity entity) {
+        if(!m_manager) {
+            return;
+        }
+
+        // EnTT は「取り外す直前」に呼ぶため、この時点ではまだ読める
+        EffectComponent* comp = registry.try_get<EffectComponent>(entity);
+        if(!comp) {
+            return;
+        }
+
+        if(comp->handle >= 0) {
+            m_manager->StopEffect(comp->handle);
+            comp->handle = -1;
+        }
+        comp->active  = false;
+        comp->stopped = false;
     }
 
     //--------------------------------------------------------------

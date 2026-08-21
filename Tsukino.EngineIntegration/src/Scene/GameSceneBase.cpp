@@ -15,6 +15,15 @@ namespace Tsukino::EngineIntegration {
         m_scene.GetRegistry().SetContext<Tsukino::EngineIntegration::EngineContext*>(context);
 
         //-------------------------------------------------------------
+        // Scene 自身の初期化（EventBus のコンテキスト登録と
+        // SceneInitializedEvent の発火）を行う。
+        //
+        // OnInitialize() より前に呼ぶ必要がある。派生シーンが
+        // registry.GetContext<EventBus*>() を使えるようにするため。
+        //-------------------------------------------------------------
+        m_scene.Initialize();
+
+        //-------------------------------------------------------------
         // 各シーン固有の初期化処理を呼び出す
         //-------------------------------------------------------------
         OnInitialize(api);

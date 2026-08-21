@@ -89,10 +89,11 @@ namespace WaterGame::ECS {
         });
 
         //-------------------------------------------------------------
-        // 3. 食べたドットを一括削除（イテレータ走査中にDestroyしないための遅延削除）
+        // 3. 食べたドットの破棄を予約する
+        //    実際の破棄は Scene::Update() が全 System の更新後にまとめて行う
         //-------------------------------------------------------------
         for(auto dotEntity : eatenDots) {
-            registry.DestroyEntity(dotEntity);    // ※実際のRegistry APIに合わせて調整してください
+            registry.QueueDestroy(dotEntity);
         }
     }
 

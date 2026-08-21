@@ -5,6 +5,12 @@
 //-------------------------------------------------------------
 #pragma once
 #include <Tsukino/Core/ECS/System/ISystem.hpp>
+#include <Tsukino/Core/DebugTools/DebugFeatures.hpp>
+
+#include <entt/entt.hpp>
+#include <hlsl++.h>
+
+#include <vector>
 
 namespace Tsukino::ECS {
     class EventBus;
@@ -36,9 +42,62 @@ namespace Tsukino::BuiltIn::ECS {
         //-------------------------------------------------------------
         void Update(Tsukino::ECS::Registry& registry, float deltaTime) override;
 
+        //-------------------------------------------------------------
+        //! @brief  指定のカプセル形状と現在重なっている全エンティティを取得する
+        //!         （センサー的な即時オーバーラップ判定。物理的な反発は起きない）
+        //! @param  center     [in] カプセル中心のワールド座標
+        //! @param  rotation   [in] カプセルの向き（Jolt内部のカプセルはローカルY軸方向が軸）
+        //! @param  radius     [in] カプセル半径
+        //! @param  halfHeight [in] カプセル円柱部分の半分の高さ
+        //! @return 重なっているエンティティの一覧（CollisionComponentを持つもののみ）
+        //-------------------------------------------------------------
+        std::vector<entt::entity> OverlapCapsule(const hlslpp::float3& center, const hlslpp::quaternion& rotation, float radius, float halfHeight);
+
+#ifdef TSUKINO_DEBUG_COLLISION_DRAW
+        //-------------------------------------------------------------
+        //! @brief  物理コリジョンのデバッグワイヤーフレーム描画を有効/無効にする
+        //! @param  enabled [in] true: 有効化, false: 無効化
+        //-------------------------------------------------------------
+        void SetDebugDrawEnabled(bool enabled);
+#endif    // TSUKINO_DEBUG_COLLISION_DRAW
+
     private:
+        //-------------------------------------------------------------
+        //! @brief  Registry の破棄シグナルへ購読する（初回 Update で一度だけ）
+        //! @param  registry [in] 購読対象のレジストリ
+        //! @details
+        //! ECS の外に実体を持つリソース（Jolt の Body / CharacterVirtual）は、
+        //! イベントバス経由では回収し損ねる。
+        //! ゲームコードが Scene::DestroyEntity() を通さず
+        //! Registry::DestroyEntity() を直接呼ぶ経路が存在するためである。
+        //! EnTT の破棄シグナルはどの経路でも必ず発火するので、
+        //! 回収は必ずこちらで行う。
+        //-------------------------------------------------------------
+        void ConnectRegistrySignals(Tsukino::ECS::Registry& registry);
+
+        //-------------------------------------------------------------
+        //! @brief  CollisionComponent 破棄時に Jolt の Body を回収する
+        //! @param  registry [in] レジストリ（EnTT が渡す）
+        //! @param  entity   [in] 破棄されるエンティティ
+        //! @note   EnTT は「コンポーネントを取り外す直前」に呼ぶため、
+        //!         ハンドラ内ではまだ bodyID を読める。
+        //-------------------------------------------------------------
+        void OnCollisionComponentDestroyed(entt::registry& registry, entt::entity entity);
+
+        //-------------------------------------------------------------
+        //! @brief  CharacterControllerComponent 破棄時に CharacterVirtual を回収する
+        //! @param  registry [in] レジストリ（EnTT が渡す）
+        //! @param  entity   [in] 破棄されるエンティティ
+        //-------------------------------------------------------------
+        void OnCharacterControllerDestroyed(entt::registry& registry, entt::entity entity);
+
         struct Impl;
         Impl* m_impl;
+
+        //! シグナル購読済みのレジストリ。デストラクタで購読解除するために保持する
+        //! （System は Registry より先に破棄されるため、解除しないと
+        //!   破棄済みの this へコールバックが飛ぶ）
+        Tsukino::ECS::Registry* m_connectedRegistry = nullptr;
     };
 
 }    // namespace Tsukino::BuiltIn::ECS

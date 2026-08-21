@@ -1,7 +1,5 @@
 {
     "TestLinkComponent": {
-        "target": {
-            "value0": "#Anchor"
-        }
+        "target": "#Anchor"
     }
 }

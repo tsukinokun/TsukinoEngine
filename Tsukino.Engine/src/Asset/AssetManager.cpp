@@ -10,6 +10,7 @@
 #include <Tsukino/Engine/Asset/Texture/TextureLoder.hpp>
 #include <Tsukino/Engine/Asset/Shader/ShaderLoader.hpp>
 #include <Tsukino/Engine/Asset/Font/FontLoader.hpp>
+#include <Tsukino/Engine/Asset/Font/DynamicFontLoader.hpp>
 #include <Tsukino/Engine/Asset/Audio/AudioLoader.hpp>
 #include <Tsukino/Engine/Asset/Model/ModelLoader.hpp>
 #include <Tsukino/Engine/Asset/Cubemap/CubemapLoader.hpp>
@@ -19,6 +20,7 @@
 #include <Tsukino/Engine/Asset/Texture/TextureImporter.hpp>
 #include <Tsukino/Engine/Asset/Shader/ShaderImporter.hpp>
 #include <Tsukino/Engine/Asset/Font/FontImporter.hpp>
+#include <Tsukino/Engine/Asset/Font/DynamicFontImporter.hpp>
 #include <Tsukino/Engine/Asset/Audio/AudioImporter.hpp>
 #include <Tsukino/Engine/Asset/Model/ModelImporter.hpp>
 #include <Tsukino/Engine/Asset/Cubemap/CubemapImporter.hpp>
@@ -33,8 +35,8 @@ namespace Tsukino::Asset {
     //! @brief デストラクタ
     //--------------------------------------------------------------
     AssetManager::~AssetManager() {
-        s_Assets.clear();     // AssetMapをクリア
-        s_Loaders.clear();    // ローダーリストをクリア
+        m_assets.clear();     // AssetMapをクリア
+        m_loaders.clear();    // ローダーリストをクリア
     }
 
     //--------------------------------------------------------------
@@ -47,6 +49,7 @@ namespace Tsukino::Asset {
         RegisterLoader(Tsukino::Core::CreateRef<ShaderLoader>());       // シェーダローダーを登録
         RegisterLoader(Tsukino::Core::CreateRef<TextureLoader>());      // テクスチャローダーを登録
         RegisterLoader(Tsukino::Core::CreateRef<FontLoader>());         // フォントローダーを登録
+        RegisterLoader(Tsukino::Core::CreateRef<DynamicFontLoader>());  // 動的フォントローダーを登録
         RegisterLoader(Tsukino::Core::CreateRef<AudioLoader>());        // オーディオローダーを登録
         RegisterLoader(Tsukino::Core::CreateRef<ModelLoader>(this));    // モデルローダーを登録
         RegisterLoader(Tsukino::Core::CreateRef<CubemapLoader>());      // キューブマップローダーを登録
@@ -58,6 +61,7 @@ namespace Tsukino::Asset {
         RegisterImporter(AssetType::Shader, Tsukino::Core::CreateRef<ShaderImporter>());      // シェーダーインポーターの登録
         RegisterImporter(AssetType::Texture, Tsukino::Core::CreateRef<TextureImporter>());    // テクスチャインポーターを登録
         RegisterImporter(AssetType::Font, Tsukino::Core::CreateRef<FontImporter>());          // フォントインポーターの登録
+        RegisterImporter(AssetType::DynamicFont, Tsukino::Core::CreateRef<DynamicFontImporter>());    // 動的フォントインポーターの登録
         RegisterImporter(AssetType::Audio, Tsukino::Core::CreateRef<AudioImporter>());        // オーディオインポーターの登録
         RegisterImporter(AssetType::Model, Tsukino::Core::CreateRef<ModelImporter>());        // モデルインポーターの登録
         RegisterImporter(AssetType::Cubemap, Tsukino::Core::CreateRef<CubemapImporter>());    // キューブマップインポーターを登録
@@ -87,8 +91,8 @@ namespace Tsukino::Asset {
         //------------------------------------------------
         // Importer
         //------------------------------------------------
-        auto importerIt = s_Importers.find(type);    // 対応するインポーターを検索
-        if(importerIt != s_Importers.end()) {
+        auto importerIt = m_importers.find(type);    // 対応するインポーターを検索
+        if(importerIt != m_importers.end()) {
             bool shouldImport = false;    // インポートが必要かどうかのフラグ
 
             if(!Tsukino::IO::FileSystem::Exists(cacheBasePath)) {
@@ -123,7 +127,7 @@ namespace Tsukino::Asset {
         //------------------------------------------------
         // Loader
         //------------------------------------------------
-        for(auto& loader : s_Loaders) {
+        for(auto& loader : m_loaders) {
             if(loader->CanLoad(cacheBasePath.extension())) {
                 // ローダーには fragment 付きで渡す（Audio サブリソース解決用）
                 Tsukino::Core::Ref<IAsset> asset = loader->Load(cachePathWithFragment);
@@ -132,7 +136,7 @@ namespace Tsukino::Asset {
 
                 AssetHandle handle = AssetHandleGenerator::Generate();
                 asset->SetHandle(handle);
-                s_Assets.insert({handle.Value(), asset});
+                m_assets.insert({handle.Value(), asset});
                 return handle;
             }
         }
@@ -144,15 +148,15 @@ namespace Tsukino::Asset {
     //! @brief 任意のアセットハンドルからアセットを取得する関数
     //--------------------------------------------------------------
     Tsukino::Core::Ref<IAsset> AssetManager::Get(AssetHandle handle) {
-        auto it = s_Assets.find(handle.Value());
-        return it != s_Assets.end() ? it->second : nullptr;
+        auto it = m_assets.find(handle.Value());
+        return it != m_assets.end() ? it->second : nullptr;
     }
 
     //--------------------------------------------------------------
     //! @brief アセットハンドルが存在するか確認する関数
     //--------------------------------------------------------------
     bool AssetManager::Exists(AssetHandle handle) {
-        return s_Assets.contains(handle.Value());
+        return m_assets.contains(handle.Value());
     }
 
     //--------------------------------------------------------------
@@ -164,11 +168,11 @@ namespace Tsukino::Asset {
             return;
         }
 
-        if(s_Importers.contains(type)) {
+        if(m_importers.contains(type)) {
             Tsukino::Core::Log::Warn(std::format("AssetManager::RegisterImporter - Importer for AssetType {} is already registered. Overwriting.", (int)type));
         }
 
-        s_Importers[type] = importer;
+        m_importers[type] = importer;
         Tsukino::Core::Log::Info(std::format("Registered importer for AssetType {}", (int)type));
     }
 
@@ -176,14 +180,14 @@ namespace Tsukino::Asset {
     //! @brief アセットを登録する関数
     //--------------------------------------------------------------
     void AssetManager::RegisterAsset(AssetHandle handle, Tsukino::Core::Ref<IAsset> asset) {
-        s_Assets.insert({handle.Value(), asset});
+        m_assets.insert({handle.Value(), asset});
     }
 
     //--------------------------------------------------------------
     //! @brief ローダーを登録する関数
     //--------------------------------------------------------------
     void AssetManager::RegisterLoader(Tsukino::Core::Ref<IAssetLoader> loader) {
-        s_Loaders.push_back(loader);
+        m_loaders.push_back(loader);
     }
 
     //--------------------------------------------------------------
@@ -210,6 +214,7 @@ namespace Tsukino::Asset {
             {".wav",     AssetType::Audio  },
 
             {".font",    AssetType::Font   },
+            {".dfont",   AssetType::DynamicFont},
 
             {".cubemap", AssetType::Cubemap},
             {".tcc",     AssetType::Cubemap},

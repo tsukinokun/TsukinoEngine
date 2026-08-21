@@ -21,14 +21,19 @@ namespace Tsukino::Renderer {
         hlslpp::float4              lightDir;         //!< ライトの方向
         hlslpp::float4              lightColor;       //!< ライト色と強度 xyz: 色(linear), w: 強度
         hlslpp::float4              cameraPos;        //!< カメラのワールド座標 xyz: 座標, w: 未使用
+        Tsukino::Core::Math::matrix prevViewProj;     //!< 前フレームのViewProjection行列（速度バッファ生成用）
     };
 
     //--------------------------------------------------------------
     //! @struct CBufferTransform
     //! @brief  スロット1 (b1) 用：オブジェクトごとの固有データ
+    //! @note   b1を「world 1本だけ」で宣言している既存シェーダー（ShadowMap系・Sprite）は
+    //!         先頭64バイトしか読まないため、末尾に追加する分には無変更で動く。
     //--------------------------------------------------------------
     struct CBufferTransform {
         Tsukino::Core::Math::matrix world;
+        Tsukino::Core::Math::matrix prevWorld;      //!< 前フレームのワールド行列（速度バッファ生成用）
+        hlslpp::float4              motionFlags;    //!< x: 1=前フレーム有効 / 0=速度ゼロ, yzw: 予約
     };
 
     //--------------------------------------------------------------
@@ -41,7 +46,8 @@ namespace Tsukino::Renderer {
         float          metallic;
         float          roughness;
         float          specular;
-        hlslpp::float4 padding;
+        hlslpp::float4 rimColor;     //!< xyz: ふちの色, w: ふちの強さ（旧paddingを転用。ハイライト演出用）
+        hlslpp::float4 rimParams;    //!< x: ふちの鋭さ(pow指数), y: 全体の白発光量, zw: 予約
     };
 
     //--------------------------------------------------------------
@@ -51,6 +57,35 @@ namespace Tsukino::Renderer {
     struct CBufferSkinning {
         hlslpp::float4x4 bones[128];    // hlslpp::float4x4 の配列（最大128本分）
     };
+
+    //--------------------------------------------------------------
+    //! @struct CBufferSkinningPrev
+    //! @brief  スロット7 (b7) 用：前フレームのボーン行列（速度バッファ生成用）
+    //! @note   CBufferSkinning と同じレイアウト。モーションブラーが無効なときは
+    //!         転送もバインドも行わない（スキン1体あたり8KBの転送を節約する）。
+    //--------------------------------------------------------------
+    struct CBufferSkinningPrev {
+        hlslpp::float4x4 bones[128];
+    };
+
+    //--------------------------------------------------------------
+    //! @struct CBufferMotionBlur
+    //! @brief  スロット8 (b8) 用：モーションブラーパラメータ
+    //! @note   速度バッファには「1フレームあたりの生のUV移動量」だけが入っている。
+    //!         強度・シャッター補正はすべてここで掛ける（G-Bufferをタイミング
+    //!         パラメータから独立させるため）。
+    //--------------------------------------------------------------
+    struct CBufferMotionBlur {
+        float strength      = 1.0f;     //!< 速度ベクトルの倍率（攻撃時にアプリ側が上げる）
+        float maxBlurRadius = 0.03f;    //!< UV単位のブラー長クランプ
+        float shutterScale  = 1.0f;     //!< 可変フレームレート補正 (targetFps * deltaTime)
+        int   sampleCount   = 8;        //!< サンプル数（1〜kMotionBlurMaxSamples）
+    };
+
+    //--------------------------------------------------------------
+    //! @brief モーションブラーのサンプル数上限（MotionBlur.ps.hlsl と一致させること）
+    //--------------------------------------------------------------
+    static constexpr int kMotionBlurMaxSamples = 16;
 
     //--------------------------------------------------------------
     //! @struct CBufferSky
@@ -78,6 +113,33 @@ namespace Tsukino::Renderer {
         //----------------------------------------------------------
         hlslpp::float4 groundColor;     //!< xyz: 地面カラー, w: 未使用
         hlslpp::float4 sunDirection;    //!< xyz: 太陽方向（正規化済み）, w: 未使用
+    };
+
+    //--------------------------------------------------------------
+    //! @struct GPULight
+    //! @brief  点光源・スポットライト1灯分のGPU転送用データ (64B)
+    //! @note   Lighting.hlsli の GPULight と1バイト単位で一致させること
+    //--------------------------------------------------------------
+    struct GPULight {
+        hlslpp::float4 positionRange;     //!< xyz: ワールド座標, w: 影響半径
+        hlslpp::float4 colorIntensity;    //!< xyz: 色(linear), w: 強度
+        hlslpp::float4 directionType;     //!< xyz: 方向（スポットのみ有効）, w: 0=Point, 1=Spot
+        hlslpp::float4 spotParams;        //!< x: cos(内側角), y: cos(外側角), zw: 予約
+    };
+
+    //--------------------------------------------------------------
+    //! @brief 同時に扱える点光源・スポットライトの上限数
+    //--------------------------------------------------------------
+    static constexpr unsigned int MAX_LIGHTS = 64;
+
+    //--------------------------------------------------------------
+    //! @struct CBufferLights
+    //! @brief  スロット6 (b6) 用：点光源・スポットライト配列（ディファードLightingパス用）
+    //--------------------------------------------------------------
+    struct CBufferLights {
+        unsigned int lightCount = 0;
+        unsigned int pad[3]{};
+        GPULight     lights[MAX_LIGHTS]{};
     };
 
     //--------------------------------------------------------------

@@ -1,6 +1,6 @@
 ﻿//--------------------------------------------------------------
-//! @file   DirectionalLightSystem.hpp
-//! @brief  ディレクショナルライトシステムの宣言
+//! @file   LightSystem.hpp
+//! @brief  ライトシステムの宣言
 //! @author 山﨑愛
 //--------------------------------------------------------------
 #pragma once
@@ -8,11 +8,12 @@
 // 名前空間 : Tsukino::BuiltIn::ECS
 namespace Tsukino::BuiltIn::ECS {
     //--------------------------------------------------------------
-    //! @class  DirectionalLightSystem
-    //! @brief  ディレクショナルライトコンポーネントを読んで
-    //!         Rendererにライト情報とシャドウパイプラインを渡すシステム
+    //! @class  LightSystem
+    //! @brief  DirectionalLight/PointLight/SpotLightコンポーネントを読んで
+    //!         Rendererにライト情報（ディレクショナルは影付き1灯、
+    //!         点光源・スポットライトはディファードLightingパス用の配列）を渡すシステム
     //--------------------------------------------------------------
-    class DirectionalLightSystem : public Tsukino::ECS::ISystem {
+    class LightSystem : public Tsukino::ECS::ISystem {
     public:
         //--------------------------------------------------------------
         //! @brief システムの更新
@@ -21,4 +22,11 @@ namespace Tsukino::BuiltIn::ECS {
         //--------------------------------------------------------------
         void Update(Tsukino::ECS::Registry& registry, float deltaTime) override;
     };
+
+    //--------------------------------------------------------------
+    //! @brief 旧名（DirectionalLightSystem）のエイリアス
+    //! @note  既存シーンの AddSystem<DirectionalLightSystem>() 呼び出しを
+    //!        無修正で通すために残してある。実体はLightSystem。
+    //--------------------------------------------------------------
+    using DirectionalLightSystem = LightSystem;
 }    // namespace Tsukino::BuiltIn::ECS

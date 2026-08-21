@@ -3,6 +3,7 @@
 //! @brief  TransformComponentのcerealシリアライズ定義
 //! @author 山﨑愛
 //--------------------------------------------------------------
+#pragma once
 #include <Tsukino/BuiltIn/ECS/Component/TransformComponent.hpp>
 
 #include <Tsukino/Core/Math/Serialization/HlslppSerialization.hpp>

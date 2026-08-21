@@ -23,7 +23,7 @@
 #include <Tsukino/EngineIntegration/ECS/System/PhysicsSystem.hpp>
 #include <Tsukino/EngineIntegration/ECS/System/ModelSystem.hpp>
 #include <Tsukino/EngineIntegration/ECS/System/AnimationSystem.hpp>
-#include <Tsukino/EngineIntegration/ECS/System/DirectionalLightSystem.hpp>
+#include <Tsukino/EngineIntegration/ECS/System/LightSystem.hpp>
 #include <Tsukino/EngineIntegration/ECS/System/SkyAtmosphereSystem.hpp>
 #include <Tsukino/EngineIntegration/ECS/System/DebugCameraSystem.hpp>
 #include <Tsukino/EngineIntegration/ECS/System/EffectSystem.hpp>
@@ -119,7 +119,7 @@ namespace Tsukino::Sandbox {
         // コリジョンの更新は最後に行う (優先度 12)
         m_scene.AddSystem(std::make_shared<Tsukino::BuiltIn::ECS::PhysicsSystem>(eventBus), 12);
         // ライトの更新 (優先度 13)
-        m_scene.AddSystem(std::make_shared<Tsukino::BuiltIn::ECS::DirectionalLightSystem>(), 13);
+        m_scene.AddSystem(std::make_shared<Tsukino::BuiltIn::ECS::LightSystem>(), 13);
         // スカイアトモスフィアの更新 (優先度 14)
         m_scene.AddSystem(std::make_shared<Tsukino::BuiltIn::ECS::SkyAtmosphereSystem>(), 14);
 
@@ -181,7 +181,7 @@ namespace Tsukino::Sandbox {
 
         // FontRendererComponent の追加
         Tsukino::BuiltIn::ECS::FontComponent& font = registry.AddComponent<Tsukino::BuiltIn::ECS::FontComponent>(fontEntity);
-        font.text                                  = L"Hello, Tsukino!";    // 描画するテキスト
+        font.text                                  = L"こんにちは, Tsukino!";    // 描画するテキスト
 
         //--------------------------------------------------------------
         // Modelエンティティ生成
@@ -205,6 +205,7 @@ namespace Tsukino::Sandbox {
         Tsukino::BuiltIn::ECS::CollisionComponent& collision = registry.AddComponent<Tsukino::BuiltIn::ECS::CollisionComponent>(modelEntity);
         collision.extent                                     = {150.0f, 150.0f, 150.0f};    // 大きめの当たり判定
         collision.type                                       = Tsukino::BuiltIn::ECS::ColliderType::Sphere;
+        collision.isSensor                                   = true;    // Kinematicで見た目上動くだけなので、物理的な押し返しは不要
 
         // RBをつける
         Tsukino::BuiltIn::ECS::RigidbodyComponent& rb = registry.AddComponent<Tsukino::BuiltIn::ECS::RigidbodyComponent>(modelEntity);

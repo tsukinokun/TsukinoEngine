@@ -41,7 +41,7 @@
 #include <Tsukino/EngineIntegration/ECS/System/PhysicsSystem.hpp>
 #include <Tsukino/EngineIntegration/ECS/System/ModelSystem.hpp>
 #include <Tsukino/EngineIntegration/ECS/System/AnimationSystem.hpp>
-#include <Tsukino/EngineIntegration/ECS/System/DirectionalLightSystem.hpp>
+#include <Tsukino/EngineIntegration/ECS/System/LightSystem.hpp>
 #include <Tsukino/EngineIntegration/ECS/System/DebugCameraSystem.hpp>
 #include <Tsukino/EngineIntegration/ECS/System/EffectSystem.hpp>
 
@@ -85,7 +85,7 @@ namespace Tsukino::Sandbox {
             Platform,
             Animation,
             Physics,
-            DirectionalLightSystem,
+            Light,
             Camera,
             ScoreUI,
             Font,
@@ -101,7 +101,7 @@ namespace Tsukino::Sandbox {
         m_scene.AddSystem(std::make_shared<JumpGameSample::ECS::PlatformSystem>(), (int)SystemPriority::Platform);
         m_scene.AddSystem(std::make_shared<Tsukino::BuiltIn::ECS::AnimationSystem>(), (int)SystemPriority::Animation);
         m_scene.AddSystem(std::make_shared<Tsukino::BuiltIn::ECS::PhysicsSystem>(eventBus), (int)SystemPriority::Physics);
-        m_scene.AddSystem(std::make_shared<Tsukino::BuiltIn::ECS::DirectionalLightSystem>(), (int)SystemPriority::DirectionalLightSystem);
+        m_scene.AddSystem(std::make_shared<Tsukino::BuiltIn::ECS::LightSystem>(), (int)SystemPriority::Light);
         m_scene.AddSystem(std::make_shared<Tsukino::BuiltIn::ECS::CameraSystem>(), (int)SystemPriority::Camera);
         m_scene.AddSystem(std::make_shared<JumpGameSample::ECS::ScoreUISystem>(), (int)SystemPriority::ScoreUI);
         m_scene.AddSystem(std::make_shared<Tsukino::BuiltIn::ECS::FontRendererSystem>(), (int)SystemPriority::Font);

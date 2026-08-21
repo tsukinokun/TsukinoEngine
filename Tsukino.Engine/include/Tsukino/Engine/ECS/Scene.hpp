@@ -76,8 +76,24 @@ namespace Tsukino::ECS {
         EventBus& GetEventBus() { return m_eventBus; }
 
     private:
+        //-------------------------------------------------------------
+        //! @note 【この宣言順は破棄順序の設計であり、並べ替えてはならない】
+        //!
+        //! メンバは宣言の逆順に破棄されるため、上に書いたものほど長生きする。
+        //!
+        //!   破棄順: m_systemManager → m_registry → m_eventBus
+        //!
+        //! - System は ScopedConnection をメンバに持ち、破棄時に EventBus へ
+        //!   Unsubscribe を投げる。よって EventBus は System より長生きが必須。
+        //! - System のデストラクタは Registry 上のリソース（物理ボディ等）を
+        //!   参照しうるため、Registry も System より長生きが必須。
+        //!
+        //! 以前は m_eventBus が最後に宣言されており、System より先に破棄されて
+        //! いたため、シーン切替とアプリ終了のたびに破棄済み EventBus への
+        //! アクセス（use-after-free）が発生していた。
+        //-------------------------------------------------------------
+        EventBus      m_eventBus;         //!< イベントの管理（最も長生きさせる）
         Registry      m_registry;         //!< エンティティとコンポーネントの管理
-        SystemManager m_systemManager;    //!< システムの管理
-        EventBus      m_eventBus;         //!< イベントの管理
+        SystemManager m_systemManager;    //!< システムの管理（最初に破棄する）
     };
 }    // namespace Tsukino::ECS

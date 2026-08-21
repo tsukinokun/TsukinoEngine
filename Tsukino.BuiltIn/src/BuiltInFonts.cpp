@@ -17,6 +17,7 @@ namespace Tsukino::BuiltIn {
     void BuiltInFonts::Initialize(Tsukino::Asset::AssetManager* assetManager) {
         // エンジン自身が所有するアセットのため、取り込み側リポジトリの
         // GetAssetRootPath()ではなくGetEngineAssetRootPath()から解決する
-        defaultFont = assetManager->Load(Tsukino::IO::FileSystem::GetEngineAssetRootPath() / "Tsukino.BuiltIn/Assets/Fonts/Arial.font");
+        // 日本語+英数字の両方に対応するため、動的フォント(.dfont)をデフォルトとする
+        defaultFont = assetManager->Load(Tsukino::IO::FileSystem::GetEngineAssetRootPath() / "Tsukino.BuiltIn/Assets/Fonts/Default.dfont");
     }
 }    // namespace Tsukino::BuiltIn

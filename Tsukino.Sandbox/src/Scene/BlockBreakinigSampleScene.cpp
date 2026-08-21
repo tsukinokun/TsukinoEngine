@@ -128,6 +128,7 @@ namespace Tsukino::Sandbox {
             Tsukino::BuiltIn::ECS::CollisionComponent& collision = registry.AddComponent<Tsukino::BuiltIn::ECS::CollisionComponent>(paddleEntity);
             collision.extent                                     = {80.0f, 20.0f, 20.0f};    // パドルの当たり判定
             collision.type                                       = Tsukino::BuiltIn::ECS::ColliderType::Box;
+            collision.isSensor                                   = true;    // 反射計算はonCollisionEnterで手動処理するため、物理的な押し返しは不要
             // RBをつける
             Tsukino::BuiltIn::ECS::RigidbodyComponent& rb = registry.AddComponent<Tsukino::BuiltIn::ECS::RigidbodyComponent>(paddleEntity);
             rb.type                                       = Tsukino::BuiltIn::ECS::RigidbodyType::Kinematic;
@@ -156,6 +157,7 @@ namespace Tsukino::Sandbox {
             Tsukino::BuiltIn::ECS::CollisionComponent& collision = registry.AddComponent<Tsukino::BuiltIn::ECS::CollisionComponent>(ballEntity);
             collision.extent                                     = {20.0f, 20.0f, 20.0f};    // ボールの当たり判定
             collision.type                                       = Tsukino::BuiltIn::ECS::ColliderType::Sphere;
+            collision.isSensor                                   = true;    // 反射計算はonCollisionEnterで手動処理するため、物理的な押し返しは不要
 
             Tsukino::BuiltIn::ECS::CollisionComponent& ballCol = registry.GetComponent<Tsukino::BuiltIn::ECS::CollisionComponent>(ballEntity);
             // コールバックを設定
@@ -279,6 +281,7 @@ namespace Tsukino::Sandbox {
                 collision.type  = Tsukino::BuiltIn::ECS::ColliderType::Box;
                 // スケールに合わせた当たり判定サイズ（extent）を設定
                 collision.extent = config.scale * collisionExtent;
+                collision.isSensor = true;    // 反射計算はボール側のonCollisionEnterで手動処理するため、物理的な押し返しは不要
 
                 // --- RigidbodyComponent ---
                 auto& rb = registry.AddComponent<Tsukino::BuiltIn::ECS::RigidbodyComponent>(wallEntity);
@@ -333,6 +336,7 @@ namespace Tsukino::Sandbox {
                     col.type  = Tsukino::BuiltIn::ECS::ColliderType::Box;
                     //
                     col.extent = hlslpp::float3(20.0f, 10.0f, 10.0f);
+                    col.isSensor = true;    // 反射計算はボール側のonCollisionEnterで手動処理するため、物理的な押し返しは不要
 
                     // --- Rigidbody ---
                     auto& rb = registry.AddComponent<Tsukino::BuiltIn::ECS::RigidbodyComponent>(brickEntity);
@@ -399,7 +403,8 @@ namespace Tsukino::Sandbox {
                 });
 
                 const auto& ballView = registry.View<BlockBreakingSample::ECS::BallComponent>();
-                ballView.each([&](entt::entity entity, BlockBreakingSample::ECS::BallComponent& ball) { registry.DestroyEntity(entity); });
+                // view の反復中なので破棄は予約のみ（Scene::Update が更新後にまとめて処理する）
+                    ballView.each([&](entt::entity entity, BlockBreakingSample::ECS::BallComponent& ball) { registry.QueueDestroy(entity); });
             }
             // クリア条件の例: ブロックが全て壊れたらクリア
             {
@@ -410,7 +415,8 @@ namespace Tsukino::Sandbox {
                     fontView.each([&](entt::entity entity, Tsukino::BuiltIn::ECS::FontComponent& font) {
                         font.text            = L"Clear";    // 描画するテキスト
                         const auto& ballView = registry.View<BlockBreakingSample::ECS::BallComponent>();
-                        ballView.each([&](entt::entity entity, BlockBreakingSample::ECS::BallComponent& ball) { registry.DestroyEntity(entity); });
+                        // view の反復中なので破棄は予約のみ（Scene::Update が更新後にまとめて処理する）
+                    ballView.each([&](entt::entity entity, BlockBreakingSample::ECS::BallComponent& ball) { registry.QueueDestroy(entity); });
                     });
                 }
             }

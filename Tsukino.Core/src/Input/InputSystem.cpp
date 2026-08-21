@@ -41,7 +41,12 @@ namespace Tsukino::Input {
     //! @brief ボタンが押されているか（押しっぱなし）
     //--------------------------------------------------------------
     bool InputSystem::IsKeyDown(KeyCode code) const {
-        return m_currentKeys[static_cast<size_t>(code)];
+        size_t index = static_cast<size_t>(code);
+        // 配列外のキーコードは「押されていない」として扱う（範囲外参照を防ぐ）
+        if(index >= m_currentKeys.size())
+            return false;
+
+        return m_currentKeys[index];
     }
 
     //--------------------------------------------------------------
@@ -49,6 +54,9 @@ namespace Tsukino::Input {
     //--------------------------------------------------------------
     bool InputSystem::IsKeyPressed(KeyCode code) const {
         size_t index = static_cast<size_t>(code);
+        if(index >= m_currentKeys.size())
+            return false;
+
         // 前フレームで押されておらず、かつ今フレームで押されている場合のみ true
         return !m_previousKeys[index] && m_currentKeys[index];
     }
@@ -58,6 +66,9 @@ namespace Tsukino::Input {
     //--------------------------------------------------------------
     bool InputSystem::IsKeyReleased(KeyCode code) const {
         size_t index = static_cast<size_t>(code);
+        if(index >= m_currentKeys.size())
+            return false;
+
         // 前フレームで押されており、かつ今フレームで離されている場合のみ true
         return m_previousKeys[index] && !m_currentKeys[index];
     }
@@ -118,6 +129,19 @@ namespace Tsukino::Input {
     //--------------------------------------------------------------
     void InputSystem::AddWheelDelta(float delta) {
         m_wheelDelta += delta;
+    }
+
+    //--------------------------------------------------------------
+    //! @brief 全てのキー・ボタンの押下状態をクリアする
+    //--------------------------------------------------------------
+    void InputSystem::ClearAllKeys() {
+        // 前フレーム分もクリアしておく。
+        // 現フレームだけクリアすると、フォーカスが戻った直後の1フレームで
+        // IsKeyReleased() が「押していないキーを離した」と誤検知する。
+        m_currentKeys.fill(false);
+        m_previousKeys.fill(false);
+
+        m_wheelDelta = 0.0f;
     }
 
 }    // namespace Tsukino::Input

@@ -140,10 +140,24 @@ namespace Tsukino::BuiltIn::ECS {
 
     private:
         //-------------------------------------------------------------
-        //! @brief  エンティティ破棄時のコールバック
+        //! @brief  エンティティ破棄時のコールバック（イベントバス経由）
         //! @param  event [in] エンティティ破棄イベント
+        //! @note   Scene::DestroyEntity() を通した場合のみ発火する。
+        //!         Registry::DestroyEntity() を直接呼ぶ経路では呼ばれないため、
+        //!         確実な回収は OnEffectComponentDestroyed() が担う。
         //-------------------------------------------------------------
         void OnEffectEntityDestroyed(const Tsukino::ECS::EngineEvent::EntityDestroyedEvent& event);
+
+        //-------------------------------------------------------------
+        //! @brief  EffectComponent 破棄時に Effekseer のハンドルを停止する
+        //! @param  registry [in] レジストリ（EnTT が渡す）
+        //! @param  entity   [in] 破棄されるエンティティ
+        //! @details
+        //! Effekseer の再生ハンドルは ECS の外に実体があるため、
+        //! 破棄経路によらず必ず発火する EnTT の破棄シグナルで回収する。
+        //! これを怠るとエンティティを破棄するたびにハンドルが漏れ続ける。
+        //-------------------------------------------------------------
+        void OnEffectComponentDestroyed(entt::registry& registry, entt::entity entity);
 
         // 読み込み済みエフェクト管理
         std::unordered_map<Tsukino::Asset::AssetHandle, Effekseer::EffectRef> m_loadedEffects;

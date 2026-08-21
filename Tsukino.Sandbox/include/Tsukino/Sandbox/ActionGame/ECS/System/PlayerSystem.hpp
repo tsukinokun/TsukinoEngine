@@ -1,18 +1,18 @@
-﻿//-------------------------------------------------------------
-//! @file   PaddleSystem.hpp
-//! @brief  PaddleSystemクラスの宣言
+//-------------------------------------------------------------
+//! @file   PlayerSystem.hpp
+//! @brief  PlayerSystemクラスの宣言
 //! @author 山﨑愛
 //-------------------------------------------------------------
 #pragma once
 #include <Tsukino/Core/ECS/System/ISystem.hpp>
-#include <Tsukino/Core/Math/Matrix.hpp>
-// 名前空間 : BlockBreakingSample::ECS
-namespace BlockBreakingSample::ECS {
+// 名前空間 : ActionGame::ECS
+namespace ActionGame::ECS {
     //-------------------------------------------------------------
-    //! @class  PaddleSystem
-    //! @brief  CameraComponentを持つエンティティのビュー行列と
+    //! @class  PlayerSystem
+    //! @brief  プレイヤーの入力を読み取り、CharacterControllerComponentへ
+    //!         移動・ジャンプ要求を書き込むシステム
     //-------------------------------------------------------------
-    class PaddleSystem : public Tsukino::ECS::ISystem {
+    class PlayerSystem : public Tsukino::ECS::ISystem {
     public:
         //-------------------------------------------------------------
         //! @brief 更新処理
@@ -21,4 +21,4 @@ namespace BlockBreakingSample::ECS {
         //-------------------------------------------------------------
         void Update(Tsukino::ECS::Registry& registry, float deltaTime) override;
     };
-}    // namespace BlockBreakingSample::ECS
+}    // namespace ActionGame::ECS

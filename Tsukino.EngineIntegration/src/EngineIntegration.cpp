@@ -13,7 +13,10 @@
 
 #include <Tsukino/BuiltIn/ECS/Component/EffectComponent.hpp>
 #include <Tsukino/BuiltIn/ECS/Component/DirectionalLightComponent.hpp>
+#include <Tsukino/BuiltIn/ECS/Component/PointLightComponent.hpp>
+#include <Tsukino/BuiltIn/ECS/Component/SpotLightComponent.hpp>
 #include <Tsukino/BuiltIn/ECS/Component/SkyAtmosphereComponent.hpp>
+#include <Tsukino/BuiltIn/ECS/Component/MotionBlurComponent.hpp>
 #include <Tsukino/BuiltIn/ECS/Component/DebugCameraComponent.hpp>
 #include <Tsukino/BuiltIn/ECS/Component/DebugCameraTag.hpp>
 #include <Tsukino/BuiltIn/ECS/Component/FontComponent.hpp>
@@ -26,7 +29,10 @@
 #include <Tsukino/BuiltIn/ECS/Serialization/RigidbodyComponentSerialization.hpp>
 #include <Tsukino/BuiltIn/ECS/Serialization/EffectComponentSerialization.hpp>
 #include <Tsukino/BuiltIn/ECS/Serialization/DirectionalLightComponentSerialization.hpp>
+#include <Tsukino/BuiltIn/ECS/Serialization/PointLightComponentSerialization.hpp>
+#include <Tsukino/BuiltIn/ECS/Serialization/SpotLightComponentSerialization.hpp>
 #include <Tsukino/BuiltIn/ECS/Serialization/SkyAtmosphereComponentSerialization.hpp>
+#include <Tsukino/BuiltIn/ECS/Serialization/MotionBlurComponentSerialization.hpp>
 #include <Tsukino/BuiltIn/ECS/Serialization/DebugCameraComponentSerialization.hpp>
 #include <Tsukino/BuiltIn/ECS/Serialization/ModelComponentSerialization.hpp>
 #include <Tsukino/BuiltIn/ECS/Serialization/CollisionComponentSerialization.hpp>
@@ -73,6 +79,19 @@ namespace Tsukino::EngineIntegration {
     }
 
     //------------------------------------------------------------
+    //! @brief デストラクタ
+    //! @note  メンバの破棄はこの本体が走る前に行われるため、
+    //!        CoUninitialize() は全てのCOM利用者（Renderer, AudioManager等）が
+    //!        解放された後に呼ばれることが保証される。
+    //------------------------------------------------------------
+    EngineIntegration::~EngineIntegration() {
+        if(m_comInitialized) {
+            CoUninitialize();
+            m_comInitialized = false;
+        }
+    }
+
+    //------------------------------------------------------------
     //! @brief  エンジンの初期化関数
     //------------------------------------------------------------
     bool EngineIntegration::Initialize(int width, int height, const std::string& title, Tsukino::Core::Window::WindowStyle style) {
@@ -85,6 +104,8 @@ namespace Tsukino::EngineIntegration {
             Tsukino::Core::Log::Error("Failed to initialize COM library.");
             return false;
         }
+        // 成功した場合のみ、デストラクタで対になる CoUninitialize を呼ぶ
+        m_comInitialized = true;
 
         //--------------------------------------------------------------
         // BuiltInのCopmonentをPrefabFactoryに登録
@@ -171,6 +192,24 @@ namespace Tsukino::EngineIntegration {
             }
         });
 
+        //--------------------------------------------------------------
+        // フォーカス喪失時に入力状態をクリアする
+        // （キーを押したまま Alt+Tab したときの押しっぱなし対策）
+        //--------------------------------------------------------------
+        m_window->SetFocusLostCallback([this]() { m_inputSystem->ClearAllKeys(); });
+
+        //--------------------------------------------------------------
+        // ウィンドウのリサイズをスワップチェインへ伝える
+        //
+        // Renderer より先に登録しても、実際に呼ばれるのは
+        // メッセージループが回り始めてからなので問題ない。
+        //--------------------------------------------------------------
+        m_window->SetResizeCallback([this](int newWidth, int newHeight) {
+            if(m_renderer) {
+                m_renderer->Resize(static_cast<uint32_t>(newWidth), static_cast<uint32_t>(newHeight));
+            }
+        });
+
         auto debugVsAsset   = std::static_pointer_cast<Tsukino::Asset::ShaderAsset>(m_assetManager->Get(m_builtinAssets->shaders.debugVS));
         auto debugPsAsset   = std::static_pointer_cast<Tsukino::Asset::ShaderAsset>(m_assetManager->Get(m_builtinAssets->shaders.debugPS));
         auto tonemapVSAsset = std::static_pointer_cast<Tsukino::Asset::ShaderAsset>(m_assetManager->Get(m_builtinAssets->shaders.tonemapVS));
@@ -178,20 +217,24 @@ namespace Tsukino::EngineIntegration {
         auto shadowStaticVSAsset = std::static_pointer_cast<Tsukino::Asset::ShaderAsset>(m_assetManager->Get(m_builtinAssets->shaders.shadowStaticVS));
         auto shadowSkeletalVSAsset = std::static_pointer_cast<Tsukino::Asset::ShaderAsset>(m_assetManager->Get(m_builtinAssets->shaders.shadowVS));
         auto shadowPSAsset         = std::static_pointer_cast<Tsukino::Asset::ShaderAsset>(m_assetManager->Get(m_builtinAssets->shaders.shadowPS));
+        auto lightingPSAsset       = std::static_pointer_cast<Tsukino::Asset::ShaderAsset>(m_assetManager->Get(m_builtinAssets->shaders.lightingPS));
+        auto motionBlurPSAsset     = std::static_pointer_cast<Tsukino::Asset::ShaderAsset>(m_assetManager->Get(m_builtinAssets->shaders.motionBlurPS));
 
         //--------------------------------------------------------------
         // レンダラー生成
         //--------------------------------------------------------------
-        if(!m_renderer->Initialize(m_window->GetHWND(),
-                                   m_window->GetWidth(),
-                                   m_window->GetHeight(),
-                                   debugVsAsset.get(),
-                                   debugPsAsset.get(),
-                                   tonemapVSAsset.get(),
-                                   tonemapPSAsset.get(),
-                                   shadowStaticVSAsset.get(),
-                                   shadowSkeletalVSAsset.get(),
-                                   shadowPSAsset.get())) {
+        Tsukino::Renderer::RendererShaderSet shaderSet{};
+        shaderSet.debugVS          = debugVsAsset.get();
+        shaderSet.debugPS          = debugPsAsset.get();
+        shaderSet.tonemapVS        = tonemapVSAsset.get();
+        shaderSet.tonemapPS        = tonemapPSAsset.get();
+        shaderSet.shadowStaticVS   = shadowStaticVSAsset.get();
+        shaderSet.shadowSkeletalVS = shadowSkeletalVSAsset.get();
+        shaderSet.shadowPS         = shadowPSAsset.get();
+        shaderSet.lightingPS       = lightingPSAsset.get();
+        shaderSet.motionBlurPS     = motionBlurPSAsset.get();
+
+        if(!m_renderer->Initialize(m_window->GetHWND(), m_window->GetWidth(), m_window->GetHeight(), shaderSet)) {
             return false;
         }
 
@@ -208,7 +251,10 @@ namespace Tsukino::EngineIntegration {
         m_prefabFactory->RegisterComponent<Tsukino::BuiltIn::ECS::RigidbodyComponent>("RigidbodyComponent");
         m_prefabFactory->RegisterComponent<Tsukino::BuiltIn::ECS::EffectComponent>("EffectComponent");
         m_prefabFactory->RegisterComponent<Tsukino::BuiltIn::ECS::DirectionalLightComponent>("DirectionalLightComponent");
+        m_prefabFactory->RegisterComponent<Tsukino::BuiltIn::ECS::PointLightComponent>("PointLightComponent");
+        m_prefabFactory->RegisterComponent<Tsukino::BuiltIn::ECS::SpotLightComponent>("SpotLightComponent");
         m_prefabFactory->RegisterComponent<Tsukino::BuiltIn::ECS::SkyAtmosphereComponent>("SkyAtmosphereComponent");
+        m_prefabFactory->RegisterComponent<Tsukino::BuiltIn::ECS::MotionBlurComponent>("MotionBlurComponent");
         m_prefabFactory->RegisterComponent<Tsukino::BuiltIn::ECS::DebugCameraComponent>("DebugCameraComponent");
         // タグのみのコンポーネントはシリアライズ対応不要（アタッチのみでよい）
         m_prefabFactory->RegisterComponent<Tsukino::BuiltIn::ECS::DebugCameraTag>("DebugCameraTag");

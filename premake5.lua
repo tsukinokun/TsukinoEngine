@@ -31,6 +31,10 @@ workspace "TsukinoEngine"                   -- ソリューション名
     filter "configurations:Release"
         optimize "Full"
         symbols "On"
+        -- NDEBUG は premake が自動では付けないため明示的に定義する。
+        -- これが無いと assert() が Release でも生き続け、EnTT の ENTT_ASSERT が
+        -- 全コンポーネントアクセスに乗ったまま製品ビルドが作られてしまう。
+        defines { "NDEBUG" }
 
     filter {}
 
@@ -555,11 +559,12 @@ project "Tsukino.BuiltIn"
         "Tsukino.BuiltIn/src/**.cpp",
         "Tsukino.BuiltIn/include/**.hpp",
         "Tsukino.BuiltIn/Assets/**.hlsl",
+        "Tsukino.BuiltIn/Assets/**.hlsli",
         "Tsukino.BuiltIn/pch.cpp"
     }
 
-    -- .hlslはビルド対象から除外
-    filter  "files:**.hlsl" 
+    -- .hlsl/.hlsliはビルド対象から除外（.hlsliはインクルード専用でコンパイル自体行われない）
+    filter  "files:**.hlsl or files:**.hlsli"
         buildaction "None"
     filter {}
 
@@ -650,9 +655,10 @@ project "Tsukino.EngineIntegration"
         "EffekseerRendererDX11",
         "EffekseerRendererCommon",
         "Effekseer",
-        "d3d11", 
+        "d3d11",
         "dxgi",
-        "d3dcompiler"
+        "d3dcompiler",
+        "dwrite"
     }
 
     nuget { "directxtk_desktop_win10:2026.4.1.1" }
@@ -751,9 +757,10 @@ project "Tsukino.Sandbox"
         "EffekseerRendererDX11",
         "EffekseerRendererCommon",
         "Effekseer",
-        "d3d11", 
+        "d3d11",
         "dxgi",
         "d3dcompiler",
+        "dwrite",
     }
 
     nuget { "directxtk_desktop_win10:2026.4.1.1",

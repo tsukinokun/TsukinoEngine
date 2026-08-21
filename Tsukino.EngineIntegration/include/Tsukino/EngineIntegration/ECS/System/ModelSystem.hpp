@@ -14,8 +14,13 @@
 #include <Tsukino/Renderer/DX11/Material.hpp>
 #include <Tsukino/Renderer/ConstantBuffer.hpp>
 
-#include <memory>
+#include <Tsukino/Renderer/DX11/MeshBuffer.hpp>
+
+#include <cstdint>
 #include <deque>
+#include <memory>
+#include <unordered_map>
+#include <vector>
 
 // 名前空間 : Tsukino::BuiltIn::ECS
 namespace Tsukino::BuiltIn::ECS {
@@ -34,9 +39,21 @@ namespace Tsukino::BuiltIn::ECS {
 
     private:
         // マテリアル実体のバッファ
+        // deque なのは、DrawCommand が要素へのポインタを保持したまま
+        // 追加が続くため、参照が無効化されない必要があるから
         std::deque<Tsukino::Renderer::Material> m_materialBuffer;
 
-        // 定数バッファのバッファ
+        // 定数バッファのバッファ（同上の理由で deque）
         std::deque<Tsukino::Renderer::CBufferMaterial> m_cbufferMaterialBuffer;
+
+        //-------------------------------------------------------------
+        //! @brief モデルアセットごとの GPU メッシュバッファのキャッシュ
+        //! @note  以前はファイルスコープの static だったため、
+        //!        (1) D3D11 デバイスより後に解放される静的破棄順序の問題
+        //!        (2) シーンを作り直しても解放されず増え続ける問題
+        //!        の2つを抱えていた。Scene が所有する本 System のメンバに
+        //!        置くことで、Renderer より先に確実に解放される。
+        //-------------------------------------------------------------
+        std::unordered_map<std::uint64_t, std::vector<Tsukino::Renderer::MeshBuffer>> m_modelMeshCache;
     };
 }    // namespace Tsukino::BuiltIn::ECS

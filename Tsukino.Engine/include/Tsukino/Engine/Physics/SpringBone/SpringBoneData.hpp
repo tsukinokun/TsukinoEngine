@@ -34,20 +34,18 @@ namespace Tsukino::Physics {
 
         // ============================================================
         // [NOTE] コライダーの回転処理
-        // 
-        // AnimationSystem.cppで以下のように回転を適用している:
+        //
+        // SpringBonePhysics.cppで以下のように回転を適用している（これが正しい）:
         // colliderPos = pose.position + hlslpp::mul(collider.localOffset, pose.rotation);
-        // 
-        // hlslpp++のmul(A, B)は「Aを適用してからBを適用する」仕様
-        // ベクトルに対するクォータニオンの乗算は、通常 mul(quat, vec) または
-        // quat * vec の形で行うことが多い。
-        // 
-        // 現在の実装は正しいか検証が必要。UnityChanでは:
-        // colliderPos = collider.transform.position + 
-        //              collider.transform.rotation * collider.offset
-        // 
-        // したがって、hlslpp::mul(pose.rotation, collider.localOffset) の方が
-        // 正しい可能性がある。
+        //
+        // hlsl++はベクトルとクォータニオンの積に2つのオーバーロードを持ち、意味が異なる:
+        //   mul(vector, quat) : 前方回転（q v q*）。UnityChanの `rotation * offset` に相当する
+        //   mul(quat, vector) : 逆回転（_hlslpp_quat_mul_vec_inv_ps）。用途が違うので混同しないこと
+        //
+        // また、クォータニオン同士の積は行列積と合成順が逆になる:
+        //   「Aを適用してからBを適用する」合成は、行列なら mul(A, B)、
+        //   クォータニオンなら mul(B, A)（Hamilton積。後から効かせる側を左に置く）
+        //   → hlslpp本体の unit_tests_quaternion.cpp「M_AB = M_A * M_B / Q_AB = Q_B * Q_A」参照
         // ============================================================
 
         //--------------------------------------------------------------
