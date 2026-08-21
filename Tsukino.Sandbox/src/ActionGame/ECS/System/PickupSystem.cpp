@@ -10,15 +10,13 @@
 #include <Tsukino/Sandbox/ActionGame/ECS/Component/WeaponComponent.hpp>
 
 #include <Tsukino/BuiltIn/ECS/Component/TransformComponent.hpp>
-#include <Tsukino/BuiltIn/ECS/Component/CameraComponent.hpp>
 #include <Tsukino/BuiltIn/ECS/Component/FontComponent.hpp>
 #include <Tsukino/BuiltIn/ECS/Component/HighlightComponent.hpp>
+#include <Tsukino/BuiltIn/ECS/Component/WorldAnchorComponent.hpp>
 
 #include <Tsukino/EngineIntegration/EngineContext.hpp>
 
 #include <Tsukino/Core/Input/InputSystem.hpp>
-#include <Tsukino/Core/Window.hpp>
-#include <Tsukino/Core/Math/Matrix.hpp>
 
 #include <hlsl++.h>
 #include <cfloat>
@@ -49,7 +47,7 @@ namespace ActionGame::ECS {
         // コンテキストの取得
         //-------------------------------------------------------------
         Tsukino::EngineIntegration::EngineContext* ctx = registry.GetContext<Tsukino::EngineIntegration::EngineContext*>();
-        if(!ctx || !ctx->inputSystem || !ctx->window)
+        if(!ctx || !ctx->inputSystem)
             return;
 
         Tsukino::Input::InputSystem* inputSystem = ctx->inputSystem;
@@ -91,27 +89,6 @@ namespace ActionGame::ECS {
                 weapon.localOffset        = hlslpp::float3(offsetX, kFloatHeight, kFloatDepth);
             }
         }
-
-        //-------------------------------------------------------------
-        // メインカメラ（isPrimary=true）のViewProjectionを取得。
-        // UIラベルのワールド→スクリーン変換に使う
-        //-------------------------------------------------------------
-        Tsukino::Core::Math::matrix cameraViewProj;
-        bool                        hasCamera = false;
-        {
-            auto cameraView = registry.View<Tsukino::BuiltIn::ECS::CameraComponent>();
-            for(auto entity : cameraView) {
-                const auto& camera = cameraView.get<Tsukino::BuiltIn::ECS::CameraComponent>(entity);
-                if(camera.isPrimary) {
-                    cameraViewProj = camera.viewProjMatrix;
-                    hasCamera      = true;
-                    break;
-                }
-            }
-        }
-
-        float screenWidth  = static_cast<float>(ctx->window->GetWidth());
-        float screenHeight = static_cast<float>(ctx->window->GetHeight());
 
         //-------------------------------------------------------------
         // 拾える対象のうち、プレイヤーに最も近い1つだけを選ぶ
@@ -157,37 +134,26 @@ namespace ActionGame::ECS {
         });
 
         //-------------------------------------------------------------
-        // 「Fキーで拾う」UIラベルの更新（対象がいるときだけ表示する）
+        // 「Fキーで拾う」UIラベルの更新（対象がいるときだけ表示する）。
+        // 座標計算そのものはWorldAnchorSystemに任せ、ここではtarget/worldOffsetの
+        // 設定とテキストの更新だけを行う
         //-------------------------------------------------------------
-        auto promptView = registry.View<PickupPromptComponent, Tsukino::BuiltIn::ECS::TransformComponent, Tsukino::BuiltIn::ECS::FontComponent>();
-        promptView.each([&](entt::entity, PickupPromptComponent& prompt, Tsukino::BuiltIn::ECS::TransformComponent& promptTransform,
-                            Tsukino::BuiltIn::ECS::FontComponent& promptFont) {
-            if(nearest == entt::null || !hasCamera || !registry.HasComponent<PickupComponent>(nearest)) {
+        auto promptView =
+            registry.View<PickupPromptComponent, Tsukino::BuiltIn::ECS::FontComponent, Tsukino::BuiltIn::ECS::WorldAnchorComponent>();
+        promptView.each([&](entt::entity, PickupPromptComponent& prompt, Tsukino::BuiltIn::ECS::FontComponent& promptFont,
+                            Tsukino::BuiltIn::ECS::WorldAnchorComponent& promptAnchor) {
+            if(nearest == entt::null || !registry.HasComponent<PickupComponent>(nearest)) {
+                promptAnchor.target = entt::null;
                 promptFont.text.clear();    // 空文字ならFontRendererSystemが描画をスキップする
                 return;
             }
 
-            const auto& pickup          = registry.GetComponent<PickupComponent>(nearest);
-            const auto& targetTransform = registry.GetComponent<Tsukino::BuiltIn::ECS::TransformComponent>(nearest);
+            const auto& pickup = registry.GetComponent<PickupComponent>(nearest);
 
-            // 頭上のワールド座標をクリップ空間へ（hlslppは行ベクトル規約なのでmul(v, m)の順）
-            hlslpp::float3 labelWorld = targetTransform.position + hlslpp::float3(0.0f, pickup.labelHeight, 0.0f);
-            hlslpp::float4 clip       = hlslpp::mul(hlslpp::float4(labelWorld, 1.0f), cameraViewProj);
-
-            float clipW = clip.w;
-            if(clipW <= 0.0f) {    // カメラ後方は表示しない
-                promptFont.text.clear();
-                return;
-            }
-
-            hlslpp::float2 ndc = hlslpp::float2(clip.x, clip.y) / clipW;
-            // FontRendererSystemはSpriteBatch経由＝ビューポート左上原点のピクセル座標
-            float screenX = (ndc.x * 0.5f + 0.5f) * screenWidth;
-            float screenY = (0.5f - ndc.y * 0.5f) * screenHeight;
-
-            promptTransform.position = hlslpp::float3(screenX, screenY + prompt.screenOffsetY, 0.0f);
-            promptTransform.dirty    = true;
-            promptFont.text          = L"F : " + pickup.displayName + L" を拾う";
+            promptAnchor.target       = nearest;
+            promptAnchor.worldOffset  = hlslpp::float3(0.0f, pickup.labelHeight, 0.0f);
+            promptAnchor.screenOffset = hlslpp::float2(0.0f, prompt.screenOffsetY);
+            promptFont.text           = L"F : " + pickup.displayName + L" を拾う";
         });
 
         //-------------------------------------------------------------

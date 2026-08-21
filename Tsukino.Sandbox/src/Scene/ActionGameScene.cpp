@@ -25,6 +25,7 @@
 #include <Tsukino/Sandbox/ActionGame/ECS/System/TpsCameraSystem.hpp>
 #include <Tsukino/Sandbox/ActionGame/ECS/System/PlayerAnimationSystem.hpp>
 #include <Tsukino/Sandbox/ActionGame/ECS/System/PickupSystem.hpp>
+#include <Tsukino/Sandbox/ActionGame/ECS/System/HealthBarSystem.hpp>
 #ifdef _DEBUG
 #include <Tsukino/Sandbox/DebugTools/ECS/System/LightStressTestSystem.hpp>
 #include <Tsukino/Sandbox/DebugTools/ECS/Component/LightStressTestComponent.hpp>
@@ -55,10 +56,12 @@
 #include <Tsukino/EngineIntegration/ECS/System/MotionVectorSnapshotSystem.hpp>
 #include <Tsukino/EngineIntegration/ECS/System/DebugCameraSystem.hpp>
 #include <Tsukino/EngineIntegration/ECS/System/EffectSystem.hpp>
+#include <Tsukino/EngineIntegration/ECS/System/WorldAnchorSystem.hpp>
 
 #include <Tsukino/BuiltIn/ECS/Component/TransformComponent.hpp>
 #include <Tsukino/BuiltIn/ECS/Component/CameraComponent.hpp>
 #include <Tsukino/BuiltIn/ECS/Component/SpriteComponent.hpp>
+#include <Tsukino/BuiltIn/ECS/Component/WorldAnchorComponent.hpp>
 #include <Tsukino/BuiltIn/ECS/Component/FontComponent.hpp>
 #include <Tsukino/BuiltIn/ECS/Component/AudioComponent.hpp>
 #include <Tsukino/BuiltIn/ECS/Component/ModelComponent.hpp>
@@ -118,14 +121,17 @@ namespace Tsukino::Sandbox {
                               // PlayerAnimationSystem（Gameplay）が今フレームのisAttackingを確定させた後、
                               // CombatSystem（WeaponAttach）がそれを読む前に割り込む
             WeaponAttach,     // 武器の追従（ボーンアタッチ）はAnimationSystemが今フレームのボーン姿勢を書き込んだ後に行う
+            HealthBar,        // 頭上HPバーの表示可否・残量幅の更新。被弾（WeaponAttachでCombatSystemが
+                              // hpBarVisibleTimerをセット）の後、WorldAnchorSystemが座標を確定させる前に行う
             TransformLate,    // Movement/WeaponAttachで更新したposition/rotationをworldMatrixへ反映する2回目のTransformSystem。
                               // これが無いと、このフレームで更新された所有者の回転がworldMatrix（描画に使われる）へ
                               // 反映されるのは次フレームになり、武器はowner.rotationを直接読むため1フレーム分
                               // 先行してしまい、回転中（旋回中）だけ武器の位置が体からずれて見える不具合が起きる
             Camera3D,         // TPS/デバッグカメラの追従は移動確定後、カメラ行列計算の前に行う
             Camera,           // カメラ行列は描画前に計算する
-            Pickup,           // 拾えるアイテムの判定・ハイライト演出・UI座標計算は今フレームのカメラ行列を使うためCameraの後に置く
-            TransformUI,      // PickupSystemが書いたUIラベルのposition（画面ピクセル座標）をworldMatrixへ反映する。
+            WorldAnchor,      // WorldAnchorComponentを持つエンティティ（拾得プロンプト・HPバー等）の
+                              // ワールド→スクリーン座標変換は今フレームのカメラ行列を使うためCameraの後に置く
+            TransformUI,      // WorldAnchorSystemが書いたUI要素のposition（画面ピクセル座標）をworldMatrixへ反映する。
                               // FontRendererSystemはworldMatrix[3]を読むため、これが無いと1フレーム遅れて表示がスウィムする
             Font,
             AttackMotionBlur,    // 攻撃の進行度（CombatSystemが更新するattackBlend）をブラー強度へ反映する。
@@ -160,19 +166,22 @@ namespace Tsukino::Sandbox {
         // 消費するため、PlayerAnimationSystemと同じくAnimationSystemより前に登録する
         m_scene.AddSystem(std::make_shared<ActionGame::ECS::EnemyAnimationSystem>(), (int)SystemPriority::Gameplay);
         m_scene.AddSystem(std::make_shared<Tsukino::BuiltIn::ECS::AnimationSystem>(), (int)SystemPriority::Gameplay);
+        // カメラ行列を必要としなくなった（座標変換はWorldAnchorSystemが行う）ため、他のゲームプレイ系と同じ並びで良い
+        m_scene.AddSystem(std::make_shared<ActionGame::ECS::PickupSystem>(), (int)SystemPriority::Gameplay);
 #ifdef _DEBUG
         // 武器の握り位置・角度を実機で調整するためのデバッグ操作（F6で有効化）。
         // 詳細はWeaponGripDebugSystem.cppを参照
         m_scene.AddSystem(std::make_shared<ActionGame::ECS::WeaponGripDebugSystem>(), (int)SystemPriority::WeaponGripDebug);
 #endif
         m_scene.AddSystem(std::make_shared<ActionGame::ECS::CombatSystem>(), (int)SystemPriority::WeaponAttach);
+        m_scene.AddSystem(std::make_shared<ActionGame::ECS::HealthBarSystem>(), (int)SystemPriority::HealthBar);
         m_scene.AddSystem(std::make_shared<Tsukino::BuiltIn::ECS::TransformSystem>(), (int)SystemPriority::TransformLate);
         m_scene.AddSystem(std::make_shared<ActionGame::ECS::TpsCameraSystem>(), (int)SystemPriority::Camera3D);
 #ifdef _DEBUG
         m_scene.AddSystem(std::make_shared<Tsukino::BuiltIn::ECS::DebugCameraSystem>(), (int)SystemPriority::Camera3D);
 #endif
         m_scene.AddSystem(std::make_shared<Tsukino::BuiltIn::ECS::CameraSystem>(), (int)SystemPriority::Camera);
-        m_scene.AddSystem(std::make_shared<ActionGame::ECS::PickupSystem>(), (int)SystemPriority::Pickup);
+        m_scene.AddSystem(std::make_shared<Tsukino::BuiltIn::ECS::WorldAnchorSystem>(), (int)SystemPriority::WorldAnchor);
         m_scene.AddSystem(std::make_shared<Tsukino::BuiltIn::ECS::TransformSystem>(), (int)SystemPriority::TransformUI);
         m_scene.AddSystem(std::make_shared<Tsukino::BuiltIn::ECS::FontRendererSystem>(), (int)SystemPriority::Font);
         // 攻撃演出→ブラー強度→Rendererの順に流す
@@ -510,6 +519,11 @@ namespace Tsukino::Sandbox {
         // bodyRadius/bodyHalfHeightは呼び出し側でモデルの見た目に合わせて指定する
         // （プレイヤーとの接触ダメージ判定は引き続きEnemyComponent::bodyRadiusを使った距離判定のまま）
         //--------------------------------------------------------------
+        // 頭上HPバー（背景・残量）の見た目に使う単色テクスチャ。
+        // 全ての敵で使い回すため、ここで1回だけロードする
+        Tsukino::Asset::AssetHandle hpBarTextureHandle =
+            context->assetManager->Load(Tsukino::Core::Path("Tsukino.Sandbox/Assets/ActionGameSample/Textures/UI/WhitePixel.png"));
+
         auto spawnEnemy = [&](hlslpp::float3 spawnPosition, float moveSpeed, float maxHealth,
                                const Tsukino::Core::Path& modelPath, hlslpp::float3 scale,
                                float bodyRadius, float bodyHalfHeight) -> Tsukino::ECS::Entity {
@@ -549,6 +563,48 @@ namespace Tsukino::Sandbox {
             // Transform位置＝足元とみなし、カプセル中心をそこから上へオフセットする
             // （CharacterControllerComponent::centerOffsetと同じ考え方）
             enemyCollision.offsetPosition = hlslpp::float3(0.0f, bodyHalfHeight + bodyRadius, 0.0f);
+
+            //-------------------------------------------------------------
+            // 頭上HPバー（背景＋残量の2エンティティ）。カプセル上端（2*(bodyHalfHeight+bodyRadius)）より
+            // 少し上に浮かせる。WorldAnchorSystemが毎フレームスクリーン座標へ投影し、
+            // HealthBarSystemが残量に応じて見た目を更新する（被弾時のみ表示）
+            //-------------------------------------------------------------
+            hlslpp::float3 hpBarWorldOffset = hlslpp::float3(0.0f, (bodyHalfHeight + bodyRadius) * 2.0f + 20.0f, 0.0f);
+
+            Tsukino::ECS::Entity hpBarBackgroundEntity = m_scene.CreateEntity();
+            {
+                Tsukino::BuiltIn::ECS::TransformComponent& t = registry.AddComponent<Tsukino::BuiltIn::ECS::TransformComponent>(hpBarBackgroundEntity);
+                t.scale                                       = hlslpp::float3(0.0f, 0.0f, 0.0f);    // 非表示状態で開始（被弾時にHealthBarSystemが表示する）
+
+                Tsukino::BuiltIn::ECS::WorldAnchorComponent& anchor =
+                    registry.AddComponent<Tsukino::BuiltIn::ECS::WorldAnchorComponent>(hpBarBackgroundEntity);
+                anchor.target      = enemyEntity;
+                anchor.worldOffset = hpBarWorldOffset;
+
+                Tsukino::BuiltIn::ECS::SpriteComponent& sprite = registry.AddComponent<Tsukino::BuiltIn::ECS::SpriteComponent>(hpBarBackgroundEntity);
+                sprite.textureHandle                            = hpBarTextureHandle;
+                sprite.tintColor                                = hlslpp::float4(0.15f, 0.15f, 0.15f, 0.9f);    // 暗いグレー
+                sprite.sortOrder                                = 0;    // 残量バーより先に描く
+            }
+
+            Tsukino::ECS::Entity hpBarFillEntity = m_scene.CreateEntity();
+            {
+                Tsukino::BuiltIn::ECS::TransformComponent& t = registry.AddComponent<Tsukino::BuiltIn::ECS::TransformComponent>(hpBarFillEntity);
+                t.scale                                       = hlslpp::float3(0.0f, 0.0f, 0.0f);
+
+                Tsukino::BuiltIn::ECS::WorldAnchorComponent& anchor =
+                    registry.AddComponent<Tsukino::BuiltIn::ECS::WorldAnchorComponent>(hpBarFillEntity);
+                anchor.target      = enemyEntity;
+                anchor.worldOffset = hpBarWorldOffset;
+
+                Tsukino::BuiltIn::ECS::SpriteComponent& sprite = registry.AddComponent<Tsukino::BuiltIn::ECS::SpriteComponent>(hpBarFillEntity);
+                sprite.textureHandle                            = hpBarTextureHandle;
+                sprite.tintColor                                = hlslpp::float4(0.0f, 1.0f, 0.0f, 1.0f);    // 満タン時は緑
+                sprite.sortOrder                                = 1;    // 背景の上に描く
+            }
+
+            enemyHealth.hpBarBackgroundEntity = hpBarBackgroundEntity;
+            enemyHealth.hpBarFillEntity       = hpBarFillEntity;
 
             return enemyEntity;
         };
@@ -623,14 +679,18 @@ namespace Tsukino::Sandbox {
 
         //--------------------------------------------------------------
         // 「Fキーで拾う」UIラベル用エンティティの生成。
-        // 毎フレーム生成せず1つを使い回し、PickupSystemがtext/positionを書き換える
+        // 毎フレーム生成せず1つを使い回し、PickupSystemがWorldAnchorComponent.target/textを書き換え、
+        // 実際の座標変換（position書き込み）はWorldAnchorSystemが行う
         //--------------------------------------------------------------
         Tsukino::ECS::Entity pickupPromptEntity = m_scene.CreateEntity();
 
         Tsukino::BuiltIn::ECS::TransformComponent& promptTransform = registry.AddComponent<Tsukino::BuiltIn::ECS::TransformComponent>(pickupPromptEntity);
-        promptTransform.position                                    = hlslpp::float3(0.0f, 0.0f, 0.0f);    // 以後PickupSystemが毎フレーム上書きする
+        promptTransform.position                                    = hlslpp::float3(0.0f, 0.0f, 0.0f);    // 以後WorldAnchorSystemが毎フレーム上書きする
         promptTransform.scale                                       = hlslpp::float3(1.0f, 1.0f, 1.0f);
         promptTransform.dirty                                       = true;
+
+        Tsukino::BuiltIn::ECS::WorldAnchorComponent& promptAnchor = registry.AddComponent<Tsukino::BuiltIn::ECS::WorldAnchorComponent>(pickupPromptEntity);
+        promptAnchor.target                                        = entt::null;    // 以後PickupSystemが毎フレーム更新する
 
         Tsukino::BuiltIn::ECS::FontComponent& promptFont = registry.AddComponent<Tsukino::BuiltIn::ECS::FontComponent>(pickupPromptEntity);
         promptFont.text                                   = L"";    // 空文字の間はFontRendererSystemが描画しない

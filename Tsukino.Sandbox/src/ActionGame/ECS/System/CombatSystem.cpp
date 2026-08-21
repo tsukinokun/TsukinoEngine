@@ -40,6 +40,8 @@ namespace ActionGame::ECS {
         constexpr float kHitStopDuration = 0.12f;    //!< ヒット時にかかる減速の持続時間（実時間・秒）
         constexpr float kHitStopScale    = 0.02f;    //!< 持続時間中のdeltaTimeへのスケール値（小さいほど強い停止）
 
+        constexpr float kHpBarVisibleDuration = 3.0f;    //!< 被弾時に頭上HPバーを表示し続ける時間（秒）。HealthBarSystemが減算する
+
 #ifdef _DEBUG
         //-------------------------------------------------------------
         //! @brief  当たり判定範囲を目視確認できるよう、XZ平面上の円をワイヤーフレームで描画する
@@ -332,6 +334,7 @@ namespace ActionGame::ECS {
                             enemyHealth.currentHealth = 0.0f;
                             enemyHealth.isDead         = true;
                         }
+                        enemyHealth.hpBarVisibleTimer = kHpBarVisibleDuration;    // 被弾した瞬間だけ頭上HPバーを表示する
                         weapon.hitEnemiesThisAttack.push_back(hitEntity);
 
                         hlslpp::float3 hitPosition = capsuleCenter;
@@ -395,6 +398,9 @@ namespace ActionGame::ECS {
                 // view の反復中なので即時破棄してはならない（イテレータが壊れる）。
                 // 予約だけ行い、実際の破棄は Scene::Update() が全 System の更新後に行う。
                 registry.QueueDestroy(entity);
+                // 頭上HPバー（背景・残量）も一緒に破棄しないと残留してしまう
+                registry.QueueDestroy(enemyHealth.hpBarBackgroundEntity);
+                registry.QueueDestroy(enemyHealth.hpBarFillEntity);
                 return;
             }
 

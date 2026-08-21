@@ -62,6 +62,7 @@ namespace Tsukino::BuiltIn::ECS {
 
         // 前フレームのマテリアルバッファをクリアして再利用
         m_materialBuffer.clear();
+        m_materialDataBuffer.clear();
 
         // まずエンティティ情報を一時バッファに収集
         struct SpriteEntry {
@@ -119,8 +120,13 @@ namespace Tsukino::BuiltIn::ECS {
             // パイプライン設定
             material.SetPipeline(m_pipelineCache.get());
 
-            cmd.material = &material;
-            cmd.pass     = Tsukino::Renderer::RenderPass::Overlay;
+            // tintColorをb2(CBufferMaterial::baseColor)経由でSprite.ps.hlslへ渡す
+            Tsukino::Renderer::CBufferMaterial& materialData = m_materialDataBuffer.emplace_back();
+            materialData.baseColor                            = sprite.tintColor;
+
+            cmd.material     = &material;
+            cmd.materialData = &materialData;
+            cmd.pass         = Tsukino::Renderer::RenderPass::Overlay;
 
             entries.push_back({sprite.sortOrder, cmd});
         });
