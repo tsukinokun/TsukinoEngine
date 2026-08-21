@@ -106,6 +106,15 @@ namespace Tsukino::Renderer {
         if(!SetLightingPipeline(shaders.lightingPS))
             return false;
 
+        //------------------------------------------------------------
+        // モーションブラーパイプラインの作成
+        // 演出用の任意機能なので、失敗しても描画自体は続行する
+        // （m_hasMotionBlur が false のままになり、パスがスキップされる）。
+        //------------------------------------------------------------
+        if(!SetMotionBlurPipeline(shaders.motionBlurPS)) {
+            Tsukino::Core::Log::Error("Renderer: Motion blur is disabled because its pixel shader could not be created.");
+        }
+
         return true;
     }
 
@@ -194,6 +203,26 @@ namespace Tsukino::Renderer {
         hr             = device->CreateBuffer(&desc, nullptr, m_lightsBuffer.GetAddressOf());
         if(FAILED(hr)) {
             Tsukino::Core::Log::Error("Failed to create lights constant buffer.");
+            return false;
+        }
+
+        //------------------------------------------------------------
+        // m_prevSkinningBuffer (b7) の作成（速度バッファ生成用の前フレームボーン行列）
+        //------------------------------------------------------------
+        desc.ByteWidth = sizeof(Tsukino::Renderer::CBufferSkinningPrev);
+        hr             = device->CreateBuffer(&desc, nullptr, m_prevSkinningBuffer.GetAddressOf());
+        if(FAILED(hr)) {
+            Tsukino::Core::Log::Error("Failed to create previous frame skinning constant buffer.");
+            return false;
+        }
+
+        //------------------------------------------------------------
+        // m_motionBlurBuffer (b8) の作成
+        //------------------------------------------------------------
+        desc.ByteWidth = sizeof(Tsukino::Renderer::CBufferMotionBlur);
+        hr             = device->CreateBuffer(&desc, nullptr, m_motionBlurBuffer.GetAddressOf());
+        if(FAILED(hr)) {
+            Tsukino::Core::Log::Error("Failed to create motion blur constant buffer.");
             return false;
         }
 
@@ -435,9 +464,18 @@ namespace Tsukino::Renderer {
         }
 
         //------------------------------------------------------------
+        // モーションブラーパス（HDR → ポストプロセス用中間バッファ）
+        //
+        // 3Dの描画がすべて終わり、UI/エフェクトが乗る前のここで掛ける。
+        // 無効なら何もせず false を返すので、その場合はHDRをそのまま
+        // トーンマップへ渡す。
+        //------------------------------------------------------------
+        const bool motionBlurred = ExecuteMotionBlurPass();
+
+        //------------------------------------------------------------
         // Tonemapパス（HDR → LDR変換してバックバッファへ）
         //------------------------------------------------------------
-        ExecuteTonemapPass();
+        ExecuteTonemapPass(motionBlurred ? m_graphicsContext.GetPostProcessSRV() : m_graphicsContext.GetHDRSRV());
 
         //------------------------------------------------------------
         // Overlay パス
@@ -462,6 +500,24 @@ namespace Tsukino::Renderer {
         }
 
         m_drawQueue.Clear();
+
+        //------------------------------------------------------------
+        // 次フレームの速度計算用に、今フレームのViewProjectionを退避する
+        //
+        // CameraSystemはdirty時しか行列を再計算しないため、
+        // 「送られてきたタイミング」ではなく「フレームの末尾」で
+        // 退避するのが確実。
+        //------------------------------------------------------------
+        m_prevWorldViewProj = m_worldSceneData.viewProj;
+
+        //------------------------------------------------------------
+        // モーションブラーの有効フラグはフレーム単位で消す
+        //
+        // 毎フレームMotionBlurSystemが再度trueにする前提にしておくと、
+        // MotionBlurSystemを持たないシーンへ切り替えたときにフラグが
+        // 立ちっぱなしで残る問題が起きない（無駄なフルスクリーンパスの防止）。
+        //------------------------------------------------------------
+        m_motionBlurEnabled = false;
 
         m_graphicsContext.EndFrame();
     }
@@ -608,9 +664,18 @@ namespace Tsukino::Renderer {
         ID3D11DeviceContext* context = m_graphicsContext.GetContext();
 
         //------------------------------------------------------------
+        // 前フレームのViewProjectionを差し込む
+        //
+        // 呼び出し側（CameraSystem）はこの値を知らないので、
+        // Renderer自身が退避しておいたものをここで合流させる。
+        //------------------------------------------------------------
+        CBufferScene uploadData = sceneData;
+        uploadData.prevViewProj = m_prevWorldViewProj;
+
+        //------------------------------------------------------------
         // GPU上のバッファ（m_sceneBuffer）の中身を書き換える
         //------------------------------------------------------------
-        context->UpdateSubresource(m_sceneBuffer.Get(), 0, nullptr, &sceneData, 0, 0);
+        context->UpdateSubresource(m_sceneBuffer.Get(), 0, nullptr, &uploadData, 0, 0);
 
         //------------------------------------------------------------
         // スロット0（b0）にバインドする
@@ -1047,6 +1112,35 @@ namespace Tsukino::Renderer {
     }
 
     //------------------------------------------------------------
+    //! @brief モーションブラーパイプラインのセット
+    //! @note  VSはトーンマッピングと共用（フルスクリーン三角形）なのでPSだけ作る
+    //------------------------------------------------------------
+    bool Renderer::SetMotionBlurPipeline(const Tsukino::Asset::ShaderAsset* ps) {
+        if(!ps) {
+            Tsukino::Core::Log::Error("Renderer::SetMotionBlurPipeline - shader is null.");
+            return false;
+        }
+
+        ID3D11Device* device = m_graphicsContext.GetDevice();
+
+        HRESULT hr = device->CreatePixelShader(ps->binary.data(), ps->binary.size(), nullptr, m_motionBlurPS.GetAddressOf());
+        if(FAILED(hr)) {
+            Tsukino::Core::Log::Error("Failed to create motion blur pixel shader.");
+            return false;
+        }
+
+        m_hasMotionBlur = true;
+        return true;
+    }
+
+    //------------------------------------------------------------
+    //! @brief モーションブラーパラメータのセット
+    //------------------------------------------------------------
+    void Renderer::SetMotionBlurParameters(const CBufferMotionBlur& params) {
+        m_motionBlurData = params;
+    }
+
+    //------------------------------------------------------------
     //! @brief 点光源・スポットライト配列のセット
     //! @note  MAX_LIGHTS を超える分は切り捨て、初回のみ警告を出す
     //------------------------------------------------------------
@@ -1115,8 +1209,17 @@ namespace Tsukino::Renderer {
         //------------------------------------------------------
         // Transform を定数バッファに書き込む
         //------------------------------------------------------
+        // ------------------------------------------------------------
+        // モーションブラーが有効で、かつこのオブジェクトに前フレームの
+        // データがあるときだけ速度を出す。それ以外は motionFlags.x = 0 に
+        // して、VS側で prevClip = curClip（＝速度ゼロ）へ短絡させる。
+        // ------------------------------------------------------------
+        const bool writeVelocity = m_motionBlurEnabled && cmd.hasPrevFrame;
+
         CBufferTransform cb{};
-        cb.world = cmd.transform;
+        cb.world       = cmd.transform;
+        cb.prevWorld   = writeVelocity ? cmd.prevTransform : cmd.transform;
+        cb.motionFlags = hlslpp::float4(writeVelocity ? 1.0f : 0.0f, 0.0f, 0.0f, 0.0f);
         context->UpdateSubresource(m_objectBuffer.Get(), 0, nullptr, &cb, 0, 0);
         context->VSSetConstantBuffers(1, 1, m_objectBuffer.GetAddressOf());
 
@@ -1130,6 +1233,20 @@ namespace Tsukino::Renderer {
 
             context->UpdateSubresource(m_skinningBuffer.Get(), 0, nullptr, &cbSkin, 0, 0);
             context->VSSetConstantBuffers(3, 1, m_skinningBuffer.GetAddressOf());
+
+            // --------------------------------------------------------
+            // 前フレームのボーン行列 (b7) の適用
+            // スキン1体あたり8KBの転送になるため、速度を出さないときは
+            // 転送もバインドも行わない
+            // --------------------------------------------------------
+            if(writeVelocity && cmd.prevBoneMatrices) {
+                CBufferSkinningPrev cbSkinPrev{};
+                std::memcpy(cbSkinPrev.bones, cmd.prevBoneMatrices, sizeof(hlslpp::float4x4) * copyCount);
+
+                constexpr UINT prevSkinSlot = static_cast<UINT>(CBSlot::SkinningPrev);
+                context->UpdateSubresource(m_prevSkinningBuffer.Get(), 0, nullptr, &cbSkinPrev, 0, 0);
+                context->VSSetConstantBuffers(prevSkinSlot, 1, m_prevSkinningBuffer.GetAddressOf());
+            }
         } else {
             // スキニングを使わないオブジェクトを描画するときは、
             // スロット3を nullptr でクリアして、前のオブジェクトのボーン行列が残らないようにする
@@ -1487,23 +1604,100 @@ namespace Tsukino::Renderer {
     }
 
     //------------------------------------------------------------
+    //! @brief モーションブラーパスの実行
+    //! @note  HDRバッファ(t0)と速度バッファ(t15)を読み、ポストプロセス用
+    //!        中間バッファへ書き出す。UIやエフェクトはトーンマップ後に
+    //!        バックバッファへ直接描かれるため、ブラーの影響を受けない。
+    //------------------------------------------------------------
+    bool Renderer::ExecuteMotionBlurPass() {
+        if(!m_motionBlurEnabled || !m_hasMotionBlur || !m_tonemapVS || !m_motionBlurPS)
+            return false;
+
+        ID3D11DeviceContext* context = m_graphicsContext.GetContext();
+
+        //----------------------------------------------------------
+        // ポストプロセス用中間バッファへ切り替え
+        // （HDRをSRVとして読むため、HDRをRTVに残したままにはできない）
+        //----------------------------------------------------------
+        m_graphicsContext.BindPostProcessTarget();
+
+        //----------------------------------------------------------
+        // シーンカラー(t0/s0)と速度バッファ(t15/s9)をバインド
+        //----------------------------------------------------------
+        ID3D11ShaderResourceView* hdrSRV = m_graphicsContext.GetHDRSRV();
+        context->PSSetShaderResources(0, 1, &hdrSRV);
+
+        ID3D11SamplerState* linearClamp = m_samplers[static_cast<size_t>(Tsukino::GraphicsCommon::SamplerType::LinearClamp)].Get();
+        context->PSSetSamplers(0, 1, &linearClamp);
+
+        constexpr UINT            velocitySRVSlot = static_cast<UINT>(SRVSlot::GBufferVelocity);
+        ID3D11ShaderResourceView* velocitySRV     = m_graphicsContext.GetGBufferSRV(5);
+        context->PSSetShaderResources(velocitySRVSlot, 1, &velocitySRV);
+
+        ID3D11SamplerState* pointClamp = m_samplers[static_cast<size_t>(Tsukino::GraphicsCommon::SamplerType::PointClamp)].Get();
+        constexpr UINT      gbufferSamplerSlot = static_cast<UINT>(SamplerSlot::GBuffer);
+        context->PSSetSamplers(gbufferSamplerSlot, 1, &pointClamp);
+
+        //----------------------------------------------------------
+        // パラメータ (b8) を更新してバインド
+        //----------------------------------------------------------
+        context->UpdateSubresource(m_motionBlurBuffer.Get(), 0, nullptr, &m_motionBlurData, 0, 0);
+        constexpr UINT motionBlurCBSlot = static_cast<UINT>(CBSlot::MotionBlur);
+        context->PSSetConstantBuffers(motionBlurCBSlot, 1, m_motionBlurBuffer.GetAddressOf());
+
+        //----------------------------------------------------------
+        // シェーダーをセット（VSはTonemapと共用のフルスクリーン三角形用）
+        //----------------------------------------------------------
+        context->VSSetShader(m_tonemapVS.Get(), nullptr, 0);
+        context->PSSetShader(m_motionBlurPS.Get(), nullptr, 0);
+        context->IASetInputLayout(nullptr);
+
+        //----------------------------------------------------------
+        // 深度なし・ブレンドなし
+        //----------------------------------------------------------
+        context->OMSetDepthStencilState(m_commonStatesTK->DepthNone(), 0);
+        context->OMSetBlendState(m_commonStatesTK->Opaque(), nullptr, 0xFFFFFFFF);
+        context->RSSetState(m_commonStatesTK->CullNone());
+
+        //----------------------------------------------------------
+        // フルスクリーントライアングル描画
+        //----------------------------------------------------------
+        context->IASetVertexBuffers(0, 0, nullptr, nullptr, nullptr);
+        context->IASetIndexBuffer(nullptr, DXGI_FORMAT_UNKNOWN, 0);
+        context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+        context->Draw(3, 0);
+
+        //----------------------------------------------------------
+        // 後片付け：次フレームでHDR/G-BufferをRTVとして再バインドするため、
+        // SRVのバインドを必ず解除する（ExecuteLightingPassと同じ理由）
+        //----------------------------------------------------------
+        ID3D11ShaderResourceView* nullSRV = nullptr;
+        context->PSSetShaderResources(0, 1, &nullSRV);
+        context->PSSetShaderResources(velocitySRVSlot, 1, &nullSRV);
+
+        return true;
+    }
+
+    //------------------------------------------------------------
     //! @brief トーンマッピングパスの実行
     //------------------------------------------------------------
-    void Renderer::ExecuteTonemapPass() {
+    void Renderer::ExecuteTonemapPass(ID3D11ShaderResourceView* source) {
         if(!m_hasTonemapper || !m_tonemapVS || !m_tonemapPS)
             return;
 
         ID3D11DeviceContext* context = m_graphicsContext.GetContext();
 
         //----------------------------------------------------------
-        // バックバッファに切り替え（HDR SRVとRTVの同時バインド防止）
+        // バックバッファに切り替え（入力SRVとRTVの同時バインド防止）
         //----------------------------------------------------------
         m_graphicsContext.BindBackBuffer();
 
         //----------------------------------------------------------
-        // HDRバッファをt0にバインド
+        // 入力となるシーンカラーをt0にバインド
+        // （モーションブラーが走った場合はポストプロセス用中間バッファ、
+        //   走らなかった場合はHDRバッファがそのまま渡ってくる）
         //----------------------------------------------------------
-        ID3D11ShaderResourceView* hdrSRV = m_graphicsContext.GetHDRSRV();
+        ID3D11ShaderResourceView* hdrSRV = source;
         context->PSSetShaderResources(0, 1, &hdrSRV);
 
         // LinearClampサンプラーをs0にバインド

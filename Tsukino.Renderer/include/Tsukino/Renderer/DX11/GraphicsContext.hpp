@@ -90,10 +90,27 @@ namespace Tsukino::Renderer {
         void BindBackBuffer();
 
         //--------------------------------------------------------------
-        //! @brief G-Buffer（4枚）とDSVをバインドしてクリアする
+        //! @brief G-Buffer（全枚数）とDSVをバインドしてクリアする
         //! @note  GBufferパスの先頭で呼ぶ
         //--------------------------------------------------------------
         void BeginGBufferPass();
+
+        //--------------------------------------------------------------
+        //! @brief ポストプロセス用中間バッファのSRVを取得する
+        //! @note  モーションブラーパスの出力先。トーンマッピングの入力になる。
+        //! @return ID3D11ShaderResourceViewへのポインタ
+        //--------------------------------------------------------------
+        [[nodiscard]]
+        ID3D11ShaderResourceView* GetPostProcessSRV() const noexcept {
+            return m_postProcessSRV.Get();
+        }
+
+        //--------------------------------------------------------------
+        //! @brief ポストプロセス用中間バッファのみをRTVにバインドする（DSVなし）
+        //! @note  HDRバッファをSRVとして読みながら書き込むための出力先。
+        //!        同じリソースをRTVとSRVに同時バインドできないため別テクスチャが要る。
+        //--------------------------------------------------------------
+        void BindPostProcessTarget();
 
         //--------------------------------------------------------------
         //! @brief HDRバッファへ戻す（クリアはしない）
@@ -110,7 +127,7 @@ namespace Tsukino::Renderer {
 
         //--------------------------------------------------------------
         //! @brief G-BufferのSRVを取得する
-        //! @param index [in] 0=Albedo, 1=Normal, 2=Material, 3=Emissive, 4=WorldPos
+        //! @param index [in] 0=Albedo, 1=Normal, 2=Material, 3=Emissive, 4=WorldPos, 5=Velocity
         //! @return ID3D11ShaderResourceViewへのポインタ
         //--------------------------------------------------------------
         [[nodiscard]]
@@ -130,7 +147,7 @@ namespace Tsukino::Renderer {
         //--------------------------------------------------------------
         //! @brief G-Bufferの枚数
         //--------------------------------------------------------------
-        static constexpr UINT GBufferCount = 5;
+        static constexpr UINT GBufferCount = 6;
 
         //--------------------------------------------------------------
         //! @brief  描画領域のリサイズ
@@ -204,6 +221,11 @@ namespace Tsukino::Renderer {
         Microsoft::WRL::ComPtr<ID3D11Texture2D>          m_hdrTex;    //!< HDRカラーバッファ
         Microsoft::WRL::ComPtr<ID3D11RenderTargetView>   m_hdrRTV;    //!< HDR用RTV
         Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> m_hdrSRV;    //!< トーンマッピングで読むSRV
+
+        // ポストプロセス用中間バッファ（HDRと同フォーマット。モーションブラーの出力先）
+        Microsoft::WRL::ComPtr<ID3D11Texture2D>          m_postProcessTex;
+        Microsoft::WRL::ComPtr<ID3D11RenderTargetView>   m_postProcessRTV;
+        Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> m_postProcessSRV;
 
         // G-Buffer（ディファードGBufferパスの出力 / Lightingパスの入力）
         std::array<Microsoft::WRL::ComPtr<ID3D11Texture2D>, GBufferCount>          m_gbufferTex;

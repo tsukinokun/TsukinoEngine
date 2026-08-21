@@ -14,6 +14,7 @@
 #include <Tsukino/BuiltIn/ECS/Component/CollisionComponent.hpp>
 #include <Tsukino/BuiltIn/ECS/Component/RigidbodyComponent.hpp>
 #include <Tsukino/BuiltIn/ECS/Component/HighlightComponent.hpp>
+#include <Tsukino/BuiltIn/ECS/Component/MotionVectorComponent.hpp>
 #include <Tsukino/Engine/Asset/AssetManager.hpp>
 #include <Tsukino/Engine/Asset/Model/ModelAsset.hpp>
 #include <Tsukino/Engine/Asset/Shader/ShaderAsset.hpp>
@@ -78,6 +79,22 @@ namespace Tsukino::BuiltIn::ECS {
             auto* skeletonOut = registry.try_get<SkeletonOutputComponent>(entity);
             bool  isSkeletal  = skeletonOut && skeletonOut->bone_count > 0;
 
+            //--------------------------------------------------------------
+            // モーションブラー用の前フレームデータ
+            //
+            // MotionVectorSnapshotSystem がフレーム先頭で退避した値。
+            // スキンメッシュの場合は前フレームのボーン本数が今フレームと
+            // 一致していることまで確認する。食い違ったまま渡すと、VS側で
+            // 前フレームのスキニング行列がゼロ行列になり、透視除算で
+            // w=0 → NaN になって画面が壊れる。
+            //--------------------------------------------------------------
+            auto* motionVec = registry.try_get<MotionVectorComponent>(entity);
+            bool  hasPrev   = motionVec && motionVec->valid;
+            if(hasPrev && isSkeletal && motionVec->prevBoneCount != skeletonOut->bone_count)
+                hasPrev = false;
+
+            const Tsukino::Core::Math::matrix prevWorldMatrix = hasPrev ? motionVec->prevWorld : transform.worldMatrix;
+
             // ノードとメッシュの巡回ループ
             for(const auto& node : modelAsset->modelData.nodes) {
                 for(u32 meshIdx : node.meshIndices) {
@@ -88,9 +105,13 @@ namespace Tsukino::BuiltIn::ECS {
                     const auto& targetMeshBuffer = meshBuffers[meshIdx];
 
                     // 行列の計算
+                    // 前フレーム分も同じ組み立てで作る（ノード変換はモデル固有の
+                    // 静的値なので、ワールド行列だけ差し替えればよい）
                     Tsukino::Core::Math::matrix finalTransform;
+                    Tsukino::Core::Math::matrix prevFinalTransform;
                     if(isSkeletal) {
-                        finalTransform = transform.worldMatrix;
+                        finalTransform     = transform.worldMatrix;
+                        prevFinalTransform = prevWorldMatrix;
                     } else {
                         Tsukino::Core::Math::matrix scaleMat = Tsukino::Core::Math::matrix::scale(hlslpp::float3(node.scale.x, node.scale.y, node.scale.z));
                         Tsukino::Core::Math::matrix rotMat =
@@ -99,6 +120,7 @@ namespace Tsukino::BuiltIn::ECS {
                             Tsukino::Core::Math::matrix::translate(hlslpp::float3(node.translation.x, node.translation.y, node.translation.z));
                         Tsukino::Core::Math::matrix nodeTransform = hlslpp::mul(hlslpp::mul(scaleMat, rotMat), transMat);
                         finalTransform                            = hlslpp::mul(nodeTransform, transform.worldMatrix);
+                        prevFinalTransform                        = hlslpp::mul(nodeTransform, prevWorldMatrix);
 
                        /* Tsukino::Core::Log::Info("node.translation = (" + std::to_string(node.translation.x) + ", " + std::to_string(node.translation.y) + ", "
                                                  + std::to_string(node.translation.z) + ")");*/
@@ -123,6 +145,7 @@ namespace Tsukino::BuiltIn::ECS {
 
                         Tsukino::Core::Math::matrix invOffsetMat = hlslpp::mul(invRotMat, invTransMat);
                         finalTransform                           = hlslpp::mul(invOffsetMat, finalTransform);
+                        prevFinalTransform                       = hlslpp::mul(invOffsetMat, prevFinalTransform);
                     }
 
                     // マテリアル定数バッファの構築
@@ -255,6 +278,15 @@ namespace Tsukino::BuiltIn::ECS {
                         cmd.boneMatrices = skeletonOut->local_matrices;
                         cmd.boneCount    = skeletonOut->bone_count;
                     }
+
+                    //--------------------------------------------------------------
+                    // モーションブラー用の前フレームデータ
+                    // hasPrevFrame が false なら Renderer 側は一切読まない
+                    //--------------------------------------------------------------
+                    cmd.prevTransform = prevFinalTransform;
+                    cmd.hasPrevFrame  = hasPrev;
+                    if(hasPrev && isSkeletal)
+                        cmd.prevBoneMatrices = motionVec->prevBones;
                     // Water はフォワードの専用パス（半透明のためディファード対象外）。
                     // それ以外（PBR/Unlit/Toon）は不透明としてG-Bufferパスへ回す。
                     cmd.pass = (shadingModel == Tsukino::GraphicsCommon::ShadingModel::Water) ? Tsukino::Renderer::RenderPass::Water

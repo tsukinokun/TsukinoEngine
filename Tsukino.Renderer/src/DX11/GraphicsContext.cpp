@@ -84,6 +84,9 @@ namespace Tsukino::Renderer {
         m_hdrSRV.Reset();
         m_hdrRTV.Reset();
         m_hdrTex.Reset();
+        m_postProcessSRV.Reset();
+        m_postProcessRTV.Reset();
+        m_postProcessTex.Reset();
         m_depthSRV.Reset();
         m_dsv.Reset();
         m_rtv.Reset();
@@ -209,6 +212,30 @@ namespace Tsukino::Renderer {
         }
 
         //--------------------------------------------------------------
+        // ポストプロセス用中間バッファの作成
+        // HDRバッファを読みながら書き込むための出力先。同じテクスチャを
+        // RTVとSRVに同時バインドできないため、HDRと同フォーマットで
+        // もう1枚用意する（モーションブラーパスの出力先 / トーンマップの入力）。
+        //--------------------------------------------------------------
+        hr = m_device->CreateTexture2D(&hdrDesc, nullptr, m_postProcessTex.GetAddressOf());
+        if(FAILED(hr)) {
+            Tsukino::Core::Log::Error("GraphicsContext: Failed to create the post process color buffer.");
+            return false;
+        }
+
+        hr = m_device->CreateRenderTargetView(m_postProcessTex.Get(), nullptr, m_postProcessRTV.GetAddressOf());
+        if(FAILED(hr)) {
+            Tsukino::Core::Log::Error("GraphicsContext: Failed to create the post process render target view.");
+            return false;
+        }
+
+        hr = m_device->CreateShaderResourceView(m_postProcessTex.Get(), nullptr, m_postProcessSRV.GetAddressOf());
+        if(FAILED(hr)) {
+            Tsukino::Core::Log::Error("GraphicsContext: Failed to create the post process shader resource view.");
+            return false;
+        }
+
+        //--------------------------------------------------------------
         // G-Buffer の作成（ディファードGBufferパスの出力先 / Lightingパスの入力）
         //   0 : rgb = albedo
         //   1 : rgb = ワールド法線 (n*0.5+0.5), a = ShadingModel ID
@@ -216,6 +243,7 @@ namespace Tsukino::Renderer {
         //   3 : rgb = emissive（リム発光・全体白発光を含む）
         //   4 : rgb = ワールド座標（頂点シェーダーの補間値をそのまま出力。
         //             深度からの再構成はリバースZ+遠距離での精度劣化を避けるため使わない）
+        //   5 : rg  = 1フレームあたりのUV移動量（符号付き。モーションブラー用）
         //--------------------------------------------------------------
         static constexpr DXGI_FORMAT kGBufferFormats[GBufferCount] = {
             DXGI_FORMAT_R8G8B8A8_UNORM,        // GBuffer0 : Albedo
@@ -223,6 +251,7 @@ namespace Tsukino::Renderer {
             DXGI_FORMAT_R8G8B8A8_UNORM,        // GBuffer2 : Metallic/Roughness/AO/Specular
             DXGI_FORMAT_R11G11B10_FLOAT,       // GBuffer3 : Emissive
             DXGI_FORMAT_R16G16B16A16_FLOAT,    // GBuffer4 : World Position
+            DXGI_FORMAT_R16G16_FLOAT,          // GBuffer5 : Velocity（符号付きのため FLOAT）
         };
 
         for(UINT i = 0; i < GBufferCount; ++i) {
@@ -375,17 +404,19 @@ namespace Tsukino::Renderer {
     }
 
     //--------------------------------------------------------------
-    //! @brief G-Buffer（4枚）をRTVとして、DSVを深度書き込みありでバインドしてクリアする
+    //! @brief G-Buffer（全枚数）をRTVとして、DSVを深度書き込みありでバインドしてクリアする
     //! @note  GBufferパスの先頭で呼ぶ。HDRバッファは対象外（Lightingパスの出力先）。
     //--------------------------------------------------------------
     void GraphicsContext::BeginGBufferPass() {
         ID3D11RenderTargetView* rtvs[GBufferCount] = {m_gbufferRTV[0].Get(), m_gbufferRTV[1].Get(), m_gbufferRTV[2].Get(),
-                                                       m_gbufferRTV[3].Get(), m_gbufferRTV[4].Get()};
+                                                       m_gbufferRTV[3].Get(), m_gbufferRTV[4].Get(), m_gbufferRTV[5].Get()};
 
         m_context->OMSetRenderTargets(GBufferCount, rtvs, m_dsv.Get());
 
         // Albedo/Normal/Material/Emissive/WorldPos はすべて0クリアで無害
         // （深度==0＝背景として扱うため、depth==0のピクセルはLightingパスでdiscardされる）
+        // Velocity も0クリア＝速度ゼロなので、Skyが描いた背景やフォワードパスの
+        // ピクセルは自動的にモーションブラーの対象外になる。
         const float clear[4] = {0.0f, 0.0f, 0.0f, 0.0f};
         for(UINT i = 0; i < GBufferCount; ++i) {
             m_context->ClearRenderTargetView(m_gbufferRTV[i].Get(), clear);
@@ -405,5 +436,12 @@ namespace Tsukino::Renderer {
     //--------------------------------------------------------------
     void GraphicsContext::BindHDRTargetOnly() {
         m_context->OMSetRenderTargets(1, m_hdrRTV.GetAddressOf(), nullptr);
+    }
+
+    //--------------------------------------------------------------
+    //! @brief ポストプロセス用中間バッファのみをRTVにバインドする（DSVなし）
+    //--------------------------------------------------------------
+    void GraphicsContext::BindPostProcessTarget() {
+        m_context->OMSetRenderTargets(1, m_postProcessRTV.GetAddressOf(), nullptr);
     }
 }    // namespace Tsukino::Renderer

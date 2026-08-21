@@ -42,6 +42,8 @@ struct PSInput
     float3 worldPos : POSITION;
     float3 normal : NORMAL;
     float2 uv : TEXCOORD0;
+    float4 curClip : TEXCOORD1;     // 今フレームのクリップ座標（速度計算用）
+    float4 prevClip : TEXCOORD2;    // 前フレームのクリップ座標（速度計算用）
 };
 
 //--------------------------------------------------------------
@@ -54,6 +56,7 @@ struct PSOutput
     float4 material    : SV_TARGET2;    // r: metallic, g: roughness, b: specular, a: AO
     float4 emissiveOut : SV_TARGET3;    // rgb: emissive + リム発光 + 全体白発光, a: 未使用
     float4 worldPosOut : SV_TARGET4;    // rgb: ワールド座標（頂点シェーダー補間値そのまま）, a: 未使用
+    float2 velocity    : SV_TARGET5;    // rg: 1フレームあたりのUV移動量（符号付き）
 };
 
 PSOutput PSMain(PSInput input)
@@ -99,11 +102,22 @@ PSOutput PSMain(PSInput input)
     float3 emissiveSample = emissiveTexture.Sample(albedoSampler, input.uv).rgb;
     float3 emissiveTotal  = emissive * emissiveSample + rimColor.rgb * rim * rimColor.w + rimParams.y;
 
+    //----------------------------------------------------------
+    // 速度（モーションブラー用）
+    // クリップ座標をそれぞれ透視除算してUVへ落とし、その差分を書く。
+    // 強度やシャッター補正はここでは掛けない（ブラーパス側の責務）。
+    // motionFlags.x が 0 のときVSが prevClip = curClip にしているので、
+    // その場合はここで自然に速度0になる。
+    //----------------------------------------------------------
+    float2 curUV  = (input.curClip.xy / input.curClip.w) * float2(0.5f, -0.5f) + 0.5f;
+    float2 prevUV = (input.prevClip.xy / input.prevClip.w) * float2(0.5f, -0.5f) + 0.5f;
+
     output.albedo      = float4(albedo, albedoSample.a * baseColor.a);
     output.normal      = float4(EncodeNormal(N), 0.0f);
     output.material    = float4(met, rough, specular, ao);
     output.emissiveOut = float4(emissiveTotal, 0.0f);
     output.worldPosOut = float4(input.worldPos, 0.0f);
+    output.velocity    = curUV - prevUV;
 
     return output;
 }

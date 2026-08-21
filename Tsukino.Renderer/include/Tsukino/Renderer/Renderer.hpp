@@ -61,6 +61,7 @@ namespace Tsukino::Renderer {
         const Tsukino::Asset::ShaderAsset* shadowSkeletalVS = nullptr;    //!< シャドウマップ用VS（スケルタル）
         const Tsukino::Asset::ShaderAsset* shadowPS         = nullptr;    //!< シャドウマップ用PS
         const Tsukino::Asset::ShaderAsset* lightingPS       = nullptr;    //!< ディファードLightingパス用PS（VSはtonemapVSを共用）
+        const Tsukino::Asset::ShaderAsset* motionBlurPS     = nullptr;    //!< モーションブラーパス用PS（VSはtonemapVSを共用）
     };
 
     //------------------------------------------------------------
@@ -298,6 +299,33 @@ namespace Tsukino::Renderer {
         //------------------------------------------------------------
         void SetLights(const GPULight* lights, u32 count);
 
+        //------------------------------------------------------------
+        //! @brief モーションブラーパイプラインのセット
+        //! @param ps [in] ピクセルシェーダーアセット（VSはtonemapVSを共用する）
+        //! @return true: 成功, false: 失敗
+        //------------------------------------------------------------
+        bool SetMotionBlurPipeline(const Tsukino::Asset::ShaderAsset* ps);
+
+        //------------------------------------------------------------
+        //! @brief モーションブラーパラメータのセット
+        //! @param params [in] モーションブラー定数バッファデータ
+        //------------------------------------------------------------
+        void SetMotionBlurParameters(const CBufferMotionBlur& params);
+
+        //------------------------------------------------------------
+        //! @brief モーションブラーの有効・無効を切り替える
+        //! @param enabled [in] true: 有効, false: 無効
+        //! @note  このフラグはフレーム単位で、Render()の末尾で毎回falseへ戻る。
+        //!        有効にしたいフレームでは毎フレーム呼ぶこと（MotionBlurSystemの責務）。
+        //!        こうしておくと、MotionBlurSystemを持たないシーンへ切り替えたときに
+        //!        フラグが立ちっぱなしで残らない。
+        //!        無効時は速度バッファ用の前フレームボーン行列（8KB/ドロー）の
+        //!        転送もスキップされる。
+        //------------------------------------------------------------
+        void SetMotionBlurEnabled(bool enabled) noexcept {
+            m_motionBlurEnabled = enabled;
+        }
+
     private:
         //------------------------------------------------------------
         // 定数バッファの作成
@@ -409,9 +437,20 @@ namespace Tsukino::Renderer {
         bool SetLightingPipeline(const Tsukino::Asset::ShaderAsset* ps);
 
         //------------------------------------------------------------
-        //! @brief トーンマッピングパスの実行
+        //! @brief モーションブラーパスの実行
+        //! @return true: ブラーを実行してポストプロセスバッファへ書いた
+        //!         false: 無効なので何もしていない（HDRバッファがそのまま最新）
+        //! @note  HDRバッファを読み、ポストプロセス用中間バッファへ書く。
+        //!        Waterパスの直後・Tonemapパスの直前に呼ぶこと。
         //------------------------------------------------------------
-        void ExecuteTonemapPass();
+        bool ExecuteMotionBlurPass();
+
+        //------------------------------------------------------------
+        //! @brief トーンマッピングパスの実行
+        //! @param source [in] 入力となるシーンカラーのSRV
+        //!                    （モーションブラーが走ったかどうかで切り替わる）
+        //------------------------------------------------------------
+        void ExecuteTonemapPass(ID3D11ShaderResourceView* source);
 
         //------------------------------------------------------------
         //! @brief トーンマッピングパイプラインのセット
@@ -433,6 +472,19 @@ namespace Tsukino::Renderer {
         ComPtr<ID3D11Buffer> m_sceneBuffer;       // シーンデータ用定数バッファ
         ComPtr<ID3D11Buffer> m_materialBuffer;    // マテリアルデータ用定数バッファ
         ComPtr<ID3D11Buffer> m_skinningBuffer;    // ボーン行列用バッファ
+
+        // モーションブラー用リソース
+        ComPtr<ID3D11Buffer>      m_prevSkinningBuffer;    //!< 前フレームのボーン行列用バッファ (b7)
+        ComPtr<ID3D11Buffer>      m_motionBlurBuffer;      //!< モーションブラーパラメータ用バッファ (b8)
+        ComPtr<ID3D11PixelShader> m_motionBlurPS;          //!< モーションブラー用PS（VSはm_tonemapVSを共用）
+        CBufferMotionBlur         m_motionBlurData{};      //!< CPU側のモーションブラーパラメータ
+        bool                      m_hasMotionBlur     = false;    //!< PSの構築が済んでいるか
+        bool                      m_motionBlurEnabled = false;    //!< 今フレームで有効か（MotionBlurSystemが毎フレーム設定）
+
+        //! @brief 前フレームのViewProjection行列
+        //! @note  CameraSystemはdirty時しか行列を再計算しないため、
+        //!        Render()の末尾でフレーム単位に退避するのが確実。
+        Tsukino::Core::Math::matrix m_prevWorldViewProj = Tsukino::Core::Math::matrix::identity();
 
         // シャドウマップ用リソース
         static constexpr uint32_t        SHADOW_MAP_SIZE = 2048;

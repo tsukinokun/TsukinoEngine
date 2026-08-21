@@ -21,6 +21,7 @@ cbuffer CBufferScene : register(b0)
     float4 lightDir;         // xyz: ライト方向（正規化済み）
     float4 lightColor;       // xyz: ライトの色, w: 強度
     float4 cameraPos;        // xyz: カメラのワールド座標, w: 未使用
+    matrix prevViewProj;     // 前フレームのViewProjection行列（速度バッファ生成用）
 };
 
 static const float PI = 3.14159265358979323846f;

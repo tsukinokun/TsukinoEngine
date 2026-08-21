@@ -19,6 +19,9 @@ namespace Tsukino::Renderer {
         Sky       = 4,    //!< b4 : 大気散乱パラメータ（Renderer.cppに実装のみ・enum未参照）
         Water     = 5,    //!< b5 : 水面パラメータ（Renderer.cppに実装のみ・enum未参照）
         Lights    = 6,    //!< b6 : 点光源・スポットライト配列（CBufferLights, ディファードLightingパス用）
+
+        SkinningPrev = 7,    //!< b7 : 前フレームのボーン行列（CBufferSkinningPrev, 速度バッファ生成用。VS専用）
+        MotionBlur   = 8,    //!< b8 : モーションブラーパラメータ（CBufferMotionBlur, ブラーパス用。PS専用）
     };
 
     //--------------------------------------------------------------
@@ -45,7 +48,7 @@ namespace Tsukino::Renderer {
         GBufferEmissive = 12,    //!< t12 : G-Buffer3 (rgb: emissive + リム発光)
         GBufferDepth    = 13,    //!< t13 : 深度（G-Bufferパスと共有するDSVのSRVビュー）
         GBufferWorldPos = 14,    //!< t14 : G-Buffer4 (rgb: ワールド座標。頂点シェーダー補間値そのまま)
-        // t15 : IBL等の将来枠
+        GBufferVelocity = 15,    //!< t15 : G-Buffer5 (rg: 1フレームあたりのUV移動量。モーションブラーパスで読む)
     };
 
     //--------------------------------------------------------------

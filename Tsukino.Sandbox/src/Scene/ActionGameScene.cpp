@@ -18,6 +18,7 @@
 #include <Tsukino/Sandbox/ActionGame/ECS/AI/BigZombieBehavior.hpp>
 #include <Tsukino/Sandbox/ActionGame/ECS/System/PlayerSystem.hpp>
 #include <Tsukino/Sandbox/ActionGame/ECS/System/CombatSystem.hpp>
+#include <Tsukino/Sandbox/ActionGame/ECS/System/AttackMotionBlurSystem.hpp>
 #include <Tsukino/Sandbox/ActionGame/ECS/System/EnemySystem.hpp>
 #include <Tsukino/Sandbox/ActionGame/ECS/System/EnemyBehaviorSystem.hpp>
 #include <Tsukino/Sandbox/ActionGame/ECS/System/EnemyAnimationSystem.hpp>
@@ -50,6 +51,8 @@
 #include <Tsukino/EngineIntegration/ECS/System/AnimationSystem.hpp>
 #include <Tsukino/EngineIntegration/ECS/System/LightSystem.hpp>
 #include <Tsukino/EngineIntegration/ECS/System/SkyAtmosphereSystem.hpp>
+#include <Tsukino/EngineIntegration/ECS/System/MotionBlurSystem.hpp>
+#include <Tsukino/EngineIntegration/ECS/System/MotionVectorSnapshotSystem.hpp>
 #include <Tsukino/EngineIntegration/ECS/System/DebugCameraSystem.hpp>
 #include <Tsukino/EngineIntegration/ECS/System/EffectSystem.hpp>
 
@@ -69,6 +72,7 @@
 #include <Tsukino/BuiltIn/ECS/Component/PointLightComponent.hpp>
 #include <Tsukino/BuiltIn/ECS/Component/SpotLightComponent.hpp>
 #include <Tsukino/BuiltIn/ECS/Component/SkyAtmosphereComponent.hpp>
+#include <Tsukino/BuiltIn/ECS/Component/MotionBlurComponent.hpp>
 #include <Tsukino/BuiltIn/ECS/Component/SpringBoneComponent.hpp>
 #include <Tsukino/BuiltIn/ECS/Component/DebugCameraComponent.hpp>
 #include <Tsukino/BuiltIn/ECS/Component/DebugCameraTag.hpp>
@@ -101,6 +105,10 @@ namespace Tsukino::Sandbox {
         // システムの生成と追加
         //--------------------------------------------------------------
         enum class SystemPriority : int {
+            MotionVectorSnapshot = -2,    // モーションブラー用に前フレームのworldMatrix/ボーン行列を退避する。
+                                          // TransformSystem・AnimationSystemが今フレームの値を書く「前」に読むことで、
+                                          // ダブルバッファなしに前フレームの値を取り出している。ここより後ろへ動かすと
+                                          // 速度が常にゼロになりブラーが効かなくなる
             LightStressTest = -1,    // デバッグ用の多光源スポーン。生成/移動したライトの
                                      // worldMatrixを同じフレームで確定させるためTransformより前に置く
             Transform = 0,    // 一番最初に計算する
@@ -120,6 +128,10 @@ namespace Tsukino::Sandbox {
             TransformUI,      // PickupSystemが書いたUIラベルのposition（画面ピクセル座標）をworldMatrixへ反映する。
                               // FontRendererSystemはworldMatrix[3]を読むため、これが無いと1フレーム遅れて表示がスウィムする
             Font,
+            AttackMotionBlur,    // 攻撃の進行度（CombatSystemが更新するattackBlend）をブラー強度へ反映する。
+                                 // WeaponAttachより後、MotionBlurより前
+            MotionBlur,          // ブラーパラメータをRendererへ転送し、MotionVectorComponentを自動アタッチする。
+                                 // ModelSystem（Render）が描画コマンドを積む前である必要がある
             Render,
             Audio,
             Physics,    // コリジョンの更新は最後に行う
@@ -131,6 +143,9 @@ namespace Tsukino::Sandbox {
         // 登録
         // ライトのスポーン/移動はTransformSystemより前に行う。そうしないと
         // 生成・移動したライトのworldMatrixが1フレーム遅れ、LightSystemが古い位置を読む
+        // モーションブラー用の前フレーム退避は、TransformSystem/AnimationSystemが
+        // 今フレームの値で上書きする前に読む必要があるので最初に登録する
+        m_scene.AddSystem(std::make_shared<Tsukino::BuiltIn::ECS::MotionVectorSnapshotSystem>(), (int)SystemPriority::MotionVectorSnapshot);
         m_scene.AddSystem(std::make_shared<DebugTools::ECS::LightStressTestSystem>(), (int)SystemPriority::LightStressTest);
         m_scene.AddSystem(std::make_shared<Tsukino::BuiltIn::ECS::TransformSystem>(), (int)SystemPriority::Transform);
         m_scene.AddSystem(std::make_shared<ActionGame::ECS::PlayerSystem>(), (int)SystemPriority::Movement);
@@ -158,6 +173,9 @@ namespace Tsukino::Sandbox {
         m_scene.AddSystem(std::make_shared<ActionGame::ECS::PickupSystem>(), (int)SystemPriority::Pickup);
         m_scene.AddSystem(std::make_shared<Tsukino::BuiltIn::ECS::TransformSystem>(), (int)SystemPriority::TransformUI);
         m_scene.AddSystem(std::make_shared<Tsukino::BuiltIn::ECS::FontRendererSystem>(), (int)SystemPriority::Font);
+        // 攻撃演出→ブラー強度→Rendererの順に流す
+        m_scene.AddSystem(std::make_shared<ActionGame::ECS::AttackMotionBlurSystem>(), (int)SystemPriority::AttackMotionBlur);
+        m_scene.AddSystem(std::make_shared<Tsukino::BuiltIn::ECS::MotionBlurSystem>(), (int)SystemPriority::MotionBlur);
         m_scene.AddSystem(std::make_shared<Tsukino::BuiltIn::ECS::SpriteRenderSystem>(), (int)SystemPriority::Render);
         m_scene.AddSystem(std::make_shared<Tsukino::BuiltIn::ECS::ModelSystem>(), (int)SystemPriority::Render);
         {
@@ -665,6 +683,15 @@ namespace Tsukino::Sandbox {
 
             ActionGame::ECS::TpsCameraComponent& tpsCameraComponent = registry.AddComponent<ActionGame::ECS::TpsCameraComponent>(tpsCameraEntity);
             tpsCameraComponent.target                               = playerEntity;
+
+            //----------------------------------------------------------
+            // モーションブラー（オブジェクト速度バッファ方式）
+            // このコンポーネントを外せばモーションブラーごと無効になる。
+            // strengthはAttackMotionBlurSystemが攻撃の進行度に応じて毎フレーム上書きする。
+            //----------------------------------------------------------
+            Tsukino::BuiltIn::ECS::MotionBlurComponent& motionBlur = registry.AddComponent<Tsukino::BuiltIn::ECS::MotionBlurComponent>(tpsCameraEntity);
+            motionBlur.maxBlurRadius                               = 0.03f;
+            motionBlur.sampleCount                                 = 8;
         }
 
         //--------------------------------------------------------------
