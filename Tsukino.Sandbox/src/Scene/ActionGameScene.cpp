@@ -358,6 +358,10 @@ namespace Tsukino::Sandbox {
         animSet.attackSteps[2].endTime        = kAttackClipDuration;
         animSet.attackSteps[2].playbackSpeed  = kAttackPlaybackSpeed;
         animSet.attackSteps[2].inPlace        = true;
+        // 3段目は他の2段よりモーションが長い（実時間約1.34秒）ため、固定0.25秒の判定窓では
+        // 斬撃が敵へ届く前にヒット判定が閉じてしまう。暫定的に長めの値を設定する。
+        // 最終値は実機でF10/F11 + ATTACKログ（PlayerAnimationSystem）を見ながら詰めること
+        animSet.attackSteps[2].hitWindowDuration = 0.6f;
 
         Tsukino::BuiltIn::ECS::SpringBoneComponent& springBone = registry.AddComponent<Tsukino::BuiltIn::ECS::SpringBoneComponent>(playerEntity);
 

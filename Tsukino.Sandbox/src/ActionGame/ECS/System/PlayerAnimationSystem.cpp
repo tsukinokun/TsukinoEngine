@@ -97,6 +97,7 @@ namespace ActionGame::ECS {
                     auto& weapon            = registry.GetComponent<WeaponComponent>(player.weaponEntity);
                     weapon.attackRequested = true;
                     weapon.cooldownTimer   = 0.0f;
+                    weapon.nextActiveDurationOverride = step.hitWindowDuration;
                 }
             };
         }

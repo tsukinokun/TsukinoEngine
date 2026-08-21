@@ -78,6 +78,9 @@ namespace ActionGame::ECS {
         float activeDuration = 0.25f;    //!< 攻撃入力後、当たり判定が有効な時間（秒）
         float cooldown       = 0.4f;     //!< 攻撃後、再攻撃可能になるまでのクールダウン（秒）
 
+        float nextActiveDurationOverride = -1.0f;    //!< 次にattackRequestedが消費される際、activeDurationの代わりに使う値（-1なら無効）。
+                                                       //!< PlayerAnimationSystemが連撃の段ごとに設定する（AttackStep::hitWindowDuration）
+
         bool  attackRequested = false;    //!< 攻撃入力を受け取ったか（PlayerSystemがセットする）
         bool  isActive        = false;    //!< 現在当たり判定が有効か
         float activeTimer     = 0.0f;     //!< 当たり判定有効時間の残り

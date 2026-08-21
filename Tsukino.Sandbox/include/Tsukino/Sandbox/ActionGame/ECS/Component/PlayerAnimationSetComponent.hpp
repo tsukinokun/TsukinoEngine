@@ -34,6 +34,7 @@ namespace ActionGame::ECS {
         float startTime        = 0.0f;   //!< クリップ内の開始時刻（秒）
         float endTime          = 0.0f;   //!< クリップ内の終了時刻（秒）
         float comboWindowStart = 0.5f;   //!< 現在未使用（将来のチューニング用に残置）。連撃は段の再生完了後にのみ進行する
+        float hitWindowDuration = -1.0f; //!< この段だけの当たり判定有効時間（秒）。-1でWeaponComponent::activeDurationを使う
         float fadeTime         = 0.05f;  //!< 段へ入るときのクロスフェード時間（素早く反応させるため短め）
         float playbackSpeed    = 1.0f;   //!< この段の再生速度倍率（1.0が等速。大きいほど振りが速くなり、次段への移行も早まる）
         bool  inPlace          = true;   //!< 攻撃モーションのルート前進を殺す（移動はCharacterControllerが担当するため）

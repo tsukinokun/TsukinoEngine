@@ -295,7 +295,8 @@ namespace ActionGame::ECS {
                     weapon.cooldownTimer = 0.0f;
             } else if(weapon.attackRequested) {
                 weapon.isActive        = true;
-                weapon.activeTimer     = weapon.activeDuration;
+                weapon.activeTimer     = (weapon.nextActiveDurationOverride >= 0.0f) ? weapon.nextActiveDurationOverride : weapon.activeDuration;
+                weapon.nextActiveDurationOverride = -1.0f;
                 weapon.cooldownTimer   = weapon.cooldown;
                 weapon.attackRequested = false;
 
