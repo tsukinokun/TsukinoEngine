@@ -4,6 +4,7 @@
 //! @author 山﨑愛
 //-------------------------------------------------------------
 #pragma once
+#ifdef _DEBUG
 #include <Tsukino/Core/ECS/System/ISystem.hpp>
 #include <Tsukino/Core/ECS/Entity/Entity.hpp>
 
@@ -58,3 +59,4 @@ namespace Tsukino::Sandbox::DebugTools::ECS {
     };
 
 }    // namespace Tsukino::Sandbox::DebugTools::ECS
+#endif    // _DEBUG

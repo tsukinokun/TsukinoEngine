@@ -25,9 +25,9 @@
 #include <Tsukino/Sandbox/ActionGame/ECS/System/TpsCameraSystem.hpp>
 #include <Tsukino/Sandbox/ActionGame/ECS/System/PlayerAnimationSystem.hpp>
 #include <Tsukino/Sandbox/ActionGame/ECS/System/PickupSystem.hpp>
+#ifdef _DEBUG
 #include <Tsukino/Sandbox/DebugTools/ECS/System/LightStressTestSystem.hpp>
 #include <Tsukino/Sandbox/DebugTools/ECS/Component/LightStressTestComponent.hpp>
-#ifdef _DEBUG
 #include <Tsukino/Sandbox/ActionGame/ECS/System/WeaponGripDebugSystem.hpp>
 #include <Tsukino/Sandbox/ActionGame/ECS/Component/WeaponGripDebugComponent.hpp>
 #endif
@@ -146,7 +146,9 @@ namespace Tsukino::Sandbox {
         // モーションブラー用の前フレーム退避は、TransformSystem/AnimationSystemが
         // 今フレームの値で上書きする前に読む必要があるので最初に登録する
         m_scene.AddSystem(std::make_shared<Tsukino::BuiltIn::ECS::MotionVectorSnapshotSystem>(), (int)SystemPriority::MotionVectorSnapshot);
+#ifdef _DEBUG
         m_scene.AddSystem(std::make_shared<DebugTools::ECS::LightStressTestSystem>(), (int)SystemPriority::LightStressTest);
+#endif
         m_scene.AddSystem(std::make_shared<Tsukino::BuiltIn::ECS::TransformSystem>(), (int)SystemPriority::Transform);
         m_scene.AddSystem(std::make_shared<ActionGame::ECS::PlayerSystem>(), (int)SystemPriority::Movement);
         m_scene.AddSystem(std::make_shared<ActionGame::ECS::EnemySystem>(), (int)SystemPriority::Movement);
@@ -803,6 +805,7 @@ namespace Tsukino::Sandbox {
             }
         }
 
+#ifdef _DEBUG
         //--------------------------------------------------------------
         // 多光源ストレステストのHUD（F1でライト数を切り替え、フレーム時間を表示）
         // 上の各種ラベルと同じ作り。LightStressTestSystemがtextを毎フレーム書き換える
@@ -821,6 +824,7 @@ namespace Tsukino::Sandbox {
 
             registry.AddComponent<DebugTools::ECS::LightStressTestHudComponent>(hudEntity);
         }
+#endif    // _DEBUG
 
         //--------------------------------------------------------------
         // スカイアトモスフィアエンティティの生成

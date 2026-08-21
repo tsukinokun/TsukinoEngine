@@ -4,6 +4,7 @@
 //! @author 山﨑愛
 //-------------------------------------------------------------
 #include <Tsukino/Sandbox/DebugTools/ECS/System/LightStressTestSystem.hpp>
+#ifdef _DEBUG
 #include <Tsukino/Sandbox/DebugTools/ECS/Component/LightStressTestComponent.hpp>
 
 #include <Tsukino/EngineIntegration/EngineContext.hpp>
@@ -167,3 +168,4 @@ namespace Tsukino::Sandbox::DebugTools::ECS {
     }
 
 }    // namespace Tsukino::Sandbox::DebugTools::ECS
+#endif    // _DEBUG

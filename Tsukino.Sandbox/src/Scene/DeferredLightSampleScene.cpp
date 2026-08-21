@@ -5,8 +5,10 @@
 //-------------------------------------------------------------
 #include <Tsukino/Sandbox/Scene/DeferredLightSampleScene.hpp>
 
+#ifdef _DEBUG
 #include <Tsukino/Sandbox/DebugTools/ECS/System/LightStressTestSystem.hpp>
 #include <Tsukino/Sandbox/DebugTools/ECS/Component/LightStressTestComponent.hpp>
+#endif
 
 #include <Tsukino/EngineIntegration/EngineAPI.hpp>
 #include <Tsukino/EngineIntegration/EngineContext.hpp>
@@ -69,7 +71,9 @@ namespace Tsukino::Sandbox {
             Render,
         };
 
+#ifdef _DEBUG
         m_scene.AddSystem(std::make_shared<DebugTools::ECS::LightStressTestSystem>(), (int)SystemPriority::LightStressTest);
+#endif
         m_scene.AddSystem(std::make_shared<Tsukino::BuiltIn::ECS::TransformSystem>(), (int)SystemPriority::Transform);
         m_scene.AddSystem(std::make_shared<Tsukino::BuiltIn::ECS::CameraSystem>(), (int)SystemPriority::Camera);
         m_scene.AddSystem(std::make_shared<Tsukino::BuiltIn::ECS::LightSystem>(), (int)SystemPriority::Light);
@@ -254,6 +258,7 @@ namespace Tsukino::Sandbox {
             cam.isPrimary                               = true;
         }
 
+#ifdef _DEBUG
         //--------------------------------------------------------------
         // ストレステストHUD（F1でライト数切り替え、フレーム時間表示）
         //--------------------------------------------------------------
@@ -271,6 +276,7 @@ namespace Tsukino::Sandbox {
 
             registry.AddComponent<DebugTools::ECS::LightStressTestHudComponent>(e);
         }
+#endif    // _DEBUG
 
         Tsukino::Core::Log::Info("DeferredLightSampleScene: initialized. Press F1 to cycle point light count (0/1/16/64).");
     }

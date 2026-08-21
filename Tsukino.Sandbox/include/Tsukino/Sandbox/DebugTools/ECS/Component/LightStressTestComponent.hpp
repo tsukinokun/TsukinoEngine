@@ -4,6 +4,7 @@
 //! @author 山﨑愛
 //-------------------------------------------------------------
 #pragma once
+#ifdef _DEBUG
 
 // 名前空間 : Tsukino::Sandbox::DebugTools::ECS
 namespace Tsukino::Sandbox::DebugTools::ECS {
@@ -20,3 +21,4 @@ namespace Tsukino::Sandbox::DebugTools::ECS {
     };
 
 }    // namespace Tsukino::Sandbox::DebugTools::ECS
+#endif    // _DEBUG
