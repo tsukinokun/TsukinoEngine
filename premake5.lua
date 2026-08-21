@@ -31,6 +31,10 @@ workspace "TsukinoEngine"                   -- ソリューション名
     filter "configurations:Release"
         optimize "Full"
         symbols "On"
+        -- NDEBUG は premake が自動では付けないため明示的に定義する。
+        -- これが無いと assert() が Release でも生き続け、EnTT の ENTT_ASSERT が
+        -- 全コンポーネントアクセスに乗ったまま製品ビルドが作られてしまう。
+        defines { "NDEBUG" }
 
     filter {}
 

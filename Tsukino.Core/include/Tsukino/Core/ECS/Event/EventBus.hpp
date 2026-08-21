@@ -31,6 +31,14 @@ namespace Tsukino::ECS {
     //!   EnTT のイテレータが壊れる。その場合は破棄リストに積んで
     //!   ループ後に処理すること。
     //! - 同一イベント型の再入 Publish は assert で検知する
+    //!
+    //! @attention
+    //! **スレッドセーフではない。** Subscribe / Publish / Unsubscribe は
+    //! すべてメインスレッドからのみ呼ぶこと。
+    //! Publish はハンドラ配列のコピーと std::any の構築でヒープを触るため、
+    //! 複数スレッドから同時に呼ぶとヒープを破壊する。
+    //! ワーカースレッド（Jolt の接触コールバック等）から通知したい場合は、
+    //! いったん自前のバッファへ積み、メインスレッドで Publish すること。
     //-------------------------------------------------------------
     class EventBus {
     public:
@@ -123,12 +131,23 @@ namespace Tsukino::ECS {
             // 発火中に Unsubscribe されても壊れないよう
             // ハンドラリストのスナップショットをとってからイテレートする
             //-------------------------------------------------------------
+            //-------------------------------------------------------------
+            // 直前の発火中型を退避し、抜けるときに必ず戻す。
+            // 無条件に typeid(void) へ戻すと、異なる型をネスト Publish した際に
+            // 内側の発火終了で外側のガードまで解除されてしまい、
+            // 外側の型の再入を検知できなくなる。
+            //-------------------------------------------------------------
+            struct DispatchGuard {
+                std::type_index* slot;
+                std::type_index  previous;
+                ~DispatchGuard() { *slot = previous; }
+            } guard{&m_dispatchingType, m_dispatchingType};
+
             m_dispatchingType   = typeId;
             const auto snapshot = it->second;
             for(const auto& entry : snapshot) {
                 entry.invoke(std::any(event));
             }
-            m_dispatchingType = std::type_index(typeid(void));
         }
 
         //-------------------------------------------------------------

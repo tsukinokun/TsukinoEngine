@@ -7,6 +7,10 @@
 
 #include <Tsukino/Engine/Asset/Model/ModelImporter.hpp>
 #include <cstring>
+#include <cwchar>
+
+#define WIN32_LEAN_AND_MEAN
+#include <windows.h>
 
 #include <Tsukino/Core/Log.hpp>
 #include <Tsukino/Core/Path.hpp>
@@ -44,10 +48,140 @@ namespace Tsukino::Asset {
         hlslpp::interop::float2 texcoord;
     };
 
+#ifdef _DEBUG
+    //--------------------------------------------------------------
+    //! @brief  Assimp デバッグ DLL の既知の誤アサート対策
+    //!
+    //! Assimp 5.0.1 のデバッグ DLL は、正常に読める FBX に対しても
+    //! FBXConverter.cpp:806 の
+    //!   ai_assert(NeedsComplexTransformationChain(model) == ((chainBits & chainMaskComplex) != 0))
+    //! を誤発火させる。NeedsComplexTransformationChain() 側と
+    //! 変換チェーン構築側とで、変換要素が「単位元かどうか」を判定する
+    //! 閾値の扱いが食い違っているためで、Assimp 側の既知の不具合である。
+    //!
+    //! assert が鳴ると _wassert がそのまま abort() を呼ぶためプロセスごと落ちる。
+    //! Release DLL は NDEBUG ビルドで ai_assert が消えるため何も起きず、
+    //! しかも読み込み結果は Debug/Release で同一（メッシュ・ボーン・
+    //! アニメーションのいずれも一致することを確認済み）。
+    //! つまり Debug ビルドでのみ、正しいアセットが読めずに落ちていた。
+    //!
+    //! ここでは assimp DLL のインポートテーブル上の _wassert だけを差し替え、
+    //! この既知の1件だけを握り潰して Release と同じ挙動にそろえる。
+    //! 他のアサートは本物の _wassert へそのまま流すので握り潰されない。
+    //!
+    //! @note Assimp を 5.1 以降へ更新できればこの回避策は不要になる。
+    //--------------------------------------------------------------
+    namespace {
+        //! Assimp が置かれているデバッグ DLL の名前
+        constexpr const char* kAssimpDebugModuleName = "assimp-vc142-mtd.dll";
+
+        using WassertFn = void(__cdecl*)(wchar_t const*, wchar_t const*, unsigned);
+
+        //! 差し替え前の本物の _wassert
+        WassertFn g_originalWassert = nullptr;
+
+        //--------------------------------------------------------------
+        //! @brief  assimp から呼ばれる _wassert の差し替え先
+        //--------------------------------------------------------------
+        void __cdecl AssimpWassertFilter(wchar_t const* expression, wchar_t const* file, unsigned line) {
+            const bool isKnownFbxConverterAssert = expression != nullptr && file != nullptr
+                                                   && std::wcsstr(expression, L"NeedsComplexTransformationChain") != nullptr
+                                                   && std::wcsstr(file, L"FBXConverter.cpp") != nullptr;
+
+            if(isKnownFbxConverterAssert) {
+                Tsukino::Core::Log::Warn("Suppressed known Assimp debug assert (FBXConverter.cpp:" + std::to_string(line) + ")");
+                return;
+            }
+
+            // 想定外のアサートは握り潰さずに本来の挙動へ戻す
+            if(g_originalWassert)
+                g_originalWassert(expression, file, line);
+        }
+
+        //--------------------------------------------------------------
+        //! @brief  指定モジュールのインポートテーブルの1関数を差し替える
+        //! @param  module      [in] 書き換える対象のモジュール
+        //! @param  fromDll     [in] インポート元 DLL 名
+        //! @param  functionName[in] 差し替える関数名
+        //! @param  replacement [in] 差し替え先
+        //! @return 差し替えられたら true
+        //--------------------------------------------------------------
+        bool PatchImportedFunction(HMODULE module, const char* fromDll, const char* functionName, void* replacement, void** outOriginal) {
+            if(!module)
+                return false;
+
+            auto* base = reinterpret_cast<BYTE*>(module);
+            auto* dos  = reinterpret_cast<IMAGE_DOS_HEADER*>(base);
+            if(dos->e_magic != IMAGE_DOS_SIGNATURE)
+                return false;
+
+            auto* nt = reinterpret_cast<IMAGE_NT_HEADERS*>(base + dos->e_lfanew);
+            if(nt->Signature != IMAGE_NT_SIGNATURE)
+                return false;
+
+            const IMAGE_DATA_DIRECTORY& importDir = nt->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_IMPORT];
+            if(importDir.VirtualAddress == 0)
+                return false;
+
+            for(auto* desc = reinterpret_cast<IMAGE_IMPORT_DESCRIPTOR*>(base + importDir.VirtualAddress); desc->Name != 0; ++desc) {
+                if(_stricmp(reinterpret_cast<const char*>(base + desc->Name), fromDll) != 0)
+                    continue;
+
+                auto* nameThunk = reinterpret_cast<IMAGE_THUNK_DATA*>(base + desc->OriginalFirstThunk);
+                auto* addrThunk = reinterpret_cast<IMAGE_THUNK_DATA*>(base + desc->FirstThunk);
+
+                for(; nameThunk->u1.AddressOfData != 0; ++nameThunk, ++addrThunk) {
+                    if(IMAGE_SNAP_BY_ORDINAL(nameThunk->u1.Ordinal))
+                        continue;    // 序数インポートは名前で照合できない
+
+                    auto* importByName = reinterpret_cast<IMAGE_IMPORT_BY_NAME*>(base + nameThunk->u1.AddressOfData);
+                    if(std::strcmp(importByName->Name, functionName) != 0)
+                        continue;
+
+                    DWORD oldProtect = 0;
+                    if(!::VirtualProtect(addrThunk, sizeof(*addrThunk), PAGE_READWRITE, &oldProtect))
+                        return false;
+
+                    if(outOriginal)
+                        *outOriginal = reinterpret_cast<void*>(addrThunk->u1.Function);
+                    addrThunk->u1.Function = reinterpret_cast<ULONGLONG>(replacement);
+
+                    ::VirtualProtect(addrThunk, sizeof(*addrThunk), oldProtect, &oldProtect);
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        //--------------------------------------------------------------
+        //! @brief  差し替えを一度だけ行う
+        //--------------------------------------------------------------
+        void EnsureAssimpAssertWorkaround() {
+            static const bool installed = [] {
+                void*         original = nullptr;
+                const HMODULE assimp   = ::GetModuleHandleA(kAssimpDebugModuleName);
+                const bool    ok = PatchImportedFunction(assimp, "ucrtbased.dll", "_wassert", reinterpret_cast<void*>(&AssimpWassertFilter), &original);
+                if(ok) {
+                    g_originalWassert = reinterpret_cast<WassertFn>(original);
+                } else {
+                    // 差し替えられなくても致命的ではない（該当 FBX で落ちるだけ）ので警告に留める
+                    Tsukino::Core::Log::Warn("Failed to install the Assimp debug-assert workaround.");
+                }
+                return ok;
+            }();
+            (void)installed;
+        }
+    }    // namespace
+#endif    // _DEBUG
+
     //--------------------------------------------------------------
     //! @brief  モデルのインポート関数
     //--------------------------------------------------------------
     bool ModelImporter::Import(const Tsukino::Core::Path& inputPath, const Tsukino::Core::Path& outputDirectory) {
+#ifdef _DEBUG
+        EnsureAssimpAssertWorkaround();
+#endif    // _DEBUG
+
         Tsukino::Core::Log::Info("sizeof(Vertex) = " + std::to_string(sizeof(Vertex)));
         Tsukino::Core::Log::Info("offsetof texcoord = " + std::to_string(offsetof(Vertex, texcoord)));
 

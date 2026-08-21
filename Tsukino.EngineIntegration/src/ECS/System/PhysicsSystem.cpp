@@ -46,6 +46,9 @@
 #include <Jolt/Physics/Character/CharacterVirtual.h>
 
 #include <windows.h>
+
+#include <mutex>
+#include <vector>
 // 名前空間 : Tsukino::BuiltIn::ECS
 namespace Tsukino::BuiltIn::ECS {
 
@@ -168,63 +171,68 @@ namespace Tsukino::BuiltIn::ECS {
     //-------------------------------------------------------------
     //! @class  MyContactListener
     //! @brief  Jolt Physicsからの衝突イベントを受け取るリスナー
+    //! @attention
+    //! Jolt は接触コールバックを **物理ジョブスレッドから並行に** 呼び出す。
+    //! EventBus も EnTT のレジストリもスレッドセーフではないため、
+    //! コールバック内でそれらに触ってはならない。
+    //! ここでは接触の事実だけをミューテックス保護されたバッファへ積み、
+    //! 実際のイベント発行・レジストリ操作は PhysicsSystem::Update() が
+    //! JPH::PhysicsSystem::Update() から戻った後、メインスレッドで行う。
     //-------------------------------------------------------------
     class MyContactListener : public JPH::ContactListener {
     public:
-        using Registry                   = Tsukino::ECS::Registry;
-        Registry*               registry = nullptr;    //!< コールバック実行用のレジストリ参照
-        Tsukino::ECS::EventBus* eventBus = nullptr;
+        //-------------------------------------------------------------
+        //! @struct PendingContact
+        //! @brief  ワーカースレッドで拾った接触を1件分だけ記録したもの
+        //-------------------------------------------------------------
+        struct PendingContact {
+            entt::entity   entityA;    //!< Body1 側のエンティティ
+            entt::entity   entityB;    //!< Body2 側のエンティティ
+            hlslpp::float3 normal;     //!< Body1 から見た接触法線
+        };
+
         //-------------------------------------------------------------
         //! @brief  衝突が追加された（当たった）際に呼ばれるコールバック
         //! @param  inBody1    [in] 衝突したボディ1
         //! @param  inBody2    [in] 衝突したボディ2
         //! @param  inManifold [in] マニフォールド情報（接触点等）
         //! @param  ioSettings [in/out] コンタクト設定（摩擦係数等のオーバーライド可能）
+        //! @note   複数のジョブスレッドから並行に呼ばれる。積むだけに留めること。
         //-------------------------------------------------------------
         void OnContactAdded(const JPH::Body&            inBody1,
                             const JPH::Body&            inBody2,
                             const JPH::ContactManifold& inManifold,
                             JPH::ContactSettings&       ioSettings) override {
-            JPH::Vec3 normal = inManifold.mWorldSpaceNormal;
             //-------------------------------------------------------------
             // 衝突時の法線（Body1から見たBody2への法線）
             // Joltの法線は「Body1から衝突点への方向」を指す
             //-------------------------------------------------------------
-            uint64_t id1 = inBody1.GetUserData();
-            uint64_t id2 = inBody2.GetUserData();
+            const JPH::Vec3 normal = inManifold.mWorldSpaceNormal;
 
-            // イベント発行（衝突の事実を双方向に通知）
-            if(eventBus) {
-                // Aから見たBへのイベント
-                eventBus->Publish(CollisionEnterEvent{
-                    (entt::entity)id1, (entt::entity)id2, {normal.GetX(), normal.GetY(), normal.GetZ()}
-                });
-                // Bから見たAへのイベント
-                eventBus->Publish(CollisionEnterEvent{
-                    (entt::entity)id2, (entt::entity)id1, {-normal.GetX(), -normal.GetY(), -normal.GetZ()}
-                });
-            }
-
-            // 2. 反射処理（Bodyそれぞれの計算）
-            auto applyReflection = [&](const JPH::Body& b, JPH::Vec3 n) {
-                entt::entity e = (entt::entity)b.GetUserData();
-                if(!registry->HasComponent<RigidbodyComponent>(e))
-                    return;
-
-                auto& rb = registry->GetComponent<RigidbodyComponent>(e);
-                if(rb.type == RigidbodyType::Kinematic) {
-                    hlslpp::float3 V   = rb.linearVelocity;
-                    hlslpp::float3 N   = {n.GetX(), n.GetY(), n.GetZ()};
-                    float          dot = hlslpp::dot(V, N);
-                    if(dot < 0.0f) {
-                        rb.linearVelocity = V - 2.0f * dot * N;
-                    }
-                }
+            const PendingContact contact{
+                (entt::entity)inBody1.GetUserData(),
+                (entt::entity)inBody2.GetUserData(),
+                {normal.GetX(), normal.GetY(), normal.GetZ()}
             };
 
-            applyReflection(inBody1, normal);
-            applyReflection(inBody2, -normal);
+            std::lock_guard<std::mutex> lock(m_pendingMutex);
+            m_pending.push_back(contact);
         }
+
+        //-------------------------------------------------------------
+        //! @brief  溜まった接触を取り出して空にする
+        //! @param  out [out] 取り出し先。呼び出し前の内容は破棄される
+        //! @note   メインスレッドから、Jolt の Update 完了後に呼ぶこと
+        //-------------------------------------------------------------
+        void DrainContacts(std::vector<PendingContact>& out) {
+            std::lock_guard<std::mutex> lock(m_pendingMutex);
+            out.swap(m_pending);
+            m_pending.clear();
+        }
+
+    private:
+        std::mutex                  m_pendingMutex;    //!< m_pending を保護する
+        std::vector<PendingContact> m_pending;         //!< 今フレームに発生した接触
     };
 
     //-------------------------------------------------------------
@@ -349,6 +357,9 @@ namespace Tsukino::BuiltIn::ECS {
 
         CharacterContactListenerImpl                      characterContactListener;    //!< Character用接触リスナー
         std::unordered_map<entt::entity, CharacterHandle> characters;                  //!< エンティティ毎のCharacterVirtual
+
+        Tsukino::ECS::EventBus*                      eventBus = nullptr;    //!< 衝突イベントの発行先（メインスレッドからのみ使う）
+        std::vector<MyContactListener::PendingContact> drainedContacts;     //!< 接触の取り出し用バッファ（毎フレーム使い回す）
     };
 
     //-------------------------------------------------------------
@@ -378,8 +389,11 @@ namespace Tsukino::BuiltIn::ECS {
             cMaxBodies, cNumBodyMutexes, cMaxBodyPairs, cMaxContactConstraints, m_impl->bpLayerInterface, m_impl->objVsBpFilter, m_impl->objPairFilter);
 
         m_impl->contactListener = new MyContactListener();
-        // ContactListenerにイベントバスの参照を渡す
-        m_impl->contactListener->eventBus = &eventBus;
+        //-------------------------------------------------------------
+        // イベントバスは ContactListener ではなく Impl が持つ。
+        // 発行はワーカースレッドではなくメインスレッド（Update の末尾）で行うため。
+        //-------------------------------------------------------------
+        m_impl->eventBus = &eventBus;
         m_impl->physicsSystem->SetContactListener(m_impl->contactListener);
         m_impl->characterContactListener.physicsSystem = m_impl->physicsSystem;
 
@@ -507,7 +521,6 @@ namespace Tsukino::BuiltIn::ECS {
         //-------------------------------------------------------------
         ConnectRegistrySignals(registry);
 
-        m_impl->contactListener->registry = &registry;
         JPH::BodyInterface& bodyInterface = m_impl->physicsSystem->GetBodyInterface();
 
         auto view = registry.View<CollisionComponent>();
@@ -1035,6 +1048,58 @@ namespace Tsukino::BuiltIn::ECS {
             }
         }
 #endif    // TSUKINO_DEBUG_COLLISION_DRAW
+
+        //-------------------------------------------------------------
+        // 接触の後処理（メインスレッド）
+        //
+        // Jolt は OnContactAdded を物理ジョブスレッドから並行に呼ぶ。
+        // EventBus も EnTT のレジストリもスレッドセーフではないので、
+        // コールバック側では接触を積むだけにしてあり、
+        // イベント発行とレジストリ操作はここまで遅らせている。
+        //-------------------------------------------------------------
+        m_impl->contactListener->DrainContacts(m_impl->drainedContacts);
+
+        //-------------------------------------------------------------
+        // Kinematic ボディの速度を接触法線で反射させる
+        // （Dynamic は Jolt 側が解決するため対象外）
+        //-------------------------------------------------------------
+        auto applyReflection = [&registry](entt::entity e, const hlslpp::float3& n) {
+            if(!registry.HasComponent<RigidbodyComponent>(e))
+                return;
+
+            auto& rb = registry.GetComponent<RigidbodyComponent>(e);
+            if(rb.type != RigidbodyType::Kinematic)
+                return;
+
+            hlslpp::float3 V   = rb.linearVelocity;
+            float          dot = hlslpp::dot(V, n);
+            if(dot < 0.0f)
+                rb.linearVelocity = V - 2.0f * dot * n;
+        };
+
+        for(const auto& contact : m_impl->drainedContacts) {
+            //-------------------------------------------------------------
+            // 接触してから今ここへ来るまでの間にエンティティが破棄されている
+            // ことがあるため、触る前に生存を確認する
+            //-------------------------------------------------------------
+            if(!registry.IsValid(contact.entityA) || !registry.IsValid(contact.entityB))
+                continue;
+
+            const hlslpp::float3 reverseNormal = hlslpp::float3(-contact.normal.x, -contact.normal.y, -contact.normal.z);
+
+            // イベント発行（衝突の事実を双方向に通知）
+            if(m_impl->eventBus) {
+                // Aから見たBへのイベント
+                m_impl->eventBus->Publish(CollisionEnterEvent{contact.entityA, contact.entityB, contact.normal});
+                // Bから見たAへのイベント
+                m_impl->eventBus->Publish(CollisionEnterEvent{contact.entityB, contact.entityA, reverseNormal});
+            }
+
+            applyReflection(contact.entityA, contact.normal);
+            applyReflection(contact.entityB, reverseNormal);
+        }
+
+        m_impl->drainedContacts.clear();
     }
 
 }    // namespace Tsukino::BuiltIn::ECS
