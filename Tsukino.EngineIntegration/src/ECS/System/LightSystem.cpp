@@ -1,9 +1,9 @@
 ﻿//--------------------------------------------------------------
-//! @file   DirectionalLightSystem.cpp
+//! @file   LightSystem.cpp
 //! @brief  ライトシステムの実装
 //! @author 山﨑愛
 //--------------------------------------------------------------
-#include <Tsukino/EngineIntegration/ECS/System/DirectionalLightSystem.hpp>
+#include <Tsukino/EngineIntegration/ECS/System/LightSystem.hpp>
 #include <Tsukino/EngineIntegration/EngineContext.hpp>
 #include <Tsukino/BuiltIn/BuiltInAssets.hpp>
 #include <Tsukino/BuiltIn/ECS/Component/DirectionalLightComponent.hpp>
@@ -61,8 +61,13 @@ namespace Tsukino::BuiltIn::ECS {
             if(!light.enabled)
                 return;
 
+            // ワールド座標はworldMatrixの平行移動成分から取る。
+            // transform.positionを直読みすると親の変換が乗らないため、
+            // 親に追従するライト（プレイヤーが持つ松明など）が原点付近に取り残される。
+            hlslpp::float3 worldPos = transform.worldMatrix[3].xyz;
+
             Tsukino::Renderer::GPULight gpuLight{};
-            gpuLight.positionRange  = hlslpp::float4(transform.position.x, transform.position.y, transform.position.z, light.range);
+            gpuLight.positionRange  = hlslpp::float4(worldPos.x, worldPos.y, worldPos.z, light.range);
             gpuLight.colorIntensity = hlslpp::float4(light.color.x, light.color.y, light.color.z, light.intensity);
             gpuLight.directionType  = hlslpp::float4(0.0f, 0.0f, 0.0f, 0.0f);    // 0 = Point
             gpuLight.spotParams     = hlslpp::float4(0.0f, 0.0f, 0.0f, 0.0f);
@@ -75,13 +80,17 @@ namespace Tsukino::BuiltIn::ECS {
             if(!light.enabled)
                 return;
 
-            hlslpp::float3 forward = hlslpp::mul(transform.rotation, hlslpp::float3(0.0f, 0.0f, 1.0f));
+            // 位置・向きともworldMatrixから取る（Point側と同じ理由で親追従に対応するため）。
+            // 前方はworldMatrixの第3行（ローカル+Z基底）。スケールが乗っている場合が
+            // あるので正規化してから渡す。
+            hlslpp::float3 worldPos = transform.worldMatrix[3].xyz;
+            hlslpp::float3 forward  = hlslpp::normalize(hlslpp::float3(transform.worldMatrix[2].xyz));
 
             float cosInner = std::cos(light.innerConeDeg * kDegToRad);
             float cosOuter = std::cos(light.outerConeDeg * kDegToRad);
 
             Tsukino::Renderer::GPULight gpuLight{};
-            gpuLight.positionRange  = hlslpp::float4(transform.position.x, transform.position.y, transform.position.z, light.range);
+            gpuLight.positionRange  = hlslpp::float4(worldPos.x, worldPos.y, worldPos.z, light.range);
             gpuLight.colorIntensity = hlslpp::float4(light.color.x, light.color.y, light.color.z, light.intensity);
             gpuLight.directionType  = hlslpp::float4(forward.x, forward.y, forward.z, 1.0f);    // 1 = Spot
             gpuLight.spotParams     = hlslpp::float4(cosInner, cosOuter, 0.0f, 0.0f);

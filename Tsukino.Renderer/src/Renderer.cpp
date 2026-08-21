@@ -76,10 +76,10 @@ namespace Tsukino::Renderer {
             return false;    // 定数バッファの作成に失敗した場合は false を返す
 
         //------------------------------------------------------------
-        // 白テクスチャの作成
+        // マテリアル用デフォルトテクスチャ（白・フラット法線）の作成
         //------------------------------------------------------------
-        if(!CreateWhiteTexture())
-            return false;    // 白テクスチャの作成に失敗した場合は false を返す
+        if(!CreateDefaultTextures())
+            return false;    // デフォルトテクスチャの作成に失敗した場合は false を返す
 
         //------------------------------------------------------------
         // デバッグ用バッファの作成
@@ -888,6 +888,13 @@ namespace Tsukino::Renderer {
     }
 
     //------------------------------------------------------------
+    //! @brief フラット法線テクスチャのSRVを取得
+    //------------------------------------------------------------
+    ID3D11ShaderResourceView* Renderer::GetFlatNormalTextureSRV() {
+        return m_flatNormalSRV.Get();
+    }
+
+    //------------------------------------------------------------
     //! @brief 大気散乱パラメータのセット
     //------------------------------------------------------------
     void Renderer::SetSkyParameters(const CBufferSky& sky) {
@@ -1282,9 +1289,12 @@ namespace Tsukino::Renderer {
     }
 
     //------------------------------------------------------------
-    //! @brief 白テクスチャの作成（1x1の白いピクセル）
+    //! @brief 1x1のデフォルトテクスチャの作成
     //------------------------------------------------------------
-    bool Renderer::CreateWhiteTexture() {
+    bool Renderer::Create1x1Texture(u32                                               rgba,
+                                    Microsoft::WRL::ComPtr<ID3D11Texture2D>&          outTex,
+                                    Microsoft::WRL::ComPtr<ID3D11ShaderResourceView>& outSRV,
+                                    const char*                                       debugName) {
         ID3D11Device* device = m_graphicsContext.GetDevice();
 
         D3D11_TEXTURE2D_DESC desc{};
@@ -1297,20 +1307,36 @@ namespace Tsukino::Renderer {
         desc.Usage            = D3D11_USAGE_IMMUTABLE;
         desc.BindFlags        = D3D11_BIND_SHADER_RESOURCE;
 
-        uint32_t               white = 0xFFFFFFFF;
-        D3D11_SUBRESOURCE_DATA initData{&white, 4, 0};
+        D3D11_SUBRESOURCE_DATA initData{&rgba, 4, 0};
 
-        HRESULT hr = device->CreateTexture2D(&desc, &initData, m_whiteTex.GetAddressOf());
+        HRESULT hr = device->CreateTexture2D(&desc, &initData, outTex.GetAddressOf());
         if(FAILED(hr)) {
-            Tsukino::Core::Log::Error("Failed to create white texture.");
+            Tsukino::Core::Log::Error(std::string("Failed to create default texture: ") + debugName + ".");
             return false;
         }
 
-        hr = device->CreateShaderResourceView(m_whiteTex.Get(), nullptr, m_whiteSRV.GetAddressOf());
+        hr = device->CreateShaderResourceView(outTex.Get(), nullptr, outSRV.GetAddressOf());
         if(FAILED(hr)) {
-            Tsukino::Core::Log::Error("Failed to create white texture SRV.");
+            Tsukino::Core::Log::Error(std::string("Failed to create default texture SRV: ") + debugName + ".");
             return false;
         }
+
+        return true;
+    }
+
+    //------------------------------------------------------------
+    //! @brief マテリアル用デフォルトテクスチャの作成
+    //! @note  R8G8B8A8_UNORM はメモリ上のバイト順が R,G,B,A なので、
+    //!        リトルエンディアンのu32では 0xAABBGGRR の並びになる。
+    //------------------------------------------------------------
+    bool Renderer::CreateDefaultTextures() {
+        // 白 (1,1,1,1)：アルベド/MR/エミッシブ/AOの未設定時。乗算で恒等元になる
+        if(!Create1x1Texture(0xFFFFFFFF, m_whiteTex, m_whiteSRV, "white"))
+            return false;
+
+        // フラット法線：接空間の(0,0,1) → R=0x80, G=0x80, B=0xFF, A=0xFF
+        if(!Create1x1Texture(0xFFFF8080, m_flatNormalTex, m_flatNormalSRV, "flat normal"))
+            return false;
 
         return true;
     }

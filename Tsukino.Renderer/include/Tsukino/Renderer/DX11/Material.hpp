@@ -12,8 +12,9 @@ namespace Tsukino::Renderer {
     //! @class  Material
     //! @brief  マテリアルクラス
     //! @note   テクスチャは t0〜t4（Albedo/Normal/MetallicRoughness/Emissive/AO）の
-    //!         5枚まで保持できる。未設定のスロットは nullptr のまま返し、
-    //!         GraphicsContext::SetMaterial 側でデフォルトテクスチャに差し替える。
+    //!         5枚まで保持できる。未設定のスロットは nullptr のまま SetMaterial が
+    //!         バインドするが、null SRV はサンプル結果が0になり法線マップ等が破綻するため、
+    //!         デフォルトテクスチャへの差し替えは積む側（ModelSystem）の責務とする。
     //--------------------------------------------------------------
     class Material {
     public:

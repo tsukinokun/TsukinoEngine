@@ -21,6 +21,7 @@
 #include <Tsukino/Engine/Asset/Texture/TextureAsset.hpp>
 #include <Tsukino/Renderer/Renderer.hpp>
 #include <Tsukino/Renderer/DX11/MeshBuffer.hpp>
+#include <Tsukino/Renderer/ShaderSlots.hpp>
 #include <Tsukino/GraphicsCommon/Model/ModelData.hpp>
 #include <Tsukino/GraphicsCommon/Vertex/VertexFormat.hpp>
 
@@ -132,7 +133,20 @@ namespace Tsukino::BuiltIn::ECS {
                     cbMat.roughness = 0.5f;
                     cbMat.specular  = 0.5f;
 
-                    ID3D11ShaderResourceView* srv = nullptr;
+                    //--------------------------------------------------------------
+                    // マテリアルテクスチャ（t0〜t4）の解決
+                    // 未設定のスロットはここでは nullptr のままにしておき、
+                    // Material構築時にデフォルトテクスチャへフォールバックさせる。
+                    // null SRV をそのままバインドするとサンプル結果が0になり、
+                    // 特に法線マップは DecodeNormal が normalize(-1,-1,-1) になって破綻する。
+                    //--------------------------------------------------------------
+                    ID3D11ShaderResourceView* albedoSRV   = nullptr;
+                    ID3D11ShaderResourceView* normalSRV   = nullptr;
+                    ID3D11ShaderResourceView* mrSRV       = nullptr;
+                    ID3D11ShaderResourceView* emissiveSRV = nullptr;
+                    ID3D11ShaderResourceView* aoSRV       = nullptr;
+
+                    Tsukino::GraphicsCommon::ShadingModel shadingModel = Tsukino::GraphicsCommon::ShadingModel::PBR;
 
                     if(meshData.materialIndex < modelAsset->materialHandles.size()) {
                         auto matHandle    = modelAsset->materialHandles[meshData.materialIndex];
@@ -147,13 +161,26 @@ namespace Tsukino::BuiltIn::ECS {
                             cbMat.roughness = matAsset->data.roughness;
                             cbMat.specular  = matAsset->data.specular;
 
-                            if(matAsset->albedoHandle.IsValid()) {
-                                auto texAssetBase = ctx->assetManager->Get(matAsset->albedoHandle);
-                                if(texAssetBase) {
-                                    auto texAsset = std::static_pointer_cast<Tsukino::Asset::TextureAsset>(texAssetBase);
-                                    srv           = ctx->renderer->GetTextureSRV(*texAsset);
-                                }
-                            }
+                            shadingModel = matAsset->data.shadingModel;
+
+                            // AssetHandle から SRV を引く（無効ハンドル・未ロードは nullptr）
+                            auto resolveSRV = [&](const Tsukino::Asset::AssetHandle& handle) -> ID3D11ShaderResourceView* {
+                                if(!handle.IsValid())
+                                    return nullptr;
+
+                                auto texAssetBase = ctx->assetManager->Get(handle);
+                                if(!texAssetBase)
+                                    return nullptr;
+
+                                auto texAsset = std::static_pointer_cast<Tsukino::Asset::TextureAsset>(texAssetBase);
+                                return ctx->renderer->GetTextureSRV(*texAsset);
+                            };
+
+                            albedoSRV   = resolveSRV(matAsset->albedoHandle);
+                            normalSRV   = resolveSRV(matAsset->normalHandle);
+                            mrSRV       = resolveSRV(matAsset->metallicRoughnessHandle);
+                            emissiveSRV = resolveSRV(matAsset->emissiveHandle);
+                            aoSRV       = resolveSRV(matAsset->aoHandle);
                         }
                     }
 
@@ -172,17 +199,8 @@ namespace Tsukino::BuiltIn::ECS {
                     Tsukino::Asset::AssetHandle vsHandle = isSkeletal ? ctx->builtinAssets->shaders.modelVS : ctx->builtinAssets->shaders.staticModelVS;
                     Tsukino::Asset::AssetHandle psHandle = ctx->builtinAssets->shaders.gbufferPS;
 
-                    // ShadingModel を一度だけ取得
-                    Tsukino::GraphicsCommon::ShadingModel shadingModel = Tsukino::GraphicsCommon::ShadingModel::PBR;
-                    if(meshData.materialIndex < modelAsset->materialHandles.size()) {
-                        auto matAssetBase = ctx->assetManager->Get(modelAsset->materialHandles[meshData.materialIndex]);
-                        if(matAssetBase && matAssetBase->GetType() == Tsukino::Asset::AssetType::Material) {
-                            auto matAsset = std::static_pointer_cast<Tsukino::Asset::MaterialAsset>(matAssetBase);
-                            shadingModel  = matAsset->data.shadingModel;
-                        }
-                    }
-
                     // ShadingModel に応じて PS と BlendMode を切り替え
+                    // （shadingModel はテクスチャ解決と同じ MaterialAsset 取得で拾っている）
                     Tsukino::Renderer::BlendMode blendMode = Tsukino::Renderer::BlendMode::Opaque;
                     if(shadingModel == Tsukino::GraphicsCommon::ShadingModel::Water) {
                         psHandle  = ctx->builtinAssets->shaders.waterPS;
@@ -210,7 +228,20 @@ namespace Tsukino::BuiltIn::ECS {
                     Tsukino::Renderer::Material mat{};
                     mat.SetPipeline(pipeline.get());
                     mat.SetSampler(ctx->renderer->GetSampler(Tsukino::GraphicsCommon::SamplerType::AnisotropicWrap));
-                    mat.SetTexture(srv ? srv : ctx->renderer->GetWhiteTextureSRV());
+
+                    //--------------------------------------------------------------
+                    // t0〜t4 をバインド。未設定はデフォルトへフォールバックする。
+                    //   白        : シェーダー側で cbuffer 定数との乗算になるため恒等元
+                    //   フラット法線: 適用しても頂点法線がそのまま保たれる
+                    //--------------------------------------------------------------
+                    ID3D11ShaderResourceView* whiteSRV      = ctx->renderer->GetWhiteTextureSRV();
+                    ID3D11ShaderResourceView* flatNormalSRV = ctx->renderer->GetFlatNormalTextureSRV();
+
+                    mat.SetTexture(Tsukino::Renderer::SRVSlot::Albedo, albedoSRV ? albedoSRV : whiteSRV);
+                    mat.SetTexture(Tsukino::Renderer::SRVSlot::Normal, normalSRV ? normalSRV : flatNormalSRV);
+                    mat.SetTexture(Tsukino::Renderer::SRVSlot::MetallicRoughness, mrSRV ? mrSRV : whiteSRV);
+                    mat.SetTexture(Tsukino::Renderer::SRVSlot::Emissive, emissiveSRV ? emissiveSRV : whiteSRV);
+                    mat.SetTexture(Tsukino::Renderer::SRVSlot::AO, aoSRV ? aoSRV : whiteSRV);
 
                     m_materialBuffer.push_back(mat);
 

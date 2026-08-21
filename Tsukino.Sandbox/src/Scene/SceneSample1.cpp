@@ -23,7 +23,7 @@
 #include <Tsukino/EngineIntegration/ECS/System/PhysicsSystem.hpp>
 #include <Tsukino/EngineIntegration/ECS/System/ModelSystem.hpp>
 #include <Tsukino/EngineIntegration/ECS/System/AnimationSystem.hpp>
-#include <Tsukino/EngineIntegration/ECS/System/DirectionalLightSystem.hpp>
+#include <Tsukino/EngineIntegration/ECS/System/LightSystem.hpp>
 #include <Tsukino/EngineIntegration/ECS/System/SkyAtmosphereSystem.hpp>
 #include <Tsukino/EngineIntegration/ECS/System/DebugCameraSystem.hpp>
 #include <Tsukino/EngineIntegration/ECS/System/EffectSystem.hpp>
@@ -119,7 +119,7 @@ namespace Tsukino::Sandbox {
         // コリジョンの更新は最後に行う (優先度 12)
         m_scene.AddSystem(std::make_shared<Tsukino::BuiltIn::ECS::PhysicsSystem>(eventBus), 12);
         // ライトの更新 (優先度 13)
-        m_scene.AddSystem(std::make_shared<Tsukino::BuiltIn::ECS::DirectionalLightSystem>(), 13);
+        m_scene.AddSystem(std::make_shared<Tsukino::BuiltIn::ECS::LightSystem>(), 13);
         // スカイアトモスフィアの更新 (優先度 14)
         m_scene.AddSystem(std::make_shared<Tsukino::BuiltIn::ECS::SkyAtmosphereSystem>(), 14);
 

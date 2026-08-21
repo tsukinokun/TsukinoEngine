@@ -23,10 +23,18 @@ cbuffer CBufferMaterial : register(b2)
 };
 
 //--------------------------------------------------------------
-//! @brief アルベドテクスチャ (t0)
+//! @brief マテリアルテクスチャ (t0〜t4)
+//! @note  未設定スロットはModelSystemがデフォルト（白 / フラット法線）へ
+//!        フォールバック済みなので、ここでは常に有効なテクスチャが来る前提でよい。
+//!        サンプラーはSetMaterialがs0に1枚しかバインドしないため全スロットで共用する。
 //--------------------------------------------------------------
-Texture2D     albedoTexture : register(t0);
-SamplerState  albedoSampler : register(s0);
+Texture2D albedoTexture : register(t0);
+Texture2D normalTexture : register(t1);
+Texture2D mrTexture : register(t2);        // G=roughness, B=metallic（glTF慣例）
+Texture2D emissiveTexture : register(t3);
+Texture2D aoTexture : register(t4);
+
+SamplerState albedoSampler : register(s0);
 
 struct PSInput
 {
@@ -43,7 +51,7 @@ struct PSOutput
 {
     float4 albedo      : SV_TARGET0;    // rgb: albedo, a: 未使用
     float4 normal      : SV_TARGET1;    // rgb: ワールド法線(エンコード済み), a: 未使用（将来のShadingModel ID等に予約）
-    float4 material    : SV_TARGET2;    // r: metallic, g: roughness, b: specular, a: AO（Phase 3でaoHandle対応まで1.0固定）
+    float4 material    : SV_TARGET2;    // r: metallic, g: roughness, b: specular, a: AO
     float4 emissiveOut : SV_TARGET3;    // rgb: emissive + リム発光 + 全体白発光, a: 未使用
     float4 worldPosOut : SV_TARGET4;    // rgb: ワールド座標（頂点シェーダー補間値そのまま）, a: 未使用
 };
@@ -61,7 +69,24 @@ PSOutput PSMain(PSInput input)
     float4 albedoSample = albedoTexture.Sample(albedoSampler, input.uv);
     float3 albedo        = ACES(albedoSample.rgb * baseColor.rgb);
 
-    float3 N = normalize(input.normal);
+    //----------------------------------------------------------
+    // 法線
+    // ノーマルマップ未設定時はフラット法線(0,0,1)が来るので、
+    // ApplyNormalMapを通しても頂点法線がそのまま保たれる（分岐不要）。
+    //----------------------------------------------------------
+    float3 vertexN      = normalize(input.normal);
+    float3 tangentN     = DecodeNormal(normalTexture.Sample(albedoSampler, input.uv).rgb);
+    float3 N            = ApplyNormalMap(vertexN, input.worldPos, input.uv, tangentN);
+
+    //----------------------------------------------------------
+    // メタリック・ラフネス・AO
+    // テクスチャ × cbuffer定数。未設定時は白(=1.0)が来るので定数値がそのまま残る。
+    // MRマップのチャンネル割り当てはglTF慣例（G=roughness, B=metallic）。
+    //----------------------------------------------------------
+    float4 mrSample = mrTexture.Sample(albedoSampler, input.uv);
+    float  met      = metallic * mrSample.b;
+    float  rough    = roughness * mrSample.g;
+    float  ao       = aoTexture.Sample(albedoSampler, input.uv).r;
 
     //----------------------------------------------------------
     // リム発光・全体白発光（Model.ps.hlslのハイライト演出と同じ式）
@@ -71,11 +96,12 @@ PSOutput PSMain(PSInput input)
     float  NdotV = saturate(dot(N, V)) + 1e-5f;
     float  rim   = pow(saturate(1.0f - NdotV), rimParams.x);
 
-    float3 emissiveTotal = emissive + rimColor.rgb * rim * rimColor.w + rimParams.y;
+    float3 emissiveSample = emissiveTexture.Sample(albedoSampler, input.uv).rgb;
+    float3 emissiveTotal  = emissive * emissiveSample + rimColor.rgb * rim * rimColor.w + rimParams.y;
 
     output.albedo      = float4(albedo, albedoSample.a * baseColor.a);
     output.normal      = float4(EncodeNormal(N), 0.0f);
-    output.material    = float4(metallic, roughness, specular, 1.0f);
+    output.material    = float4(met, rough, specular, ao);
     output.emissiveOut = float4(emissiveTotal, 0.0f);
     output.worldPosOut = float4(input.worldPos, 0.0f);
 

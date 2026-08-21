@@ -28,6 +28,8 @@
 #include <Tsukino/BuiltIn/ECS/Serialization/RigidbodyComponentSerialization.hpp>
 #include <Tsukino/BuiltIn/ECS/Serialization/EffectComponentSerialization.hpp>
 #include <Tsukino/BuiltIn/ECS/Serialization/DirectionalLightComponentSerialization.hpp>
+#include <Tsukino/BuiltIn/ECS/Serialization/PointLightComponentSerialization.hpp>
+#include <Tsukino/BuiltIn/ECS/Serialization/SpotLightComponentSerialization.hpp>
 #include <Tsukino/BuiltIn/ECS/Serialization/SkyAtmosphereComponentSerialization.hpp>
 #include <Tsukino/BuiltIn/ECS/Serialization/DebugCameraComponentSerialization.hpp>
 #include <Tsukino/BuiltIn/ECS/Serialization/ModelComponentSerialization.hpp>
@@ -245,7 +247,6 @@ namespace Tsukino::EngineIntegration {
         m_prefabFactory->RegisterComponent<Tsukino::BuiltIn::ECS::RigidbodyComponent>("RigidbodyComponent");
         m_prefabFactory->RegisterComponent<Tsukino::BuiltIn::ECS::EffectComponent>("EffectComponent");
         m_prefabFactory->RegisterComponent<Tsukino::BuiltIn::ECS::DirectionalLightComponent>("DirectionalLightComponent");
-        // PointLight/SpotLightはDirectionalLightと異なりシリアライザ未実装（デフォルト値でのアタッチのみ対応）
         m_prefabFactory->RegisterComponent<Tsukino::BuiltIn::ECS::PointLightComponent>("PointLightComponent");
         m_prefabFactory->RegisterComponent<Tsukino::BuiltIn::ECS::SpotLightComponent>("SpotLightComponent");
         m_prefabFactory->RegisterComponent<Tsukino::BuiltIn::ECS::SkyAtmosphereComponent>("SkyAtmosphereComponent");

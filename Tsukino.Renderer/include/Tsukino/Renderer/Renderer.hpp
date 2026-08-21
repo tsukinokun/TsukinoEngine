@@ -244,8 +244,20 @@ namespace Tsukino::Renderer {
         //------------------------------------------------------------
         //! @brief 白テクスチャのSRVを取得
         //! @return ID3D11ShaderResourceViewへのポインタ
+        //! @note  マテリアルテクスチャ未設定時のデフォルト。
+        //!        アルベド/MR/エミッシブ/AOはいずれもcbuffer定数との「乗算」で
+        //!        合成するため、白(=1.0)を掛ければ定数値がそのまま残る。
         //------------------------------------------------------------
         ID3D11ShaderResourceView* GetWhiteTextureSRV();
+
+        //------------------------------------------------------------
+        //! @brief フラット法線テクスチャのSRVを取得
+        //! @return ID3D11ShaderResourceViewへのポインタ
+        //! @note  ノーマルマップ未設定時のデフォルト。接空間の(0,0,1)を
+        //!        エンコードした値(R=0x80,G=0x80,B=0xFF)で、これを適用しても
+        //!        頂点法線がそのまま保たれる。白を使うと法線が斜めにずれる。
+        //------------------------------------------------------------
+        ID3D11ShaderResourceView* GetFlatNormalTextureSRV();
 
         //------------------------------------------------------------
         //! @brief 大気散乱パラメータのセット
@@ -355,8 +367,28 @@ namespace Tsukino::Renderer {
         //! @brief シャドウ用シェーダーと入力レイアウトの作成
         //! @return true: 作成成功, false: 作成失敗
         //------------------------------------------------------------
+        //------------------------------------------------------------
+        //! @brief 1x1のデフォルトテクスチャを作成する
+        //! @param rgba [in] ピクセル値。R8G8B8A8_UNORMはメモリ上のバイト順が
+        //!                  R,G,B,Aなので、リトルエンディアンでは0xAABBGGRRと書く
+        //!                  （例: フラット法線 R=0x80,G=0x80,B=0xFF,A=0xFF → 0xFFFF8080）
+        //! @param outTex [out] 作成したテクスチャ
+        //! @param outSRV [out] 作成したSRV
+        //! @param debugName [in] 失敗時のログに出す名前
+        //! @return true: 作成成功, false: 作成失敗
+        //------------------------------------------------------------
         [[nodiscard]]
-        bool CreateWhiteTexture();
+        bool Create1x1Texture(u32                                               rgba,
+                              Microsoft::WRL::ComPtr<ID3D11Texture2D>&          outTex,
+                              Microsoft::WRL::ComPtr<ID3D11ShaderResourceView>& outSRV,
+                              const char*                                       debugName);
+
+        //------------------------------------------------------------
+        //! @brief マテリアル用デフォルトテクスチャ（白・フラット法線）の作成
+        //! @return true: 作成成功, false: 作成失敗
+        //------------------------------------------------------------
+        [[nodiscard]]
+        bool CreateDefaultTextures();
 
         //------------------------------------------------------------
         //! @brief スカイパスの実行
@@ -439,9 +471,11 @@ namespace Tsukino::Renderer {
 
         std::unique_ptr<DirectX::CommonStates> m_commonStatesTK;
 
-        // 白テクスチャ用
+        // マテリアルテクスチャ未設定時のデフォルト
         Microsoft::WRL::ComPtr<ID3D11Texture2D>          m_whiteTex;
         Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> m_whiteSRV;
+        Microsoft::WRL::ComPtr<ID3D11Texture2D>          m_flatNormalTex;
+        Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> m_flatNormalSRV;
 
         // スカイ用リソース
         ComPtr<ID3D11VertexShader> m_skyVS;             //!< スカイ用頂点シェーダー

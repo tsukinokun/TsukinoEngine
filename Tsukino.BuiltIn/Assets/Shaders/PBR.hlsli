@@ -138,4 +138,38 @@ float3 ReconstructWorldPos(float depth, float2 uv, matrix invViewProjMat)
     return world.xyz / world.w;
 }
 
+//--------------------------------------------------------------
+//! @brief 頂点タンジェント無しでノーマルマップを適用する
+//! @param N             補間済みワールド頂点法線（正規化済み）
+//! @param worldPos      ピクセルのワールド座標
+//! @param uv            ピクセルのUV
+//! @param tangentNormal ノーマルマップのサンプル値をデコードした接空間法線
+//! @return ノーマルマップを適用したワールド法線
+//! @note  画面空間微分(ddx/ddy)からTBNを組み立てる方式。
+//!        頂点にTANGENT属性を足すとVertexFormat・入力レイアウト・ModelImporter・
+//!        .tsmキャッシュの全再生成まで波及するため、PS内で完結するこの方式を採る。
+//!        UVシームやミラーUVの境界では1ピクセル分だけ精度が落ちるが、
+//!        頂点タンジェントを持たないアセットでも動作する利点が大きい。
+//--------------------------------------------------------------
+float3 ApplyNormalMap(float3 N, float3 worldPos, float2 uv, float3 tangentNormal)
+{
+    // ワールド座標とUVの画面空間微分から、UVに沿った基底を求める
+    float3 dp1 = ddx(worldPos);
+    float3 dp2 = ddy(worldPos);
+    float2 duv1 = ddx(uv);
+    float2 duv2 = ddy(uv);
+
+    // 法線に直交する成分だけを取り出して連立を解く
+    float3 dp2perp = cross(dp2, N);
+    float3 dp1perp = cross(N, dp1);
+    float3 T       = dp2perp * duv1.x + dp1perp * duv2.x;
+    float3 B       = dp2perp * duv1.y + dp1perp * duv2.y;
+
+    // 縮退（UVが潰れている面）でゼロ除算しないよう最大成分で正規化する
+    float invmax = rsqrt(max(dot(T, T), max(dot(B, B), 1e-8f)));
+
+    float3x3 TBN = float3x3(T * invmax, B * invmax, N);
+    return normalize(mul(tangentNormal, TBN));
+}
+
 #endif    // TSUKINO_PBR_HLSLI
