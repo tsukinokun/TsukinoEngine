@@ -32,6 +32,7 @@
 #include <Tsukino/BuiltIn/ECS/Serialization/PointLightComponentSerialization.hpp>
 #include <Tsukino/BuiltIn/ECS/Serialization/SpotLightComponentSerialization.hpp>
 #include <Tsukino/BuiltIn/ECS/Serialization/SkyAtmosphereComponentSerialization.hpp>
+#include <Tsukino/BuiltIn/ECS/Serialization/FogComponentSerialization.hpp>
 #include <Tsukino/BuiltIn/ECS/Serialization/MotionBlurComponentSerialization.hpp>
 #include <Tsukino/BuiltIn/ECS/Serialization/DebugCameraComponentSerialization.hpp>
 #include <Tsukino/BuiltIn/ECS/Serialization/ModelComponentSerialization.hpp>
@@ -219,6 +220,7 @@ namespace Tsukino::EngineIntegration {
         auto shadowPSAsset         = std::static_pointer_cast<Tsukino::Asset::ShaderAsset>(m_assetManager->Get(m_builtinAssets->shaders.shadowPS));
         auto lightingPSAsset       = std::static_pointer_cast<Tsukino::Asset::ShaderAsset>(m_assetManager->Get(m_builtinAssets->shaders.lightingPS));
         auto motionBlurPSAsset     = std::static_pointer_cast<Tsukino::Asset::ShaderAsset>(m_assetManager->Get(m_builtinAssets->shaders.motionBlurPS));
+        auto fogPSAsset            = std::static_pointer_cast<Tsukino::Asset::ShaderAsset>(m_assetManager->Get(m_builtinAssets->shaders.fogPS));
 
         //--------------------------------------------------------------
         // レンダラー生成
@@ -233,6 +235,7 @@ namespace Tsukino::EngineIntegration {
         shaderSet.shadowPS         = shadowPSAsset.get();
         shaderSet.lightingPS       = lightingPSAsset.get();
         shaderSet.motionBlurPS     = motionBlurPSAsset.get();
+        shaderSet.fogPS            = fogPSAsset.get();
 
         if(!m_renderer->Initialize(m_window->GetHWND(), m_window->GetWidth(), m_window->GetHeight(), shaderSet)) {
             return false;
@@ -255,6 +258,7 @@ namespace Tsukino::EngineIntegration {
         m_prefabFactory->RegisterComponent<Tsukino::BuiltIn::ECS::SpotLightComponent>("SpotLightComponent");
         m_prefabFactory->RegisterComponent<Tsukino::BuiltIn::ECS::SkyAtmosphereComponent>("SkyAtmosphereComponent");
         m_prefabFactory->RegisterComponent<Tsukino::BuiltIn::ECS::MotionBlurComponent>("MotionBlurComponent");
+        m_prefabFactory->RegisterComponent<Tsukino::BuiltIn::ECS::FogComponent>("FogComponent");
         m_prefabFactory->RegisterComponent<Tsukino::BuiltIn::ECS::DebugCameraComponent>("DebugCameraComponent");
         // タグのみのコンポーネントはシリアライズ対応不要（アタッチのみでよい）
         m_prefabFactory->RegisterComponent<Tsukino::BuiltIn::ECS::DebugCameraTag>("DebugCameraTag");

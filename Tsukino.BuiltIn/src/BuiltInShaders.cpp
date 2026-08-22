@@ -37,5 +37,6 @@ namespace Tsukino::BuiltIn {
         gbufferPS      = assetManager->Load(root / "Tsukino.BuiltIn/Assets/Shaders/GBuffer.ps.hlsl");
         lightingPS     = assetManager->Load(root / "Tsukino.BuiltIn/Assets/Shaders/Lighting.ps.hlsl");
         motionBlurPS   = assetManager->Load(root / "Tsukino.BuiltIn/Assets/Shaders/MotionBlur.ps.hlsl");
+        fogPS          = assetManager->Load(root / "Tsukino.BuiltIn/Assets/Shaders/Fog.ps.hlsl");
     }
 }    // namespace Tsukino::BuiltIn

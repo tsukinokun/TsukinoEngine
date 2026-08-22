@@ -22,6 +22,8 @@ namespace Tsukino::Renderer {
 
         SkinningPrev = 7,    //!< b7 : 前フレームのボーン行列（CBufferSkinningPrev, 速度バッファ生成用。VS専用）
         MotionBlur   = 8,    //!< b8 : モーションブラーパラメータ（CBufferMotionBlur, ブラーパス用。PS専用）
+
+        Fog          = 9,    //!< b9 : フォグパラメータ（CBufferFog, フォグパス用。PS専用）
     };
 
     //--------------------------------------------------------------

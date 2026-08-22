@@ -115,6 +115,10 @@ namespace Tsukino::Renderer {
             Tsukino::Core::Log::Error("Renderer: Motion blur is disabled because its pixel shader could not be created.");
         }
 
+        if(!SetFogPipeline(shaders.fogPS)) {
+            Tsukino::Core::Log::Error("Renderer: Fog is disabled because its pixel shader could not be created.");
+        }
+
         return true;
     }
 
@@ -223,6 +227,16 @@ namespace Tsukino::Renderer {
         hr             = device->CreateBuffer(&desc, nullptr, m_motionBlurBuffer.GetAddressOf());
         if(FAILED(hr)) {
             Tsukino::Core::Log::Error("Failed to create motion blur constant buffer.");
+            return false;
+        }
+
+        //------------------------------------------------------------
+        // m_fogBuffer (b9) の作成
+        //------------------------------------------------------------
+        desc.ByteWidth = sizeof(Tsukino::Renderer::CBufferFog);
+        hr             = device->CreateBuffer(&desc, nullptr, m_fogBuffer.GetAddressOf());
+        if(FAILED(hr)) {
+            Tsukino::Core::Log::Error("Failed to create fog constant buffer.");
             return false;
         }
 
@@ -464,6 +478,15 @@ namespace Tsukino::Renderer {
         }
 
         //------------------------------------------------------------
+        // フォグパス（HDRバッファへ直接over合成）
+        //
+        // 不透明・空・半透明・水面がすべて描き終わったここで掛けることで、
+        // 3Dの絵すべてにフォグが乗る。UIとエフェクトはトーンマップ後に
+        // バックバッファへ直接描かれるため影響を受けない。
+        //------------------------------------------------------------
+        ExecuteFogPass();
+
+        //------------------------------------------------------------
         // モーションブラーパス（HDR → ポストプロセス用中間バッファ）
         //
         // 3Dの描画がすべて終わり、UI/エフェクトが乗る前のここで掛ける。
@@ -518,6 +541,11 @@ namespace Tsukino::Renderer {
         // 立ちっぱなしで残る問題が起きない（無駄なフルスクリーンパスの防止）。
         //------------------------------------------------------------
         m_motionBlurEnabled = false;
+
+        //------------------------------------------------------------
+        // フォグの有効フラグもフレーム単位で消す（理由はモーションブラーと同じ）
+        //------------------------------------------------------------
+        m_fogEnabled = false;
 
         m_graphicsContext.EndFrame();
     }
@@ -1141,6 +1169,34 @@ namespace Tsukino::Renderer {
     }
 
     //------------------------------------------------------------
+    //! @brief フォグパイプラインのセット
+    //------------------------------------------------------------
+    bool Renderer::SetFogPipeline(const Tsukino::Asset::ShaderAsset* ps) {
+        if(!ps) {
+            Tsukino::Core::Log::Error("Renderer::SetFogPipeline - shader is null.");
+            return false;
+        }
+
+        ID3D11Device* device = m_graphicsContext.GetDevice();
+
+        HRESULT hr = device->CreatePixelShader(ps->binary.data(), ps->binary.size(), nullptr, m_fogPS.GetAddressOf());
+        if(FAILED(hr)) {
+            Tsukino::Core::Log::Error("Failed to create fog pixel shader.");
+            return false;
+        }
+
+        m_hasFog = true;
+        return true;
+    }
+
+    //------------------------------------------------------------
+    //! @brief フォグパラメータのセット
+    //------------------------------------------------------------
+    void Renderer::SetFogParameters(const CBufferFog& params) {
+        m_fogData = params;
+    }
+
+    //------------------------------------------------------------
     //! @brief 点光源・スポットライト配列のセット
     //! @note  MAX_LIGHTS を超える分は切り捨て、初回のみ警告を出す
     //------------------------------------------------------------
@@ -1601,6 +1657,83 @@ namespace Tsukino::Renderer {
         // 深度ステートを元に戻す（HDRRenderTarget復帰後のWorld/Transparent/Water用）
         //----------------------------------------------------------
         context->OMSetDepthStencilState(m_commonStatesTK->DepthDefault(), 0);
+    }
+
+    //------------------------------------------------------------
+    //! @brief フォグパスの実行
+    //! @note  深度(t13)だけを読み、HDRバッファへプリマルチプライのover合成で
+    //!        書き込む。HDRをSRVとして読まないためRTVに張ったままでよく、
+    //!        ポストプロセス用中間バッファを消費しない（モーションブラーと
+    //!        取り合いにならない）。
+    //------------------------------------------------------------
+    void Renderer::ExecuteFogPass() {
+        if(!m_fogEnabled || !m_hasFog || !m_tonemapVS || !m_fogPS)
+            return;
+
+        ID3D11DeviceContext* context = m_graphicsContext.GetContext();
+
+        //----------------------------------------------------------
+        // HDRのみをRTVにバインド（深度をSRVとして読むためDSVは外す）
+        //----------------------------------------------------------
+        m_graphicsContext.BindHDRTargetOnly();
+
+        //----------------------------------------------------------
+        // 深度(t13)とポイントサンプラー(s9)をバインド
+        //----------------------------------------------------------
+        constexpr UINT            depthSRVSlot = static_cast<UINT>(SRVSlot::GBufferDepth);
+        ID3D11ShaderResourceView* depthSRV     = m_graphicsContext.GetDepthSRV();
+        context->PSSetShaderResources(depthSRVSlot, 1, &depthSRV);
+
+        ID3D11SamplerState* pointClamp         = m_samplers[static_cast<size_t>(Tsukino::GraphicsCommon::SamplerType::PointClamp)].Get();
+        constexpr UINT      gbufferSamplerSlot = static_cast<UINT>(SamplerSlot::GBuffer);
+        context->PSSetSamplers(gbufferSamplerSlot, 1, &pointClamp);
+
+        //----------------------------------------------------------
+        // Scene (b0) をバインド（invViewProj・cameraPos・lightDirを使う）
+        //----------------------------------------------------------
+        constexpr UINT sceneCBSlot = static_cast<UINT>(CBSlot::Scene);
+        context->PSSetConstantBuffers(sceneCBSlot, 1, m_sceneBuffer.GetAddressOf());
+
+        //----------------------------------------------------------
+        // パラメータ (b9) を更新してバインド
+        //----------------------------------------------------------
+        context->UpdateSubresource(m_fogBuffer.Get(), 0, nullptr, &m_fogData, 0, 0);
+        constexpr UINT fogCBSlot = static_cast<UINT>(CBSlot::Fog);
+        context->PSSetConstantBuffers(fogCBSlot, 1, m_fogBuffer.GetAddressOf());
+
+        //----------------------------------------------------------
+        // シェーダーをセット（VSはTonemapと共用のフルスクリーン三角形用）
+        //----------------------------------------------------------
+        context->VSSetShader(m_tonemapVS.Get(), nullptr, 0);
+        context->PSSetShader(m_fogPS.Get(), nullptr, 0);
+        context->IASetInputLayout(nullptr);
+
+        //----------------------------------------------------------
+        // 深度なし・プリマルチプライアルファでover合成
+        // （DirectXTKのAlphaBlendは ONE / INV_SRC_ALPHA なので、
+        //   PSがfloat4(color * f, f)を返せばそのまま正しいoverになる）
+        //----------------------------------------------------------
+        context->OMSetDepthStencilState(m_commonStatesTK->DepthNone(), 0);
+        context->OMSetBlendState(m_commonStatesTK->AlphaBlend(), nullptr, 0xFFFFFFFF);
+        context->RSSetState(m_commonStatesTK->CullNone());
+
+        //----------------------------------------------------------
+        // フルスクリーントライアングル描画
+        //----------------------------------------------------------
+        context->IASetVertexBuffers(0, 0, nullptr, nullptr, nullptr);
+        context->IASetIndexBuffer(nullptr, DXGI_FORMAT_UNKNOWN, 0);
+        context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+        context->Draw(3, 0);
+
+        //----------------------------------------------------------
+        // 後片付け：深度を次フレームDSVとして再バインドするため、
+        // SRVのバインドを必ず解除する（ExecuteLightingPassと同じ理由）。
+        // ブレンドも不透明へ戻しておく
+        //----------------------------------------------------------
+        ID3D11ShaderResourceView* nullSRV = nullptr;
+        context->PSSetShaderResources(depthSRVSlot, 1, &nullSRV);
+
+        context->OMSetBlendState(m_commonStatesTK->Opaque(), nullptr, 0xFFFFFFFF);
     }
 
     //------------------------------------------------------------

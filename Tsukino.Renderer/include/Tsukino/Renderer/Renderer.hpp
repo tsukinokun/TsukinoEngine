@@ -62,6 +62,7 @@ namespace Tsukino::Renderer {
         const Tsukino::Asset::ShaderAsset* shadowPS         = nullptr;    //!< シャドウマップ用PS
         const Tsukino::Asset::ShaderAsset* lightingPS       = nullptr;    //!< ディファードLightingパス用PS（VSはtonemapVSを共用）
         const Tsukino::Asset::ShaderAsset* motionBlurPS     = nullptr;    //!< モーションブラーパス用PS（VSはtonemapVSを共用）
+        const Tsukino::Asset::ShaderAsset* fogPS            = nullptr;    //!< フォグパス用PS（VSはtonemapVSを共用）
     };
 
     //------------------------------------------------------------
@@ -326,6 +327,23 @@ namespace Tsukino::Renderer {
             m_motionBlurEnabled = enabled;
         }
 
+        //------------------------------------------------------------
+        //! @brief フォグパラメータのセット
+        //! @param params [in] フォグ定数バッファデータ
+        //------------------------------------------------------------
+        void SetFogParameters(const CBufferFog& params);
+
+        //------------------------------------------------------------
+        //! @brief フォグの有効・無効を切り替える
+        //! @param enabled [in] true: 有効, false: 無効
+        //! @note  モーションブラーと同じくフレーム単位のフラグで、Render()の
+        //!        末尾で毎回falseへ戻る。有効にしたいフレームでは毎フレーム
+        //!        呼ぶこと（FogSystemの責務）。
+        //------------------------------------------------------------
+        void SetFogEnabled(bool enabled) noexcept {
+            m_fogEnabled = enabled;
+        }
+
     private:
         //------------------------------------------------------------
         // 定数バッファの作成
@@ -446,6 +464,22 @@ namespace Tsukino::Renderer {
         bool ExecuteMotionBlurPass();
 
         //------------------------------------------------------------
+        //! @brief フォグパスの実行
+        //! @note  深度バッファだけを読み、HDRバッファへ直接over合成する。
+        //!        HDRをSRVとして読まないので中間バッファを消費しない。
+        //!        Waterパスの直後・モーションブラーパスの直前に呼ぶこと。
+        //------------------------------------------------------------
+        void ExecuteFogPass();
+
+        //------------------------------------------------------------
+        //! @brief フォグパイプラインのセット
+        //! @param ps [in] ピクセルシェーダーアセット（VSはtonemapVSを共用する）
+        //! @return true: 成功, false: 失敗
+        //------------------------------------------------------------
+        [[nodiscard]]
+        bool SetFogPipeline(const Tsukino::Asset::ShaderAsset* ps);
+
+        //------------------------------------------------------------
         //! @brief トーンマッピングパスの実行
         //! @param source [in] 入力となるシーンカラーのSRV
         //!                    （モーションブラーが走ったかどうかで切り替わる）
@@ -556,5 +590,12 @@ namespace Tsukino::Renderer {
         ComPtr<ID3D11Buffer>      m_lightsBuffer;             //!< 点光源・スポットライト配列用定数バッファ (b6)
         CBufferLights             m_lightsData{};              //!< CPU側のライト配列（毎フレームGPUへ転送）
         bool                      m_lightOverflowWarned = false;    //!< MAX_LIGHTS超過の警告を1回だけ出すためのフラグ
+
+        // フォグ用リソース
+        ComPtr<ID3D11PixelShader> m_fogPS;                //!< フォグ用PS（VSはm_tonemapVSを共用）
+        ComPtr<ID3D11Buffer>      m_fogBuffer;            //!< フォグパラメータ用バッファ (b9)
+        CBufferFog                m_fogData{};            //!< CPU側のフォグパラメータ
+        bool                      m_hasFog     = false;    //!< PSの構築が済んでいるか
+        bool                      m_fogEnabled = false;    //!< 今フレームで有効か（FogSystemが毎フレーム設定）
     };
 }    // namespace Tsukino::Renderer

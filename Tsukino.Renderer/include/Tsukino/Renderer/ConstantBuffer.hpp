@@ -156,4 +156,19 @@ namespace Tsukino::Renderer {
         hlslpp::float4 deepColor;       //!< 深部の色 xyz: 色, w: 未使用
     };
 
+    //--------------------------------------------------------------
+    //! @struct CBufferFog
+    //! @brief  スロット9 (b9) 用：フォグパラメータ
+    //! @note   Fog.ps.hlsl の CBufferFog と1バイト単位で一致させること。
+    //!         距離フォグ・高さフォグ・ノイズ揺らぎをまとめて持つ。
+    //--------------------------------------------------------------
+    struct CBufferFog {
+        hlslpp::float4 color;             //!< xyz: フォグ色(linear), w: 距離フォグ密度
+        hlslpp::float4 distanceParams;    //!< x: 開始距離, y: 最大不透明度, z: 高さフォグ有効(0/1), w: 予約
+        hlslpp::float4 heightParams;      //!< x: 基準高さ, y: 高さ減衰, z: 高さフォグ密度, w: 予約
+        hlslpp::float4 sunColor;          //!< xyz: 太陽方向の散乱色, w: 散乱の鋭さ(pow指数)
+        hlslpp::float4 noiseParams;       //!< x: ノイズスケール, y: ノイズ強度, z: 経過時間, w: ノイズ有効(0/1)
+        hlslpp::float4 windParams;        //!< xyz: 風向き(正規化済み), w: 風速
+    };
+
 }    // namespace Tsukino::Renderer

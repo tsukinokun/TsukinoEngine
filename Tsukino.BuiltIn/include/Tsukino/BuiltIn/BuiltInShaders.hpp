@@ -42,5 +42,6 @@ namespace Tsukino::BuiltIn {
         Tsukino::Asset::AssetHandle gbufferPS;         // ディファードGBufferパス用ピクセルシェーダーのハンドル（VSはmodelVS/staticModelVSを共用）
         Tsukino::Asset::AssetHandle lightingPS;        // ディファードLightingパス用ピクセルシェーダーのハンドル（VSはtonemapVSを共用）
         Tsukino::Asset::AssetHandle motionBlurPS;      // モーションブラーパス用ピクセルシェーダーのハンドル（VSはtonemapVSを共用）
+        Tsukino::Asset::AssetHandle fogPS;             // フォグパス用ピクセルシェーダーのハンドル（VSはtonemapVSを共用）
     };
 }    // namespace Tsukino::BuiltIn
