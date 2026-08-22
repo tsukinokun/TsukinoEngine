@@ -7,7 +7,6 @@
 #include <Tsukino/EngineIntegration/EngineIntegration.hpp>
 #include <Tsukino/Core/Log.hpp>
 #include <Tsukino/Sandbox/Scene/SampleScene1.hpp>
-#include <Tsukino/Sandbox/Scene/ActionGameScene.hpp>
 #include <Tsukino/Sandbox/Scene/JumpGameSampleScene.hpp>
 #include <Tsukino/Sandbox/Scene/BlockBreakingSampleScene.hpp>
 #include <Tsukino/Sandbox/Scene/WaterGameSampleScene.hpp>
@@ -47,8 +46,7 @@ int WINAPI WinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ LPSTR, _In_ int) {
     //--------------------------------------------------------------
     // 最初のシーンを登録・開始
     //--------------------------------------------------------------
-    //engineAPI.ChangeScene(std::make_unique<Tsukino::Sandbox::SampleScene1>());
-    engineAPI.ChangeScene(std::make_unique<Tsukino::Sandbox::ActionGameScene>());
+    engineAPI.ChangeScene(std::make_unique<Tsukino::Sandbox::SampleScene1>());
     //engineAPI.ChangeScene(std::make_unique<Tsukino::Sandbox::JumpGameSampleScene>());
     //engineAPI.ChangeScene(std::make_unique<Tsukino::Sandbox::BlockBreakingSampleScene>());
     //engineAPI.ChangeScene(std::make_unique<Tsukino::Sandbox::WaterGameSampleScene>());
