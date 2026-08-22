@@ -245,44 +245,105 @@ namespace Tsukino::Renderer {
     }
 
     //------------------------------------------------------------
+    //! @brief  1文字分ペンを進める関数
+    //------------------------------------------------------------
+    const DynamicFontAtlas::GlyphInfo* DynamicFontAtlas::AdvancePen(wchar_t ch, ID3D11DeviceContext* context, float& penX, float& penY,
+                                                                     float& maxPenX) {
+        if(ch == L'\n') {
+            if(penX > maxPenX)
+                maxPenX = penX;
+            penX = 0.0f;
+            penY += m_lineHeight;
+            return nullptr;
+        }
+
+        const GlyphInfo& glyph = GetOrRasterizeGlyph(ch, context);
+
+        penX += glyph.advanceX;
+        if(penX > maxPenX)
+            maxPenX = penX;
+
+        return &glyph;
+    }
+
+    //------------------------------------------------------------
+    //! @brief  文字列の描画サイズを取得する関数
+    //------------------------------------------------------------
+    hlslpp::float2 DynamicFontAtlas::MeasureString(const std::wstring& text, ID3D11DeviceContext* context) {
+        if(!m_fontFace || text.empty())
+            return hlslpp::float2(0.0f, 0.0f);
+
+        float penX    = 0.0f;
+        float penY    = 0.0f;
+        float maxPenX = 0.0f;
+
+        for(wchar_t ch : text) {
+            AdvancePen(ch, context, penX, penY, maxPenX);
+        }
+
+        // penYは「最終行の先頭までの送り量」なので、1行分の高さを足したものが全体の高さになる
+        return hlslpp::float2(maxPenX, penY + m_lineHeight);
+    }
+
+    //------------------------------------------------------------
     //! @brief  文字列を描画する関数
     //------------------------------------------------------------
     void DynamicFontAtlas::DrawString(DirectX::SpriteBatch* spriteBatch, ID3D11DeviceContext* context, const std::wstring& text,
-                                       hlslpp::float2 position, hlslpp::float4 color, hlslpp::float2 origin, float scale) {
+                                       hlslpp::float2 position, hlslpp::float4 color, hlslpp::float2 origin, float scale,
+                                       hlslpp::float4 outlineColor, float outlineWidth) {
         if(!m_fontFace)
             return;
 
-        DirectX::XMFLOAT4  dxColor(color.x, color.y, color.z, color.w);
-        DirectX::XMVECTOR  colorVec = DirectX::XMLoadFloat4(&dxColor);
+        //------------------------------------------------------------
+        // 1パス分の描画。offsetX/offsetYだけずらした位置に指定色で文字列を描く
+        //------------------------------------------------------------
+        auto drawPass = [&](float offsetX, float offsetY, hlslpp::float4 passColor) {
+            DirectX::XMFLOAT4 dxColor(passColor.x, passColor.y, passColor.z, passColor.w);
+            DirectX::XMVECTOR colorVec = DirectX::XMLoadFloat4(&dxColor);
 
-        const DirectX::XMFLOAT2 penStart(position.x - origin.x * scale, position.y - origin.y * scale);
+            const DirectX::XMFLOAT2 penStart(position.x - origin.x * scale + offsetX, position.y - origin.y * scale + offsetY);
 
-        // position は上端(top-left)を指す運用にしたいため、最初の行のベースラインを
-        // アセント分だけ下げる(DirectWriteのグリフ座標はベースライン基準のため)
-        float penX = 0.0f;
-        float penY = m_ascent * scale;
+            // position は上端(top-left)を指す運用にしたいため、最初の行のベースラインを
+            // アセント分だけ下げる(DirectWriteのグリフ座標はベースライン基準のため)
+            float penX    = 0.0f;
+            float penY    = m_ascent;
+            float maxPenX = 0.0f;
 
-        for(wchar_t ch : text) {
-            if(ch == L'\n') {
-                penX = 0.0f;
-                penY += m_lineHeight * scale;
-                continue;
+            for(wchar_t ch : text) {
+                // 送る前のペン位置がこのグリフの描画基準になる
+                const float glyphPenX = penX;
+                const float glyphPenY = penY;
+
+                const GlyphInfo* glyph = AdvancePen(ch, context, penX, penY, maxPenX);
+                if(!glyph || !glyph->hasInk)
+                    continue;    // 改行、または実体のないグリフ（半角/全角スペース等）
+
+                RECT sourceRect = glyph->atlasRect;
+
+                DirectX::XMFLOAT2 destPos(penStart.x + (glyphPenX + glyph->bearingX) * scale,
+                                          penStart.y + (glyphPenY + glyph->bearingY) * scale);
+
+                spriteBatch->Draw(m_pages[glyph->page].srv.Get(), destPos, &sourceRect, colorVec, 0.0f, DirectX::XMFLOAT2(0.0f, 0.0f), scale);
             }
+        };
 
-            const GlyphInfo& glyph = GetOrRasterizeGlyph(ch, context);
+        //------------------------------------------------------------
+        // 縁取り：本体より先に8方向へずらして描く。SpriteSortMode_Deferredなので
+        // 積んだ順にそのまま描かれ、縁取りが本体の下に入る
+        //------------------------------------------------------------
+        if(outlineWidth > 0.0f && outlineColor.w > 0.0f) {
+            constexpr float kOutlineOffsets[8][2] = {
+                {-1.0f, -1.0f}, {0.0f, -1.0f}, {1.0f, -1.0f},
+                {-1.0f,  0.0f},                {1.0f,  0.0f},
+                {-1.0f,  1.0f}, {0.0f,  1.0f}, {1.0f,  1.0f},
+            };
 
-            if(glyph.hasInk) {
-                RECT sourceRect = glyph.atlasRect;
-
-                DirectX::XMFLOAT2 destPos(
-                    penStart.x + penX + glyph.bearingX * scale,
-                    penStart.y + penY + glyph.bearingY * scale);
-
-                spriteBatch->Draw(m_pages[glyph.page].srv.Get(), destPos, &sourceRect, colorVec, 0.0f, DirectX::XMFLOAT2(0.0f, 0.0f), scale);
+            for(const auto& offset : kOutlineOffsets) {
+                drawPass(offset[0] * outlineWidth, offset[1] * outlineWidth, outlineColor);
             }
-
-            penX += glyph.advanceX * scale;
         }
+
+        drawPass(0.0f, 0.0f, color);
     }
 
 }    // namespace Tsukino::Renderer

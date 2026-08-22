@@ -55,16 +55,29 @@ namespace Tsukino::BuiltIn::ECS {
         //-------------------------------------------------------------
         auto view = registry.View<WorldAnchorComponent, TransformComponent>();
         view.each([&](entt::entity, WorldAnchorComponent& anchor, TransformComponent& transform) {
-            if(!hasCamera || anchor.target == entt::null || !registry.IsValid(anchor.target)
-               || !registry.HasComponent<TransformComponent>(anchor.target)) {
+            if(!hasCamera) {
                 anchor.visible = false;
                 return;
             }
 
-            const TransformComponent& targetTransform = registry.GetComponent<TransformComponent>(anchor.target);
+            //-------------------------------------------------------------
+            // 投影の基準となるワールド座標を決める。
+            // useFixedWorldPositionのときはtargetを一切参照しないため、
+            // 追従対象が破棄された後も正しい位置に貼り付いたままになる
+            //-------------------------------------------------------------
+            hlslpp::float3 basePosition;
+            if(anchor.useFixedWorldPosition) {
+                basePosition = anchor.fixedWorldPosition;
+            } else {
+                if(anchor.target == entt::null || !registry.IsValid(anchor.target) || !registry.HasComponent<TransformComponent>(anchor.target)) {
+                    anchor.visible = false;
+                    return;
+                }
+                basePosition = registry.GetComponent<TransformComponent>(anchor.target).position;
+            }
 
             // 対象のワールド座標をクリップ空間へ（hlslppは行ベクトル規約なのでmul(v, m)の順）
-            hlslpp::float3 worldPos = targetTransform.position + anchor.worldOffset;
+            hlslpp::float3 worldPos = basePosition + anchor.worldOffset;
             hlslpp::float4 clip     = hlslpp::mul(hlslpp::float4(worldPos, 1.0f), cameraViewProj);
 
             if(clip.w <= 0.0f) {    // カメラ後方は表示しない

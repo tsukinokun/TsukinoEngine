@@ -52,11 +52,38 @@ namespace Tsukino::Renderer {
         //! @param  text        [in] 描画するテキスト
         //! @param  position    [in] 描画位置
         //! @param  color       [in] 文字色
-        //! @param  origin      [in] 原点（左上からのオフセット、微調整用）
+        //! @param  origin      [in] 原点（左上からのオフセット、微調整用。スケール適用前の値）
         //! @param  scale       [in] 追加スケール（Transformのワールドスケールなど）
+        //! @param  outlineColor [in] 縁取りの色（outlineWidthが0より大きいときのみ使用）
+        //! @param  outlineWidth [in] 縁取りの太さ（ピクセル単位、スケール適用後の値。0で無効）
         //------------------------------------------------------------
         void DrawString(DirectX::SpriteBatch* spriteBatch, ID3D11DeviceContext* context, const std::wstring& text, hlslpp::float2 position,
-                         hlslpp::float4 color, hlslpp::float2 origin, float scale);
+                         hlslpp::float4 color, hlslpp::float2 origin, float scale, hlslpp::float4 outlineColor = hlslpp::float4(0.0f, 0.0f, 0.0f, 0.0f),
+                         float outlineWidth = 0.0f);
+
+        //------------------------------------------------------------
+        //! @brief  文字列の描画サイズを取得する関数
+        //! @param  text    [in] 計測する文字列
+        //! @param  context [in] D3D11デバイスコンテキスト（未キャッシュのグリフのラスタライズに使用）
+        //! @return スケール適用前（pixelSize基準）の幅と高さ
+        //! @note   DrawStringのoriginはスケール適用前の値として扱われるため、
+        //!         中央揃えは origin = MeasureString(...) * 0.5f でそのまま書ける。
+        //!         未キャッシュのグリフをラスタライズする可能性があるためconstにはできない
+        //------------------------------------------------------------
+        [[nodiscard]]
+        hlslpp::float2 MeasureString(const std::wstring& text, ID3D11DeviceContext* context);
+
+        //------------------------------------------------------------
+        //! @brief  改行時の行送り量を取得する関数（スケール適用前）
+        //------------------------------------------------------------
+        [[nodiscard]]
+        float GetLineHeight() const noexcept { return m_lineHeight; }
+
+        //------------------------------------------------------------
+        //! @brief  ベースラインから上端までの距離を取得する関数（スケール適用前）
+        //------------------------------------------------------------
+        [[nodiscard]]
+        float GetAscent() const noexcept { return m_ascent; }
 
     private:
         //------------------------------------------------------------
@@ -90,6 +117,17 @@ namespace Tsukino::Renderer {
         //! @brief  グリフをキャッシュから取得、無ければラスタライズしてキャッシュする関数
         //------------------------------------------------------------
         const GlyphInfo& GetOrRasterizeGlyph(wchar_t codepoint, ID3D11DeviceContext* context);
+
+        //------------------------------------------------------------
+        //! @brief  1文字分ペンを進める関数（DrawStringとMeasureStringで送り量を共通化するためのもの）
+        //! @param  ch      [in] 対象の文字
+        //! @param  context [in] D3D11デバイスコンテキスト
+        //! @param  penX    [in,out] 行内のX送り（スケール適用前）
+        //! @param  penY    [in,out] 行のY送り（スケール適用前）
+        //! @param  maxPenX [in,out] これまでの行の最大X送り（スケール適用前）
+        //! @return 改行以外なら対象文字のグリフ情報、改行ならnullptr
+        //------------------------------------------------------------
+        const GlyphInfo* AdvancePen(wchar_t ch, ID3D11DeviceContext* context, float& penX, float& penY, float& maxPenX);
 
         //------------------------------------------------------------
         //! @brief  新しいアトラスページを作成する関数
