@@ -124,6 +124,66 @@ namespace Tsukino::Renderer {
         void PushDrawCommand(const DrawCommand& cmd);
 
         //------------------------------------------------------------
+        //! @struct FrameStats
+        //! @brief  1フレーム分の描画統計（負荷調査用）
+        //! @note   Render()の先頭でリセットし、各パスの実行中に積む。
+        //!         フレーム時間だけを見ても「ドローコールが多いのか、
+        //!         1本あたりが重いのか」が分からないため、内訳を数える
+        //------------------------------------------------------------
+        struct FrameStats {
+            u32 commandCount = 0;    //!< DrawCommandQueueに積まれたコマンド総数
+
+            u32 shadowDrawCalls      = 0;    //!< Shadowパスのドロー数（GBufferと同じ形状をもう一度描いている）
+            u32 gbufferDrawCalls     = 0;    //!< GBufferパスのドロー数
+            u32 worldDrawCalls       = 0;    //!< Worldパス（フォワード不透明・デバッグ線）のドロー数
+            u32 transparentDrawCalls = 0;    //!< TransparentDepth + Transparent のドロー数
+            u32 waterDrawCalls       = 0;    //!< Waterパスのドロー数
+            u32 overlayDrawCalls     = 0;    //!< Overlayパス（UI・フォント）のドロー数
+
+            u32 skinnedDrawCalls = 0;    //!< うちスキニングありのドロー数
+            u64 triangleCount    = 0;    //!< 描画した三角形数（インデックス数 / 3 の総和）
+
+            //! ボーン行列として定数バッファへ転送したバイト数。
+            //! 1スキンドローあたり sizeof(CBufferSkinning) = 8KB を実ボーン数に関係なく
+            //! 転送しているため、ここが跳ね上がるならその改善が効くという判断材料になる
+            u64 boneBytesUploaded = 0;
+
+            //------------------------------------------------------------
+            //! @brief 全パスのドローコール数の合計を返す関数
+            //------------------------------------------------------------
+            [[nodiscard]]
+            u32 TotalDrawCalls() const {
+                return shadowDrawCalls + gbufferDrawCalls + worldDrawCalls + transparentDrawCalls + waterDrawCalls + overlayDrawCalls;
+            }
+        };
+
+        //------------------------------------------------------------
+        //! @brief  直前のフレームの描画統計を取得する関数
+        //! @return 描画統計
+        //------------------------------------------------------------
+        [[nodiscard]]
+        const FrameStats& GetFrameStats() const {
+            return m_frameStats;
+        }
+
+        //------------------------------------------------------------
+        //! @brief 垂直同期の有無を設定する関数
+        //! @param enabled [in] true でVSync有効、false で無効
+        //! @note  性能計測時に false にする。詳細は GraphicsContext::SetVSyncEnabled を参照
+        //------------------------------------------------------------
+        void SetVSyncEnabled(bool enabled) {
+            m_graphicsContext.SetVSyncEnabled(enabled);
+        }
+
+        //------------------------------------------------------------
+        //! @brief  垂直同期が有効かを取得する関数
+        //------------------------------------------------------------
+        [[nodiscard]]
+        bool IsVSyncEnabled() const {
+            return m_graphicsContext.IsVSyncEnabled();
+        }
+
+        //------------------------------------------------------------
         // デバッグライン/三角形の追加
         //------------------------------------------------------------
         void DrawDebugLine(const Tsukino::GraphicsCommon::DebugVertex& v1, const Tsukino::GraphicsCommon::DebugVertex& v2);
@@ -410,6 +470,25 @@ namespace Tsukino::Renderer {
         void ExecuteShadowCommand(const DrawCommand& cmd);
 
         //------------------------------------------------------------
+        //! @brief パス別のドローコール数と三角形数を数える関数
+        //! @param pass       [in] 描画パス
+        //! @param indexCount [in] 描画したインデックス数
+        //------------------------------------------------------------
+        void CountDrawCall(RenderPass pass, u32 indexCount);
+
+        //------------------------------------------------------------
+        //! @brief  ボーン行列を定数バッファへ転送する関数
+        //! @param  buffer       [in] 転送先の定数バッファ（DYNAMICであること）
+        //! @param  boneMatrices [in] ボーン行列の配列
+        //! @param  boneCount    [in] ボーン数
+        //! @return 実際に転送したバイト数（統計用）
+        //------------------------------------------------------------
+        u32 UploadBoneMatrices(ID3D11Buffer* buffer, const void* boneMatrices, u32 boneCount);
+
+        //! @brief シェーダー側のボーン配列の宣言数（CBufferSkinning::bones と揃えること）
+        static constexpr u32 kMaxBoneCount = 128;
+
+        //------------------------------------------------------------
         //! @brief シャドウ用シェーダーと入力レイアウトの作成
         //! @return true: 作成成功, false: 作成失敗
         //------------------------------------------------------------
@@ -538,6 +617,11 @@ namespace Tsukino::Renderer {
         std::unordered_map<u64, std::unique_ptr<DX11Texture2D>> m_textureCache;       // Textureのキャッシュ (AssetHandle の Value(uint64_t) をキーにする)
         std::optional<PipelineFactory>                          m_pipelineFactory;    // メンバとして持たせる
         SpriteRenderer                                          m_spriteRenderer;     // スプライト描画クラスのインスタンス
+        FrameStats m_frameStats;    // 1フレーム分の描画統計（Render()の先頭でリセットする）
+
+        u32 m_lastDrawBoneBytes = 0;    // 直前のExecuteDrawCommandで転送したボーン行列のバイト数（統計用）
+        u32 m_shadowBoneBytes   = 0;    // 直前のExecuteShadowCommandで転送したボーン行列のバイト数（統計用）
+
         DrawCommandQueue                                        m_drawQueue;          // 描画コマンドキュー
 
         // カメラ行列のセットを保存する変数

@@ -110,6 +110,20 @@ namespace Tsukino::Asset {
         // AssetManagerがアセットの共有所有者
         AssetMap m_assets;
 
+        //--------------------------------------------------------------
+        // 既にロード済みのパス -> ハンドル の対応表。
+        //
+        // これが無いと Load() は同じパスでも毎回キャッシュファイルを読み直し、
+        // 新しいハンドルを発行して別アセットとして登録してしまう。
+        // ModelSystem の GPU メッシュバッファのキャッシュはモデルハンドルを
+        // キーにしているため、同じモデルを N 回 Load すると頂点／インデックス
+        // バッファも N 組作られることになる。
+        //
+        // アセットを個別に解放する手段（Unload）は無く、AssetManager が生きている
+        // 間はロード済みアセットも生き続けるため、この対応表が古くなることはない。
+        //--------------------------------------------------------------
+        std::unordered_map<std::string, AssetHandle> m_pathToHandle;
+
         // LoaderもAssetManagerが共有所有
         std::vector<Tsukino::Core::Ref<IAssetLoader>> m_loaders;
 

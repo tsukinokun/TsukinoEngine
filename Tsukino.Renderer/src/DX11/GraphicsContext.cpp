@@ -352,7 +352,9 @@ namespace Tsukino::Renderer {
     //--------------------------------------------------------------
     void GraphicsContext::EndFrame() {
         // SwapChain表示
-        m_swapChain->Present(1, 0);
+        // syncInterval は SetVSyncEnabled で切り替える。計測時にVSyncを切らないと
+        // フレーム時間がリフレッシュレートで頭打ちになり、負荷の増減が読めなくなる
+        m_swapChain->Present(m_vsyncEnabled ? 1u : 0u, 0);
     }
 
     //--------------------------------------------------------------
@@ -367,11 +369,14 @@ namespace Tsukino::Renderer {
         ctx->VSSetShader(state.vs.Get(), nullptr, 0);    // 頂点シェーダー設定
         ctx->PSSetShader(state.ps.Get(), nullptr, 0);    // ピクセルシェーダー設定
 
-        ctx->RSSetState(state.rasterizer.Get());                         // ラスタライザーステート設定
-        ctx->OMSetBlendState(state.blend.Get(), nullptr, 0xffffffff);    // ブレンドステート設定
-        ctx->OMSetDepthStencilState(state.depth.Get(), 0);               // デプスステンシルステート設定
+        ctx->RSSetState(state.rasterizer.Get());              // ラスタライザーステート設定
+        ctx->OMSetDepthStencilState(state.depth.Get(), 0);    // デプスステンシルステート設定
 
-        // ブレンドステートを適用（Opaqueのときは nullptr でデフォルトに戻る）
+        // ブレンドステートを適用
+        // 以前はこの直前にも OMSetBlendState を呼んでいたが、同じ state.blend を
+        // 2回設定しているだけで完全に無駄だった（PipelineFactoryが作るどのBlendModeも
+        // D3D11_BLEND_BLEND_FACTOR を使わないため、blendFactor の有無で結果は変わらない）。
+        // ドロー数に比例して効くので削除した
         float blendFactor[4] = {0.0f, 0.0f, 0.0f, 0.0f};
         ctx->OMSetBlendState(state.blend.Get(), blendFactor, 0xFFFFFFFF);
     }

@@ -25,6 +25,9 @@
 #include <hlsl++.h>
 #include <entt/entt.hpp>
 
+#include <algorithm>
+#include <cmath>
+
 // 名前空間 : Tsukino::BuiltIn::ECS
 namespace Tsukino::BuiltIn::ECS {
     //-------------------------------------------------------------
@@ -64,18 +67,23 @@ namespace Tsukino::BuiltIn::ECS {
         m_materialBuffer.clear();
         m_materialDataBuffer.clear();
 
-        // まずエンティティ情報を一時バッファに収集
-        struct SpriteEntry {
-            int         sortOrder;
-            Tsukino::Renderer::DrawCommand cmd;
-        };
-        std::vector<SpriteEntry> entries;
+        // まずエンティティ情報を一時バッファに収集（確保済み容量は維持して使い回す）
+        m_entries.clear();
 
         // TransformComponent と SpriteComponent の両方を持つエンティティを取得
         auto view = registry.View<TransformComponent, SpriteComponent>();
 
         // 各エンティティから情報を抽出して描画コマンドを作成する
         view.each([&](entt::entity, const Tsukino::BuiltIn::ECS::TransformComponent& transform, const Tsukino::BuiltIn::ECS::SpriteComponent& sprite) {
+            //-------------------------------------------------------------
+            // スケールが潰れているスプライトは面積ゼロで、描いても1ピクセルも塗られない。
+            // 敵の頭上HPバーは被弾していない間ずっと scale=0 で待機しているため、
+            // 敵を大量に出すとここだけで敵数×2本の無駄なドローコールが積まれていた
+            //-------------------------------------------------------------
+            constexpr float kMinVisibleScale = 1.0e-4f;
+            if(std::abs(transform.scale.x) < kMinVisibleScale || std::abs(transform.scale.y) < kMinVisibleScale)
+                return;
+
             std::shared_ptr<Tsukino::Asset::TextureAsset> textureAsset =
                 std::static_pointer_cast<Tsukino::Asset::TextureAsset>(ctx->assetManager->Get(sprite.textureHandle));
             if(!textureAsset)
@@ -128,13 +136,15 @@ namespace Tsukino::BuiltIn::ECS {
             cmd.materialData = &materialData;
             cmd.pass         = Tsukino::Renderer::RenderPass::Overlay;
 
-            entries.push_back({sprite.sortOrder, cmd});
+            m_entries.push_back({sprite.sortOrder, cmd});
         });
 
         // sortOrderで昇順ソート
-        std::sort(entries.begin(), entries.end(), [](const SpriteEntry& a, const SpriteEntry& b) { return a.sortOrder < b.sortOrder; });
+        // （stable_sortにはしない。DrawCommandが16バイト境界を要求するため、
+        //   一時バッファを使うstable_sortはaligned_storageの拡張アライメント検査に引っかかる）
+        std::sort(m_entries.begin(), m_entries.end(), [](const SpriteEntry& a, const SpriteEntry& b) { return a.sortOrder < b.sortOrder; });
         // ソート済みの順でpush
-        for(auto& e : entries) {
+        for(auto& e : m_entries) {
             ctx->renderer->PushDrawCommand(e.cmd);
         }
     }

@@ -27,6 +27,42 @@
 namespace Tsukino::BuiltIn::ECS {
 
     //-------------------------------------------------------------
+    //! @brief ノード→チャンネルの対応表を取得する（無ければ構築してキャッシュ）
+    //-------------------------------------------------------------
+    const std::vector<std::int32_t>& AnimationSystem::ResolveChannelTable(const Tsukino::GraphicsCommon::AnimationData& animation,
+                                                                          const Tsukino::GraphicsCommon::ModelData&     model) {
+        const ChannelTableKey key{&animation, &model};
+
+        auto it = m_channelTables.find(key);
+        if(it != m_channelTables.end())
+            return it->second;
+
+        //---------------------------------------------------------
+        // まずチャンネル名→チャンネルindexの表を作り、それをノード順に引き直す。
+        // 素直に二重ループで作るとここもO(ノード数×チャンネル数)になるため、
+        // 一度だけとはいえハッシュで引く
+        //
+        // 同名チャンネルが複数あった場合は先に現れた方を採る。
+        // 以前の線形探索がbreakで最初の一致を採用していたのと挙動を揃えるため
+        //---------------------------------------------------------
+        std::unordered_map<std::string, std::int32_t> channelIndexByName;
+        channelIndexByName.reserve(animation.channels.size());
+
+        for(std::size_t channelIndex = 0; channelIndex < animation.channels.size(); ++channelIndex) {
+            channelIndexByName.emplace(animation.channels[channelIndex].nodeName, static_cast<std::int32_t>(channelIndex));
+        }
+
+        std::vector<std::int32_t> table(model.nodes.size(), -1);
+        for(std::size_t nodeIndex = 0; nodeIndex < model.nodes.size(); ++nodeIndex) {
+            const auto found = channelIndexByName.find(model.nodes[nodeIndex].name);
+            if(found != channelIndexByName.end())
+                table[nodeIndex] = found->second;
+        }
+
+        return m_channelTables.emplace(key, std::move(table)).first->second;
+    }
+
+    //-------------------------------------------------------------
     //! @brief ベクトルの線形補間（位置・スケール用）
     //! @param keys キーフレームのリスト
     //! @param time 現在のアニメーション時間（Ticks）
@@ -362,6 +398,16 @@ namespace Tsukino::BuiltIn::ECS {
             player.root_motion_lock_active = needsRootLock;
 
             //-------------------------------------------------------------
+            // ノード→チャンネルの対応表を引く（初回のみ構築、以後キャッシュ）。
+            // 毎ノードで全チャンネルを文字列比較していた箇所を、この表の添字引きへ置き換える
+            //-------------------------------------------------------------
+            const std::vector<std::int32_t>& channelTable = ResolveChannelTable(animData, skeletonModelAss->modelData);
+
+            const std::vector<std::int32_t>* blendChannelTable = nullptr;
+            if(blendAnimData != nullptr)
+                blendChannelTable = &ResolveChannelTable(*blendAnimData, skeletonModelAss->modelData);
+
+            //-------------------------------------------------------------
             // 全ノードのグローバル行列を計算
             //-------------------------------------------------------------
             std::vector<Tsukino::Core::Math::matrix> globalNodeMatrices(skeletonModelAss->modelData.nodes.size());
@@ -380,15 +426,15 @@ namespace Tsukino::BuiltIn::ECS {
 
                 bool channelFound = false;
 
-                // 現在のアニメーションチャンネルを検索
-                for(const auto& channel : animData.channels) {
-                    if(channel.nodeName == node.name) {
-                        pos          = LerpVector(channel.positionKeys, animTime);
-                        rot          = SlerpQuaternion(channel.rotationKeys, animTime);
-                        scale        = LerpVector(channel.scaleKeys, animTime);
-                        channelFound = true;
-                        break;
-                    }
+                // 現在のアニメーションチャンネルを対応表から引く
+                const std::int32_t channelIndex = (i < channelTable.size()) ? channelTable[i] : -1;
+                if(channelIndex >= 0) {
+                    const auto& channel = animData.channels[static_cast<std::size_t>(channelIndex)];
+
+                    pos          = LerpVector(channel.positionKeys, animTime);
+                    rot          = SlerpQuaternion(channel.rotationKeys, animTime);
+                    scale        = LerpVector(channel.scaleKeys, animTime);
+                    channelFound = true;
                 }
 
                 // In Place：ルートノードの水平移動だけ固定する（Yはアニメのまま残す）
@@ -403,14 +449,16 @@ namespace Tsukino::BuiltIn::ECS {
                     hlslpp::float3     blendScale(node.scale.x, node.scale.y, node.scale.z);
                     bool               blendChannelFound = false;
 
-                    for(const auto& bChannel : blendAnimData->channels) {
-                        if(bChannel.nodeName == node.name) {
-                            blendPos          = LerpVector(bChannel.positionKeys, blendAnimTime);
-                            blendRot          = SlerpQuaternion(bChannel.rotationKeys, blendAnimTime);
-                            blendScale        = LerpVector(bChannel.scaleKeys, blendAnimTime);
-                            blendChannelFound = true;
-                            break;
-                        }
+                    // ブレンド元も同じく対応表から引く
+                    const std::int32_t blendChannelIndex =
+                        (blendChannelTable != nullptr && i < blendChannelTable->size()) ? (*blendChannelTable)[i] : -1;
+                    if(blendChannelIndex >= 0) {
+                        const auto& bChannel = blendAnimData->channels[static_cast<std::size_t>(blendChannelIndex)];
+
+                        blendPos          = LerpVector(bChannel.positionKeys, blendAnimTime);
+                        blendRot          = SlerpQuaternion(bChannel.rotationKeys, blendAnimTime);
+                        blendScale        = LerpVector(bChannel.scaleKeys, blendAnimTime);
+                        blendChannelFound = true;
                     }
 
                     // In Place：ブレンド元（outgoing）側のルートノードも、current側と同じ凍結基準で固定する。

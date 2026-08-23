@@ -21,6 +21,7 @@
 #include <cassert>
 #include <d3dcompiler.h>
 #include <algorithm>
+#include <cstring>
 
 #pragma comment(lib, "d3dcompiler.lib")
 
@@ -166,12 +167,23 @@ namespace Tsukino::Renderer {
         // ------------------------------------------------------------
         // m_skinningBuffer (b3) の作成
         // ------------------------------------------------------------
+        // ボーン行列は1ドローごとに書き換えるうえ1本あたり8KBと大きいため、
+        // DEFAULT+UpdateSubresourceではなくDYNAMIC+Map(WRITE_DISCARD)で更新する。
+        // 実ボーン数ぶんだけ書けるようになり、転送量とCPU側のゼロ初期化が消える
+        desc.Usage          = D3D11_USAGE_DYNAMIC;
+        desc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+
         desc.ByteWidth = sizeof(Tsukino::Renderer::CBufferSkinning);
         hr             = device->CreateBuffer(&desc, nullptr, m_skinningBuffer.GetAddressOf());
         if(FAILED(hr)) {
             Tsukino::Core::Log::Error("Failed to create skinning constant buffer.");
             return false;
         }
+
+        // descは以降のバッファ作成でも使い回すため、既定（DEFAULT + UpdateSubresource）へ戻す。
+        // DYNAMICのままにするとUpdateSubresourceで更新している他のバッファがAPIエラーになる
+        desc.Usage          = D3D11_USAGE_DEFAULT;
+        desc.CPUAccessFlags = 0;
 
         //------------------------------------------------------------
         // m_skyBuffer (b4) の作成
@@ -213,12 +225,19 @@ namespace Tsukino::Renderer {
         //------------------------------------------------------------
         // m_prevSkinningBuffer (b7) の作成（速度バッファ生成用の前フレームボーン行列）
         //------------------------------------------------------------
+        // b3と同じ理由でDYNAMICにする
+        desc.Usage          = D3D11_USAGE_DYNAMIC;
+        desc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+
         desc.ByteWidth = sizeof(Tsukino::Renderer::CBufferSkinningPrev);
         hr             = device->CreateBuffer(&desc, nullptr, m_prevSkinningBuffer.GetAddressOf());
         if(FAILED(hr)) {
             Tsukino::Core::Log::Error("Failed to create previous frame skinning constant buffer.");
             return false;
         }
+
+        desc.Usage          = D3D11_USAGE_DEFAULT;
+        desc.CPUAccessFlags = 0;
 
         //------------------------------------------------------------
         // m_motionBlurBuffer (b8) の作成
@@ -359,6 +378,14 @@ namespace Tsukino::Renderer {
         m_graphicsContext.BeginFrame(m_clearColor[0], m_clearColor[1], m_clearColor[2], m_clearColor[3]);
 
         const auto& commands = m_drawQueue.GetCommands();
+
+        //------------------------------------------------------------
+        // 今フレームの描画統計をリセットする（負荷調査用）
+        // 実際の加算は各Execute*Commandが DrawIndexed の直前で行うため、
+        // 早期returnで描かれなかったコマンドは数に入らない
+        //------------------------------------------------------------
+        m_frameStats              = FrameStats{};
+        m_frameStats.commandCount = static_cast<u32>(commands.size());
 
         //------------------------------------------------------------
         // 水の更新
@@ -901,6 +928,9 @@ namespace Tsukino::Renderer {
         //----------------------------------------------------------
         context->DrawIndexed(cmd.mesh->indexCount, 0, 0);
 
+        // 統計の加算（負荷調査用）
+        CountDrawCall(cmd.pass, cmd.mesh->indexCount);
+
         //----------------------------------------------------------
         // 後片付け：t8/s8 を解除（他のパスへの影響を防ぐ）
         //----------------------------------------------------------
@@ -946,12 +976,10 @@ namespace Tsukino::Renderer {
         // ボーン行列 (b3)
         //------------------------------------------------------------
         if(isSkeletal) {
-            CBufferSkinning cbSkin{};
-            uint32_t        copyCount = std::min(cmd.boneCount, 128u);
-            std::memcpy(cbSkin.bones, cmd.boneMatrices, sizeof(hlslpp::float4x4) * copyCount);
-            context->UpdateSubresource(m_skinningBuffer.Get(), 0, nullptr, &cbSkin, 0, 0);
+            m_shadowBoneBytes = UploadBoneMatrices(m_skinningBuffer.Get(), cmd.boneMatrices, cmd.boneCount);
             context->VSSetConstantBuffers(3, 1, m_skinningBuffer.GetAddressOf());
         } else {
+            m_shadowBoneBytes = 0;
             ID3D11Buffer* nullBuffer = nullptr;
             context->VSSetConstantBuffers(3, 1, &nullBuffer);
         }
@@ -978,6 +1006,65 @@ namespace Tsukino::Renderer {
         // 描画
         //------------------------------------------------------------
         context->DrawIndexed(cmd.mesh->indexCount, 0, 0);
+
+        //------------------------------------------------------------
+        // 統計の加算（負荷調査用）
+        // GBufferと同じ形状をもう一度描いているので、ドロー数もボーン転送量も
+        // ここで二重に計上されるのが実態どおり
+        //------------------------------------------------------------
+        ++m_frameStats.shadowDrawCalls;
+        m_frameStats.triangleCount += cmd.mesh->indexCount / 3;
+        if(isSkeletal) {
+            ++m_frameStats.skinnedDrawCalls;
+            m_frameStats.boneBytesUploaded += m_shadowBoneBytes;
+        }
+    }
+
+    //------------------------------------------------------------
+    //! @brief ボーン行列を定数バッファへ転送する
+    //------------------------------------------------------------
+    u32 Renderer::UploadBoneMatrices(ID3D11Buffer* buffer, const void* boneMatrices, u32 boneCount) {
+        if(!buffer || !boneMatrices || boneCount == 0)
+            return 0;
+
+        // シェーダー側の宣言（float4x4 bones[128]）を超えて書かない
+        const u32 copyCount = (boneCount < kMaxBoneCount) ? boneCount : kMaxBoneCount;
+        const u32 byteCount = copyCount * static_cast<u32>(sizeof(hlslpp::float4x4));
+
+        //--------------------------------------------------------
+        // WRITE_DISCARDで新しい領域をもらい、実ボーン数ぶんだけ書く。
+        //
+        // 以前は8KBの構造体をスタックにゼロ初期化で作り、実ボーン数ぶんmemcpyしてから
+        // UpdateSubresourceで8KB全体を転送していた。Mixamoのリグは65本程度なので、
+        // ゼロ初期化と転送の半分以上が捨てられていたことになる。
+        // スキンメッシュはShadowとGBufferの2パスで描かれるため、この無駄は2倍で効く
+        //--------------------------------------------------------
+        ID3D11DeviceContext*     context = m_graphicsContext.GetContext();
+        D3D11_MAPPED_SUBRESOURCE mapped{};
+
+        if(FAILED(context->Map(buffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped)))
+            return 0;
+
+        std::memcpy(mapped.pData, boneMatrices, byteCount);
+        context->Unmap(buffer, 0);
+
+        return byteCount;
+    }
+
+    //------------------------------------------------------------
+    //! @brief パス別のドローコール数と三角形数を数える
+    //------------------------------------------------------------
+    void Renderer::CountDrawCall(RenderPass pass, u32 indexCount) {
+        switch(pass) {
+        case RenderPass::GBuffer:          ++m_frameStats.gbufferDrawCalls; break;
+        case RenderPass::World:            ++m_frameStats.worldDrawCalls; break;
+        case RenderPass::TransparentDepth: ++m_frameStats.transparentDrawCalls; break;
+        case RenderPass::Transparent:      ++m_frameStats.transparentDrawCalls; break;
+        case RenderPass::Water:            ++m_frameStats.waterDrawCalls; break;
+        case RenderPass::Overlay:          ++m_frameStats.overlayDrawCalls; break;
+        }
+
+        m_frameStats.triangleCount += indexCount / 3;
     }
 
     //------------------------------------------------------------
@@ -1298,11 +1385,7 @@ namespace Tsukino::Renderer {
         // ボーン行列 (b3) の適用
         // ------------------------------------------------------------
         if(cmd.boneMatrices && cmd.boneCount > 0) {
-            CBufferSkinning cbSkin{};
-            uint32_t        copyCount = std::min(cmd.boneCount, 128u);
-            std::memcpy(cbSkin.bones, cmd.boneMatrices, sizeof(hlslpp::float4x4) * copyCount);
-
-            context->UpdateSubresource(m_skinningBuffer.Get(), 0, nullptr, &cbSkin, 0, 0);
+            m_lastDrawBoneBytes = UploadBoneMatrices(m_skinningBuffer.Get(), cmd.boneMatrices, cmd.boneCount);
             context->VSSetConstantBuffers(3, 1, m_skinningBuffer.GetAddressOf());
 
             // --------------------------------------------------------
@@ -1311,14 +1394,12 @@ namespace Tsukino::Renderer {
             // 転送もバインドも行わない
             // --------------------------------------------------------
             if(writeVelocity && cmd.prevBoneMatrices) {
-                CBufferSkinningPrev cbSkinPrev{};
-                std::memcpy(cbSkinPrev.bones, cmd.prevBoneMatrices, sizeof(hlslpp::float4x4) * copyCount);
-
                 constexpr UINT prevSkinSlot = static_cast<UINT>(CBSlot::SkinningPrev);
-                context->UpdateSubresource(m_prevSkinningBuffer.Get(), 0, nullptr, &cbSkinPrev, 0, 0);
+                m_lastDrawBoneBytes += UploadBoneMatrices(m_prevSkinningBuffer.Get(), cmd.prevBoneMatrices, cmd.boneCount);
                 context->VSSetConstantBuffers(prevSkinSlot, 1, m_prevSkinningBuffer.GetAddressOf());
             }
         } else {
+            m_lastDrawBoneBytes = 0;
             // スキニングを使わないオブジェクトを描画するときは、
             // スロット3を nullptr でクリアして、前のオブジェクトのボーン行列が残らないようにする
             ID3D11Buffer* nullBuffer = nullptr;
@@ -1361,6 +1442,15 @@ namespace Tsukino::Renderer {
         // 描画
         //------------------------------------------------------
         context->DrawIndexed(cmd.mesh->indexCount, 0, 0);
+
+        //------------------------------------------------------
+        // 統計の加算（負荷調査用）
+        //------------------------------------------------------
+        CountDrawCall(cmd.pass, cmd.mesh->indexCount);
+        if(cmd.boneMatrices && cmd.boneCount > 0) {
+            ++m_frameStats.skinnedDrawCalls;
+            m_frameStats.boneBytesUploaded += m_lastDrawBoneBytes;
+        }
     }
 
     //------------------------------------------------------------

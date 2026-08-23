@@ -179,6 +179,25 @@ namespace Tsukino::Renderer {
             return m_height;
         }
 
+        //--------------------------------------------------------------
+        //! @brief  垂直同期の有無を設定する
+        //! @param  enabled [in] true で Present の syncInterval を 1、false で 0 にする
+        //! @note   性能計測用。VSyncが有効なままだとフレーム時間がリフレッシュレートで
+        //!         頭打ちになり、どれだけ速くなったのか（遅いのか）が一切見えなくなる。
+        //!         製品の既定値は true のまま
+        //--------------------------------------------------------------
+        void SetVSyncEnabled(bool enabled) noexcept {
+            m_vsyncEnabled = enabled;
+        }
+
+        //--------------------------------------------------------------
+        //! @brief  垂直同期が有効かを取得する
+        //--------------------------------------------------------------
+        [[nodiscard]]
+        bool IsVSyncEnabled() const noexcept {
+            return m_vsyncEnabled;
+        }
+
     private:
         //--------------------------------------------------------------
         //! @brief  画面サイズに依存するリソースを生成する
@@ -231,6 +250,8 @@ namespace Tsukino::Renderer {
         std::array<Microsoft::WRL::ComPtr<ID3D11Texture2D>, GBufferCount>          m_gbufferTex;
         std::array<Microsoft::WRL::ComPtr<ID3D11RenderTargetView>, GBufferCount>   m_gbufferRTV;
         std::array<Microsoft::WRL::ComPtr<ID3D11ShaderResourceView>, GBufferCount> m_gbufferSRV;
+
+        bool m_vsyncEnabled = true;    //!< 垂直同期の有無（EndFrameのPresentが参照する）
 
         UINT m_width  = 0;    //!< 描画領域の幅
         UINT m_height = 0;    //!< 描画領域の高さ

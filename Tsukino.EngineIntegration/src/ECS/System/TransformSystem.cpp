@@ -1,4 +1,4 @@
-﻿//-------------------------------------------------------------
+//-------------------------------------------------------------
 //! @file   TransformSystem.cpp
 //! @brief  TransformSystemクラスの実装
 //! @author 山﨑愛
@@ -21,7 +21,18 @@ namespace Tsukino::BuiltIn::ECS {
         // ルートエンティティのリストをクリア（再利用）
         m_rootEntities.clear();
 
-        // ローカル行列の更新とルートエンティティの収集
+        //---------------------------------------------------------
+        // 親 -> 子 の対応表もクリアする。
+        // map自体は消さず、値のvectorだけをclearして確保済み容量を残す
+        // （毎フレームの再ハッシュとヒープ確保を避けるため）
+        //---------------------------------------------------------
+        for(auto& entry : m_childrenByParent) {
+            entry.second.clear();
+        }
+
+        //---------------------------------------------------------
+        // ローカル行列の更新と、ルート／親子関係の収集を1パスで行う
+        //---------------------------------------------------------
         for(auto entity : view) {
             auto& transform = view.template get<TransformComponent>(entity);
 
@@ -33,13 +44,15 @@ namespace Tsukino::BuiltIn::ECS {
             // 親がいない、または親が無効な場合はルートエンティティとして記録
             if(transform.parent == entt::null || !registry.HasComponent<TransformComponent>(transform.parent)) {
                 m_rootEntities.push_back(entity);
+            } else {
+                m_childrenByParent[static_cast<std::uint32_t>(transform.parent)].push_back(entity);
             }
         }
 
         // ルートエンティティからワールド行列を階層的に更新
         const auto identity = Tsukino::Core::Math::matrix::identity();
         for(const auto rootEntity : m_rootEntities) {
-            UpdateWorldMatrixRecursive(registry, rootEntity, identity);
+            UpdateWorldMatrixRecursive(registry, rootEntity, identity, m_childrenByParent);
         }
     }
 
@@ -64,7 +77,8 @@ namespace Tsukino::BuiltIn::ECS {
     //-------------------------------------------------------------
     void TransformSystem::UpdateWorldMatrixRecursive(Tsukino::ECS::Registry&            registry,
                                                      Tsukino::ECS::Entity               entity,
-                                                     const Tsukino::Core::Math::matrix& parentWorld) noexcept {
+                                                     const Tsukino::Core::Math::matrix& parentWorld,
+                                                     const ChildrenMap&                 children) noexcept {
         // エンティティがTransformComponentを持っているか確認
         if(!registry.HasComponent<TransformComponent>(entity)) {
             return;
@@ -75,17 +89,19 @@ namespace Tsukino::BuiltIn::ECS {
         // ワールド行列 = 親のワールド行列 * 自分のローカル行列
         transform.worldMatrix = hlslpp::mul(parentWorld, transform.localMatrix);
 
-        // 子エンティティを探索して再帰的に更新
-        // キャッシュフレンドリーな実装: viewを1回だけ取得
-        auto view = registry.View<TransformComponent>();
-        for(auto childEntity : view) {
-            const auto& childTransform = view.template get<TransformComponent>(childEntity);
+        //---------------------------------------------------------
+        // 子エンティティを再帰的に更新する。
+        // 以前はここでView全体を走査して「親が自分のもの」を線形探索していたため、
+        // エンティティ数Nに対して全体でO(N^2)になっていた。
+        // Updateが構築した対応表を引くだけにしてO(N)へ落としている
+        //---------------------------------------------------------
+        const auto it = children.find(static_cast<std::uint32_t>(entity));
+        if(it == children.end()) {
+            return;
+        }
 
-            // このエンティティを親として持つ子エンティティを見つける
-            if(childTransform.parent == entity) {
-                // 子のワールド行列を再帰的に更新
-                UpdateWorldMatrixRecursive(registry, childEntity, transform.worldMatrix);
-            }
+        for(const auto childEntity : it->second) {
+            UpdateWorldMatrixRecursive(registry, childEntity, transform.worldMatrix, children);
         }
     }
 

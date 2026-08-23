@@ -11,9 +11,12 @@
 
 #include <Tsukino/Engine/Asset/AssetHandle.hpp>
 
+#include <Tsukino/Renderer/DrawCommand.hpp>
+
 #include <memory>
 #include <deque>
 #include <unordered_map>
+#include <vector>
 namespace Tsukino::Renderer {
     struct PipelineState;    // 前方宣言
 }
@@ -50,5 +53,19 @@ namespace Tsukino::BuiltIn::ECS {
             m_materialDataBuffer;    // SpriteComponent::tintColorをb2(CBufferMaterial::baseColor)へ渡すためのバッファ（m_materialBufferと同じ理由でdeque）
         std::unordered_map<Tsukino::Asset::AssetHandle, ID3D11ShaderResourceView*>
             m_textureCache;    // ハンドルをキーにしてテクスチャのSRVをキャッシュ（毎フレームのアセット検索を回避）
+
+        //-------------------------------------------------------------
+        //! @struct SpriteEntry
+        //! @brief  sortOrderで並べ替えるまで描画コマンドを一時的に保持する要素
+        //-------------------------------------------------------------
+        struct SpriteEntry {
+            int                            sortOrder = 0;
+            Tsukino::Renderer::DrawCommand cmd;
+        };
+
+        //! 並べ替え用の一時バッファ。
+        //! 以前はUpdate内のローカル変数だったため、毎フレーム確保し直していた。
+        //! メンバにしてclear()で使い回すことで、ウォームアップ後は追加確保が起きない
+        std::vector<SpriteEntry> m_entries;
     };
 }    // namespace Tsukino::BuiltIn::ECS

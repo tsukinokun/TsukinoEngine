@@ -73,6 +73,20 @@ namespace Tsukino::Asset {
     //--------------------------------------------------------------
     AssetHandle AssetManager::Load(const Tsukino::Core::Path& path) {
         //--------------------------------------------------------------
+        // 既に同じパスをロード済みならそのハンドルを返す。
+        //
+        // これが無いと、同じモデルを使うエンティティを生成するたびに
+        // キャッシュファイルの読み直し（cerealの全展開）と新しいハンドルの発行が
+        // 走り、ModelSystem 側では別モデル扱いになって GPU バッファまで
+        // 重複して作られてしまう（敵を大量に湧かせると致命的になる）。
+        //--------------------------------------------------------------
+        const std::string pathKey = path.string();
+
+        auto cachedIt = m_pathToHandle.find(pathKey);
+        if(cachedIt != m_pathToHandle.end())
+            return cachedIt->second;
+
+        //--------------------------------------------------------------
         // 入力パスを basePath と fragment に分解
         //--------------------------------------------------------------
         auto [sourceBase, sourceFragment] = Tsukino::Core::Path::SplitPathAndFragment(path.string());
@@ -137,6 +151,7 @@ namespace Tsukino::Asset {
                 AssetHandle handle = AssetHandleGenerator::Generate();
                 asset->SetHandle(handle);
                 m_assets.insert({handle.Value(), asset});
+                m_pathToHandle.insert({pathKey, handle});
                 return handle;
             }
         }
