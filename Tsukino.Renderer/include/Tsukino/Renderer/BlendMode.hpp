@@ -16,5 +16,6 @@ namespace Tsukino::Renderer {
         Opaque,      //!< 不透明（デフォルト）
         Alpha,       //!< アルファブレンド（半透明）
         Additive,    //!< 加算合成
+        DepthOnly,   //!< 色を書かず深度のみ埋める（半透明モデルの自己重なり対策用の事前パス）
     };
 }    // namespace Tsukino::Renderer

@@ -443,8 +443,10 @@ namespace Tsukino::BuiltIn::ECS {
             return result;
 
         JPH::CapsuleShape capsuleShape(halfHeight, radius);
-        JPH::RMat44       transform =
-            JPH::RMat44::sRotationTranslation(JPH::Quat(rotation.x, rotation.y, rotation.z, rotation.w), JPH::RVec3(center.x, center.y, center.z));
+        // 呼び出し側はslerpやボーン行列の分解でrotationを組み立てているため、わずかに非正規化していることがある。
+        // sRotationTranslation → Mat44::sRotation は JPH_ASSERT(IsNormalized()) を持つので、ここで吸収する
+        JPH::RMat44       transform = JPH::RMat44::sRotationTranslation(
+            JPH::Quat(rotation.x, rotation.y, rotation.z, rotation.w).Normalized(), JPH::RVec3(center.x, center.y, center.z));
 
         JPH::AllHitCollisionCollector<JPH::CollideShapeCollector> collector;
         m_impl->physicsSystem->GetNarrowPhaseQuery().CollideShape(
@@ -596,10 +598,14 @@ namespace Tsukino::BuiltIn::ECS {
                     if(registry.HasComponent<TransformComponent>(entity)) {
                         auto& tf = registry.GetComponent<TransformComponent>(entity);
                         pos      = JPH::RVec3(tf.position.x, tf.position.y, tf.position.z);
-                        rot      = JPH::Quat(tf.rotation.x, tf.rotation.y, tf.rotation.z, tf.rotation.w);
+                        // 下の rot * localOffset（Quat::operator*(Vec3)）がIsNormalized()を要求するため正規化する。
+                        // 生成時点で既に回転しているエンティティ（実行中にCollisionComponentを付けた場合など）でも
+                        // アサートに引っかからないようにする
+                        rot = JPH::Quat(tf.rotation.x, tf.rotation.y, tf.rotation.z, tf.rotation.w).Normalized();
                     }
 
-                    JPH::Quat offsetRot(col.offsetRotation.x, col.offsetRotation.y, col.offsetRotation.z, col.offsetRotation.w);
+                    JPH::Quat offsetRot =
+                        JPH::Quat(col.offsetRotation.x, col.offsetRotation.y, col.offsetRotation.z, col.offsetRotation.w).Normalized();
                     JPH::Vec3 localOffset(col.offsetPosition.x, col.offsetPosition.y, col.offsetPosition.z);
 
                     JPH::RVec3 finalPos = pos + (rot * localOffset);
@@ -676,7 +682,8 @@ namespace Tsukino::BuiltIn::ECS {
             settings.mSupportingVolume = JPH::Plane(JPH::Vec3::sAxisY(), -cc.radius);
 
             JPH::RVec3 pos(tf.position.x, tf.position.y, tf.position.z);
-            JPH::Quat  rot(tf.rotation.x, tf.rotation.y, tf.rotation.z, tf.rotation.w);
+            // 毎フレームの同期（下のSetRotation）と同じく、生成時も正規化してから渡す
+            JPH::Quat  rot = JPH::Quat(tf.rotation.x, tf.rotation.y, tf.rotation.z, tf.rotation.w).Normalized();
 
             JPH::Ref<JPH::CharacterVirtual> character = new JPH::CharacterVirtual(&settings, pos, rot, (uint64_t)entity, m_impl->physicsSystem);
 
@@ -701,8 +708,16 @@ namespace Tsukino::BuiltIn::ECS {
             if(col.isInitialized && rb.type == RigidbodyType::Kinematic && registry.HasComponent<TransformComponent>(entity)) {
                 auto&      tf = registry.GetComponent<TransformComponent>(entity);
                 JPH::RVec3 pos(tf.position.x, tf.position.y, tf.position.z);
-                JPH::Quat  rot(tf.rotation.x, tf.rotation.y, tf.rotation.z, tf.rotation.w);
-                JPH::Quat  offsetRot(col.offsetRotation.x, col.offsetRotation.y, col.offsetRotation.z, col.offsetRotation.w);
+                // 下のCharacterVirtual同期と同じ理由で明示的に正規化する。
+                // slerp等の補間でtf.rotationを毎フレーム自己更新していると誤差が蓄積して非正規化し、
+                // 直後の rot * JPH::Vec3(...)（Quat::operator*(Vec3)）が持つ
+                // JPH_ASSERT(IsNormalized()) に引っかかる。
+                // 特にCharacterVirtualと併用しているエンティティ（プレイヤー等）は
+                // hlslpp⇔Jolt間の往復でずれが溜まりやすい
+                JPH::Quat rot =
+                    JPH::Quat(tf.rotation.x, tf.rotation.y, tf.rotation.z, tf.rotation.w).Normalized();
+                JPH::Quat offsetRot =
+                    JPH::Quat(col.offsetRotation.x, col.offsetRotation.y, col.offsetRotation.z, col.offsetRotation.w).Normalized();
 
                 bodyInterface.SetPositionAndRotation(col.bodyID,
                                                      pos + (rot * JPH::Vec3(col.offsetPosition.x, col.offsetPosition.y, col.offsetPosition.z)),

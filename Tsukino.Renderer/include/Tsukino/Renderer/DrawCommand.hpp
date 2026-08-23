@@ -18,11 +18,12 @@ namespace Tsukino::Renderer {
     //! @brief 描画パス
     //------------------------------------------------------------
     enum class RenderPass : u8 {
-        GBuffer,        // 不透明3Dモデル（ディファード）。G-Bufferへ書き込む
-        World,          // 3D（デバッグ線などcustomDraw経由のフォワード不透明）/通常スプライト
-        Transparent,    // 透明オブジェクト
-        Water,          //
-        Overlay,        // フォント/UI
+        GBuffer,            // 不透明3Dモデル（ディファード）。G-Bufferへ書き込む
+        World,              // 3D（デバッグ線などcustomDraw経由のフォワード不透明）/通常スプライト
+        TransparentDepth,   // 半透明モデルの深度事前パス（Transparentの直前。色は書かず深度だけ埋める）
+        Transparent,        // 透明オブジェクト
+        Water,              //
+        Overlay,            // フォント/UI
     };
 
     //------------------------------------------------------------

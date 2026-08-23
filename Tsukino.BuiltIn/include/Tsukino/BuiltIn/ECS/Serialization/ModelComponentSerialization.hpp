@@ -15,7 +15,8 @@ namespace Tsukino::BuiltIn::ECS {
     //--------------------------------------------------------------
     template <class Archive>
     void save(Archive& archive, const ModelComponent& model) {
-        archive(cereal::make_nvp("modelHandle", model.modelHandle), cereal::make_nvp("visible", model.visible));
+        archive(cereal::make_nvp("modelHandle", model.modelHandle), cereal::make_nvp("visible", model.visible),
+                cereal::make_nvp("opacity", model.opacity));
     }
 
     //--------------------------------------------------------------
@@ -23,7 +24,7 @@ namespace Tsukino::BuiltIn::ECS {
     //--------------------------------------------------------------
     template <class Archive>
     void load(Archive& archive, ModelComponent& model) {
-        archive(model.modelHandle, model.visible);
+        archive(model.modelHandle, model.visible, model.opacity);
     }
 
 }    // namespace Tsukino::BuiltIn::ECS

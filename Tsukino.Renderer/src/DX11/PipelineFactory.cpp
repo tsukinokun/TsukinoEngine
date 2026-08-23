@@ -114,6 +114,14 @@ namespace Tsukino::Renderer {
             desc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ZERO;
             desc.DepthFunc      = D3D11_COMPARISON_GREATER_EQUAL;
             break;
+
+        case DepthMode::EqualReadOnly:
+            // 半透明フォワードの色パス用。直前のTransparentDepthパスが埋めた深度と
+            // 一致する画素だけを通す（自己重なりのある1メッシュを1回だけシェーディングするため）
+            desc.DepthEnable    = TRUE;
+            desc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ZERO;
+            desc.DepthFunc      = D3D11_COMPARISON_EQUAL;
+            break;
         }
         // デプスステンシルステートの作成
         m_device->CreateDepthStencilState(&desc, p->depth.GetAddressOf());
@@ -136,6 +144,12 @@ namespace Tsukino::Renderer {
         switch(blendMode) {
         case BlendMode::Opaque:
             blendDesc.RenderTarget[0].BlendEnable = FALSE;
+            break;
+
+        case BlendMode::DepthOnly:
+            // 色を一切書かない（深度事前パス専用）。ブレンド自体は無効のままで良い
+            blendDesc.RenderTarget[0].BlendEnable           = FALSE;
+            blendDesc.RenderTarget[0].RenderTargetWriteMask = 0;
             break;
 
         case BlendMode::Alpha:

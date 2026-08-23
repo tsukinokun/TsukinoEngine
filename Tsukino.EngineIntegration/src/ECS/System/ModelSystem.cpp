@@ -31,6 +31,8 @@
 
 #include <entt/entt.hpp>
 
+#include <algorithm>
+
 namespace Tsukino::BuiltIn::ECS {
 
     //-------------------------------------------------------------
@@ -213,11 +215,22 @@ namespace Tsukino::BuiltIn::ECS {
                         cbMat.rimParams = hlslpp::float4(highlight->rimPower, highlight->glow, 0.0f, 0.0f);
                     }
 
+                    //--------------------------------------------------------------
+                    // 半透明フェード（ModelComponent::opacity）。1.0未満なら通常のディファード
+                    // （GBuffer）ではなく半透明フォワード（TransparentDepth + Transparent）で描く。
+                    // ディファードのライティング結果はTonemapパスがrgbしか読まないため、
+                    // baseColorのアルファを下げるだけではディファード経路は一切フェードしない
+                    //--------------------------------------------------------------
+                    bool isFading = modelComp.opacity < 0.999f;
+                    if(isFading) {
+                        cbMat.baseColor.w *= std::max(modelComp.opacity, 0.0f);
+                    }
+
                     m_cbufferMaterialBuffer.push_back(cbMat);
                     Tsukino::Renderer::CBufferMaterial* pCbMat = &m_cbufferMaterialBuffer.back();
 
                     // シェーダーアセットの取得
-                    // VSはワールド座標・法線・UVを出力するだけなので、フォワード(Water)/
+                    // VSはワールド座標・法線・UVを出力するだけなので、フォワード(Water/半透明)/
                     // ディファード(GBuffer)いずれのPSでも共用できる
                     Tsukino::Asset::AssetHandle vsHandle = isSkeletal ? ctx->builtinAssets->shaders.modelVS : ctx->builtinAssets->shaders.staticModelVS;
                     Tsukino::Asset::AssetHandle psHandle = ctx->builtinAssets->shaders.gbufferPS;
@@ -227,6 +240,14 @@ namespace Tsukino::BuiltIn::ECS {
                     Tsukino::Renderer::BlendMode blendMode = Tsukino::Renderer::BlendMode::Opaque;
                     if(shadingModel == Tsukino::GraphicsCommon::ShadingModel::Water) {
                         psHandle  = ctx->builtinAssets->shaders.waterPS;
+                        blendMode = Tsukino::Renderer::BlendMode::Alpha;
+                    }
+
+                    // opacityフェード中は（Waterより優先して）半透明フォワードへ切り替える。
+                    // Model.ps.hlslはt0（アルベド）しかサンプルしないため、フェード中だけ
+                    // 法線/MR/エミッシブ/AOマップは効かなくなる
+                    if(isFading) {
+                        psHandle  = ctx->builtinAssets->shaders.modelPS;
                         blendMode = Tsukino::Renderer::BlendMode::Alpha;
                     }
 
@@ -240,18 +261,6 @@ namespace Tsukino::BuiltIn::ECS {
                     Tsukino::GraphicsCommon::VertexFormat vertexFormat =
                         isSkeletal ? Tsukino::GraphicsCommon::VertexFormat::Skinned : Tsukino::GraphicsCommon::VertexFormat::PositionNormalUV;
 
-                    // パイプライン生成（BlendMode を渡す）
-                    auto pipeline =
-                        ctx->renderer->GetPipelineFactory()->Create(*vsAsset, *psAsset, vertexFormat, Tsukino::Renderer::DepthMode::ReadWrite, blendMode);
-
-                    if(!pipeline)
-                        continue;
-
-                    // マテリアル構築
-                    Tsukino::Renderer::Material mat{};
-                    mat.SetPipeline(pipeline.get());
-                    mat.SetSampler(ctx->renderer->GetSampler(Tsukino::GraphicsCommon::SamplerType::AnisotropicWrap));
-
                     //--------------------------------------------------------------
                     // t0〜t4 をバインド。未設定はデフォルトへフォールバックする。
                     //   白        : シェーダー側で cbuffer 定数との乗算になるため恒等元
@@ -260,39 +269,76 @@ namespace Tsukino::BuiltIn::ECS {
                     ID3D11ShaderResourceView* whiteSRV      = ctx->renderer->GetWhiteTextureSRV();
                     ID3D11ShaderResourceView* flatNormalSRV = ctx->renderer->GetFlatNormalTextureSRV();
 
-                    mat.SetTexture(Tsukino::Renderer::SRVSlot::Albedo, albedoSRV ? albedoSRV : whiteSRV);
-                    mat.SetTexture(Tsukino::Renderer::SRVSlot::Normal, normalSRV ? normalSRV : flatNormalSRV);
-                    mat.SetTexture(Tsukino::Renderer::SRVSlot::MetallicRoughness, mrSRV ? mrSRV : whiteSRV);
-                    mat.SetTexture(Tsukino::Renderer::SRVSlot::Emissive, emissiveSRV ? emissiveSRV : whiteSRV);
-                    mat.SetTexture(Tsukino::Renderer::SRVSlot::AO, aoSRV ? aoSRV : whiteSRV);
+                    // 指定パイプラインでMaterialを1つ組み立ててm_materialBufferへ積み、
+                    // 安定した参照を返す（複数DrawCommandから同じテクスチャ設定を使い回すためのヘルパー）
+                    auto buildMaterial = [&](const std::shared_ptr<Tsukino::Renderer::PipelineState>& pipeline) -> Tsukino::Renderer::Material* {
+                        if(!pipeline)
+                            return nullptr;
 
-                    m_materialBuffer.push_back(mat);
+                        Tsukino::Renderer::Material mat{};
+                        mat.SetPipeline(pipeline.get());
+                        mat.SetSampler(ctx->renderer->GetSampler(Tsukino::GraphicsCommon::SamplerType::AnisotropicWrap));
+                        mat.SetTexture(Tsukino::Renderer::SRVSlot::Albedo, albedoSRV ? albedoSRV : whiteSRV);
+                        mat.SetTexture(Tsukino::Renderer::SRVSlot::Normal, normalSRV ? normalSRV : flatNormalSRV);
+                        mat.SetTexture(Tsukino::Renderer::SRVSlot::MetallicRoughness, mrSRV ? mrSRV : whiteSRV);
+                        mat.SetTexture(Tsukino::Renderer::SRVSlot::Emissive, emissiveSRV ? emissiveSRV : whiteSRV);
+                        mat.SetTexture(Tsukino::Renderer::SRVSlot::AO, aoSRV ? aoSRV : whiteSRV);
 
-                    // 描画コマンド
-                    Tsukino::Renderer::DrawCommand cmd{};
-                    cmd.mesh         = const_cast<Tsukino::Renderer::MeshBuffer*>(&targetMeshBuffer);
-                    cmd.transform    = finalTransform;
-                    cmd.material     = &m_materialBuffer.back();
-                    cmd.materialData = pCbMat;
-                    if(isSkeletal) {
-                        cmd.boneMatrices = skeletonOut->local_matrices;
-                        cmd.boneCount    = skeletonOut->bone_count;
+                        m_materialBuffer.push_back(mat);
+                        return &m_materialBuffer.back();
+                    };
+
+                    // 指定Material・パスでDrawCommandを1つ積むヘルパー
+                    // （フェード中は同じメッシュを深度パス・色パスの2回積むため関数化する）
+                    auto pushDrawCommand = [&](Tsukino::Renderer::Material* material, Tsukino::Renderer::RenderPass pass) {
+                        Tsukino::Renderer::DrawCommand cmd{};
+                        cmd.mesh         = const_cast<Tsukino::Renderer::MeshBuffer*>(&targetMeshBuffer);
+                        cmd.transform    = finalTransform;
+                        cmd.material     = material;
+                        cmd.materialData = pCbMat;
+                        if(isSkeletal) {
+                            cmd.boneMatrices = skeletonOut->local_matrices;
+                            cmd.boneCount    = skeletonOut->bone_count;
+                        }
+
+                        //--------------------------------------------------------------
+                        // モーションブラー用の前フレームデータ
+                        // hasPrevFrame が false なら Renderer 側は一切読まない
+                        //--------------------------------------------------------------
+                        cmd.prevTransform = prevFinalTransform;
+                        cmd.hasPrevFrame  = hasPrev;
+                        if(hasPrev && isSkeletal)
+                            cmd.prevBoneMatrices = motionVec->prevBones;
+                        cmd.pass = pass;
+
+                        ctx->renderer->PushDrawCommand(cmd);
+                    };
+
+                    if(isFading) {
+                        // 半透明フォワード：先に深度だけ埋め（スキンメッシュの自己重なり対策）、
+                        // 続けてその深度と一致する画素だけを1回シェーディングする。
+                        // 影・モーションベクタはGBufferパス限定のため、フェード中は失われる
+                        auto depthPipeline = ctx->renderer->GetPipelineFactory()->Create(
+                            *vsAsset, *psAsset, vertexFormat, Tsukino::Renderer::DepthMode::ReadWrite, Tsukino::Renderer::BlendMode::DepthOnly);
+                        auto colorPipeline = ctx->renderer->GetPipelineFactory()->Create(
+                            *vsAsset, *psAsset, vertexFormat, Tsukino::Renderer::DepthMode::EqualReadOnly, blendMode);
+
+                        if(auto* depthMat = buildMaterial(depthPipeline))
+                            pushDrawCommand(depthMat, Tsukino::Renderer::RenderPass::TransparentDepth);
+                        if(auto* colorMat = buildMaterial(colorPipeline))
+                            pushDrawCommand(colorMat, Tsukino::Renderer::RenderPass::Transparent);
+                    } else {
+                        auto pipeline = ctx->renderer->GetPipelineFactory()->Create(*vsAsset, *psAsset, vertexFormat,
+                                                                                    Tsukino::Renderer::DepthMode::ReadWrite, blendMode);
+                        if(auto* mat = buildMaterial(pipeline)) {
+                            // Water はフォワードの専用パス（半透明のためディファード対象外）。
+                            // それ以外（PBR/Unlit/Toon）は不透明としてG-Bufferパスへ回す。
+                            Tsukino::Renderer::RenderPass pass = (shadingModel == Tsukino::GraphicsCommon::ShadingModel::Water)
+                                                                      ? Tsukino::Renderer::RenderPass::Water
+                                                                      : Tsukino::Renderer::RenderPass::GBuffer;
+                            pushDrawCommand(mat, pass);
+                        }
                     }
-
-                    //--------------------------------------------------------------
-                    // モーションブラー用の前フレームデータ
-                    // hasPrevFrame が false なら Renderer 側は一切読まない
-                    //--------------------------------------------------------------
-                    cmd.prevTransform = prevFinalTransform;
-                    cmd.hasPrevFrame  = hasPrev;
-                    if(hasPrev && isSkeletal)
-                        cmd.prevBoneMatrices = motionVec->prevBones;
-                    // Water はフォワードの専用パス（半透明のためディファード対象外）。
-                    // それ以外（PBR/Unlit/Toon）は不透明としてG-Bufferパスへ回す。
-                    cmd.pass = (shadingModel == Tsukino::GraphicsCommon::ShadingModel::Water) ? Tsukino::Renderer::RenderPass::Water
-                                                                                              : Tsukino::Renderer::RenderPass::GBuffer;
-
-                    ctx->renderer->PushDrawCommand(cmd);
                 }
             }
         });

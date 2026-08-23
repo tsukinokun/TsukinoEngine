@@ -446,6 +446,21 @@ namespace Tsukino::Renderer {
         }
 
         //------------------------------------------------------------
+        // TransparentDepth パス（Transparentの直前。色を書かず深度だけ埋める）
+        //
+        // 半透明モデル（スキンメッシュの自己重なりが多い）が同じピクセルへ
+        // 何度もブレンドされて過度に濃く見える問題を避けるため、先に一番手前の
+        // 深度だけを確定させておく。Transparent側はEqualReadOnlyでこの深度と
+        // 一致する画素だけを1回シェーディングする
+        //------------------------------------------------------------
+        UpdateSceneBuffer(m_worldSceneData);
+        for(const auto& cmd : commands) {
+            if(cmd.pass != RenderPass::TransparentDepth)
+                continue;
+            ExecuteDrawCommand(cmd);
+        }
+
+        //------------------------------------------------------------
         // Transparent パス（不透明の後、水面の前）
         //
         // ブレンドと深度の設定は各コマンドの PipelineState が持っているため、
