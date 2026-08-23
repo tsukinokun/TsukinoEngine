@@ -229,6 +229,13 @@ project "EffekseerRendererDX11"
         "External/Effekseer/Dev/Cpp/EffekseerMaterialCompiler/**.cpp",
     }
 
+    -- DX12/Metal のマテリアルコンパイラは 3rdParty/LLGI に依存するため、
+    -- DX11 ビルドでは使わないこの2つを除外する。
+    removefiles {
+        "External/Effekseer/Dev/Cpp/EffekseerMaterialCompiler/DirectX12/**",
+        "External/Effekseer/Dev/Cpp/EffekseerMaterialCompiler/Metal/**",
+    }
+
     includedirs {
         "External/Effekseer/Dev/Cpp",
         "External/Effekseer/Dev/Cpp/Effekseer",
