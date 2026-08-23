@@ -83,8 +83,31 @@ namespace Tsukino::Core {
     //--------------------------------------------------------------
     Window::~Window() {
         UninstallHooks();    // 確実にアンフック
+
+        //--------------------------------------------------------------
+        // 【重要】DestroyWindow() へ入る前に通知先を必ず切る。
+        //
+        // DestroyWindow() は同期的に WM_ACTIVATEAPP / WM_KILLFOCUS / WM_SIZE /
+        // WM_DESTROY を WindowProc へ送る。つまりデストラクタの途中で
+        // WindowProc が再入する。
+        // 通知先（m_callback / m_resizeCallback / m_focusLostCallback）は
+        // 一般に Window より先に破棄されるオブジェクトを掴んでいるため、
+        // ここを残したまま破棄すると解放済みオブジェクトを呼び出すことになる。
+        //
+        // 実際、終了時に 3 回に 1 回ほど
+        // STATUS_FATAL_USER_CALLBACK_EXCEPTION (0xC000041D) で落ちていたのはこれが原因。
+        // ウィンドウがアクティブなまま終了したときだけ WM_ACTIVATEAPP /
+        // WM_KILLFOCUS が飛ぶため、再現が非決定的になっていた。
+        //--------------------------------------------------------------
+        m_callback          = nullptr;
+        m_resizeCallback    = nullptr;
+        m_focusLostCallback = nullptr;
+
         // ウィンドウが存在する場合は破棄
         if(m_hWnd) {
+            // WindowProc 側から this へ辿れないようにしてから破棄する
+            ::SetWindowLongPtr(m_hWnd, GWLP_USERDATA, 0);
+
             DestroyWindow(m_hWnd);    // ウィンドウを破棄
             m_hWnd = nullptr;         // ハンドルをリセット
         }

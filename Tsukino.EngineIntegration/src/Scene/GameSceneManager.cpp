@@ -40,6 +40,14 @@ namespace Tsukino::EngineIntegration {
         // 現在のシーンが存在する場合は終了処理を呼び出す
         if(m_currentScene) {
             m_currentScene->OnExit();
+
+            //-------------------------------------------------------------
+            // System が生きているうちに全エンティティを畳む。
+            // ここを通さないと、Scene のメンバ破棄順（System → Registry）により
+            // 物理ボディやエフェクトの回収コールバックが誰にも届かないまま
+            // Registry だけが全エンティティを破棄することになる
+            //-------------------------------------------------------------
+            m_currentScene->GetScene().Shutdown();
         }
 
         // シーンを破棄する前に、シーン所有オブジェクトへの参照を切る
@@ -69,6 +77,9 @@ namespace Tsukino::EngineIntegration {
             // 現在のシーンの終了処理
             if(m_currentScene) {
                 m_currentScene->OnExit();
+
+                // アプリ終了時と同じ後始末を通す（理由はデストラクタ側のコメント参照）
+                m_currentScene->GetScene().Shutdown();
             }
 
             //-------------------------------------------------------------

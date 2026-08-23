@@ -21,6 +21,7 @@
 #include <entt/entt.hpp>
 #include <algorithm>
 #include <cmath>
+#include <iterator>
 #include <unordered_map>
 #include <unordered_set>
 
@@ -63,6 +64,32 @@ namespace Tsukino::BuiltIn::ECS {
     }
 
     //-------------------------------------------------------------
+    //! @brief  キー列から、指定時刻を含む区間の下側indexを求める
+    //! @param  keys [in] キーフレームのリスト（timeの昇順。2要素以上であること）
+    //! @param  time [in] 現在のアニメーション時間（Ticks）。
+    //!                   keys.front().time < time < keys.back().time を満たすこと
+    //! @return keys[i].time <= time < keys[i + 1].time となるi
+    //! @note   以前は先頭からの線形走査だった。この関数は1エンティティにつき
+    //!         ノード数×3回（位置・回転・スケール）呼ばれるため、キー本数が増えるほど
+    //!         ここが支配的になる（Mixamoリグ・キー100本なら1体あたり毎フレーム約1万反復）。
+    //!         キーはtime昇順に並んでいるので二分探索で引ける。
+    //!         なお戻り値のiは「time以下の最後のキー」なので keys[i + 1].time > time が
+    //!         保証され、同時刻の重複キーがあっても補間の分母が0にならない
+    //-------------------------------------------------------------
+    template <typename KeyType>
+    [[nodiscard]]
+    static std::size_t FindKeyIndex(const std::vector<KeyType>& keys, float time) {
+        const auto upper =
+            std::upper_bound(keys.begin(), keys.end(), time, [](float value, const KeyType& key) { return value < key.time; });
+
+        //---------------------------------------------------------
+        // 呼び出し元が端（time <= 先頭 / time >= 末尾）を先に弾いているため、
+        // upperは必ずbegin()より後ろかつend()より手前を指す
+        //---------------------------------------------------------
+        return static_cast<std::size_t>(std::distance(keys.begin(), upper)) - 1;
+    }
+
+    //-------------------------------------------------------------
     //! @brief ベクトルの線形補間（位置・スケール用）
     //! @param keys キーフレームのリスト
     //! @param time 現在のアニメーション時間（Ticks）
@@ -71,20 +98,25 @@ namespace Tsukino::BuiltIn::ECS {
     static hlslpp::float3 LerpVector(const std::vector<Tsukino::GraphicsCommon::VectorKey>& keys, float time) {
         if(keys.empty())
             return hlslpp::float3(0, 0, 0);
-        if(keys.size() == 1 || time <= keys.front().time)
+        //---------------------------------------------------------
+        // 端の判定を否定形で書いているのはNaN対策。timeがNaNだと
+        // `time <= front` も `time >= back` も false になり、そのまま
+        // FindKeyIndexへ抜けて範囲外のキーを引いてしまう（以前の線形探索は
+        // ループを素通りするだけだったので露呈しなかった）。
+        // 否定形ならNaNは必ず先頭のreturnで弾かれる。
+        // 通常の値に対する結果は従来とまったく同じ
+        //---------------------------------------------------------
+        if(keys.size() == 1 || !(time > keys.front().time))
             return hlslpp::float3(keys.front().value.x, keys.front().value.y, keys.front().value.z);
-        if(time >= keys.back().time)
+        if(!(time < keys.back().time))
             return hlslpp::float3(keys.back().value.x, keys.back().value.y, keys.back().value.z);
 
-        for(size_t i = 0; i < keys.size() - 1; ++i) {
-            if(time >= keys[i].time && time < keys[i + 1].time) {
-                float t = (time - keys[i].time) / (keys[i + 1].time - keys[i].time);
-                return hlslpp::lerp(hlslpp::float3(keys[i].value.x, keys[i].value.y, keys[i].value.z),
-                                    hlslpp::float3(keys[i + 1].value.x, keys[i + 1].value.y, keys[i + 1].value.z),
-                                    hlslpp::float3(t, t, t));
-            }
-        }
-        return hlslpp::float3(keys.back().value.x, keys.back().value.y, keys.back().value.z);
+        const std::size_t i = FindKeyIndex(keys, time);
+        const float       t = (time - keys[i].time) / (keys[i + 1].time - keys[i].time);
+
+        return hlslpp::lerp(hlslpp::float3(keys[i].value.x, keys[i].value.y, keys[i].value.z),
+                            hlslpp::float3(keys[i + 1].value.x, keys[i + 1].value.y, keys[i + 1].value.z),
+                            hlslpp::float3(t, t, t));
     }
 
     //-------------------------------------------------------------
@@ -96,27 +128,24 @@ namespace Tsukino::BuiltIn::ECS {
     static hlslpp::quaternion SlerpQuaternion(const std::vector<Tsukino::GraphicsCommon::QuaternionKey>& keys, float time) {
         if(keys.empty())
             return hlslpp::quaternion(0, 0, 0, 1);
-        if(keys.size() == 1 || time <= keys.front().time)
+        // 否定形での比較の理由はLerpVector側のコメントを参照（NaN対策）
+        if(keys.size() == 1 || !(time > keys.front().time))
             return hlslpp::quaternion(keys.front().value.x, keys.front().value.y, keys.front().value.z, keys.front().value.w);
-        if(time >= keys.back().time)
+        if(!(time < keys.back().time))
             return hlslpp::quaternion(keys.back().value.x, keys.back().value.y, keys.back().value.z, keys.back().value.w);
 
-        for(size_t i = 0; i < keys.size() - 1; ++i) {
-            if(time >= keys[i].time && time < keys[i + 1].time) {
-                float              t  = (time - keys[i].time) / (keys[i + 1].time - keys[i].time);
-                hlslpp::quaternion q1 = hlslpp::quaternion(keys[i].value.x, keys[i].value.y, keys[i].value.z, keys[i].value.w);
-                hlslpp::quaternion q2 = hlslpp::quaternion(keys[i + 1].value.x, keys[i + 1].value.y, keys[i + 1].value.z, keys[i + 1].value.w);
+        const std::size_t  i  = FindKeyIndex(keys, time);
+        const float        t  = (time - keys[i].time) / (keys[i + 1].time - keys[i].time);
+        hlslpp::quaternion q1 = hlslpp::quaternion(keys[i].value.x, keys[i].value.y, keys[i].value.z, keys[i].value.w);
+        hlslpp::quaternion q2 = hlslpp::quaternion(keys[i + 1].value.x, keys[i + 1].value.y, keys[i + 1].value.z, keys[i + 1].value.w);
 
-                // 内積が負なら q2 を反転して最短経路を保証
-                float dot = q1.x * q2.x + q1.y * q2.y + q1.z * q2.z + q1.w * q2.w;
-                if(dot < 0.0f) {
-                    q2 = hlslpp::quaternion(-q2.x, -q2.y, -q2.z, -q2.w);
-                }
-
-                return hlslpp::slerp(q1, q2, t);
-            }
+        // 内積が負なら q2 を反転して最短経路を保証
+        float dot = q1.x * q2.x + q1.y * q2.y + q1.z * q2.z + q1.w * q2.w;
+        if(dot < 0.0f) {
+            q2 = hlslpp::quaternion(-q2.x, -q2.y, -q2.z, -q2.w);
         }
-        return hlslpp::quaternion(keys.back().value.x, keys.back().value.y, keys.back().value.z, keys.back().value.w);
+
+        return hlslpp::slerp(q1, q2, t);
     }
 
     //-------------------------------------------------------------
@@ -409,16 +438,46 @@ namespace Tsukino::BuiltIn::ECS {
 
             //-------------------------------------------------------------
             // 全ノードのグローバル行列を計算
+            //
+            // 作業バッファはローカルのvectorを作らず、計算結果の公開先である
+            // NodeWorldMatrixComponent / NodeWorldPoseComponent の実体をそのまま使う。
+            //
+            // 以前はローカルに2本のvectorを毎フレーム構築し、計算後に両コンポーネントへ
+            // 丸ごとコピーしていた。1エンティティあたり毎フレーム2回のヒープ確保と
+            // ノード数×2本ぶんのコピーが発生し、敵2000体では毎フレーム4000回の確保になっていた。
+            // 直接書けば確保もコピーも消え、vectorはcapacityを保つので2フレーム目以降は
+            // resizeもノーオペになる。
+            //
+            // 公開のタイミング（poses＝揺れ物適用「前」、matrices＝揺れ物適用「後」）は
+            // 元の実装と変わらない。SpringBonePhysicsのInitializeChain/UpdateChainは
+            // animatedPosesをconst参照で受けるため、posesを書き換えることはない
             //-------------------------------------------------------------
-            std::vector<Tsukino::Core::Math::matrix> globalNodeMatrices(skeletonModelAss->modelData.nodes.size());
+            const std::size_t nodeCount = skeletonModelAss->modelData.nodes.size();
+
+            auto& matrixOut = registry.HasComponent<NodeWorldMatrixComponent>(entity)
+                                   ? registry.GetComponent<NodeWorldMatrixComponent>(entity)
+                                   : registry.AddComponent<NodeWorldMatrixComponent>(entity);
+
+            auto& poseOut = registry.HasComponent<NodeWorldPoseComponent>(entity)
+                                 ? registry.GetComponent<NodeWorldPoseComponent>(entity)
+                                 : registry.AddComponent<NodeWorldPoseComponent>(entity);
+
+            std::vector<Tsukino::Core::Math::matrix>& globalNodeMatrices = matrixOut.matrices;
 
             // 揺れ物物理用：位置・回転だけの軽量なワールド姿勢も並行して計算しておく
             // （スケールは1と仮定。揺れ物ボーンにスケールアニメを使わない前提の簡易版）
-            std::vector<Tsukino::Physics::WorldPose> worldPoses(skeletonModelAss->modelData.nodes.size());
+            std::vector<Tsukino::Physics::WorldPose>& worldPoses = poseOut.poses;
+
+            // 下のループが[0, nodeCount)を全て無条件に書くため、resizeで残る前フレームの
+            // 値が読まれることはない
+            globalNodeMatrices.resize(nodeCount);
+            worldPoses.resize(nodeCount);
 
             // ノードは親から子の順に並んでいる前提（一般的なフォーマット）で計算
-            for(size_t i = 0; i < skeletonModelAss->modelData.nodes.size(); ++i) {
-                const auto& node = skeletonModelAss->modelData.nodes[i];
+            const auto& nodes = skeletonModelAss->modelData.nodes;
+
+            for(size_t i = 0; i < nodeCount; ++i) {
+                const auto& node = nodes[i];
 
                 hlslpp::float3     pos(node.translation.x, node.translation.y, node.translation.z);
                 hlslpp::quaternion rot(node.rotation.x, node.rotation.y, node.rotation.z, node.rotation.w);
@@ -523,14 +582,10 @@ namespace Tsukino::BuiltIn::ECS {
 
             //-------------------------------------------------------------
             // 他エンティティ（武器のボーンアタッチ等）から参照できるよう、
-            // 各ノードのワールド姿勢（モデルローカル空間）を公開する
+            // 各ノードのワールド姿勢（モデルローカル空間）をここまでで公開済み。
+            // worldPoses は NodeWorldPoseComponent::poses の実体そのものなので、
+            // 改めてコピーする必要はない（揺れ物物理の適用前の値である点も従来どおり）
             //-------------------------------------------------------------
-            {
-                auto& poseOut = registry.HasComponent<NodeWorldPoseComponent>(entity)
-                                    ? registry.GetComponent<NodeWorldPoseComponent>(entity)
-                                    : registry.AddComponent<NodeWorldPoseComponent>(entity);
-                poseOut.poses = worldPoses;
-            }
 
             //-------------------------------------------------------------
             // 揺れ物物理（SpringBone）：対象ノードのglobalNodeMatricesを上書き
@@ -624,6 +679,7 @@ namespace Tsukino::BuiltIn::ECS {
                         }
                     }
 
+#if defined(_DEBUG)
                     //---------------------------------------------------------
                     // 【毎フレーム、間引き】Jiggle(揺れ)の数値デバッグ。
                     // - pos          : 物理適用後の実座標(world)。これが時間で
@@ -633,6 +689,13 @@ namespace Tsukino::BuiltIn::ECS {
                     // - このログを2〜3秒分並べて見た時、displacementが
                     //   一方向に増え続けるなら「発散」、上下に振れているなら
                     //   「揺れ(jiggle)」、ずっと同じ値なら「静止して釣り合っている」。
+                    //
+                    // Releaseでは丸ごと落とす。文字列の組み立てが揺れ物を持つ
+                    // 全エンティティぶん走るため、製品ビルドに残す理由がない。
+                    //
+                    // なおdebugTimerはラムダ内のstaticであり、全エンティティで共有される。
+                    // 間引き間隔が体数に依存する（体数が多いほど1体あたりの出力が飛ぶ）が、
+                    // 「揺れているかを目視する」用途には十分なのでそのままにしてある
                     //---------------------------------------------------------
                     static float debugTimer  = 0.0f;
                     debugTimer              += deltaTime;
@@ -654,20 +717,16 @@ namespace Tsukino::BuiltIn::ECS {
                             }
                         }
                     }
+#endif    // _DEBUG
                 }
             }
 
             //-------------------------------------------------------------
             // 他エンティティ（武器のボーンソケットアタッチ等）から参照できるよう、
-            // 各ノードのスケール込みグローバル行列を公開する（揺れ物補正後の最終値。
-            // これがそのままスキニングにも使われるため、見た目と完全に一致する）
+            // 各ノードのスケール込みグローバル行列をここまでで公開済み（揺れ物補正後の
+            // 最終値。これがそのままスキニングにも使われるため、見た目と完全に一致する）。
+            // globalNodeMatrices は NodeWorldMatrixComponent::matrices の実体そのもの
             //-------------------------------------------------------------
-            {
-                auto& matrixOut = registry.HasComponent<NodeWorldMatrixComponent>(entity)
-                                       ? registry.GetComponent<NodeWorldMatrixComponent>(entity)
-                                       : registry.AddComponent<NodeWorldMatrixComponent>(entity);
-                matrixOut.matrices = globalNodeMatrices;
-            }
 
             //-------------------------------------------------------------
             // ボーン行列の計算

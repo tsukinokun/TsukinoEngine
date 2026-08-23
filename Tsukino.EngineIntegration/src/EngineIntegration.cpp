@@ -81,11 +81,51 @@ namespace Tsukino::EngineIntegration {
 
     //------------------------------------------------------------
     //! @brief デストラクタ
-    //! @note  メンバの破棄はこの本体が走る前に行われるため、
-    //!        CoUninitialize() は全てのCOM利用者（Renderer, AudioManager等）が
-    //!        解放された後に呼ばれることが保証される。
+    //! @note  デストラクタは「本体 → メンバの破棄」の順に走る。本体で
+    //!        CoUninitialize() を呼ぶだけでは、まだ生きている Renderer /
+    //!        AudioManager より先に COM を落とすことになる（以前のコメントは
+    //!        破棄順を逆に書いていた）。
+    //!        そのため宣言の逆順＝暗黙の破棄順と同じ並びで明示的に解放し、
+    //!        COM 利用者が全ていなくなってから CoUninitialize() する。
     //------------------------------------------------------------
     EngineIntegration::~EngineIntegration() {
+        //------------------------------------------------------------
+        // 【必ず最初に行う】ウィンドウへ登録したコールバックを外す。
+        //
+        // これらのコールバックは this を捕らえ、m_inputSystem / m_renderer を
+        // 直接参照する。一方 m_window は破棄順の都合で最後に解放されるため、
+        // ~Window() の DestroyWindow() が WindowProc を再入させる時点では、
+        // それらのメンバは既に解放済みになっている。
+        //
+        // 実際 DestroyWindow() が送る WM_ACTIVATEAPP / WM_KILLFOCUS が
+        // m_focusLostCallback →（解放済みの）m_inputSystem->ClearAllKeys() を呼び、
+        // 終了時に STATUS_FATAL_USER_CALLBACK_EXCEPTION (0xC000041D) で
+        // 落ちていた。ウィンドウがアクティブなまま終了したときだけ
+        // WM_ACTIVATEAPP / WM_KILLFOCUS が飛ぶため、再現が非決定的だった。
+        //
+        // Window 側でも同じ理由でデストラクタ先頭に通知先の解除を入れてあるが、
+        // 「登録した側が責任を持って外す」形にしておかないと、
+        // メンバ構成を変えた瞬間に同じ問題が再発する。
+        //------------------------------------------------------------
+        if(m_window) {
+            m_window->SetMessageCallback(nullptr);
+            m_window->SetResizeCallback(nullptr);
+            m_window->SetFocusLostCallback(nullptr);
+        }
+
+        //------------------------------------------------------------
+        // 宣言の逆順で明示的に解放する（暗黙の破棄順とまったく同じ並び。
+        // CoUninitialize() をこの後に持ってくるためだけに明示している）
+        //------------------------------------------------------------
+        m_gameSceneManager.reset();
+        m_prefabFactory.reset();
+        m_audioManager.reset();
+        m_inputSystem.reset();
+        m_builtinAssets.reset();
+        m_assetManager.reset();
+        m_renderer.reset();
+        m_window.reset();
+
         if(m_comInitialized) {
             CoUninitialize();
             m_comInitialized = false;
