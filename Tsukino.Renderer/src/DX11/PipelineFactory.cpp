@@ -167,8 +167,14 @@ namespace Tsukino::Renderer {
             blendDesc.RenderTarget[0].SrcBlend       = D3D11_BLEND_SRC_ALPHA;
             blendDesc.RenderTarget[0].DestBlend      = D3D11_BLEND_ONE;
             blendDesc.RenderTarget[0].BlendOp        = D3D11_BLEND_OP_ADD;
-            blendDesc.RenderTarget[0].SrcBlendAlpha  = D3D11_BLEND_ONE;
-            blendDesc.RenderTarget[0].DestBlendAlpha = D3D11_BLEND_ZERO;
+            // アルファチャンネルは書き換えない（DestBlendAlpha=ONEで既存値を保持）。
+            // HDRバッファのアルファはTonemap.ps.hlslが最終色への事前乗算（Premultiplied Alpha）に
+            // 使っており、以前はSrcBlendAlpha=ONE/DestBlendAlpha=ZEROでスプライト自身のアルファに
+            // 上書きしていたため、加算合成スプライトの透明部分（アルファ0）を描いた画素のHDRアルファが
+            // 0になり、トーンマップで強制的に黒く潰れてしまっていた（ExpOrb.pngの透明部分が黒く
+            // 見える不具合の原因）
+            blendDesc.RenderTarget[0].SrcBlendAlpha  = D3D11_BLEND_ZERO;
+            blendDesc.RenderTarget[0].DestBlendAlpha = D3D11_BLEND_ONE;
             blendDesc.RenderTarget[0].BlendOpAlpha   = D3D11_BLEND_OP_ADD;
             break;
         }
