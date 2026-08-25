@@ -118,10 +118,11 @@ namespace Tsukino::BuiltIn::ECS {
     //! @param  effectPath [in] エフェクトファイルのパス
     //! @param  position   [in] 再生位置 (x, y, z)
     //! @param  looping    [in] ループ再生するか
+    //! @param  scale      [in] 再生スケール（等倍=1.0）
     //! @return エフェクトハンドル（負値の場合は失敗）
     //--------------------------------------------------------------
     int EffectSystem::PlayEffect(
-        Tsukino::ECS::Registry& registry, Tsukino::Asset::AssetHandle asset, const Tsukino::Core::Path& effectPath, const float* position, bool looping) {
+        Tsukino::ECS::Registry& registry, Tsukino::Asset::AssetHandle asset, const Tsukino::Core::Path& effectPath, const float* position, bool looping, float scale) {
         if(!m_initialized || !m_manager) {
             return -1;
         }
@@ -166,6 +167,14 @@ namespace Tsukino::BuiltIn::ECS {
 
         if(efkHandle == -1) {
             return -1;
+        }
+
+        // Effekseerではエフェクトの制作単位とワールドの単位系が食い違うことがあるため、
+        // インスタンス単位で拡大率を与えられるようにする。Effect::Createのmagnification
+        // （読み込み時に焼き込む）ではなくSetScaleを使うのは、m_loadedEffectsがアセット単位の
+        // キャッシュのため、同じアセットを別スケールで再生すると最初の値が黙って使われてしまうため
+        if(scale != 1.0f) {
+            m_manager->SetScale(efkHandle, scale, scale, scale);
         }
 
         return efkHandle;

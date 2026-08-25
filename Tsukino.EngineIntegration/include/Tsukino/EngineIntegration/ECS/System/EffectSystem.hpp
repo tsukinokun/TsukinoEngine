@@ -68,9 +68,12 @@ namespace Tsukino::BuiltIn::ECS {
         //! @param  effectPath [in] エフェクトファイルのパス
         //! @param  position   [in] 再生位置 (x, y, z)
         //! @param  looping    [in] ループ再生するか
+        //! @param  scale      [in] 再生スケール（等倍=1.0）。エフェクトの制作単位とワールドの単位系が
+        //!                         食い違う場合の変換に使う（例：1ユニット≒1cmのワールドでメートル単位の
+        //!                         エフェクトを再生するなら100前後）
         //! @return エフェクトハンドル（負値の場合は失敗）
         //-------------------------------------------------------------
-        int PlayEffect(Tsukino::ECS::Registry& registry, Tsukino::Asset::AssetHandle asset, const Tsukino::Core::Path& effectPath, const float* position, bool looping = false);
+        int PlayEffect(Tsukino::ECS::Registry& registry, Tsukino::Asset::AssetHandle asset, const Tsukino::Core::Path& effectPath, const float* position, bool looping = false, float scale = 1.0f);
 
         //-------------------------------------------------------------
         //! @brief  指定したハンドルのエフェクトを停止する
