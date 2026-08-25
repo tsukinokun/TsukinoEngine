@@ -231,77 +231,105 @@ namespace Tsukino::BuiltIn::ECS {
         DirectX::CommonStates* states = ctx->renderer->GetCommonStatesTK();
 
         //-------------------------------------------------------------
-        // 描画コマンドの作成。全エンティティ分をBegin/End 1組にまとめる
+        // 描画コマンドの作成。sortOrderが同じ連なり（＝同じUIの層）ごとに1個ずつ発行する。
+        //
+        // 全文字を1個にまとめてしまうと、その1個がOverlay内で1つの層としてしか
+        // 扱えず、「HPバーの上・スキルカードの下」のような層をまたぐ配置ができない。
+        // 層ごとに分けても、同じ層の文字はまとめて1回のBegin/Endで描かれるため
+        // バッチングは保たれる（コマンド数は文字数ではなく層の数で決まる）。
+        //
+        // ラムダはthisとm_drawOrderの区間だけを捉える。customDrawが呼ばれるのは
+        // Renderer::Render()の中で、これは同フレームのUpdateが全て終わった後
+        // （EngineAPI::Update → EngineAPI::Render）なので、メンバの内容は
+        // 今フレーム収集したものと一致する
         //-------------------------------------------------------------
-        Tsukino::Renderer::DrawCommand cmd{};
+        std::uint32_t runBegin = 0;
+        while(runBegin < static_cast<std::uint32_t>(m_drawOrder.size())) {
+            const int layer = m_drawEntries[m_drawOrder[runBegin]].sortOrder;
 
-        // m_drawEntriesはthis経由で参照する。customDrawが呼ばれるのはRenderer::Render()の中で、
-        // これは同フレームのUpdateが全て終わった後（EngineAPI::Update → EngineAPI::Render）なので、
-        // 描画時点の内容は今フレーム収集したものと一致する
-        cmd.customDraw = [this, states](ID3D11DeviceContext* context) {
-            m_spriteBatch->Begin(DirectX::SpriteSortMode_Deferred,    // 積んだ順に描く
-                                 states->NonPremultiplied(),          // 一般的なアルファブレンドを強制
-                                 nullptr,                             // サンプラーステート（デフォルトでOK）
-                                 states->DepthRead(),                 // 奥行きを読み取るけど書き込まない
-                                 nullptr                              // ラスタライザステート
-            );
+            std::uint32_t runEnd = runBegin + 1;
+            while(runEnd < static_cast<std::uint32_t>(m_drawOrder.size()) && m_drawEntries[m_drawOrder[runEnd]].sortOrder == layer)
+                ++runEnd;
 
-            for(std::uint32_t index : m_drawOrder) {
-                const DrawEntry& entry = m_drawEntries[index];
+            Tsukino::Renderer::DrawCommand cmd{};
 
-                if(entry.atlas) {
-                    entry.atlas->DrawString(m_spriteBatch.get(), context, entry.text, entry.position, entry.color, entry.origin, entry.scale,
-                                            entry.outlineColor, entry.outlineWidth);
-                    continue;
-                }
+            // UIはトーンマップ後のバックバッファへ描く（SpriteRendererSystemと揃える）。
+            // これを設定しないと既定のRenderPass::Worldに積まれ、3Dモデル(Render)より先に描かれて
+            // 後から上書きされてしまう上、トーンマップ前のHDRターゲットに描画されて発色もずれる
+            cmd.pass      = Tsukino::Renderer::RenderPass::Overlay;
+            cmd.sortOrder = layer;
 
-                //-------------------------------------------------------------
-                // ベイク済みSpriteFont経路。縁取りはDynamicFontAtlasと揃えて
-                // 8方向へずらしたものを先に描き、最後に本体を描く
-                //-------------------------------------------------------------
-                DirectX::XMFLOAT2 origin(entry.origin.x, entry.origin.y);
+            // m_drawEntries/m_drawOrderはthis経由で参照する。customDrawが呼ばれるのは
+            // Renderer::Render()の中で、これは同フレームのUpdateが全て終わった後
+            // （EngineAPI::Update → EngineAPI::Render）なので、描画時点の内容は
+            // 今フレーム収集したものと一致する
+            cmd.customDraw = [this, states, runBegin, runEnd](ID3D11DeviceContext* context) { DrawRange(context, states, runBegin, runEnd); };
 
-                if(entry.outlineWidth > 0.0f && entry.outlineColor.w > 0.0f) {
-                    constexpr float kOutlineOffsets[8][2] = {
-                        {-1.0f, -1.0f}, {0.0f, -1.0f}, {1.0f, -1.0f},
-                        {-1.0f,  0.0f},                {1.0f,  0.0f},
-                        {-1.0f,  1.0f}, {0.0f,  1.0f}, {1.0f,  1.0f},
-                    };
+            ctx->renderer->PushDrawCommand(cmd);
 
-                    DirectX::XMFLOAT4 dxOutlineColor(entry.outlineColor.x, entry.outlineColor.y, entry.outlineColor.z, entry.outlineColor.w);
-                    DirectX::XMVECTOR outlineColorVec = DirectX::XMLoadFloat4(&dxOutlineColor);
+            runBegin = runEnd;
+        }
+    }
 
-                    for(const auto& offset : kOutlineOffsets) {
-                        entry.spriteFont->DrawString(
-                            m_spriteBatch.get(),
-                            entry.text.c_str(),
-                            DirectX::XMFLOAT2(entry.position.x + offset[0] * entry.outlineWidth, entry.position.y + offset[1] * entry.outlineWidth),
-                            outlineColorVec,
-                            0.0f,
-                            origin,
-                            entry.scale);
-                    }
-                }
+    //-------------------------------------------------------------
+    //! @brief m_drawOrderの一部区間をSpriteBatchで描画する関数
+    //-------------------------------------------------------------
+    void FontRendererSystem::DrawRange(ID3D11DeviceContext* context, DirectX::CommonStates* states, std::uint32_t beginIndex, std::uint32_t endIndex) {
+        m_spriteBatch->Begin(DirectX::SpriteSortMode_Deferred,    // 積んだ順に描く
+                             states->NonPremultiplied(),          // 一般的なアルファブレンドを強制
+                             nullptr,                             // サンプラーステート（デフォルトでOK）
+                             states->DepthRead(),                 // 奥行きを読み取るけど書き込まない
+                             nullptr                              // ラスタライザステート
+        );
 
-                DirectX::XMFLOAT4 dxColor(entry.color.x, entry.color.y, entry.color.z, entry.color.w);
-                entry.spriteFont->DrawString(m_spriteBatch.get(),
-                                             entry.text.c_str(),
-                                             DirectX::XMFLOAT2(entry.position.x, entry.position.y),
-                                             DirectX::XMLoadFloat4(&dxColor),
-                                             0.0f,
-                                             origin,
-                                             entry.scale);
+        for(std::uint32_t order = beginIndex; order < endIndex; ++order) {
+            const DrawEntry& entry = m_drawEntries[m_drawOrder[order]];
+
+            if(entry.atlas) {
+                entry.atlas->DrawString(m_spriteBatch.get(), context, entry.text, entry.position, entry.color, entry.origin, entry.scale,
+                                        entry.outlineColor, entry.outlineWidth);
+                continue;
             }
 
-            m_spriteBatch->End();
-        };
+            //-------------------------------------------------------------
+            // ベイク済みSpriteFont経路。縁取りはDynamicFontAtlasと揃えて
+            // 8方向へずらしたものを先に描き、最後に本体を描く
+            //-------------------------------------------------------------
+            DirectX::XMFLOAT2 origin(entry.origin.x, entry.origin.y);
 
-        // UIはトーンマップ後のバックバッファへ描く（SpriteRendererSystemと揃える）。
-        // これを設定しないと既定のRenderPass::Worldに積まれ、3Dモデル(Render)より先に描かれて
-        // 後から上書きされてしまう上、トーンマップ前のHDRターゲットに描画されて発色もずれる
-        cmd.pass = Tsukino::Renderer::RenderPass::Overlay;
+            if(entry.outlineWidth > 0.0f && entry.outlineColor.w > 0.0f) {
+                constexpr float kOutlineOffsets[8][2] = {
+                    {-1.0f, -1.0f}, {0.0f, -1.0f}, {1.0f, -1.0f},
+                    {-1.0f,  0.0f},                {1.0f,  0.0f},
+                    {-1.0f,  1.0f}, {0.0f,  1.0f}, {1.0f,  1.0f},
+                };
 
-        ctx->renderer->PushDrawCommand(cmd);
+                DirectX::XMFLOAT4 dxOutlineColor(entry.outlineColor.x, entry.outlineColor.y, entry.outlineColor.z, entry.outlineColor.w);
+                DirectX::XMVECTOR outlineColorVec = DirectX::XMLoadFloat4(&dxOutlineColor);
+
+                for(const auto& offset : kOutlineOffsets) {
+                    entry.spriteFont->DrawString(
+                        m_spriteBatch.get(),
+                        entry.text.c_str(),
+                        DirectX::XMFLOAT2(entry.position.x + offset[0] * entry.outlineWidth, entry.position.y + offset[1] * entry.outlineWidth),
+                        outlineColorVec,
+                        0.0f,
+                        origin,
+                        entry.scale);
+                }
+            }
+
+            DirectX::XMFLOAT4 dxColor(entry.color.x, entry.color.y, entry.color.z, entry.color.w);
+            entry.spriteFont->DrawString(m_spriteBatch.get(),
+                                         entry.text.c_str(),
+                                         DirectX::XMFLOAT2(entry.position.x, entry.position.y),
+                                         DirectX::XMLoadFloat4(&dxColor),
+                                         0.0f,
+                                         origin,
+                                         entry.scale);
+        }
+
+        m_spriteBatch->End();
     }
 
 }    // namespace Tsukino::BuiltIn::ECS

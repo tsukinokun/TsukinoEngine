@@ -38,6 +38,13 @@ namespace Tsukino::Renderer {
         RenderPass                                pass         = RenderPass::World;    // 描画パス
         CBufferMaterial*                          materialData = nullptr;              // マテリアルの定数データ（存在すれば）
 
+        //! 同一パス内の描画順（小さいほど先に描く＝奥）。
+        //! 現状これを見て並べ替えるのは Overlay パスだけで、他のパスは
+        //! 積んだ順のまま実行される。3Dパスの前後は深度バッファが決めるため、
+        //! 順序キーを持ち込むと「深度とキーのどちらが正か」が二重定義になる。
+        //! Overlay は深度を使わないので、明示的な層の指定がここにしか無い
+        int sortOrder = 0;
+
         const void* boneMatrices = nullptr;    // ボーン行列の配列へのポインタ（スキニング用, 最大ボーン数は SkeletonOutputComponent 等に依存）
         u32         boneCount    = 0;          // スキニング用のボーン数
 

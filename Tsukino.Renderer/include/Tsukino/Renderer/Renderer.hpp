@@ -30,6 +30,7 @@
 #include <array>
 #include <optional>
 #include <unordered_map>
+#include <vector>
 
 using Microsoft::WRL::ComPtr;    // ComPtr を使用するための using 宣言
 
@@ -623,6 +624,13 @@ namespace Tsukino::Renderer {
         u32 m_shadowBoneBytes   = 0;    // 直前のExecuteShadowCommandで転送したボーン行列のバイト数（統計用）
 
         DrawCommandQueue                                        m_drawQueue;          // 描画コマンドキュー
+
+        //! Overlayパスの実行順を決めるための添字バッファ。
+        //! DrawCommand本体ではなく添字を並べ替えるのは、DrawCommandがhlsl++の
+        //! 16バイト境界型（matrix）を含み、並べ替えの一時バッファが拡張アライメント
+        //! として弾かれるため（SpriteRenderSystem/FontRendererSystemと同じ理由）。
+        //! メンバに持たせてclear()で使い回し、毎フレームの確保を避ける
+        std::vector<u32> m_overlayOrder;
 
         // カメラ行列のセットを保存する変数
         Tsukino::Renderer::CBufferScene m_worldSceneData;      // 3D（メインカメラ）用

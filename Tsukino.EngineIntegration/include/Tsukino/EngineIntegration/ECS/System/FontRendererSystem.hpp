@@ -27,7 +27,12 @@ namespace Tsukino::BuiltIn::ECS {
     //! @class  FontRendererSystem
     //! @brief  フォント描画を行うシステム
     //! @note   1フレーム分の描画情報をまとめてsortOrder順に並べ、
-    //!         SpriteBatchのBegin/End 1組・DrawCommand 1個で描画する
+    //!         同じsortOrderの連なり（＝同じUIの層）ごとに
+    //!         SpriteBatchのBegin/End 1組・DrawCommand 1個で描画する。
+    //!         層ごとに分けるのは、Rendererが Overlay パスを
+    //!         DrawCommand::sortOrder で並べ替えるようになったため。
+    //!         全文字を1コマンドにまとめると、文字とスプライトの前後を
+    //!         sortOrderで指定できなくなる
     //-------------------------------------------------------------
     class FontRendererSystem : public Tsukino::ECS::ISystem {
     public:
@@ -49,6 +54,17 @@ namespace Tsukino::BuiltIn::ECS {
         void Update(Tsukino::ECS::Registry& registry, float deltaTime) override;
 
     private:
+        //-------------------------------------------------------------
+        //! @brief  m_drawOrderの一部区間をSpriteBatchで描画する関数
+        //! @param  context    [in] デバイスコンテキスト
+        //! @param  states     [in] TK製CommonStates（ブレンド／深度ステート取得用）
+        //! @param  beginIndex [in] m_drawOrderの開始位置
+        //! @param  endIndex   [in] m_drawOrderの終端位置（この位置は含まない）
+        //! @note   customDrawから呼ばれる。呼び出し時点はRenderer::Render()の中で、
+        //!         同フレームのUpdateが全て終わった後なのでメンバは今フレームの内容
+        //-------------------------------------------------------------
+        void DrawRange(ID3D11DeviceContext* context, DirectX::CommonStates* states, std::uint32_t beginIndex, std::uint32_t endIndex);
+
         //-------------------------------------------------------------
         //! @struct DrawEntry
         //! @brief  1エンティティ分の描画情報。1フレーム分を集めてまとめて描く

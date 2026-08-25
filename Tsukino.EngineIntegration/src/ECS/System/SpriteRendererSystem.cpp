@@ -205,7 +205,8 @@ namespace Tsukino::BuiltIn::ECS {
             cmd.materialData = &materialData;
             // World空間はG-Bufferが書いた深度と前後判定させたいのでRenderPass::World、
             // Screen空間（HUD）は従来どおり深度無視で最前面に出すOverlay
-            cmd.pass = isWorld ? Tsukino::Renderer::RenderPass::World : Tsukino::Renderer::RenderPass::Overlay;
+            cmd.pass      = isWorld ? Tsukino::Renderer::RenderPass::World : Tsukino::Renderer::RenderPass::Overlay;
+            cmd.sortOrder = sprite.sortOrder;    // Overlayパス内でFontRendererSystemの文字と同じ軸で並ぶ
 
             m_entries.push_back({sprite.sortOrder, cmd});
         });
@@ -213,6 +214,11 @@ namespace Tsukino::BuiltIn::ECS {
         // sortOrderで昇順ソート
         // （stable_sortにはしない。DrawCommandが16バイト境界を要求するため、
         //   一時バッファを使うstable_sortはaligned_storageの拡張アライメント検査に引っかかる）
+        //
+        // RendererがsortOrderで並べ替えるのはOverlayパスだけで、World空間スプライト
+        // （SpriteSpace::World → RenderPass::World）は積んだ順にそのまま実行される。
+        // つまりここのソートはWorld空間スプライト同士の前後を決める唯一の手段であり、
+        // Overlay側で二重になっても消してはならない
         std::sort(m_entries.begin(), m_entries.end(), [](const SpriteEntry& a, const SpriteEntry& b) { return a.sortOrder < b.sortOrder; });
         // ソート済みの順でpush
         for(auto& e : m_entries) {

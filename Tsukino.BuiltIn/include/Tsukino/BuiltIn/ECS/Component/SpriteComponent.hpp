@@ -59,7 +59,9 @@ namespace Tsukino::BuiltIn::ECS {
         // z, w: 右下の終了UV座標 または UVの幅と高さ (デフォルト 1, 1 で画像全体)
         hlslpp::float4 uvRect = hlslpp::float4(0.0f, 0.0f, 1.0f, 1.0f);
 
-        // 描画の順番
+        // 描画順（小さいほど先に描かれる）。RenderPass::Overlayへ積まれるスプライトは
+        // FontComponent::sortOrderと同じ1本の軸として比較されるため、
+        // 画面固定UIの重なりはスプライトと文字の種類を問わずここの値だけで決まる
         int sortOrder = 0;
     };
 

@@ -543,17 +543,11 @@ namespace Tsukino::Renderer {
         ExecuteTonemapPass(motionBlurred ? m_graphicsContext.GetPostProcessSRV() : m_graphicsContext.GetHDRSRV());
 
         //------------------------------------------------------------
-        // Overlay パス
-        //------------------------------------------------------------
-        UpdateSceneBuffer(m_overlaySceneData);
-        for(const auto& cmd : commands) {
-            if(cmd.pass != RenderPass::Overlay)
-                continue;
-            ExecuteDrawCommand(cmd);
-        }
-
-        //------------------------------------------------------------
-        // エフェクト描画パス
+        // エフェクト描画パス（Overlayより前）
+        //
+        // エフェクトは3D空間の演出なので、UIより奥に描く。Overlayの後に置くと
+        // 画面を覆うモーダル（スキル選択の暗転板など）の上にヒットエフェクトだけが
+        // 残ってしまう
         //------------------------------------------------------------
         if(effectSystem) {
             ID3D11DeviceContext* context = m_graphicsContext.GetContext();
@@ -562,6 +556,38 @@ namespace Tsukino::Renderer {
             effectSystem->RenderEffects(context, m_worldSceneData.view, m_worldSceneData.projection);
             context->OMSetBlendState(m_commonStatesTK->Opaque(), nullptr, 0xFFFFFFFF);
             context->OMSetDepthStencilState(m_commonStatesTK->DepthDefault(), 0);
+        }
+
+        //------------------------------------------------------------
+        // Overlay パス
+        //
+        // UIはスプライトも文字も同じRenderPass::Overlayへ積まれる。ここで
+        // DrawCommand::sortOrderの昇順へ並べ直さないと「積んだ順＝Systemの登録順」が
+        // 優先され、スプライトと文字の前後をsortOrderで指定できない
+        // （ダメージ数値がスキル選択カードの上に出る類の不具合になる）。
+        //
+        // 同じsortOrder同士は積んだ順を保たなければならない。保たないと
+        // EnTTのプール順の揺れがそのまま描画順のちらつきとして出る。
+        // 比較関数に添字を混ぜているのは、そうすればキーが同値のとき添字の
+        // 昇順＝積んだ順に落ちるためで、一時バッファを取るstd::stable_sortを
+        // 使わずに安定ソートと同じ結果が得られる
+        //------------------------------------------------------------
+        UpdateSceneBuffer(m_overlaySceneData);
+
+        m_overlayOrder.clear();
+        for(u32 index = 0; index < static_cast<u32>(commands.size()); ++index) {
+            if(commands[index].pass == RenderPass::Overlay)
+                m_overlayOrder.push_back(index);
+        }
+
+        std::sort(m_overlayOrder.begin(), m_overlayOrder.end(), [&commands](u32 lhs, u32 rhs) {
+            if(commands[lhs].sortOrder != commands[rhs].sortOrder)
+                return commands[lhs].sortOrder < commands[rhs].sortOrder;
+            return lhs < rhs;
+        });
+
+        for(u32 index : m_overlayOrder) {
+            ExecuteDrawCommand(commands[index]);
         }
 
         m_drawQueue.Clear();

@@ -53,6 +53,9 @@ namespace Tsukino::BuiltIn::ECS {
         hlslpp::float4 outlineColor = {0, 0, 0, 1};    // 縁取りの色
         float          outlineWidth = 0.0f;            // 縁取りの太さ（ピクセル単位。0で無効）
 
-        int sortOrder = 0;    // 描画順（小さいほど先に描かれる。SpriteComponentと同じ考え方）
+        // 描画順（小さいほど先に描かれる）。RenderPass::Overlayへ積まれる文字は
+        // SpriteComponent::sortOrderと同じ1本の軸として比較されるため、
+        // 画面固定UIの重なりはスプライトと文字の種類を問わずここの値だけで決まる
+        int sortOrder = 0;
     };
 }    // namespace Tsukino::BuiltIn::ECS
