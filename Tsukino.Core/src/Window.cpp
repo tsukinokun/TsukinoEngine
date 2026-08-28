@@ -17,9 +17,14 @@ namespace Tsukino::Core {
     static Window* g_instance  = nullptr;
 
     // 共通の入力転送ロジック
+    //
+    // フック内では InvokeCallback を直接呼ばず、キューへ積むだけにする。
+    // 直接呼ぶと、その先（InputSystemやゲームロジック）にブレークポイントを
+    // 置いた瞬間、同期呼び出しであるWH_MOUSE_LL/WH_KEYBOARD_LLの性質上、
+    // OS全体のマウス/キーボード入力が止まってしまうため。
     static void DispatchInput(UINT msg, WPARAM wp, LPARAM lp) {
         if(g_instance) {
-            g_instance->InvokeCallback(msg, wp, lp);
+            g_instance->EnqueueInput(msg, wp, lp);
         }
     }
 
@@ -246,6 +251,10 @@ namespace Tsukino::Core {
 
             DispatchMessage(&msg);    // メッセージをウィンドウプロシージャに送る
         }
+
+        // 低レベルフックが積んだ入力をこのタイミングでまとめて処理する
+        DispatchQueuedInput();
+
         // メッセージの処理が完了したら true を返す（アプリケーションは継続）
         return true;
     }
@@ -335,6 +344,67 @@ namespace Tsukino::Core {
     }
 
     //--------------------------------------------------------------
+    //! @brief 低レベルフックから呼ばれる、入力をキューへ積むだけの関数
+    //--------------------------------------------------------------
+    void Window::EnqueueInput(UINT msg, WPARAM wParam, LPARAM lParam) {
+        m_inputQueue.push_back({msg, wParam, lParam});
+    }
+
+    //--------------------------------------------------------------
+    //! @brief キューに溜まった入力をまとめて処理する関数
+    //--------------------------------------------------------------
+    void Window::DispatchQueuedInput() {
+        if(m_inputQueue.empty())
+            return;
+
+        // 処理中（InvokeCallback経由のゲームロジック等）にネストした
+        // メッセージループ等でEnqueueInputが再入されても、走査中のベクタを
+        // 壊さないようにローカルへ退避してから処理する
+        std::vector<QueuedInputEvent> events;
+        events.swap(m_inputQueue);
+
+        for(const auto& evt : events) {
+            InvokeCallback(evt.msg, evt.wParam, evt.lParam);
+
+            if(evt.msg == WM_MOUSEMOVE) {
+                UpdateClickThroughFromHitTest(static_cast<int>(LOWORD(evt.lParam)), static_cast<int>(HIWORD(evt.lParam)));
+            }
+        }
+    }
+
+    //--------------------------------------------------------------
+    //! @brief クリック透過（WS_EX_TRANSPARENT）を動的に切り替える関数
+    //--------------------------------------------------------------
+    void Window::SetClickThroughEnabled(bool enabled) {
+        if(m_style != WindowStyle::ClickThrough)
+            return;
+        if(!m_hWnd || m_clickThroughEnabled == enabled)
+            return;
+
+        m_clickThroughEnabled = enabled;
+
+        LONG_PTR exStyle = ::GetWindowLongPtr(m_hWnd, GWL_EXSTYLE);
+        if(enabled) {
+            exStyle |= WS_EX_TRANSPARENT;
+        } else {
+            exStyle &= ~WS_EX_TRANSPARENT;
+        }
+        ::SetWindowLongPtr(m_hWnd, GWL_EXSTYLE, exStyle);
+    }
+
+    //--------------------------------------------------------------
+    //! @brief フックから呼ばれ、登録済みの HitTestCallback を使って
+    //!        クリック透過の有効/無効を更新する関数
+    //--------------------------------------------------------------
+    void Window::UpdateClickThroughFromHitTest(int screenX, int screenY) {
+        if(!m_hitTestCallback)
+            return;
+
+        bool wantsInput = m_hitTestCallback(screenX, screenY);
+        SetClickThroughEnabled(!wantsInput);
+    }
+
+    //--------------------------------------------------------------
     //! @brief 動的に最前面表示を切り替える関数
     //--------------------------------------------------------------
     void Window::SetTopmost(bool enable) {
@@ -402,6 +472,9 @@ namespace Tsukino::Core {
             if(g_mouseHook || g_kbHook) {    // フックが登録されている場合のみ
                 UninstallHooks();
             }
+            // フックが外れている間はヒットテストが走らないため、
+            // クリック透過を「有効」に戻しておく（奪いっぱなしを防ぐ）
+            SetClickThroughEnabled(true);
         }
     }
 

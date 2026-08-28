@@ -7,6 +7,7 @@
 #include <windows.h>
 #include <string>
 #include <functional>
+#include <vector>
 // 名前空間 : Tsukino::Core
 namespace Tsukino::Core {
     //--------------------------------------------------------------
@@ -49,6 +50,12 @@ namespace Tsukino::Core {
         // フォーカス喪失通知コールバックの型エイリアス
         //--------------------------------------------------------------
         using FocusLostCallback = std::function<void()>;
+
+        //--------------------------------------------------------------
+        // クリックスルー判定コールバックの型エイリアス
+        //! @note 引数はスクリーン座標。true を返すとクリック透過を解除する。
+        //--------------------------------------------------------------
+        using HitTestCallback = std::function<bool(int, int)>;
 
         //--------------------------------------------------------------
         // コンストラクタ
@@ -99,6 +106,14 @@ namespace Tsukino::Core {
         //!        これを行わないと Alt+Tab でキーが押しっぱなしのまま残る。
         //--------------------------------------------------------------
         void SetFocusLostCallback(FocusLostCallback callback) { m_focusLostCallback = std::move(callback); }
+
+        //--------------------------------------------------------------
+        // クリックスルー判定コールバックを設定する関数
+        //! @param callback [in] マウス座標（スクリーン座標）を受け取り、
+        //!                      クリック透過を解除すべきかを返す関数
+        //! @note  ClickThrough スタイルのウィンドウでのみ意味を持つ。
+        //--------------------------------------------------------------
+        void SetHitTestCallback(HitTestCallback callback) { m_hitTestCallback = std::move(callback); }
 
         //--------------------------------------------------------------
         // Rendererが必要とするHWND
@@ -163,6 +178,36 @@ namespace Tsukino::Core {
         void InvokeCallback(UINT msg, WPARAM wParam, LPARAM lParam);
 
         //--------------------------------------------------------------
+        //! @brief クリック透過（WS_EX_TRANSPARENT）を動的に切り替える関数
+        //! @param enabled [in] true: クリック透過を有効化, false: 無効化
+        //!                     （このウィンドウが実際にクリックを受け取る）
+        //! @note  ClickThrough スタイル以外では何もしない。
+        //--------------------------------------------------------------
+        void SetClickThroughEnabled(bool enabled);
+
+        //--------------------------------------------------------------
+        //! @brief フックから呼ばれ、登録済みの HitTestCallback を使って
+        //!        クリック透過の有効/無効を更新する関数
+        //! @param screenX [in] マウスのスクリーンX座標
+        //! @param screenY [in] マウスのスクリーンY座標
+        //--------------------------------------------------------------
+        void UpdateClickThroughFromHitTest(int screenX, int screenY);
+
+        //--------------------------------------------------------------
+        //! @brief 低レベルフックから呼ばれる、入力をキューへ積むだけの関数
+        //! @details フック内で重い処理（コールバック呼び出し等）を行うと、
+        //!          そこにブレークポイントを置いた瞬間 OS 全体の
+        //!          マウス/キーボード入力が止まってしまう
+        //!          （WH_MOUSE_LL / WH_KEYBOARD_LL は同期呼び出しのため）。
+        //!          そのためフックからは最小限のこの関数だけを呼び、
+        //!          実処理は DispatchQueuedInput() でメインループ側から行う。
+        //! @param msg    [in] メッセージコード
+        //! @param wParam [in] メッセージの追加情報
+        //! @param lParam [in] メッセージの追加情報（通常は座標など）
+        //--------------------------------------------------------------
+        void EnqueueInput(UINT msg, WPARAM wParam, LPARAM lParam);
+
+        //--------------------------------------------------------------
         //! @brief 全画面表示の切り替え
         //! @param enable [in] true: 全画面表示, false: ウィンドウ表示
         //--------------------------------------------------------------
@@ -213,6 +258,25 @@ namespace Tsukino::Core {
         //--------------------------------------------------------------
         void UpdateHookState(bool shouldInstall);
 
+        //--------------------------------------------------------------
+        //! @brief キューに溜まった入力をまとめて処理する関数
+        //! @details ProcessMessages() から毎フレーム呼ばれる。
+        //!          フックが呼ばれるスレッドと同じ（メイン）スレッドから
+        //!          しか呼ばれない前提のため、排他制御は行っていない。
+        //--------------------------------------------------------------
+        void DispatchQueuedInput();
+
+        //--------------------------------------------------------------
+        //! @brief フックからキューへ積む入力イベント
+        //--------------------------------------------------------------
+        struct QueuedInputEvent {
+            UINT   msg;
+            WPARAM wParam;
+            LPARAM lParam;
+        };
+
+        std::vector<QueuedInputEvent> m_inputQueue;    // フックから積まれた未処理の入力
+
         HWND m_hWnd;      // ウィンドウハンドル
         int  m_width;     // ウィンドウの幅
         int  m_height;    // ウィンドウの高さ
@@ -226,6 +290,9 @@ namespace Tsukino::Core {
         MessageCallback   m_callback;             // 連絡先を保存しておく変数
         ResizeCallback    m_resizeCallback;       // クライアント領域のサイズ変更通知先
         FocusLostCallback m_focusLostCallback;    // フォーカス喪失通知先
+        HitTestCallback   m_hitTestCallback;       // クリック透過の判定先
+
+        bool m_clickThroughEnabled = true;    // 現在クリック透過が有効かどうか（無駄なSetWindowLong呼び出し防止用）
 
         RECT m_preFullscreenRect;    // フルスクリーン前のサイズを保持
         bool m_isFullscreen = false;

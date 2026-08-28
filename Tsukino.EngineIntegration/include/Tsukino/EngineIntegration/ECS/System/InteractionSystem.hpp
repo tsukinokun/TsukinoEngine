@@ -21,6 +21,16 @@ namespace Tsukino::BuiltIn::ECS {
         //! @param  deltaTime   [in] 前フレームからの経過時間
         //-------------------------------------------------------------
         void Update(Tsukino::ECS::Registry& registry, float deltaTime) override;
+
+        //-------------------------------------------------------------
+        //! @brief  指定座標がドラッグ可能なスプライト上、またはドラッグ中の
+        //!         スプライトが存在するかを調べる関数
+        //! @param  registry [in] ECS レジストリ
+        //! @param  x        [in] 判定するX座標
+        //! @param  y        [in] 判定するY座標
+        //! @return true: いずれかのスプライト上にある、またはドラッグ中
+        //-------------------------------------------------------------
+        static bool HitTest(Tsukino::ECS::Registry& registry, float x, float y);
     };
 
 }    // namespace Tsukino::BuiltIn::ECS

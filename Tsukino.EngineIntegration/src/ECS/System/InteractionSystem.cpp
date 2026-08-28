@@ -22,6 +22,28 @@
 
 // 名前空間 : Tsukino::BuiltIn::ECS
 namespace Tsukino::BuiltIn::ECS {
+    namespace {
+        //-------------------------------------------------------------
+        //! @brief  スプライトの実サイズ（スケール考慮）を求め、指定座標が
+        //!         その矩形内にあるかを判定する
+        //! @return テクスチャアセットが取得できた場合は true
+        //-------------------------------------------------------------
+        bool ComputeSpriteHit(Tsukino::EngineIntegration::EngineContext* ctx, const TransformComponent& transform,
+                               const SpriteComponent& sprite, const hlslpp::float2& point, bool* outInside) {
+            auto textureAsset = std::static_pointer_cast<Tsukino::Asset::TextureAsset>(ctx->assetManager->Get(sprite.textureHandle));
+            if(!textureAsset)
+                return false;
+
+            // スケールを考慮した実際の描画サイズを計算
+            hlslpp::float2 spriteSize = {static_cast<float>(textureAsset->width) * transform.scale.x,
+                                         static_cast<float>(textureAsset->height) * transform.scale.y};
+            hlslpp::float2 spritePos = {transform.position.x, transform.position.y};
+
+            *outInside = Tsukino::Core::Math::IsPointInRect(point, spritePos, spriteSize);
+            return true;
+        }
+    }    // namespace
+
     //-------------------------------------------------------------
     //! @brief システムの更新
     //-------------------------------------------------------------
@@ -36,24 +58,12 @@ namespace Tsukino::BuiltIn::ECS {
         hlslpp::float2 mousePos = {(float)mouseX, (float)mouseY};
 
         registry.View<TransformComponent, DraggableComponent, SpriteComponent>().each([&](auto entity, auto& transform, auto& draggable, auto& sprite) {
-            // テクスチャアセットを取得してサイズを取得
-            auto textureAsset = std::static_pointer_cast<Tsukino::Asset::TextureAsset>(ctx->assetManager->Get(sprite.textureHandle));
-            if(!textureAsset)
-                return;
-
-            // スケールを考慮した実際の描画サイズを計算
-            float w = static_cast<float>(textureAsset->width) * transform.scale.x;
-            float h = static_cast<float>(textureAsset->height) * transform.scale.y;
-
             //-------------------------------------------------------------
             // 当たり判定
             //-------------------------------------------------------------
-            hlslpp::float2 spriteSize = {static_cast<float>(textureAsset->width) * transform.scale.x,
-                                         static_cast<float>(textureAsset->height) * transform.scale.y};
-            hlslpp::float2 spritePos  = {transform.position.x, transform.position.y};
-
-            // マウスを「サイズ0の矩形」として Intersects に渡す
-            bool isInside = Tsukino::Core::Math::IsPointInRect(mousePos, spritePos, spriteSize);
+            bool isInside = false;
+            if(!ComputeSpriteHit(ctx, transform, sprite, mousePos, &isInside))
+                return;
 
             // 以下、ドラッグ処理
             if(!draggable.isDragging && input->IsKeyPressed(Input::KeyCode::LButton) && isInside) {
@@ -71,5 +81,37 @@ namespace Tsukino::BuiltIn::ECS {
             }
     });
 }
+
+    //-------------------------------------------------------------
+    //! @brief  指定座標がドラッグ可能なスプライト上、またはドラッグ中の
+    //!         スプライトが存在するかを調べる関数
+    //-------------------------------------------------------------
+    bool InteractionSystem::HitTest(Tsukino::ECS::Registry& registry, float x, float y) {
+        Tsukino::EngineIntegration::EngineContext* ctx = registry.GetContext<Tsukino::EngineIntegration::EngineContext*>();
+        if(!ctx)
+            return false;
+
+        hlslpp::float2 point = {x, y};
+        bool           hit   = false;
+
+        registry.View<TransformComponent, DraggableComponent, SpriteComponent>().each([&](auto entity, auto& transform, auto& draggable, auto& sprite) {
+            if(hit)
+                return;
+
+            // ドラッグ中はカーソルがドラッグオフセット分ずれて矩形外に出ることが
+            // あるため、そのままクリック透過扱いになるのを防ぐ
+            if(draggable.isDragging) {
+                hit = true;
+                return;
+            }
+
+            bool isInside = false;
+            if(ComputeSpriteHit(ctx, transform, sprite, point, &isInside) && isInside) {
+                hit = true;
+            }
+        });
+
+        return hit;
+    }
 
 }    // namespace Tsukino::BuiltIn::ECS

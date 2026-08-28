@@ -33,7 +33,7 @@ int WINAPI WinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ LPSTR, _In_ int) {
     // ログの初期化
     Tsukino::EngineIntegration::EngineIntegration engineIntegration;
     // 初期化
-    if(!engineIntegration.Initialize(1700, 1000)) {
+    if(!engineIntegration.Initialize(1700, 1000, "TsukinoEngine",Tsukino::Core::Window::WindowStyle::ClickThrough)) {
         // 初期化に失敗した場合はエラーログを出力して終了
         // (以前は return false と書かれており、失敗なのに終了コード 0＝成功を返していた)
         Tsukino::Core::Log::Error("Failed to initialize EngineIntegration.");
@@ -46,11 +46,11 @@ int WINAPI WinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ LPSTR, _In_ int) {
     //--------------------------------------------------------------
     // 最初のシーンを登録・開始
     //--------------------------------------------------------------
-    engineAPI.ChangeScene(std::make_unique<Tsukino::Sandbox::SampleScene1>());
+    //engineAPI.ChangeScene(std::make_unique<Tsukino::Sandbox::SampleScene1>());
     //engineAPI.ChangeScene(std::make_unique<Tsukino::Sandbox::JumpGameSampleScene>());
     //engineAPI.ChangeScene(std::make_unique<Tsukino::Sandbox::BlockBreakingSampleScene>());
     //engineAPI.ChangeScene(std::make_unique<Tsukino::Sandbox::WaterGameSampleScene>());
-    //engineAPI.ChangeScene(std::make_unique<Tsukino::Sandbox::PenguinGameScene>());
+    engineAPI.ChangeScene(std::make_unique<Tsukino::Sandbox::PenguinGameScene>());
     // ディファードレンダリングの多光源ショーケース（F1でライト数を 0/1/16/64 に切り替え）
     //engineAPI.ChangeScene(std::make_unique<Tsukino::Sandbox::DeferredLightSampleScene>());
 

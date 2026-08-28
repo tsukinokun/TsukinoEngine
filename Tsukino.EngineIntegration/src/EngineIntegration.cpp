@@ -5,6 +5,9 @@
 //------------------------------------------------------------
 #include <Tsukino/EngineIntegration/EngineIntegration.hpp>
 
+#include <Tsukino/EngineIntegration/ECS/System/InteractionSystem.hpp>
+#include <Tsukino/EngineIntegration/Scene/GameSceneBase.hpp>
+
 #include <Tsukino/Engine/Asset/Shader/ShaderAsset.hpp>
 
 #include <Tsukino/BuiltIn/ECS/Component/CameraComponent.hpp>
@@ -231,6 +234,22 @@ namespace Tsukino::EngineIntegration {
                 m_inputSystem->AddWheelDelta(delta);
                 break;
             }
+        });
+
+        //--------------------------------------------------------------
+        // クリックスルーの判定コールバックの設定
+        //
+        // ClickThroughウィンドウはOSレベルでは常にヒットテストを無視して
+        // 背面へクリックを通すため、ドラッグ可能なスプライトにカーソルが
+        // 重なった瞬間（＝実際のWM_LBUTTONDOWNが届く前）にWS_EX_TRANSPARENTを
+        // 解除しておかないと、そのクリックが背面ウィンドウへ抜けてしまう。
+        //--------------------------------------------------------------
+        m_window->SetHitTestCallback([this](int x, int y) {
+            GameSceneBase* scene = m_gameSceneManager->GetCurrentScene();
+            if(!scene)
+                return false;
+            return Tsukino::BuiltIn::ECS::InteractionSystem::HitTest(
+                scene->GetScene().GetRegistry(), static_cast<float>(x), static_cast<float>(y));
         });
 
         //--------------------------------------------------------------
