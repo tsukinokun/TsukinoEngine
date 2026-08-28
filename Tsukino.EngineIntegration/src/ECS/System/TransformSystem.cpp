@@ -6,6 +6,8 @@
 #include <Tsukino/EngineIntegration/ECS/System/TransformSystem.hpp>
 #include <Tsukino/BuiltIn/ECS/Component/TransformComponent.hpp>
 
+#include <Tsukino/Core/Log.hpp>
+
 #include <hlsl++.h>
 #include <entt/entt.hpp>
 
@@ -41,11 +43,22 @@ namespace Tsukino::BuiltIn::ECS {
                 UpdateLocalMatrix(transform);
             }
 
-            // 親がいない、または親が無効な場合はルートエンティティとして記録
-            if(transform.parent == entt::null || !registry.HasComponent<TransformComponent>(transform.parent)) {
+            //-----------------------------------------------------
+            // 親がいない、親が無効、または循環参照になっている場合は
+            // ルートエンティティとして記録する。
+            //
+            // 循環をルート扱いにするのは、放置すると「ルートでもなく再帰にも
+            // 入らない」状態になり、worldMatrixが永久に更新されないまま
+            // 無言で壊れるため（クラッシュしないので原因追跡が難しい）
+            //-----------------------------------------------------
+            const Tsukino::ECS::Entity parent = transform.parent;
+
+            if(parent == entt::null || !registry.HasComponent<TransformComponent>(parent)) {
+                m_rootEntities.push_back(entity);
+            } else if(HasCycle(registry, entity)) {
                 m_rootEntities.push_back(entity);
             } else {
-                m_childrenByParent[static_cast<std::uint32_t>(transform.parent)].push_back(entity);
+                m_childrenByParent[static_cast<std::uint32_t>(parent)].push_back(entity);
             }
         }
 
@@ -54,6 +67,38 @@ namespace Tsukino::BuiltIn::ECS {
         for(const auto rootEntity : m_rootEntities) {
             UpdateWorldMatrixRecursive(registry, rootEntity, identity, m_childrenByParent);
         }
+    }
+
+    //-------------------------------------------------------------
+    //! @brief 親チェーンを遡って循環参照になっていないか調べる
+    //-------------------------------------------------------------
+    bool TransformSystem::HasCycle(Tsukino::ECS::Registry& registry, Tsukino::ECS::Entity entity) {
+        Tsukino::ECS::Entity current = entity;
+
+        //---------------------------------------------------------
+        // 自分に戻ってきたら循環。深さ上限に達した場合も、
+        // 現実的な階層ではありえない深さなので循環とみなして打ち切る
+        // （再帰でのスタックオーバーフローを防ぐ役割も兼ねる）
+        //---------------------------------------------------------
+        for(int depth = 0; depth < kMaxHierarchyDepth; ++depth) {
+            if(!registry.HasComponent<TransformComponent>(current)) {
+                return false;
+            }
+
+            const Tsukino::ECS::Entity parent = registry.GetComponent<TransformComponent>(current).parent;
+            if(parent == entt::null) {
+                return false;
+            }
+            if(parent == entity) {
+                Tsukino::Core::Log::Warn("TransformSystem: parent cycle detected. Treating the entity as a root.");
+                return true;
+            }
+
+            current = parent;
+        }
+
+        Tsukino::Core::Log::Warn("TransformSystem: hierarchy is too deep (or cyclic). Treating the entity as a root.");
+        return true;
     }
 
     //-------------------------------------------------------------
@@ -86,8 +131,14 @@ namespace Tsukino::BuiltIn::ECS {
 
         auto& transform = registry.GetComponent<TransformComponent>(entity);
 
-        // ワールド行列 = 親のワールド行列 * 自分のローカル行列
-        transform.worldMatrix = hlslpp::mul(parentWorld, transform.localMatrix);
+        //---------------------------------------------------------
+        // ワールド行列 = 自分のローカル行列 -> 親のワールド行列 の順に適用する。
+        // 行ベクトル規約では mul(a, b) は a を先に適用してから b を適用するため、
+        // 子のローカル行列が左、親のワールド行列が右になる
+        // （UpdateLocalMatrixのScale * Rotation * Translationと同じ考え方。
+        //   ModelSystemのmul(nodeTransform, worldMatrix)とも一致する）
+        //---------------------------------------------------------
+        transform.worldMatrix = hlslpp::mul(transform.localMatrix, parentWorld);
 
         //---------------------------------------------------------
         // 子エンティティを再帰的に更新する。

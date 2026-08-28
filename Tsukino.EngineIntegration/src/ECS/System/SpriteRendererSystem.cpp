@@ -148,22 +148,39 @@ namespace Tsukino::BuiltIn::ECS {
             float texW = static_cast<float>(textureAsset->width);
             float texH = static_cast<float>(textureAsset->height);
 
-            // テクスチャサイズ分だけ引き伸ばす行列を作成
-            const auto scaleMatrix = Tsukino::Core::Math::matrix::scale(texW * transform.scale.x, texH * transform.scale.y, 1.0f);
-
             Tsukino::Renderer::DrawCommand cmd;
 
-            const auto translationMatrix = Tsukino::Core::Math::matrix::translate(transform.position);
-
             if(sprite.space == Tsukino::BuiltIn::ECS::SpriteSpace::World) {
-                // 主カメラを向くビルボード：スケール→カメラ回転→ワールド位置への平行移動、の順で合成する
-                // （他のTRS合成と同じくscale→rotate→translateの順。fromQuaternionは
-                //   Matrix.hppにある既存ユーティリティ）
-                const auto rotationMatrix = Tsukino::Core::Math::matrix::fromQuaternion(cameraRotation);
-                cmd.transform              = hlslpp::mul(scaleMatrix, hlslpp::mul(rotationMatrix, translationMatrix));
+                //-------------------------------------------------------------
+                // 主カメラを向くビルボード：エンティティ自身の回転は使わずカメラ回転で
+                // 上書きするため、ワールド行列から「位置」と「スケール」だけを取り出して
+                // 組み直す（FontRendererSystemと同じ取り出し方。基底ベクトルの長さがスケール、
+                // 平行移動は行ベクトル規約なので4行目）
+                //-------------------------------------------------------------
+                const hlslpp::float3 worldPos = transform.worldMatrix[3].xyz;
+                const float          scaleX   = hlslpp::length(hlslpp::float3(transform.worldMatrix[0].xyz));
+                const float          scaleY   = hlslpp::length(hlslpp::float3(transform.worldMatrix[1].xyz));
+
+                const auto scaleMatrix       = Tsukino::Core::Math::matrix::scale(texW * scaleX, texH * scaleY, 1.0f);
+                const auto rotationMatrix    = Tsukino::Core::Math::matrix::fromQuaternion(cameraRotation);
+                const auto translationMatrix = Tsukino::Core::Math::matrix::translate(worldPos);
+
+                cmd.transform = hlslpp::mul(scaleMatrix, hlslpp::mul(rotationMatrix, translationMatrix));
             } else {
-                // スケールを適用してから移動することで、Positionにはスケール倍率が掛からなくなります
-                cmd.transform = hlslpp::mul(scaleMatrix, translationMatrix);
+                //-------------------------------------------------------------
+                // Screen空間：ワールド行列（= Scale * Rotation * Translation を親まで
+                // 合成したもの）をそのまま使う。行ベクトル規約なので
+                // 「テクスチャサイズ倍 -> ワールド行列」の順に適用する。
+                //
+                // 親なし・回転なしのときは従来の
+                //   mul(scale(texW * scale.x, texH * scale.y), translate(position))
+                // と完全に一致する。worldMatrix経由にしたことで、
+                // 親子関係（TransformComponent::parent）と回転が効くようになった
+                //-------------------------------------------------------------
+                // 1x1のクアッドをテクスチャの実ピクセルサイズまで引き伸ばす行列
+                const auto texSizeMatrix = Tsukino::Core::Math::matrix::scale(texW, texH, 1.0f);
+
+                cmd.transform = hlslpp::mul(texSizeMatrix, transform.worldMatrix);
             }
 
             // メッシュの指定

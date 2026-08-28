@@ -32,6 +32,19 @@ namespace Tsukino::BuiltIn::ECS {
         using ChildrenMap = std::unordered_map<std::uint32_t, std::vector<Tsukino::ECS::Entity>>;
 
         //-------------------------------------------------------------
+        //! @brief 親チェーンを遡れる深さの上限（循環検出・再帰深度の安全弁）
+        //-------------------------------------------------------------
+        static constexpr int kMaxHierarchyDepth = 64;
+
+        //-------------------------------------------------------------
+        // 親チェーンが循環しているか調べる
+        //! @param  registry [in] ECS レジストリ
+        //! @param  entity   [in] 調べたいエンティティ
+        //! @return 循環している（または深すぎる）場合 true
+        //-------------------------------------------------------------
+        static bool HasCycle(Tsukino::ECS::Registry& registry, Tsukino::ECS::Entity entity);
+
+        //-------------------------------------------------------------
         // ローカル行列の更新
         //! @param  transform [in/out] トランスフォームコンポーネント
         //-------------------------------------------------------------

@@ -4,7 +4,7 @@
 //! @author 山﨑愛
 //-------------------------------------------------------------
 #pragma once
-#include <Tsukino/Engine/Asset/AssetHandle.hpp>
+#include <Tsukino/Engine/Asset/AssetRef.hpp>
 
 #include <hlsl++.h>
 // 名前空間 : Tsukino::BuiltIn::ECS
@@ -42,7 +42,7 @@ namespace Tsukino::BuiltIn::ECS {
     //-------------------------------------------------------------
     struct SpriteComponent {
         // テクスチャのハンドル
-        Tsukino::Asset::AssetHandle textureHandle;
+        Tsukino::Asset::AssetRef textureHandle;
 
         // 合成方法（既定はAlpha）
         SpriteBlendMode blendMode = SpriteBlendMode::Alpha;

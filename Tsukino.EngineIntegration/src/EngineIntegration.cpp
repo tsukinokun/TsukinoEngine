@@ -26,6 +26,8 @@
 #include <Tsukino/BuiltIn/ECS/Component/ModelComponent.hpp>
 #include <Tsukino/BuiltIn/ECS/Component/CollisionComponent.hpp>
 #include <Tsukino/BuiltIn/ECS/Component/TerrainGenerationRequestComponent.hpp>
+#include <Tsukino/BuiltIn/ECS/Component/SpriteComponent.hpp>
+#include <Tsukino/BuiltIn/ECS/Component/DraggableComponent.hpp>
 
 #include <Tsukino/BuiltIn/ECS/Serialization/CameraComponentSerialization.hpp>
 #include <Tsukino/BuiltIn/ECS/Serialization/TransformComponentSerialization.hpp>
@@ -41,6 +43,8 @@
 #include <Tsukino/BuiltIn/ECS/Serialization/ModelComponentSerialization.hpp>
 #include <Tsukino/BuiltIn/ECS/Serialization/CollisionComponentSerialization.hpp>
 #include <Tsukino/BuiltIn/ECS/Serialization/TerrainGenerationRequestComponentSerialization.hpp>
+#include <Tsukino/BuiltIn/ECS/Serialization/SpriteComponentSerialization.hpp>
+#include <Tsukino/BuiltIn/ECS/Serialization/FontComponentSerialization.hpp>
 
 #include <Tsukino/Core/Log.hpp>
 
@@ -321,11 +325,14 @@ namespace Tsukino::EngineIntegration {
         m_prefabFactory->RegisterComponent<Tsukino::BuiltIn::ECS::DebugCameraComponent>("DebugCameraComponent");
         // タグのみのコンポーネントはシリアライズ対応不要（アタッチのみでよい）
         m_prefabFactory->RegisterComponent<Tsukino::BuiltIn::ECS::DebugCameraTag>("DebugCameraTag");
-        // fontHandleがAssetHandle（プロセス内限定でシリアライズ不可）を持つため、
-        // 現状シリアライザは未実装。デフォルト値でのアタッチのみ対応する。
+        // text（std::wstring）とfontHandle（AssetHandle、プロセス内限定でシリアライズ不可）は
+        // シリアライズ対象外。それ以外の見た目パラメータ（色・揃え位置など）は対応済み。
         m_prefabFactory->RegisterComponent<Tsukino::BuiltIn::ECS::FontComponent>("FontComponent");
         m_prefabFactory->RegisterComponent<Tsukino::BuiltIn::ECS::ModelComponent>("ModelComponent");
         m_prefabFactory->RegisterComponent<Tsukino::BuiltIn::ECS::CollisionComponent>("CollisionComponent");
         m_prefabFactory->RegisterComponent<Tsukino::BuiltIn::ECS::TerrainGenerationRequestComponent>("TerrainGenerationRequestComponent");
+        m_prefabFactory->RegisterComponent<Tsukino::BuiltIn::ECS::SpriteComponent>("SpriteComponent");
+        // isDragging/dragOffsetは実行時状態のみのため、シリアライズ対応不要（アタッチのみでよい）
+        m_prefabFactory->RegisterComponent<Tsukino::BuiltIn::ECS::DraggableComponent>("DraggableComponent");
     }
 }    // namespace Tsukino::EngineIntegration
