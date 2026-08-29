@@ -44,6 +44,14 @@ namespace Tsukino::ECS {
             return *this;
         }
 
+        // entt::null_t は Entity にも EntityRef（コピー/ムーブ代入経由）にも変換可能なため、
+        // 「field = entt::null;」のような代入は上記operator=(Entity)と暗黙のコピー/ムーブ代入で
+        // あいまいになる（C2593）。非テンプレートで完全一致するoperator=を専用に用意して解消する
+        EntityRef& operator=(entt::null_t) {
+            entity = entt::null;
+            return *this;
+        }
+
         operator Entity() const { return entity; }
 
         bool operator==(const EntityRef& other) const { return entity == other.entity; }
