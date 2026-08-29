@@ -57,8 +57,5 @@ namespace Tsukino::EngineIntegration {
         Tsukino::Engine::ECS::Prefab::PrefabFactory* prefabFactory    = nullptr;
         Tsukino::BuiltIn::ECS::EffectSystem*         effectSystem     = nullptr;
         Tsukino::BuiltIn::ECS::PhysicsSystem*        physicsSystem    = nullptr;
-
-        float hitStopTimer = 0.0f;    //!< ヒットストップ残り時間（実時間・秒）。0より大きい間、ActionGameScene::OnUpdateがdeltaTimeを縮小する
-        float hitStopScale = 1.0f;    //!< hitStopTimer > 0の間だけdeltaTimeへ掛けるスケール値
     };
 }    // namespace Tsukino::EngineIntegration
