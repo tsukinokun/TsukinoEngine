@@ -94,8 +94,16 @@ namespace Tsukino::Renderer {
         desc.Usage            = D3D11_USAGE_DEFAULT;
         desc.BindFlags        = D3D11_BIND_SHADER_RESOURCE;
 
+        // 初期データ無しで作ったテクスチャの内容はD3D11の仕様上未定義のため、明示的にゼロで埋める
+        // (グリフを書き込んでいない領域のゴミを、グリフ端のサンプリングで拾ってしまうのを防ぐ)
+        const std::vector<uint8_t> clearData(static_cast<size_t>(kPageSize) * kPageSize * 4, 0);
+
+        D3D11_SUBRESOURCE_DATA initData{};
+        initData.pSysMem     = clearData.data();
+        initData.SysMemPitch = kPageSize * 4;
+
         Page page;
-        HRESULT hr = m_device->CreateTexture2D(&desc, nullptr, page.texture.GetAddressOf());
+        HRESULT hr = m_device->CreateTexture2D(&desc, &initData, page.texture.GetAddressOf());
         if(FAILED(hr)) {
             Tsukino::Core::Log::Error("DynamicFontAtlas: Failed to create atlas page texture.");
             return false;
@@ -115,7 +123,12 @@ namespace Tsukino::Renderer {
     //! @brief  指定サイズの矩形をアトラスに確保する関数
     //------------------------------------------------------------
     bool DynamicFontAtlas::AllocateRect(uint32_t width, uint32_t height, int& outPage, uint32_t& outX, uint32_t& outY) {
-        if(width > kPageSize || height > kPageSize) {
+        // 隣のグリフとの間に余白を確保する。余白が無いとグリフ同士のインクが真横で接し、
+        // バイリニアサンプリングが矩形の外＝隣のグリフの列を拾って縦棒状のゴミになる
+        const uint32_t paddedWidth  = width + kGlyphPadding;
+        const uint32_t paddedHeight = height + kGlyphPadding;
+
+        if(paddedWidth > kPageSize || paddedHeight > kPageSize) {
             Tsukino::Core::Log::Error("DynamicFontAtlas: Glyph too large for atlas page.");
             return false;
         }
@@ -126,14 +139,14 @@ namespace Tsukino::Renderer {
         Page* page = &m_pages.back();
 
         // 現在のシェルフに収まらなければ次のシェルフへ折り返す
-        if(page->cursorX + width > kPageSize) {
+        if(page->cursorX + paddedWidth > kPageSize) {
             page->cursorX     = 0;
             page->cursorY += page->shelfHeight;
             page->shelfHeight = 0;
         }
 
         // 現在のページに収まらなければ新しいページを作成する
-        if(page->cursorY + height > kPageSize) {
+        if(page->cursorY + paddedHeight > kPageSize) {
             if(!CreatePage())
                 return false;
             page = &m_pages.back();
@@ -143,8 +156,8 @@ namespace Tsukino::Renderer {
         outX    = page->cursorX;
         outY    = page->cursorY;
 
-        page->cursorX += width;
-        page->shelfHeight = std::max(page->shelfHeight, height);
+        page->cursorX += paddedWidth;
+        page->shelfHeight = std::max(page->shelfHeight, paddedHeight);
 
         return true;
     }
