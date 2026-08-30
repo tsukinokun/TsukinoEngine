@@ -55,4 +55,23 @@ namespace Tsukino::Core::Math {
         return (point.x >= center.x - halfSize.x) && (point.x <= center.x + halfSize.x) && (point.y >= center.y - halfSize.y)
                && (point.y <= center.y + halfSize.y);
     }
+
+    //--------------------------------------------------------------
+    //! @brief  最短経路を保証したslerp
+    //! @note   hlslpp::slerpは二重被覆（qと-qが同じ回転を表す性質）を考慮しないため、
+    //!         現在の向きと目標の向きの内積が負（=180°境界をまたいでいる）の場合に
+    //!         最短経路ではなく反対周りへ補間してしまうことがある。呼び出し前に
+    //!         内積の符号をチェックし、必要ならq1側を符号反転してからhlslpp::slerpへ
+    //!         渡すことでこれを避ける
+    //! @param  [in] q0 補間元の向き
+    //! @param  [in] q1 補間先の向き
+    //! @param  [in] t  補間係数（0〜1）
+    //! @return q0からq1への、常に近い方の経路で補間した向き
+    //--------------------------------------------------------------
+    inline [[nodiscard]]
+    hlslpp::quaternion SlerpShortestPath(const hlslpp::quaternion& q0, const hlslpp::quaternion& q1, float t) {
+        float rotDot = q0.x * q1.x + q0.y * q1.y + q0.z * q1.z + q0.w * q1.w;
+        hlslpp::quaternion q1Shortest = (rotDot < 0.0f) ? hlslpp::quaternion(-q1.x, -q1.y, -q1.z, -q1.w) : q1;
+        return hlslpp::slerp(q0, q1Shortest, t);
+    }
 }    // namespace Tsukino::Core::Math
