@@ -95,13 +95,31 @@ namespace Tsukino::BuiltIn::ECS {
             return;
         }
 
+        //--------------------------------------------------------------
+        // 5種類すべてのレンダラを登録する。
+        // Effekseerは対応するレンダラがnullのノードを無言でスキップするため、
+        // 登録漏れがあるとリング・リボン・軌跡のノードがログも出さずに消える。
+        //--------------------------------------------------------------
         m_manager->SetSpriteRenderer(m_renderer->CreateSpriteRenderer());
+        m_manager->SetRibbonRenderer(m_renderer->CreateRibbonRenderer());
+        m_manager->SetRingRenderer(m_renderer->CreateRingRenderer());
+        m_manager->SetTrackRenderer(m_renderer->CreateTrackRenderer());
         m_manager->SetModelRenderer(m_renderer->CreateModelRenderer());
 
         m_effectFileInterfaceRef = Effekseer::MakeRefPtr<Tsukino::EngineIntegration::EffectFileInterface>();
         m_effectFileInterface    = m_effectFileInterfaceRef.Get();
         m_textureLoader          = EffekseerRenderer::CreateTextureLoader(m_renderer->GetGraphicsDevice(), m_effectFileInterfaceRef);
         m_manager->SetTextureLoader(m_textureLoader);
+
+        //--------------------------------------------------------------
+        // 現行アセットはモデル・マテリアル・カーブを使っていないが、
+        // レンダラと同じくローダが無いと無言で読み込みが失敗するため、
+        // 将来アセットが増えたときに備えて登録しておく。
+        // テクスチャと同じパス解決に乗せるため FileInterface を共有する。
+        //--------------------------------------------------------------
+        m_manager->SetModelLoader(m_renderer->CreateModelLoader(m_effectFileInterfaceRef));
+        m_manager->SetMaterialLoader(m_renderer->CreateMaterialLoader(m_effectFileInterfaceRef));
+        m_manager->SetCurveLoader(Effekseer::MakeRefPtr<Effekseer::CurveLoader>(m_effectFileInterfaceRef));
 
         m_entityDestroyedConn = eventBus.Subscribe<Tsukino::ECS::EngineEvent::EntityDestroyedEvent>(
             [this](const Tsukino::ECS::EngineEvent::EntityDestroyedEvent& event) { OnEffectEntityDestroyed(event); });
