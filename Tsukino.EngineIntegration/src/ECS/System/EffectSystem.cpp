@@ -18,9 +18,41 @@
 #include <Effekseer.h>
 #include <EffekseerRendererDX11.h>
 #include <EffekseerRendererCommon/EffekseerRendererCommon/TextureLoader.h>
+#include <algorithm>
+#include <cmath>
 
 // 名前空間 : Tsukino::BuiltIn::ECS
 namespace Tsukino::BuiltIn::ECS {
+    namespace {
+        //--------------------------------------------------------------
+        //! @brief  TransformComponentの姿勢をEffekseerのインスタンスへ反映する
+        //! @param  manager  [in] Effekseerマネージャ
+        //! @param  handle   [in] 対象の再生ハンドル
+        //! @param  rotation [in] 反映したい姿勢
+        //! @note   Effekseerが持つのは軸角の設定関数（Manager::SetRotation）なので、
+        //!         クォータニオンを軸と角度へ分解して渡す。
+        //!         Effekseer::Matrix43::RotationAxisが組む行列は、軸(0,1,0)のとき
+        //!         hlslppのrotation_yと完全に一致する（どちらも行ベクトル規約の
+        //!         [[c,0,-s],[0,1,0],[s,0,c]]）ため、符号や転置の補正は要らない
+        //--------------------------------------------------------------
+        void ApplyRotationToHandle(Effekseer::ManagerRef& manager, int handle, const hlslpp::quaternion& rotation) {
+            // w=cos(θ/2)。数値誤差でわずかに1を超えるとacosがNaNを返すため丸めておく
+            float w     = std::clamp(static_cast<float>(rotation.w), -1.0f, 1.0f);
+            float angle = 2.0f * std::acos(w);
+
+            // sin(θ/2)。回転がほぼ無い場合は軸が定まらないので、無回転として扱う
+            float sinHalf = std::sqrt(std::max(1.0f - w * w, 0.0f));
+            if(sinHalf < 1e-6f) {
+                manager->SetRotation(handle, ::Effekseer::Vector3D(0.0f, 1.0f, 0.0f), 0.0f);
+                return;
+            }
+
+            ::Effekseer::Vector3D axis(static_cast<float>(rotation.x) / sinHalf,
+                                      static_cast<float>(rotation.y) / sinHalf,
+                                      static_cast<float>(rotation.z) / sinHalf);
+            manager->SetRotation(handle, axis, angle);
+        }
+    }    // namespace
 
     //--------------------------------------------------------------
     //! @brief  デストラクタ
@@ -347,9 +379,16 @@ namespace Tsukino::BuiltIn::ECS {
                     pos[1]   = tf.position.y;
                     pos[2]   = tf.position.z;
                 }
-                int newHandle = PlayEffect(registry, comp.effectAsset, comp.effectPath, pos, comp.looping);
+                int newHandle = PlayEffect(registry, comp.effectAsset, comp.effectPath, pos, comp.looping, comp.scale);
                 if(newHandle >= 0) {
                     comp.handle = newHandle;
+
+                    // 姿勢は再生を始めたこのフレームから合わせる。次のフレームの追従処理まで
+                    // 待つと、生成直後の1フレームだけ無回転で描かれてしまう
+                    if(comp.followRotation && registry.HasComponent<TransformComponent>(entity)) {
+                        auto& tf = registry.GetComponent<TransformComponent>(entity);
+                        ApplyRotationToHandle(m_manager, comp.handle, tf.rotation);
+                    }
                 } else {
                     comp.active = false;
                 }
@@ -363,6 +402,10 @@ namespace Tsukino::BuiltIn::ECS {
                 if(registry.HasComponent<TransformComponent>(entity)) {
                     auto& tf = registry.GetComponent<TransformComponent>(entity);
                     m_manager->SetLocation(comp.handle, tf.position.x, tf.position.y, tf.position.z);
+
+                    // 姿勢の追従は既定で無効。飛翔体のように進行方向を向かせたいものだけが立てる
+                    if(comp.followRotation)
+                        ApplyRotationToHandle(m_manager, comp.handle, tf.rotation);
                 }
 
                 if(comp.playSpeed != 1.0f) {
