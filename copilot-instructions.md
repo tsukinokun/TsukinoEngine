@@ -1,5 +1,9 @@
 ﻿必ず日本語で応答してください。
 
+> **このファイルは GitHub Copilot 向けの写しです。規約の正は `CODING_GUIDELINES.md`。**
+> 食い違いがあれば `CODING_GUIDELINES.md` を優先し、直すときはそちらを先に直すこと。
+> コメントの書式は `.claude/skills/tsukino-doc-comment/SKILL.md` が正。
+
 # コード規約
 
 - ファイル名はすべてPascal Case

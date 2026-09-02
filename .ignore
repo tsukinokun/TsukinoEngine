@@ -1,0 +1,10 @@
+# ripgrep / Claude Code の Grep が走査しない場所。
+# .gitignore とは別物で、git の追跡は一切変えず「検索空間」だけを削る。
+# どうしても中を検索したいときは rg --no-ignore を使う。
+
+# vendored 3rd party（Effekseer / JoltPhysics / entt / cereal / hlslpp / DirectXTex）。
+External/
+
+# 自動生成ドキュメントの機械可読版（外部ツール用）。
+# 人／エージェントが読むのは Docs/api-index.md と Docs/api/*.md。
+Docs/agent-manifest.json

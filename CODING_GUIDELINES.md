@@ -33,8 +33,9 @@
 ### 3. コーディングスタイル
 
 - 本プロジェクトのコードスタイルは**clang-formatによって自動整形される**
-- ``インデント``はタブを使用する
+- ``インデント``は**4スペース**（``.clang-format`` の ``UseTab: Never`` / ``IndentWidth: 4``、``BasedOnStyle: Google``）
 - ``.clang-format``が唯一の正しいスタイル定義であり、手動整形は行わない
+- ``UTF-8`` / ``CRLF``。コメントは日本語で書く
 
 # 4.命名規則
 
@@ -195,6 +196,11 @@ Tsukino::Core::Path         path("Assets/Shaders/test.hlsl");
 - ビルドスクリプト(``Premake``)で
     - ``Assets/``を``bin/<Config>/``にコピーするルールを定義する
 - パスには``Core``の``Path``クラスを使用し、``OS``依存の記述を避ける
+- **一時ログ・調査用の出力は``Logs/``配下に出す。** デバッグ用の``std::ofstream``を
+  カレントディレクトリ直下に開かないこと。リポジトリを汚し、``git diff``や``git log -p``を
+  膨らませる（``Logs/``は``.gitignore``済み）
+- 実行結果をファイルで確認したいときは``Log::SetLogFile("Logs/Tsukino.log")``を呼ぶ。
+  呼ばない限り``Log``は``OutputDebugStringA``にしか出ない
 
 # 8. ドキュメントとコメント
 - **なぜそうしているか**をコメントに書く
