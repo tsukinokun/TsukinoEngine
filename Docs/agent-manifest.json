@@ -1,0 +1,1102 @@
+{
+    "schemaVersion": "1.0.0",
+    "generator": "premake5 gen-manifest",
+    "engineRoot": ".",
+    "prefab": {
+        "groupFileSuffix": ".Group.json",
+        "prefabIndexFile": "Prefab.json",
+        "componentRootKey": "registeredName",
+        "entityRefPrefix": "#",
+        "pathBase": "working directory (Debug: repository root / Release: next to the exe)"
+    },
+    "stats": {
+        "components": 32,
+        "registered": 18,
+        "serializable": 16
+    },
+    "components": [
+        {
+            "name": "AnimationControllerComponent",
+            "typeName": "Tsukino::BuiltIn::ECS::AnimationControllerComponent",
+            "registered": false,
+            "registeredName": null,
+            "serializable": false,
+            "header": "Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/AnimationControllerComponent.hpp",
+            "serializationHeader": null,
+            "registrationSite": null,
+            "fields": []
+        },
+        {
+            "name": "AnimationPlayerComponent",
+            "typeName": "Tsukino::BuiltIn::ECS::AnimationPlayerComponent",
+            "registered": false,
+            "registeredName": null,
+            "serializable": false,
+            "header": "Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/AnimationPlayerComponent.hpp",
+            "serializationHeader": null,
+            "registrationSite": null,
+            "fields": []
+        },
+        {
+            "name": "AudioComponent",
+            "typeName": "Tsukino::BuiltIn::ECS::AudioComponent",
+            "registered": false,
+            "registeredName": null,
+            "serializable": false,
+            "header": "Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/AudioComponent.hpp",
+            "serializationHeader": null,
+            "registrationSite": null,
+            "fields": []
+        },
+        {
+            "name": "BoxCollider2DComponent",
+            "typeName": "Tsukino::BuiltIn::ECS::BoxCollider2DComponent",
+            "registered": false,
+            "registeredName": null,
+            "serializable": false,
+            "header": "Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/BoxCollider2DComponent.hpp",
+            "serializationHeader": null,
+            "registrationSite": null,
+            "fields": []
+        },
+        {
+            "name": "CameraComponent",
+            "typeName": "Tsukino::BuiltIn::ECS::CameraComponent",
+            "registered": true,
+            "registeredName": "CameraComponent",
+            "serializable": true,
+            "header": "Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/CameraComponent.hpp",
+            "serializationHeader": "Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Serialization/CameraComponentSerialization.hpp",
+            "registrationSite": "Tsukino.EngineIntegration/src/EngineIntegration.cpp",
+            "fields": [
+                {
+                    "jsonKey": "projectionType",
+                    "field": "projectionType",
+                    "cppType": "ProjectionType",
+                    "jsonShape": "number（enum の整数値）",
+                    "default": "ProjectionType::Perspective"
+                },
+                {
+                    "jsonKey": "orthoSize",
+                    "field": "orthoSize",
+                    "cppType": "float",
+                    "jsonShape": "number",
+                    "default": "720.0f"
+                },
+                {
+                    "jsonKey": "fov",
+                    "field": "fov",
+                    "cppType": "float",
+                    "jsonShape": "number",
+                    "default": "45.0f"
+                },
+                {
+                    "jsonKey": "aspectRatio",
+                    "field": "aspectRatio",
+                    "cppType": "float",
+                    "jsonShape": "number",
+                    "default": "16.0f / 9.0f"
+                },
+                {
+                    "jsonKey": "nearZ",
+                    "field": "nearZ",
+                    "cppType": "float",
+                    "jsonShape": "number",
+                    "default": "0.1f"
+                },
+                {
+                    "jsonKey": "farZ",
+                    "field": "farZ",
+                    "cppType": "float",
+                    "jsonShape": "number",
+                    "default": "1000.0f"
+                },
+                {
+                    "jsonKey": "useLookAt",
+                    "field": "useLookAt",
+                    "cppType": "bool",
+                    "jsonShape": "true / false",
+                    "default": "false"
+                },
+                {
+                    "jsonKey": "lookAtTarget",
+                    "field": "lookAtTarget",
+                    "cppType": "hlslpp::float3",
+                    "jsonShape": "{ \"x\", \"y\", \"z\" }",
+                    "default": "hlslpp::float3(0, 0, 0)"
+                },
+                {
+                    "jsonKey": "isPrimary",
+                    "field": "isPrimary",
+                    "cppType": "bool",
+                    "jsonShape": "true / false",
+                    "default": "true"
+                }
+            ]
+        },
+        {
+            "name": "CharacterControllerComponent",
+            "typeName": "Tsukino::BuiltIn::ECS::CharacterControllerComponent",
+            "registered": false,
+            "registeredName": null,
+            "serializable": false,
+            "header": "Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/CharacterControllerComponent.hpp",
+            "serializationHeader": null,
+            "registrationSite": null,
+            "fields": []
+        },
+        {
+            "name": "CollisionComponent",
+            "typeName": "Tsukino::BuiltIn::ECS::CollisionComponent",
+            "registered": true,
+            "registeredName": "CollisionComponent",
+            "serializable": true,
+            "header": "Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/CollisionComponent.hpp",
+            "serializationHeader": "Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Serialization/CollisionComponentSerialization.hpp",
+            "registrationSite": "Tsukino.EngineIntegration/src/EngineIntegration.cpp",
+            "fields": [
+                {
+                    "jsonKey": "type",
+                    "field": "type",
+                    "cppType": "ColliderType",
+                    "jsonShape": "number（enum の整数値）",
+                    "default": "ColliderType::Box"
+                },
+                {
+                    "jsonKey": "extent",
+                    "field": "extent",
+                    "cppType": "hlslpp::float3",
+                    "jsonShape": "{ \"x\", \"y\", \"z\" }",
+                    "default": "{0.5f, 0.5f, 0.5f}"
+                },
+                {
+                    "jsonKey": "offsetPosition",
+                    "field": "offsetPosition",
+                    "cppType": "hlslpp::float3",
+                    "jsonShape": "{ \"x\", \"y\", \"z\" }",
+                    "default": "{0.0f, 0.0f, 0.0f}"
+                },
+                {
+                    "jsonKey": "offsetRotation",
+                    "field": "offsetRotation",
+                    "cppType": "hlslpp::quaternion",
+                    "jsonShape": "{ \"x\", \"y\", \"z\", \"w\" }",
+                    "default": "hlslpp::quaternion::identity()"
+                },
+                {
+                    "jsonKey": "isSensor",
+                    "field": "isSensor",
+                    "cppType": "bool",
+                    "jsonShape": "true / false",
+                    "default": "false"
+                }
+            ]
+        },
+        {
+            "name": "DebugCameraComponent",
+            "typeName": "Tsukino::BuiltIn::ECS::DebugCameraComponent",
+            "registered": true,
+            "registeredName": "DebugCameraComponent",
+            "serializable": true,
+            "header": "Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/DebugCameraComponent.hpp",
+            "serializationHeader": "Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Serialization/DebugCameraComponentSerialization.hpp",
+            "registrationSite": "Tsukino.EngineIntegration/src/EngineIntegration.cpp",
+            "fields": [
+                {
+                    "jsonKey": "moveSpeed",
+                    "field": "moveSpeed",
+                    "cppType": "float",
+                    "jsonShape": "number",
+                    "default": "10.0f"
+                },
+                {
+                    "jsonKey": "sprintSpeed",
+                    "field": "sprintSpeed",
+                    "cppType": "float",
+                    "jsonShape": "number",
+                    "default": "30.0f"
+                },
+                {
+                    "jsonKey": "mouseSens",
+                    "field": "mouseSens",
+                    "cppType": "float",
+                    "jsonShape": "number",
+                    "default": "0.15f"
+                }
+            ]
+        },
+        {
+            "name": "DebugCameraTag",
+            "typeName": "Tsukino::BuiltIn::ECS::DebugCameraTag",
+            "registered": true,
+            "registeredName": "DebugCameraTag",
+            "serializable": false,
+            "header": "Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/DebugCameraTag.hpp",
+            "serializationHeader": null,
+            "registrationSite": "Tsukino.EngineIntegration/src/EngineIntegration.cpp",
+            "fields": []
+        },
+        {
+            "name": "DirectionalLightComponent",
+            "typeName": "Tsukino::BuiltIn::ECS::DirectionalLightComponent",
+            "registered": true,
+            "registeredName": "DirectionalLightComponent",
+            "serializable": true,
+            "header": "Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/DirectionalLightComponent.hpp",
+            "serializationHeader": "Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Serialization/DirectionalLightComponentSerialization.hpp",
+            "registrationSite": "Tsukino.EngineIntegration/src/EngineIntegration.cpp",
+            "fields": [
+                {
+                    "jsonKey": "direction",
+                    "field": "direction",
+                    "cppType": "hlslpp::float3",
+                    "jsonShape": "{ \"x\", \"y\", \"z\" }",
+                    "default": "{0.0f, -1.0f, 0.0f}"
+                },
+                {
+                    "jsonKey": "color",
+                    "field": "color",
+                    "cppType": "hlslpp::float3",
+                    "jsonShape": "{ \"x\", \"y\", \"z\" }",
+                    "default": "{1.0f, 1.0f, 1.0f}"
+                },
+                {
+                    "jsonKey": "intensity",
+                    "field": "intensity",
+                    "cppType": "float",
+                    "jsonShape": "number",
+                    "default": "1.0f"
+                },
+                {
+                    "jsonKey": "castShadow",
+                    "field": "castShadow",
+                    "cppType": "bool",
+                    "jsonShape": "true / false",
+                    "default": "true"
+                }
+            ]
+        },
+        {
+            "name": "DraggableComponent",
+            "typeName": "Tsukino::BuiltIn::ECS::DraggableComponent",
+            "registered": true,
+            "registeredName": "DraggableComponent",
+            "serializable": false,
+            "header": "Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/DraggableComponent.hpp",
+            "serializationHeader": null,
+            "registrationSite": "Tsukino.EngineIntegration/src/EngineIntegration.cpp",
+            "fields": []
+        },
+        {
+            "name": "EffectComponent",
+            "typeName": "Tsukino::BuiltIn::ECS::EffectComponent",
+            "registered": true,
+            "registeredName": "EffectComponent",
+            "serializable": true,
+            "header": "Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/EffectComponent.hpp",
+            "serializationHeader": "Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Serialization/EffectComponentSerialization.hpp",
+            "registrationSite": "Tsukino.EngineIntegration/src/EngineIntegration.cpp",
+            "fields": [
+                {
+                    "jsonKey": "effectAsset",
+                    "field": "effectAsset",
+                    "cppType": "Tsukino::Asset::AssetHandle",
+                    "jsonShape": "?",
+                    "default": null
+                },
+                {
+                    "jsonKey": "effectPath",
+                    "field": "effectPath",
+                    "cppType": "Tsukino::Core::Path",
+                    "jsonShape": "?",
+                    "default": null
+                },
+                {
+                    "jsonKey": "playSpeed",
+                    "field": "playSpeed",
+                    "cppType": "float",
+                    "jsonShape": "number",
+                    "default": "1.0f"
+                },
+                {
+                    "jsonKey": "looping",
+                    "field": "looping",
+                    "cppType": "bool",
+                    "jsonShape": "true / false",
+                    "default": "false"
+                }
+            ]
+        },
+        {
+            "name": "FogComponent",
+            "typeName": "Tsukino::BuiltIn::ECS::FogComponent",
+            "registered": true,
+            "registeredName": "FogComponent",
+            "serializable": true,
+            "header": "Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/FogComponent.hpp",
+            "serializationHeader": "Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Serialization/FogComponentSerialization.hpp",
+            "registrationSite": "Tsukino.EngineIntegration/src/EngineIntegration.cpp",
+            "fields": [
+                {
+                    "jsonKey": "enabled",
+                    "field": "enabled",
+                    "cppType": "bool",
+                    "jsonShape": "true / false",
+                    "default": "true"
+                },
+                {
+                    "jsonKey": "color",
+                    "field": "color",
+                    "cppType": "hlslpp::float3",
+                    "jsonShape": "{ \"x\", \"y\", \"z\" }",
+                    "default": "hlslpp::float3(0.55f, 0.60f, 0.65f)"
+                },
+                {
+                    "jsonKey": "density",
+                    "field": "density",
+                    "cppType": "float",
+                    "jsonShape": "number",
+                    "default": "0.015f"
+                },
+                {
+                    "jsonKey": "startDistance",
+                    "field": "startDistance",
+                    "cppType": "float",
+                    "jsonShape": "number",
+                    "default": "10.0f"
+                },
+                {
+                    "jsonKey": "maxOpacity",
+                    "field": "maxOpacity",
+                    "cppType": "float",
+                    "jsonShape": "number",
+                    "default": "1.0f"
+                },
+                {
+                    "jsonKey": "heightFogEnabled",
+                    "field": "heightFogEnabled",
+                    "cppType": "bool",
+                    "jsonShape": "true / false",
+                    "default": "true"
+                },
+                {
+                    "jsonKey": "height",
+                    "field": "height",
+                    "cppType": "float",
+                    "jsonShape": "number",
+                    "default": "2.0f"
+                },
+                {
+                    "jsonKey": "heightFalloff",
+                    "field": "heightFalloff",
+                    "cppType": "float",
+                    "jsonShape": "number",
+                    "default": "0.25f"
+                },
+                {
+                    "jsonKey": "heightDensity",
+                    "field": "heightDensity",
+                    "cppType": "float",
+                    "jsonShape": "number",
+                    "default": "0.05f"
+                },
+                {
+                    "jsonKey": "sunColor",
+                    "field": "sunColor",
+                    "cppType": "hlslpp::float3",
+                    "jsonShape": "{ \"x\", \"y\", \"z\" }",
+                    "default": "hlslpp::float3(1.0f, 0.85f, 0.65f)"
+                },
+                {
+                    "jsonKey": "sunScatterPower",
+                    "field": "sunScatterPower",
+                    "cppType": "float",
+                    "jsonShape": "number",
+                    "default": "8.0f"
+                },
+                {
+                    "jsonKey": "noiseEnabled",
+                    "field": "noiseEnabled",
+                    "cppType": "bool",
+                    "jsonShape": "true / false",
+                    "default": "true"
+                },
+                {
+                    "jsonKey": "noiseScale",
+                    "field": "noiseScale",
+                    "cppType": "float",
+                    "jsonShape": "number",
+                    "default": "0.03f"
+                },
+                {
+                    "jsonKey": "noiseIntensity",
+                    "field": "noiseIntensity",
+                    "cppType": "float",
+                    "jsonShape": "number",
+                    "default": "0.4f"
+                },
+                {
+                    "jsonKey": "windDirection",
+                    "field": "windDirection",
+                    "cppType": "hlslpp::float3",
+                    "jsonShape": "{ \"x\", \"y\", \"z\" }",
+                    "default": "hlslpp::float3(1.0f, 0.0f, 0.3f)"
+                },
+                {
+                    "jsonKey": "windSpeed",
+                    "field": "windSpeed",
+                    "cppType": "float",
+                    "jsonShape": "number",
+                    "default": "0.5f"
+                }
+            ]
+        },
+        {
+            "name": "FontComponent",
+            "typeName": "Tsukino::BuiltIn::ECS::FontComponent",
+            "registered": true,
+            "registeredName": "FontComponent",
+            "serializable": true,
+            "header": "Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/FontComponent.hpp",
+            "serializationHeader": "Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Serialization/FontComponentSerialization.hpp",
+            "registrationSite": "Tsukino.EngineIntegration/src/EngineIntegration.cpp",
+            "fields": [
+                {
+                    "jsonKey": "color",
+                    "field": "color",
+                    "cppType": "hlslpp::float4",
+                    "jsonShape": "{ \"x\", \"y\", \"z\", \"w\" }",
+                    "default": "{1, 1, 1, 1}"
+                },
+                {
+                    "jsonKey": "origin",
+                    "field": "origin",
+                    "cppType": "hlslpp::float2",
+                    "jsonShape": "{ \"x\", \"y\" }",
+                    "default": "{0, 0}"
+                },
+                {
+                    "jsonKey": "horizontalAlign",
+                    "field": "horizontalAlign",
+                    "cppType": "HorizontalAlign",
+                    "jsonShape": "number（enum の整数値）",
+                    "default": "HorizontalAlign::Left"
+                },
+                {
+                    "jsonKey": "verticalAlign",
+                    "field": "verticalAlign",
+                    "cppType": "VerticalAlign",
+                    "jsonShape": "number（enum の整数値）",
+                    "default": "VerticalAlign::Top"
+                },
+                {
+                    "jsonKey": "outlineColor",
+                    "field": "outlineColor",
+                    "cppType": "hlslpp::float4",
+                    "jsonShape": "{ \"x\", \"y\", \"z\", \"w\" }",
+                    "default": "{0, 0, 0, 1}"
+                },
+                {
+                    "jsonKey": "outlineWidth",
+                    "field": "outlineWidth",
+                    "cppType": "float",
+                    "jsonShape": "number",
+                    "default": "0.0f"
+                },
+                {
+                    "jsonKey": "sortOrder",
+                    "field": "sortOrder",
+                    "cppType": "int",
+                    "jsonShape": "number",
+                    "default": "0"
+                }
+            ]
+        },
+        {
+            "name": "HighlightComponent",
+            "typeName": "Tsukino::BuiltIn::ECS::HighlightComponent",
+            "registered": false,
+            "registeredName": null,
+            "serializable": false,
+            "header": "Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/HighlightComponent.hpp",
+            "serializationHeader": null,
+            "registrationSite": null,
+            "fields": []
+        },
+        {
+            "name": "ImpulseRequestComponent",
+            "typeName": "Tsukino::BuiltIn::ECS::ImpulseRequestComponent",
+            "registered": false,
+            "registeredName": null,
+            "serializable": false,
+            "header": "Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/ImpulseRequestComponent.hpp",
+            "serializationHeader": null,
+            "registrationSite": null,
+            "fields": []
+        },
+        {
+            "name": "ModelComponent",
+            "typeName": "Tsukino::BuiltIn::ECS::ModelComponent",
+            "registered": true,
+            "registeredName": "ModelComponent",
+            "serializable": true,
+            "header": "Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/ModelComponent.hpp",
+            "serializationHeader": "Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Serialization/ModelComponentSerialization.hpp",
+            "registrationSite": "Tsukino.EngineIntegration/src/EngineIntegration.cpp",
+            "fields": [
+                {
+                    "jsonKey": "modelHandle",
+                    "field": "modelHandle",
+                    "cppType": "Tsukino::Asset::AssetRef",
+                    "jsonShape": "\"path/to/asset\"",
+                    "default": null
+                },
+                {
+                    "jsonKey": "visible",
+                    "field": "visible",
+                    "cppType": "bool",
+                    "jsonShape": "true / false",
+                    "default": "true"
+                },
+                {
+                    "jsonKey": "opacity",
+                    "field": "opacity",
+                    "cppType": "float",
+                    "jsonShape": "number",
+                    "default": "1.0f"
+                }
+            ]
+        },
+        {
+            "name": "MotionBlurComponent",
+            "typeName": "Tsukino::BuiltIn::ECS::MotionBlurComponent",
+            "registered": true,
+            "registeredName": "MotionBlurComponent",
+            "serializable": true,
+            "header": "Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/MotionBlurComponent.hpp",
+            "serializationHeader": "Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Serialization/MotionBlurComponentSerialization.hpp",
+            "registrationSite": "Tsukino.EngineIntegration/src/EngineIntegration.cpp",
+            "fields": [
+                {
+                    "jsonKey": "enabled",
+                    "field": "enabled",
+                    "cppType": "bool",
+                    "jsonShape": "true / false",
+                    "default": "true"
+                },
+                {
+                    "jsonKey": "strength",
+                    "field": "strength",
+                    "cppType": "float",
+                    "jsonShape": "number",
+                    "default": "1.0f"
+                },
+                {
+                    "jsonKey": "maxBlurRadius",
+                    "field": "maxBlurRadius",
+                    "cppType": "float",
+                    "jsonShape": "number",
+                    "default": "0.03f"
+                },
+                {
+                    "jsonKey": "sampleCount",
+                    "field": "sampleCount",
+                    "cppType": "int",
+                    "jsonShape": "number",
+                    "default": "8"
+                },
+                {
+                    "jsonKey": "targetFps",
+                    "field": "targetFps",
+                    "cppType": "float",
+                    "jsonShape": "number",
+                    "default": "60.0f"
+                }
+            ]
+        },
+        {
+            "name": "MotionVectorComponent",
+            "typeName": "Tsukino::BuiltIn::ECS::MotionVectorComponent",
+            "registered": false,
+            "registeredName": null,
+            "serializable": false,
+            "header": "Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/MotionVectorComponent.hpp",
+            "serializationHeader": null,
+            "registrationSite": null,
+            "fields": []
+        },
+        {
+            "name": "NodeWorldMatrixComponent",
+            "typeName": "Tsukino::BuiltIn::ECS::NodeWorldMatrixComponent",
+            "registered": false,
+            "registeredName": null,
+            "serializable": false,
+            "header": "Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/NodeWorldMatrixComponent.hpp",
+            "serializationHeader": null,
+            "registrationSite": null,
+            "fields": []
+        },
+        {
+            "name": "NodeWorldPoseComponent",
+            "typeName": "Tsukino::BuiltIn::ECS::NodeWorldPoseComponent",
+            "registered": false,
+            "registeredName": null,
+            "serializable": false,
+            "header": "Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/NodeWorldPoseComponent.hpp",
+            "serializationHeader": null,
+            "registrationSite": null,
+            "fields": []
+        },
+        {
+            "name": "PointLightComponent",
+            "typeName": "Tsukino::BuiltIn::ECS::PointLightComponent",
+            "registered": true,
+            "registeredName": "PointLightComponent",
+            "serializable": true,
+            "header": "Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/PointLightComponent.hpp",
+            "serializationHeader": "Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Serialization/PointLightComponentSerialization.hpp",
+            "registrationSite": "Tsukino.EngineIntegration/src/EngineIntegration.cpp",
+            "fields": [
+                {
+                    "jsonKey": "color",
+                    "field": "color",
+                    "cppType": "hlslpp::float3",
+                    "jsonShape": "{ \"x\", \"y\", \"z\" }",
+                    "default": "{1.0f, 1.0f, 1.0f}"
+                },
+                {
+                    "jsonKey": "intensity",
+                    "field": "intensity",
+                    "cppType": "float",
+                    "jsonShape": "number",
+                    "default": "1.0f"
+                },
+                {
+                    "jsonKey": "range",
+                    "field": "range",
+                    "cppType": "float",
+                    "jsonShape": "number",
+                    "default": "10.0f"
+                },
+                {
+                    "jsonKey": "enabled",
+                    "field": "enabled",
+                    "cppType": "bool",
+                    "jsonShape": "true / false",
+                    "default": "true"
+                }
+            ]
+        },
+        {
+            "name": "RigidbodyComponent",
+            "typeName": "Tsukino::BuiltIn::ECS::RigidbodyComponent",
+            "registered": true,
+            "registeredName": "RigidbodyComponent",
+            "serializable": true,
+            "header": "Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/RigidbodyComponent.hpp",
+            "serializationHeader": "Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Serialization/RigidbodyComponentSerialization.hpp",
+            "registrationSite": "Tsukino.EngineIntegration/src/EngineIntegration.cpp",
+            "fields": [
+                {
+                    "jsonKey": "type",
+                    "field": "type",
+                    "cppType": "RigidbodyType",
+                    "jsonShape": "number（enum の整数値）",
+                    "default": "RigidbodyType::Dynamic"
+                },
+                {
+                    "jsonKey": "mass",
+                    "field": "mass",
+                    "cppType": "float",
+                    "jsonShape": "number",
+                    "default": "1.0f"
+                },
+                {
+                    "jsonKey": "friction",
+                    "field": "friction",
+                    "cppType": "float",
+                    "jsonShape": "number",
+                    "default": "0.5f"
+                },
+                {
+                    "jsonKey": "restitution",
+                    "field": "restitution",
+                    "cppType": "float",
+                    "jsonShape": "number",
+                    "default": "0.0f"
+                },
+                {
+                    "jsonKey": "gravityFactor",
+                    "field": "gravityFactor",
+                    "cppType": "float",
+                    "jsonShape": "number",
+                    "default": "1.0f"
+                },
+                {
+                    "jsonKey": "linearVelocity",
+                    "field": "linearVelocity",
+                    "cppType": "hlslpp::float3",
+                    "jsonShape": "{ \"x\", \"y\", \"z\" }",
+                    "default": "{0, 0, 0}"
+                },
+                {
+                    "jsonKey": "angularVelocity",
+                    "field": "angularVelocity",
+                    "cppType": "hlslpp::float3",
+                    "jsonShape": "{ \"x\", \"y\", \"z\" }",
+                    "default": "{0, 0, 0}"
+                },
+                {
+                    "jsonKey": "freezePositionX",
+                    "field": "freezePositionX",
+                    "cppType": "bool",
+                    "jsonShape": "true / false",
+                    "default": "false"
+                },
+                {
+                    "jsonKey": "freezePositionY",
+                    "field": "freezePositionY",
+                    "cppType": "bool",
+                    "jsonShape": "true / false",
+                    "default": "false"
+                },
+                {
+                    "jsonKey": "freezePositionZ",
+                    "field": "freezePositionZ",
+                    "cppType": "bool",
+                    "jsonShape": "true / false",
+                    "default": "false"
+                },
+                {
+                    "jsonKey": "freezeRotationX",
+                    "field": "freezeRotationX",
+                    "cppType": "bool",
+                    "jsonShape": "true / false",
+                    "default": "true"
+                },
+                {
+                    "jsonKey": "freezeRotationY",
+                    "field": "freezeRotationY",
+                    "cppType": "bool",
+                    "jsonShape": "true / false",
+                    "default": "true"
+                },
+                {
+                    "jsonKey": "freezeRotationZ",
+                    "field": "freezeRotationZ",
+                    "cppType": "bool",
+                    "jsonShape": "true / false",
+                    "default": "true"
+                }
+            ]
+        },
+        {
+            "name": "RootMotionComponent",
+            "typeName": "Tsukino::BuiltIn::ECS::RootMotionComponent",
+            "registered": false,
+            "registeredName": null,
+            "serializable": false,
+            "header": "Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/RootMotionComponent.hpp",
+            "serializationHeader": null,
+            "registrationSite": null,
+            "fields": []
+        },
+        {
+            "name": "SkeletonOutputComponent",
+            "typeName": "Tsukino::BuiltIn::ECS::SkeletonOutputComponent",
+            "registered": false,
+            "registeredName": null,
+            "serializable": false,
+            "header": "Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/SkeletonOutputComponent.hpp",
+            "serializationHeader": null,
+            "registrationSite": null,
+            "fields": []
+        },
+        {
+            "name": "SkyAtmosphereComponent",
+            "typeName": "Tsukino::BuiltIn::ECS::SkyAtmosphereComponent",
+            "registered": true,
+            "registeredName": "SkyAtmosphereComponent",
+            "serializable": true,
+            "header": "Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/SkyAtmosphereComponent.hpp",
+            "serializationHeader": "Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Serialization/SkyAtmosphereComponentSerialization.hpp",
+            "registrationSite": "Tsukino.EngineIntegration/src/EngineIntegration.cpp",
+            "fields": [
+                {
+                    "jsonKey": "rayleighScattering",
+                    "field": "rayleighScattering",
+                    "cppType": "float",
+                    "jsonShape": "number",
+                    "default": "1.0f"
+                },
+                {
+                    "jsonKey": "mieScattering",
+                    "field": "mieScattering",
+                    "cppType": "float",
+                    "jsonShape": "number",
+                    "default": "0.1f"
+                },
+                {
+                    "jsonKey": "mieAnisotropy",
+                    "field": "mieAnisotropy",
+                    "cppType": "float",
+                    "jsonShape": "number",
+                    "default": "0.76f"
+                },
+                {
+                    "jsonKey": "atmosphereHeight",
+                    "field": "atmosphereHeight",
+                    "cppType": "float",
+                    "jsonShape": "number",
+                    "default": "8000.0f"
+                },
+                {
+                    "jsonKey": "planetRadius",
+                    "field": "planetRadius",
+                    "cppType": "float",
+                    "jsonShape": "number",
+                    "default": "6371000.0f"
+                },
+                {
+                    "jsonKey": "sunIntensity",
+                    "field": "sunIntensity",
+                    "cppType": "float",
+                    "jsonShape": "number",
+                    "default": "20.0f"
+                },
+                {
+                    "jsonKey": "sunDiskSize",
+                    "field": "sunDiskSize",
+                    "cppType": "float",
+                    "jsonShape": "number",
+                    "default": "0.02f"
+                },
+                {
+                    "jsonKey": "groundColor",
+                    "field": "groundColor",
+                    "cppType": "hlslpp::float3",
+                    "jsonShape": "{ \"x\", \"y\", \"z\" }",
+                    "default": "hlslpp::float3(0.1f, 0.08f, 0.05f)"
+                }
+            ]
+        },
+        {
+            "name": "SpotLightComponent",
+            "typeName": "Tsukino::BuiltIn::ECS::SpotLightComponent",
+            "registered": true,
+            "registeredName": "SpotLightComponent",
+            "serializable": true,
+            "header": "Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/SpotLightComponent.hpp",
+            "serializationHeader": "Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Serialization/SpotLightComponentSerialization.hpp",
+            "registrationSite": "Tsukino.EngineIntegration/src/EngineIntegration.cpp",
+            "fields": [
+                {
+                    "jsonKey": "color",
+                    "field": "color",
+                    "cppType": "hlslpp::float3",
+                    "jsonShape": "{ \"x\", \"y\", \"z\" }",
+                    "default": "{1.0f, 1.0f, 1.0f}"
+                },
+                {
+                    "jsonKey": "intensity",
+                    "field": "intensity",
+                    "cppType": "float",
+                    "jsonShape": "number",
+                    "default": "1.0f"
+                },
+                {
+                    "jsonKey": "range",
+                    "field": "range",
+                    "cppType": "float",
+                    "jsonShape": "number",
+                    "default": "10.0f"
+                },
+                {
+                    "jsonKey": "innerConeDeg",
+                    "field": "innerConeDeg",
+                    "cppType": "float",
+                    "jsonShape": "number",
+                    "default": "20.0f"
+                },
+                {
+                    "jsonKey": "outerConeDeg",
+                    "field": "outerConeDeg",
+                    "cppType": "float",
+                    "jsonShape": "number",
+                    "default": "30.0f"
+                },
+                {
+                    "jsonKey": "enabled",
+                    "field": "enabled",
+                    "cppType": "bool",
+                    "jsonShape": "true / false",
+                    "default": "true"
+                }
+            ]
+        },
+        {
+            "name": "SpringBoneComponent",
+            "typeName": "Tsukino::BuiltIn::ECS::SpringBoneComponent",
+            "registered": false,
+            "registeredName": null,
+            "serializable": false,
+            "header": "Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/SpringBoneComponent.hpp",
+            "serializationHeader": null,
+            "registrationSite": null,
+            "fields": []
+        },
+        {
+            "name": "SpriteComponent",
+            "typeName": "Tsukino::BuiltIn::ECS::SpriteComponent",
+            "registered": true,
+            "registeredName": "SpriteComponent",
+            "serializable": true,
+            "header": "Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/SpriteComponent.hpp",
+            "serializationHeader": "Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Serialization/SpriteComponentSerialization.hpp",
+            "registrationSite": "Tsukino.EngineIntegration/src/EngineIntegration.cpp",
+            "fields": [
+                {
+                    "jsonKey": "textureHandle",
+                    "field": "textureHandle",
+                    "cppType": "Tsukino::Asset::AssetRef",
+                    "jsonShape": "\"path/to/asset\"",
+                    "default": null
+                },
+                {
+                    "jsonKey": "blendMode",
+                    "field": "blendMode",
+                    "cppType": "SpriteBlendMode",
+                    "jsonShape": "number（enum の整数値）",
+                    "default": "SpriteBlendMode::Alpha"
+                },
+                {
+                    "jsonKey": "space",
+                    "field": "space",
+                    "cppType": "SpriteSpace",
+                    "jsonShape": "number（enum の整数値）",
+                    "default": "SpriteSpace::Screen"
+                },
+                {
+                    "jsonKey": "tintColor",
+                    "field": "tintColor",
+                    "cppType": "hlslpp::float4",
+                    "jsonShape": "{ \"x\", \"y\", \"z\", \"w\" }",
+                    "default": "hlslpp::float4(1.0f, 1.0f, 1.0f, 1.0f)"
+                },
+                {
+                    "jsonKey": "uvRect",
+                    "field": "uvRect",
+                    "cppType": "hlslpp::float4",
+                    "jsonShape": "{ \"x\", \"y\", \"z\", \"w\" }",
+                    "default": "hlslpp::float4(0.0f, 0.0f, 1.0f, 1.0f)"
+                },
+                {
+                    "jsonKey": "sortOrder",
+                    "field": "sortOrder",
+                    "cppType": "int",
+                    "jsonShape": "number",
+                    "default": "0"
+                }
+            ]
+        },
+        {
+            "name": "TerrainGenerationRequestComponent",
+            "typeName": "Tsukino::BuiltIn::ECS::TerrainGenerationRequestComponent",
+            "registered": true,
+            "registeredName": "TerrainGenerationRequestComponent",
+            "serializable": true,
+            "header": "Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/TerrainGenerationRequestComponent.hpp",
+            "serializationHeader": "Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Serialization/TerrainGenerationRequestComponentSerialization.hpp",
+            "registrationSite": "Tsukino.EngineIntegration/src/EngineIntegration.cpp",
+            "fields": [
+                {
+                    "jsonKey": "amplitude",
+                    "field": "amplitude",
+                    "cppType": "float",
+                    "jsonShape": "number",
+                    "default": "10.0f"
+                },
+                {
+                    "jsonKey": "noiseFrequency",
+                    "field": "noiseFrequency",
+                    "cppType": "float",
+                    "jsonShape": "number",
+                    "default": "0.05f"
+                },
+                {
+                    "jsonKey": "seed",
+                    "field": "seed",
+                    "cppType": "uint32_t",
+                    "jsonShape": "?",
+                    "default": "0"
+                },
+                {
+                    "jsonKey": "noiseType",
+                    "field": "noiseType",
+                    "cppType": "TerrainNoiseType",
+                    "jsonShape": "number（enum の整数値）",
+                    "default": "TerrainNoiseType::Noise"
+                },
+                {
+                    "jsonKey": "collisionModelHandle",
+                    "field": "collisionModelHandle",
+                    "cppType": "Tsukino::Asset::AssetRef",
+                    "jsonShape": "\"path/to/asset\"",
+                    "default": null
+                }
+            ]
+        },
+        {
+            "name": "TransformComponent",
+            "typeName": "Tsukino::BuiltIn::ECS::TransformComponent",
+            "registered": true,
+            "registeredName": "TransformComponent",
+            "serializable": true,
+            "header": "Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/TransformComponent.hpp",
+            "serializationHeader": "Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Serialization/TransformComponentSerialization.hpp",
+            "registrationSite": "Tsukino.EngineIntegration/src/EngineIntegration.cpp",
+            "fields": [
+                {
+                    "jsonKey": "position",
+                    "field": "position",
+                    "cppType": "hlslpp::float3",
+                    "jsonShape": "{ \"x\", \"y\", \"z\" }",
+                    "default": "hlslpp::float3(0.0f, 0.0f, 0.0f)"
+                },
+                {
+                    "jsonKey": "rotation",
+                    "field": "rotation",
+                    "cppType": "hlslpp::quaternion",
+                    "jsonShape": "{ \"x\", \"y\", \"z\", \"w\" }",
+                    "default": "hlslpp::quaternion(0.0f, 0.0f, 0.0f, 1.0f)"
+                },
+                {
+                    "jsonKey": "scale",
+                    "field": "scale",
+                    "cppType": "hlslpp::float3",
+                    "jsonShape": "{ \"x\", \"y\", \"z\" }",
+                    "default": "hlslpp::float3(1.0f, 1.0f, 1.0f)"
+                },
+                {
+                    "jsonKey": "parent",
+                    "field": "parent",
+                    "cppType": "Tsukino::ECS::EntityRef",
+                    "jsonShape": "\"#EntityName\"",
+                    "default": null
+                }
+            ]
+        },
+        {
+            "name": "WorldAnchorComponent",
+            "typeName": "Tsukino::BuiltIn::ECS::WorldAnchorComponent",
+            "registered": false,
+            "registeredName": null,
+            "serializable": false,
+            "header": "Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/WorldAnchorComponent.hpp",
+            "serializationHeader": null,
+            "registrationSite": null,
+            "fields": []
+        }
+    ],
+    "unresolvedRegistrations": []
+}
