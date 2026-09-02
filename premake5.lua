@@ -3,6 +3,18 @@ local ROOT_ENGINE_ROOT     = path.getdirectory(_SCRIPT)
 -- TsukinoEngine自身がルートスクリプト（単体ビルド）かどうか
 local ROOT_IS_SAME_AS_ROOT = (path.getabsolute(ROOT_ENGINE_ROOT) == path.getabsolute(_MAIN_SCRIPT_DIR))
 
+----------------------------------------
+-- エージェント向けマニフェスト生成アクションを登録する。
+--
+--   premake5 gen-manifest
+--
+-- ビルドには一切影響しない。ここで登録しておくことで、ゲーム側リポジトリの
+-- ルートから include されたときも同じアクションが使えるようになる。
+----------------------------------------
+_TSUKINO_ENGINE_ROOT = ROOT_ENGINE_ROOT
+dofile(path.join(ROOT_ENGINE_ROOT, "Tools/premake/gen_manifest.lua"))
+dofile(path.join(ROOT_ENGINE_ROOT, "Tools/premake/gen_api_digest.lua"))
+
 -- 単体ビルド時のみworkspaceを宣言する。
 -- 外部の親premake5.lua（サブモジュールとして取り込んだ側）からinclude()された場合は、
 -- 親側が既にworkspaceを宣言している前提のためここではスキップする。

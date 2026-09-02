@@ -44,3 +44,9 @@ latex/
 
 # kilo
 .kilo/
+
+# doxygen XML（中間生成物。コミットするのは Docs/ 側）
+xml/
+
+# 実行時ログ
+Logs/
