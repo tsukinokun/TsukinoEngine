@@ -19,6 +19,15 @@
 	url = https://github.com/jrouwe/JoltPhysics.git
 	shallow = true
 [submodule "External/Effekseer"]
+	# 自前のフォーク。ピン留めしているのは tsukino-engine ブランチ先端の SHA。
+	#
+	# サブモジュールが記録するのは SHA だけで、到達経路はこのブランチ 1 本しかない。
+	# ブランチを force-push / 削除すると、その SHA を指したままの過去のリリースは
+	# clone できなくなる（fatal: reference is not a tree）。手元は既に持っているので
+	# 気付けず、壊れるのは新しく clone した人だけになる。
+	#
+	# リリースを打つときは、そのピンへ tsukino-engine-vX.Y.Z のタグを付けて、
+	# ブランチとは独立に到達可能にしておくこと。
 	path = External/Effekseer
 	url = https://github.com/tsukinokun/Effekseer.git
 	shallow = true
