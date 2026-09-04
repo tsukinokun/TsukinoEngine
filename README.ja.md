@@ -78,6 +78,23 @@ open.bat
 
 ソリューションを開いたら、**Tsukino.Sandbox**をスタートアッププロジェクトに設定して実行してください。
 
+## APIの安定性
+
+バージョン番号はセマンティックバージョニングに従いますが、1つだけ先に断っておく点があります。
+
+**1.x の間は安定** — `Tsukino.Core`（Registry / EventBus / Window / InputSystem / Path /
+数学）、`Tsukino.BuiltIn` の組み込みコンポーネント定義、Prefab JSON のスキーマ、
+`EngineAPI` と `GameSceneBase`。ゲームを書くときに触るのはこの範囲で、
+ここを壊すのはメジャーバージョンの仕事だと考えています。
+
+**1.x の間も変わりうる** — `Tsukino.Renderer`。現在の `Renderer` はデバイス・シャドウ・
+スカイ・水面・トーンマップ・テクスチャキャッシュ・スプライト・デバッグ描画を
+1つのクラスが抱えており、これをパスごとに分割する予定です。
+`Renderer` を直接触っているコードは追従が必要になります。
+
 ## ライセンス
 
 本プロジェクトは[MIT License](LICENSE)のもとで公開されています。
+
+同梱している第三者コンポーネントとそのライセンス条文は
+[THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)に掲載しています。

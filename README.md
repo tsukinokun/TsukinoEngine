@@ -79,6 +79,23 @@ This runs `vendor\premake5.exe vs2022` to generate `.build/TsukinoEngine.sln` an
 
 Once the solution is open, set **Tsukino.Sandbox** as the startup project and run it.
 
+## API stability
+
+Version numbers follow semantic versioning, with one carve-out worth stating up front.
+
+**Stable within 1.x** — `Tsukino.Core` (Registry, EventBus, Window, InputSystem, Path,
+math), the built-in component definitions in `Tsukino.BuiltIn`, the Prefab JSON schema,
+and `EngineAPI` / `GameSceneBase`. These are what a game is written against, and
+breaking them is what a major version is for.
+
+**Expected to change within 1.x** — `Tsukino.Renderer`. `Renderer` is currently a
+single class holding the device, shadows, sky, water, tonemapping, the texture cache,
+sprites and debug drawing, and it will be split into separate passes. Anything reaching
+into `Renderer` directly should expect to follow that.
+
 ## License
 
 This project is licensed under the [MIT License](LICENSE).
+
+Third-party components and their license texts are listed in
+[THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
