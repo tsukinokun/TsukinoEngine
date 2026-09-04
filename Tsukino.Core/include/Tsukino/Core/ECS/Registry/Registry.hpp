@@ -133,9 +133,14 @@ namespace Tsukino::ECS {
         //! @tparam T コンポーネントのコンストラクタの可変長引数
         //! @param  entity [in] コンポーネントを追加するエンティティ
         //! @param  args   [in] コンポーネントのコンストラクタ
+        //! @return 追加したコンポーネントへの参照
+        //! @note   [[nodiscard]] は付けない。「付けるだけで戻り値は使わない」
+        //!         呼び出しが正当かつ大多数であり、付けていた頃は欠陥を伴わない
+        //!         警告(C4834)を21件出して、本物の欠陥9件を埋もれさせていた。
+        //!         OnConstruct() / OnDestroy() の戻り値は connect/disconnect に
+        //!         必ず使うため、あちらの [[nodiscard]] は残してある
         //--------------------------------------------------------------------
         template <typename T, typename... Args>
-        [[nodiscard]]
         T& AddComponent(Entity entity, Args&&... args) {
             return registry.emplace<T>(entity, std::forward<Args>(args)...);
         }
