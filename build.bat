@@ -14,12 +14,22 @@ set "CONFIG=%~1"
 if "%CONFIG%"=="" set "CONFIG=Debug"
 
 set "ROOT=%~dp0"
-set "MSBUILD=C:\Program Files\Microsoft Visual Studio\2022\Community\MSBuild\Current\Bin\MSBuild.exe"
 set "SLN=%ROOT%.build\TsukinoEngine.sln"
 
-rem msbuild は PATH に無い。vswhere -latest はこの環境では VS18 を返すため使わない
+rem ---------------------------------------------------------------------------
+rem MSBuild の場所を解決する。msbuild は PATH に無い。
+rem Community 決め打ちだと Professional / Enterprise / BuildTools で動かないため、
+rem まず vswhere で引き、見つからないときだけ従来のパスへ落とす。
+rem vswhere に -latest を渡すとこの環境では VS18 を返してしまうので、
+rem -version "[17.0,18.0)" で VS2022 に絞る。ここを -latest に戻さないこと。
+rem ---------------------------------------------------------------------------
+set "MSBUILD="
+set "VSWHERE=%ProgramFiles(x86)%\Microsoft Visual Studio\Installer\vswhere.exe"
+if exist "%VSWHERE%" call :find_msbuild
+if not defined MSBUILD set "MSBUILD=C:\Program Files\Microsoft Visual Studio\2022\Community\MSBuild\Current\Bin\MSBuild.exe"
+
 if not exist "%MSBUILD%" (
-    echo build.bat: MSBuild not found: "%MSBUILD%"
+    echo build.bat: MSBuild not found. Install Visual Studio 2022 with the "Desktop development with C++" workload.
     exit /b 1
 )
 
@@ -39,3 +49,16 @@ if not exist "%ROOT%packages" (
 
 "%MSBUILD%" "%SLN%" /p:Configuration=%CONFIG% /p:Platform=x64 /m /nologo /v:q /clp:"ErrorsOnly;NoSummary"
 exit /b %ERRORLEVEL%
+
+rem ---------------------------------------------------------------------------
+rem vswhere で VS2022 の MSBuild を探すサブルーチン。
+rem for /f の中で実行ファイルのパスを引用符で囲むと cmd の解析が壊れるため、
+rem コマンド全体を ^" で包んである。この形を崩さないこと
+rem （崩すと 'C:\Program' is not recognized で黙って fallback に落ちる）。
+rem ---------------------------------------------------------------------------
+:find_msbuild
+for /f "usebackq tokens=*" %%i in (`^""%VSWHERE%" -version "[17.0,18.0)" -products * -requires Microsoft.Component.MSBuild -property installationPath^"`) do (
+    if exist "%%i\MSBuild\Current\Bin\MSBuild.exe" set "MSBUILD=%%i\MSBuild\Current\Bin\MSBuild.exe"
+)
+goto :eof
+
