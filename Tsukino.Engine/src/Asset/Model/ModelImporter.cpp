@@ -217,7 +217,13 @@ namespace Tsukino::Asset {
         tempPath.replace_extension(".tsm");
         Tsukino::Core::Path outputPath = outputDirectory / tempPath;
 
-        Tsukino::IO::FileSystem::CreateDirectories(outputPath.parent_path());
+        // 出力先を作れないまま書き込みへ進むと、失敗が原因から遠い場所で
+        // 「キャッシュが無い」として現れるため、ここで止める
+        if(!Tsukino::IO::FileSystem::CreateDirectories(outputPath.parent_path())) {
+            Tsukino::Core::Log::Error("ModelImporter: Failed to create the output directory: "
+                                      + outputPath.parent_path().string());
+            return false;
+        }
 
         std::ofstream ofs(outputPath.string(), std::ios::binary);
         if(!ofs) {

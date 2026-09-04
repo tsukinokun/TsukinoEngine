@@ -136,7 +136,13 @@ namespace Tsukino::Asset {
 
             if(shouldImport) {
                 Tsukino::Core::Path cacheDir = Tsukino::IO::FileSystem::GetAssetRootPath() / "Cache";
-                importerIt->second->Import(sourceBasePath, cacheDir);
+
+                // 失敗しても即座には抜けない。古いキャッシュが残っていれば
+                // それで読み込みを続行できるため。キャッシュも無ければ
+                // 下の Loader が失敗して Invalid が返る
+                if(!importerIt->second->Import(sourceBasePath, cacheDir)) {
+                    Tsukino::Core::Log::Error("AssetManager: Import failed: " + path.string());
+                }
             }
         }
 

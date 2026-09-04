@@ -35,7 +35,13 @@ namespace Tsukino::Asset {
         //--------------------------------------------------------------
         // 親ディレクトリ作成
         //--------------------------------------------------------------
-        Tsukino::IO::FileSystem::CreateDirectories(outputPath.parent_path());
+        // 出力先を作れないまま書き込みへ進むと、失敗が原因から遠い場所で
+        // 「キャッシュが無い」として現れるため、ここで止める
+        if(!Tsukino::IO::FileSystem::CreateDirectories(outputPath.parent_path())) {
+            Tsukino::Core::Log::Error("ShaderImporter: Failed to create the output directory: "
+                                      + outputPath.parent_path().string());
+            return false;
+        }
 
         //------------------------------------------------
         // シェーダー種別を拡張子から判定
