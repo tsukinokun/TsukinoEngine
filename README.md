@@ -49,6 +49,14 @@ TsukinoEngine is a personal game engine project targeting Windows. It combines a
 
 ### Setup
 
+This repository nests its submodules deeply enough to exceed the 260 character
+path limit that Windows applies by default, which makes a recursive clone fail
+part way through. Enable long paths first:
+
+```bash
+git config --global core.longpaths true
+```
+
 Clone the repository together with its submodules (hlslpp, entt, DirectXTex, cereal, JoltPhysics, Effekseer):
 
 ```bash

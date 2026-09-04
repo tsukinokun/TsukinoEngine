@@ -49,6 +49,13 @@ TsukinoEngineは、Windows向けの個人開発ゲームエンジンです。Dir
 
 ### 手順
 
+このリポジトリはサブモジュールの階層が深く、Windowsが既定で課すパス長制限（260文字）を
+超えるため、そのままではクローンが途中で失敗します。先に長いパスを有効にしてください。
+
+```bash
+git config --global core.longpaths true
+```
+
 サブモジュール（hlslpp, entt, DirectXTex, cereal, JoltPhysics, Effekseer）を含めてクローンします。
 
 ```bash
