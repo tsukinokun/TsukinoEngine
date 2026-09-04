@@ -4,7 +4,7 @@
 //! @brief  エフェクトコンポーネントの定義
 //! @author 山﨑愛
 //--------------------------------------------------------------
-#include <Tsukino/Engine/Asset/AssetHandle.hpp>
+#include <Tsukino/Engine/Asset/AssetRef.hpp>
 #include <Tsukino/Core/Path.hpp>
 
 // 名前空間 : Tsukino::BuiltIn::ECS
@@ -15,13 +15,18 @@ namespace Tsukino::BuiltIn::ECS {
     //! @brief  Effekseerエフェクトを再生するためのコンポーネント
     //--------------------------------------------------------------
     struct EffectComponent {
-        Tsukino::Asset::AssetHandle effectAsset;          //!< .efk アセット
-        Tsukino::Core::Path         effectPath;           //!< エフェクトファイルのパス
-        int                         handle    = -1;       //!< Effekseer インスタンスハンドル
-        float                       playSpeed = 1.0f;     //!< 再生速度
-        bool                        looping   = false;    //!< ループ再生フラグ
-        bool                        stopped   = false;    //!< 停止フラグ
-        bool                        active    = false;    //!< 再生中フラグ
+        //--------------------------------------------------------------
+        // AssetHandleはプロセス内限定の値でJSONへ直接書き出せないため、パスを保持する
+        // AssetRefで参照する。Prefabからの生成時はPrefabFactoryがAssetRefResolverArchive
+        // を通してパスをハンドルへ解決する（ModelComponent／SpriteComponentと同じ設計）
+        //--------------------------------------------------------------
+        Tsukino::Asset::AssetRef effectAsset;          //!< .efk アセットへの参照
+        Tsukino::Core::Path      effectPath;           //!< エフェクトの基準ディレクトリ解決に使うパス
+        int                      handle    = -1;       //!< Effekseer インスタンスハンドル
+        float                    playSpeed = 1.0f;     //!< 再生速度
+        bool                     looping   = false;    //!< ループ再生フラグ
+        bool                     stopped   = false;    //!< 停止フラグ
+        bool                     active    = false;    //!< 再生中フラグ
 
         //--------------------------------------------------------------
         // エフェクトの制作単位とワールドの単位系が食い違う場合の変換に使う拡大率

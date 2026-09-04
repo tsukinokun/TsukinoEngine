@@ -38,14 +38,10 @@ namespace Tsukino::Asset {
     class TextureAsset;    // 前方宣言
 }
 
-// 前方宣言
-namespace Tsukino::BuiltIn::ECS {
-    class EffectSystem;
-}
-
 // 名前空間 : Tsukino::Renderer
 namespace Tsukino::Renderer {
     struct CBufferScene;    // 前方宣言
+    class IPostWorldPass;   // 前方宣言（Worldパスの後に差し込む描画。実体は上位層が持つ）
 
     //------------------------------------------------------------
     //! @struct RendererShaderSet
@@ -96,8 +92,9 @@ namespace Tsukino::Renderer {
 
         //------------------------------------------------------------
         // 描画処理
+        //! @param postWorldPass [in] Worldパスの後に差し込む追加描画（不要ならnullptr）
         //------------------------------------------------------------
-        void Render(class Tsukino::BuiltIn::ECS::EffectSystem* effectSystem = nullptr);
+        void Render(IPostWorldPass* postWorldPass = nullptr);
 
         //------------------------------------------------------------
         //! @brief 描画領域のリサイズ

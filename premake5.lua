@@ -437,13 +437,14 @@ project "Tsukino.Renderer"
         "External/hlslpp/include/hlsl++.natvis",
     }
 
+    -- Tsukino.BuiltIn / Tsukino.EngineIntegration は上位層のため参照しない。
+    -- Worldパスの後に差し込む描画は Tsukino/Renderer/IPostWorldPass.hpp の
+    -- インターフェース越しに受け取る（CODING_GUIDELINES.md §5「依存関係は一方向」）
     includedirs {
         "Tsukino.Engine/include",
         "Tsukino.Renderer/include",
         "Tsukino.GraphicsCommon/include",
         "Tsukino.Core/include",
-        "Tsukino.BuiltIn/include",
-        "Tsukino.EngineIntegration/include",
         "External/cereal/include",
         "External/hlslpp/include",
         "External/entt/single_include",

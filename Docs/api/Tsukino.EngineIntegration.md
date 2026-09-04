@@ -106,7 +106,7 @@
 - **Tsukino::BuiltIn::ECS::ClipRangeTicks** — `Tsukino.EngineIntegration/src/ECS/System/AnimationSystem.cpp`
   - start, end
 - **Tsukino::BuiltIn::ECS::EffectSystem** — `Tsukino.EngineIntegration/include/Tsukino/EngineIntegration/ECS/System/EffectSystem.hpp`
-  - EffectSystem(), ~EffectSystem(), Update(), RenderEffects(), PlayEffect(), StopEffect(), PauseHandle(), ResumeHandle(), IsPlaying(), SetPlaySpeed(), SendTrigger(), StopAllEffects(), IsInitialized(), Initialize(), Finalize()
+  - EffectSystem(), ~EffectSystem(), Update(), RenderPostWorld(), PlayEffect(), StopEffect(), PauseHandle(), ResumeHandle(), IsPlaying(), SetPlaySpeed(), SendTrigger(), StopAllEffects(), IsInitialized(), Initialize(), Finalize()
 - **Tsukino::BuiltIn::ECS::FogSystem** — `Tsukino.EngineIntegration/include/Tsukino/EngineIntegration/ECS/System/FogSystem.hpp`
   - Update()
 - **Tsukino::BuiltIn::ECS::FontRendererSystem** — `Tsukino.EngineIntegration/include/Tsukino/EngineIntegration/ECS/System/FontRendererSystem.hpp`

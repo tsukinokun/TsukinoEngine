@@ -117,7 +117,7 @@
 - **Tsukino::Asset::AssetHandle** — `Tsukino.Engine/include/Tsukino/Engine/Asset/AssetHandle.hpp`
   - AssetHandle(), AssetHandle(), Value(), IsValid(), operator==(), operator!=(), Invalid()
 - **Tsukino::Asset::AssetHandleGenerator** — `Tsukino.Engine/include/Tsukino/Engine/Asset/Util/AssetHandleGenerator.hpp`
-  - Generate()
+  - NormalizeKey(), GenerateFromKey()
 - **Tsukino::Asset::AssetManager** — `Tsukino.Engine/include/Tsukino/Engine/Asset/AssetManager.hpp`
   - AssetManager(), ~AssetManager(), Initialize(), Load(), Get(), Exists(), RegisterImporter(), RegisterAsset()
 - **Tsukino::Asset::AssetRef** — `Tsukino.Engine/include/Tsukino/Engine/Asset/AssetRef.hpp`
@@ -182,7 +182,7 @@
   - width, height, format, pixels, GetHandle(), GetType(), SetHandle()
 - **Tsukino::Asset::TextureImporter** — `Tsukino.Engine/include/Tsukino/Engine/Asset/Texture/TextureImporter.hpp`
   - Import()
-- **Tsukino::Asset::TextureLoader** — `Tsukino.Engine/include/Tsukino/Engine/Asset/Texture/TextureLoder.hpp`
+- **Tsukino::Asset::TextureLoader** — `Tsukino.Engine/include/Tsukino/Engine/Asset/Texture/TextureLoader.hpp`
   - TextureLoader(), CanLoad(), Load()
 - **Tsukino::Asset::Vertex** — `Tsukino.Engine/src/Asset/Model/ModelImporter.cpp`
   - position, normal, texcoord

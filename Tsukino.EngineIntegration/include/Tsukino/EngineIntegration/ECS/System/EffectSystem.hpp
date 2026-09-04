@@ -13,6 +13,7 @@
 #include <Tsukino/Engine/Asset/AssetHandle.hpp>
 #include <Tsukino/BuiltIn/ECS/Component/EffectComponent.hpp>
 #include <Tsukino/BuiltIn/ECS/Component/TransformComponent.hpp>
+#include <Tsukino/Renderer/IPostWorldPass.hpp>
 
 #include <Effekseer.h>
 #include <EffekseerRendererDX11.h>
@@ -32,7 +33,7 @@ namespace Tsukino::BuiltIn::ECS {
     //! @class  EffectSystem
     //! @brief  EffectComponentを持つエンティティのエフェクト再生を管理するシステム
     //-------------------------------------------------------------
-    class EffectSystem : public Tsukino::ECS::ISystem {
+    class EffectSystem : public Tsukino::ECS::ISystem, public Tsukino::Renderer::IPostWorldPass {
     public:
         //-------------------------------------------------------------
         //! @brief  デフォルトコンストラクタ
@@ -56,10 +57,12 @@ namespace Tsukino::BuiltIn::ECS {
         //! @param  dc          [in] D3D11 デバイスコンテキスト
         //! @param  view        [in] ビュー行列（カメラ）
         //! @param  projection  [in] 射影行列
+        //! @note   Renderer が World パスの直後に呼ぶ IPostWorldPass の実装。
+        //!         Renderer 側は EffectSystem という型を知らない
         //--------------------------------------------------------------
-        void RenderEffects(ID3D11DeviceContext* dc,
-                           const Tsukino::Core::Math::matrix& view,
-                           const Tsukino::Core::Math::matrix& projection);
+        void RenderPostWorld(ID3D11DeviceContext* dc,
+                             const Tsukino::Core::Math::matrix& view,
+                             const Tsukino::Core::Math::matrix& projection) override;
 
         //-------------------------------------------------------------
         //! @brief  エフェクトを再生する

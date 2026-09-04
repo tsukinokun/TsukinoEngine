@@ -1,9 +1,9 @@
 ﻿//--------------------------------------------------------------
-//! @file   TextureLoder.cpp
+//! @file   TextureLoader.cpp
 //! @brief  テクスチャアセットローダーの実装
 //! @author 山﨑愛
 //--------------------------------------------------------------
-#include <Tsukino/Engine/Asset/Texture/TextureLoder.hpp>
+#include <Tsukino/Engine/Asset/Texture/TextureLoader.hpp>
 #include <Tsukino/Engine/Asset/Texture/TextureAsset.hpp>
 
 #include <DirectXTex/DirectXTex.h>

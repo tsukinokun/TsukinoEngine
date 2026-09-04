@@ -93,8 +93,7 @@
 
 | JSON キー | C++ 型 | JSON 表現 | 既定値 |
 |---|---|---|---|
-| `effectAsset` | `Tsukino::Asset::AssetHandle` | ? | — |
-| `effectPath` | `Tsukino::Core::Path` | ? | — |
+| `effectAsset` | `Tsukino::Asset::AssetRef` | "path/to/asset" | — |
 | `playSpeed` | `float` | number | `1.0f` |
 | `looping` | `bool` | true / false | `false` |
 

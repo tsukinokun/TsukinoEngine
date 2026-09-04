@@ -19,7 +19,7 @@
 | `Renderer()=default` | コンストラクタ |
 | `~Renderer()=default` | デストラクタ |
 | `bool Initialize(HWND hwnd, uint32_t width, uint32_t height, const RendererShaderSet &shaders)` | レンダラーの初期化 |
-| `void Render(class Tsukino::BuiltIn::ECS::EffectSystem *effectSystem=nullptr)` | 描画処理 |
+| `void Render(IPostWorldPass *postWorldPass=nullptr)` | 描画処理 |
 | `void Resize(uint32_t width, uint32_t height)` | 描画領域のリサイズ |
 | `void SetClearColor(float r, float g, float b, float a)` | クリアカラー設定 |
 | `void PushDrawCommand(const DrawCommand &cmd)` | 描画コマンドの追加 |
@@ -97,6 +97,8 @@
   - positionRange, colorIntensity, directionType, spotParams
 - **Tsukino::Renderer::GraphicsContext** — `Tsukino.Renderer/include/Tsukino/Renderer/DX11/GraphicsContext.hpp`
   - GBufferCount, Initialize(), BeginFrame(), EndFrame(), GetDevice(), GetContext(), SetPipelineState(), SetMaterial(), GetHDRSRV(), BindBackBuffer(), BeginGBufferPass(), GetPostProcessSRV(), BindPostProcessTarget(), BindHDRRenderTarget(), BindHDRTargetOnly(), GetGBufferSRV(), GetDepthSRV(), Resize(), GetWidth(), GetHeight(), SetVSyncEnabled(), IsVSyncEnabled()
+- **Tsukino::Renderer::IPostWorldPass** — `Tsukino.Renderer/include/Tsukino/Renderer/IPostWorldPass.hpp`
+  - ~IPostWorldPass(), RenderPostWorld()
 - **Tsukino::Renderer::Material** — `Tsukino.Renderer/include/Tsukino/Renderer/DX11/Material.hpp`
   - TextureSlotCount, SetPipeline(), SetTexture(), SetTexture(), SetSampler(), GetPipeline(), GetTexture(), GetTextures(), GetSampler()
 - **Tsukino::Renderer::MeshBuffer** — `Tsukino.Renderer/include/Tsukino/Renderer/DX11/MeshBuffer.hpp`

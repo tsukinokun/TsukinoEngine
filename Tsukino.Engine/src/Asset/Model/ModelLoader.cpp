@@ -83,8 +83,10 @@ namespace Tsukino::Asset {
                 if(!matData.aoMap.empty())
                     matAsset->aoHandle = m_assetManager->Load(Tsukino::Core::Path(matData.aoMap));
 
-                // MaterialAssetをAssetManagerに登録してハンドルを取得
-                AssetHandle matHandle = AssetHandleGenerator::Generate();
+                // MaterialAssetをAssetManagerに登録してハンドルを取得。
+                // マテリアルは単体のファイルを持たないため、モデルのパスと
+                // マテリアル番号を合わせたものを識別キーにする
+                AssetHandle matHandle = AssetHandleGenerator::GenerateFromKey(filePath + "|material|" + std::to_string(i));
                 matAsset->SetHandle(matHandle);
                 m_assetManager->RegisterAsset(matHandle, matAsset);
 

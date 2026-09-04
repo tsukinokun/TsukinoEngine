@@ -300,15 +300,8 @@
                 {
                     "jsonKey": "effectAsset",
                     "field": "effectAsset",
-                    "cppType": "Tsukino::Asset::AssetHandle",
-                    "jsonShape": "?",
-                    "default": null
-                },
-                {
-                    "jsonKey": "effectPath",
-                    "field": "effectPath",
-                    "cppType": "Tsukino::Core::Path",
-                    "jsonShape": "?",
+                    "cppType": "Tsukino::Asset::AssetRef",
+                    "jsonShape": "\"path/to/asset\"",
                     "default": null
                 },
                 {

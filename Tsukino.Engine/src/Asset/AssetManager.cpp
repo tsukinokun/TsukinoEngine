@@ -7,7 +7,7 @@
 #include <Tsukino/Engine/Asset/IAsset.hpp>
 #include <Tsukino/Engine/Asset/IAssetLoader.hpp>
 #include <Tsukino/Engine/Asset/Util/AssetHandleGenerator.hpp>
-#include <Tsukino/Engine/Asset/Texture/TextureLoder.hpp>
+#include <Tsukino/Engine/Asset/Texture/TextureLoader.hpp>
 #include <Tsukino/Engine/Asset/Shader/ShaderLoader.hpp>
 #include <Tsukino/Engine/Asset/Font/FontLoader.hpp>
 #include <Tsukino/Engine/Asset/Font/DynamicFontLoader.hpp>
@@ -80,7 +80,9 @@ namespace Tsukino::Asset {
         // 走り、ModelSystem 側では別モデル扱いになって GPU バッファまで
         // 重複して作られてしまう（敵を大量に湧かせると致命的になる）。
         //--------------------------------------------------------------
-        const std::string pathKey = path.string();
+        // ハンドルもこのキーから作るため、正規化はAssetHandleGeneratorへ集約する
+        // （キャッシュのキーとハンドルの元が食い違うと、同じアセットに別ハンドルが出る）
+        const std::string pathKey = AssetHandleGenerator::NormalizeKey(path.string());
 
         auto cachedIt = m_pathToHandle.find(pathKey);
         if(cachedIt != m_pathToHandle.end())
@@ -148,7 +150,7 @@ namespace Tsukino::Asset {
                 if(!asset)
                     continue;
 
-                AssetHandle handle = AssetHandleGenerator::Generate();
+                AssetHandle handle = AssetHandleGenerator::GenerateFromKey(pathKey);
                 asset->SetHandle(handle);
                 m_assets.insert({handle.Value(), asset});
                 m_pathToHandle.insert({pathKey, handle});

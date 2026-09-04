@@ -437,7 +437,7 @@ namespace Tsukino::BuiltIn::ECS {
     //! @brief  エフェクトの描画（D3D11デバイスコンテキストでEffekseerを実行）
     //! @param  dc  [in] D3D11 デバイスコンテキスト
     //--------------------------------------------------------------
-    void EffectSystem::RenderEffects(ID3D11DeviceContext* dc, const Tsukino::Core::Math::matrix& view, const Tsukino::Core::Math::matrix& projection) {
+    void EffectSystem::RenderPostWorld(ID3D11DeviceContext* dc, const Tsukino::Core::Math::matrix& view, const Tsukino::Core::Math::matrix& projection) {
         if(!m_initialized || !m_renderer || !dc) {
             return;
         }

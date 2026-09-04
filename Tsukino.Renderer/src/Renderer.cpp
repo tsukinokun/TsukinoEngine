@@ -10,7 +10,7 @@
 #include <Tsukino/Renderer/ConstantBuffer.hpp>
 #include <Tsukino/Renderer/ShaderSlots.hpp>
 
-#include <Tsukino/EngineIntegration/ECS/System/EffectSystem.hpp>
+#include <Tsukino/Renderer/IPostWorldPass.hpp>
 
 #include <Tsukino/Engine/Asset/Shader/ShaderAsset.hpp>
 
@@ -374,7 +374,7 @@ namespace Tsukino::Renderer {
     //------------------------------------------------------------
     //! @brief 描画処理
     //------------------------------------------------------------
-    void Renderer::Render(class Tsukino::BuiltIn::ECS::EffectSystem* effectSystem) {
+    void Renderer::Render(IPostWorldPass* postWorldPass) {
         m_graphicsContext.BeginFrame(m_clearColor[0], m_clearColor[1], m_clearColor[2], m_clearColor[3]);
 
         const auto& commands = m_drawQueue.GetCommands();
@@ -549,11 +549,11 @@ namespace Tsukino::Renderer {
         // 画面を覆うモーダル（スキル選択の暗転板など）の上にヒットエフェクトだけが
         // 残ってしまう
         //------------------------------------------------------------
-        if(effectSystem) {
+        if(postWorldPass) {
             ID3D11DeviceContext* context = m_graphicsContext.GetContext();
             context->OMSetBlendState(m_commonStatesTK->AlphaBlend(), nullptr, 0xFFFFFFFF);
             context->OMSetDepthStencilState(m_commonStatesTK->DepthNone(), 0);
-            effectSystem->RenderEffects(context, m_worldSceneData.view, m_worldSceneData.projection);
+            postWorldPass->RenderPostWorld(context, m_worldSceneData.view, m_worldSceneData.projection);
             context->OMSetBlendState(m_commonStatesTK->Opaque(), nullptr, 0xFFFFFFFF);
             context->OMSetDepthStencilState(m_commonStatesTK->DepthDefault(), 0);
         }
