@@ -43,9 +43,6 @@ namespace Tsukino::BuiltIn::ECS {
         if(!ctx || !ctx->renderer)
             return;
 
-        m_materialBuffer.clear();
-        m_cbufferMaterialBuffer.clear();
-
         //-------------------------------------------------------------
         // 水面の時間更新
         //-------------------------------------------------------------
@@ -226,8 +223,9 @@ namespace Tsukino::BuiltIn::ECS {
                         cbMat.baseColor.w *= std::max(modelComp.opacity, 0.0f);
                     }
 
-                    m_cbufferMaterialBuffer.push_back(cbMat);
-                    Tsukino::Renderer::CBufferMaterial* pCbMat = &m_cbufferMaterialBuffer.back();
+                    // 実体はキューが所有する（Render() の Clear() まで有効）
+                    Tsukino::Renderer::CBufferMaterial* pCbMat = &ctx->renderer->AllocMaterialData();
+                    *pCbMat                                    = cbMat;
 
                     // シェーダーアセットの取得
                     // VSはワールド座標・法線・UVを出力するだけなので、フォワード(Water/半透明)/
@@ -269,13 +267,13 @@ namespace Tsukino::BuiltIn::ECS {
                     ID3D11ShaderResourceView* whiteSRV      = ctx->renderer->GetWhiteTextureSRV();
                     ID3D11ShaderResourceView* flatNormalSRV = ctx->renderer->GetFlatNormalTextureSRV();
 
-                    // 指定パイプラインでMaterialを1つ組み立ててm_materialBufferへ積み、
-                    // 安定した参照を返す（複数DrawCommandから同じテクスチャ設定を使い回すためのヘルパー）
+                    // 指定パイプラインでMaterialを1つ組み立てて、安定した参照を返す
+                    // （複数DrawCommandから同じテクスチャ設定を使い回すためのヘルパー）
                     auto buildMaterial = [&](const std::shared_ptr<Tsukino::Renderer::PipelineState>& pipeline) -> Tsukino::Renderer::Material* {
                         if(!pipeline)
                             return nullptr;
 
-                        Tsukino::Renderer::Material mat{};
+                        Tsukino::Renderer::Material& mat = ctx->renderer->AllocMaterial();
                         mat.SetPipeline(pipeline.get());
                         mat.SetSampler(ctx->renderer->GetSampler(Tsukino::GraphicsCommon::SamplerType::AnisotropicWrap));
                         mat.SetTexture(Tsukino::Renderer::SRVSlot::Albedo, albedoSRV ? albedoSRV : whiteSRV);
@@ -284,8 +282,7 @@ namespace Tsukino::BuiltIn::ECS {
                         mat.SetTexture(Tsukino::Renderer::SRVSlot::Emissive, emissiveSRV ? emissiveSRV : whiteSRV);
                         mat.SetTexture(Tsukino::Renderer::SRVSlot::AO, aoSRV ? aoSRV : whiteSRV);
 
-                        m_materialBuffer.push_back(mat);
-                        return &m_materialBuffer.back();
+                        return &mat;
                     };
 
                     // 指定Material・パスでDrawCommandを1つ積むヘルパー

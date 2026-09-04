@@ -114,10 +114,6 @@ namespace Tsukino::BuiltIn::ECS {
             }
         }
 
-        // 前フレームのマテリアルバッファをクリアして再利用
-        m_materialBuffer.clear();
-        m_materialDataBuffer.clear();
-
         // まずエンティティ情報を一時バッファに収集（確保済み容量は維持して使い回す）
         m_entries.clear();
 
@@ -186,8 +182,8 @@ namespace Tsukino::BuiltIn::ECS {
             // メッシュの指定
             cmd.mesh = ctx->renderer->GetPrimitiveMesh(Tsukino::GraphicsCommon::PrimitiveType::Quad);
 
-            // マテリアルの構築
-            Tsukino::Renderer::Material& material = m_materialBuffer.emplace_back();
+            // マテリアルの構築（実体はキューが所有する）
+            Tsukino::Renderer::Material& material = ctx->renderer->AllocMaterial();
 
             // サンプラー設定
             material.SetSampler(ctx->renderer->GetSampler(Tsukino::GraphicsCommon::SamplerType::LinearClamp));
@@ -215,7 +211,7 @@ namespace Tsukino::BuiltIn::ECS {
                 material.SetPipeline(isAdditive ? m_additivePipelineCache.get() : m_pipelineCache.get());
 
             // tintColorをb2(CBufferMaterial::baseColor)経由でSprite.ps.hlslへ渡す
-            Tsukino::Renderer::CBufferMaterial& materialData = m_materialDataBuffer.emplace_back();
+            Tsukino::Renderer::CBufferMaterial& materialData = ctx->renderer->AllocMaterialData();
             materialData.baseColor                            = sprite.tintColor;
 
             cmd.material     = &material;

@@ -38,13 +38,13 @@ namespace Tsukino::BuiltIn::ECS {
         void Update(Tsukino::ECS::Registry& registry, float deltaTime) override;
 
     private:
-        // マテリアル実体のバッファ
-        // deque なのは、DrawCommand が要素へのポインタを保持したまま
-        // 追加が続くため、参照が無効化されない必要があるから
-        std::deque<Tsukino::Renderer::Material> m_materialBuffer;
-
-        // 定数バッファのバッファ（同上の理由で deque）
-        std::deque<Tsukino::Renderer::CBufferMaterial> m_cbufferMaterialBuffer;
+        //-------------------------------------------------------------
+        // マテリアル実体の置き場は DrawCommandQueue へ移した。
+        // Renderer::AllocMaterial() / AllocMaterialData() で確保する。
+        // System 側で持つと、System の Update 冒頭でクリアするのに対し
+        // コマンドの破棄は Renderer::Render() の中でしか起きないため、
+        // 両者の寿命が食い違ってダングリングの余地が残る
+        //-------------------------------------------------------------
 
         //-------------------------------------------------------------
         //! @brief モデルアセットごとの GPU メッシュバッファのキャッシュ

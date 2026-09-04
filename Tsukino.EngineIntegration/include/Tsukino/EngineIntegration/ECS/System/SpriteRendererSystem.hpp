@@ -51,9 +51,10 @@ namespace Tsukino::BuiltIn::ECS {
         std::shared_ptr<Tsukino::Renderer::PipelineState> m_additivePipelineCache;    // パイプラインステートのキャッシュ（Screen空間・Additive。発光表現用）
         std::shared_ptr<Tsukino::Renderer::PipelineState> m_worldPipelineCache;            // パイプラインステートのキャッシュ（World空間・Alpha。深度テストあり）
         std::shared_ptr<Tsukino::Renderer::PipelineState> m_worldAdditivePipelineCache;    // パイプラインステートのキャッシュ（World空間・Additive。深度テストあり）
-        std::deque<Tsukino::Renderer::Material> m_materialBuffer;    // 描画コマンド実行までポインタを維持しつつ、フレーム毎にリサイクルするためのバッファ
-        std::deque<Tsukino::Renderer::CBufferMaterial>
-            m_materialDataBuffer;    // SpriteComponent::tintColorをb2(CBufferMaterial::baseColor)へ渡すためのバッファ（m_materialBufferと同じ理由でdeque）
+        //-------------------------------------------------------------
+        // マテリアル実体と定数データの置き場は DrawCommandQueue へ移した。
+        // Renderer::AllocMaterial() / AllocMaterialData() で確保する
+        //-------------------------------------------------------------
         std::unordered_map<Tsukino::Asset::AssetHandle, ID3D11ShaderResourceView*>
             m_textureCache;    // ハンドルをキーにしてテクスチャのSRVをキャッシュ（毎フレームのアセット検索を回避）
 

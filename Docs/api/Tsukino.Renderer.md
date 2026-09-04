@@ -23,6 +23,8 @@
 | `void Resize(uint32_t width, uint32_t height)` | 描画領域のリサイズ |
 | `void SetClearColor(float r, float g, float b, float a)` | クリアカラー設定 |
 | `void PushDrawCommand(const DrawCommand &cmd)` | 描画コマンドの追加 |
+| `Material & AllocMaterial()` | このフレームで使うマテリアル実体を1つ確保する |
+| `CBufferMaterial & AllocMaterialData()` | このフレームで使うマテリアル定数データを1つ確保する |
 | `const FrameStats & GetFrameStats() const` | 直前のフレームの描画統計を取得する関数 |
 | `void SetVSyncEnabled(bool enabled)` | 垂直同期の有無を設定する関数 |
 | `bool IsVSyncEnabled() const` | 垂直同期が有効かを取得する関数 |
@@ -86,7 +88,7 @@
 - **Tsukino::Renderer::DrawCommand** — `Tsukino.Renderer/include/Tsukino/Renderer/DrawCommand.hpp`
   - material, mesh, customDraw, transform, pass, materialData, sortOrder, boneMatrices, boneCount, prevTransform, prevBoneMatrices, hasPrevFrame
 - **Tsukino::Renderer::DrawCommandQueue** — `Tsukino.Renderer/include/Tsukino/Renderer/DrawCommandQueue.hpp`
-  - Push(), GetCommands(), Clear(), Size()
+  - Push(), AllocMaterial(), AllocMaterialData(), GetCommands(), Clear(), Size()
 - **Tsukino::Renderer::DynamicFontAtlas** — `Tsukino.Renderer/include/Tsukino/Renderer/Text/DynamicFontAtlas.hpp`
   - DynamicFontAtlas(), DynamicFontAtlas(), operator=(), DrawString(), MeasureString(), GetLineHeight(), GetAscent()
 - **Tsukino::Renderer::DynamicFontAtlas::GlyphInfo** — `Tsukino.Renderer/include/Tsukino/Renderer/Text/DynamicFontAtlas.hpp`
@@ -110,7 +112,7 @@
 - **Tsukino::Renderer::PipelineState** — `Tsukino.Renderer/include/Tsukino/Renderer/DX11/PipelineState.hpp`
   - vs, ps, inputLayout, rasterizer, blend, depth, topology
 - **Tsukino::Renderer::Renderer** — `Tsukino.Renderer/include/Tsukino/Renderer/Renderer.hpp`
-  - Renderer(), ~Renderer(), Initialize(), Render(), Resize(), SetClearColor(), PushDrawCommand(), GetFrameStats(), SetVSyncEnabled(), IsVSyncEnabled(), DrawDebugLine(), DrawDebugTriangle(), FlushDebugDraw(), GetPipelineFactory(), GetDevice(), GetContext(), GetPrimitiveMesh(), GetSampler(), GetTextureSRV(), UpdateSceneBuffer(), CreateSpriteFont(), SetWorldCameraMatrix(), SetOverlayCameraMatrix(), CreateSpriteBatch(), GetCommonStatesTK(), SetDirectionalLight(), SetShadowPipeline(), GetWhiteTextureSRV(), GetFlatNormalTextureSRV(), SetSkyParameters(), SetSkyPipeline(), UpdateWaterTime(), SetWaterParameters(), SetWaterPipeline(), SetLights(), SetMotionBlurPipeline(), SetMotionBlurParameters(), SetMotionBlurEnabled(), SetFogParameters(), SetFogEnabled()
+  - Renderer(), ~Renderer(), Initialize(), Render(), Resize(), SetClearColor(), PushDrawCommand(), AllocMaterial(), AllocMaterialData(), GetFrameStats(), SetVSyncEnabled(), IsVSyncEnabled(), DrawDebugLine(), DrawDebugTriangle(), FlushDebugDraw(), GetPipelineFactory(), GetDevice(), GetContext(), GetPrimitiveMesh(), GetSampler(), GetTextureSRV(), UpdateSceneBuffer(), CreateSpriteFont(), SetWorldCameraMatrix(), SetOverlayCameraMatrix(), CreateSpriteBatch(), GetCommonStatesTK(), SetDirectionalLight(), SetShadowPipeline(), GetWhiteTextureSRV(), GetFlatNormalTextureSRV(), SetSkyParameters(), SetSkyPipeline(), UpdateWaterTime(), SetWaterParameters(), SetWaterPipeline(), SetLights(), SetMotionBlurPipeline(), SetMotionBlurParameters(), SetMotionBlurEnabled(), SetFogParameters(), SetFogEnabled()
 - **Tsukino::Renderer::Renderer::FrameStats** — `Tsukino.Renderer/include/Tsukino/Renderer/Renderer.hpp`
   - commandCount, shadowDrawCalls, gbufferDrawCalls, worldDrawCalls, transparentDrawCalls, waterDrawCalls, overlayDrawCalls, skinnedDrawCalls, triangleCount, boneBytesUploaded, TotalDrawCalls()
 - **Tsukino::Renderer::RendererShaderSet** — `Tsukino.Renderer/include/Tsukino/Renderer/Renderer.hpp`

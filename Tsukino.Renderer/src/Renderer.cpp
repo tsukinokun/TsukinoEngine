@@ -681,8 +681,8 @@ namespace Tsukino::Renderer {
         //------------------------------------------------------------
         // GraphicsContext::ClearState() でパイプラインの状態が全て落ちるため、
         // 積み残しの描画コマンドは破棄しておく。
-        // コマンドが指す Material / MeshBuffer はシステム側が所有しており、
-        // 次フレームの Update で改めて積み直される。
+        // コマンドが指す Material / CBufferMaterial はキューが所有しているので
+        // Clear() で一緒に破棄される。次フレームの Update で改めて積み直される。
         //------------------------------------------------------------
         m_drawQueue.Clear();
         m_debugLineVertices.clear();
@@ -724,6 +724,20 @@ namespace Tsukino::Renderer {
     //------------------------------------------------------------
     void Renderer::PushDrawCommand(const DrawCommand& cmd) {
         m_drawQueue.Push(cmd);
+    }
+
+    //------------------------------------------------------------
+    //! @brief このフレームで使うマテリアル実体を1つ確保する
+    //------------------------------------------------------------
+    Material& Renderer::AllocMaterial() {
+        return m_drawQueue.AllocMaterial();
+    }
+
+    //------------------------------------------------------------
+    //! @brief このフレームで使うマテリアル定数データを1つ確保する
+    //------------------------------------------------------------
+    CBufferMaterial& Renderer::AllocMaterialData() {
+        return m_drawQueue.AllocMaterialData();
     }
 
     //------------------------------------------------------------
