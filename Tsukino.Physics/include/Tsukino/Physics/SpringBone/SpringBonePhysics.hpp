@@ -4,7 +4,7 @@
 //! @author 山﨑 愛
 //--------------------------------------------------------------
 #pragma once
-#include <Tsukino/Engine/Physics/SpringBone/SpringBoneData.hpp>
+#include <Tsukino/Physics/SpringBone/SpringBoneData.hpp>
 #include <Tsukino/GraphicsCommon/Node/NodeData.hpp>
 #include <string>
 #include <unordered_set>

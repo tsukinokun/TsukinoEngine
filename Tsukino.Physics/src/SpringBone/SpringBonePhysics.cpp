@@ -3,8 +3,8 @@
 //! @brief  揺れ物(SpringBone)物理の計算関数群 実装
 //! @author 山﨑 愛
 //--------------------------------------------------------------
-#include <Tsukino/Engine/Physics/SpringBone/SpringBonePhysics.hpp>
-#include <Tsukino/Engine/Physics/SpringBone/SpringBoneMath.hpp>
+#include <Tsukino/Physics/SpringBone/SpringBonePhysics.hpp>
+#include <Tsukino/Physics/SpringBone/SpringBoneMath.hpp>
 #include <Tsukino/Core/Log.hpp>
 #include <algorithm>
 #include <functional>

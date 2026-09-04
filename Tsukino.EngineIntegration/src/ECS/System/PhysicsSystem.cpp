@@ -1,4 +1,4 @@
-﻿//-------------------------------------------------------------
+//-------------------------------------------------------------
 //! @file   PhysicsSystem.cpp
 //! @brief  PhysicsSystemクラスの実装
 //! @author 山﨑愛
@@ -15,9 +15,12 @@
 #include <Tsukino/BuiltIn/ECS/Component/CharacterControllerComponent.hpp>
 #include <Tsukino/BuiltIn/ECS/Event/CollisionEnterEvent.hpp>
 
+#include <Tsukino/Physics/PhysicsMath.hpp>
+#include <Tsukino/Physics/PhysicsWorld.hpp>
+
 #include <Tsukino/Renderer/Renderer.hpp>
 #include <Tsukino/EngineIntegration/EngineContext.hpp>
-#include <Tsukino/GraphicsCommon/Vertex/DebugVertex.hpp>
+#include <Tsukino/EngineIntegration/Physics/RendererPhysicsDebugDraw.hpp>
 
 #include <Tsukino/Core/ECS/Event/EventBus.hpp>
 #include <Tsukino/Core/Log.hpp>
@@ -25,379 +28,122 @@
 
 #include <hlsl++.h>
 #include <entt/entt.hpp>
-#include <Jolt/Jolt.h>
-#include <Jolt/Physics/Collision/CollideShape.h>
-#include <Jolt/RegisterTypes.h>
-#include <Jolt/Core/Factory.h>
-#include <Jolt/Core/TempAllocator.h>
-#include <Jolt/Core/JobSystemThreadPool.h>
-#include <Jolt/Physics/PhysicsSettings.h>
-#include <Jolt/Physics/PhysicsSystem.h>
-#include <Jolt/Physics/Collision/CollisionCollectorImpl.h>
-#include <Jolt/Physics/Collision/Shape/BoxShape.h>
-#include <Jolt/Geometry/AABox.h>
-#include <Jolt/Physics/Collision/Shape/SphereShape.h>
-#include <Jolt/Physics/Collision/Shape/CapsuleShape.h>
-#include <Jolt/Physics/Body/BodyCreationSettings.h>
-#include <Jolt/Physics/Body/BodyActivationListener.h>
-#include <Jolt/Renderer/DebugRendererSimple.h>
-#include <Jolt/Physics/Collision/Shape/HeightFieldShape.h>
-#include <Jolt/Physics/Collision/Shape/RotatedTranslatedShape.h>
-#include <Jolt/Physics/Character/CharacterVirtual.h>
 
 #include <windows.h>
 
-#include <mutex>
+#include <string>
 #include <vector>
+
 // 名前空間 : Tsukino::BuiltIn::ECS
 namespace Tsukino::BuiltIn::ECS {
 
-    //-------------------------------------------------------------
-    //! @namespace Layers
-    //! @brief     オブジェクトレイヤーの定義
-    //-------------------------------------------------------------
-    namespace Layers {
-        static constexpr JPH::ObjectLayer NON_MOVING = 0;    //!< 静的オブジェクトレイヤー
-        static constexpr JPH::ObjectLayer MOVING     = 1;    //!< 動的オブジェクトレイヤー
-        static constexpr JPH::ObjectLayer NUM_LAYERS = 2;    //!< オブジェクトレイヤー数
-    }
+    namespace {
 
-    //-------------------------------------------------------------
-    //! @namespace BroadPhaseLayers
-    //! @brief     ブロードフェーズレイヤーの定義
-    //-------------------------------------------------------------
-    namespace BroadPhaseLayers {
-        static constexpr JPH::BroadPhaseLayer NON_MOVING(0);    //!< 静的ブロードフェーズレイヤー
-        static constexpr JPH::BroadPhaseLayer MOVING(1);        //!< 動的ブロードフェーズレイヤー
-        static constexpr uint32_t             NUM_LAYERS(2);    //!< ブロードフェーズレイヤー数
-    }
-
-    //-------------------------------------------------------------
-    //! @class  BPLayerInterfaceImpl
-    //! @brief  オブジェクトレイヤーとブロードフェーズレイヤーの対応を定義する連携インターフェース
-    //-------------------------------------------------------------
-    class BPLayerInterfaceImpl final : public JPH::BroadPhaseLayerInterface {
-    public:
-        //-------------------------------------------------------------
-        //! @brief コンストラクタ
-        //-------------------------------------------------------------
-        BPLayerInterfaceImpl() {
-            m_objectToBroadPhase[Layers::NON_MOVING] = BroadPhaseLayers::NON_MOVING;
-            m_objectToBroadPhase[Layers::MOVING]     = BroadPhaseLayers::MOVING;
-        }
+        namespace Phys = Tsukino::Physics;
 
         //-------------------------------------------------------------
-        //! @brief  ブロードフェーズレイヤー数を取得する
-        //! @return ブロードフェーズレイヤーの数
+        //! @brief  コライダーの形状種別を物理側の形状種別へ変換する
+        //! @param  type [in] 変換元
+        //! @return 対応する物理側の形状種別
         //-------------------------------------------------------------
-        uint32_t GetNumBroadPhaseLayers() const override { return BroadPhaseLayers::NUM_LAYERS; }
-
-        //-------------------------------------------------------------
-        //! @brief  指定したオブジェクトレイヤーに対応するブロードフェーズレイヤーを取得する
-        //! @param  inLayer [in] オブジェクトレイヤー
-        //! @return 対応するブロードフェーズレイヤー
-        //-------------------------------------------------------------
-        JPH::BroadPhaseLayer GetBroadPhaseLayer(JPH::ObjectLayer inLayer) const override {
-            JPH_ASSERT(inLayer < Layers::NUM_LAYERS);
-            return m_objectToBroadPhase[inLayer];
-        }
-
-#if defined(JPH_EXTERNAL_PROFILE) || defined(JPH_PROFILE_ENABLED)
-        const char* GetBroadPhaseLayerName(JPH::BroadPhaseLayer inLayer) const override {
-            switch((JPH::BroadPhaseLayer::Type)inLayer) {
-            case(JPH::BroadPhaseLayer::Type)BroadPhaseLayers::NON_MOVING:
-                return "NON_MOVING";
-            case(JPH::BroadPhaseLayer::Type)BroadPhaseLayers::MOVING:
-                return "MOVING";
+        Phys::ShapeType ToPhysicsShapeType(ColliderType type) {
+            switch(type) {
+            case ColliderType::Sphere:
+                return Phys::ShapeType::Sphere;
+            case ColliderType::Capsule:
+                return Phys::ShapeType::Capsule;
+            case ColliderType::Heightfield:
+                return Phys::ShapeType::Heightfield;
+            case ColliderType::Box:
             default:
-                JPH_ASSERT(false);
-                return "INVALID";
+                return Phys::ShapeType::Box;
             }
         }
-#endif    // JPH_EXTERNAL_PROFILE || JPH_PROFILE_ENABLED
 
-    private:
-        JPH::BroadPhaseLayer m_objectToBroadPhase[Layers::NUM_LAYERS];
-    };
-
-    //-------------------------------------------------------------
-    //! @class  ObjectVsBroadPhaseLayerFilterImpl
-    //! @brief  オブジェクト同士のブロードフェーズレベルでの衝突判定可否を定義するフィルタ
-    //-------------------------------------------------------------
-    class ObjectVsBroadPhaseLayerFilterImpl : public JPH::ObjectVsBroadPhaseLayerFilter {
-    public:
         //-------------------------------------------------------------
-        //! @brief  衝突すべきかどうかを判定する
-        //! @param  inLayer1 [in] オブジェクトのレイヤー
-        //! @param  inLayer2 [in] 相手側のブロードフェーズレイヤー
-        //! @return 衝突する場合はtrue
+        //! @brief  Rigidbody の種別を物理側の運動タイプへ変換する
+        //! @param  type [in] 変換元
+        //! @return 対応する運動タイプ
         //-------------------------------------------------------------
-        bool ShouldCollide(JPH::ObjectLayer inLayer1, JPH::BroadPhaseLayer inLayer2) const override {
-            switch(inLayer1) {
-            case Layers::NON_MOVING:
-                return inLayer2 == BroadPhaseLayers::MOVING;
-            case Layers::MOVING:
-                return true;
+        Phys::MotionType ToPhysicsMotionType(RigidbodyType type) {
+            switch(type) {
+            case RigidbodyType::Kinematic:
+                return Phys::MotionType::Kinematic;
+            case RigidbodyType::Dynamic:
+                return Phys::MotionType::Dynamic;
+            case RigidbodyType::Static:
             default:
-                return false;
+                return Phys::MotionType::Static;
             }
         }
-    };
-
-    //-------------------------------------------------------------
-    //! @class  ObjectLayerPairFilterImpl
-    //! @brief  オブジェクトレイヤー同士での衝突判定可否を定義するフィルタ
-    //-------------------------------------------------------------
-    class ObjectLayerPairFilterImpl : public JPH::ObjectLayerPairFilter {
-    public:
-        //-------------------------------------------------------------
-        //! @brief  衝突すべきかどうかを判定する
-        //! @param  inObject1 [in] 判定元オブジェクトのレイヤー
-        //! @param  inObject2 [in] 対象のオブジェクトレイヤー
-        //! @return 衝突する場合はtrue
-        //-------------------------------------------------------------
-        bool ShouldCollide(JPH::ObjectLayer inObject1, JPH::ObjectLayer inObject2) const override {
-            switch(inObject1) {
-            case Layers::NON_MOVING:
-                return inObject2 == Layers::MOVING;
-            case Layers::MOVING:
-                return true;
-            default:
-                return false;
-            }
-        }
-    };
-
-    //-------------------------------------------------------------
-    //! @class  MyContactListener
-    //! @brief  Jolt Physicsからの衝突イベントを受け取るリスナー
-    //! @attention
-    //! Jolt は接触コールバックを **物理ジョブスレッドから並行に** 呼び出す。
-    //! EventBus も EnTT のレジストリもスレッドセーフではないため、
-    //! コールバック内でそれらに触ってはならない。
-    //! ここでは接触の事実だけをミューテックス保護されたバッファへ積み、
-    //! 実際のイベント発行・レジストリ操作は PhysicsSystem::Update() が
-    //! JPH::PhysicsSystem::Update() から戻った後、メインスレッドで行う。
-    //-------------------------------------------------------------
-    class MyContactListener : public JPH::ContactListener {
-    public:
-        //-------------------------------------------------------------
-        //! @struct PendingContact
-        //! @brief  ワーカースレッドで拾った接触を1件分だけ記録したもの
-        //-------------------------------------------------------------
-        struct PendingContact {
-            entt::entity   entityA;    //!< Body1 側のエンティティ
-            entt::entity   entityB;    //!< Body2 側のエンティティ
-            hlslpp::float3 normal;     //!< Body1 から見た接触法線
-        };
 
         //-------------------------------------------------------------
-        //! @brief  衝突が追加された（当たった）際に呼ばれるコールバック
-        //! @param  inBody1    [in] 衝突したボディ1
-        //! @param  inBody2    [in] 衝突したボディ2
-        //! @param  inManifold [in] マニフォールド情報（接触点等）
-        //! @param  ioSettings [in/out] コンタクト設定（摩擦係数等のオーバーライド可能）
-        //! @note   複数のジョブスレッドから並行に呼ばれる。積むだけに留めること。
+        //! @brief  Rigidbody の凍結フラグから許可軸マスクを組み立てる
+        //! @param  rb [in] 参照する Rigidbody
+        //! @return 許可する移動・回転軸
         //-------------------------------------------------------------
-        void OnContactAdded(const JPH::Body&            inBody1,
-                            const JPH::Body&            inBody2,
-                            const JPH::ContactManifold& inManifold,
-                            JPH::ContactSettings&       ioSettings) override {
-            //-------------------------------------------------------------
-            // 衝突時の法線（Body1から見たBody2への法線）
-            // Joltの法線は「Body1から衝突点への方向」を指す
-            //-------------------------------------------------------------
-            const JPH::Vec3 normal = inManifold.mWorldSpaceNormal;
-
-            const PendingContact contact{
-                (entt::entity)inBody1.GetUserData(),
-                (entt::entity)inBody2.GetUserData(),
-                {normal.GetX(), normal.GetY(), normal.GetZ()}
-            };
-
-            std::lock_guard<std::mutex> lock(m_pendingMutex);
-            m_pending.push_back(contact);
+        Phys::DofMask MakeDofMask(const RigidbodyComponent& rb) {
+            Phys::DofMask dofs = Phys::DofMask::All;
+            if(rb.freezePositionX)
+                dofs &= ~Phys::DofMask::TranslationX;
+            if(rb.freezePositionY)
+                dofs &= ~Phys::DofMask::TranslationY;
+            if(rb.freezePositionZ)
+                dofs &= ~Phys::DofMask::TranslationZ;
+            if(rb.freezeRotationX)
+                dofs &= ~Phys::DofMask::RotationX;
+            if(rb.freezeRotationY)
+                dofs &= ~Phys::DofMask::RotationY;
+            if(rb.freezeRotationZ)
+                dofs &= ~Phys::DofMask::RotationZ;
+            return dofs;
         }
 
         //-------------------------------------------------------------
-        //! @brief  溜まった接触を取り出して空にする
-        //! @param  out [out] 取り出し先。呼び出し前の内容は破棄される
-        //! @note   メインスレッドから、Jolt の Update 完了後に呼ぶこと
+        //! @brief  接地判定用ボックスの線をデバッグ描画へ積む
+        //! @param  sink       [in,out] 描画の出力先
+        //! @param  center     [in]     ボックス中心のワールド座標
+        //! @param  halfExtent [in]     ボックスの各軸の半分サイズ
+        //! @param  color      [in]     線の色（RGBA、各成分 0.0〜1.0）
         //-------------------------------------------------------------
-        void DrainContacts(std::vector<PendingContact>& out) {
-            std::lock_guard<std::mutex> lock(m_pendingMutex);
-            out.swap(m_pending);
-            m_pending.clear();
+        void DrawWireBox(Phys::IPhysicsDebugDraw& sink, const hlslpp::float3& center, const hlslpp::float3& halfExtent, const hlslpp::float4& color) {
+            const float cx = center.x;
+            const float cy = center.y;
+            const float cz = center.z;
+            const float ex = halfExtent.x;
+            const float ey = halfExtent.y;
+            const float ez = halfExtent.z;
+
+            // 上面
+            sink.DrawLine({cx - ex, cy + ey, cz - ez}, {cx + ex, cy + ey, cz - ez}, color);
+            sink.DrawLine({cx + ex, cy + ey, cz - ez}, {cx + ex, cy + ey, cz + ez}, color);
+            sink.DrawLine({cx + ex, cy + ey, cz + ez}, {cx - ex, cy + ey, cz + ez}, color);
+            sink.DrawLine({cx - ex, cy + ey, cz + ez}, {cx - ex, cy + ey, cz - ez}, color);
+            // 下面
+            sink.DrawLine({cx - ex, cy - ey, cz - ez}, {cx + ex, cy - ey, cz - ez}, color);
+            sink.DrawLine({cx + ex, cy - ey, cz - ez}, {cx + ex, cy - ey, cz + ez}, color);
+            sink.DrawLine({cx + ex, cy - ey, cz + ez}, {cx - ex, cy - ey, cz + ez}, color);
+            sink.DrawLine({cx - ex, cy - ey, cz + ez}, {cx - ex, cy - ey, cz - ez}, color);
+            // 縦辺
+            sink.DrawLine({cx - ex, cy + ey, cz - ez}, {cx - ex, cy - ey, cz - ez}, color);
+            sink.DrawLine({cx + ex, cy + ey, cz - ez}, {cx + ex, cy - ey, cz - ez}, color);
+            sink.DrawLine({cx + ex, cy + ey, cz + ez}, {cx + ex, cy - ey, cz + ez}, color);
+            sink.DrawLine({cx - ex, cy + ey, cz + ez}, {cx - ex, cy - ey, cz + ez}, color);
         }
 
-    private:
-        std::mutex                  m_pendingMutex;    //!< m_pending を保護する
-        std::vector<PendingContact> m_pending;         //!< 今フレームに発生した接触
-    };
-
-    //-------------------------------------------------------------
-    //! @class  CharacterContactListenerImpl
-    //! @brief  CharacterVirtualの接触イベントを受け取るリスナー（他Dynamicボディを押す処理）
-    //-------------------------------------------------------------
-    class CharacterContactListenerImpl : public JPH::CharacterContactListener {
-    public:
-        JPH::PhysicsSystem* physicsSystem = nullptr;    //!< 押し出し計算に使う物理システム参照
-
-        //-------------------------------------------------------------
-        //! @brief  CharacterVirtualが他ボディに接触した際に呼ばれるコールバック
-        //! @param  inCharacter       [in] 接触したキャラクター本体
-        //! @param  inBodyID2         [in] 接触相手のボディID
-        //! @param  inSubShapeID2     [in] 接触相手のサブシェイプID
-        //! @param  inContactPosition [in] 接触位置（ワールド座標）
-        //! @param  inContactNormal   [in] 接触法線
-        //! @param  ioSettings        [in/out] 接触設定（押し出し無効化等のオーバーライド可能）
-        //-------------------------------------------------------------
-        void OnContactAdded(const JPH::CharacterVirtual*   inCharacter,
-                            const JPH::BodyID&             inBodyID2,
-                            const JPH::SubShapeID&         inSubShapeID2,
-                            JPH::RVec3Arg                  inContactPosition,
-                            JPH::Vec3Arg                   inContactNormal,
-                            JPH::CharacterContactSettings& ioSettings) override {
-            if(!physicsSystem)
-                return;
-
-            JPH::BodyInterface& bodyInterface = physicsSystem->GetBodyInterface();
-            if(bodyInterface.GetMotionType(inBodyID2) != JPH::EMotionType::Dynamic)
-                return;
-
-            // キャラクターの移動方向に押し出す（Step 7で本格実装予定。現状は仮のロジック）
-            JPH::Vec3 characterVelocity = inCharacter->GetLinearVelocity();
-            float     pushDot           = characterVelocity.Dot(-inContactNormal);
-            if(pushDot > 0.0f) {
-                bodyInterface.AddImpulse(inBodyID2, -inContactNormal * pushDot * inCharacter->GetMass() * 0.1f, inContactPosition);
-            }
-        }
-    };
-
-    //-------------------------------------------------------------
-    //! @class  JoltDebugRendererImpl
-    //! @brief  Jolt Physics のデバッグ描画を Tsukino::Renderer に中継するクラス
-    //-------------------------------------------------------------
-    class JoltDebugRendererImpl final : public JPH::DebugRendererSimple {
-    public:
-        JoltDebugRendererImpl() { JPH::DebugRendererSimple::Initialize(); }
-
-        void DrawLine(JPH::RVec3Arg inFrom, JPH::RVec3Arg inTo, JPH::ColorArg inColor) override {
-            if(!m_renderer)
-                return;
-            Tsukino::GraphicsCommon::DebugVertex v1{
-                {inFrom.GetX(), inFrom.GetY(), inFrom.GetZ()},
-                {inColor.r / 255.0f, inColor.g / 255.0f, inColor.b / 255.0f, inColor.a / 255.0f}
-            };
-            Tsukino::GraphicsCommon::DebugVertex v2{
-                {inTo.GetX(), inTo.GetY(), inTo.GetZ()},
-                {inColor.r / 255.0f, inColor.g / 255.0f, inColor.b / 255.0f, inColor.a / 255.0f}
-            };
-            m_renderer->DrawDebugLine(v1, v2);
-        }
-
-        void DrawTriangle(JPH::RVec3Arg inV1, JPH::RVec3Arg inV2, JPH::RVec3Arg inV3, JPH::ColorArg inColor, ECastShadow inCastShadow) override {
-            if(!m_renderer)
-                return;
-            Tsukino::GraphicsCommon::DebugVertex v1{
-                {inV1.GetX(), inV1.GetY(), inV1.GetZ()},
-                {inColor.r / 255.0f, inColor.g / 255.0f, inColor.b / 255.0f, inColor.a / 255.0f}
-            };
-            Tsukino::GraphicsCommon::DebugVertex v2{
-                {inV2.GetX(), inV2.GetY(), inV2.GetZ()},
-                {inColor.r / 255.0f, inColor.g / 255.0f, inColor.b / 255.0f, inColor.a / 255.0f}
-            };
-            Tsukino::GraphicsCommon::DebugVertex v3{
-                {inV3.GetX(), inV3.GetY(), inV3.GetZ()},
-                {inColor.r / 255.0f, inColor.g / 255.0f, inColor.b / 255.0f, inColor.a / 255.0f}
-            };
-            m_renderer->DrawDebugTriangle(v1, v2, v3);
-        }
-
-        virtual void DrawText3D(JPH::RVec3Arg inPosition, const std::string_view& inString, JPH::ColorArg inColor, float inHeight) override {}
-
-        void SetEngineRenderer(Tsukino::Renderer::Renderer* renderer) { m_renderer = renderer; }
-
-    private:
-        Tsukino::Renderer::Renderer* m_renderer = nullptr;
-    };
-
-    //-------------------------------------------------------------
-    //! @struct PhysicsSystem::Impl
-    //! @brief  システム実装の隠蔽用構造体
-    //-------------------------------------------------------------
-    struct PhysicsSystem::Impl {
-        JPH::TempAllocatorImpl*                      tempAllocator = nullptr;         //!< 物理計算用一時アロケータ
-        JPH::JobSystemThreadPool*                    jobSystem     = nullptr;         //!< 物理シミュレーション用ジョブシステム
-        BPLayerInterfaceImpl                         bpLayerInterface;                //!< ブロードフェーズインターフェース
-        ObjectVsBroadPhaseLayerFilterImpl            objVsBpFilter;                   //!< オブジェクト対ブロードフェーズ層フィルタ
-        ObjectLayerPairFilterImpl                    objPairFilter;                   //!< オブジェクト層間フィルタ
-        JPH::PhysicsSystem*                          physicsSystem      = nullptr;    //!< Jolt物理システム本体
-        MyContactListener*                           contactListener    = nullptr;    //!< 衝突イベントリスナー
-        JoltDebugRendererImpl*                       debugRenderer      = nullptr;    //!< デバッグ描画インターフェース
-#ifdef TSUKINO_DEBUG_COLLISION_DRAW
-#ifdef TSUKINO_DEBUG_COLLISION_DRAW_ALWAYS_ON
-        bool                                         isDebugDrawEnabled = true;       //!< デバッグ描画が有効か（ALWAYS_ONマクロにより起動時からON）
-#else
-        bool                                         isDebugDrawEnabled = false;      //!< デバッグ描画が有効か
-#endif    // TSUKINO_DEBUG_COLLISION_DRAW_ALWAYS_ON
-        bool                                         f5WasDown          = false;      //!< 直前フレームでF5キーが押されていたか
-#endif    // TSUKINO_DEBUG_COLLISION_DRAW
-        std::unordered_map<entt::entity, JPH::RVec3> prevPositions;
-        // ハイトマップ用キャッシュ（Shape を直接保持して使い回す）
-        std::unordered_map<uint64_t, JPH::Ref<JPH::HeightFieldShape>> heightfieldCache;
-
-        //-------------------------------------------------------------
-        //! @struct CharacterHandle
-        //! @brief  CharacterVirtual本体を保持するハンドル
-        //-------------------------------------------------------------
-        struct CharacterHandle {
-            JPH::Ref<JPH::CharacterVirtual> character;    //!< CharacterVirtual実体
-        };
-
-        CharacterContactListenerImpl                      characterContactListener;    //!< Character用接触リスナー
-        std::unordered_map<entt::entity, CharacterHandle> characters;                  //!< エンティティ毎のCharacterVirtual
-
-        Tsukino::ECS::EventBus*                      eventBus = nullptr;    //!< 衝突イベントの発行先（メインスレッドからのみ使う）
-        std::vector<MyContactListener::PendingContact> drainedContacts;     //!< 接触の取り出し用バッファ（毎フレーム使い回す）
-    };
+    }    // namespace
 
     //-------------------------------------------------------------
     //! @brief コンストラクタ
     //-------------------------------------------------------------
     PhysicsSystem::PhysicsSystem(Tsukino::ECS::EventBus& eventBus) {
-        m_impl = new Impl();
+        m_world = std::make_unique<Tsukino::Physics::PhysicsWorld>();
 
-        static bool isJoltInitialized = false;
-        if(!isJoltInitialized) {
-            JPH::RegisterDefaultAllocator();
-            JPH::Factory::sInstance = new JPH::Factory();
-            JPH::RegisterTypes();
-            isJoltInitialized = true;
-        }
-
-        m_impl->tempAllocator = new JPH::TempAllocatorImpl(10 * 1024 * 1024);
-        m_impl->jobSystem     = new JPH::JobSystemThreadPool(JPH::cMaxPhysicsJobs, JPH::cMaxPhysicsBarriers, std::thread::hardware_concurrency() - 1);
-
-        m_impl->physicsSystem                 = new JPH::PhysicsSystem();
-        const uint32_t cMaxBodies             = 1024;
-        const uint32_t cNumBodyMutexes        = 0;
-        const uint32_t cMaxBodyPairs          = 1024;
-        const uint32_t cMaxContactConstraints = 1024;
-
-        m_impl->physicsSystem->Init(
-            cMaxBodies, cNumBodyMutexes, cMaxBodyPairs, cMaxContactConstraints, m_impl->bpLayerInterface, m_impl->objVsBpFilter, m_impl->objPairFilter);
-
-        m_impl->contactListener = new MyContactListener();
         //-------------------------------------------------------------
-        // イベントバスは ContactListener ではなく Impl が持つ。
+        // イベントバスは物理ワールドではなくシステム側が持つ。
         // 発行はワーカースレッドではなくメインスレッド（Update の末尾）で行うため。
         //-------------------------------------------------------------
-        m_impl->eventBus = &eventBus;
-        m_impl->physicsSystem->SetContactListener(m_impl->contactListener);
-        m_impl->characterContactListener.physicsSystem = m_impl->physicsSystem;
-
-        m_impl->debugRenderer = new JoltDebugRendererImpl();
+        m_eventBus = &eventBus;
     }
 
 #ifdef TSUKINO_DEBUG_COLLISION_DRAW
@@ -405,7 +151,7 @@ namespace Tsukino::BuiltIn::ECS {
     // 物理コリジョンのデバッグワイヤーフレーム描画を有効/無効にする
     //-------------------------------------------------------------
     void PhysicsSystem::SetDebugDrawEnabled(bool enabled) {
-        m_impl->isDebugDrawEnabled = enabled;
+        m_isDebugDrawEnabled = enabled;
     }
 #endif    // TSUKINO_DEBUG_COLLISION_DRAW
 
@@ -423,39 +169,26 @@ namespace Tsukino::BuiltIn::ECS {
             m_connectedRegistry->OnDestroy<CharacterControllerComponent>().disconnect(this);
             m_connectedRegistry = nullptr;
         }
-
-        if(m_impl) {
-            delete m_impl->debugRenderer;
-            delete m_impl->contactListener;
-            delete m_impl->physicsSystem;
-            delete m_impl->jobSystem;
-            delete m_impl->tempAllocator;
-            delete m_impl;
-        }
     }
 
     //-------------------------------------------------------------
     //! @brief  指定のカプセル形状と現在重なっている全エンティティを取得する
     //-------------------------------------------------------------
-    std::vector<entt::entity> PhysicsSystem::OverlapCapsule(const hlslpp::float3& center, const hlslpp::quaternion& rotation, float radius, float halfHeight) {
+    std::vector<entt::entity> PhysicsSystem::OverlapCapsule(const hlslpp::float3&     center,
+                                                            const hlslpp::quaternion& rotation,
+                                                            float                     radius,
+                                                            float                     halfHeight) {
         std::vector<entt::entity> result;
-        if(!m_impl || !m_impl->physicsSystem)
+        if(!m_world)
             return result;
 
-        JPH::CapsuleShape capsuleShape(halfHeight, radius);
-        // 呼び出し側はslerpやボーン行列の分解でrotationを組み立てているため、わずかに非正規化していることがある。
-        // sRotationTranslation → Mat44::sRotation は JPH_ASSERT(IsNormalized()) を持つので、ここで吸収する
-        JPH::RMat44       transform = JPH::RMat44::sRotationTranslation(
-            JPH::Quat(rotation.x, rotation.y, rotation.z, rotation.w).Normalized(), JPH::RVec3(center.x, center.y, center.z));
-
-        JPH::AllHitCollisionCollector<JPH::CollideShapeCollector> collector;
-        m_impl->physicsSystem->GetNarrowPhaseQuery().CollideShape(
-            &capsuleShape, JPH::Vec3::sReplicate(1.0f), transform, JPH::CollideShapeSettings(), JPH::RVec3::sZero(), collector);
-
-        JPH::BodyInterface& bodyInterface = m_impl->physicsSystem->GetBodyInterface();
-        result.reserve(collector.mHits.size());
-        for(const auto& hit : collector.mHits) {
-            result.push_back(static_cast<entt::entity>(bodyInterface.GetUserData(hit.mBodyID2)));
+        //-------------------------------------------------------------
+        // ボディのユーザーデータにはエンティティを入れてあるので読み替える
+        //-------------------------------------------------------------
+        const std::vector<uint64_t> hits = m_world->OverlapCapsule(center, rotation, radius, halfHeight);
+        result.reserve(hits.size());
+        for(uint64_t userData : hits) {
+            result.push_back(static_cast<entt::entity>(userData));
         }
         return result;
     }
@@ -474,24 +207,18 @@ namespace Tsukino::BuiltIn::ECS {
     }
 
     //-------------------------------------------------------------
-    // CollisionComponent 破棄時に Jolt の Body を回収する
+    // CollisionComponent 破棄時に物理ワールドの Body を回収する
     //-------------------------------------------------------------
     void PhysicsSystem::OnCollisionComponentDestroyed(entt::registry& registry, entt::entity entity) {
-        if(!m_impl || !m_impl->physicsSystem)
+        if(!m_world)
             return;
 
         //-------------------------------------------------------------
         // EnTT は「取り外す直前」に呼ぶので、この時点ではまだ読める
         //-------------------------------------------------------------
         if(const CollisionComponent* col = registry.try_get<CollisionComponent>(entity)) {
-            if(col->isInitialized && !col->bodyID.IsInvalid()) {
-                JPH::BodyInterface& bodyInterface = m_impl->physicsSystem->GetBodyInterface();
-
-                // AddBody していた場合のみ RemoveBody する
-                if(bodyInterface.IsAdded(col->bodyID)) {
-                    bodyInterface.RemoveBody(col->bodyID);
-                }
-                bodyInterface.DestroyBody(col->bodyID);
+            if(col->isInitialized && col->bodyID.IsValid()) {
+                m_world->DestroyBody(col->bodyID);
             }
         }
 
@@ -499,18 +226,22 @@ namespace Tsukino::BuiltIn::ECS {
         // エンティティをキーにした付随データも一緒に片付ける。
         // ここを漏らすとフレームごとに増え続けるだけのマップになる。
         //-------------------------------------------------------------
-        m_impl->prevPositions.erase(entity);
-        m_impl->heightfieldCache.erase(static_cast<uint64_t>(entity));
+        m_prevPositions.erase(entity);
+        m_world->ForgetShapeCache(static_cast<uint64_t>(entity));
     }
 
     //-------------------------------------------------------------
-    // CharacterControllerComponent 破棄時に CharacterVirtual を回収する
+    // CharacterControllerComponent 破棄時にキャラクターを回収する
     //-------------------------------------------------------------
     void PhysicsSystem::OnCharacterControllerDestroyed(entt::registry& registry, entt::entity entity) {
-        if(!m_impl)
+        auto it = m_characters.find(entity);
+        if(it == m_characters.end())
             return;
 
-        m_impl->characters.erase(entity);
+        if(m_world) {
+            m_world->DestroyCharacter(it->second);
+        }
+        m_characters.erase(it);
     }
 
     //-------------------------------------------------------------
@@ -523,213 +254,120 @@ namespace Tsukino::BuiltIn::ECS {
         //-------------------------------------------------------------
         ConnectRegistrySignals(registry);
 
-        JPH::BodyInterface& bodyInterface = m_impl->physicsSystem->GetBodyInterface();
-
         auto view = registry.View<CollisionComponent>();
 
         // 1. 生成処理
         for(auto entity : view) {
             auto& col = registry.GetComponent<CollisionComponent>(entity);
-            if(!col.isInitialized) {
-                JPH::RefConst<JPH::Shape> shape;
-                if(col.type == ColliderType::Box)
-                    shape = new JPH::BoxShape(JPH::Vec3(col.extent.x, col.extent.y, col.extent.z));
-                else if(col.type == ColliderType::Sphere)
-                    shape = new JPH::SphereShape(col.extent.x);
-                else if(col.type == ColliderType::Capsule)
-                    shape = new JPH::CapsuleShape(col.extent.y, col.extent.x);
-                else if(col.type == ColliderType::Heightfield) {
-                    if(!col.heightfieldSamples.empty() && col.heightfieldSize > 0) {
-                        uint64_t cacheKey = (uint64_t)entity;
+            if(col.isInitialized)
+                continue;
 
-                        auto cacheIt = m_impl->heightfieldCache.find(cacheKey);
-                        if(cacheIt != m_impl->heightfieldCache.end()) {
-                            shape = cacheIt->second;
-                        } else {
-                            // 修正：HeightFieldShapeSettings の第3引数(Scale)と第2引数(Offset)を確実に一致させる
-                            // col.heightfieldOffset は地形の左下隅(Min)を指すようにし、
-                            // col.heightfieldScale はグリッド1つあたりの間隔(サイズ)を指すようにする
+            Tsukino::Physics::BodyDesc desc;
+            desc.shape.type   = ToPhysicsShapeType(col.type);
+            desc.shape.extent = col.extent;
+            if(col.type == ColliderType::Heightfield) {
+                desc.shape.heightSamples = col.heightfieldSamples.empty() ? nullptr : col.heightfieldSamples.data();
+                desc.shape.heightSize    = col.heightfieldSize;
+                desc.shape.heightOffset  = col.heightfieldOffset;
+                desc.shape.heightScale   = col.heightfieldScale;
+            }
 
-                            JPH::HeightFieldShapeSettings hfSettings(col.heightfieldSamples.data(),
-                                                                     JPH::Vec3(col.heightfieldOffset.x, col.heightfieldOffset.y, col.heightfieldOffset.z),
-                                                                     JPH::Vec3(col.heightfieldScale.x, col.heightfieldScale.y, col.heightfieldScale.z),
-                                                                     col.heightfieldSize);
+            //-------------------------------------------------------------
+            // Transform とオフセットから物理用の初期姿勢を計算する
+            //-------------------------------------------------------------
+            hlslpp::float3     basePosition = {0.0f, 0.0f, 0.0f};
+            hlslpp::quaternion baseRotation = hlslpp::quaternion::identity();
+            if(registry.HasComponent<TransformComponent>(entity)) {
+                auto& tf     = registry.GetComponent<TransformComponent>(entity);
+                basePosition = tf.position;
+                baseRotation = tf.rotation;
+            }
+            Tsukino::Physics::ComposeTransform(
+                basePosition, baseRotation, col.offsetPosition, col.offsetRotation, desc.position, desc.rotation);
 
-                            // このフラグが「地形の法線」を正しく計算させます
-                            hfSettings.mBlockSize = 2;    // デフォルトの2にする
+            desc.isSensor = col.isSensor;
+            desc.userData = static_cast<uint64_t>(entity);
 
-                            JPH::Shape::ShapeResult hfResult = hfSettings.Create();
-                            if(hfResult.IsValid()) {
-                                shape                              = hfResult.Get();
-                                m_impl->heightfieldCache[cacheKey] = (JPH::HeightFieldShape*)shape.GetPtr();
+            //-------------------------------------------------------------
+            // Rigidbody を持たないエンティティは Static のまま、質量まわりも
+            // 物理側の既定に任せる（従来の挙動を維持している）
+            //-------------------------------------------------------------
+            if(registry.HasComponent<RigidbodyComponent>(entity)) {
+                auto& rb                    = registry.GetComponent<RigidbodyComponent>(entity);
+                desc.motion                 = ToPhysicsMotionType(rb.type);
+                desc.friction               = rb.friction;
+                desc.restitution            = rb.restitution;
+                desc.gravityFactor          = rb.gravityFactor;
+                desc.mass                   = rb.mass;
+                desc.allowedDofs            = MakeDofMask(rb);
+                desc.overrideMassProperties = true;
+            }
 
-                                JPH::AABox localBounds = shape->GetLocalBounds();
-                                Tsukino::Core::Log::Info("HeightField local bounds min=(" + std::to_string(localBounds.mMin.GetX()) + ","
-                                                         + std::to_string(localBounds.mMin.GetZ()) + ") max=(" + std::to_string(localBounds.mMax.GetX()) + ","
-                                                         + std::to_string(localBounds.mMax.GetZ()) + ")");
-                                Tsukino::Core::Log::Info("Requested offset=(" + std::to_string(col.heightfieldOffset.x) + ","
-                                                         + std::to_string(col.heightfieldOffset.z) + ") scale=(" + std::to_string(col.heightfieldScale.x) + ","
-                                                         + std::to_string(col.heightfieldScale.z) + ") size=" + std::to_string(col.heightfieldSize));
-                            } else {
-                                OutputDebugStringA(hfResult.GetError().c_str());
-                            }
-                        }
-                    }
-                }
-
-                if(shape) {
-                    JPH::EMotionType motionType = JPH::EMotionType::Static;
-                    JPH::ObjectLayer layer      = Layers::NON_MOVING;
-
-                    if(registry.HasComponent<RigidbodyComponent>(entity)) {
-                        auto& rb = registry.GetComponent<RigidbodyComponent>(entity);
-                        if(rb.type == RigidbodyType::Dynamic) {
-                            motionType = JPH::EMotionType::Dynamic;
-                            layer      = Layers::MOVING;
-                        } else if(rb.type == RigidbodyType::Kinematic) {
-                            motionType = JPH::EMotionType::Kinematic;
-                            layer      = Layers::MOVING;
-                        }
-                    }
-
-                    // Transformとオフセットから物理用の初期位置を計算
-                    JPH::RVec3 pos(0, 0, 0);
-                    JPH::Quat  rot = JPH::Quat::sIdentity();
-                    if(registry.HasComponent<TransformComponent>(entity)) {
-                        auto& tf = registry.GetComponent<TransformComponent>(entity);
-                        pos      = JPH::RVec3(tf.position.x, tf.position.y, tf.position.z);
-                        // 下の rot * localOffset（Quat::operator*(Vec3)）がIsNormalized()を要求するため正規化する。
-                        // 生成時点で既に回転しているエンティティ（実行中にCollisionComponentを付けた場合など）でも
-                        // アサートに引っかからないようにする
-                        rot = JPH::Quat(tf.rotation.x, tf.rotation.y, tf.rotation.z, tf.rotation.w).Normalized();
-                    }
-
-                    JPH::Quat offsetRot =
-                        JPH::Quat(col.offsetRotation.x, col.offsetRotation.y, col.offsetRotation.z, col.offsetRotation.w).Normalized();
-                    JPH::Vec3 localOffset(col.offsetPosition.x, col.offsetPosition.y, col.offsetPosition.z);
-
-                    JPH::RVec3 finalPos = pos + (rot * localOffset);
-                    JPH::Quat  finalRot = rot * offsetRot;
-
-                    JPH::BodyCreationSettings settings(shape, finalPos, finalRot, motionType, layer);
-                    settings.mIsSensor = col.isSensor;
-
-                    if(registry.HasComponent<RigidbodyComponent>(entity)) {
-                        auto& rb                               = registry.GetComponent<RigidbodyComponent>(entity);
-                        settings.mFriction                     = rb.friction;
-                        settings.mRestitution                  = rb.restitution;
-                        settings.mGravityFactor                = rb.gravityFactor;
-                        settings.mOverrideMassProperties       = JPH::EOverrideMassProperties::CalculateInertia;
-                        settings.mMassPropertiesOverride.mMass = rb.mass;
-
-                        JPH::EAllowedDOFs dofs = JPH::EAllowedDOFs::All;
-                        if(rb.freezePositionX)
-                            dofs &= ~JPH::EAllowedDOFs::TranslationX;
-                        if(rb.freezePositionY)
-                            dofs &= ~JPH::EAllowedDOFs::TranslationY;
-                        if(rb.freezePositionZ)
-                            dofs &= ~JPH::EAllowedDOFs::TranslationZ;
-                        if(rb.freezeRotationX)
-                            dofs &= ~JPH::EAllowedDOFs::RotationX;
-                        if(rb.freezeRotationY)
-                            dofs &= ~JPH::EAllowedDOFs::RotationY;
-                        if(rb.freezeRotationZ)
-                            dofs &= ~JPH::EAllowedDOFs::RotationZ;
-
-                        settings.mAllowedDOFs = dofs;
-                    }
-
-                    JPH::Body* body = bodyInterface.CreateBody(settings);
-                    if(body) {
-                        body->SetUserData((uint64_t)entity);
-                        col.bodyID = body->GetID();
-                        bodyInterface.AddBody(col.bodyID, JPH::EActivation::Activate);
-                        col.isInitialized = true;
-                    }
-                }
+            const Tsukino::Physics::BodyHandle handle = m_world->CreateBody(desc, static_cast<uint64_t>(entity));
+            if(handle.IsValid()) {
+                col.bodyID        = handle;
+                col.isInitialized = true;
             }
         }
 
         float stepTime = deltaTime > 0.0f ? deltaTime : 1.0f / 60.0f;
 
-         // CharacterVirtualの生成処理
+        // CharacterVirtualの生成処理
         auto charView = registry.View<CharacterControllerComponent, TransformComponent>();
         charView.each([&](auto entity, auto& cc, auto& tf) {
             if(cc.isInitialized)
                 return;
 
-            JPH::RefConst<JPH::Shape> capsuleShape = new JPH::CapsuleShape(cc.halfHeight, cc.radius);
+            Tsukino::Physics::CharacterDesc desc;
+            desc.radius       = cc.radius;
+            desc.halfHeight   = cc.halfHeight;
+            desc.maxSlopeDeg  = cc.maxSlopeDeg;
+            desc.mass         = cc.mass;
+            desc.centerOffset = cc.centerOffset;
+            desc.position     = tf.position;
+            desc.rotation     = tf.rotation;
+            desc.userData     = static_cast<uint64_t>(entity);
 
-            // centerOffsetが設定されている場合、カプセル中心をTransform位置からずらす
-            // （Unityの CharacterController.center と同様。例えば (0,halfHeight+radius,0) を指定すると
-            //   Transform位置＝カプセル底面＝足元、を表せるようになる）
-            JPH::RefConst<JPH::Shape> shape = capsuleShape;
-            if(cc.centerOffset.x != 0.0f || cc.centerOffset.y != 0.0f || cc.centerOffset.z != 0.0f) {
-                shape = new JPH::RotatedTranslatedShape(
-                    JPH::Vec3(cc.centerOffset.x, cc.centerOffset.y, cc.centerOffset.z), JPH::Quat::sIdentity(), capsuleShape);
-            }
-
-            JPH::CharacterVirtualSettings settings;
-            settings.mShape         = shape;
-            settings.mMaxSlopeAngle = JPH::DegreesToRadians(cc.maxSlopeDeg);
-            settings.mMass          = cc.mass;
-            // 接地判定に使う平面。カプセル底面付近を接地面とみなす
-            // （Jolt基準: SignedDistance(p)=p.y+constantが0以下の点だけが支持候補になる。
-            //   centerOffsetによりキャラクターの原点はカプセル底面＝足元になっているため、
-            //   「足元から radius だけ上まで」を許容範囲とするには constant=-radius が正しい。
-            //   （+cc.centerOffset.yを足していた以前の実装は符号が逆で、足元(y≈0)の接触点が
-            //    常に許容範囲外になり、isGroundedが恒久的にfalseのままになってしまっていた）
-            settings.mSupportingVolume = JPH::Plane(JPH::Vec3::sAxisY(), -cc.radius);
-
-            JPH::RVec3 pos(tf.position.x, tf.position.y, tf.position.z);
-            // 毎フレームの同期（下のSetRotation）と同じく、生成時も正規化してから渡す
-            JPH::Quat  rot = JPH::Quat(tf.rotation.x, tf.rotation.y, tf.rotation.z, tf.rotation.w).Normalized();
-
-            JPH::Ref<JPH::CharacterVirtual> character = new JPH::CharacterVirtual(&settings, pos, rot, (uint64_t)entity, m_impl->physicsSystem);
-
-            character->SetListener(&m_impl->characterContactListener);
-
-            m_impl->characters[entity] = Impl::CharacterHandle{character};
-            cc.isInitialized           = true;
+            m_characters[entity] = m_world->CreateCharacter(desc);
+            cc.isInitialized     = true;
 
             Tsukino::Core::Log::Info("CharacterVirtual created for entity id=" + std::to_string((uint32_t)entity));
         });
 
-        // 破棄されたCharacterVirtualの回収は OnCharacterControllerDestroyed() が行う。
+        // 破棄されたキャラクターの回収は OnCharacterControllerDestroyed() が行う。
         // 以前はここで毎フレーム characters を全走査していたが、
         // EnTT の破棄シグナルはコンポーネント削除・エンティティ破棄の
         // どちらでも必ず発火するため、この走査は不要になった。
 
+        // 2. Kinematic ボディの姿勢同期
         for(auto entity : view) {
             auto& col = registry.GetComponent<CollisionComponent>(entity);
             if(!registry.HasComponent<RigidbodyComponent>(entity))
                 continue;
             auto& rb = registry.GetComponent<RigidbodyComponent>(entity);
             if(col.isInitialized && rb.type == RigidbodyType::Kinematic && registry.HasComponent<TransformComponent>(entity)) {
-                auto&      tf = registry.GetComponent<TransformComponent>(entity);
-                JPH::RVec3 pos(tf.position.x, tf.position.y, tf.position.z);
-                // 下のCharacterVirtual同期と同じ理由で明示的に正規化する。
-                // slerp等の補間でtf.rotationを毎フレーム自己更新していると誤差が蓄積して非正規化し、
-                // 直後の rot * JPH::Vec3(...)（Quat::operator*(Vec3)）が持つ
-                // JPH_ASSERT(IsNormalized()) に引っかかる。
-                // 特にCharacterVirtualと併用しているエンティティ（プレイヤー等）は
-                // hlslpp⇔Jolt間の往復でずれが溜まりやすい
-                JPH::Quat rot =
-                    JPH::Quat(tf.rotation.x, tf.rotation.y, tf.rotation.z, tf.rotation.w).Normalized();
-                JPH::Quat offsetRot =
-                    JPH::Quat(col.offsetRotation.x, col.offsetRotation.y, col.offsetRotation.z, col.offsetRotation.w).Normalized();
+                auto& tf = registry.GetComponent<TransformComponent>(entity);
 
-                bodyInterface.SetPositionAndRotation(col.bodyID,
-                                                     pos + (rot * JPH::Vec3(col.offsetPosition.x, col.offsetPosition.y, col.offsetPosition.z)),
-                                                     rot * offsetRot,
-                                                     JPH::EActivation::Activate);
+                //-------------------------------------------------------------
+                // 回転の正規化は ComposeTransform() が内包している。
+                // slerp 等の補間で tf.rotation を毎フレーム自己更新していると
+                // 誤差が蓄積して非正規化し、物理側のアサートに引っかかるため。
+                // 特にキャラクターコントローラーと併用しているエンティティ
+                // （プレイヤー等）はずれが溜まりやすい
+                //-------------------------------------------------------------
+                hlslpp::float3     bodyPosition;
+                hlslpp::quaternion bodyRotation;
+                Tsukino::Physics::ComposeTransform(
+                    tf.position, tf.rotation, col.offsetPosition, col.offsetRotation, bodyPosition, bodyRotation);
 
-                auto it = m_impl->prevPositions.find(entity);
-                if(it != m_impl->prevPositions.end()) {
-                    JPH::Vec3 velocity = (pos - it->second) / stepTime;
-                    bodyInterface.SetLinearVelocity(col.bodyID, velocity);
+                m_world->SetPositionAndRotation(col.bodyID, bodyPosition, bodyRotation);
+
+                auto it = m_prevPositions.find(entity);
+                if(it != m_prevPositions.end()) {
+                    const hlslpp::float3 velocity = (hlslpp::float3(tf.position) - it->second) / stepTime;
+                    m_world->SetLinearVelocity(col.bodyID, velocity);
                 }
-                m_impl->prevPositions[entity] = pos;
+                m_prevPositions[entity] = tf.position;
             }
         }
 
@@ -738,13 +376,12 @@ namespace Tsukino::BuiltIn::ECS {
         auto requestView = registry.View<ImpulseRequestComponent, CollisionComponent>();
         requestView.each([&](auto entity, auto& ir, auto& col) {
             if(col.isInitialized) {
-                JPH::BodyInterface& bi = m_impl->physicsSystem->GetBodyInterface();
-                bi.AddImpulse(col.bodyID, JPH::Vec3(ir.impulse.x, ir.impulse.y, ir.impulse.z));
+                m_world->AddImpulse(col.bodyID, ir.impulse);
 
                 // 回転（トルク）の付与
-                JPH::Vec3 angImpulse(ir.angularImpulse.x, ir.angularImpulse.y, ir.angularImpulse.z);
-                if(!angImpulse.IsNearZero()) {
-                    bi.AddAngularImpulse(col.bodyID, angImpulse);
+                const hlslpp::float3 angularImpulse = ir.angularImpulse;
+                if(angularImpulse.x != 0.0f || angularImpulse.y != 0.0f || angularImpulse.z != 0.0f) {
+                    m_world->AddAngularImpulse(col.bodyID, angularImpulse);
                 }
             }
             entitiesToRemoveImpulse.push_back(entity);
@@ -766,30 +403,14 @@ namespace Tsukino::BuiltIn::ECS {
             if(!rb.isTypeDirty)
                 continue;
 
-            JPH::EMotionType currentJoltType = bodyInterface.GetMotionType(col.bodyID);
-            JPH::EMotionType targetType;
-
-            switch(rb.type) {
-            case RigidbodyType::Static:
-                targetType = JPH::EMotionType::Static;
-                break;
-            case RigidbodyType::Kinematic:
-                targetType = JPH::EMotionType::Kinematic;
-                break;
-            case RigidbodyType::Dynamic:
-                targetType = JPH::EMotionType::Dynamic;
-                break;
-            default:
-                continue;
-            }
-
-            if(currentJoltType != targetType) {
-                bodyInterface.SetMotionType(col.bodyID, targetType, JPH::EActivation::Activate);
+            const Tsukino::Physics::MotionType targetType = ToPhysicsMotionType(rb.type);
+            if(m_world->GetMotionType(col.bodyID) != targetType) {
+                m_world->SetMotionType(col.bodyID, targetType);
             }
         }
 
         //-------------------------------------------------------------
-        // Freezeフラグ（AllowedDOFs）の変更を反映
+        // Freezeフラグ（許可軸）の変更を反映
         //-------------------------------------------------------------
         for(auto entity : view) {
             if(!registry.HasComponent<RigidbodyComponent>(entity))
@@ -802,53 +423,7 @@ namespace Tsukino::BuiltIn::ECS {
             if(!rb.isFreezeDirty)
                 continue;
 
-            JPH::EAllowedDOFs dofs = JPH::EAllowedDOFs::All;
-            if(rb.freezePositionX)
-                dofs &= ~JPH::EAllowedDOFs::TranslationX;
-            if(rb.freezePositionY)
-                dofs &= ~JPH::EAllowedDOFs::TranslationY;
-            if(rb.freezePositionZ)
-                dofs &= ~JPH::EAllowedDOFs::TranslationZ;
-            if(rb.freezeRotationX)
-                dofs &= ~JPH::EAllowedDOFs::RotationX;
-            if(rb.freezeRotationY)
-                dofs &= ~JPH::EAllowedDOFs::RotationY;
-            if(rb.freezeRotationZ)
-                dofs &= ~JPH::EAllowedDOFs::RotationZ;
-
-            // BodyLockWrite で MotionProperties を直接書き換える
-            JPH::BodyLockWrite lock(m_impl->physicsSystem->GetBodyLockInterface(), col.bodyID);
-            if(lock.Succeeded()) {
-                JPH::Body& body = lock.GetBody();
-                if(body.GetMotionType() == JPH::EMotionType::Dynamic) {
-                    JPH::MotionProperties* mp = body.GetMotionProperties();
-
-                    // 現在の質量を保ったままDOFのみ変更したいので、既存の質量から MassProperties を組み直す
-                    JPH::MassProperties massProps;
-                    massProps.mMass    = rb.mass;
-                    massProps.mInertia = mp->GetLocalSpaceInverseInertia().Inversed3x3();
-                    mp->SetMassProperties(dofs, massProps);
-
-                    // フリーズした軸の残存速度をゼロにしておく（急な巻き戻り防止）
-                    JPH::Vec3 lv = mp->GetLinearVelocity();
-                    JPH::Vec3 av = mp->GetAngularVelocity();
-                    if(rb.freezePositionX)
-                        lv.SetX(0.0f);
-                    if(rb.freezePositionY)
-                        lv.SetY(0.0f);
-                    if(rb.freezePositionZ)
-                        lv.SetZ(0.0f);
-                    if(rb.freezeRotationX)
-                        av.SetX(0.0f);
-                    if(rb.freezeRotationY)
-                        av.SetY(0.0f);
-                    if(rb.freezeRotationZ)
-                        av.SetZ(0.0f);
-                    mp->SetLinearVelocity(lv);
-                    mp->SetAngularVelocity(av);
-                }
-                // Static / Kinematic は mAllowedDOFs が実質意味を持たないため何もしない
-            }
+            m_world->SetAllowedDofs(col.bodyID, MakeDofMask(rb), rb.mass);
 
             rb.isFreezeDirty = false;
         }
@@ -869,15 +444,15 @@ namespace Tsukino::BuiltIn::ECS {
             bool hasTorque = !(rb.torque.x == 0.0f && rb.torque.y == 0.0f && rb.torque.z == 0.0f);
 
             if(hasForce) {
-                bodyInterface.AddForce(col.bodyID, JPH::Vec3(rb.force.x, rb.force.y, rb.force.z));
+                m_world->AddForce(col.bodyID, rb.force);
             }
             if(hasTorque) {
-                bodyInterface.AddTorque(col.bodyID, JPH::Vec3(rb.torque.x, rb.torque.y, rb.torque.z));
+                m_world->AddTorque(col.bodyID, rb.torque);
             }
         }
 
         // 3. 物理シミュレーション実行
-        m_impl->physicsSystem->Update(stepTime, 1, m_impl->tempAllocator, m_impl->jobSystem);
+        m_world->Step(stepTime);
 
         // 4. Dynamic同期
         for(auto entity : view) {
@@ -885,51 +460,38 @@ namespace Tsukino::BuiltIn::ECS {
             if(col.isInitialized && registry.HasComponent<RigidbodyComponent>(entity)) {
                 auto& rb = registry.GetComponent<RigidbodyComponent>(entity);
                 if(rb.type == RigidbodyType::Dynamic && registry.HasComponent<TransformComponent>(entity)) {
-                    auto&      tf      = registry.GetComponent<TransformComponent>(entity);
-                    JPH::RVec3 bodyPos = bodyInterface.GetPosition(col.bodyID);
-                    JPH::Quat  bodyRot = bodyInterface.GetRotation(col.bodyID);
-                    JPH::Vec3  bodyLinVel = bodyInterface.GetLinearVelocity(col.bodyID);
-                    JPH::Vec3  bodyAngVel = bodyInterface.GetAngularVelocity(col.bodyID);
+                    auto& tf = registry.GetComponent<TransformComponent>(entity);
 
-                    tf.position = hlslpp::float3(bodyPos.GetX(), bodyPos.GetY(), bodyPos.GetZ());
-                    tf.rotation = hlslpp::quaternion(bodyRot.GetX(), bodyRot.GetY(), bodyRot.GetZ(), bodyRot.GetW());
+                    const Tsukino::Physics::BodyState state = m_world->GetBodyState(col.bodyID);
+
+                    tf.position = state.position;
+                    tf.rotation = state.rotation;
                     tf.dirty    = true;
 
                     // rb.linearVelocity/angularVelocityは静止判定など他システムが実測値として
-                    // 参照するため、Joltの実速度をここで書き戻しておく（従来は書き戻されておらず、
+                    // 参照するため、物理側の実速度をここで書き戻しておく（従来は書き戻されておらず、
                     // 常に初期値の0のまま扱われてしまっていた）
-                    rb.linearVelocity  = hlslpp::float3(bodyLinVel.GetX(), bodyLinVel.GetY(), bodyLinVel.GetZ());
-                    rb.angularVelocity = hlslpp::float3(bodyAngVel.GetX(), bodyAngVel.GetY(), bodyAngVel.GetZ());
+                    rb.linearVelocity  = state.linearVelocity;
+                    rb.angularVelocity = state.angularVelocity;
 
-                    JPH::BoxShape                                             checkShape(JPH::Vec3(rb.groundCheckRadius, 0.05f, rb.groundCheckRadius));
-                    JPH::RVec3                                                checkPos(tf.position.x, tf.position.y - rb.groundCheckDistance, tf.position.z);
-                    JPH::IgnoreSingleBodyFilter                               bodyFilter(col.bodyID);
-                    JPH::AllHitCollisionCollector<JPH::CollideShapeCollector> collector;
-                    m_impl->physicsSystem->GetNarrowPhaseQuery().CollideShape(&checkShape,
-                                                                              JPH::Vec3::sReplicate(1.0f),
-                                                                              JPH::RMat44::sTranslation(checkPos),
-                                                                              JPH::CollideShapeSettings(),
-                                                                              JPH::RVec3::sZero(),
-                                                                              collector,
-                                                                              {},
-                                                                              {},
-                                                                              bodyFilter);
-                    rb.isGrounded = collector.HadHit();
+                    const hlslpp::float3 checkCenter(tf.position.x, tf.position.y - rb.groundCheckDistance, tf.position.z);
+                    const hlslpp::float3 checkExtent(rb.groundCheckRadius, 0.05f, rb.groundCheckRadius);
+                    rb.isGrounded = m_world->OverlapBox(checkCenter, checkExtent, col.bodyID);
                 }
             }
         }
 
-         // CharacterVirtualの同期（移動・ジャンプ対応）
-        JPH::Vec3 gravity = m_impl->physicsSystem->GetGravity();
+        // キャラクターの同期（移動・ジャンプ対応）
+        const hlslpp::float3 gravity = m_world->GetGravity();
 
         charView.each([&](auto entity, auto& cc, auto& tf) {
-            auto it = m_impl->characters.find(entity);
-            if(it == m_impl->characters.end())
+            auto it = m_characters.find(entity);
+            if(it == m_characters.end())
                 return;
 
-            JPH::CharacterVirtual* character = it->second.character;
+            const Tsukino::Physics::CharacterHandle handle = it->second;
 
-            bool wasGrounded = character->IsSupported();
+            bool wasGrounded = m_world->IsCharacterSupported(handle);
 
             // 縦方向速度の更新
             float vertY = cc.verticalVelocity.y;
@@ -941,86 +503,53 @@ namespace Tsukino::BuiltIn::ECS {
             }
             cc.jumpRequested = false;    // 消費して1フレームでリセット
 
-            vertY += gravity.GetY() * cc.gravityFactor * stepTime;
+            vertY += gravity.y * cc.gravityFactor * stepTime;
 
-            // 水平（moveInput）＋垂直を合成して速度としてセット
-            JPH::Vec3 desiredVelocity(cc.moveInput.x, vertY, cc.moveInput.z);
-            character->SetLinearVelocity(desiredVelocity);
+            //-------------------------------------------------------------
+            // 水平（moveInput）＋垂直を合成した速度と、PlayerSystem等が今フレーム
+            // 書き込んだ向きを渡す。向きを渡さないと更新後の姿勢が常に identity に
+            // なり、下の tf.rotation 書き戻しで回転が毎フレーム上書きされてしまう
+            //-------------------------------------------------------------
+            Tsukino::Physics::CharacterInput input;
+            input.linearVelocity = hlslpp::float3(cc.moveInput.x, vertY, cc.moveInput.z);
+            input.rotation       = tf.rotation;
 
-            // PlayerSystem等が今フレーム書き込んだ向きをキャラクターへ反映する
-            // （反映しないとExtendedUpdate後のGetRotation()が常にidentityのままとなり、
-            //   下のtf.rotation書き戻しでプレイヤーの回転が毎フレーム上書きされてしまう）
-            // slerpをtf.rotation⇔Jolt間で毎フレーム往復させると誤差が蓄積し非正規化するため、
-            // Jolt側のIsNormalized()アサートに引っかからないよう明示的に正規化してから渡す
-            character->SetRotation(JPH::Quat(tf.rotation.x, tf.rotation.y, tf.rotation.z, tf.rotation.w).Normalized());
+            Tsukino::Physics::CharacterOutput output;
+            if(!m_world->StepCharacter(handle, input, output, stepTime))
+                return;
 
-            JPH::CharacterVirtual::ExtendedUpdateSettings updateSettings;
+            cc.isGrounded         = output.isGrounded;
+            cc.verticalVelocity.y = output.verticalVelocity;    // 更新後の実際の縦速度を書き戻す
 
-            character->ExtendedUpdate(stepTime,
-                                      gravity,
-                                      updateSettings,
-                                      m_impl->physicsSystem->GetDefaultBroadPhaseLayerFilter(Layers::MOVING),
-                                      m_impl->physicsSystem->GetDefaultLayerFilter(Layers::MOVING),
-                                      {},    // BodyFilter
-                                      {},    // ShapeFilter
-                                      *m_impl->tempAllocator);
-
-            cc.isGrounded         = character->IsSupported();
-            cc.verticalVelocity.y = character->GetLinearVelocity().GetY();    // ExtendedUpdate後の実際の縦速度を書き戻す
-
-            JPH::RVec3 pos = character->GetPosition();
-            JPH::Quat  rot = character->GetRotation();
-            tf.position    = hlslpp::float3(pos.GetX(), pos.GetY(), pos.GetZ());
-            tf.rotation    = hlslpp::quaternion(rot.GetX(), rot.GetY(), rot.GetZ(), rot.GetW());
-            tf.dirty       = true;
+            tf.position = output.position;
+            tf.rotation = output.rotation;
+            tf.dirty    = true;
         });
 
         // デバッグ描画
 #ifdef TSUKINO_DEBUG_COLLISION_DRAW
         bool f5IsDown = (::GetAsyncKeyState(VK_F5) & 0x8000) != 0;
-        if(f5IsDown && !m_impl->f5WasDown) {
-            m_impl->isDebugDrawEnabled = !m_impl->isDebugDrawEnabled;
+        if(f5IsDown && !m_f5WasDown) {
+            m_isDebugDrawEnabled = !m_isDebugDrawEnabled;
         }
-        m_impl->f5WasDown = f5IsDown;
+        m_f5WasDown = f5IsDown;
 
-        if(m_impl->isDebugDrawEnabled) {
+        if(m_isDebugDrawEnabled) {
             auto* ctx = registry.GetContext<Tsukino::EngineIntegration::EngineContext*>();
             if(ctx && ctx->renderer) {
-                m_impl->debugRenderer->SetEngineRenderer(ctx->renderer);
+                Tsukino::EngineIntegration::RendererPhysicsDebugDraw sink(ctx->renderer);
 
-                // DrawBodiesの代わりに自前でECSのviewから全ボディを描画
+                // ECSのviewから全ボディを描画
                 for(auto entity : view) {
                     auto& col = registry.GetComponent<CollisionComponent>(entity);
                     if(!col.isInitialized)
                         continue;
 
-                    JPH::BodyLockRead lock(m_impl->physicsSystem->GetBodyLockInterface(), col.bodyID);
-                    if(!lock.Succeeded())
-                        continue;
-
-                    const JPH::Body& body      = lock.GetBody();
-                    JPH::RMat44      transform = body.GetCenterOfMassTransform();
-
-                    JPH::BodyManager::DrawSettings ds;
-                    ds.mDrawShape          = true;
-                    ds.mDrawShapeWireframe = true;
-
-                    body.GetShape()->Draw(m_impl->debugRenderer, transform, JPH::Vec3::sReplicate(1.0f), JPH::Color::sGreen, false, false);
+                    m_world->DebugDrawBody(sink, col.bodyID);
                 }
 
-                // CharacterVirtual（CollisionComponentを持たないため上のループでは描画されない）のカプセルを描画
-                for(auto& [entity, handle] : m_impl->characters) {
-                    JPH::CharacterVirtual* character = handle.character.GetPtr();
-                    if(!character)
-                        continue;
-
-                    JPH::ColorArg color = character->IsSupported() ? JPH::Color::sGreen : JPH::Color::sYellow;
-                    // Shape::Draw()はCenter of Mass基準の変換を期待するため、GetWorldTransform()
-                    // （position基準。centerOffsetがあるとカプセル中心とはズレる）ではなく
-                    // GetCenterOfMassTransform()を使う（centerOffset=0の場合は同じ結果になる）
-                    character->GetShape()->Draw(
-                        m_impl->debugRenderer, character->GetCenterOfMassTransform(), JPH::Vec3::sReplicate(1.0f), color, false, false);
-                }
+                // キャラクター（CollisionComponentを持たないため上のループでは描画されない）のカプセルを描画
+                m_world->DebugDrawCharacters(sink);
 
                 // isGrounded判定Box描画
                 for(auto entity : view) {
@@ -1032,29 +561,13 @@ namespace Tsukino::BuiltIn::ECS {
                     if(rb.type != RigidbodyType::Dynamic)
                         continue;
 
-                    auto&         tf    = registry.GetComponent<TransformComponent>(entity);
-                    float         r     = rb.groundCheckRadius;
-                    float         thick = 0.05f;
-                    float         cx    = tf.position.x;
-                    float         cy    = tf.position.y - rb.groundCheckDistance;
-                    float         cz    = tf.position.z;
-                    JPH::ColorArg color = rb.isGrounded ? JPH::Color::sGreen : JPH::Color::sRed;
+                    auto& tf = registry.GetComponent<TransformComponent>(entity);
 
-                    // 上面
-                    m_impl->debugRenderer->DrawLine({cx - r, cy + thick, cz - r}, {cx + r, cy + thick, cz - r}, color);
-                    m_impl->debugRenderer->DrawLine({cx + r, cy + thick, cz - r}, {cx + r, cy + thick, cz + r}, color);
-                    m_impl->debugRenderer->DrawLine({cx + r, cy + thick, cz + r}, {cx - r, cy + thick, cz + r}, color);
-                    m_impl->debugRenderer->DrawLine({cx - r, cy + thick, cz + r}, {cx - r, cy + thick, cz - r}, color);
-                    // 下面
-                    m_impl->debugRenderer->DrawLine({cx - r, cy - thick, cz - r}, {cx + r, cy - thick, cz - r}, color);
-                    m_impl->debugRenderer->DrawLine({cx + r, cy - thick, cz - r}, {cx + r, cy - thick, cz + r}, color);
-                    m_impl->debugRenderer->DrawLine({cx + r, cy - thick, cz + r}, {cx - r, cy - thick, cz + r}, color);
-                    m_impl->debugRenderer->DrawLine({cx - r, cy - thick, cz + r}, {cx - r, cy - thick, cz - r}, color);
-                    // 縦辺
-                    m_impl->debugRenderer->DrawLine({cx - r, cy + thick, cz - r}, {cx - r, cy - thick, cz - r}, color);
-                    m_impl->debugRenderer->DrawLine({cx + r, cy + thick, cz - r}, {cx + r, cy - thick, cz - r}, color);
-                    m_impl->debugRenderer->DrawLine({cx + r, cy + thick, cz + r}, {cx + r, cy - thick, cz + r}, color);
-                    m_impl->debugRenderer->DrawLine({cx - r, cy + thick, cz + r}, {cx - r, cy - thick, cz + r}, color);
+                    const hlslpp::float3 center(tf.position.x, tf.position.y - rb.groundCheckDistance, tf.position.z);
+                    const hlslpp::float3 halfExtent(rb.groundCheckRadius, 0.05f, rb.groundCheckRadius);
+                    const hlslpp::float4 color = rb.isGrounded ? hlslpp::float4(0.0f, 1.0f, 0.0f, 1.0f) : hlslpp::float4(1.0f, 0.0f, 0.0f, 1.0f);
+
+                    DrawWireBox(sink, center, halfExtent, color);
                 }
 
                 Tsukino::Renderer::DrawCommand cmd{};
@@ -1067,16 +580,16 @@ namespace Tsukino::BuiltIn::ECS {
         //-------------------------------------------------------------
         // 接触の後処理（メインスレッド）
         //
-        // Jolt は OnContactAdded を物理ジョブスレッドから並行に呼ぶ。
+        // 物理エンジンは接触コールバックをジョブスレッドから並行に呼ぶ。
         // EventBus も EnTT のレジストリもスレッドセーフではないので、
         // コールバック側では接触を積むだけにしてあり、
         // イベント発行とレジストリ操作はここまで遅らせている。
         //-------------------------------------------------------------
-        m_impl->contactListener->DrainContacts(m_impl->drainedContacts);
+        m_world->DrainContacts(m_drainedContacts);
 
         //-------------------------------------------------------------
         // Kinematic ボディの速度を接触法線で反射させる
-        // （Dynamic は Jolt 側が解決するため対象外）
+        // （Dynamic は物理エンジン側が解決するため対象外）
         //-------------------------------------------------------------
         auto applyReflection = [&registry](entt::entity e, const hlslpp::float3& n) {
             if(!registry.HasComponent<RigidbodyComponent>(e))
@@ -1092,29 +605,32 @@ namespace Tsukino::BuiltIn::ECS {
                 rb.linearVelocity = V - 2.0f * dot * n;
         };
 
-        for(const auto& contact : m_impl->drainedContacts) {
+        for(const auto& contact : m_drainedContacts) {
+            const entt::entity entityA = static_cast<entt::entity>(contact.userDataA);
+            const entt::entity entityB = static_cast<entt::entity>(contact.userDataB);
+
             //-------------------------------------------------------------
             // 接触してから今ここへ来るまでの間にエンティティが破棄されている
             // ことがあるため、触る前に生存を確認する
             //-------------------------------------------------------------
-            if(!registry.IsValid(contact.entityA) || !registry.IsValid(contact.entityB))
+            if(!registry.IsValid(entityA) || !registry.IsValid(entityB))
                 continue;
 
             const hlslpp::float3 reverseNormal = hlslpp::float3(-contact.normal.x, -contact.normal.y, -contact.normal.z);
 
             // イベント発行（衝突の事実を双方向に通知）
-            if(m_impl->eventBus) {
+            if(m_eventBus) {
                 // Aから見たBへのイベント
-                m_impl->eventBus->Publish(CollisionEnterEvent{contact.entityA, contact.entityB, contact.normal});
+                m_eventBus->Publish(CollisionEnterEvent{entityA, entityB, contact.normal});
                 // Bから見たAへのイベント
-                m_impl->eventBus->Publish(CollisionEnterEvent{contact.entityB, contact.entityA, reverseNormal});
+                m_eventBus->Publish(CollisionEnterEvent{entityB, entityA, reverseNormal});
             }
 
-            applyReflection(contact.entityA, contact.normal);
-            applyReflection(contact.entityB, reverseNormal);
+            applyReflection(entityA, contact.normal);
+            applyReflection(entityB, reverseNormal);
         }
 
-        m_impl->drainedContacts.clear();
+        m_drainedContacts.clear();
     }
 
 }    // namespace Tsukino::BuiltIn::ECS

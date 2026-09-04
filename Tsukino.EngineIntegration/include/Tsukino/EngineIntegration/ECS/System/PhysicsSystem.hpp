@@ -1,4 +1,4 @@
-﻿//-------------------------------------------------------------
+//-------------------------------------------------------------
 //! @file   PhysicsSystem.hpp
 //! @brief  PhysicsSystemクラスの宣言
 //! @author 山﨑愛
@@ -7,13 +7,22 @@
 #include <Tsukino/Core/ECS/System/ISystem.hpp>
 #include <Tsukino/Core/DebugTools/DebugFeatures.hpp>
 
+#include <Tsukino/Physics/BodyHandle.hpp>
+#include <Tsukino/Physics/PhysicsTypes.hpp>
+
 #include <entt/entt.hpp>
 #include <hlsl++.h>
 
+#include <memory>
+#include <unordered_map>
 #include <vector>
 
 namespace Tsukino::ECS {
     class EventBus;
+}
+
+namespace Tsukino::Physics {
+    class PhysicsWorld;
 }
 
 // 名前空間 : Tsukino::BuiltIn::ECS
@@ -22,6 +31,10 @@ namespace Tsukino::BuiltIn::ECS {
 
     //-------------------------------------------------------------
     //! @class  PhysicsSystem
+    //! @brief  ECS と物理ワールド（Tsukino.Physics）を仲介するシステム
+    //! @details
+    //! 物理エンジンそのものは Tsukino::Physics::PhysicsWorld に閉じており、
+    //! このクラスはコンポーネントの読み書きとイベント発行だけを担当する。
     //-------------------------------------------------------------
     class PhysicsSystem : public Tsukino::ECS::ISystem {
     public:
@@ -46,7 +59,7 @@ namespace Tsukino::BuiltIn::ECS {
         //! @brief  指定のカプセル形状と現在重なっている全エンティティを取得する
         //!         （センサー的な即時オーバーラップ判定。物理的な反発は起きない）
         //! @param  center     [in] カプセル中心のワールド座標
-        //! @param  rotation   [in] カプセルの向き（Jolt内部のカプセルはローカルY軸方向が軸）
+        //! @param  rotation   [in] カプセルの向き（物理側のカプセルはローカルY軸方向が軸）
         //! @param  radius     [in] カプセル半径
         //! @param  halfHeight [in] カプセル円柱部分の半分の高さ
         //! @return 重なっているエンティティの一覧（CollisionComponentを持つもののみ）
@@ -66,7 +79,7 @@ namespace Tsukino::BuiltIn::ECS {
         //! @brief  Registry の破棄シグナルへ購読する（初回 Update で一度だけ）
         //! @param  registry [in] 購読対象のレジストリ
         //! @details
-        //! ECS の外に実体を持つリソース（Jolt の Body / CharacterVirtual）は、
+        //! ECS の外に実体を持つリソース（物理ワールドの Body / キャラクター）は、
         //! イベントバス経由では回収し損ねる。
         //! ゲームコードが Scene::DestroyEntity() を通さず
         //! Registry::DestroyEntity() を直接呼ぶ経路が存在するためである。
@@ -76,7 +89,7 @@ namespace Tsukino::BuiltIn::ECS {
         void ConnectRegistrySignals(Tsukino::ECS::Registry& registry);
 
         //-------------------------------------------------------------
-        //! @brief  CollisionComponent 破棄時に Jolt の Body を回収する
+        //! @brief  CollisionComponent 破棄時に物理ワールドの Body を回収する
         //! @param  registry [in] レジストリ（EnTT が渡す）
         //! @param  entity   [in] 破棄されるエンティティ
         //! @note   EnTT は「コンポーネントを取り外す直前」に呼ぶため、
@@ -85,14 +98,39 @@ namespace Tsukino::BuiltIn::ECS {
         void OnCollisionComponentDestroyed(entt::registry& registry, entt::entity entity);
 
         //-------------------------------------------------------------
-        //! @brief  CharacterControllerComponent 破棄時に CharacterVirtual を回収する
+        //! @brief  CharacterControllerComponent 破棄時にキャラクターを回収する
         //! @param  registry [in] レジストリ（EnTT が渡す）
         //! @param  entity   [in] 破棄されるエンティティ
         //-------------------------------------------------------------
         void OnCharacterControllerDestroyed(entt::registry& registry, entt::entity entity);
 
-        struct Impl;
-        Impl* m_impl;
+        //! 物理ワールド本体。Jolt はこの中に閉じている
+        std::unique_ptr<Tsukino::Physics::PhysicsWorld> m_world;
+
+        //! Kinematic ボディの速度算出に使う、前フレームの位置
+        std::unordered_map<entt::entity, hlslpp::float3> m_prevPositions;
+
+        //! エンティティごとのキャラクターコントローラー
+        std::unordered_map<entt::entity, Tsukino::Physics::CharacterHandle> m_characters;
+
+        //! 接触の取り出し用バッファ（毎フレーム使い回す）
+        std::vector<Tsukino::Physics::ContactRecord> m_drainedContacts;
+
+        //! 衝突イベントの発行先（メインスレッドからのみ使う）
+        Tsukino::ECS::EventBus* m_eventBus = nullptr;
+
+#ifdef TSUKINO_DEBUG_COLLISION_DRAW
+#ifdef TSUKINO_DEBUG_COLLISION_DRAW_ALWAYS_ON
+        //! デバッグ描画が有効か（ALWAYS_ONマクロにより起動時からON）
+        bool m_isDebugDrawEnabled = true;
+#else
+        //! デバッグ描画が有効か
+        bool m_isDebugDrawEnabled = false;
+#endif    // TSUKINO_DEBUG_COLLISION_DRAW_ALWAYS_ON
+
+        //! 直前フレームでF5キーが押されていたか
+        bool m_f5WasDown = false;
+#endif    // TSUKINO_DEBUG_COLLISION_DRAW
 
         //! シグナル購読済みのレジストリ。デストラクタで購読解除するために保持する
         //! （System は Registry より先に破棄されるため、解除しないと

@@ -14,7 +14,7 @@
 #include <Tsukino/BuiltIn/ECS/Component/SpringBoneComponent.hpp>
 #include <Tsukino/Engine/Asset/AssetManager.hpp>
 #include <Tsukino/Engine/Asset/Model/ModelAsset.hpp>
-#include <Tsukino/Engine/Physics/SpringBone/SpringBonePhysics.hpp>
+#include <Tsukino/Physics/SpringBone/SpringBonePhysics.hpp>
 #include <Tsukino/GraphicsCommon/Model/ModelData.hpp>
 #include <Tsukino/Core/Log.hpp>
 

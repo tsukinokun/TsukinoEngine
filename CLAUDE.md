@@ -52,6 +52,7 @@
 | `Tsukino.GraphicsCommon` | API 非依存の描画データ（MeshData / ModelData / MaterialData） |
 | `Tsukino.Engine` | アセット基盤（AssetManager / Handle / Ref / 各種 Loader）、Scene、SystemManager、PrefabFactory |
 | `Tsukino.Renderer` | DX11 バックエンド。ゲームからは主に `Renderer.hpp` のみ |
+| `Tsukino.Physics` | 物理。Jolt Physics のラッパ（PhysicsWorld / BodyHandle / IPhysicsDebugDraw）と SpringBone。Jolt の型はこのモジュールの中に閉じている |
 | `Tsukino.BuiltIn` | 組み込みコンポーネント（データのみ）、BuiltInAssets、TransformUtility |
 | `Tsukino.EngineIntegration` | アプリ向け層。EngineIntegration / EngineContext / EngineAPI / GameSceneBase と組み込みシステム群 |
 | `Tsukino.Audio` | AudioManager |

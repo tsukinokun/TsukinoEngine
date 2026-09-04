@@ -4,7 +4,7 @@
 //! @author 山﨑愛
 //-------------------------------------------------------------
 #pragma once
-#include <Tsukino/Engine/Physics/SpringBone/SpringBoneData.hpp>
+#include <Tsukino/Physics/SpringBone/SpringBoneData.hpp>
 
 #include <vector>
 // 名前空間 : Tsukino::BuiltIn::ECS

@@ -211,13 +211,66 @@ Renderer が EngineIntegration をビルドしないと成立しない状態で�
 3. 純ロジックのモジュール（`Path`, `Matrix`, `EventBus`, `Registry`）からテストを入れる
 4. GitHub Actions でビルドを回す
 
-### C-9. `Tsukino.Physics` が空プロジェクト
+### C-9. `Tsukino.Physics` が空プロジェクト → **解消済み**
 
-`Tsukino.Physics/` には `pch.cpp` しか無い。
-物理は全て `Tsukino.EngineIntegration/src/ECS/System/PhysicsSystem.cpp`（53KB）に入っている。
+**当時の状況**
+`Tsukino.Physics/` には 0 バイトの `pch.cpp` しか無く、premake の定義も
+`Tsukino.Core` にしかリンクしていなかった（Jolt の includedirs も links も無し）。
+参照側は全てコメントアウトされており、誰もリンクしないシンボル0個の `.lib` を毎回ビルドしていた。
+物理は全て `Tsukino.EngineIntegration/src/ECS/System/PhysicsSystem.cpp`（53KB / 1120行）に入っていた。
 
-プロジェクトを削除するか、Jolt のラッパをこちらへ移すかを決める必要がある。
-後者にすると C-1 のレイヤ違反解消とも相性が良い。
+**採った方針: Jolt のラッパをこちらへ移す**
+
+`PhysicsSystem::Impl` をそのまま移すことはできない。`Impl` は EngineIntegration で
+宣言された `PhysicsSystem` の入れ子型であり、下層へ置くと
+**Physics → EngineIntegration という逆向きの依存**が生まれる。
+そのため「移動」ではなく境界を設計し直した。
+
+- `Tsukino.Physics` は `Tsukino.Core` と `JoltPhysics` にのみ依存する。
+  `entt` / `Renderer` / `BuiltIn` / `EngineIntegration` は一切参照しない
+- 公開ヘッダ（`PhysicsWorld.hpp` / `PhysicsTypes.hpp` / `BodyHandle.hpp` /
+  `IPhysicsDebugDraw.hpp` / `PhysicsMath.hpp`）に Jolt の型は現れない。
+  座標と回転は hlslpp、エンティティの同一性は `uint64_t` のユーザーデータで受け渡す
+- `JPH::BodyID` は `Tsukino::Physics::BodyHandle` に置き換えた。これにより
+  データのみのはずだった `Tsukino.BuiltIn` から Jolt の include が消えている
+- デバッグ描画は下層に `IPhysicsDebugDraw` を置き、`RendererPhysicsDebugDraw`
+  （EngineIntegration）が実装して `Renderer` へ流す。C-1 の移行手順に書いた
+  `IPostWorldPass` と同じパターンで揃えてある
+
+**結果**
+
+| | 移動前 | 移動後 |
+|---|---|---|
+| `PhysicsSystem.cpp` | 1120行（Jolt ヘッダ19本） | 約600行（Jolt を include しない） |
+| `Tsukino.Physics` | `pch.cpp` 0バイトのみ | `PhysicsWorld` ほか約900行 |
+| Jolt を include するモジュール | BuiltIn / EngineIntegration | Physics のみ |
+
+`PhysicsSystem` は pimpl が不要になったため、`struct Impl; Impl* m_impl;` を廃して
+`std::unique_ptr<PhysicsWorld>` と素直なメンバに置き換えた。
+
+> **注意**: `cMaxBodies` / `cMaxBodyPairs` / `cMaxContactConstraints` は 1024 のまま
+> `PhysicsWorld` のコンストラクタへ移してある。値は変えていない。
+
+**SpringBone も同じモジュールへ寄せた**
+
+`Tsukino::Physics` 名前空間は SpringBone が既に使っていた。実体は
+`Tsukino.Engine/{include,src}/.../Physics/SpringBone/` に置かれており、
+名前の衝突こそ無いものの、同じ名前空間の型が 2 モジュールに分かれる状態になっていた。
+
+調べたところ SpringBone は `Tsukino.Engine` の中身に一切依存していなかった
+（`Tsukino/Core/typedef.hpp`、`Tsukino/Core/Log.hpp`、`Tsukino/GraphicsCommon/Node/NodeData.hpp`、
+hlslpp、cereal のみ）。アセット基盤モジュールに置かれている必然性が無いため、
+名前空間をリネームするのではなく **4 ファイルを `Tsukino.Physics` へ移した**。
+
+- `Tsukino/Engine/Physics/SpringBone/*` → `Tsukino/Physics/SpringBone/*`
+- 名前空間 `Tsukino::Physics` / `Tsukino::Physics::SpringBonePhysics` は変更なし。
+  これでパスと名前空間が一致する
+- `Tsukino.Physics` は `Tsukino.GraphicsCommon` と cereal への依存が増えた（どちらも下層）
+- `Tsukino.Engine` から物理コードが無くなり、アセット基盤モジュールとして純化した
+
+include を書き換えた側は `SpringBoneComponent.hpp` / `NodeWorldPoseComponent.hpp`（BuiltIn）、
+`AnimationSystem.cpp`（EngineIntegration）、ゲーム側の `CombatSystem.cpp` / `ProjectileSystem.cpp`
+（`QuatFromToRotation` を使っている）の 5 ファイル。
 
 ### C-10. Log が OutputDebugString のみ
 

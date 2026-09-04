@@ -476,25 +476,32 @@ project "Tsukino.Physics"
     cppdialect "C++20"
     --forceincludes { "pch.h" }               -- 強制インクルード
 
-    --pchheader "pch.h"
-    --pchsource "Tsukino.Physics/pch.cpp"
+    filter "action:vs*"
+        buildoptions { "/permissive-" }
+    filter {}
 
     targetdir ("bin/%{cfg.buildcfg}")
     objdir ("bin-int/%{cfg.buildcfg}")
 
     files {
         "Tsukino.Physics/src/**.cpp",
+        "Tsukino.Physics/src/**.hpp",
         "Tsukino.Physics/include/**.hpp",
-        "Tsukino.Physics/pch.cpp"
     }
 
     includedirs {
         "Tsukino.Physics/include",
         "Tsukino.Core/include",
+        "Tsukino.GraphicsCommon/include",
+        "External/hlslpp/include",
+        "External/cereal/include",
+        "External/JoltPhysics",
     }
 
     links {
-        "Tsukino.Core"
+        "Tsukino.Core",
+        "Tsukino.GraphicsCommon",
+        "JoltPhysics",
     }
 
 ----------------------------------------
@@ -594,10 +601,10 @@ project "Tsukino.BuiltIn"
         "Tsukino.Renderer/include",
         "Tsukino.GraphicsCommon/include",
         "Tsukino.Core/include",
+        "Tsukino.Physics/include",
         "External/cereal/include",
         "External/hlslpp/include",
         "External/entt/single_include",
-        "External/JoltPhysics",
     }
 
     links {
@@ -606,7 +613,6 @@ project "Tsukino.BuiltIn"
         "Tsukino.Renderer",
         "Tsukino.GraphicsCommon",
         "Tsukino.Core",
-        "JoltPhysics",
         "EffekseerRendererDX11",
         "EffekseerRendererCommon",
         "Effekseer",
@@ -649,11 +655,10 @@ project "Tsukino.EngineIntegration"
         "Tsukino.Renderer/include",
         "Tsukino.Core/include",
         "Tsukino.BuiltIn/include",
-        --"Tsukino.Physics/include",
+        "Tsukino.Physics/include",
         "External/cereal/include",
         "External/hlslpp/include",
         "External/entt/single_include",
-        "External/JoltPhysics",
         "External/Effekseer/Dev/Cpp",
         "External/Effekseer/Dev/Cpp/Effekseer",
         "External/Effekseer/Dev/Cpp/EffekseerRendererDX11",
@@ -669,8 +674,7 @@ project "Tsukino.EngineIntegration"
         "Tsukino.GraphicsCommon",
         "Tsukino.BuiltIn",
         "Tsukino.Core",
-        "JoltPhysics",
-        --"Tsukino.Physics",
+        "Tsukino.Physics",
         "EffekseerRendererDX11",
         "EffekseerRendererCommon",
         "Effekseer",
@@ -750,12 +754,11 @@ project "Tsukino.Sandbox"
         "Tsukino.Renderer/include",
         "Tsukino.BuiltIn/include",
         "Tsukino.EngineIntegration/include",
-        --"Tsukino.Physics/include",
+        "Tsukino.Physics/include",
         "Tsukino.Core/include",
         "External/cereal/include",
         "External/hlslpp/include",
         "External/entt/single_include",
-        "External/JoltPhysics",
         "External/Effekseer/Dev/Cpp",
         "External/Effekseer/Dev/Cpp/Effekseer",
         "External/Effekseer/Dev/Cpp/EffekseerRendererDX11",
@@ -770,8 +773,7 @@ project "Tsukino.Sandbox"
         "Tsukino.Audio",
         "Tsukino.BuiltIn",
         "Tsukino.EngineIntegration",
-        "JoltPhysics",
-        --"Tsukino.Physics",
+        "Tsukino.Physics",
         "Tsukino.Core",
         "EffekseerRendererDX11",
         "EffekseerRendererCommon",

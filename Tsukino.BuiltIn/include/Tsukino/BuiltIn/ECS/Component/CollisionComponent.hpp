@@ -6,8 +6,7 @@
 #pragma once
 #include <functional>
 #include <entt/entt.hpp>
-#include <Jolt/Jolt.h>
-#include <Jolt/Physics/Body/BodyID.h>
+#include <Tsukino/Physics/BodyHandle.hpp>
 #include <DirectXMath.h>
 
 #include <hlsl++.h>
@@ -26,13 +25,13 @@ namespace Tsukino::BuiltIn::ECS {
 
     //-------------------------------------------------------------------------
     // @struct CollisionComponent
-    // @brief  Jolt PhysicsのBody実体とECSエンティティを紐付けるためのデータ
+    // @brief  物理ワールドのBody実体とECSエンティティを紐付けるためのデータ
     //-------------------------------------------------------------------------
     struct CollisionComponent {
         //---------------------------------------------------------------------
-        // Joltから発行された一意の管理ID（JPH::BodyID）
+        // 物理ワールドが発行した一意の管理ID
         //---------------------------------------------------------------------
-        JPH::BodyID bodyID;
+        Tsukino::Physics::BodyHandle bodyID;
 
         //---------------------------------------------------------------------
         // コリジョンの形状設定
@@ -56,7 +55,7 @@ namespace Tsukino::BuiltIn::ECS {
         //---------------------------------------------------------------------
         // 高さサンプル配列（heightfieldSize * heightfieldSize 個、行優先で格納）
         std::vector<float> heightfieldSamples;
-        // 1辺あたりのサンプル数（正方形グリッド。Joltの制約上、ブロックサイズの倍数である必要あり）
+        // 1辺あたりのサンプル数（正方形グリッド。物理側の制約上、ブロックサイズの倍数である必要あり）
         uint32_t heightfieldSize = 0;
         // ローカル原点からのオフセット（ワールドではなくシェイプローカル）
         hlslpp::float3 heightfieldOffset = {0.0f, 0.0f, 0.0f};
@@ -71,7 +70,7 @@ namespace Tsukino::BuiltIn::ECS {
         bool isSensor = false;
 
         //---------------------------------------------------------------------
-        // Jolt側でBodyの実体が生成・登録されているかどうかのフラグ
+        // 物理ワールド側でBodyの実体が生成・登録されているかどうかのフラグ
         //---------------------------------------------------------------------
         bool isInitialized = false;
 
@@ -84,7 +83,7 @@ namespace Tsukino::BuiltIn::ECS {
         // @brief  保持しているBodyIDが有効なものかどうかを返す
         // @return 有効ならtrue
         //---------------------------------------------------------------------
-        bool IsValid() const { return !bodyID.IsInvalid(); }
+        bool IsValid() const { return bodyID.IsValid(); }
     };
 
 }    // namespace Tsukino::BuiltIn::ECS
