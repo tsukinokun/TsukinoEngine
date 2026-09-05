@@ -456,8 +456,31 @@ namespace Tsukino::Asset {
                 return "";
 
             const aiTexture* embedded = scene->GetEmbeddedTexture(texPath.C_Str());
-            if(!embedded)
-                return texPath.C_Str();
+            if(!embedded) {
+                //--------------------------------------------------------------
+                // 埋め込みでないテクスチャは、FBXに書かれたパスをそのまま使う。
+                //
+                // ただしFBXには作成したマシンの絶対パス
+                // （例: C:/Users/xxx/Downloads/Yellow.png）がそのまま
+                // 残っていることが多く、別のマシンでは必ず解決に失敗する。
+                // DCCツールから書き出したモデルを取り込むと普通に起きるため、
+                // 解決できないパスはファイル名だけを取り出し、
+                // モデルと同じディレクトリから探し直す。
+                //--------------------------------------------------------------
+                const Tsukino::Core::Path rawPath(texPath.C_Str());
+                if(rawPath.string().empty() || Tsukino::IO::FileSystem::Exists(rawPath))
+                    return rawPath.string();
+
+                const Tsukino::Core::Path fallback = inputPath.parent_path() / Tsukino::Core::Path(rawPath.filename());
+                if(Tsukino::IO::FileSystem::Exists(fallback)) {
+                    Tsukino::Core::Log::Info("ModelImporter: texture path in the model does not exist, using the one next to the model: "
+                                             + rawPath.string() + " -> " + fallback.string());
+                    return fallback.string();
+                }
+
+                // どちらにも無い場合は元のパスを返す（読み込み側でエラーログが出る）
+                return rawPath.string();
+            }
 
             for(u32 t = 0; t < scene->mNumTextures; ++t) {
                 if(scene->mTextures[t] == embedded) {
