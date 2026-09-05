@@ -15,6 +15,7 @@
 </p>
 
 <p align="center">
+  <a href="https://github.com/tsukinokun/TsukinoEngine/actions/workflows/build.yml"><img src="https://github.com/tsukinokun/TsukinoEngine/actions/workflows/build.yml/badge.svg" alt="Build"></a>
   <img src="https://img.shields.io/github/last-commit/tsukinokun/TsukinoEngine" alt="Last commit">
   <img src="https://img.shields.io/github/repo-size/tsukinokun/TsukinoEngine" alt="Repo size">
   <img src="https://img.shields.io/github/languages/top/tsukinokun/TsukinoEngine" alt="Top language">
