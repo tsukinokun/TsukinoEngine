@@ -17,6 +17,39 @@
 #include <chrono>
 #include <cstdlib>
 #include <memory>
+#include <string>
+
+namespace {
+    //--------------------------------------------------------------
+    //! @brief  コマンドライン引数から起動するサンプルシーンを選ぶ
+    //! @param  commandLine [in] WinMain が受け取るコマンドライン文字列
+    //! @return 生成したシーン
+    //! @note   以前は ChangeScene の呼び出しをコメントアウトで切り替えていたが、
+    //!         サンプルを見るたびに再ビルドが要るうえ、どれが既定なのかも
+    //!         ソースを読まないと分からなかったため引数で選べるようにした。
+    //--------------------------------------------------------------
+    std::unique_ptr<Tsukino::EngineIntegration::GameSceneBase> CreateSceneFromCommandLine(const char* commandLine) {
+        const std::string argument = (commandLine != nullptr) ? commandLine : "";
+
+        if(argument.find("blocks") != std::string::npos) {
+            return std::make_unique<Tsukino::Sandbox::BlockBreakingSampleScene>();
+        }
+        if(argument.find("water") != std::string::npos) {
+            return std::make_unique<Tsukino::Sandbox::WaterGameSampleScene>();
+        }
+        // ディファードレンダリングの多光源ショーケース（F1でライト数を 0/1/16/64 に切り替え）
+        if(argument.find("lights") != std::string::npos) {
+            return std::make_unique<Tsukino::Sandbox::DeferredLightSampleScene>();
+        }
+        // エンジンAPIの動作確認シーン。PrefabFactory のテストを実行してログへ結果を出す
+        if(argument.find("api") != std::string::npos) {
+            return std::make_unique<Tsukino::Sandbox::SampleScene1>();
+        }
+
+        // 既定は「起動してすぐ遊べる」ものにする
+        return std::make_unique<Tsukino::Sandbox::JumpGameSampleScene>();
+    }
+}    // namespace
 
 //--------------------------------------------------------------
 // アプリケーションのエントリポイント
@@ -26,7 +59,7 @@
 //! @param nCmdShow ウィンドウ表示状態（例：SW_SHOW）
 //! @return 終了コード（通常は0）
 //--------------------------------------------------------------
-int WINAPI WinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ LPSTR, _In_ int) {
+int WINAPI WinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ LPSTR lpCmdLine, _In_ int) {
     // DPIスケーリングの無効化
     SetProcessDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2);
     //--------------------------------------------------------------
@@ -51,13 +84,14 @@ int WINAPI WinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ LPSTR, _In_ int) {
 
     //--------------------------------------------------------------
     // 最初のシーンを登録・開始
+    //
+    //   Tsukino.Sandbox.exe            ジャンプゲーム（既定）
+    //   Tsukino.Sandbox.exe blocks     ブロック崩し
+    //   Tsukino.Sandbox.exe water      水面のミニゲーム
+    //   Tsukino.Sandbox.exe lights     多光源ショーケース
+    //   Tsukino.Sandbox.exe api        エンジンAPIの動作確認シーン
     //--------------------------------------------------------------
-    engineAPI.ChangeScene(std::make_unique<Tsukino::Sandbox::SampleScene1>());
-    //engineAPI.ChangeScene(std::make_unique<Tsukino::Sandbox::JumpGameSampleScene>());
-    //engineAPI.ChangeScene(std::make_unique<Tsukino::Sandbox::BlockBreakingSampleScene>());
-    //engineAPI.ChangeScene(std::make_unique<Tsukino::Sandbox::WaterGameSampleScene>());
-    // ディファードレンダリングの多光源ショーケース（F1でライト数を 0/1/16/64 に切り替え）
-    //engineAPI.ChangeScene(std::make_unique<Tsukino::Sandbox::DeferredLightSampleScene>());
+    engineAPI.ChangeScene(CreateSceneFromCommandLine(lpCmdLine));
 
     //--------------------------------------------------------------
     // メインループ
