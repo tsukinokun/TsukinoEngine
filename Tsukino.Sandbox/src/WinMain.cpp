@@ -29,7 +29,14 @@
 int WINAPI WinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ LPSTR, _In_ int) {
     // DPIスケーリングの無効化
     SetProcessDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2);
-    // ログの初期化
+    //--------------------------------------------------------------
+    // ログをファイルへ出す。
+    // これを呼ばないとLogはOutputDebugStringAにしか出ず、デバッガの外で
+    // 実行したときは「Prefab file not found」のような致命的な警告も、
+    // 落ちた位置も一切見えない。最初に動かすサンプルなので既定で有効にする
+    //--------------------------------------------------------------
+    Tsukino::Core::Log::SetLogFile("Logs/Tsukino.log");
+
     Tsukino::EngineIntegration::EngineIntegration engineIntegration;
     // 初期化
     if(!engineIntegration.Initialize(1700, 1000, "TsukinoEngine",Tsukino::Core::Window::WindowStyle::ClickThrough)) {

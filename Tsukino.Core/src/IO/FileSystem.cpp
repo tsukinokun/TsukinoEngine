@@ -63,12 +63,28 @@ namespace Tsukino::IO {
     //! @brief  ディレクトリを作成する
     //---------------------------------------------------------
     bool FileSystem::CreateDirectories(const Tsukino::Core::Path& path) noexcept {
-        // path.string() を使用
-        try {
-            return std::filesystem::create_directories(path.string());
-        } catch(...) {
-            return false;
+        //-----------------------------------------------------------
+        // std::filesystem::create_directories は「新しく作った」ときだけ
+        // true を返し、既にディレクトリがある場合は false を返す。
+        // それをそのまま返すと、ヘッダに書いてある「すでに存在する場合も true」
+        // という契約に反する。
+        //
+        // 呼び出し側が戻り値を捨てていた間は無害だったが、検査するように
+        // した途端、2回目以降の起動でインポートが全て失敗するようになった。
+        // 「作らなかった」と「作れなかった」を error_code で区別すること
+        //-----------------------------------------------------------
+        std::error_code ec;
+
+        if(std::filesystem::create_directories(path.string(), ec)) {
+            return true;    // 新規に作成できた
         }
+
+        if(ec) {
+            return false;    // 実際に失敗した
+        }
+
+        // 何も作らなかった場合。既にディレクトリとして在るなら成功とみなす
+        return std::filesystem::is_directory(path.string(), ec);
     }
 
     //---------------------------------------------------------
