@@ -50,3 +50,6 @@ xml/
 
 # 実行時ログ
 Logs/
+
+# 公開ヘッダ自己完結チェックの生成物
+Tools/HeaderCheck/generated/

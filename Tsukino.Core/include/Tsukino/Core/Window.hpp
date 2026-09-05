@@ -4,7 +4,7 @@
 //! @author 山﨑愛
 //--------------------------------------------------------------
 #pragma once
-#include <windows.h>
+#include <Tsukino/Core/WindowsLean.hpp>
 #include <string>
 #include <functional>
 #include <vector>

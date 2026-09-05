@@ -4,9 +4,7 @@
 //! @author 山﨑愛
 //------------------------------------------------------------
 #pragma once
-#ifndef NOMINMAX
-#define NOMINMAX
-#endif
+#include <Tsukino/Core/WindowsLean.hpp>
 
 #include <wrl/client.h>
 #include <d3d11.h>
@@ -20,10 +18,12 @@
 #include <unordered_map>
 #include <vector>
 
-using Microsoft::WRL::ComPtr;
 
 // 名前空間 : Tsukino::Renderer
 namespace Tsukino::Renderer {
+    // ComPtr の using 宣言。公開ヘッダなのでグローバルではなく名前空間の内側に置く
+    using Microsoft::WRL::ComPtr;
+
     //------------------------------------------------------------
     //! @class  DynamicFontAtlas
     //! @brief  グリフを実行時にオンデマンドでラスタライズし、GPUテクスチャアトラスへキャッシュするクラス

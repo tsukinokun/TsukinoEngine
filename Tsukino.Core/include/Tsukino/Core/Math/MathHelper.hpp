@@ -4,6 +4,7 @@
 //! @author     山﨑愛
 //--------------------------------------------------------------
 #pragma once
+#include <hlsl++.h>
 // 名前空間 : Tsukino::Math
 namespace Tsukino::Core::Math {
     // --- 定数 ---

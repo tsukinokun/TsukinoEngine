@@ -72,6 +72,20 @@ jobs:
         shell: cmd
         run: build.bat ${{ matrix.configuration }}
 
+      # 公開ヘッダの自己完結チェックが実際に走ったことを確かめる。
+      # ビルド自体は build.bat がソリューション全体を回すので通っているが、
+      # プロジェクトごと外れた場合は「何も検査していないのに緑」になってしまう
+      - name: Verify public headers were compiled standalone
+        shell: pwsh
+        run: |
+          $stubs = @(Get-ChildItem -Path 'Tools/HeaderCheck/generated' -Filter '*.cpp' -ErrorAction SilentlyContinue)
+          if ($stubs.Count -eq 0) {
+            Write-Host "Tsukino.HeaderCheck generated no translation units."
+            Write-Host "The public headers were not checked for self-containment."
+            exit 1
+          }
+          Write-Host "$($stubs.Count) public headers compiled on their own, without a PCH."
+
       # Release の postbuild でしか実行されないコピーを検査する。
       # 増分ビルドでは postbuild が走らないため手元では見落としやすい
       - name: Verify redistributable payload

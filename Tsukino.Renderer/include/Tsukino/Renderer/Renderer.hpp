@@ -4,9 +4,7 @@
 //! @author 山﨑愛
 //------------------------------------------------------------
 #pragma once
-#ifndef NOMINMAX
-#define NOMINMAX
-#endif
+#include <Tsukino/Core/WindowsLean.hpp>
 
 #include <Tsukino/Renderer/DX11/GraphicsContext.hpp>
 #include <Tsukino/Renderer/DX11/MeshBuffer.hpp>
@@ -32,7 +30,6 @@
 #include <unordered_map>
 #include <vector>
 
-using Microsoft::WRL::ComPtr;    // ComPtr を使用するための using 宣言
 
 namespace Tsukino::Asset {
     class TextureAsset;    // 前方宣言
@@ -40,6 +37,9 @@ namespace Tsukino::Asset {
 
 // 名前空間 : Tsukino::Renderer
 namespace Tsukino::Renderer {
+    // ComPtr の using 宣言。公開ヘッダなのでグローバルではなく名前空間の内側に置く
+    using Microsoft::WRL::ComPtr;
+
     struct CBufferScene;    // 前方宣言
     class IPostWorldPass;   // 前方宣言（Worldパスの後に差し込む描画。実体は上位層が持つ）
 

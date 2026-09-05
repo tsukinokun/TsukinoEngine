@@ -729,3 +729,68 @@ project "Tsukino.Sandbox"
     tsukino_link()
     includedirs { "Tsukino.Sandbox/include" }
 end
+
+----------------------------------------
+-- 公開ヘッダの自己完結チェック（単体ビルド時のみ）
+--
+-- エンジン本体は forceincludes "pch.h" でビルドしているため、公開ヘッダが
+-- <string> や <algorithm> を自前で include していなくても通ってしまう。
+-- 一方 tsukino_link() は取り込み側にPCHを強制しないので、ゲーム側が
+-- 独自のpchを持たない構成にした途端にコンパイルが壊れる。
+--
+-- そこで「1ヘッダを1つだけincludeする翻訳単位」を全公開ヘッダぶん生成し、
+-- PCH無し・/permissive- でコンパイルする。生成物はgitignore対象。
+----------------------------------------
+if ROOT_IS_SAME_AS_ROOT then
+
+local HEADERCHECK_DIR = path.join(ROOT_ENGINE_ROOT, "Tools/HeaderCheck/generated")
+local headerCheckStubs = {}
+
+os.mkdir(HEADERCHECK_DIR)
+
+-- 既存の生成物を消してから作り直す（ヘッダを削除したときに取り残さない）
+for _, stale in ipairs(os.matchfiles(HEADERCHECK_DIR .. "/*.cpp")) do
+    os.remove(stale)
+end
+
+for _, moduleName in ipairs({
+    "Tsukino.Core", "Tsukino.GraphicsCommon", "Tsukino.Engine", "Tsukino.Renderer",
+    "Tsukino.Physics", "Tsukino.Audio", "Tsukino.BuiltIn", "Tsukino.EngineIntegration",
+}) do
+    local includeRoot = path.join(ROOT_ENGINE_ROOT, moduleName, "include")
+    for _, header in ipairs(os.matchfiles(includeRoot .. "/**.hpp")) do
+        -- include で書くときのパス（例: Tsukino/Core/Path.hpp）
+        local relative = path.getrelative(includeRoot, header)
+        local stubName = relative:gsub("[/%.]", "_") .. ".cpp"
+        local stubPath = path.join(HEADERCHECK_DIR, stubName)
+
+        io.writefile(stubPath, table.concat({
+            "// 自動生成。premake5 の実行のたびに作り直される（手で編集しない）",
+            "// このヘッダ1本だけをincludeし、単体でコンパイルが通ることを確認する。",
+            "#include <" .. relative .. ">",
+            "",
+        }, "\n"))
+
+        table.insert(headerCheckStubs, stubPath)
+    end
+end
+
+project "Tsukino.HeaderCheck"
+    location ".build/Tsukino.HeaderCheck"
+    kind "StaticLib"
+    language "C++"
+    cppdialect "C++20"
+
+    -- PCHを付けないことがこのプロジェクトの目的そのもの
+    filter "action:vs*"
+        buildoptions { "/permissive-" }
+    filter {}
+
+    targetdir ("bin/%{cfg.buildcfg}")
+    objdir ("bin-int/%{cfg.buildcfg}")
+
+    files(headerCheckStubs)
+
+    tsukino_link()
+
+end

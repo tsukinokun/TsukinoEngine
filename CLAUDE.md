@@ -9,7 +9,10 @@
 
 `External/` 配下（Effekseer / JoltPhysics / entt / cereal / hlslpp / DirectXTex）は
 **読まない・grep しない**。19,000ファイル以上あり、コンテキストを食い潰す。
-`.ignore` と `.claude/settings.json` で機械的にも塞いであるが、意図として覚えておくこと。
+`.ignore` で機械的にも塞いであるが、意図として覚えておくこと。
+
+`Tools/HeaderCheck/generated/` も読まない。premake が公開ヘッダ1本につき1つ
+生成する、include 1行だけの検証用ファイル（C-14）で、読む価値のある中身は無い。
 
 エンジンの API を知りたいときは、ヘッダを片端から読むのではなく次を見る:
 
@@ -57,6 +60,7 @@
 | `Tsukino.EngineIntegration` | アプリ向け層。EngineIntegration / EngineContext / EngineAPI / GameSceneBase と組み込みシステム群 |
 | `Tsukino.Audio` | AudioManager |
 | `Tsukino.Sandbox` | エンジン単体ビルド時のみのサンプル。ゲーム側から include されたときは自動的にスキップされる |
+| `Tsukino.HeaderCheck` | 公開ヘッダを1本ずつ PCH 無しでコンパイルする検証専用。単体ビルド時のみ。中身は自動生成 |
 
 注意: 組み込み**システム**は `Tsukino.EngineIntegration/.../ECS/System/` に置かれているが、
 名前空間は `Tsukino::BuiltIn::ECS`（パスと名前空間が一致していない）。

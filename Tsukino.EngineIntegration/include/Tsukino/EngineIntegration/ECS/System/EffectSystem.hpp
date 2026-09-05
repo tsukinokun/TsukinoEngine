@@ -4,6 +4,8 @@
 //! @author 山﨑愛
 //-------------------------------------------------------------
 #pragma once
+// windows.h の min/max マクロを避けるため、DX11 / Effekseer より先に通す
+#include <Tsukino/Core/WindowsLean.hpp>
 #include <Tsukino/Core/ECS/System/ISystem.hpp>
 #include <Tsukino/Core/ECS/Registry/Registry.hpp>
 #include <Tsukino/Core/ECS/Entity/Entity.hpp>

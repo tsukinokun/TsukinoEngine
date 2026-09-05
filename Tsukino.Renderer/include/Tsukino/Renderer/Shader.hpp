@@ -6,11 +6,15 @@
 //! @author  山﨑愛
 //------------------------------------------------------------
 #pragma once
+// windows.h の min/max マクロを避けるため、DX11 / Effekseer より先に通す
+#include <Tsukino/Core/WindowsLean.hpp>
 #include <wrl/client.h>
 #include <d3d11.h>
-using Microsoft::WRL::ComPtr;    // ComPtr を使用するための using 宣言
 // 名前空間 : Tsukino::Renderer
 namespace Tsukino::Renderer {
+    // ComPtr の using 宣言。公開ヘッダなのでグローバルではなく名前空間の内側に置く
+    using Microsoft::WRL::ComPtr;
+
     //------------------------------------------------------------
     //! @class Shader
     //! @brief 1つの頂点シェーダ + ピクセルシェーダ + 入力レイアウトを表す
