@@ -85,11 +85,11 @@ namespace Tsukino::Sandbox {
         // アセットのロード
         //--------------------------------------------------------------
         Tsukino::Asset::AssetHandle blockHandle =
-            context->assetManager->Load(Tsukino::Core::Path("Tsukino.Sandbox/Assets/ActionGameSample/Models/Block.fbx"));
-        Tsukino::Asset::AssetHandle zombieHandle =
-            context->assetManager->Load(Tsukino::Core::Path("Tsukino.Sandbox/Assets/ActionGameSample/Models/BigZombie.fbx"));
-        Tsukino::Asset::AssetHandle swordHandle =
-            context->assetManager->Load(Tsukino::Core::Path("Tsukino.Sandbox/Assets/ActionGameSample/Models/greatsword.fbx"));
+            context->assetManager->Load(Tsukino::Core::Path("Tsukino.Sandbox/Assets/Models/Block.fbx"));
+        Tsukino::Asset::AssetHandle characterHandle =
+            context->assetManager->Load(Tsukino::Core::Path("Tsukino.Sandbox/Assets/Models/CharaTest.fbx"));
+        Tsukino::Asset::AssetHandle centerPieceHandle =
+            context->assetManager->Load(Tsukino::Core::Path("Tsukino.Sandbox/Assets/Models/Ball.fbx"));
 
         Tsukino::ECS::Registry& registry = m_scene.GetRegistry();
 
@@ -112,14 +112,14 @@ namespace Tsukino::Sandbox {
         }
 
         //--------------------------------------------------------------
-        // ゾンビを円周上に数体（法線マップ付きなので陰影の差が出やすい）
+        // キャラクターを円周上に数体（法線マップ付きなので陰影の差が出やすい）
         //--------------------------------------------------------------
         {
-            constexpr int   kZombieCount = 5;
+            constexpr int   kCharacterCount = 5;
             constexpr float kRingRadius  = 170.0f;
 
-            for(int i = 0; i < kZombieCount; ++i) {
-                float angle = 2.0f * kPi * static_cast<float>(i) / static_cast<float>(kZombieCount);
+            for(int i = 0; i < kCharacterCount; ++i) {
+                float angle = 2.0f * kPi * static_cast<float>(i) / static_cast<float>(kCharacterCount);
 
                 Tsukino::ECS::Entity                       e         = m_scene.CreateEntity();
                 Tsukino::BuiltIn::ECS::TransformComponent& transform = registry.AddComponent<Tsukino::BuiltIn::ECS::TransformComponent>(e);
@@ -131,13 +131,13 @@ namespace Tsukino::Sandbox {
                 transform.parent   = entt::null;
 
                 Tsukino::BuiltIn::ECS::ModelComponent& model = registry.AddComponent<Tsukino::BuiltIn::ECS::ModelComponent>(e);
-                model.modelHandle                            = zombieHandle;
+                model.modelHandle                            = characterHandle;
                 model.visible                                = true;
             }
         }
 
         //--------------------------------------------------------------
-        // 中央に大剣を1本立てる（金属質でスペキュラの differences が見やすい）
+        // 中央に球を1つ置く（曲面なので多光源のスペキュラの差が一番見やすい）
         //--------------------------------------------------------------
         {
             Tsukino::ECS::Entity                       e         = m_scene.CreateEntity();
@@ -149,7 +149,7 @@ namespace Tsukino::Sandbox {
             transform.parent                                     = entt::null;
 
             Tsukino::BuiltIn::ECS::ModelComponent& model = registry.AddComponent<Tsukino::BuiltIn::ECS::ModelComponent>(e);
-            model.modelHandle                            = swordHandle;
+            model.modelHandle                            = centerPieceHandle;
             model.visible                                = true;
         }
 

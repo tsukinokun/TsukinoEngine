@@ -273,7 +273,7 @@ namespace Tsukino::Sandbox {
 
                 // --- ModelComponent ---
                 auto& model       = registry.AddComponent<Tsukino::BuiltIn::ECS::ModelComponent>(wallEntity);
-                model.modelHandle = context->assetManager->Load(Tsukino::Core::Path("Tsukino.Sandbox/Assets/Models/Wall.fbx"));
+                model.modelHandle = context->assetManager->Load(Tsukino::Core::Path("Tsukino.Sandbox/Assets/Models/wall.fbx"));
                 model.visible     = true;
 
                 // --- CollisionComponent ---
