@@ -11,7 +11,10 @@ local ROOT_IS_SAME_AS_ROOT = (path.getabsolute(ROOT_ENGINE_ROOT) == path.getabso
 -- ビルドには一切影響しない。ここで登録しておくことで、ゲーム側リポジトリの
 -- ルートから include されたときも同じアクションが使えるようになる。
 ----------------------------------------
-_TSUKINO_ENGINE_ROOT = ROOT_ENGINE_ROOT
+-- 取り込み側と共用するヘルパー（_TSUKINO_ENGINE_ROOT もここで設定される）。
+-- Sandbox もゲーム側の実行ファイルもこの同じ関数を通す。定義を1箇所に
+-- 置くことで、include/link/配布物が2箇所に分かれて食い違うのを防ぐ
+dofile(path.join(ROOT_ENGINE_ROOT, "Tools/premake/tsukino.lua"))
 dofile(path.join(ROOT_ENGINE_ROOT, "Tools/premake/gen_manifest.lua"))
 dofile(path.join(ROOT_ENGINE_ROOT, "Tools/premake/gen_api_digest.lua"))
 
@@ -25,34 +28,10 @@ workspace "TsukinoEngine"                   -- ソリューション名
 
     startproject "Tsukino.Sandbox"          -- スタートアッププロジェクト
     location ".build"                       -- ビルドファイルの出力先
-    multiprocessorcompile "On"              -- マルチプロセッサコンパイルを有効化
-    exceptionhandling "On"                  -- 例外処理を有効化
 
-    filter "configurations:*"
-        defines { "JPH_DEBUG_RENDERER" } -- 値は1でなくても定義されていることが重要
-    filter {}
-
-    filter "configurations:Debug"
-        optimize "Off"
-        symbols "On"
-
-    filter "action:vs*"
-        buildoptions { "/utf-8" }
-    filter {}
-
-    filter "configurations:Release"
-        optimize "Full"
-        symbols "On"
-        -- NDEBUG は premake が自動では付けないため明示的に定義する。
-        -- これが無いと assert() が Release でも生き続け、EnTT の ENTT_ASSERT が
-        -- 全コンポーネントアクセスに乗ったまま製品ビルドが作られてしまう。
-        defines { "NDEBUG" }
-
-    filter {}
-
-    filter "configurations:*"
-        linkoptions { "/IGNORE:4006" }
-    filter {}
+    -- アーキテクチャ・構成・警告まわりの共通設定。
+    -- 取り込み側のworkspaceも同じ関数を呼ぶ（Tools/premake/tsukino.lua）
+    tsukino_workspace_defaults()
 end
 
 ----------------------------------------
@@ -712,10 +691,9 @@ project "Tsukino.Sandbox"
     local SANDBOX_ROOT     = path.getdirectory(_SCRIPT)  -- このプロジェクトが実際に置かれているディレクトリ
     local IS_SAME_AS_ROOT  = (path.getabsolute(SANDBOX_ROOT) == path.getabsolute(_MAIN_SCRIPT_DIR))
 
-    -- デバッグ時：workspaceルート直下にある（単体ビルド）ならコピーせず直接参照
-    filter "configurations:Debug"
-        debugdir "%{wks.location}/.."
-    filter {}
+    -- 実行時の基準ディレクトリと、エンジンが持ち込むRelease配布物
+    -- （組み込みAssets / Tools / ライセンス条文）はヘルパーが設定する
+    tsukino_release_payload()
 
     if not IS_SAME_AS_ROOT then
         -- サブモジュール等でこのプロジェクトのルート≠workspaceルートの場合は、Debugでも
@@ -727,18 +705,10 @@ project "Tsukino.Sandbox"
         filter {}
     end
 
-    -- リリース（配布）時：exeの場所を参照し、自身のAssetsをそこへコピーする
+    -- リリース（配布）時：Sandbox自身のAssetsをexeの隣へ置く
     filter "configurations:Release"
-        debugdir "%{cfg.targetdir}"
         postbuildcommands {
             "{COPYDIR} " .. SANDBOX_ROOT .. "/Tsukino.Sandbox/Assets %{cfg.targetdir}/Tsukino.Sandbox/Assets",
-            -- ライセンス条文をexeの隣へ置く。
-            -- cerealやhlslppはヘッダオンリーでexeにコードが取り込まれるため、
-            -- exeを配った時点でMIT/BSD-3のバイナリ再配布に当たる。どちらも
-            -- 著作権表示の同梱を求めており、リポジトリに置いてあるだけでは
-            -- この配布経路では条件を満たさない
-            "{COPYFILE} " .. SANDBOX_ROOT .. "/LICENSE %{cfg.targetdir}/LICENSE",
-            "{COPYFILE} " .. SANDBOX_ROOT .. "/THIRD_PARTY_NOTICES.md %{cfg.targetdir}/THIRD_PARTY_NOTICES.md",
         }
     filter {}
 
@@ -754,45 +724,8 @@ project "Tsukino.Sandbox"
         buildaction "None"
     filter {}
 
-    includedirs {
-        "Tsukino.Sandbox/include",
-        "Tsukino.Audio/include",
-        "Tsukino.GraphicsCommon/include",
-        "Tsukino.Engine/include",
-        "Tsukino.Renderer/include",
-        "Tsukino.BuiltIn/include",
-        "Tsukino.EngineIntegration/include",
-        "Tsukino.Physics/include",
-        "Tsukino.Core/include",
-        "External/cereal/include",
-        "External/hlslpp/include",
-        "External/entt/single_include",
-        "External/Effekseer/Dev/Cpp",
-        "External/Effekseer/Dev/Cpp/Effekseer",
-        "External/Effekseer/Dev/Cpp/EffekseerRendererDX11",
-        "External/Effekseer/Dev/Cpp/EffekseerRendererCommon",
-        "External/Effekseer/Dev/Cpp/3rdParty",
-    }
-
-    links {
-        "Tsukino.Engine",
-        "Tsukino.Renderer",
-        "Tsukino.GraphicsCommon",
-        "Tsukino.Audio",
-        "Tsukino.BuiltIn",
-        "Tsukino.EngineIntegration",
-        "Tsukino.Physics",
-        "Tsukino.Core",
-        "EffekseerRendererDX11",
-        "EffekseerRendererCommon",
-        "Effekseer",
-        "d3d11",
-        "dxgi",
-        "d3dcompiler",
-        "dwrite",
-    }
-
-    nuget { "directxtk_desktop_win10:2026.4.1.1",
-            "AssimpCpp:5.0.1.6",
-    }
+    -- エンジンのinclude・lib・NuGetをまとめて設定する。
+    -- ゲーム側リポジトリの実行ファイルも同じ関数を呼ぶ
+    tsukino_link()
+    includedirs { "Tsukino.Sandbox/include" }
 end
