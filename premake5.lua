@@ -732,6 +732,13 @@ project "Tsukino.Sandbox"
         debugdir "%{cfg.targetdir}"
         postbuildcommands {
             "{COPYDIR} " .. SANDBOX_ROOT .. "/Tsukino.Sandbox/Assets %{cfg.targetdir}/Tsukino.Sandbox/Assets",
+            -- ライセンス条文をexeの隣へ置く。
+            -- cerealやhlslppはヘッダオンリーでexeにコードが取り込まれるため、
+            -- exeを配った時点でMIT/BSD-3のバイナリ再配布に当たる。どちらも
+            -- 著作権表示の同梱を求めており、リポジトリに置いてあるだけでは
+            -- この配布経路では条件を満たさない
+            "{COPYFILE} " .. SANDBOX_ROOT .. "/LICENSE %{cfg.targetdir}/LICENSE",
+            "{COPYFILE} " .. SANDBOX_ROOT .. "/THIRD_PARTY_NOTICES.md %{cfg.targetdir}/THIRD_PARTY_NOTICES.md",
         }
     filter {}
 
