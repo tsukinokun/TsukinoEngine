@@ -47,6 +47,23 @@ jobs:
         with:
           submodules: recursive
 
+      # 何が入っているランナーなのかをログの先頭に残す。
+      # 初回の失敗（Build #1）はここが見えず、原因の特定に
+      # runner-images の公開ドキュメントを当たる必要があった
+      - name: Show toolchain
+        shell: pwsh
+        run: |
+          $vswhere = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"
+          if (-not (Test-Path $vswhere)) { Write-Host "vswhere not present"; exit 0 }
+          Write-Host "--- all installs ---"
+          & $vswhere -products * -property installationPath
+          Write-Host "--- versions ---"
+          & $vswhere -products * -property installationVersion
+          Write-Host "--- VS2022 only: [17.0,18.0) ---"
+          & $vswhere -version "[17.0,18.0)" -products * -requires Microsoft.Component.MSBuild -property installationPath
+          Write-Host "--- latest ---"
+          & $vswhere -latest -products * -requires Microsoft.Component.MSBuild -property installationPath
+
       # README が案内しているコマンドそのものを実行する。
       # setup-msbuild 等で MSBuild を用意してしまうと、build.bat 自身の
       # 検出が壊れていても緑になり、読者の詰まりを検出できなくなる。
