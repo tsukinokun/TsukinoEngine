@@ -1,0 +1,76 @@
+# ---------------------------------------------------------------------------
+# 白紙の Windows で、README に書いてある手順どおりにビルドできるかを確かめる。
+#
+# 目的は「main がビルドできること」ではなく「初めて clone した人がビルドできること」。
+# 開発機には既に何もかも揃っているので、そこでは以下がどれも再現しない:
+#   - MSBuild が Community 以外の場所にある（ランナーは Enterprise）
+#   - core.longpaths が未設定でサブモジュールの checkout が落ちる
+#   - --recurse-submodules の取りこぼし
+#   - 旧形式 packages.config の NuGet 復元
+# ---------------------------------------------------------------------------
+name: Build
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+# 同じブランチへ続けて push したときは、古い実行を止める（1 実行が長いため）
+concurrency:
+  group: build-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: windows-latest
+    timeout-minutes: 90
+
+    strategy:
+      # Debug だけ落ちたのか両方落ちたのかを 1 回の実行で知りたいので、
+      # 片方が失敗しても、もう片方を打ち切らない
+      fail-fast: false
+      matrix:
+        configuration: [Debug, Release]
+
+    name: ${{ matrix.configuration }}
+
+    steps:
+      # checkout より前に置くこと。サブモジュールの階層が深く、
+      # これが無いと 260 文字の制限に当たって checkout 自体が途中で失敗する
+      - name: Enable long paths
+        run: git config --global core.longpaths true
+
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      # README が案内しているコマンドそのものを実行する。
+      # setup-msbuild 等で MSBuild を用意してしまうと、build.bat 自身の
+      # 検出が壊れていても緑になり、読者の詰まりを検出できなくなる。
+      # premake の生成と NuGet の復元も build.bat の中で走る
+      - name: Build
+        shell: cmd
+        run: build.bat ${{ matrix.configuration }}
+
+      # Release の postbuild でしか実行されないコピーを検査する。
+      # 増分ビルドでは postbuild が走らないため手元では見落としやすい
+      - name: Verify redistributable payload
+        if: matrix.configuration == 'Release'
+        shell: pwsh
+        run: |
+          $missing = @()
+          foreach ($f in 'LICENSE', 'THIRD_PARTY_NOTICES.md', 'Tsukino.Sandbox.exe') {
+            if (-not (Test-Path "bin/Release/$f")) { $missing += $f }
+          }
+          foreach ($d in 'Tools', 'Tsukino.BuiltIn/Assets', 'Tsukino.Sandbox/Assets') {
+            if (-not (Test-Path "bin/Release/$d")) { $missing += "$d/" }
+          }
+          if ($missing.Count -gt 0) {
+            Write-Host "Missing from bin/Release:"
+            $missing | ForEach-Object { Write-Host "  $_" }
+            exit 1
+          }
+          Write-Host "bin/Release carries the licence texts, tools and assets."
