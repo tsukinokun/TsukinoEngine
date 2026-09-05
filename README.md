@@ -44,9 +44,13 @@ TsukinoEngine is a personal game engine project targeting Windows. It combines a
 
 ### Prerequisites
 
-- Windows
-- Visual Studio 2022 (with the "Desktop development with C++" workload)
+- Windows 10 or 11 (x64)
+- Visual Studio 2022 with the "Desktop development with C++" workload. The engine
+  builds as C++20; the vendored DirectXTex and Jolt build as C++17.
 - Git
+- About 2 GB of disk space and a slow first clone — the vendored submodules, and this
+  repository's own sample assets, are large.
+- Doxygen, only if you intend to run `generate-docs.bat`.
 
 ### Setup
 
@@ -79,6 +83,65 @@ open.bat
 This runs `vendor\premake5.exe vs2022` to generate `.build/TsukinoEngine.sln` and opens it automatically. NuGet packages (`AssimpCpp`, `directxtk_desktop_win10`) are restored automatically by Visual Studio on the first build.
 
 Once the solution is open, set **Tsukino.Sandbox** as the startup project and run it.
+It starts a small jump game. The other sample scenes are selected with a command-line
+argument:
+
+```
+Tsukino.Sandbox.exe            a jump game (default)
+Tsukino.Sandbox.exe blocks     block breaking
+Tsukino.Sandbox.exe water      a water-surface minigame
+Tsukino.Sandbox.exe lights     many-light showcase (F1 cycles 0/1/16/64 point lights)
+Tsukino.Sandbox.exe api        exercises the engine API and checks PrefabFactory
+```
+
+To build from the command line instead, use `build.bat` (`build.bat Release` for a
+release build). It prints nothing on success and only the error lines on failure.
+
+### Two things that will otherwise cost you an afternoon
+
+**Call `Log::SetLogFile()` first.** `Tsukino::Core::Log` writes only to
+`OutputDebugStringA` until you do, so running outside a debugger hides everything —
+including fatal warnings like `Prefab file not found` and
+`Unknown component type written in Prefab`, which do not stop execution. Every sample
+starts with:
+
+```cpp
+Tsukino::Core::Log::SetLogFile("Logs/Tsukino.log");
+```
+
+**A Debug build only runs on the machine that generated the project files.** Debug
+resolves engine assets through `TSUKINO_ENGINE_ROOT`, an absolute path baked in by
+Premake, so that the built-in assets and tools do not have to be copied. Release builds
+place everything next to the executable and are self-contained.
+
+### Using the engine from your own game
+
+Add this repository as a submodule and let its Premake helper supply the include, link
+and redistributable settings, rather than copying them:
+
+```lua
+include "External/TsukinoEngine/Tools/premake/tsukino.lua"
+
+workspace "MyGame"
+    startproject "MyGame"
+    location ".build"
+    tsukino_workspace_defaults()
+
+include "External/TsukinoEngine"
+
+project "MyGame"
+    kind "WindowedApp"
+    language "C++"
+    cppdialect "C++20"
+    files { "src/**.cpp" }
+
+    tsukino_link()             -- engine includes, libs and NuGet packages
+    tsukino_release_payload()  -- built-in assets, tools and licence texts
+```
+
+`Tsukino.Sandbox` is skipped automatically when the engine is included this way, so a
+consumer never builds the samples. The engine's public headers are self-contained, so
+your project does not need a precompiled header to match the engine's.
 
 ## API stability
 
@@ -89,10 +152,38 @@ math), the built-in component definitions in `Tsukino.BuiltIn`, the Prefab JSON 
 and `EngineAPI` / `GameSceneBase`. These are what a game is written against, and
 breaking them is what a major version is for.
 
+**Stable in practice, but not yet promised** — `Tsukino.Engine` (AssetManager,
+AssetHandle, AssetRef, Scene, PrefabFactory), `Tsukino.Physics` (PhysicsWorld,
+BodyHandle, SpringBone), `Tsukino.Audio`, `Tsukino.GraphicsCommon`, and the built-in
+systems in `Tsukino.EngineIntegration`. These are not expected to change, but they have
+not had the same scrutiny as the list above, so a 1.x release may still adjust a
+signature here. Anything moved out of this list becomes stable.
+
 **Expected to change within 1.x** — `Tsukino.Renderer`. `Renderer` is currently a
 single class holding the device, shadows, sky, water, tonemapping, the texture cache,
 sprites and debug drawing, and it will be split into separate passes. Anything reaching
 into `Renderer` directly should expect to follow that.
+
+### What the stable list does not cover
+
+Three things are part of the contract whether or not they look like it, and 1.x will
+not change them:
+
+- **EnTT is part of the ECS API.** `Entity` is `entt::entity`, `Registry::View()`
+  returns an `entt::view`, and `Registry::OnConstruct` / `OnDestroy` return EnTT sinks.
+  A game therefore compiles against the EnTT version this engine vendors, and 1.x will
+  not bump EnTT across a breaking release.
+- **`Window` is Win32.** `Tsukino/Core/Window.hpp` pulls in `<windows.h>` (through
+  `Tsukino/Core/WindowsLean.hpp`, which sets `NOMINMAX` and `WIN32_LEAN_AND_MEAN`
+  first), and `MessageCallback` takes `UINT` / `WPARAM` / `LPARAM`. This engine is
+  Windows and DirectX 11 only; the Window API is not going to become portable in 1.x.
+- **Failures are reported by logging and returning a default.** `FileSystem::ReadBinary`
+  returns an empty buffer for a missing file, an empty file and a partial read alike;
+  `AssetManager::Load` returns `AssetHandle::Invalid()` for every failure; a Prefab
+  naming an unknown component logs a warning and instantiates without it. Call
+  `Log::SetLogFile()` at startup or none of it is visible outside a debugger. Replacing
+  this with a real error channel would change signatures everywhere, so it is a 2.0
+  question, not a 1.x one.
 
 ## License
 

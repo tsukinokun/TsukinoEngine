@@ -9,7 +9,7 @@
 - ファイル名はすべてPascal Case
 - 文字コードは UTF8 crlf
 - stdはusingしません。
-- C++23までの記述
+- C++20 までの記述（エンジン各モジュールの cppdialect に合わせる）
 - 簡潔に記述できる場合はなるべくSTLを活用
 - 可読性も重要視します、実行速度が犠牲にならないよう留意します。
 - デフォルト値初期化には = {}; を使わず {}; を使用してください。
@@ -104,28 +104,6 @@ namespace Tsukino::Asset{ ... }
 MessageBoxA(nullptr, "Failed to load shader.", "Error", MB_OK);
 ```
 
-
-# 実装の方針
-
-## Vulkan API の特定の関数の引数に関する厳格なルール
-
-- `vkGetPhysicalDeviceSurfaceFormatsKHR` と `vkGetPhysicalDeviceSurfacePresentModesKHR` を呼び出す際は、必ず4つの引数を渡してください。これらの関数は頻繁に引数の数で間違いが発生しています。
-
-- **`vkGetPhysicalDeviceSurfaceFormatsKHR` の正しい呼び出し方:**
-  - 1番目の引数: `VkPhysicalDevice`
-  - 2番目の引数: `VkSurfaceKHR`
-  - 3番目の引数: `uint32_t*` (カウント用ポインタ)
-  - 4番目の引数: `VkSurfaceFormatKHR*` (データ用ポインタ、または `nullptr`)
-  - **例:** `vkGetPhysicalDeviceSurfaceFormatsKHR(physicalDevice, surface, &formatCount, formats.data());`
-
-- **`vkGetPhysicalDeviceSurfacePresentModesKHR` の正しい呼び出し方:**
-  - 1番目の引数: `VkPhysicalDevice`
-  - 2番目の引数: `VkSurfaceKHR`
-  - 3番目の引数: `uint32_t*` (カウント用ポインタ)
-  - 4番目の引数: `VkPresentModeKHR*` (データ用ポインタ、または `nullptr`)
-  - **例:** `vkGetPhysicalDeviceSurfacePresentModesKHR(physicalDevice, surface, &presentModeCount, presentModes.data());`
-
-- **特に、2番目の引数である `VkSurfaceKHR` を省略しないように、常に注意を払ってください。**
 
 # シェーダーファイル名の規約
 

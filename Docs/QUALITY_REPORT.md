@@ -31,9 +31,10 @@
 |---|---|---|
 | C-6 | 毎フレームのヒープ確保 | 実質解消。残りは対応しない方針（後述） |
 | C-7 | EventBus | 正しさの欠陥は解消。性能は未着手 |
-| C-8 | ビルド品質ゲート | 警告 89 → 59 件。テストと CI は未着手 |
+| C-8 | ビルド品質ゲート | 警告 89 → 59 件。CI とヘッダの自己完結チェックは導入済み。ユニットテストは未着手 |
 | C-10 | Log | ファイル出力は解消。レベルフィルタは未実装 |
-| C-11 | Sandbox のシーン | 5 シーン中 3 つが PrefabFactory へ移行済み |
+| C-11 | Sandbox のシーン | 5 シーン中 3 つが PrefabFactory へ移行済み。壊れていたアセット参照は解消 |
+| C-14 | 公開ヘッダの名前空間汚染とPCH依存 | 解消（v1.0.0 前） |
 
 ### 未着手
 
@@ -393,7 +394,17 @@ Device・SwapChain・シャドウ・スカイ・水面・トーンマップ・�
 > 最大の群は C4834 ではなく C4244（型変換）である。
 
 - Tsukino 各モジュールに `warnings` の指定は無いまま。警告のエラー化もしていない
-- ユニットテスト 0 件、CI 無し
+- ユニットテストは 0 件のまま
+
+**導入済み（2026-09-05）**
+
+- **CI** — `.github/workflows/build.yml` が `windows-latest` で Debug / Release を
+  ビルドする。狙いは「main がビルドできる」ことではなく
+  「白紙の環境から clone して手順どおりにビルドできる」ことの保証なので、
+  `setup-msbuild` で MSBuild を先回りして用意することは**あえてしていない**。
+  用意してしまうと `build.bat` 自身の MSBuild 検出が壊れていても緑になり、
+  検証にならないため
+- **公開ヘッダの自己完結チェック** — `Tsukino.HeaderCheck`（C-14）
 
 **残りの移行手順**
 1. C4244 / C4267 は数が多いので、明示的なキャストか型の見直しで順に潰す
@@ -460,6 +471,84 @@ C-2 で `AssetRef` 経由のアセット参照が完成したため、残り 2 �
 
 ---
 
+### C-14. 公開ヘッダの名前空間汚染とPCH依存 — 解消済み（v1.0.0 前）
+
+**当時の状況**
+
+v1.0.0 で API を凍結すると直せなくなる問題が、公開ヘッダに4種類あった。
+
+1. **グローバル名前空間への別名** — `typedef.hpp` が `i8`〜`u64` を
+   グローバルに定義していた。ほぼ全ての公開ヘッダから推移的に取り込まれるため、
+   取り込み側の全翻訳単位にこの8つの名前が現れ、同名の別名を持つ他ライブラリと
+   衝突しても回避手段が無かった
+2. **`using Microsoft::WRL::ComPtr;`** — `Renderer.hpp` / `Shader.hpp` /
+   `DynamicFontAtlas.hpp` の3本がファイルスコープで宣言していた。
+   `EngineIntegration.hpp` 経由で全利用者に届いていた
+3. **PCH 依存** — エンジン自身は `forceincludes "pch.h"` でビルドしているため、
+   公開ヘッダが `<string>` や `<algorithm>` を自前で include していなくても通っていた。
+   一方 `tsukino_link()` は取り込み側に PCH を強制しない。
+   `CombatAndroid` が動いていたのは、たまたま同じ内容の pch.h を持っていたからで、
+   PCH を持たない構成では壊れる状態だった
+4. **構成で変わる公開 API** — `PhysicsSystem::SetDebugDrawEnabled` とメンバ2つが
+   `#ifdef TSUKINO_DEBUG_COLLISION_DRAW` の中にあり、Debug で通る利用側コードが
+   Release で通らず、`sizeof(PhysicsSystem)` も構成間で食い違っていた
+
+**採った対応**
+
+1. 別名は `namespace Tsukino` の内側へ移した。エンジン内のコードは
+   `namespace Tsukino::...` の中にあるため囲い名前空間の探索で従来どおり書ける。
+   直す必要があったのは名前空間の外にある3箇所だけだった
+   （`std::hash` の特殊化2件、`AudioLoader.cpp` の匿名名前空間1件）
+2. `using` は `namespace Tsukino::Renderer` の内側へ移した。
+   DX11 系の他5ヘッダは元から完全修飾していたので影響なし
+3. **`Tsukino/Core/WindowsLean.hpp` を新設**し、`NOMINMAX` /
+   `WIN32_LEAN_AND_MEAN` を定義してから `<windows.h>` を取り込む処理を1箇所に集約した。
+   公開ヘッダから windows.h / d3d11.h / Effekseer.h を取り込む13本はこれを通す。
+   ヘッダごとに `NOMINMAX` を書き散らす形にはしていない
+   （hlsl++ を windows.h より後に include したときだけ壊れる、
+   include 順依存のビルドエラーがこれで消えた）
+4. 宣言は常に出し、`#ifdef` は実装の中だけに残した
+
+**検証装置: `Tsukino.HeaderCheck`**
+
+同じ問題の再発を防ぐため、premake の生成時に
+「公開ヘッダを1本だけ include する翻訳単位」を全ヘッダぶん自動生成し、
+**PCH 無し・`/permissive-`** でコンパイルするプロジェクトを追加した。
+
+- 生成先は `Tools/HeaderCheck/generated/`（gitignore 対象）
+- 単体ビルド時のみ有効（`ROOT_IS_SAME_AS_ROOT`）
+- 現在 179 本すべてが通る
+
+> このチェックが無いと、pch.h を持つプロジェクトでビルドしている限り
+> 何も気付けない。実際に壊れていたのは `MathHelper.hpp`（hlsl++ を
+> include せずに `hlslpp::` を使用）と `DrawCommand.hpp`
+> （`std::function` と `ID3D11DeviceContext` を include 無しで使用）だった。
+
+### C-15. FBX に焼き込まれた絶対テクスチャパス — 解消済み
+
+**当時の状況**
+`ModelImporter` の `GetTexPath` が、埋め込みでないテクスチャについて
+FBX に書かれたパスをそのまま返していた。FBX には作成したマシンの絶対パスが
+残っていることが多く（実例: `Assets/WaterGameSample/Models/Dot.fbx` に
+`C:/Users/maihe/Downloads/Yellow.png`）、別のマシンでは必ず解決に失敗する。
+DCC ツールから書き出したモデルを取り込むと普通に起きる。
+
+**採った対応**
+解決できないパスはファイル名だけを取り出し、モデルと同じディレクトリから探し直す。
+どちらにも無ければ元のパスを返し、読み込み側のエラーログに任せる。
+
+### C-16. 記録のみ（1.x の課題）
+
+いずれも 1.0.0 では手を付けない。着手する前に実コードを確認すること。
+
+| ID | 問題 |
+|---|---|
+| C-16a | `FrameProfiler::Get()` と `Log::s_LogFilePath` が静的破棄順序に依存する。`ScopedProfileTimer` のデストラクタが破棄済みシングルトンに触れうる |
+| C-16b | `EventBus` の再入ガードが `assert` なので、`NDEBUG` の付く Release では消える。無限再帰が最も危険な構成で外れる |
+| C-16c | `EngineContext` は生ポインタ10本の公開構造体で、うち2本はシーンが所有する。シーン切替のたびに `ClearSceneOwnedPointers` で手動 null 化する不変条件が API に焼き付いている |
+| C-16d | `AssetManager` に `Unload` が無い。アセットはマネージャの破棄まで生き続ける |
+| C-16e | `Path` に `parent()` と `parent_path()` という同一実装の重複メソッドがある |
+
 ## 4. 開発時の約束ごと
 
 破ると同じ欠陥が再発します。
@@ -483,6 +572,21 @@ C-2 で `AssetRef` 経由のアセット参照が完成したため、残り 2 �
 
 6. **下層モジュールが上層の型を知る必要が出たら、下層にインターフェースを置く。**
    `IPhysicsDebugDraw` と `IPostWorldPass` が手本です（C-1 / C-9）。
+
+7. **公開ヘッダは自分が使う型を自分で include する。**
+   エンジン本体は `forceincludes "pch.h"` でビルドしているため、
+   書き忘れてもこちらでは通ります。取り込み側には PCH が無いので壊れます。
+   `Tsukino.HeaderCheck` が全公開ヘッダを PCH 無しでコンパイルするので、
+   ビルドが通っていれば大丈夫です（C-14）。
+
+8. **公開ヘッダでグローバル名前空間に名前を足さない。**
+   `using` 宣言も型別名もマクロも、取り込み側の全翻訳単位に届きます。
+   `windows.h` が要るときは `Tsukino/Core/WindowsLean.hpp` を通してください。
+
+9. **公開 API の宣言を `#ifdef` で消さない。**
+   構成によってクラスの形が変わると、Debug で通る利用側コードが Release で壊れ、
+   `sizeof` の食い違いは ODR 違反になります。宣言は常に出し、
+   実装の中だけを `#ifdef` にしてください（C-14）。
 
 ---
 
