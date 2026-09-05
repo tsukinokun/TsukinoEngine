@@ -146,14 +146,13 @@ namespace Tsukino::BuiltIn::ECS {
         m_eventBus = &eventBus;
     }
 
-#ifdef TSUKINO_DEBUG_COLLISION_DRAW
     //-------------------------------------------------------------
     // 物理コリジョンのデバッグワイヤーフレーム描画を有効/無効にする
+    // （デバッグ描画を含まないビルドでは値を保持するだけで効果は無い）
     //-------------------------------------------------------------
     void PhysicsSystem::SetDebugDrawEnabled(bool enabled) {
         m_isDebugDrawEnabled = enabled;
     }
-#endif    // TSUKINO_DEBUG_COLLISION_DRAW
 
     //-------------------------------------------------------------
     // デストラクタ

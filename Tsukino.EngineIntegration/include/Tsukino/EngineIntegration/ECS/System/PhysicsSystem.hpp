@@ -66,13 +66,14 @@ namespace Tsukino::BuiltIn::ECS {
         //-------------------------------------------------------------
         std::vector<entt::entity> OverlapCapsule(const hlslpp::float3& center, const hlslpp::quaternion& rotation, float radius, float halfHeight);
 
-#ifdef TSUKINO_DEBUG_COLLISION_DRAW
         //-------------------------------------------------------------
         //! @brief  物理コリジョンのデバッグワイヤーフレーム描画を有効/無効にする
         //! @param  enabled [in] true: 有効化, false: 無効化
+        //! @note   宣言は構成に依らず常に存在する。
+        //!         TSUKINO_DEBUG_COLLISION_DRAW が無効なビルドでは何もしない。
+        //!         （Debugで通る呼び出し側コードがReleaseで壊れるのを防ぐため）
         //-------------------------------------------------------------
         void SetDebugDrawEnabled(bool enabled);
-#endif    // TSUKINO_DEBUG_COLLISION_DRAW
 
     private:
         //-------------------------------------------------------------
@@ -119,7 +120,9 @@ namespace Tsukino::BuiltIn::ECS {
         //! 衝突イベントの発行先（メインスレッドからのみ使う）
         Tsukino::ECS::EventBus* m_eventBus = nullptr;
 
-#ifdef TSUKINO_DEBUG_COLLISION_DRAW
+        // 以下2つは構成に依らず常に宣言する。
+        // #ifdef で消すと sizeof(PhysicsSystem) が Debug と Release で食い違い、
+        // 別々の _DEBUG でビルドされた翻訳単位が混ざったときに ODR 違反になるため。
 #ifdef TSUKINO_DEBUG_COLLISION_DRAW_ALWAYS_ON
         //! デバッグ描画が有効か（ALWAYS_ONマクロにより起動時からON）
         bool m_isDebugDrawEnabled = true;
@@ -130,7 +133,6 @@ namespace Tsukino::BuiltIn::ECS {
 
         //! 直前フレームでF5キーが押されていたか
         bool m_f5WasDown = false;
-#endif    // TSUKINO_DEBUG_COLLISION_DRAW
 
         //! シグナル購読済みのレジストリ。デストラクタで購読解除するために保持する
         //! （System は Registry より先に破棄されるため、解除しないと
