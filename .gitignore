@@ -53,3 +53,7 @@ Logs/
 
 # 公開ヘッダ自己完結チェックの生成物
 Tools/HeaderCheck/generated/
+
+# Sandbox の SampleScene1 が実行時に書き出す Prefab（テストの生成物）
+Tsukino.Sandbox/Assets/Prefabs/CaptureTest/
+Tsukino.Sandbox/Assets/Prefabs/EntityRefTest/

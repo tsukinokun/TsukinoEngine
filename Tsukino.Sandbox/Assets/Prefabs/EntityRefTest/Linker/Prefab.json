@@ -1,8 +1,0 @@
-{
-    "Components": [
-        {
-            "key": "TestLinkComponent",
-            "value": "Tsukino.Sandbox/Assets/Prefabs/EntityRefTest/Linker/TestLinkComponent.json"
-        }
-    ]
-}
