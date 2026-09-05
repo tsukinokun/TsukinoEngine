@@ -228,7 +228,13 @@ namespace Tsukino::Physics {
         EnsureJoltInitialized();
 
         m_impl->tempAllocator = new JPH::TempAllocatorImpl(10 * 1024 * 1024);
-        m_impl->jobSystem = new JPH::JobSystemThreadPool(JPH::cMaxPhysicsJobs, JPH::cMaxPhysicsBarriers, std::thread::hardware_concurrency() - 1);
+
+        // hardware_concurrency() は情報を取得できないとき 0 を返す。
+        // 符号なしのまま 1 を引くと巨大な値になりワーカースレッドの確保が破綻するため、下限を 1 で押さえる。
+        const unsigned int hardwareThreads = std::thread::hardware_concurrency();
+        const int          workerThreads   = static_cast<int>(hardwareThreads > 1 ? hardwareThreads - 1 : 1);
+
+        m_impl->jobSystem = new JPH::JobSystemThreadPool(JPH::cMaxPhysicsJobs, JPH::cMaxPhysicsBarriers, workerThreads);
 
         m_impl->physicsSystem                 = new JPH::PhysicsSystem();
         const uint32_t cMaxBodies             = 1024;
