@@ -32,8 +32,8 @@ namespace Tsukino::Renderer {
     //--------------------------------------------------------------
     struct PipelineHash {
         std::size_t operator()(const PipelineKey& key) const {
-            auto h1 = std::hash<u64>()(std::get<0>(key));
-            auto h2 = std::hash<u64>()(std::get<1>(key));
+            auto h1 = std::hash<Tsukino::u64>()(std::get<0>(key));
+            auto h2 = std::hash<Tsukino::u64>()(std::get<1>(key));
             auto h3 = std::hash<int>()(static_cast<int>(std::get<2>(key)));
             auto h4 = std::hash<int>()(static_cast<int>(std::get<3>(key)));
             auto h5 = std::hash<int>()(static_cast<int>(std::get<4>(key)));

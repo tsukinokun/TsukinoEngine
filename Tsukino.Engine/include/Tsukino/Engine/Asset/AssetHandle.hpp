@@ -80,7 +80,7 @@ namespace std {
         size_t operator()(const Tsukino::Asset::AssetHandle& handle) const noexcept {
             // 例: AssetHandle 内部に一意のIDが存在する場合
             // handle.GetID() など、識別可能な値を用いてハッシュを計算して返す
-            return std::hash<u64>()(handle.Value());
+            return std::hash<Tsukino::u64>()(handle.Value());
         }
     };
 }    // namespace std

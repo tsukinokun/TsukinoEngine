@@ -6,14 +6,29 @@
 #pragma once
 #include <cstdint>
 
-// 符号付き整数
-using i8  = int8_t;
-using i16 = int16_t;
-using i32 = int32_t;
-using i64 = int64_t;
+//--------------------------------------------------------------
+//! この別名は Tsukino 名前空間の内側に置く。
+//!
+//! このヘッダはほぼ全ての公開ヘッダから推移的に取り込まれるため、
+//! グローバル名前空間へ置くと取り込み側の翻訳単位すべてに i8〜u64 が現れ、
+//! 同名の別名を持つ他ライブラリと衝突しても回避手段が無くなる。
+//!
+//! エンジン内のコードは namespace Tsukino::... の内側にあるので、
+//! 囲い名前空間の探索により従来どおり u32 と書ける。
+//! 取り込み側のゲームコードからは Tsukino::u32 と修飾して使う。
+//--------------------------------------------------------------
+namespace Tsukino {
 
-// 符号なし整数
-using u8  = uint8_t;
-using u16 = uint16_t;
-using u32 = uint32_t;
-using u64 = uint64_t;
+    // 符号付き整数
+    using i8  = int8_t;
+    using i16 = int16_t;
+    using i32 = int32_t;
+    using i64 = int64_t;
+
+    // 符号なし整数
+    using u8  = uint8_t;
+    using u16 = uint16_t;
+    using u32 = uint32_t;
+    using u64 = uint64_t;
+
+}    // namespace Tsukino

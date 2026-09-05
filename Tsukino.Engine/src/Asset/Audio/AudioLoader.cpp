@@ -12,6 +12,10 @@
 #include <vector>
 
 namespace {
+    // 型別名は Tsukino 名前空間にあるため、この匿名名前空間へ持ち込む
+    using Tsukino::u32;
+    using Tsukino::u8;
+
 #pragma pack(push, 1)
     struct Segment {
         u32 offset;
