@@ -126,7 +126,7 @@
 - **Tsukino::BuiltIn::ECS::MotionVectorSnapshotSystem** — `Tsukino.EngineIntegration/include/Tsukino/EngineIntegration/ECS/System/MotionVectorSnapshotSystem.hpp`
   - Update()
 - **Tsukino::BuiltIn::ECS::PhysicsSystem** — `Tsukino.EngineIntegration/include/Tsukino/EngineIntegration/ECS/System/PhysicsSystem.hpp`
-  - PhysicsSystem(), ~PhysicsSystem(), Update(), OverlapCapsule()
+  - PhysicsSystem(), ~PhysicsSystem(), Update(), OverlapCapsule(), SetDebugDrawEnabled()
 - **Tsukino::BuiltIn::ECS::SkyAtmosphereSystem** — `Tsukino.EngineIntegration/include/Tsukino/EngineIntegration/ECS/System/SkyAtmosphereSystem.hpp`
   - Update()
 - **Tsukino::BuiltIn::ECS::SpriteRenderSystem** — `Tsukino.EngineIntegration/include/Tsukino/EngineIntegration/ECS/System/SpriteRendererSystem.hpp`

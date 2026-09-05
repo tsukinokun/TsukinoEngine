@@ -78,8 +78,16 @@ local function ParseCompoundXml(xmlPath)
 	end
 	compoundName = DecodeXmlEntities(compoundName)
 
-	-- エンジンの公開 API だけを対象にする（Sandbox のサンプルなどは除外）
+	-- エンジンの公開 API だけを対象にする
 	if not compoundName:match("^Tsukino::") then
+		return nil
+	end
+
+	-- Sandbox はサンプルであってエンジンの公開 API ではない。
+	-- Tsukino::Sandbox:: も上の ^Tsukino:: を通ってしまうため、明示的に落とす。
+	-- （これが無いと SceneSample1.cpp の中で定義しているテスト専用の
+	--   TestLinkComponent まで api-index.md に公開 API として載っていた）
+	if compoundName:match("^Tsukino::Sandbox") then
 		return nil
 	end
 
