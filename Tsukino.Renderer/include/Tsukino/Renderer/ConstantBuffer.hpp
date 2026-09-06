@@ -47,7 +47,7 @@ namespace Tsukino::Renderer {
         float          roughness;
         float          specular;
         hlslpp::float4 rimColor;     //!< xyz: ふちの色, w: ふちの強さ（旧paddingを転用。ハイライト演出用）
-        hlslpp::float4 rimParams;    //!< x: ふちの鋭さ(pow指数), y: 全体の白発光量, zw: 予約
+        hlslpp::float4 rimParams;    //!< x: ふちの鋭さ(pow指数), y: 全体の白発光量, z: alphaCutoff（0=アルファテスト無効）, w: 予約
     };
 
     //--------------------------------------------------------------

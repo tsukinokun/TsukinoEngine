@@ -40,6 +40,14 @@ namespace Tsukino::GraphicsCommon {
         float                   specular  = 0.5f;
 
         //--------------------------------------------------------------
+        // アルファテスト（カットアウト）のしきい値
+        // 0 = 無効。0より大きいとき、アルベドテクスチャのアルファがこの値未満の
+        // テクセルをピクセルシェーダーが破棄する。
+        // ModelImporterがアルベドの透明テクセルを検出して自動で設定する
+        //--------------------------------------------------------------
+        float alphaCutoff = 0.0f;
+
+        //--------------------------------------------------------------
         // Water シェーディング用パラメータ
         //--------------------------------------------------------------
         hlslpp::interop::float2 waterSpeed  = hlslpp::float2(0.1f, 0.1f);
@@ -58,7 +66,7 @@ namespace Tsukino::GraphicsCommon {
         //--------------------------------------------------------------
         template <class Archive>
         void serialize(Archive& ar) {
-            ar(name, shadingModel, baseColor, emissive, metallic, roughness, specular, albedoMap, normalMap, metallicRoughnessMap, emissiveMap, aoMap);
+            ar(name, shadingModel, baseColor, emissive, metallic, roughness, specular, alphaCutoff, albedoMap, normalMap, metallicRoughnessMap, emissiveMap, aoMap);
         }
     };
 

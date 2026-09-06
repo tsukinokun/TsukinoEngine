@@ -19,7 +19,7 @@ cbuffer CBufferMaterial : register(b2)
     float  roughness;
     float  specular;
     float4 rimColor;     // xyz: ふちの色, w: ふちの強さ
-    float4 rimParams;    // x: ふちの鋭さ(pow指数), y: 全体の白発光量, zw: 予約
+    float4 rimParams;    // x: ふちの鋭さ(pow指数), y: 全体の白発光量, z: alphaCutoff（0=アルファテスト無効）, w: 予約
 };
 
 //--------------------------------------------------------------
@@ -70,6 +70,18 @@ PSOutput PSMain(PSInput input)
     // （除去は別途ポストプロセス整備のタイミングで扱う）
     //----------------------------------------------------------
     float4 albedoSample = albedoTexture.Sample(albedoSampler, input.uv);
+
+    //----------------------------------------------------------
+    // アルファテスト（カットアウト）
+    // rimParams.z はマテリアルのalphaCutoff。0のときは無効化される
+    // （clipは引数が0未満のときだけ破棄するため、しきい値0ならアルファ0でも残る）。
+    // ここで破棄しておかないと、透明テクセルがG-Bufferと深度を書いてしまう。
+    // 判定にbaseColor.aを掛けないのは、くり抜き形状はテクスチャのアルファだけが
+    // 持つ情報であり、オブジェクト全体のフェード（ModelComponent::opacity）と
+    // 混ぜるとフェード途中で形状が破綻するため
+    //----------------------------------------------------------
+    clip(albedoSample.a - rimParams.z);
+
     float3 albedo        = ACES(albedoSample.rgb * baseColor.rgb);
 
     //----------------------------------------------------------
@@ -112,7 +124,10 @@ PSOutput PSMain(PSInput input)
     float2 curUV  = (input.curClip.xy / input.curClip.w) * float2(0.5f, -0.5f) + 0.5f;
     float2 prevUV = (input.prevClip.xy / input.prevClip.w) * float2(0.5f, -0.5f) + 0.5f;
 
-    output.albedo      = float4(albedo, albedoSample.a * baseColor.a);
+    // アルファは書かない（1.0固定）。カットアウトは上のclipで済んでおり、
+    // ここでアルファを書くとLightingパス経由でHDRバッファのアルファを下げ、
+    // 透明テクセルが真っ黒に潰れる原因になる
+    output.albedo      = float4(albedo, 1.0f);
     output.normal      = float4(EncodeNormal(N), 0.0f);
     output.material    = float4(met, rough, specular, ao);
     output.emissiveOut = float4(emissiveTotal, 0.0f);

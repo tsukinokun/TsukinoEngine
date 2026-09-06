@@ -170,6 +170,9 @@ namespace Tsukino::BuiltIn::ECS {
 
                     Tsukino::GraphicsCommon::ShadingModel shadingModel = Tsukino::GraphicsCommon::ShadingModel::PBR;
 
+                    // アルファテストのしきい値（0 = 無効）。ModelImporterが自動設定する
+                    float alphaCutoff = 0.0f;
+
                     if(meshData.materialIndex < modelAsset->materialHandles.size()) {
                         auto matHandle    = modelAsset->materialHandles[meshData.materialIndex];
                         auto matAssetBase = ctx->assetManager->Get(matHandle);
@@ -184,6 +187,7 @@ namespace Tsukino::BuiltIn::ECS {
                             cbMat.specular  = matAsset->data.specular;
 
                             shadingModel = matAsset->data.shadingModel;
+                            alphaCutoff  = matAsset->data.alphaCutoff;
 
                             // AssetHandle から SRV を引く（無効ハンドル・未ロードは nullptr）
                             auto resolveSRV = [&](const Tsukino::Asset::AssetHandle& handle) -> ID3D11ShaderResourceView* {
@@ -211,6 +215,13 @@ namespace Tsukino::BuiltIn::ECS {
                         cbMat.rimColor  = hlslpp::float4(highlight->rimColor, highlight->rimIntensity);
                         cbMat.rimParams = hlslpp::float4(highlight->rimPower, highlight->glow, 0.0f, 0.0f);
                     }
+
+                    //--------------------------------------------------------------
+                    // アルファテストのしきい値をrimParams.zへ載せる。
+                    // ハイライト演出がrimParamsを丸ごと書き換えるため、必ずその後に入れる
+                    // （先に入れるとハイライト中だけカットアウトが無効化される）
+                    //--------------------------------------------------------------
+                    cbMat.rimParams.z = alphaCutoff;
 
                     //--------------------------------------------------------------
                     // 半透明フェード（ModelComponent::opacity）。1.0未満なら通常のディファード

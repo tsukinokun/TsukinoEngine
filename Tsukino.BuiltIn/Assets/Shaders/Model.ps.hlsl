@@ -22,7 +22,7 @@ cbuffer CBufferMaterial : register(b2)
     float roughness;
     float specular;
     float4 rimColor;    // xyz: ふちの色, w: ふちの強さ
-    float4 rimParams;   // x: ふちの鋭さ(pow指数), y: 全体の白発光量, zw: 予約
+    float4 rimParams;   // x: ふちの鋭さ(pow指数), y: 全体の白発光量, z: alphaCutoff（0=アルファテスト無効）, w: 予約
 };
 
 //--------------------------------------------------------------
@@ -108,6 +108,18 @@ float4 PSMain(PSInput input) : SV_TARGET
     // テクスチャがない場合はCBufferMaterialの定数値で代用
     //----------------------------------------------------------
     float4 albedoSample = albedoTexture.Sample(albedoSampler, input.uv);
+
+    //----------------------------------------------------------
+    // アルファテスト（カットアウト）
+    // rimParams.z はマテリアルのalphaCutoff。0のときは無効化される。
+    // baseColor.aを掛けないのが重要で、このシェーダーはフェード中
+    // （ModelComponent::opacityがbaseColor.aへ乗算される）にも通るため、
+    // 掛けてしまうとフェードが進んだ瞬間にモデル全体が消える。
+    // 深度事前パス（TransparentDepth）も同じシェーダーを使うので、
+    // ここで破棄しないと透明テクセルが深度を書いて背後を不正に遮蔽する
+    //----------------------------------------------------------
+    clip(albedoSample.a - rimParams.z);
+
     float3 albedo = ACES(albedoSample.rgb * baseColor.rgb); // テクスチャ × 定数色
 
     //----------------------------------------------------------

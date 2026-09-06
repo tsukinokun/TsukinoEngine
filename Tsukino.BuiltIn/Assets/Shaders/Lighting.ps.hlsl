@@ -98,5 +98,7 @@ float4 PSMain(PSInput input) : SV_TARGET
 
     float3 finalColor = ambient + lit + emissiveSample;
 
-    return float4(finalColor, albedoSample.a);
+    // ディファード経路のジオメトリは定義上すべて不透明なので、アルファは常に1.0。
+    // G-Bufferのアルファをここへ流すとトーンマップで黒く潰れる
+    return float4(finalColor, 1.0f);
 }

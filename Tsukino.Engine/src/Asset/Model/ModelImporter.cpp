@@ -25,6 +25,8 @@
 #include <DirectXTex/DirectXTex.h>
 #include <wincodec.h>
 
+#include "../Texture/TextureAlphaUtility.hpp"
+
 #include <d3dcompiler.h>
 #include <fstream>
 #include <cereal/archives/binary.hpp>
@@ -286,10 +288,19 @@ namespace Tsukino::Asset {
         std::string                          modelBaseName = inputPath.stem();
         std::unordered_map<u32, std::string> embeddedTexIndexToDDSPath;
 
+        // アルファでくり抜くテクスチャのDDSパス。あとでアルベドに割り当てて
+        // MaterialData::alphaCutoff を立てるために使う
+        std::unordered_set<std::string> cutoutDDSPaths;
+
         //--------------------------------------------------------------
         // どのテクスチャインデックスがsRGBか事前に収集
+        // 併せて、アルベドとして使われるインデックスも集めておく。
+        // アルファに意味があるのはアルベドだけで、法線マップなどの
+        // アルファチャンネルにくり抜き情報は入っていないため、
+        // カットアウト判定とふち処理はアルベドに限定する必要がある
         //--------------------------------------------------------------
         std::unordered_set<u32> srgbTexIndices;
+        std::unordered_set<u32> albedoTexIndices;
 
         for(u32 i = 0; i < scene->mNumMaterials; ++i) {
             const aiMaterial* mat = scene->mMaterials[i];
@@ -312,6 +323,9 @@ namespace Tsukino::Asset {
                 for(u32 t = 0; t < scene->mNumTextures; ++t) {
                     if(scene->mTextures[t] == embedded) {
                         srgbTexIndices.insert(t);
+                        if(type == aiTextureType_DIFFUSE) {
+                            albedoTexIndices.insert(t);
+                        }
                         break;
                     }
                 }
@@ -402,6 +416,21 @@ namespace Tsukino::Asset {
                 }
             }
 
+            //--------------------------------------------------------------
+            // カットアウト判定とふちの色にじみ対策
+            // ミップ生成とBC3圧縮の前（＝1ミップのRGBA8の状態）でなければ
+            // ピクセルを直接走査できないため、ここで行う。
+            // 透明部分のRGBを近傍の色で埋めておかないと、BC3のブロック圧縮と
+            // バイリニア補間で黒がにじみ、くり抜いたふちが黒く縁取られる
+            //--------------------------------------------------------------
+            // 法線マップやスペキュラマップもアルファチャンネルを持つことがあるが、
+            // それはくり抜き情報ではない。アルベド以外にふち処理を掛けると
+            // 法線などのRGBを近傍色で塗り潰して壊してしまう
+            const bool hasCutout = albedoTexIndices.count(i) > 0 && Tsukino::Asset::Detail::HasCutoutAlpha(image);
+            if(hasCutout) {
+                Tsukino::Asset::Detail::DilateTransparentEdges(image);
+            }
+
             // ミップマップ生成
             {
                 DirectX::ScratchImage mipChain;
@@ -448,6 +477,10 @@ namespace Tsukino::Asset {
             //  GetAssetRootPath()が同じディレクトリを指すため、この問題が顕在化する)
             Tsukino::Core::Path materialRefPath = relativeInputPath.parent_path() / ddsFilename;
             embeddedTexIndexToDDSPath[i]        = materialRefPath.string();
+
+            if(hasCutout) {
+                cutoutDDSPaths.insert(materialRefPath.string());
+            }
         }
 
         auto GetTexPath = [&](const aiMaterial* mat, aiTextureType type) -> std::string {
@@ -501,6 +534,19 @@ namespace Tsukino::Asset {
             dstMat.metallicRoughnessMap = GetTexPath(aiMat, aiTextureType_DIFFUSE_ROUGHNESS);
             dstMat.emissiveMap          = GetTexPath(aiMat, aiTextureType_EMISSIVE);
             dstMat.aoMap                = GetTexPath(aiMat, aiTextureType_AMBIENT_OCCLUSION);
+
+            //--------------------------------------------------------------
+            // アルファテストの自動有効化
+            // 判定対象はアルベドのみ。法線マップやスペキュラマップも
+            // アルファチャンネルを持つことがあるが、くり抜き形状とは無関係
+            // （シェーダーもそれらの .a は読まない）。
+            // 埋め込みテクスチャだけが対象で、外部ファイル参照のテクスチャは
+            // TextureImporter が別に読むためここでは判定できない
+            //--------------------------------------------------------------
+            if(cutoutDDSPaths.count(dstMat.albedoMap) > 0) {
+                dstMat.alphaCutoff = 0.5f;
+                Tsukino::Core::Log::Info("Alpha cutout detected. Enabling alpha test: " + dstMat.albedoMap);
+            }
         }
 
         //--------------------------------------------------------------
