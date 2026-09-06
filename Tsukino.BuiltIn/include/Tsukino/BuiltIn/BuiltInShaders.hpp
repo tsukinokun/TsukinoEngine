@@ -44,5 +44,8 @@ namespace Tsukino::BuiltIn {
         Tsukino::Asset::AssetHandle lightingPS;        // ディファードLightingパス用ピクセルシェーダーのハンドル（VSはtonemapVSを共用）
         Tsukino::Asset::AssetHandle motionBlurPS;      // モーションブラーパス用ピクセルシェーダーのハンドル（VSはtonemapVSを共用）
         Tsukino::Asset::AssetHandle fogPS;             // フォグパス用ピクセルシェーダーのハンドル（VSはtonemapVSを共用）
+
+        Tsukino::Asset::AssetHandle ambientParticleVS;    // 環境パーティクル用頂点シェーダーのハンドル（SV_VertexIDだけで板を生成する）
+        Tsukino::Asset::AssetHandle ambientParticlePS;    // 環境パーティクル用ピクセルシェーダーのハンドル
     };
 }    // namespace Tsukino::BuiltIn

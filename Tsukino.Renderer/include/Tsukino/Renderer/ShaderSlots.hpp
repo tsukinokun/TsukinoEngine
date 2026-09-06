@@ -24,6 +24,8 @@ namespace Tsukino::Renderer {
         MotionBlur   = 8,    //!< b8 : モーションブラーパラメータ（CBufferMotionBlur, ブラーパス用。PS専用）
 
         Fog          = 9,    //!< b9 : フォグパラメータ（CBufferFog, フォグパス用。PS専用）
+
+        AmbientParticle = 10,    //!< b10 : 環境パーティクルのパラメータ（CBufferAmbientParticle, 環境パーティクルパス用。VS専用）
     };
 
     //--------------------------------------------------------------

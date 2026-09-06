@@ -21,7 +21,7 @@
 - **Tsukino::GraphicsCommon::DebugVertex** — `Tsukino.GraphicsCommon/include/Tsukino/GraphicsCommon/Vertex/DebugVertex.hpp`
   - position, color
 - **Tsukino::GraphicsCommon::MaterialData** — `Tsukino.GraphicsCommon/include/Tsukino/GraphicsCommon/Material/MaterialData.hpp`
-  - name, shadingModel, baseColor, emissive, metallic, roughness, specular, waterSpeed, waterScale, waterHeight, albedoMap, normalMap, metallicRoughnessMap, emissiveMap, aoMap, serialize()
+  - name, shadingModel, baseColor, emissive, metallic, roughness, specular, alphaCutoff, waterSpeed, waterScale, waterHeight, albedoMap, normalMap, metallicRoughnessMap, emissiveMap, aoMap, serialize()
 - **Tsukino::GraphicsCommon::MeshData** — `Tsukino.GraphicsCommon/include/Tsukino/GraphicsCommon/Mesh/MeshData.hpp`
   - vertexData, indices, boneWeights, vertexStride, vertexCount, indexCount, materialIndex, format, bounds, serialize()
 - **Tsukino::GraphicsCommon::ModelData** — `Tsukino.GraphicsCommon/include/Tsukino/GraphicsCommon/Model/ModelData.hpp`

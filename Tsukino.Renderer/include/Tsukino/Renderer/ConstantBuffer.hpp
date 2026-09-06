@@ -171,4 +171,27 @@ namespace Tsukino::Renderer {
         hlslpp::float4 windParams;        //!< xyz: 風向き(正規化済み), w: 風速
     };
 
+    //--------------------------------------------------------------
+    //! 環境パーティクルの粒子数の上限
+    //! @note AmbientParticleSystem がこの値でクランプする。
+    //!       1粒 = 6頂点なので、上限では 393,216 頂点の単一Drawになる。
+    //--------------------------------------------------------------
+    static constexpr unsigned int kMaxAmbientParticles = 65536;
+
+    //--------------------------------------------------------------
+    //! スロット10 (b10) 用：環境パーティクルのパラメータ
+    //! @note AmbientParticle.vs.hlsl の CBufferAmbientParticle と
+    //!       1バイト単位で一致させること（全メンバfloat4で96バイト）。
+    //!       ピクセルシェーダーはこのバッファを使わない。色も輝度も
+    //!       フェードも頂点シェーダーが計算し、補間値として渡すため。
+    //--------------------------------------------------------------
+    struct CBufferAmbientParticle {
+        hlslpp::float4 volumeParams;    //!< xyz: ボリュームの一辺の長さ, w: 経過時間（秒）
+        hlslpp::float4 fadeParams;      //!< x: 境界フェード開始比率(0〜1), y: 近接フェード距離, z: 乱数シード（整数値のfloat）, w: 予約
+        hlslpp::float4 sizeParams;      //!< x: 最小サイズ（半径）, y: 最大サイズ（半径）, z: 最小輝度, w: 最大輝度
+        hlslpp::float4 driftParams;     //!< xyz: 一定ドリフト速度（ワールド単位/秒）, w: 揺らぎの角速度（rad/秒）
+        hlslpp::float4 swayParams;      //!< x: 揺らぎの振幅, y: 速度倍率の下限, z: 速度倍率の上限, w: きらめきの強さ(0〜1)
+        hlslpp::float4 colorParams;     //!< xyz: 粒子色（linear）, w: 全体の強度
+    };
+
 }    // namespace Tsukino::Renderer

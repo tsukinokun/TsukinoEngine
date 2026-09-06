@@ -10,11 +10,149 @@
         "pathBase": "working directory (Debug: repository root / Release: next to the exe)"
     },
     "stats": {
-        "components": 32,
-        "registered": 18,
-        "serializable": 16
+        "components": 33,
+        "registered": 19,
+        "serializable": 17
     },
     "components": [
+        {
+            "name": "AmbientParticleComponent",
+            "typeName": "Tsukino::BuiltIn::ECS::AmbientParticleComponent",
+            "registered": true,
+            "registeredName": "AmbientParticleComponent",
+            "serializable": true,
+            "header": "Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/AmbientParticleComponent.hpp",
+            "serializationHeader": "Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Serialization/AmbientParticleComponentSerialization.hpp",
+            "registrationSite": "Tsukino.EngineIntegration/src/EngineIntegration.cpp",
+            "fields": [
+                {
+                    "jsonKey": "enabled",
+                    "field": "enabled",
+                    "cppType": "bool",
+                    "jsonShape": "true / false",
+                    "default": "true"
+                },
+                {
+                    "jsonKey": "count",
+                    "field": "count",
+                    "cppType": "unsigned int",
+                    "jsonShape": "number",
+                    "default": "3000"
+                },
+                {
+                    "jsonKey": "volumeSize",
+                    "field": "volumeSize",
+                    "cppType": "hlslpp::float3",
+                    "jsonShape": "{ \"x\", \"y\", \"z\" }",
+                    "default": "hlslpp::float3(2400.0f, 900.0f, 2400.0f)"
+                },
+                {
+                    "jsonKey": "seed",
+                    "field": "seed",
+                    "cppType": "unsigned int",
+                    "jsonShape": "number",
+                    "default": "12345"
+                },
+                {
+                    "jsonKey": "color",
+                    "field": "color",
+                    "cppType": "hlslpp::float3",
+                    "jsonShape": "{ \"x\", \"y\", \"z\" }",
+                    "default": "hlslpp::float3(1.0f, 0.32f, 0.06f)"
+                },
+                {
+                    "jsonKey": "intensity",
+                    "field": "intensity",
+                    "cppType": "float",
+                    "jsonShape": "number",
+                    "default": "1.0f"
+                },
+                {
+                    "jsonKey": "minSize",
+                    "field": "minSize",
+                    "cppType": "float",
+                    "jsonShape": "number",
+                    "default": "0.8f"
+                },
+                {
+                    "jsonKey": "maxSize",
+                    "field": "maxSize",
+                    "cppType": "float",
+                    "jsonShape": "number",
+                    "default": "3.5f"
+                },
+                {
+                    "jsonKey": "minBrightness",
+                    "field": "minBrightness",
+                    "cppType": "float",
+                    "jsonShape": "number",
+                    "default": "0.15f"
+                },
+                {
+                    "jsonKey": "maxBrightness",
+                    "field": "maxBrightness",
+                    "cppType": "float",
+                    "jsonShape": "number",
+                    "default": "1.6f"
+                },
+                {
+                    "jsonKey": "twinkle",
+                    "field": "twinkle",
+                    "cppType": "float",
+                    "jsonShape": "number",
+                    "default": "0.6f"
+                },
+                {
+                    "jsonKey": "driftVelocity",
+                    "field": "driftVelocity",
+                    "cppType": "hlslpp::float3",
+                    "jsonShape": "{ \"x\", \"y\", \"z\" }",
+                    "default": "hlslpp::float3(10.0f, 20.0f, 3.0f)"
+                },
+                {
+                    "jsonKey": "swayAmplitude",
+                    "field": "swayAmplitude",
+                    "cppType": "float",
+                    "jsonShape": "number",
+                    "default": "14.0f"
+                },
+                {
+                    "jsonKey": "swayFrequency",
+                    "field": "swayFrequency",
+                    "cppType": "float",
+                    "jsonShape": "number",
+                    "default": "0.8f"
+                },
+                {
+                    "jsonKey": "minSpeedScale",
+                    "field": "minSpeedScale",
+                    "cppType": "float",
+                    "jsonShape": "number",
+                    "default": "0.35f"
+                },
+                {
+                    "jsonKey": "maxSpeedScale",
+                    "field": "maxSpeedScale",
+                    "cppType": "float",
+                    "jsonShape": "number",
+                    "default": "1.7f"
+                },
+                {
+                    "jsonKey": "edgeFadeStart",
+                    "field": "edgeFadeStart",
+                    "cppType": "float",
+                    "jsonShape": "number",
+                    "default": "0.65f"
+                },
+                {
+                    "jsonKey": "nearFadeDistance",
+                    "field": "nearFadeDistance",
+                    "cppType": "float",
+                    "jsonShape": "number",
+                    "default": "60.0f"
+                }
+            ]
+        },
         {
             "name": "AnimationControllerComponent",
             "typeName": "Tsukino::BuiltIn::ECS::AnimationControllerComponent",

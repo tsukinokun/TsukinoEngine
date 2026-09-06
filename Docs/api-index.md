@@ -18,6 +18,7 @@
 - `Tsukino::BuiltIn::BuiltInAssets` — `Tsukino.BuiltIn/include/Tsukino/BuiltIn/BuiltInAssets.hpp`
 - `Tsukino::BuiltIn::BuiltInFonts` — `Tsukino.BuiltIn/include/Tsukino/BuiltIn/BuiltInFonts.hpp`
 - `Tsukino::BuiltIn::BuiltInShaders` — `Tsukino.BuiltIn/include/Tsukino/BuiltIn/BuiltInShaders.hpp`
+- `Tsukino::BuiltIn::ECS::AmbientParticleComponent` — `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/AmbientParticleComponent.hpp`
 - `Tsukino::BuiltIn::ECS::AnimationControllerComponent` — `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/AnimationControllerComponent.hpp`
 - `Tsukino::BuiltIn::ECS::AnimationControllerComponent::NextAnimation` — `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/AnimationControllerComponent.hpp`
 - `Tsukino::BuiltIn::ECS::AnimationControllerComponent::OutgoingAnimation` — `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/AnimationControllerComponent.hpp`
@@ -127,6 +128,7 @@
 
 ## Tsukino.EngineIntegration — [`api/Tsukino.EngineIntegration.md`](api/Tsukino.EngineIntegration.md)
 
+- `Tsukino::BuiltIn::ECS::AmbientParticleSystem` — `Tsukino.EngineIntegration/include/Tsukino/EngineIntegration/ECS/System/AmbientParticleSystem.hpp`
 - `Tsukino::BuiltIn::ECS::AnimationSystem` — `Tsukino.EngineIntegration/include/Tsukino/EngineIntegration/ECS/System/AnimationSystem.hpp`
 - `Tsukino::BuiltIn::ECS::AnimationSystem::ChannelTableKey` — `Tsukino.EngineIntegration/include/Tsukino/EngineIntegration/ECS/System/AnimationSystem.hpp`
 - `Tsukino::BuiltIn::ECS::AnimationSystem::ChannelTableKeyHash` — `Tsukino.EngineIntegration/include/Tsukino/EngineIntegration/ECS/System/AnimationSystem.hpp`
@@ -203,6 +205,7 @@
 
 ## Tsukino.Renderer — [`api/Tsukino.Renderer.md`](api/Tsukino.Renderer.md)
 
+- `Tsukino::Renderer::CBufferAmbientParticle` — `Tsukino.Renderer/include/Tsukino/Renderer/ConstantBuffer.hpp`
 - `Tsukino::Renderer::CBufferFog` — `Tsukino.Renderer/include/Tsukino/Renderer/ConstantBuffer.hpp`
 - `Tsukino::Renderer::CBufferLights` — `Tsukino.Renderer/include/Tsukino/Renderer/ConstantBuffer.hpp`
 - `Tsukino::Renderer::CBufferMaterial` — `Tsukino.Renderer/include/Tsukino/Renderer/ConstantBuffer.hpp`

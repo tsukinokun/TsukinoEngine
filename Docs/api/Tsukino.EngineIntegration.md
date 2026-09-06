@@ -95,6 +95,8 @@
 
 メンバ名のみ。詳細が要るときはヘッダを開く。
 
+- **Tsukino::BuiltIn::ECS::AmbientParticleSystem** — `Tsukino.EngineIntegration/include/Tsukino/EngineIntegration/ECS/System/AmbientParticleSystem.hpp`
+  - Update()
 - **Tsukino::BuiltIn::ECS::AnimationSystem** — `Tsukino.EngineIntegration/include/Tsukino/EngineIntegration/ECS/System/AnimationSystem.hpp`
   - Update()
 - **Tsukino::BuiltIn::ECS::AnimationSystem::ChannelTableKey** — `Tsukino.EngineIntegration/include/Tsukino/EngineIntegration/ECS/System/AnimationSystem.hpp`

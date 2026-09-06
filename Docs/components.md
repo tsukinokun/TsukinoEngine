@@ -4,7 +4,7 @@
 
 再生成: `vendor\premake5.exe gen-manifest`（または `generate-docs.bat`）
 
-コンポーネント 32 個（Prefab 登録済み 18 個 / シリアライズ定義あり 16 個）
+コンポーネント 33 個（Prefab 登録済み 19 個 / シリアライズ定義あり 17 個）
 
 ## 読み方
 
@@ -22,6 +22,34 @@
 ## Prefab で使えるコンポーネント
 
 （登録済み かつ シリアライズ定義あり）
+
+### AmbientParticleComponent
+
+- 型: `Tsukino::BuiltIn::ECS::AmbientParticleComponent`
+- Prefab 登録名: `AmbientParticleComponent`
+- 定義: `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/AmbientParticleComponent.hpp`
+- シリアライズ: `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Serialization/AmbientParticleComponentSerialization.hpp`
+
+| JSON キー | C++ 型 | JSON 表現 | 既定値 |
+|---|---|---|---|
+| `enabled` | `bool` | true / false | `true` |
+| `count` | `unsigned int` | number | `3000` |
+| `volumeSize` | `hlslpp::float3` | { "x", "y", "z" } | `hlslpp::float3(2400.0f, 900.0f, 2400.0f)` |
+| `seed` | `unsigned int` | number | `12345` |
+| `color` | `hlslpp::float3` | { "x", "y", "z" } | `hlslpp::float3(1.0f, 0.32f, 0.06f)` |
+| `intensity` | `float` | number | `1.0f` |
+| `minSize` | `float` | number | `0.8f` |
+| `maxSize` | `float` | number | `3.5f` |
+| `minBrightness` | `float` | number | `0.15f` |
+| `maxBrightness` | `float` | number | `1.6f` |
+| `twinkle` | `float` | number | `0.6f` |
+| `driftVelocity` | `hlslpp::float3` | { "x", "y", "z" } | `hlslpp::float3(10.0f, 20.0f, 3.0f)` |
+| `swayAmplitude` | `float` | number | `14.0f` |
+| `swayFrequency` | `float` | number | `0.8f` |
+| `minSpeedScale` | `float` | number | `0.35f` |
+| `maxSpeedScale` | `float` | number | `1.7f` |
+| `edgeFadeStart` | `float` | number | `0.65f` |
+| `nearFadeDistance` | `float` | number | `60.0f` |
 
 ### CameraComponent
 

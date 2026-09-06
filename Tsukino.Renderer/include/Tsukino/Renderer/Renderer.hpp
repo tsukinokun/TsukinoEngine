@@ -60,6 +60,8 @@ namespace Tsukino::Renderer {
         const Tsukino::Asset::ShaderAsset* lightingPS       = nullptr;    //!< ディファードLightingパス用PS（VSはtonemapVSを共用）
         const Tsukino::Asset::ShaderAsset* motionBlurPS     = nullptr;    //!< モーションブラーパス用PS（VSはtonemapVSを共用）
         const Tsukino::Asset::ShaderAsset* fogPS            = nullptr;    //!< フォグパス用PS（VSはtonemapVSを共用）
+        const Tsukino::Asset::ShaderAsset* ambientParticleVS = nullptr;    //!< 環境パーティクル用VS（SV_VertexIDだけで板を生成する）
+        const Tsukino::Asset::ShaderAsset* ambientParticlePS = nullptr;    //!< 環境パーティクル用PS
     };
 
     //------------------------------------------------------------
@@ -419,6 +421,24 @@ namespace Tsukino::Renderer {
             m_fogEnabled = enabled;
         }
 
+        //------------------------------------------------------------
+        //! 環境パーティクルのパラメータをセットします。
+        //! @param  [in] params        環境パーティクル定数バッファデータ
+        //! @param  [in] particleCount 粒子数（kMaxAmbientParticles でクランプされる）
+        //------------------------------------------------------------
+        void SetAmbientParticleParameters(const CBufferAmbientParticle& params, u32 particleCount);
+
+        //------------------------------------------------------------
+        //! 環境パーティクルの有効・無効を切り替えます。
+        //! @param [in] enabled true: 有効, false: 無効
+        //! @note  フォグと同じくフレーム単位のフラグで、Render()の末尾で
+        //!        毎回falseへ戻る。有効にしたいフレームでは毎フレーム
+        //!        呼ぶこと（AmbientParticleSystemの責務）。
+        //------------------------------------------------------------
+        void SetAmbientParticleEnabled(bool enabled) noexcept {
+            m_ambientParticleEnabled = enabled;
+        }
+
     private:
         //------------------------------------------------------------
         // 定数バッファの作成
@@ -574,6 +594,25 @@ namespace Tsukino::Renderer {
         bool SetFogPipeline(const Tsukino::Asset::ShaderAsset* ps);
 
         //------------------------------------------------------------
+        //! 環境パーティクルパスを実行します。
+        //! @note  頂点バッファもインデックスバッファも持たず、1回のDrawで
+        //!        粒子数×6頂点を出す。粒子の属性はすべて頂点シェーダーが
+        //!        SV_VertexIDのハッシュから作るため、送るのはb10のパラメータだけ。
+        //!        深度テストありのHDRバッファ描画なので世界の物体に隠れ、
+        //!        フォグとトーンマップの両方が乗る。フォグパスの直前に呼ぶこと。
+        //------------------------------------------------------------
+        void ExecuteAmbientParticlePass();
+
+        //------------------------------------------------------------
+        //! 環境パーティクルのパイプラインをセットします。
+        //! @param  [in] vs 頂点シェーダーアセット
+        //! @param  [in] ps ピクセルシェーダーアセット
+        //! @return true: 成功, false: 失敗
+        //------------------------------------------------------------
+        [[nodiscard]]
+        bool SetAmbientParticlePipeline(const Tsukino::Asset::ShaderAsset* vs, const Tsukino::Asset::ShaderAsset* ps);
+
+        //------------------------------------------------------------
         //! @brief トーンマッピングパスの実行
         //! @param source [in] 入力となるシーンカラーのSRV
         //!                    （モーションブラーが走ったかどうかで切り替わる）
@@ -703,5 +742,14 @@ namespace Tsukino::Renderer {
         CBufferFog                m_fogData{};            //!< CPU側のフォグパラメータ
         bool                      m_hasFog     = false;    //!< PSの構築が済んでいるか
         bool                      m_fogEnabled = false;    //!< 今フレームで有効か（FogSystemが毎フレーム設定）
+
+        // 環境パーティクル用リソース
+        ComPtr<ID3D11VertexShader> m_ambientParticleVS;                     //!< 環境パーティクル用VS
+        ComPtr<ID3D11PixelShader>  m_ambientParticlePS;                     //!< 環境パーティクル用PS
+        ComPtr<ID3D11Buffer>       m_ambientParticleBuffer;                 //!< 環境パーティクルパラメータ用バッファ (b10)
+        CBufferAmbientParticle     m_ambientParticleData{};                 //!< CPU側の環境パーティクルパラメータ
+        u32                        m_ambientParticleCount   = 0;            //!< 今フレームの粒子数
+        bool                       m_hasAmbientParticle     = false;        //!< シェーダーの構築が済んでいるか
+        bool                       m_ambientParticleEnabled = false;        //!< 今フレームで有効か（AmbientParticleSystemが毎フレーム設定）
     };
 }    // namespace Tsukino::Renderer
