@@ -8,3 +8,15 @@ External/
 # 自動生成ドキュメントの機械可読版（外部ツール用）。
 # 人／エージェントが読むのは Docs/api-index.md と Docs/api/*.md。
 Docs/agent-manifest.json
+
+# ビルド生成物。
+bin/
+bin-int/
+.build/
+
+# Doxygen 生成物。読むのは Docs/api-index.md 等（CLAUDE.md 参照）。
+html/
+xml/
+
+# premake が公開ヘッダ1本につき1つ生成する検証用スタブ（中身は include 1行のみ）。
+Tools/HeaderCheck/generated/

@@ -8,11 +8,15 @@
 ### 探索してはいけない場所
 
 `External/` 配下（Effekseer / JoltPhysics / entt / cereal / hlslpp / DirectXTex）は
-**読まない・grep しない**。19,000ファイル以上あり、コンテキストを食い潰す。
+**読まない・grep しない**。約4,600ファイル・180MBあり、コンテキストを食い潰す。
 `.ignore` で機械的にも塞いであるが、意図として覚えておくこと。
 
 `Tools/HeaderCheck/generated/` も読まない。premake が公開ヘッダ1本につき1つ
 生成する、include 1行だけの検証用ファイル（C-14）で、読む価値のある中身は無い。
+`.ignore` で機械的にも塞いである。
+
+`bin/` `bin-int/` `.build/`（ビルド生成物）と `html/` `xml/`（Doxygen生成物。正は
+`Docs/` 配下）も同様に `.ignore` で塞いである。
 
 エンジンの API を知りたいときは、ヘッダを片端から読むのではなく次を見る:
 
