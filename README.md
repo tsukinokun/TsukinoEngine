@@ -185,8 +185,10 @@ not change them:
   this with a real error channel would change signatures everywhere, so it is a 2.0
   question, not a 1.x one.
 
-## License
+## Demo
+- [explanatory article(Qiita)](https://qiita.com/tsukino_/items/5d21a83fe3c2ad91828c)
 
+## License
 This project is licensed under the [MIT License](LICENSE).
 
 Third-party components and their license texts are listed in
