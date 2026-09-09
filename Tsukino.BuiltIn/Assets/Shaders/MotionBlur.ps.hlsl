@@ -26,7 +26,7 @@ SamplerState velocitySampler : register(s9);  // PointClamp
 //--------------------------------------------------------------
 //! @brief モーションブラーパラメータ (b8)
 //--------------------------------------------------------------
-cbuffer CBufferMotionBlur : register(b8)
+cbuffer CBufferMotionBlur : register(b7)
 {
     float strength;         // 速度ベクトルの倍率
     float maxBlurRadius;    // UV単位のブラー長クランプ

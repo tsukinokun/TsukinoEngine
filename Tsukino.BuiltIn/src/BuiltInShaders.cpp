@@ -34,7 +34,6 @@ namespace Tsukino::BuiltIn {
         skyPS          = assetManager->Load(root / "Tsukino.BuiltIn/Assets/Shaders/Sky.ps.hlsl");
         tonemapVS      = assetManager->Load(root / "Tsukino.BuiltIn/Assets/Shaders/Tonemap.vs.hlsl");
         tonemapPS      = assetManager->Load(root / "Tsukino.BuiltIn/Assets/Shaders/Tonemap.ps.hlsl");
-        waterPS        = assetManager->Load(root / "Tsukino.BuiltIn/Assets/Shaders/Water.ps.hlsl");
         gbufferPS      = assetManager->Load(root / "Tsukino.BuiltIn/Assets/Shaders/GBuffer.ps.hlsl");
         lightingPS     = assetManager->Load(root / "Tsukino.BuiltIn/Assets/Shaders/Lighting.ps.hlsl");
         motionBlurPS   = assetManager->Load(root / "Tsukino.BuiltIn/Assets/Shaders/MotionBlur.ps.hlsl");

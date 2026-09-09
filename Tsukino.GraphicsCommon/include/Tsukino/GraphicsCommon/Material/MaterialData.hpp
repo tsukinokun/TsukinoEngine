@@ -19,7 +19,6 @@ namespace Tsukino::GraphicsCommon {
         PBR,      // 物理ベースレンダリング
         Unlit,    // ライティングなし
         Toon,     // トゥーンシェーディング
-        Water,    // 水面
     };
 
     //--------------------------------------------------------------
@@ -46,13 +45,6 @@ namespace Tsukino::GraphicsCommon {
         // ModelImporterがアルベドの透明テクセルを検出して自動で設定する
         //--------------------------------------------------------------
         float alphaCutoff = 0.0f;
-
-        //--------------------------------------------------------------
-        // Water シェーディング用パラメータ
-        //--------------------------------------------------------------
-        hlslpp::interop::float2 waterSpeed  = hlslpp::float2(0.1f, 0.1f);
-        float                   waterScale  = 1.0f;
-        float                   waterHeight = 0.05f;
 
         // テクスチャパス（空文字 = 未使用）
         std::string albedoMap;

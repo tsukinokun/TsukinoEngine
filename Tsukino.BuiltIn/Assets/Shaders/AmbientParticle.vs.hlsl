@@ -32,7 +32,7 @@ cbuffer CBufferScene : register(b0)
 // 定数バッファ：環境パーティクル (b10)
 // ConstantBuffer.hpp の CBufferAmbientParticle と1バイト単位で一致させること
 //--------------------------------------------------------------
-cbuffer CBufferAmbientParticle : register(b10)
+cbuffer CBufferAmbientParticle : register(b9)
 {
     float4 volumeParams;    // xyz: ボリュームの一辺の長さ, w: 経過時間（秒）
     float4 fadeParams;      // x: 境界フェード開始比率(0〜1), y: 近接フェード距離, z: 乱数シード, w: 予約
@@ -116,7 +116,7 @@ VSOutput VSMain(uint id : SV_VertexID)
     float3 unitPos = float3(Rand01(seed + 0u), Rand01(seed + 1u), Rand01(seed + 2u));
 
     //----------------------------------------------------------
-    // 層（0 = 大きく暗くゆっくり＝灰 ⇔ 1 = 小さく明るく速い＝火の粉）
+    // 層（0 = 大きく暗くゆっくり ⇔ 1 = 小さく明るく速い）
     //
     // 乱数を1本だけ引いて3つのパラメータを同じ向きに補間するのが要点。
     // 別々の乱数にすると「大きくて速くて明るい粒」が混ざって画が汚れる。
@@ -173,7 +173,7 @@ VSOutput VSMain(uint id : SV_VertexID)
     float nearFade = smoothstep(0.0f, max(fadeParams.y, 1.0e-4f), viewDist);
 
     //----------------------------------------------------------
-    // きらめき（揺らぎとは違う周期で明滅させて火の粉のちらつきを作る）
+    // きらめき（揺らぎとは違う周期で明滅させてちらつきを作る）
     //----------------------------------------------------------
     float twinkle = lerp(1.0f - swayParams.w, 1.0f,
                          0.5f + 0.5f * sin(time * omega * 1.9f + phase * 3.1f));

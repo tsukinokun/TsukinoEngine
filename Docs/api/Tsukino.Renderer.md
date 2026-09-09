@@ -49,9 +49,6 @@
 | `ID3D11ShaderResourceView * GetFlatNormalTextureSRV()` | フラット法線テクスチャのSRVを取得 |
 | `void SetSkyParameters(const CBufferSky &sky)` | 大気散乱パラメータのセット |
 | `void SetSkyPipeline(const Tsukino::Asset::ShaderAsset *vs, const Tsukino::Asset::ShaderAsset *ps)` | スカイパイプラインのセット |
-| `void UpdateWaterTime(float deltaTime)` | 水面の時間経過を更新（波のアニメーションなどに使用） |
-| `void SetWaterParameters(const CBufferWater &water)` | 水面パラメータのセット |
-| `void SetWaterPipeline(const Tsukino::Asset::ShaderAsset *vs, const Tsukino::Asset::ShaderAsset *ps)` | 水面パイプラインのセット |
 | `void SetLights(const GPULight *lights, u32 count)` | 点光源・スポットライト配列のセット（ディファードLightingパス用） |
 | `bool SetMotionBlurPipeline(const Tsukino::Asset::ShaderAsset *ps)` | モーションブラーパイプラインのセット |
 | `void SetMotionBlurParameters(const CBufferMotionBlur &params)` | モーションブラーパラメータのセット |
@@ -60,6 +57,7 @@
 | `void SetFogEnabled(bool enabled) noexcept` | フォグの有効・無効を切り替える |
 | `void SetAmbientParticleParameters(const CBufferAmbientParticle &params, u32 particleCount)` | 環境パーティクルのパラメータをセットします。 |
 | `void SetAmbientParticleEnabled(bool enabled) noexcept` |  |
+| `void AdvanceFrameTime(float deltaTime)` | フレームの経過時間を進めます。 |
 
 ## 全公開型の索引
 
@@ -76,7 +74,7 @@
 - **Tsukino::Renderer::CBufferMotionBlur** — `Tsukino.Renderer/include/Tsukino/Renderer/ConstantBuffer.hpp`
   - strength, maxBlurRadius, shutterScale, sampleCount
 - **Tsukino::Renderer::CBufferScene** — `Tsukino.Renderer/include/Tsukino/Renderer/ConstantBuffer.hpp`
-  - view, projection, viewProj, invViewProj, lightViewProj, lightDir, lightColor, cameraPos, prevViewProj
+  - view, projection, viewProj, invViewProj, lightViewProj, lightDir, lightColor, cameraPos, prevViewProj, timeParams, screenParams, shadowParams
 - **Tsukino::Renderer::CBufferSkinning** — `Tsukino.Renderer/include/Tsukino/Renderer/ConstantBuffer.hpp`
   - bones
 - **Tsukino::Renderer::CBufferSkinningPrev** — `Tsukino.Renderer/include/Tsukino/Renderer/ConstantBuffer.hpp`
@@ -85,12 +83,10 @@
   - rayleighScattering, mieScattering, mieAnisotropy, sunIntensity, atmosphereHeight, planetRadius, sunDiskSize, padding0, groundColor, sunDirection
 - **Tsukino::Renderer::CBufferTransform** — `Tsukino.Renderer/include/Tsukino/Renderer/ConstantBuffer.hpp`
   - world, prevWorld, motionFlags
-- **Tsukino::Renderer::CBufferWater** — `Tsukino.Renderer/include/Tsukino/Renderer/ConstantBuffer.hpp`
-  - time, waveSpeed, waveScale, fresnelPower, shallowColor, deepColor
 - **Tsukino::Renderer::DX11Texture2D** — `Tsukino.Renderer/include/Tsukino/Renderer/DX11/Texture/DX11Texture2D.hpp`
   - DX11Texture2D(), Bind(), GetWidth(), GetHeight(), GetSRV()
 - **Tsukino::Renderer::DrawCommand** — `Tsukino.Renderer/include/Tsukino/Renderer/DrawCommand.hpp`
-  - material, mesh, customDraw, transform, pass, materialData, sortOrder, boneMatrices, boneCount, prevTransform, prevBoneMatrices, hasPrevFrame
+  - material, mesh, customDraw, transform, pass, materialData, sortOrder, boneMatrices, boneCount, instanceCount, instanceData, castsShadow, userConstantBuffer, userConstantSlot, prevTransform, prevBoneMatrices, hasPrevFrame
 - **Tsukino::Renderer::DrawCommandQueue** — `Tsukino.Renderer/include/Tsukino/Renderer/DrawCommandQueue.hpp`
   - Push(), AllocMaterial(), AllocMaterialData(), GetCommands(), Clear(), Size()
 - **Tsukino::Renderer::DynamicFontAtlas** — `Tsukino.Renderer/include/Tsukino/Renderer/Text/DynamicFontAtlas.hpp`
@@ -105,6 +101,8 @@
   - GBufferCount, Initialize(), BeginFrame(), EndFrame(), GetDevice(), GetContext(), SetPipelineState(), SetMaterial(), GetHDRSRV(), BindBackBuffer(), BeginGBufferPass(), GetPostProcessSRV(), BindPostProcessTarget(), BindHDRRenderTarget(), BindHDRTargetOnly(), GetGBufferSRV(), GetDepthSRV(), Resize(), GetWidth(), GetHeight(), SetVSyncEnabled(), IsVSyncEnabled()
 - **Tsukino::Renderer::IPostWorldPass** — `Tsukino.Renderer/include/Tsukino/Renderer/IPostWorldPass.hpp`
   - ~IPostWorldPass(), RenderPostWorld()
+- **Tsukino::Renderer::InstanceBuffer** — `Tsukino.Renderer/include/Tsukino/Renderer/DX11/InstanceBuffer.hpp`
+  - buffer, srv, stride, capacity, activeCount, IsValid()
 - **Tsukino::Renderer::Material** — `Tsukino.Renderer/include/Tsukino/Renderer/DX11/Material.hpp`
   - TextureSlotCount, SetPipeline(), SetTexture(), SetTexture(), SetSampler(), GetPipeline(), GetTexture(), GetTextures(), GetSampler()
 - **Tsukino::Renderer::MeshBuffer** — `Tsukino.Renderer/include/Tsukino/Renderer/DX11/MeshBuffer.hpp`
@@ -116,9 +114,9 @@
 - **Tsukino::Renderer::PipelineState** — `Tsukino.Renderer/include/Tsukino/Renderer/DX11/PipelineState.hpp`
   - vs, ps, inputLayout, rasterizer, blend, depth, topology
 - **Tsukino::Renderer::Renderer** — `Tsukino.Renderer/include/Tsukino/Renderer/Renderer.hpp`
-  - Renderer(), ~Renderer(), Initialize(), Render(), Resize(), SetClearColor(), PushDrawCommand(), AllocMaterial(), AllocMaterialData(), GetFrameStats(), SetVSyncEnabled(), IsVSyncEnabled(), DrawDebugLine(), DrawDebugTriangle(), FlushDebugDraw(), GetPipelineFactory(), GetDevice(), GetContext(), GetPrimitiveMesh(), GetSampler(), GetTextureSRV(), UpdateSceneBuffer(), CreateSpriteFont(), SetWorldCameraMatrix(), SetOverlayCameraMatrix(), CreateSpriteBatch(), GetCommonStatesTK(), SetDirectionalLight(), SetShadowPipeline(), GetWhiteTextureSRV(), GetFlatNormalTextureSRV(), SetSkyParameters(), SetSkyPipeline(), UpdateWaterTime(), SetWaterParameters(), SetWaterPipeline(), SetLights(), SetMotionBlurPipeline(), SetMotionBlurParameters(), SetMotionBlurEnabled(), SetFogParameters(), SetFogEnabled(), SetAmbientParticleParameters(), SetAmbientParticleEnabled()
+  - Renderer(), ~Renderer(), Initialize(), Render(), Resize(), SetClearColor(), PushDrawCommand(), AllocMaterial(), AllocMaterialData(), GetFrameStats(), SetVSyncEnabled(), IsVSyncEnabled(), DrawDebugLine(), DrawDebugTriangle(), FlushDebugDraw(), GetPipelineFactory(), GetDevice(), GetContext(), GetPrimitiveMesh(), GetSampler(), GetTextureSRV(), UpdateSceneBuffer(), CreateSpriteFont(), SetWorldCameraMatrix(), SetOverlayCameraMatrix(), CreateSpriteBatch(), GetCommonStatesTK(), SetDirectionalLight(), SetShadowPipeline(), GetWhiteTextureSRV(), GetFlatNormalTextureSRV(), SetSkyParameters(), SetSkyPipeline(), SetLights(), SetMotionBlurPipeline(), SetMotionBlurParameters(), SetMotionBlurEnabled(), SetFogParameters(), SetFogEnabled(), SetAmbientParticleParameters(), SetAmbientParticleEnabled(), AdvanceFrameTime()
 - **Tsukino::Renderer::Renderer::FrameStats** — `Tsukino.Renderer/include/Tsukino/Renderer/Renderer.hpp`
-  - commandCount, shadowDrawCalls, gbufferDrawCalls, worldDrawCalls, transparentDrawCalls, waterDrawCalls, overlayDrawCalls, skinnedDrawCalls, triangleCount, boneBytesUploaded, TotalDrawCalls()
+  - commandCount, shadowDrawCalls, gbufferDrawCalls, worldDrawCalls, transparentDrawCalls, overlayDrawCalls, skinnedDrawCalls, triangleCount, boneBytesUploaded, TotalDrawCalls()
 - **Tsukino::Renderer::RendererShaderSet** — `Tsukino.Renderer/include/Tsukino/Renderer/Renderer.hpp`
   - debugVS, debugPS, tonemapVS, tonemapPS, shadowStaticVS, shadowSkeletalVS, shadowPS, lightingPS, motionBlurPS, fogPS, ambientParticleVS, ambientParticlePS
 - **Tsukino::Renderer::Shader** — `Tsukino.Renderer/include/Tsukino/Renderer/Shader.hpp`
@@ -127,3 +125,5 @@
   - LoadFromFile()
 - **Tsukino::Renderer::SpriteRenderer** — `Tsukino.Renderer/include/Tsukino/Renderer/SpriteRenderer.hpp`
   - SpriteRenderer(), Draw()
+- **Tsukino::Renderer::UserConstantBuffer** — `Tsukino.Renderer/include/Tsukino/Renderer/DX11/UserConstantBuffer.hpp`
+  - buffer, byteSize, IsValid()

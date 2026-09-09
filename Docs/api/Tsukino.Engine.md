@@ -159,7 +159,7 @@
 - **Tsukino::Asset::IAsset** — `Tsukino.Engine/include/Tsukino/Engine/Asset/IAsset.hpp`
   - ~IAsset(), GetHandle(), SetHandle(), GetType()
 - **Tsukino::Asset::IAssetImporter** — `Tsukino.Engine/include/Tsukino/Engine/Asset/IAssetImporter.hpp`
-  - ~IAssetImporter(), Import()
+  - ~IAssetImporter(), Import(), CollectDependencies()
 - **Tsukino::Asset::IAssetLoader** — `Tsukino.Engine/include/Tsukino/Engine/Asset/IAssetLoader.hpp`
   - ~IAssetLoader(), CanLoad(), Load()
 - **Tsukino::Asset::MaterialAsset** — `Tsukino.Engine/include/Tsukino/Engine/Asset/Material/MaterialAsset.hpp`
@@ -175,7 +175,7 @@
 - **Tsukino::Asset::ShaderAsset** — `Tsukino.Engine/include/Tsukino/Engine/Asset/Shader/ShaderAsset.hpp`
   - shaderStage, entryPoint, profile, source, binary, filePath, ShaderAsset(), GetHandle(), GetType(), SetHandle()
 - **Tsukino::Asset::ShaderImporter** — `Tsukino.Engine/include/Tsukino/Engine/Asset/Shader/ShaderImporter.hpp`
-  - Import()
+  - Import(), CollectDependencies()
 - **Tsukino::Asset::ShaderLoader** — `Tsukino.Engine/include/Tsukino/Engine/Asset/Shader/ShaderLoader.hpp`
   - ShaderLoader(), CanLoad(), Load(), DetectStage()
 - **Tsukino::Asset::TextureAsset** — `Tsukino.Engine/include/Tsukino/Engine/Asset/Texture/TextureAsset.hpp`

@@ -116,7 +116,7 @@ namespace Tsukino::Renderer {
 
         //--------------------------------------------------------------
         //! @brief HDRバッファへ戻す（クリアはしない）
-        //! @note  Lightingパス完了後、World/Transparent/Waterパスの前に呼ぶ
+        //! @note  Lightingパス完了後、World/Transparentパスの前に呼ぶ
         //--------------------------------------------------------------
         void BindHDRRenderTarget();
 

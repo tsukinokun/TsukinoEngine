@@ -36,7 +36,7 @@
 | `count` | `unsigned int` | number | `3000` |
 | `volumeSize` | `hlslpp::float3` | { "x", "y", "z" } | `hlslpp::float3(2400.0f, 900.0f, 2400.0f)` |
 | `seed` | `unsigned int` | number | `12345` |
-| `color` | `hlslpp::float3` | { "x", "y", "z" } | `hlslpp::float3(1.0f, 0.32f, 0.06f)` |
+| `color` | `hlslpp::float3` | { "x", "y", "z" } | `hlslpp::float3(1.0f, 1.0f, 1.0f)` |
 | `intensity` | `float` | number | `1.0f` |
 | `minSize` | `float` | number | `0.8f` |
 | `maxSize` | `float` | number | `3.5f` |
@@ -325,11 +325,11 @@
 | `CharacterControllerComponent` | — | — | `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/CharacterControllerComponent.hpp` |
 | `DebugCameraTag` | `DebugCameraTag` | — | `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/DebugCameraTag.hpp` |
 | `DraggableComponent` | `DraggableComponent` | — | `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/DraggableComponent.hpp` |
-| `HighlightComponent` | — | — | `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/HighlightComponent.hpp` |
 | `ImpulseRequestComponent` | — | — | `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/ImpulseRequestComponent.hpp` |
 | `MotionVectorComponent` | — | — | `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/MotionVectorComponent.hpp` |
 | `NodeWorldMatrixComponent` | — | — | `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/NodeWorldMatrixComponent.hpp` |
 | `NodeWorldPoseComponent` | — | — | `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/NodeWorldPoseComponent.hpp` |
+| `RimGlowComponent` | — | — | `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/RimGlowComponent.hpp` |
 | `RootMotionComponent` | — | — | `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/RootMotionComponent.hpp` |
 | `SkeletonOutputComponent` | — | — | `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/SkeletonOutputComponent.hpp` |
 | `SpringBoneComponent` | — | — | `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/SpringBoneComponent.hpp` |

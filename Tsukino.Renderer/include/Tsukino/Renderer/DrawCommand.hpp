@@ -8,6 +8,7 @@
 #include <Tsukino/Core/WindowsLean.hpp>
 #include <Tsukino/Core/Math/Matrix.hpp>
 #include <Tsukino/Core/typedef.hpp>
+#include <Tsukino/Renderer/ShaderSlots.hpp>
 
 #include <d3d11.h>
 #include <functional>
@@ -27,7 +28,6 @@ namespace Tsukino::Renderer {
         World,              // 3D（デバッグ線などcustomDraw経由のフォワード不透明）/通常スプライト
         TransparentDepth,   // 半透明モデルの深度事前パス（Transparentの直前。色は書かず深度だけ埋める）
         Transparent,        // 透明オブジェクト
-        Water,              //
         Overlay,            // フォント/UI
     };
 
@@ -52,6 +52,48 @@ namespace Tsukino::Renderer {
 
         const void* boneMatrices = nullptr;    // ボーン行列の配列へのポインタ（スキニング用, 最大ボーン数は SkeletonOutputComponent 等に依存）
         u32         boneCount    = 0;          // スキニング用のボーン数
+
+        //--------------------------------------------------------
+        // インスタンス描画。
+        // instanceCount が 1 のときは従来どおり DrawIndexed を通るため、
+        // 既存の描画コマンドは1つも影響を受けない（既定値が 1 なのはそのため）。
+        //
+        // 1インスタンスあたりのデータは頂点バッファではなく StructuredBuffer で
+        // 渡す。頂点バッファ方式にすると入力レイアウトをフォーマットごとに
+        // 増やす羽目になり、VertexFormat が PipelineKey に含まれている以上、
+        // パイプラインのキャッシュが倍々に膨らむため。
+        //
+        // instanceData は必須ではない。インスタンスごとの値を SV_InstanceID の
+        // ハッシュから毎フレーム計算する使い方（草など）では nullptr のままでよい。
+        //--------------------------------------------------------
+        u32                       instanceCount = 1;          // 描画するインスタンス数（1 なら非インスタンス描画）
+        ID3D11ShaderResourceView* instanceData  = nullptr;    // 1インスタンスあたりのデータ（頂点シェーダーの t スロットへバインドされる）
+
+        //--------------------------------------------------------
+        // 影を落とすか。
+        // シャドウパスは GBuffer のコマンドを固定のシャドウ用シェーダーで
+        // 描き直すため、頂点シェーダーが独自に頂点を組み立てるオブジェクト
+        // （草など）は、そのままでは形が再現できずに壊れた影が出る。
+        // そういうコマンドはここを false にしてシャドウパスから外す。
+        //
+        // 既定は true なので、既存のコマンドは今までどおり影を落とす。
+        //--------------------------------------------------------
+        bool castsShadow = true;    // false ならシャドウパスをスキップする
+
+        //--------------------------------------------------------
+        // ゲーム定義の定数バッファ。
+        // ゲームが自前のシェーダーで描くとき、そのシェーダーへ
+        // パラメータを渡すための口。VS / PS の両方へバインドされる。
+        //
+        // エンジンが使う b0〜b9 とは別枠（CBSlot::User0 / User1）なので、
+        // ゲームが何を入れてもエンジン側の描画とは衝突しない。
+        // 時間や解像度は b0（CBufferScene）から取れるので、それだけで
+        // 足りる演出はこの枠を使う必要すら無い。
+        //
+        // 作成・更新は DX11/UserConstantBuffer.hpp のヘルパを使う
+        //--------------------------------------------------------
+        ID3D11Buffer* userConstantBuffer = nullptr;             // ゲーム定義の定数バッファ（不要なら nullptr）
+        CBSlot        userConstantSlot   = CBSlot::User0;       // バインド先（User0 / User1）
 
         //--------------------------------------------------------
         // モーションブラー用の前フレームデータ

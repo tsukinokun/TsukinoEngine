@@ -26,7 +26,7 @@ struct GPULight
 //--------------------------------------------------------------
 //! @brief 点光源・スポットライト配列 (b6)
 //--------------------------------------------------------------
-cbuffer CBufferLights : register(b6)
+cbuffer CBufferLights : register(b5)
 {
     uint     lightCount;
     uint3    lightsPad;

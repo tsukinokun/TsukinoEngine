@@ -13,7 +13,7 @@
 #include <Tsukino/BuiltIn/ECS/Component/SkeletonOutputComponent.hpp>
 #include <Tsukino/BuiltIn/ECS/Component/CollisionComponent.hpp>
 #include <Tsukino/BuiltIn/ECS/Component/RigidbodyComponent.hpp>
-#include <Tsukino/BuiltIn/ECS/Component/HighlightComponent.hpp>
+#include <Tsukino/BuiltIn/ECS/Component/RimGlowComponent.hpp>
 #include <Tsukino/BuiltIn/ECS/Component/MotionVectorComponent.hpp>
 #include <Tsukino/Engine/Asset/AssetManager.hpp>
 #include <Tsukino/Engine/Asset/Model/ModelAsset.hpp>
@@ -42,11 +42,6 @@ namespace Tsukino::BuiltIn::ECS {
         Tsukino::EngineIntegration::EngineContext* ctx = registry.GetContext<Tsukino::EngineIntegration::EngineContext*>();
         if(!ctx || !ctx->renderer)
             return;
-
-        //-------------------------------------------------------------
-        // 水面の時間更新
-        //-------------------------------------------------------------
-        ctx->renderer->UpdateWaterTime(deltaTime);
 
         auto view = registry.View<TransformComponent, ModelComponent>();
 
@@ -211,7 +206,7 @@ namespace Tsukino::BuiltIn::ECS {
                     }
 
                     // エンティティ単位のハイライト上書き（マテリアルアセットより後に適用する）
-                    if(auto* highlight = registry.try_get<HighlightComponent>(entity); highlight && highlight->active) {
+                    if(auto* highlight = registry.try_get<RimGlowComponent>(entity); highlight && highlight->active) {
                         cbMat.rimColor  = hlslpp::float4(highlight->rimColor, highlight->rimIntensity);
                         cbMat.rimParams = hlslpp::float4(highlight->rimPower, highlight->glow, 0.0f, 0.0f);
                     }
@@ -239,20 +234,14 @@ namespace Tsukino::BuiltIn::ECS {
                     *pCbMat                                    = cbMat;
 
                     // シェーダーアセットの取得
-                    // VSはワールド座標・法線・UVを出力するだけなので、フォワード(Water/半透明)/
+                    // VSはワールド座標・法線・UVを出力するだけなので、フォワード（半透明）/
                     // ディファード(GBuffer)いずれのPSでも共用できる
                     Tsukino::Asset::AssetHandle vsHandle = isSkeletal ? ctx->builtinAssets->shaders.modelVS : ctx->builtinAssets->shaders.staticModelVS;
                     Tsukino::Asset::AssetHandle psHandle = ctx->builtinAssets->shaders.gbufferPS;
 
-                    // ShadingModel に応じて PS と BlendMode を切り替え
-                    // （shadingModel はテクスチャ解決と同じ MaterialAsset 取得で拾っている）
                     Tsukino::Renderer::BlendMode blendMode = Tsukino::Renderer::BlendMode::Opaque;
-                    if(shadingModel == Tsukino::GraphicsCommon::ShadingModel::Water) {
-                        psHandle  = ctx->builtinAssets->shaders.waterPS;
-                        blendMode = Tsukino::Renderer::BlendMode::Alpha;
-                    }
 
-                    // opacityフェード中は（Waterより優先して）半透明フォワードへ切り替える。
+                    // opacityフェード中は半透明フォワードへ切り替える。
                     // Model.ps.hlslはt0（アルベド）しかサンプルしないため、フェード中だけ
                     // 法線/MR/エミッシブ/AOマップは効かなくなる
                     if(isFading) {
@@ -339,12 +328,8 @@ namespace Tsukino::BuiltIn::ECS {
                         auto pipeline = ctx->renderer->GetPipelineFactory()->Create(*vsAsset, *psAsset, vertexFormat,
                                                                                     Tsukino::Renderer::DepthMode::ReadWrite, blendMode);
                         if(auto* mat = buildMaterial(pipeline)) {
-                            // Water はフォワードの専用パス（半透明のためディファード対象外）。
-                            // それ以外（PBR/Unlit/Toon）は不透明としてG-Bufferパスへ回す。
-                            Tsukino::Renderer::RenderPass pass = (shadingModel == Tsukino::GraphicsCommon::ShadingModel::Water)
-                                                                      ? Tsukino::Renderer::RenderPass::Water
-                                                                      : Tsukino::Renderer::RenderPass::GBuffer;
-                            pushDrawCommand(mat, pass);
+                            // 不透明（PBR/Unlit/Toon）はG-Bufferパスへ回す
+                            pushDrawCommand(mat, Tsukino::Renderer::RenderPass::GBuffer);
                         }
                     }
                 }

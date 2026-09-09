@@ -200,23 +200,6 @@ namespace Tsukino::Renderer {
         }
 
         //------------------------------------------------------------
-        // m_waterBuffer (b5) の作成
-        //------------------------------------------------------------
-        desc.ByteWidth = sizeof(Tsukino::Renderer::CBufferWater);
-        hr             = device->CreateBuffer(&desc, nullptr, m_waterBuffer.GetAddressOf());
-        if(FAILED(hr)) {
-            Tsukino::Core::Log::Error("Failed to create water constant buffer.");
-            return false;
-        }
-
-        m_waterData.time         = 0.0f;
-        m_waterData.waveSpeed    = -0.08f;
-        m_waterData.waveScale    = 1.2f;
-        m_waterData.fresnelPower = 4.0f;
-        m_waterData.shallowColor = hlslpp::float4(0.2f, 0.6f, 0.5f, 1.0f);
-        m_waterData.deepColor    = hlslpp::float4(0.0f, 0.1f, 0.3f, 1.0f);
-
-        //------------------------------------------------------------
         // m_lightsBuffer (b6) の作成（ディファードLightingパス用の点光源・スポットライト配列）
         //------------------------------------------------------------
         desc.ByteWidth = sizeof(Tsukino::Renderer::CBufferLights);
@@ -402,11 +385,6 @@ namespace Tsukino::Renderer {
         m_frameStats.commandCount = static_cast<u32>(commands.size());
 
         //------------------------------------------------------------
-        // 水の更新
-        //------------------------------------------------------------
-        m_waterData.time = m_waterTime;
-
-        //------------------------------------------------------------
         // Shadow パス（ディファードGBufferの対象＝不透明3Dモデルのみ影を落とす）
         //------------------------------------------------------------
         if(m_shadowStaticPipeline || m_shadowSkeletalPipeline) {
@@ -431,6 +409,12 @@ namespace Tsukino::Renderer {
             for(const auto& cmd : commands) {
                 if(cmd.pass != RenderPass::GBuffer)
                     continue;
+
+                // 頂点シェーダーが独自に頂点を組み立てるオブジェクトは、
+                // 固定のシャドウ用シェーダーでは形を再現できないので外す
+                if(!cmd.castsShadow)
+                    continue;
+
                 ExecuteShadowCommand(cmd);
             }
 
@@ -462,7 +446,7 @@ namespace Tsukino::Renderer {
 
         //------------------------------------------------------------
         // HDRバッファへ復帰（Lightingの結果を保持したままDSVも再度有効化）
-        // 以降のWorld/Transparent/WaterはG-Bufferパスで書いた深度に対して
+        // 以降のWorld/TransparentはG-Bufferパスで書いた深度に対して
         // 正しく前後関係が出る（デバッグ線や半透明が不透明オブジェクトの後ろに隠れる）
         //------------------------------------------------------------
         m_graphicsContext.BindHDRRenderTarget();
@@ -514,13 +498,6 @@ namespace Tsukino::Renderer {
             if(cmd.pass != RenderPass::Transparent)
                 continue;
             ExecuteDrawCommand(cmd);
-        }
-
-        UpdateSceneBuffer(m_worldSceneData);
-        for(const auto& cmd : commands) {
-            if(cmd.pass != RenderPass::Water)
-                continue;
-            ExecuteWaterCommand(cmd);
         }
 
         //------------------------------------------------------------
@@ -812,6 +789,25 @@ namespace Tsukino::Renderer {
         uploadData.prevViewProj = m_prevWorldViewProj;
 
         //------------------------------------------------------------
+        // フレーム共通の素材（時間・解像度・シャドウマップ寸法）を差し込む。
+        //
+        // prevViewProjと同じ理由でここに集約している：呼び出し側
+        // （CameraSystem）はこれらを知らないし、知る必要も無い。
+        // ここで埋めておけば、どのシェーダーもb0を宣言するだけで
+        // 時間や画面サイズを使えるようになり、演出ごとに専用の
+        // 定数バッファを1本ずつ確保する必要が無くなる
+        //------------------------------------------------------------
+        uploadData.timeParams = hlslpp::float4(m_elapsedTime, m_frameDeltaTime, std::sin(m_elapsedTime), std::cos(m_elapsedTime));
+
+        const float screenWidth  = static_cast<float>(m_graphicsContext.GetWidth());
+        const float screenHeight = static_cast<float>(m_graphicsContext.GetHeight());
+        uploadData.screenParams  = hlslpp::float4(screenWidth, screenHeight, screenWidth > 0.0f ? 1.0f / screenWidth : 0.0f,
+                                                  screenHeight > 0.0f ? 1.0f / screenHeight : 0.0f);
+
+        constexpr float shadowMapSize = static_cast<float>(SHADOW_MAP_SIZE);
+        uploadData.shadowParams       = hlslpp::float4(shadowMapSize, 1.0f / shadowMapSize, 0.0f, 0.0f);
+
+        //------------------------------------------------------------
         // GPU上のバッファ（m_sceneBuffer）の中身を書き換える
         //------------------------------------------------------------
         context->UpdateSubresource(m_sceneBuffer.Get(), 0, nullptr, &uploadData, 0, 0);
@@ -819,8 +815,8 @@ namespace Tsukino::Renderer {
         //------------------------------------------------------------
         // スロット0（b0）にバインドする
         //------------------------------------------------------------
-        context->VSSetConstantBuffers(0, 1, m_sceneBuffer.GetAddressOf());
-        context->PSSetConstantBuffers(0, 1, m_sceneBuffer.GetAddressOf());
+        context->VSSetConstantBuffers(static_cast<UINT>(CBSlot::Scene), 1, m_sceneBuffer.GetAddressOf());
+        context->PSSetConstantBuffers(static_cast<UINT>(CBSlot::Scene), 1, m_sceneBuffer.GetAddressOf());
     }
 
     //------------------------------------------------------------
@@ -940,74 +936,6 @@ namespace Tsukino::Renderer {
     }
 
     //------------------------------------------------------------
-    //! @brief 水面描画コマンドの実行
-    //------------------------------------------------------------
-    void Renderer::ExecuteWaterCommand(const DrawCommand& cmd) {
-        if(!cmd.material || !cmd.mesh)
-            return;
-
-        ID3D11DeviceContext* context = m_graphicsContext.GetContext();
-
-        //----------------------------------------------------------
-        // cmd.material のパイプラインをセット
-        //----------------------------------------------------------
-        m_graphicsContext.SetMaterial(*cmd.material);
-
-        //----------------------------------------------------------
-        // シャドウマップを t8 / s8 にバインド
-        // （Water.ps.hlsl は t8/s8 を参照する）
-        //----------------------------------------------------------
-        context->PSSetShaderResources(8, 1, m_shadowMapSRV.GetAddressOf());
-        context->PSSetSamplers(8, 1, m_waterShadowSampler.GetAddressOf());
-
-        //----------------------------------------------------------
-        // Scene (b0) を再バインド
-        //----------------------------------------------------------
-        context->VSSetConstantBuffers(0, 1, m_sceneBuffer.GetAddressOf());
-        context->PSSetConstantBuffers(0, 1, m_sceneBuffer.GetAddressOf());
-
-        //----------------------------------------------------------
-        // Transform (b1)
-        //----------------------------------------------------------
-        CBufferTransform cb{};
-        cb.world = cmd.transform;
-        context->UpdateSubresource(m_objectBuffer.Get(), 0, nullptr, &cb, 0, 0);
-        context->VSSetConstantBuffers(1, 1, m_objectBuffer.GetAddressOf());
-
-        //----------------------------------------------------------
-        // Water (b5) を更新してバインド
-        // time は UpdateWaterTime() で毎フレーム更新済み
-        //----------------------------------------------------------
-        context->UpdateSubresource(m_waterBuffer.Get(), 0, nullptr, &m_waterData, 0, 0);
-        context->PSSetConstantBuffers(5, 1, m_waterBuffer.GetAddressOf());
-
-        //----------------------------------------------------------
-        // 頂点バッファ・インデックスバッファのセット
-        // 水面はスキニングなし（スロット1は必ずクリア）
-        //----------------------------------------------------------
-        ID3D11Buffer* vbs[]     = {cmd.mesh->vertexBuffer.Get(), nullptr};
-        UINT          strides[] = {cmd.mesh->stride, 0};
-        UINT          offsets[] = {0, 0};
-        context->IASetVertexBuffers(0, 2, vbs, strides, offsets);
-        context->IASetIndexBuffer(cmd.mesh->indexBuffer.Get(), DXGI_FORMAT_R32_UINT, 0);
-        context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-
-        //----------------------------------------------------------
-        // 描画
-        //----------------------------------------------------------
-        context->DrawIndexed(cmd.mesh->indexCount, 0, 0);
-
-        // 統計の加算（負荷調査用）
-        CountDrawCall(cmd.pass, cmd.mesh->indexCount);
-
-        //----------------------------------------------------------
-        // 後片付け：t8/s8 を解除（他のパスへの影響を防ぐ）
-        //----------------------------------------------------------
-        ID3D11ShaderResourceView* nullSRV = nullptr;
-        context->PSSetShaderResources(8, 1, &nullSRV);
-    }
-
-    //------------------------------------------------------------
     //! @brief シャドウパスの実行（シャドウマップへの深度書き込み）
     //------------------------------------------------------------
     void Renderer::ExecuteShadowCommand(const DrawCommand& cmd) {
@@ -1031,7 +959,7 @@ namespace Tsukino::Renderer {
         //------------------------------------------------------------
         // Scene (b0) を再バインド
         //------------------------------------------------------------
-        context->VSSetConstantBuffers(0, 1, m_sceneBuffer.GetAddressOf());
+        context->VSSetConstantBuffers(static_cast<UINT>(CBSlot::Scene), 1, m_sceneBuffer.GetAddressOf());
 
         //------------------------------------------------------------
         // Transform (b1)
@@ -1039,18 +967,18 @@ namespace Tsukino::Renderer {
         CBufferTransform cb{};
         cb.world = cmd.transform;
         context->UpdateSubresource(m_objectBuffer.Get(), 0, nullptr, &cb, 0, 0);
-        context->VSSetConstantBuffers(1, 1, m_objectBuffer.GetAddressOf());
+        context->VSSetConstantBuffers(static_cast<UINT>(CBSlot::Transform), 1, m_objectBuffer.GetAddressOf());
 
         //------------------------------------------------------------
         // ボーン行列 (b3)
         //------------------------------------------------------------
         if(isSkeletal) {
             m_shadowBoneBytes = UploadBoneMatrices(m_skinningBuffer.Get(), cmd.boneMatrices, cmd.boneCount);
-            context->VSSetConstantBuffers(3, 1, m_skinningBuffer.GetAddressOf());
+            context->VSSetConstantBuffers(static_cast<UINT>(CBSlot::Skinning), 1, m_skinningBuffer.GetAddressOf());
         } else {
             m_shadowBoneBytes = 0;
             ID3D11Buffer* nullBuffer = nullptr;
-            context->VSSetConstantBuffers(3, 1, &nullBuffer);
+            context->VSSetConstantBuffers(static_cast<UINT>(CBSlot::Skinning), 1, &nullBuffer);
         }
 
         //------------------------------------------------------------
@@ -1072,9 +1000,23 @@ namespace Tsukino::Renderer {
         context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
         //------------------------------------------------------------
+        // インスタンスごとのデータのバインド。
+        // これが無いとインスタンス描画したオブジェクトが影を落とさない
+        //------------------------------------------------------------
+        BindInstanceData(cmd.instanceData);
+
+        // ゲームが自前のシェーダーで描くときのパラメータ。使わないコマンドでも
+        // 明示的に空を書き、直前のコマンドのバッファを引き継がせない
+        BindUserConstantBuffer(cmd.userConstantBuffer, cmd.userConstantSlot);
+
+        //------------------------------------------------------------
         // 描画
         //------------------------------------------------------------
-        context->DrawIndexed(cmd.mesh->indexCount, 0, 0);
+        if(cmd.instanceCount > 1) {
+            context->DrawIndexedInstanced(cmd.mesh->indexCount, cmd.instanceCount, 0, 0, 0);
+        } else {
+            context->DrawIndexed(cmd.mesh->indexCount, 0, 0);
+        }
 
         //------------------------------------------------------------
         // 統計の加算（負荷調査用）
@@ -1082,7 +1024,7 @@ namespace Tsukino::Renderer {
         // ここで二重に計上されるのが実態どおり
         //------------------------------------------------------------
         ++m_frameStats.shadowDrawCalls;
-        m_frameStats.triangleCount += cmd.mesh->indexCount / 3;
+        m_frameStats.triangleCount += (cmd.mesh->indexCount * cmd.instanceCount) / 3;
         if(isSkeletal) {
             ++m_frameStats.skinnedDrawCalls;
             m_frameStats.boneBytesUploaded += m_shadowBoneBytes;
@@ -1129,11 +1071,46 @@ namespace Tsukino::Renderer {
         case RenderPass::World:            ++m_frameStats.worldDrawCalls; break;
         case RenderPass::TransparentDepth: ++m_frameStats.transparentDrawCalls; break;
         case RenderPass::Transparent:      ++m_frameStats.transparentDrawCalls; break;
-        case RenderPass::Water:            ++m_frameStats.waterDrawCalls; break;
         case RenderPass::Overlay:          ++m_frameStats.overlayDrawCalls; break;
         }
 
         m_frameStats.triangleCount += indexCount / 3;
+    }
+
+    //------------------------------------------------------------
+    //! インスタンスごとのデータを頂点シェーダーへバインドします。
+    //------------------------------------------------------------
+    void Renderer::BindInstanceData(ID3D11ShaderResourceView* srv) {
+        ID3D11DeviceContext* context = m_graphicsContext.GetContext();
+
+        constexpr UINT slot = static_cast<UINT>(SRVSlot::InstanceData);
+
+        // nullptrのときも「空を書き込む」のが肝。ここを素通りさせると、
+        // 直前のインスタンス描画が残したSRVを次のコマンドが読んでしまう
+        ID3D11ShaderResourceView* views[] = {srv};
+        context->VSSetShaderResources(slot, 1, views);
+    }
+
+    //------------------------------------------------------------
+    //! ゲーム定義の定数バッファをバインドします。
+    //------------------------------------------------------------
+    void Renderer::BindUserConstantBuffer(ID3D11Buffer* buffer, CBSlot slot) {
+        ID3D11DeviceContext* context = m_graphicsContext.GetContext();
+
+        //--------------------------------------------------------------
+        // ゲーム予約枠（User0 / User1）以外を指定されたら何もしない。
+        // エンジンが使う b0〜b9 を上書きされると描画が壊れるため、
+        // ここで弾いておく
+        //--------------------------------------------------------------
+        if(slot != CBSlot::User0 && slot != CBSlot::User1)
+            return;
+
+        // BindInstanceDataと同じ理由で、nullptrのときも明示的に空を書く
+        ID3D11Buffer* buffers[] = {buffer};
+
+        const UINT slotIndex = static_cast<UINT>(slot);
+        context->VSSetConstantBuffers(slotIndex, 1, buffers);
+        context->PSSetConstantBuffers(slotIndex, 1, buffers);
     }
 
     //------------------------------------------------------------
@@ -1189,76 +1166,6 @@ namespace Tsukino::Renderer {
         }
 
         m_hasSky = true;
-    }
-
-    //------------------------------------------------------------
-    //! @brief 水面の時間経過を更新
-    //------------------------------------------------------------
-    void Renderer::UpdateWaterTime(float deltaTime) {
-        m_waterTime      += deltaTime;
-        m_waterData.time  = m_waterTime;
-    }
-
-    //------------------------------------------------------------
-    //! @brief 水面パラメータのセット
-    //------------------------------------------------------------
-    void Renderer::SetWaterParameters(const CBufferWater& water) {
-        m_waterData.waveSpeed    = water.waveSpeed;
-        m_waterData.waveScale    = water.waveScale;
-        m_waterData.fresnelPower = water.fresnelPower;
-        m_waterData.shallowColor = water.shallowColor;
-        m_waterData.deepColor    = water.deepColor;
-    }
-
-    //------------------------------------------------------------
-    //! @brief 水面パイプラインのセット
-    //!        PipelineFactory でキャッシュを生成して m_waterPipeline に保持する
-    //------------------------------------------------------------
-    void Renderer::SetWaterPipeline(const Tsukino::Asset::ShaderAsset* vs, const Tsukino::Asset::ShaderAsset* ps) {
-        if(!vs || !ps) {
-            Tsukino::Core::Log::Error("Renderer::SetWaterPipeline - shader is null.");
-            return;
-        }
-
-        auto* factory = GetPipelineFactory();
-        if(!factory)
-            return;
-
-        // BlendMode::Alpha で半透明パイプラインをキャッシュ生成
-        m_waterPipeline = factory->Create(*vs, *ps, Tsukino::GraphicsCommon::VertexFormat::PositionNormalUV, DepthMode::ReadWrite, BlendMode::Alpha);
-
-        if(!m_waterPipeline) {
-            Tsukino::Core::Log::Error("Renderer: Water pipeline creation failed.");
-            return;
-        }
-
-        //----------------------------------------------------------
-        // 水面用 PCF 比較サンプラーを s8 用に作成
-        // （既存の m_shadowSampler は s1 にバインドされるため別途用意）
-        //----------------------------------------------------------
-        if(!m_waterShadowSampler) {
-            ID3D11Device*      device = m_graphicsContext.GetDevice();
-            D3D11_SAMPLER_DESC samplerDesc{};
-            samplerDesc.Filter         = D3D11_FILTER_COMPARISON_MIN_MAG_MIP_LINEAR;
-            samplerDesc.AddressU       = D3D11_TEXTURE_ADDRESS_BORDER;
-            samplerDesc.AddressV       = D3D11_TEXTURE_ADDRESS_BORDER;
-            samplerDesc.AddressW       = D3D11_TEXTURE_ADDRESS_BORDER;
-            samplerDesc.BorderColor[0] = 1.0f;
-            samplerDesc.BorderColor[1] = 1.0f;
-            samplerDesc.BorderColor[2] = 1.0f;
-            samplerDesc.BorderColor[3] = 1.0f;
-            samplerDesc.ComparisonFunc = D3D11_COMPARISON_GREATER_EQUAL;
-            samplerDesc.MinLOD         = 0;
-            samplerDesc.MaxLOD         = D3D11_FLOAT32_MAX;
-
-            HRESULT hr = device->CreateSamplerState(&samplerDesc, m_waterShadowSampler.GetAddressOf());
-            if(FAILED(hr)) {
-                Tsukino::Core::Log::Error("Renderer: Failed to create water shadow sampler.");
-                return;
-            }
-        }
-
-        m_hasWater = true;
     }
 
     //------------------------------------------------------------
@@ -1403,6 +1310,23 @@ namespace Tsukino::Renderer {
     }
 
     //------------------------------------------------------------
+    //! フレームの経過時間を進めます。
+    //------------------------------------------------------------
+    void Renderer::AdvanceFrameTime(float deltaTime) {
+        m_frameDeltaTime = deltaTime;
+        m_elapsedTime += deltaTime;
+
+        //--------------------------------------------------------------
+        // floatの精度が落ちて時間の刻みが粗くなるのを防ぐため、
+        // 一定時間で折り返す。sin/cosを使う演出が大半なので、
+        // 2πの整数倍で折り返せば見た目に不連続は出ない
+        //--------------------------------------------------------------
+        constexpr float kTimeWrap = 6.28318531f * 1000.0f;    // 約6283秒（1時間45分）
+        if(m_elapsedTime > kTimeWrap)
+            m_elapsedTime -= kTimeWrap;
+    }
+
+    //------------------------------------------------------------
     //! @brief 点光源・スポットライト配列のセット
     //! @note  MAX_LIGHTS を超える分は切り捨て、初回のみ警告を出す
     //------------------------------------------------------------
@@ -1462,7 +1386,7 @@ namespace Tsukino::Renderer {
         //------------------------------------------------------
         // Scene (b0) を毎回再バインド（ステート汚染対策）
         //------------------------------------------------------
-        context->VSSetConstantBuffers(0, 1, m_sceneBuffer.GetAddressOf());
+        context->VSSetConstantBuffers(static_cast<UINT>(CBSlot::Scene), 1, m_sceneBuffer.GetAddressOf());
 
         //------------------------------------------------------------
         // 通常描画
@@ -1483,14 +1407,14 @@ namespace Tsukino::Renderer {
         cb.prevWorld   = writeVelocity ? cmd.prevTransform : cmd.transform;
         cb.motionFlags = hlslpp::float4(writeVelocity ? 1.0f : 0.0f, 0.0f, 0.0f, 0.0f);
         context->UpdateSubresource(m_objectBuffer.Get(), 0, nullptr, &cb, 0, 0);
-        context->VSSetConstantBuffers(1, 1, m_objectBuffer.GetAddressOf());
+        context->VSSetConstantBuffers(static_cast<UINT>(CBSlot::Transform), 1, m_objectBuffer.GetAddressOf());
 
         // ------------------------------------------------------------
         // ボーン行列 (b3) の適用
         // ------------------------------------------------------------
         if(cmd.boneMatrices && cmd.boneCount > 0) {
             m_lastDrawBoneBytes = UploadBoneMatrices(m_skinningBuffer.Get(), cmd.boneMatrices, cmd.boneCount);
-            context->VSSetConstantBuffers(3, 1, m_skinningBuffer.GetAddressOf());
+            context->VSSetConstantBuffers(static_cast<UINT>(CBSlot::Skinning), 1, m_skinningBuffer.GetAddressOf());
 
             // --------------------------------------------------------
             // 前フレームのボーン行列 (b7) の適用
@@ -1507,7 +1431,7 @@ namespace Tsukino::Renderer {
             // スキニングを使わないオブジェクトを描画するときは、
             // スロット3を nullptr でクリアして、前のオブジェクトのボーン行列が残らないようにする
             ID3D11Buffer* nullBuffer = nullptr;
-            context->VSSetConstantBuffers(3, 1, &nullBuffer);
+            context->VSSetConstantBuffers(static_cast<UINT>(CBSlot::Skinning), 1, &nullBuffer);
         }
 
         //------------------------------------------------------
@@ -1517,7 +1441,7 @@ namespace Tsukino::Renderer {
 
         if(cmd.materialData) {
             context->UpdateSubresource(m_materialBuffer.Get(), 0, nullptr, cmd.materialData, 0, 0);
-            context->PSSetConstantBuffers(2, 1, m_materialBuffer.GetAddressOf());
+            context->PSSetConstantBuffers(static_cast<UINT>(CBSlot::Material), 1, m_materialBuffer.GetAddressOf());
         }
 
         //------------------------------------------------------
@@ -1542,15 +1466,31 @@ namespace Tsukino::Renderer {
 
         context->IASetIndexBuffer(cmd.mesh->indexBuffer.Get(), DXGI_FORMAT_R32_UINT, 0);
         context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+
+        //------------------------------------------------------
+        // インスタンスごとのデータを頂点シェーダーへバインドする。
+        // 使わないコマンドが直前のSRVを引き継がないよう、無いときは明示的に外す
+        //------------------------------------------------------
+        BindInstanceData(cmd.instanceData);
+
+        // ゲームが自前のシェーダーで描くときのパラメータ。使わないコマンドでも
+        // 明示的に空を書き、直前のコマンドのバッファを引き継がせない
+        BindUserConstantBuffer(cmd.userConstantBuffer, cmd.userConstantSlot);
+
         //------------------------------------------------------
         // 描画
         //------------------------------------------------------
-        context->DrawIndexed(cmd.mesh->indexCount, 0, 0);
+        if(cmd.instanceCount > 1) {
+            context->DrawIndexedInstanced(cmd.mesh->indexCount, cmd.instanceCount, 0, 0, 0);
+        } else {
+            // 既定値が1なので、既存の描画はすべてこちらを通り続ける
+            context->DrawIndexed(cmd.mesh->indexCount, 0, 0);
+        }
 
         //------------------------------------------------------
         // 統計の加算（負荷調査用）
         //------------------------------------------------------
-        CountDrawCall(cmd.pass, cmd.mesh->indexCount);
+        CountDrawCall(cmd.pass, cmd.mesh->indexCount * cmd.instanceCount);
         if(cmd.boneMatrices && cmd.boneCount > 0) {
             ++m_frameStats.skinnedDrawCalls;
             m_frameStats.boneBytesUploaded += m_lastDrawBoneBytes;
@@ -1749,14 +1689,14 @@ namespace Tsukino::Renderer {
         //----------------------------------------------------------
         // Scene (b0) をバインド（invViewProjの計算に使う）
         //----------------------------------------------------------
-        context->VSSetConstantBuffers(0, 1, m_sceneBuffer.GetAddressOf());
-        context->PSSetConstantBuffers(0, 1, m_sceneBuffer.GetAddressOf());
+        context->VSSetConstantBuffers(static_cast<UINT>(CBSlot::Scene), 1, m_sceneBuffer.GetAddressOf());
+        context->PSSetConstantBuffers(static_cast<UINT>(CBSlot::Scene), 1, m_sceneBuffer.GetAddressOf());
 
         //----------------------------------------------------------
         // Sky (b4) をバインド
         //----------------------------------------------------------
         context->UpdateSubresource(m_skyBuffer.Get(), 0, nullptr, &m_skyData, 0, 0);
-        context->PSSetConstantBuffers(4, 1, m_skyBuffer.GetAddressOf());
+        context->PSSetConstantBuffers(static_cast<UINT>(CBSlot::Sky), 1, m_skyBuffer.GetAddressOf());
 
         //----------------------------------------------------------
         // 頂点バッファなしでフルスクリーントライアングルを描画
@@ -1806,8 +1746,8 @@ namespace Tsukino::Renderer {
         //----------------------------------------------------------
         // Scene (b0) をバインド
         //----------------------------------------------------------
-        context->VSSetConstantBuffers(0, 1, m_sceneBuffer.GetAddressOf());
-        context->PSSetConstantBuffers(0, 1, m_sceneBuffer.GetAddressOf());
+        context->VSSetConstantBuffers(static_cast<UINT>(CBSlot::Scene), 1, m_sceneBuffer.GetAddressOf());
+        context->PSSetConstantBuffers(static_cast<UINT>(CBSlot::Scene), 1, m_sceneBuffer.GetAddressOf());
 
         //----------------------------------------------------------
         // Lights (b6) を更新してバインド
@@ -1863,7 +1803,7 @@ namespace Tsukino::Renderer {
         context->PSSetShaderResources(shadowSRVSlot, 1, &nullShadowSRV);
 
         //----------------------------------------------------------
-        // 深度ステートを元に戻す（HDRRenderTarget復帰後のWorld/Transparent/Water用）
+        // 深度ステートを元に戻す（HDRRenderTarget復帰後のWorld/Transparent用）
         //----------------------------------------------------------
         context->OMSetDepthStencilState(m_commonStatesTK->DepthDefault(), 0);
     }
@@ -1957,7 +1897,7 @@ namespace Tsukino::Renderer {
         //----------------------------------------------------------
         // レンダーターゲットは切り替えない。
         // Render()のBindHDRRenderTarget()で貼ったHDR＋DSVがここまで生きており
-        // （World/TransparentDepth/Transparent/Waterはターゲットを触らない）、
+        // （World/TransparentDepth/Transparentはターゲットを触らない）、
         // 深度をSRVとして読むこともないので同時バインドの問題も起きない
         //----------------------------------------------------------
 

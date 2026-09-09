@@ -58,7 +58,7 @@
                     "field": "color",
                     "cppType": "hlslpp::float3",
                     "jsonShape": "{ \"x\", \"y\", \"z\" }",
-                    "default": "hlslpp::float3(1.0f, 0.32f, 0.06f)"
+                    "default": "hlslpp::float3(1.0f, 1.0f, 1.0f)"
                 },
                 {
                     "jsonKey": "intensity",
@@ -644,17 +644,6 @@
             ]
         },
         {
-            "name": "HighlightComponent",
-            "typeName": "Tsukino::BuiltIn::ECS::HighlightComponent",
-            "registered": false,
-            "registeredName": null,
-            "serializable": false,
-            "header": "Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/HighlightComponent.hpp",
-            "serializationHeader": null,
-            "registrationSite": null,
-            "fields": []
-        },
-        {
             "name": "ImpulseRequestComponent",
             "typeName": "Tsukino::BuiltIn::ECS::ImpulseRequestComponent",
             "registered": false,
@@ -920,6 +909,17 @@
                     "default": "true"
                 }
             ]
+        },
+        {
+            "name": "RimGlowComponent",
+            "typeName": "Tsukino::BuiltIn::ECS::RimGlowComponent",
+            "registered": false,
+            "registeredName": null,
+            "serializable": false,
+            "header": "Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/RimGlowComponent.hpp",
+            "serializationHeader": null,
+            "registrationSite": null,
+            "fields": []
         },
         {
             "name": "RootMotionComponent",

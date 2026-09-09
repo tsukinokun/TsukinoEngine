@@ -50,6 +50,11 @@ namespace Tsukino::EngineIntegration {
     // 更新関数
     //------------------------------------------------------------
     void EngineAPI::Update(float deltaTime) {
+        // シェーダーへ配る経過時間を進める。
+        // 演出ごとに自前の時間を持たずに済むよう、ここで1回だけ数える
+        if(m_context.renderer) {
+            m_context.renderer->AdvanceFrameTime(deltaTime);
+        }
         // ゲームシーンの更新
         m_context.gameSceneManager->Update(*this, deltaTime);
         // 入力システムの更新

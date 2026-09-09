@@ -46,7 +46,7 @@ cbuffer CBufferSkinning : register(b3)
 //! @note  モーションブラー無効時はバインドされず0行列が読まれるが、
 //!        その場合 motionFlags.x が 0 になっているので参照されない。
 //--------------------------------------------------------------
-cbuffer CBufferSkinningPrev : register(b7)
+cbuffer CBufferSkinningPrev : register(b6)
 {
     matrix bonesPrev[128];
 };
@@ -70,7 +70,7 @@ struct VSInput
 //! @note  curClip / prevClip はモーションブラーの速度計算専用。
 //!        SV_POSITION はラスタライザでビューポート変換済みの値になるため、
 //!        クリップ空間の座標を別途PSへ渡す必要がある。
-//!        これらを消費しないPS（Model.ps / Water.ps）は入力側で宣言
+//!        これらを消費しないPS（Model.ps）は入力側で宣言
 //!        しなければよい（PS入力はVS出力のサブセットであればよい）。
 //--------------------------------------------------------------
 struct VSOutput

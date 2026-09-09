@@ -10,6 +10,9 @@
 
 #include <d3dcompiler.h>
 #include <fstream>
+#include <set>
+#include <string>
+#include <vector>
 // 名前空間 Tsukino::Asset
 namespace Tsukino::Asset {
     //--------------------------------------------------------------
@@ -113,6 +116,79 @@ namespace Tsukino::Asset {
 
         Tsukino::Core::Log::Info("Shader compiled: " + outputPath.string());
         return true;
+    }
+
+    namespace {
+        //--------------------------------------------------------------
+        //! 1ファイル分の #include "..." を辿り、依存先を集めます。
+        //! @param [in]     filePath 走査するファイルの絶対パス
+        //! @param [in,out] visited  既に辿ったファイル（循環インクルード対策）
+        //! @param [in,out] outDeps  見つかった依存先の追加先
+        //! @note  D3D_COMPILE_STANDARD_FILE_INCLUDE はインクルード元からの相対で
+        //!        解決するため、ここでも同じくインクルード元のディレクトリを基準にする。
+        //!        山括弧の #include <...> は探索パス依存で解決先が一意に決まらないので
+        //!        追わない（HLSL側は引用符の形しか使っていない）
+        //--------------------------------------------------------------
+        void CollectIncludesRecursive(const Tsukino::Core::Path& filePath, std::set<std::string>& visited,
+                                      std::vector<Tsukino::Core::Path>& outDeps) {
+            // 同じファイルを二度辿らない。循環インクルードがあっても止まらなくなる
+            if(!visited.insert(Tsukino::Core::Path::ToLower(filePath.string())).second)
+                return;
+
+            std::ifstream file(filePath.string());
+            if(!file)
+                return;
+
+            const Tsukino::Core::Path parentDir = filePath.parent_path();
+
+            std::string line;
+            while(std::getline(file, line)) {
+                //--------------------------------------------------------------
+                // #include "..." だけを拾う。厳密なプリプロセッサではないので、
+                // コメントアウトされた行まで拾ってしまうことはあるが、
+                // 「依存を多めに見る」方向の誤りなので余計に再コンパイルされるだけで済む
+                //--------------------------------------------------------------
+                const std::size_t includePos = line.find("#include");
+                if(includePos == std::string::npos)
+                    continue;
+
+                const std::size_t firstQuote = line.find('"', includePos);
+                if(firstQuote == std::string::npos)
+                    continue;
+
+                const std::size_t lastQuote = line.find('"', firstQuote + 1);
+                if(lastQuote == std::string::npos)
+                    continue;
+
+                const std::string includeName = line.substr(firstQuote + 1, lastQuote - firstQuote - 1);
+                if(includeName.empty())
+                    continue;
+
+                Tsukino::Core::Path includePath = parentDir / Tsukino::Core::Path(includeName);
+                if(!Tsukino::IO::FileSystem::Exists(includePath))
+                    continue;
+
+                outDeps.push_back(includePath);
+
+                // 入れ子のインクルードも追う
+                CollectIncludesRecursive(includePath, visited, outDeps);
+            }
+        }
+    }    // namespace
+
+    //--------------------------------------------------------------
+    //! シェーダーが #include している .hlsli を再帰的に列挙します。
+    //--------------------------------------------------------------
+    std::vector<Tsukino::Core::Path> ShaderImporter::CollectDependencies(const Tsukino::Core::Path& inputPath) const {
+        std::vector<Tsukino::Core::Path> dependencies;
+
+        const Tsukino::Core::Path baseDir      = Tsukino::IO::FileSystem::GetAssetRootPath();
+        const Tsukino::Core::Path absolutePath = baseDir / inputPath;
+
+        std::set<std::string> visited;
+        CollectIncludesRecursive(absolutePath, visited, dependencies);
+
+        return dependencies;
     }
 
 }    // namespace Tsukino::Asset

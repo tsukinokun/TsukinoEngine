@@ -20,7 +20,7 @@ namespace Tsukino::BuiltIn::ECS {
 
     private:
         //! @brief ノイズを流すための経過時間
-        //! @note  Rendererに時間を持たせる（UpdateWaterTimeのような）APIを増やさず、
+        //! @note  Rendererに時間を持たせるAPIを増やさず、
         //!        時間を必要とする本システムが自分で累積する。
         //!        ヒットストップなどで deltaTime が 0 のときは霧も止まる。
         float m_time = 0.0f;

@@ -126,8 +126,27 @@ namespace Tsukino::Asset {
                     auto sourceTime = Tsukino::IO::FileSystem::GetLastWriteTime(sourceFull);
                     auto cacheTime  = Tsukino::IO::FileSystem::GetLastWriteTime(cacheBasePath);
 
+                    //------------------------------------------------
+                    // ソース本体だけでなく、そのアセットが取り込んでいる
+                    // ファイルの更新も見る。
+                    //
+                    // シェーダーの .hlsli がこれにあたる。共通定義を直しても
+                    // それを #include している .hlsl 自体の日時は変わらないため、
+                    // 本体だけを見ていると古い .cso が使われ続ける。
+                    // 定数バッファのスロット番号を動かしたときなどは
+                    // コンパイルエラーにならず「絵だけ壊れる」ため発見が難しい
+                    //------------------------------------------------
+                    for(const Tsukino::Core::Path& dependency : importerIt->second->CollectDependencies(sourceBasePath)) {
+                        if(!Tsukino::IO::FileSystem::Exists(dependency))
+                            continue;
+
+                        auto dependencyTime = Tsukino::IO::FileSystem::GetLastWriteTime(dependency);
+                        if(dependencyTime > sourceTime)
+                            sourceTime = dependencyTime;
+                    }
+
                     if(sourceTime > cacheTime) {
-                        // ソースが更新されているので再インポートが必要
+                        // ソースまたは依存ファイルが更新されているので再インポートが必要
                         Tsukino::Core::Log::Info("Asset updated. Re-importing: " + path.string());
                         shouldImport = true;
                     }

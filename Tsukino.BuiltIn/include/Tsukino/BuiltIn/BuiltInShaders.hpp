@@ -39,7 +39,6 @@ namespace Tsukino::BuiltIn {
         Tsukino::Asset::AssetHandle skyPS;             // スカイ用ピクセルシェーダーのハンドル
         Tsukino::Asset::AssetHandle tonemapVS;         // トーンマップ用頂点シェーダーのハンドル
         Tsukino::Asset::AssetHandle tonemapPS;         // トーンマップ用ピクセルシェーダーのハンドル
-        Tsukino::Asset::AssetHandle waterPS;           // 水面用ピクセルシェーダーのハンドル
         Tsukino::Asset::AssetHandle gbufferPS;         // ディファードGBufferパス用ピクセルシェーダーのハンドル（VSはmodelVS/staticModelVSを共用）
         Tsukino::Asset::AssetHandle lightingPS;        // ディファードLightingパス用ピクセルシェーダーのハンドル（VSはtonemapVSを共用）
         Tsukino::Asset::AssetHandle motionBlurPS;      // モーションブラーパス用ピクセルシェーダーのハンドル（VSはtonemapVSを共用）
@@ -47,5 +46,6 @@ namespace Tsukino::BuiltIn {
 
         Tsukino::Asset::AssetHandle ambientParticleVS;    // 環境パーティクル用頂点シェーダーのハンドル（SV_VertexIDだけで板を生成する）
         Tsukino::Asset::AssetHandle ambientParticlePS;    // 環境パーティクル用ピクセルシェーダーのハンドル
+
     };
 }    // namespace Tsukino::BuiltIn

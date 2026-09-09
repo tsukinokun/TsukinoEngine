@@ -22,6 +22,23 @@ namespace Tsukino::Renderer {
         hlslpp::float4              lightColor;       //!< ライト色と強度 xyz: 色(linear), w: 強度
         hlslpp::float4              cameraPos;        //!< カメラのワールド座標 xyz: 座標, w: 未使用
         Tsukino::Core::Math::matrix prevViewProj;     //!< 前フレームのViewProjection行列（速度バッファ生成用）
+
+        //--------------------------------------------------------------
+        // 以下はフレーム共通の「素材」。Rendererが毎フレーム自動で埋める。
+        //
+        // ここに置く理由: これが無かった頃は、時間を使う演出（水・フォグ・
+        // 環境パーティクル・草）が全て自分専用の定数バッファを1本ずつ確保し、
+        // その中に経過時間のコピーを持っていた。定数バッファは b0〜b13 の
+        // 14本しかないため、演出を足すたびにスロットが減っていく状態だった。
+        // UnityのTime / UEのView.GameTimeと同じく、共通の素材はここに集める。
+        //
+        // 末尾に足しているのは意図的。HLSLのcbufferは末尾メンバを宣言しなくても
+        // 前方の配置が変わらないため、既存のシェーダーは無改修で動く
+        // （AmbientParticle.vs.hlslがprevViewProjを省略しているのがその実例）
+        //--------------------------------------------------------------
+        hlslpp::float4 timeParams;      //!< x: 起動からの経過秒, y: 前フレームからの経過秒, z: sin(x), w: cos(x)
+        hlslpp::float4 screenParams;    //!< xy: 描画領域の解像度(px), zw: その逆数(1/w, 1/h)
+        hlslpp::float4 shadowParams;    //!< x: シャドウマップの一辺(px), y: その逆数(=texelSize), zw: 予約
     };
 
     //--------------------------------------------------------------
@@ -140,20 +157,6 @@ namespace Tsukino::Renderer {
         unsigned int lightCount = 0;
         unsigned int pad[3]{};
         GPULight     lights[MAX_LIGHTS]{};
-    };
-
-    //--------------------------------------------------------------
-    //! @struct CBufferWater
-    //! @brief  スロット5 (b5) 用：水面パラメータ
-    //--------------------------------------------------------------
-    struct CBufferWater {
-        float time;            //!< 経過時間（UVスクロール用）
-        float waveSpeed;       //!< 波のスクロール速度
-        float waveScale;       //!< 波のUVスケール
-        float fresnelPower;    //!< フレネルの強さ
-
-        hlslpp::float4 shallowColor;    //!< 浅瀬の色 xyz: 色, w: 未使用
-        hlslpp::float4 deepColor;       //!< 深部の色 xyz: 色, w: 未使用
     };
 
     //--------------------------------------------------------------

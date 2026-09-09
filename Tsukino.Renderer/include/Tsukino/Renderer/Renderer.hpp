@@ -154,7 +154,6 @@ namespace Tsukino::Renderer {
             u32 gbufferDrawCalls     = 0;    //!< GBufferパスのドロー数
             u32 worldDrawCalls       = 0;    //!< Worldパス（フォワード不透明・デバッグ線）のドロー数
             u32 transparentDrawCalls = 0;    //!< TransparentDepth + Transparent のドロー数
-            u32 waterDrawCalls       = 0;    //!< Waterパスのドロー数
             u32 overlayDrawCalls     = 0;    //!< Overlayパス（UI・フォント）のドロー数
 
             u32 skinnedDrawCalls = 0;    //!< うちスキニングありのドロー数
@@ -170,7 +169,7 @@ namespace Tsukino::Renderer {
             //------------------------------------------------------------
             [[nodiscard]]
             u32 TotalDrawCalls() const {
-                return shadowDrawCalls + gbufferDrawCalls + worldDrawCalls + transparentDrawCalls + waterDrawCalls + overlayDrawCalls;
+                return shadowDrawCalls + gbufferDrawCalls + worldDrawCalls + transparentDrawCalls + overlayDrawCalls;
             }
         };
 
@@ -352,25 +351,6 @@ namespace Tsukino::Renderer {
         void SetSkyPipeline(const Tsukino::Asset::ShaderAsset* vs, const Tsukino::Asset::ShaderAsset* ps);
 
         //------------------------------------------------------------
-        //! @brief 水面の時間経過を更新（波のアニメーションなどに使用）
-        //! @param deltaTime [in] 前フレームからの経過時間
-        //------------------------------------------------------------
-        void UpdateWaterTime(float deltaTime);
-
-        //------------------------------------------------------------
-        //! @brief 水面パラメータのセット
-        //! @param water [in] 水面定数バッファデータ
-        //------------------------------------------------------------
-        void SetWaterParameters(const CBufferWater& water);
-
-        //------------------------------------------------------------
-        //! @brief 水面パイプラインのセット
-        //! @param vs [in] 頂点シェーダーアセット
-        //! @param ps [in] ピクセルシェーダーアセット
-        //------------------------------------------------------------
-        void SetWaterPipeline(const Tsukino::Asset::ShaderAsset* vs, const Tsukino::Asset::ShaderAsset* ps);
-
-        //------------------------------------------------------------
         //! @brief 点光源・スポットライト配列のセット（ディファードLightingパス用）
         //! @param lights [in] GPULightの配列
         //! @param count  [in] 配列の要素数（MAX_LIGHTSを超える分は切り捨てられる）
@@ -439,6 +419,16 @@ namespace Tsukino::Renderer {
             m_ambientParticleEnabled = enabled;
         }
 
+        //------------------------------------------------------------
+        //! フレームの経過時間を進めます。
+        //! @param deltaTime [in] 前フレームからの経過秒
+        //! @note  ここで進めた時間は CBufferScene(b0) の timeParams として
+        //!        全シェーダーへ配られる。演出ごとに自前の時間を持たずに済むよう、
+        //!        エンジンが1箇所で数える（UnityのTime / UEのView.GameTimeと同じ考え方）。
+        //!        毎フレーム1回だけ呼ぶこと
+        //------------------------------------------------------------
+        void AdvanceFrameTime(float deltaTime);
+
     private:
         //------------------------------------------------------------
         // 定数バッファの作成
@@ -493,12 +483,6 @@ namespace Tsukino::Renderer {
         bool CreateShadowMap();
 
         //------------------------------------------------------------
-        //! @brief 水面の描画コマンドの実行
-        //! @param cmd [in] 実行する描画コマンド
-        //------------------------------------------------------------
-        void ExecuteWaterCommand(const DrawCommand& cmd);
-
-        //------------------------------------------------------------
         //! @brief シャドウパスの実行（シャドウマップへの深度書き込み）
         //! @param cmd [in] 実行する描画コマンド
         //------------------------------------------------------------
@@ -510,6 +494,23 @@ namespace Tsukino::Renderer {
         //! @param indexCount [in] 描画したインデックス数
         //------------------------------------------------------------
         void CountDrawCall(RenderPass pass, u32 indexCount);
+
+        //------------------------------------------------------------
+        //! インスタンスごとのデータを頂点シェーダーへバインドします。
+        //! @param srv [in] バインドするSRV。nullptrならスロットを明示的に空にする
+        //! @note  スロットを空にする処理が要るのは、インスタンス描画をしない
+        //!        コマンドが直前のコマンドのSRVを引き継いでしまうのを防ぐため
+        //------------------------------------------------------------
+        void BindInstanceData(ID3D11ShaderResourceView* srv);
+
+        //------------------------------------------------------------
+        //! ゲーム定義の定数バッファをバインドします。
+        //! @param buffer [in] バインドするバッファ。nullptrならスロットを空にする
+        //! @param slot   [in] バインド先。User0 / User1 以外は無視する
+        //! @note  エンジンが使う b0〜b9 を上書きされると描画が壊れるため、
+        //!        ゲーム予約枠以外は弾く
+        //------------------------------------------------------------
+        void BindUserConstantBuffer(ID3D11Buffer* buffer, CBSlot slot);
 
         //------------------------------------------------------------
         //! @brief  ボーン行列を定数バッファへ転送する関数
@@ -573,7 +574,7 @@ namespace Tsukino::Renderer {
         //! @return true: ブラーを実行してポストプロセスバッファへ書いた
         //!         false: 無効なので何もしていない（HDRバッファがそのまま最新）
         //! @note  HDRバッファを読み、ポストプロセス用中間バッファへ書く。
-        //!        Waterパスの直後・Tonemapパスの直前に呼ぶこと。
+        //!        Transparentパスの直後・Tonemapパスの直前に呼ぶこと。
         //------------------------------------------------------------
         bool ExecuteMotionBlurPass();
 
@@ -581,7 +582,7 @@ namespace Tsukino::Renderer {
         //! @brief フォグパスの実行
         //! @note  深度バッファだけを読み、HDRバッファへ直接over合成する。
         //!        HDRをSRVとして読まないので中間バッファを消費しない。
-        //!        Waterパスの直後・モーションブラーパスの直前に呼ぶこと。
+        //!        Transparentパスの直後・モーションブラーパスの直前に呼ぶこと。
         //------------------------------------------------------------
         void ExecuteFogPass();
 
@@ -720,15 +721,6 @@ namespace Tsukino::Renderer {
         ComPtr<ID3D11PixelShader>  m_tonemapPS;    //!< トーンマッピング用PS
         bool                       m_hasTonemapper = false;
 
-        // 水面用リソース
-        ComPtr<ID3D11Buffer> m_waterBuffer;    //!< 水面定数バッファ (b5)
-        CBufferWater         m_waterData{};
-        float                m_waterTime = 0.0f;
-        bool                 m_hasWater  = false;
-
-        std::shared_ptr<PipelineState> m_waterPipeline;         //!< 水面用パイプラインキャッシュ
-        ComPtr<ID3D11SamplerState>     m_waterShadowSampler;    //!< 水面用 PCF サンプラー (s8)
-
         // ディファードLightingパス用リソース
         ComPtr<ID3D11PixelShader> m_lightingPS;              //!< Lightingパス用PS（VSはm_tonemapVSを共用）
         bool                      m_hasLighting = false;
@@ -746,6 +738,9 @@ namespace Tsukino::Renderer {
         // 環境パーティクル用リソース
         ComPtr<ID3D11VertexShader> m_ambientParticleVS;                     //!< 環境パーティクル用VS
         ComPtr<ID3D11PixelShader>  m_ambientParticlePS;                     //!< 環境パーティクル用PS
+        float                      m_elapsedTime    = 0.0f;                 //!< 起動からの経過秒（b0のtimeParams.xへ配られる）
+        float                      m_frameDeltaTime = 0.0f;                 //!< 前フレームからの経過秒（同 timeParams.y）
+
         ComPtr<ID3D11Buffer>       m_ambientParticleBuffer;                 //!< 環境パーティクルパラメータ用バッファ (b10)
         CBufferAmbientParticle     m_ambientParticleData{};                 //!< CPU側の環境パーティクルパラメータ
         u32                        m_ambientParticleCount   = 0;            //!< 今フレームの粒子数

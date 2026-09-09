@@ -28,7 +28,7 @@ cbuffer CBufferScene : register(b0)
 //! @brief フォグ定数バッファ (b9)
 //! @note  ConstantBuffer.hpp の CBufferFog と1バイト単位で一致させること
 //--------------------------------------------------------------
-cbuffer CBufferFog : register(b9)
+cbuffer CBufferFog : register(b8)
 {
     float4 fogColor;          // xyz: フォグ色(linear), w: 距離フォグ密度
     float4 distanceParams;    // x: 開始距離, y: 最大不透明度, z: 高さフォグ有効(0/1), w: 予約
