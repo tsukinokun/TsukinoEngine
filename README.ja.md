@@ -45,7 +45,7 @@ TsukinoEngineは、Windows向けの個人開発ゲームエンジンです。Dir
 ### 必要要件
 
 - Windows 10 または 11（x64）
-- Visual Studio 2022（「C++によるデスクトップ開発」ワークロード）。
+- Visual Studio 2022（**C++によるデスクトップ開発**ワークロード）。
   エンジン本体は C++20、同梱の DirectXTex と Jolt は C++17 でビルドされます
 - Git
 - ディスク空き容量 2GB 程度。同梱サブモジュールとサンプルアセットが大きいため、
@@ -53,9 +53,6 @@ TsukinoEngineは、Windows向けの個人開発ゲームエンジンです。Dir
 - Doxygen（`generate-docs.bat` を実行する場合のみ）
 
 ### 手順
-
-このリポジトリはサブモジュールの階層が深く、Windowsが既定で課すパス長制限（260文字）を
-超えるため、そのままではクローンが途中で失敗します。先に長いパスを有効にしてください。
 
 ```bash
 git config --global core.longpaths true
@@ -95,7 +92,7 @@ Tsukino.Sandbox.exe api        エンジンAPIの動作確認（PrefabFactoryの
 コマンドラインからビルドする場合は `build.bat`（Release は `build.bat Release`）を使います。
 成功時は何も出力せず、失敗時はエラー行だけを返します。
 
-### 先に知っておくと半日損しない2点
+### 先に知っておくべきこと
 
 **最初に `Log::SetLogFile()` を呼んでください。** これを呼ぶまで
 `Tsukino::Core::Log` は `OutputDebugStringA` にしか出力しません。
@@ -166,7 +163,7 @@ BodyHandle / SpringBone）、`Tsukino.Audio`、`Tsukino.GraphicsCommon`、
 
 ### 安定一覧に書いていないが、契約に含まれるもの
 
-見た目には分かりにくいものの、次の3つも契約の一部です。1.x では変えません。
+次の3つも契約の一部です。1.x では変えません。
 
 - **EnTT は ECS の公開 API の一部です。** `Entity` は `entt::entity` そのもので、
   `Registry::View()` は `entt::view` を返し、`Registry::OnConstruct` / `OnDestroy` は
@@ -184,6 +181,9 @@ BodyHandle / SpringBone）、`Tsukino.Audio`、`Tsukino.GraphicsCommon`、
   起動時に `Log::SetLogFile()` を呼ばないと、これらはデバッガの外から一切見えません。
   本物のエラー通知経路へ置き換えると全体のシグネチャが変わるため、
   これは 2.0 で考えることとし、1.x では触りません。
+
+## デモ
+- [使用方法解説記事(Qiita)](https://qiita.com/tsukino_/items/5d21a83fe3c2ad91828c)
 
 ## ライセンス
 
