@@ -166,9 +166,23 @@ float3 ApplyNormalMap(float3 N, float3 worldPos, float2 uv, float3 tangentNormal
     float3 T       = dp2perp * duv1.x + dp1perp * duv2.x;
     float3 B       = dp2perp * duv1.y + dp1perp * duv2.y;
 
-    // 縮退（UVが潰れている面）でゼロ除算しないよう最大成分で正規化する
-    float invmax = rsqrt(max(dot(T, T), max(dot(B, B), 1e-8f)));
+    // 縮退（UVが潰れている面）でゼロ除算しないよう最大成分で正規化する。
+    //
+    // 【しきい値を絶対値にしてはいけない】
+    // T と B には画面空間UV微分の外積 det が係数として掛かっている
+    // （T = det * cross(dPdv, N)）。det は「1画素あたりのUV変化」の2乗なので、
+    // 0.5mのモデルを画面いっぱいに映すと duv/px ≒ 1e-3 → det ≒ 1e-6 →
+    // dot(T,T) ≒ 1e-12 まで小さくなる。
+    // ここを 1e-8 のような絶対値と比べると常にそちらが勝ち、T*invmax が 0 へ
+    // 潰れて mul(tangentNormal, TBN) が tn.z * N になる。
+    // ＝ノーマルマップが丸ごと無効化される（画面上で概ね140px未満の
+    // オブジェクトでしか効かない状態だった）。
+    // 0 との比較だけにすれば、T と B の相対比のみで正規化されスケールに依らない。
+    float maxLenSq = max(dot(T, T), dot(B, B));
+    float invmax   = (maxLenSq > 0.0f) ? rsqrt(maxLenSq) : 0.0f;
 
+    // maxLenSq が 0 のときは invmax も 0 になり、TBN の1行目・2行目が 0 になる。
+    // その結果は ±N（＝頂点法線そのまま）で、縮退面での挙動として正しい
     float3x3 TBN = float3x3(T * invmax, B * invmax, N);
     return normalize(mul(tangentNormal, TBN));
 }
