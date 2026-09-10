@@ -309,6 +309,11 @@ namespace Tsukino::Renderer {
         //! @param direction [in] ライトの方向（正規化推奨）
         //! @param color     [in] ライトの色
         //! @param intensity [in] ライトの強度
+        //! @note   シャドウマップの投影範囲（平行投影、±500ユニット）は
+        //!         ワールド原点ではなく、このフレームのカメラ位置
+        //!         （SetWorldCameraMatrix()が書き込んだ値）を中心にする。
+        //!         そのため、このフレームのカメラ更新（SetWorldCameraMatrix
+        //!         を呼ぶ側。通常はCameraSystem）より後に呼び出すこと
         //------------------------------------------------------------
         void SetDirectionalLight(const hlslpp::float3& direction, const hlslpp::float3& color, float intensity);
 

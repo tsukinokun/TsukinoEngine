@@ -1580,9 +1580,14 @@ namespace Tsukino::Renderer {
         // ディレクショナルライトは平行投影を使う
         //------------------------------------------------------------
 
-        // ライトの位置はシーンから十分離れた場所に置く
-        hlslpp::float3 lightPos = -normalizedDir * 500.0f;
-        hlslpp::float3 target   = hlslpp::float3(0.0f, 0.0f, 0.0f);
+        // シャドウの投影範囲はカメラ位置を中心にする（ワールド原点固定だと、
+        // カメラが原点から離れるプレイヤー追従型のシーンで影が一切映らなくなる）。
+        // SetWorldCameraMatrix() がこのフレームのカメラ位置を毎フレーム先に
+        // 書き込む前提（SystemPriority::Camera が SystemPriority::Light より
+        // 先に実行される、CombatAndroidのSystemPriority.hpp参照）
+        hlslpp::float3 target   = m_worldSceneData.cameraPos.xyz;
+        // ライトの位置はターゲットから十分離れた場所に置く
+        hlslpp::float3 lightPos = target - normalizedDir * 500.0f;
         hlslpp::float3 up       = hlslpp::float3(0.0f, 1.0f, 0.0f);
 
         // ライト方向が真上/真下に近いときupベクトルが平行になるので回避
