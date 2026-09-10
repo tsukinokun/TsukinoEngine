@@ -83,7 +83,6 @@ open.bat
 
 ```
 Tsukino.Sandbox.exe            ジャンプゲーム（既定）
-Tsukino.Sandbox.exe blocks     ブロック崩し
 Tsukino.Sandbox.exe water      水面のミニゲーム
 Tsukino.Sandbox.exe lights     多光源ショーケース（F1でライト数を 0/1/16/64 に切り替え）
 Tsukino.Sandbox.exe api        エンジンAPIの動作確認（PrefabFactoryの検査を含む）

@@ -88,7 +88,6 @@ argument:
 
 ```
 Tsukino.Sandbox.exe            a jump game (default)
-Tsukino.Sandbox.exe blocks     block breaking
 Tsukino.Sandbox.exe water      a water-surface minigame
 Tsukino.Sandbox.exe lights     many-light showcase (F1 cycles 0/1/16/64 point lights)
 Tsukino.Sandbox.exe api        exercises the engine API and checks PrefabFactory

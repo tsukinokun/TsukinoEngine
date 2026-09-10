@@ -8,7 +8,6 @@
 #include <Tsukino/Core/Log.hpp>
 #include <Tsukino/Sandbox/Scene/SampleScene1.hpp>
 #include <Tsukino/Sandbox/Scene/JumpGameSampleScene.hpp>
-#include <Tsukino/Sandbox/Scene/BlockBreakingSampleScene.hpp>
 #include <Tsukino/Sandbox/Scene/WaterGameSampleScene.hpp>
 #include <Tsukino/Sandbox/Scene/DeferredLightSampleScene.hpp>
 
@@ -31,9 +30,6 @@ namespace {
     std::unique_ptr<Tsukino::EngineIntegration::GameSceneBase> CreateSceneFromCommandLine(const char* commandLine) {
         const std::string argument = (commandLine != nullptr) ? commandLine : "";
 
-        if(argument.find("blocks") != std::string::npos) {
-            return std::make_unique<Tsukino::Sandbox::BlockBreakingSampleScene>();
-        }
         if(argument.find("water") != std::string::npos) {
             return std::make_unique<Tsukino::Sandbox::WaterGameSampleScene>();
         }
@@ -86,7 +82,6 @@ int WINAPI WinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ LPSTR lpCmdLine, _In
     // 最初のシーンを登録・開始
     //
     //   Tsukino.Sandbox.exe            ジャンプゲーム（既定）
-    //   Tsukino.Sandbox.exe blocks     ブロック崩し
     //   Tsukino.Sandbox.exe water      水面のミニゲーム
     //   Tsukino.Sandbox.exe lights     多光源ショーケース
     //   Tsukino.Sandbox.exe api        エンジンAPIの動作確認シーン
