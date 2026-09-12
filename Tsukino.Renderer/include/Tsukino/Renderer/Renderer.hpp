@@ -12,6 +12,7 @@
 #include <Tsukino/Renderer/SpriteRenderer.hpp>
 #include <Tsukino/Renderer/DrawCommandQueue.hpp>
 #include <Tsukino/Renderer/DX11/Texture/DX11Texture2D.hpp>
+#include <Tsukino/Renderer/DX11/Texture/DX11TextureCube.hpp>
 #include <Tsukino/Renderer/ConstantBuffer.hpp>
 
 #include <Tsukino/GraphicsCommon/Mesh/PrimitiveType.hpp>
@@ -62,6 +63,12 @@ namespace Tsukino::Renderer {
         const Tsukino::Asset::ShaderAsset* fogPS            = nullptr;    //!< フォグパス用PS（VSはtonemapVSを共用）
         const Tsukino::Asset::ShaderAsset* ambientParticleVS = nullptr;    //!< 環境パーティクル用VS（SV_VertexIDだけで板を生成する）
         const Tsukino::Asset::ShaderAsset* ambientParticlePS = nullptr;    //!< 環境パーティクル用PS
+
+        //! IBLベイク用PS（VSはtonemapVSを共用）。irradiance畳み込み・スペキュラプレフィルタ・
+        //! BRDF LUT生成はいずれもフルスクリーン三角形へのPS一発で完結する
+        const Tsukino::Asset::ShaderAsset* iblIrradiancePS      = nullptr;    //!< 拡散IBL用irradiance畳み込みPS
+        const Tsukino::Asset::ShaderAsset* iblSpecularPrefilterPS = nullptr;    //!< 鏡面IBL用プレフィルタPS
+        const Tsukino::Asset::ShaderAsset* iblBRDFLUTPS         = nullptr;    //!< split-sum用BRDF積分LUT生成PS
     };
 
     //------------------------------------------------------------
@@ -425,6 +432,19 @@ namespace Tsukino::Renderer {
         }
 
         //------------------------------------------------------------
+        //! @brief IBL（スカイ由来の環境光）の再ベイクを要求する
+        //! @note  IBLはスカイのキャプチャ→irradiance畳み込み→スペキュラプレフィルタという
+        //!        一発ベイクで、Render()内でスカイパイプライン確立後に自動的に一度だけ走る。
+        //!        太陽が動く演出（day-night等）が将来追加されたときは、そのシステムが
+        //!        太陽角度の変化を検知してこれを呼べば次フレームで再ベイクされる。
+        //!        ベイクは6〜48回のフルスクリーン三角形描画（すべて128px以下）を伴うため、
+        //!        毎フレーム呼ぶような使い方はしないこと（呼び出し側でスロットリングする）。
+        //------------------------------------------------------------
+        void RequestIBLRecapture() noexcept {
+            m_iblBaked = false;
+        }
+
+        //------------------------------------------------------------
         //! フレームの経過時間を進めます。
         //! @param deltaTime [in] 前フレームからの経過秒
         //! @note  ここで進めた時間は CBufferScene(b0) の timeParams として
@@ -560,6 +580,62 @@ namespace Tsukino::Renderer {
         //! @brief スカイパスの実行
         //------------------------------------------------------------
         void ExecuteSkyPass();
+
+        //------------------------------------------------------------
+        //! @brief IBL用リソース（キューブマップ・BRDF LUT・ベイク用PS）の作成
+        //! @param shaders [in] ビルトインシェーダー一式（irradiance/prefilter/BRDF LUT用PS）
+        //! @return true: 成功, false: 失敗（失敗時はIBLが定数0扱いになるだけで描画は継続する）
+        //! @note  BRDF LUTはスカイに依存しないため、ここで即座に一度だけベイクする。
+        //!        キャプチャ/irradiance/プレフィルタのスカイ由来ベイクはRender()側で
+        //!        スカイパイプライン確立後に別途トリガーされる（ExecuteIBL*Pass参照）。
+        //------------------------------------------------------------
+        [[nodiscard]]
+        bool CreateIBLResources(const RendererShaderSet& shaders);
+
+        //------------------------------------------------------------
+        //! @brief 原点から見たキューブの1面ぶんのCBufferSceneを組み立てる
+        //! @param face [in] キューブの面（0〜5：+X,-X,+Y,-Y,+Z,-Z）
+        //! @return IBLベイク用に view/projection/viewProj/invViewProj/cameraPos を
+        //!         差し替えたCBufferScene（lightDir/lightColor/timeParams等は
+        //!         m_worldSceneDataの値をそのまま引き継ぐ。Sky.ps.hlslが
+        //!         lightColorを太陽の色として読むため）
+        //------------------------------------------------------------
+        [[nodiscard]]
+        CBufferScene BuildCubeFaceSceneData(u32 face) const;
+
+        //------------------------------------------------------------
+        //! @brief IBLキャプチャパスの実行（スカイを6面のキューブマップへ焼く）
+        //! @note  Sky.ps.hlslを面ごとに視点だけ差し替えてそのまま再利用する
+        //------------------------------------------------------------
+        void ExecuteIBLCapturePass();
+
+        //------------------------------------------------------------
+        //! @brief IBL irradiance畳み込みパスの実行（拡散IBL用、面ごとに1回）
+        //------------------------------------------------------------
+        void ExecuteIBLIrradiancePass();
+
+        //------------------------------------------------------------
+        //! @brief IBLスペキュラプレフィルタパスの実行（鏡面IBL用、面×mipごとに1回）
+        //------------------------------------------------------------
+        void ExecuteIBLSpecularPrefilterPass();
+
+        //------------------------------------------------------------
+        //! @brief IBL BRDF LUT生成パスの実行（スカイに依存しないため起動時に1回だけ呼ぶ）
+        //------------------------------------------------------------
+        void ExecuteIBLBRDFLUTPass();
+
+        //------------------------------------------------------------
+        //! @brief IBL消費側（Lighting.ps.hlsl / Model.ps.hlsl）向けにIBLリソースをバインドする
+        //! @note  b10, t17〜t19, s10 をまとめてPSへセットする。ディファードLightingパスと
+        //!        フォワードのWorld/TransparentDepth/Transparentパスの両方から呼ぶ
+        //!        （EvaluateIBLを呼ぶシェーダーがその2系統だけのため）
+        //------------------------------------------------------------
+        void BindIBLResources();
+
+        //------------------------------------------------------------
+        //! @brief BindIBLResourcesで張ったSRVを解除する
+        //------------------------------------------------------------
+        void UnbindIBLResources();
 
         //------------------------------------------------------------
         //! @brief ディファードLightingパスの実行
@@ -746,10 +822,36 @@ namespace Tsukino::Renderer {
         float                      m_elapsedTime    = 0.0f;                 //!< 起動からの経過秒（b0のtimeParams.xへ配られる）
         float                      m_frameDeltaTime = 0.0f;                 //!< 前フレームからの経過秒（同 timeParams.y）
 
-        ComPtr<ID3D11Buffer>       m_ambientParticleBuffer;                 //!< 環境パーティクルパラメータ用バッファ (b10)
+        ComPtr<ID3D11Buffer>       m_ambientParticleBuffer;                 //!< 環境パーティクルパラメータ用バッファ (b9)
         CBufferAmbientParticle     m_ambientParticleData{};                 //!< CPU側の環境パーティクルパラメータ
         u32                        m_ambientParticleCount   = 0;            //!< 今フレームの粒子数
         bool                       m_hasAmbientParticle     = false;        //!< シェーダーの構築が済んでいるか
         bool                       m_ambientParticleEnabled = false;        //!< 今フレームで有効か（AmbientParticleSystemが毎フレーム設定）
+
+        // IBL（スカイ由来の環境光）用リソース
+        static constexpr u32 kIBLCaptureSize      = 128;    //!< キャプチャキューブの1面の一辺（px）
+        static constexpr u32 kIBLIrradianceSize    = 32;     //!< irradianceキューブの1面の一辺（px）
+        static constexpr u32 kIBLSpecularBaseSize  = 128;    //!< プレフィルタ済みスペキュラキューブのmip0の一辺（px）
+        static constexpr u32 kIBLSpecularMipCount  = 6;      //!< プレフィルタ済みスペキュラキューブのミップ数
+        static constexpr u32 kIBLBRDFLUTSize       = 128;    //!< BRDF LUTの一辺（px）
+
+        std::unique_ptr<DX11TextureCube> m_iblCaptureCube;              //!< スカイを焼いたキャプチャキューブ（一発ベイクの中間結果）
+        std::unique_ptr<DX11TextureCube> m_iblIrradianceCube;           //!< 拡散IBL用irradianceキューブ（t17で読む）
+        std::unique_ptr<DX11TextureCube> m_iblPrefilteredSpecularCube;  //!< 鏡面IBL用プレフィルタ済みキューブ（t18で読む）
+
+        ComPtr<ID3D11Texture2D>          m_iblBRDFLUTTex;    //!< split-sum用BRDF積分LUT本体
+        ComPtr<ID3D11RenderTargetView>   m_iblBRDFLUTRTV;    //!< 生成時（起動時1回だけ）に使うRTV
+        ComPtr<ID3D11ShaderResourceView> m_iblBRDFLUTSRV;    //!< シェーダー読み取り用SRV（t19）
+
+        ComPtr<ID3D11PixelShader> m_iblIrradiancePS;           //!< irradiance畳み込み用PS（VSはm_tonemapVSを共用）
+        ComPtr<ID3D11PixelShader> m_iblSpecularPrefilterPS;    //!< スペキュラプレフィルタ用PS（同上）
+        ComPtr<ID3D11PixelShader> m_iblBRDFLUTPS;              //!< BRDF LUT生成用PS（同上）
+        bool m_hasIBLBakeShaders = false;    //!< 上記3PSと3キューブ/LUTの生成がすべて成功したか
+
+        ComPtr<ID3D11Buffer> m_iblBuffer;         //!< CBufferIBL用バッファ (b10)
+        CBufferIBL           m_iblData{};         //!< CPU側のIBLパラメータ（ベイク完了時に1度だけ更新する）
+        ComPtr<ID3D11Buffer> m_iblBakeBuffer;      //!< CBufferIBLBake用バッファ (b11, ベイク中だけ使う一時バッファ)
+
+        bool m_iblBaked = false;    //!< スカイ由来のIBL（キャプチャ/irradiance/プレフィルタ）を焼き終えたか
     };
 }    // namespace Tsukino::Renderer

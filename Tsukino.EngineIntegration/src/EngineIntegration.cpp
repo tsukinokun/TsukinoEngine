@@ -289,6 +289,12 @@ namespace Tsukino::EngineIntegration {
             std::static_pointer_cast<Tsukino::Asset::ShaderAsset>(m_assetManager->Get(m_builtinAssets->shaders.ambientParticleVS));
         auto ambientParticlePSAsset =
             std::static_pointer_cast<Tsukino::Asset::ShaderAsset>(m_assetManager->Get(m_builtinAssets->shaders.ambientParticlePS));
+        auto iblIrradiancePSAsset =
+            std::static_pointer_cast<Tsukino::Asset::ShaderAsset>(m_assetManager->Get(m_builtinAssets->shaders.iblIrradiancePS));
+        auto iblSpecularPrefilterPSAsset =
+            std::static_pointer_cast<Tsukino::Asset::ShaderAsset>(m_assetManager->Get(m_builtinAssets->shaders.iblSpecularPrefilterPS));
+        auto iblBRDFLUTPSAsset =
+            std::static_pointer_cast<Tsukino::Asset::ShaderAsset>(m_assetManager->Get(m_builtinAssets->shaders.iblBRDFLUTPS));
 
         //--------------------------------------------------------------
         // レンダラー生成
@@ -306,6 +312,9 @@ namespace Tsukino::EngineIntegration {
         shaderSet.fogPS            = fogPSAsset.get();
         shaderSet.ambientParticleVS = ambientParticleVSAsset.get();
         shaderSet.ambientParticlePS = ambientParticlePSAsset.get();
+        shaderSet.iblIrradiancePS         = iblIrradiancePSAsset.get();
+        shaderSet.iblSpecularPrefilterPS  = iblSpecularPrefilterPSAsset.get();
+        shaderSet.iblBRDFLUTPS            = iblBRDFLUTPSAsset.get();
 
         if(!m_renderer->Initialize(m_window->GetHWND(), m_window->GetWidth(), m_window->GetHeight(), shaderSet)) {
             return false;

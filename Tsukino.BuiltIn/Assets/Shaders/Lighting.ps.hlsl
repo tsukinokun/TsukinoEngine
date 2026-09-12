@@ -17,6 +17,7 @@
 // このファイルにも必ず手を入れて日時を更新すること
 //--------------------------------------------------------------
 #include "Lighting.hlsli"
+#include "IBL.hlsli"
 
 struct PSInput
 {
@@ -102,9 +103,10 @@ float4 PSMain(PSInput input) : SV_TARGET
     }
 
     //----------------------------------------------------------
-    // アンビエント（IBLの代わりの定数環境光。AOで遮蔽）
+    // アンビエント（スカイ由来のIBL。拡散はirradiance、鏡面はプレフィルタ済み
+    // キューブマップ+BRDF LUTのsplit-sum近似。AOで遮蔽する）
     //----------------------------------------------------------
-    float3 ambient = float3(0.03f, 0.03f, 0.03f) * albedo * ao;
+    float3 ambient = EvaluateIBL(N, V, albedo, metallic, roughness, specular, ao);
 
     float3 finalColor = ambient + lit + emissiveSample;
 

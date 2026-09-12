@@ -124,6 +124,16 @@ namespace Tsukino::Renderer {
             Tsukino::Core::Log::Error("Renderer: Ambient particles are disabled because their shaders could not be created.");
         }
 
+        //------------------------------------------------------------
+        // IBL（スカイ由来の環境光）用リソースの作成
+        // 演出用の任意機能なので、失敗しても描画自体は続行する
+        // （m_hasIBLBakeShaders が false のままになり、アンビエントが
+        //   常に0扱いになるだけで済む）。
+        //------------------------------------------------------------
+        if(!CreateIBLResources(shaders)) {
+            Tsukino::Core::Log::Error("Renderer: IBL is disabled because its resources could not be created.");
+        }
+
         return true;
     }
 
@@ -247,12 +257,33 @@ namespace Tsukino::Renderer {
         }
 
         //------------------------------------------------------------
-        // m_ambientParticleBuffer (b10) の作成
+        // m_ambientParticleBuffer (b9) の作成
         //------------------------------------------------------------
         desc.ByteWidth = sizeof(Tsukino::Renderer::CBufferAmbientParticle);
         hr             = device->CreateBuffer(&desc, nullptr, m_ambientParticleBuffer.GetAddressOf());
         if(FAILED(hr)) {
             Tsukino::Core::Log::Error("Failed to create ambient particle constant buffer.");
+            return false;
+        }
+
+        //------------------------------------------------------------
+        // m_iblBuffer (b10) の作成
+        //------------------------------------------------------------
+        desc.ByteWidth = sizeof(Tsukino::Renderer::CBufferIBL);
+        hr             = device->CreateBuffer(&desc, nullptr, m_iblBuffer.GetAddressOf());
+        if(FAILED(hr)) {
+            Tsukino::Core::Log::Error("Failed to create IBL constant buffer.");
+            return false;
+        }
+
+        //------------------------------------------------------------
+        // m_iblBakeBuffer (b11) の作成
+        // IBLベイク（キャプチャ/irradiance畳み込み/スペキュラプレフィルタ）実行中だけ使う一時バッファ
+        //------------------------------------------------------------
+        desc.ByteWidth = sizeof(Tsukino::Renderer::CBufferIBLBake);
+        hr             = device->CreateBuffer(&desc, nullptr, m_iblBakeBuffer.GetAddressOf());
+        if(FAILED(hr)) {
+            Tsukino::Core::Log::Error("Failed to create IBL bake constant buffer.");
             return false;
         }
 
@@ -429,6 +460,41 @@ namespace Tsukino::Renderer {
         ExecuteSkyPass();
 
         //------------------------------------------------------------
+        // IBLベイク（スカイのキャプチャ→irradiance畳み込み→スペキュラプレフィルタ）
+        //
+        // m_hasSkyが立つ（=SkyAtmosphereSystemが初めてスカイパイプラインを
+        // 確立した）最初のフレームで一度だけ走る。CombatAndroidには現状
+        // day-night系のシステムが無く太陽方向はシーン起動時の1回きりなので、
+        // これで十分。将来太陽が動く演出が入ったら、そのシステムが
+        // RequestIBLRecapture()を呼べば次フレームでここが再び走る
+        // （毎フレーム呼ぶと6+6+36=48回のフルスクリーン三角形描画が
+        // 毎フレーム発生するため、呼び出し側でのスロットリングが前提）。
+        //
+        // ここに置く理由：直前のExecuteSkyPass()でm_skyDataがこのフレームの
+        // 太陽方向で確定済みであり、直後のUpdateSceneBuffer(m_worldSceneData)
+        // （GBufferパスの直前）が、ここで一時的に書き換えたCBufferScene(b0)を
+        // 本来のカメラ値へ確実に戻してくれる
+        //------------------------------------------------------------
+        if(m_hasSky && m_hasIBLBakeShaders && !m_iblBaked) {
+            ExecuteIBLCapturePass();
+            ExecuteIBLIrradiancePass();
+            ExecuteIBLSpecularPrefilterPass();
+            m_iblBaked = true;
+
+            //--------------------------------------------------------
+            // ビューポートを画面サイズへ戻す。
+            // BeginGBufferPass()はRTV/DSVの張り替えとクリアだけでビューポートには
+            // 触れないため、ここで戻しておかないと直後のGBufferパスが
+            // IBLベイク最後の面（32px/4px等）のままの極小ビューポートで描かれてしまう
+            //--------------------------------------------------------
+            D3D11_VIEWPORT vp{};
+            vp.Width    = static_cast<float>(m_graphicsContext.GetWidth());
+            vp.Height   = static_cast<float>(m_graphicsContext.GetHeight());
+            vp.MaxDepth = 1.0f;
+            m_graphicsContext.GetContext()->RSSetViewports(1, &vp);
+        }
+
+        //------------------------------------------------------------
         // GBuffer パス（不透明3Dモデル。ライティングは計算せずG-Bufferへ書き込むだけ）
         //------------------------------------------------------------
         UpdateSceneBuffer(m_worldSceneData);
@@ -461,6 +527,10 @@ namespace Tsukino::Renderer {
             constexpr UINT shadowSamplerSlot = static_cast<UINT>(SamplerSlot::ShadowMap);
             context->PSSetShaderResources(shadowSRVSlot, 1, m_shadowMapSRV.GetAddressOf());
             context->PSSetSamplers(shadowSamplerSlot, 1, m_shadowSampler.GetAddressOf());
+
+            // IBL (b10, t17〜t19, s10)：Model.ps.hlslのEvaluateIBL向け。
+            // World/TransparentDepth/Transparentの3パスを通して張りっぱなしにする
+            BindIBLResources();
         }
 
         UpdateSceneBuffer(m_worldSceneData);
@@ -501,13 +571,14 @@ namespace Tsukino::Renderer {
         }
 
         //------------------------------------------------------------
-        // シャドウマップのバインドを解除（DSVとSRVの同時バインド防止）
+        // シャドウマップ・IBLのバインドを解除（DSVとSRVの同時バインド防止）
         //------------------------------------------------------------
         {
             ID3D11DeviceContext*      context       = m_graphicsContext.GetContext();
             ID3D11ShaderResourceView* nullSRV       = nullptr;
             constexpr UINT            shadowSRVSlot = static_cast<UINT>(SRVSlot::ShadowMap);
             context->PSSetShaderResources(shadowSRVSlot, 1, &nullSRV);
+            UnbindIBLResources();
         }
 
         //------------------------------------------------------------
@@ -1719,6 +1790,399 @@ namespace Tsukino::Renderer {
     }
 
     //------------------------------------------------------------
+    //! @brief IBL用リソース（キューブマップ・BRDF LUT・ベイク用PS）の作成
+    //------------------------------------------------------------
+    bool Renderer::CreateIBLResources(const RendererShaderSet& shaders) {
+        ID3D11Device* device = m_graphicsContext.GetDevice();
+
+        constexpr DXGI_FORMAT kIBLCubeFormat = DXGI_FORMAT_R16G16B16A16_FLOAT;    // HDR：sunIntensityは1.0を大きく超える
+
+        //------------------------------------------------------------
+        // キューブマップ本体3枚
+        //------------------------------------------------------------
+        m_iblCaptureCube             = std::make_unique<DX11TextureCube>(kIBLCaptureSize, 1, kIBLCubeFormat, device);
+        m_iblIrradianceCube          = std::make_unique<DX11TextureCube>(kIBLIrradianceSize, 1, kIBLCubeFormat, device);
+        m_iblPrefilteredSpecularCube = std::make_unique<DX11TextureCube>(kIBLSpecularBaseSize, kIBLSpecularMipCount, kIBLCubeFormat, device);
+
+        if(!m_iblCaptureCube->IsValid() || !m_iblIrradianceCube->IsValid() || !m_iblPrefilteredSpecularCube->IsValid()) {
+            Tsukino::Core::Log::Error("Renderer: Failed to create one or more IBL cube maps.");
+            return false;
+        }
+
+        //------------------------------------------------------------
+        // BRDF LUT（スカイに依存しない2D、r: スケールA, g: バイアスB）
+        //------------------------------------------------------------
+        D3D11_TEXTURE2D_DESC lutDesc = {};
+        lutDesc.Width                = kIBLBRDFLUTSize;
+        lutDesc.Height               = kIBLBRDFLUTSize;
+        lutDesc.MipLevels            = 1;
+        lutDesc.ArraySize            = 1;
+        lutDesc.Format               = DXGI_FORMAT_R16G16_FLOAT;
+        lutDesc.SampleDesc.Count     = 1;
+        lutDesc.Usage                = D3D11_USAGE_DEFAULT;
+        lutDesc.BindFlags            = D3D11_BIND_RENDER_TARGET | D3D11_BIND_SHADER_RESOURCE;
+
+        HRESULT hr = device->CreateTexture2D(&lutDesc, nullptr, m_iblBRDFLUTTex.GetAddressOf());
+        if(FAILED(hr)) {
+            Tsukino::Core::Log::Error("Renderer: Failed to create IBL BRDF LUT texture.");
+            return false;
+        }
+
+        hr = device->CreateRenderTargetView(m_iblBRDFLUTTex.Get(), nullptr, m_iblBRDFLUTRTV.GetAddressOf());
+        if(FAILED(hr)) {
+            Tsukino::Core::Log::Error("Renderer: Failed to create IBL BRDF LUT RTV.");
+            return false;
+        }
+
+        hr = device->CreateShaderResourceView(m_iblBRDFLUTTex.Get(), nullptr, m_iblBRDFLUTSRV.GetAddressOf());
+        if(FAILED(hr)) {
+            Tsukino::Core::Log::Error("Renderer: Failed to create IBL BRDF LUT SRV.");
+            return false;
+        }
+
+        //------------------------------------------------------------
+        // ベイク用PS（VSはすべてm_tonemapVS/m_skyVSを共用するのでここでは作らない）
+        //------------------------------------------------------------
+        if(!shaders.iblIrradiancePS || !shaders.iblSpecularPrefilterPS || !shaders.iblBRDFLUTPS) {
+            Tsukino::Core::Log::Error("Renderer::CreateIBLResources - shader is null.");
+            return false;
+        }
+
+        hr = device->CreatePixelShader(shaders.iblIrradiancePS->binary.data(), shaders.iblIrradiancePS->binary.size(), nullptr,
+                                       m_iblIrradiancePS.GetAddressOf());
+        if(FAILED(hr)) {
+            Tsukino::Core::Log::Error("Renderer: Failed to create IBL irradiance pixel shader.");
+            return false;
+        }
+
+        hr = device->CreatePixelShader(shaders.iblSpecularPrefilterPS->binary.data(), shaders.iblSpecularPrefilterPS->binary.size(),
+                                       nullptr, m_iblSpecularPrefilterPS.GetAddressOf());
+        if(FAILED(hr)) {
+            Tsukino::Core::Log::Error("Renderer: Failed to create IBL specular prefilter pixel shader.");
+            return false;
+        }
+
+        hr = device->CreatePixelShader(shaders.iblBRDFLUTPS->binary.data(), shaders.iblBRDFLUTPS->binary.size(), nullptr,
+                                       m_iblBRDFLUTPS.GetAddressOf());
+        if(FAILED(hr)) {
+            Tsukino::Core::Log::Error("Renderer: Failed to create IBL BRDF LUT pixel shader.");
+            return false;
+        }
+
+        m_hasIBLBakeShaders = true;
+
+        //------------------------------------------------------------
+        // 定数バッファの初期値（プレフィルタ済みスペキュラのミップ数はここで確定する）
+        //------------------------------------------------------------
+        m_iblData.specularMipCount = static_cast<float>(m_iblPrefilteredSpecularCube->GetMipLevels());
+        m_iblData.iblIntensity     = 1.0f;
+        m_graphicsContext.GetContext()->UpdateSubresource(m_iblBuffer.Get(), 0, nullptr, &m_iblData, 0, 0);
+
+        //------------------------------------------------------------
+        // BRDF LUTはスカイに依存しないため、ここで即座に一度だけベイクする
+        // （キャプチャ/irradiance/プレフィルタはスカイパイプライン確立後にRender()側でトリガーされる）
+        //------------------------------------------------------------
+        ExecuteIBLBRDFLUTPass();
+
+        return true;
+    }
+
+    //------------------------------------------------------------
+    //! @brief 原点から見たキューブの1面ぶんのCBufferSceneを組み立てる
+    //! @note  D3D11のキューブ面の並び（+X,-X,+Y,-Y,+Z,-Z）に合わせてある
+    //------------------------------------------------------------
+    CBufferScene Renderer::BuildCubeFaceSceneData(u32 face) const {
+        static const hlslpp::float3 kFaceTargets[6] = {
+            hlslpp::float3(1.0f, 0.0f, 0.0f),
+            hlslpp::float3(-1.0f, 0.0f, 0.0f),
+            hlslpp::float3(0.0f, 1.0f, 0.0f),
+            hlslpp::float3(0.0f, -1.0f, 0.0f),
+            hlslpp::float3(0.0f, 0.0f, 1.0f),
+            hlslpp::float3(0.0f, 0.0f, -1.0f),
+        };
+        static const hlslpp::float3 kFaceUps[6] = {
+            hlslpp::float3(0.0f, 1.0f, 0.0f),
+            hlslpp::float3(0.0f, 1.0f, 0.0f),
+            hlslpp::float3(0.0f, 0.0f, -1.0f),
+            hlslpp::float3(0.0f, 0.0f, 1.0f),
+            hlslpp::float3(0.0f, 1.0f, 0.0f),
+            hlslpp::float3(0.0f, 1.0f, 0.0f),
+        };
+
+        const u32            idx = (face < 6) ? face : 0;
+        const hlslpp::float3 eye = hlslpp::float3(0.0f, 0.0f, 0.0f);
+
+        // lightDir/lightColor/timeParams等はメインカメラのフレームデータをそのまま引き継ぐ
+        // （Sky.ps.hlslが太陽の色・向きとしてlightColor/lightDirを読むため）
+        CBufferScene data = m_worldSceneData;
+
+        constexpr float kFovRadians = 1.5707963267948966f;    // 90度：キューブの1面をちょうど覆う画角
+        constexpr float kNearZ      = 0.1f;
+        constexpr float kFarZ       = 100.0f;
+
+        data.view        = Tsukino::Core::Math::matrix::lookAtLH(eye, eye + kFaceTargets[idx], kFaceUps[idx]);
+        // リバースZ対応のperspectiveFovLHはCameraSystemと同じくfarZ, nearZの順で渡す
+        data.projection  = Tsukino::Core::Math::matrix::perspectiveFovLH(kFovRadians, 1.0f, kFarZ, kNearZ);
+        data.viewProj    = hlslpp::mul(data.view, data.projection);
+        data.invViewProj = hlslpp::inverse(data.viewProj);
+        data.cameraPos   = hlslpp::float4(eye.x, eye.y, eye.z, 1.0f);
+
+        return data;
+    }
+
+    //------------------------------------------------------------
+    //! @brief IBLキャプチャパスの実行（スカイを6面のキューブマップへ焼く）
+    //------------------------------------------------------------
+    void Renderer::ExecuteIBLCapturePass() {
+        if(!m_iblCaptureCube || !m_iblCaptureCube->IsValid() || !m_skyVS || !m_skyPS)
+            return;
+
+        ID3D11DeviceContext* context = m_graphicsContext.GetContext();
+
+        context->VSSetShader(m_skyVS.Get(), nullptr, 0);
+        context->PSSetShader(m_skyPS.Get(), nullptr, 0);
+        context->IASetInputLayout(nullptr);
+
+        // 深度バッファを持たないオフスクリーンキャプチャなので深度テストなし
+        context->OMSetDepthStencilState(m_commonStatesTK->DepthNone(), 0);
+        context->OMSetBlendState(m_commonStatesTK->Opaque(), nullptr, 0xFFFFFFFF);
+        context->RSSetState(m_commonStatesTK->CullNone());
+
+        D3D11_VIEWPORT vp{};
+        vp.Width    = static_cast<float>(kIBLCaptureSize);
+        vp.Height   = static_cast<float>(kIBLCaptureSize);
+        vp.MaxDepth = 1.0f;
+        context->RSSetViewports(1, &vp);
+
+        // Sky (b4) は直前のExecuteSkyPass()で今フレーム分がGPUへ転送済みなのでそのままバインドする
+        context->PSSetConstantBuffers(static_cast<UINT>(CBSlot::Sky), 1, m_skyBuffer.GetAddressOf());
+
+        context->IASetVertexBuffers(0, 0, nullptr, nullptr, nullptr);
+        context->IASetIndexBuffer(nullptr, DXGI_FORMAT_UNKNOWN, 0);
+        context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+
+        for(u32 face = 0; face < 6; ++face) {
+            CBufferScene faceScene = BuildCubeFaceSceneData(face);
+            context->UpdateSubresource(m_sceneBuffer.Get(), 0, nullptr, &faceScene, 0, 0);
+            context->PSSetConstantBuffers(static_cast<UINT>(CBSlot::Scene), 1, m_sceneBuffer.GetAddressOf());
+
+            ID3D11RenderTargetView* rtv = m_iblCaptureCube->GetFaceRTV(face, 0);
+            context->OMSetRenderTargets(1, &rtv, nullptr);
+
+            context->Draw(3, 0);
+        }
+
+        //----------------------------------------------------------
+        // RTVバインドを解除する。直後のirradiance畳み込み/スペキュラプレフィルタが
+        // この同じキューブをSRV（t20）として読むため、RTVとして張ったままだと
+        // 同一リソースのRTV/SRV同時バインドになってしまう
+        //----------------------------------------------------------
+        ID3D11RenderTargetView* nullRTV = nullptr;
+        context->OMSetRenderTargets(1, &nullRTV, nullptr);
+
+        context->OMSetDepthStencilState(m_commonStatesTK->DepthDefault(), 0);
+    }
+
+    //------------------------------------------------------------
+    //! @brief IBL irradiance畳み込みパスの実行
+    //------------------------------------------------------------
+    void Renderer::ExecuteIBLIrradiancePass() {
+        if(!m_iblIrradianceCube || !m_iblIrradianceCube->IsValid() || !m_iblCaptureCube || !m_tonemapVS || !m_iblIrradiancePS)
+            return;
+
+        ID3D11DeviceContext* context = m_graphicsContext.GetContext();
+
+        context->VSSetShader(m_tonemapVS.Get(), nullptr, 0);
+        context->PSSetShader(m_iblIrradiancePS.Get(), nullptr, 0);
+        context->IASetInputLayout(nullptr);
+
+        context->OMSetDepthStencilState(m_commonStatesTK->DepthNone(), 0);
+        context->OMSetBlendState(m_commonStatesTK->Opaque(), nullptr, 0xFFFFFFFF);
+        context->RSSetState(m_commonStatesTK->CullNone());
+
+        D3D11_VIEWPORT vp{};
+        vp.Width    = static_cast<float>(kIBLIrradianceSize);
+        vp.Height   = static_cast<float>(kIBLIrradianceSize);
+        vp.MaxDepth = 1.0f;
+        context->RSSetViewports(1, &vp);
+
+        // キャプチャキューブ (t20) とサンプラー (s10)
+        constexpr UINT captureSRVSlot = static_cast<UINT>(SRVSlot::IBLCaptureSource);
+        constexpr UINT bakeSamplerSlot = static_cast<UINT>(SamplerSlot::IBL);
+        ID3D11ShaderResourceView* captureSRV = m_iblCaptureCube->GetSRV();
+        ID3D11SamplerState*       linearClamp = m_samplers[static_cast<size_t>(Tsukino::GraphicsCommon::SamplerType::LinearClamp)].Get();
+        context->PSSetShaderResources(captureSRVSlot, 1, &captureSRV);
+        context->PSSetSamplers(bakeSamplerSlot, 1, &linearClamp);
+
+        context->IASetVertexBuffers(0, 0, nullptr, nullptr, nullptr);
+        context->IASetIndexBuffer(nullptr, DXGI_FORMAT_UNKNOWN, 0);
+        context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+
+        for(u32 face = 0; face < 6; ++face) {
+            CBufferScene faceScene = BuildCubeFaceSceneData(face);
+            context->UpdateSubresource(m_sceneBuffer.Get(), 0, nullptr, &faceScene, 0, 0);
+            context->PSSetConstantBuffers(static_cast<UINT>(CBSlot::Scene), 1, m_sceneBuffer.GetAddressOf());
+
+            ID3D11RenderTargetView* rtv = m_iblIrradianceCube->GetFaceRTV(face, 0);
+            context->OMSetRenderTargets(1, &rtv, nullptr);
+
+            context->Draw(3, 0);
+        }
+
+        //----------------------------------------------------------
+        // RTVバインドを解除する。このフレーム後半のLighting/Worldパスが
+        // このirradianceキューブをSRV（t17）として読むため
+        //----------------------------------------------------------
+        ID3D11RenderTargetView* nullRTV = nullptr;
+        context->OMSetRenderTargets(1, &nullRTV, nullptr);
+
+        // t20（キャプチャキューブ）はスペキュラプレフィルタパスでも同じソースを読むので
+        // ここでは解除しない（次のパスで同じSRVを張り直すだけなので害がない）
+    }
+
+    //------------------------------------------------------------
+    //! @brief IBLスペキュラプレフィルタパスの実行（面×mipごとに1回）
+    //------------------------------------------------------------
+    void Renderer::ExecuteIBLSpecularPrefilterPass() {
+        if(!m_iblPrefilteredSpecularCube || !m_iblPrefilteredSpecularCube->IsValid() || !m_iblCaptureCube || !m_tonemapVS
+           || !m_iblSpecularPrefilterPS)
+            return;
+
+        ID3D11DeviceContext* context = m_graphicsContext.GetContext();
+
+        context->VSSetShader(m_tonemapVS.Get(), nullptr, 0);
+        context->PSSetShader(m_iblSpecularPrefilterPS.Get(), nullptr, 0);
+        context->IASetInputLayout(nullptr);
+
+        context->OMSetDepthStencilState(m_commonStatesTK->DepthNone(), 0);
+        context->OMSetBlendState(m_commonStatesTK->Opaque(), nullptr, 0xFFFFFFFF);
+        context->RSSetState(m_commonStatesTK->CullNone());
+
+        constexpr UINT captureSRVSlot   = static_cast<UINT>(SRVSlot::IBLCaptureSource);
+        constexpr UINT bakeSamplerSlot  = static_cast<UINT>(SamplerSlot::IBL);
+        ID3D11ShaderResourceView* captureSRV  = m_iblCaptureCube->GetSRV();
+        ID3D11SamplerState*       linearClamp = m_samplers[static_cast<size_t>(Tsukino::GraphicsCommon::SamplerType::LinearClamp)].Get();
+        context->PSSetShaderResources(captureSRVSlot, 1, &captureSRV);
+        context->PSSetSamplers(bakeSamplerSlot, 1, &linearClamp);
+
+        context->IASetVertexBuffers(0, 0, nullptr, nullptr, nullptr);
+        context->IASetIndexBuffer(nullptr, DXGI_FORMAT_UNKNOWN, 0);
+        context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+
+        const u32 mipCount = m_iblPrefilteredSpecularCube->GetMipLevels();
+
+        // 一発ベイクなのでサンプル数はケチらない。mipが荒い（ラフネスが高い）ほど
+        // GGXローブが広がりノイズが出やすいため、mipに応じて増やす
+        static const u32 kSampleCountPerMip[6] = {32, 64, 96, 128, 192, 256};
+
+        for(u32 mip = 0; mip < mipCount; ++mip) {
+            CBufferIBLBake bakeData{};
+            bakeData.roughness   = (mipCount > 1) ? (static_cast<float>(mip) / static_cast<float>(mipCount - 1)) : 0.0f;
+            bakeData.sampleCount = kSampleCountPerMip[(mip < 6) ? mip : 5];
+
+            context->UpdateSubresource(m_iblBakeBuffer.Get(), 0, nullptr, &bakeData, 0, 0);
+            context->PSSetConstantBuffers(static_cast<UINT>(CBSlot::IBLBake), 1, m_iblBakeBuffer.GetAddressOf());
+
+            const u32 mipSize = m_iblPrefilteredSpecularCube->GetMipSize(mip);
+            D3D11_VIEWPORT vp{};
+            vp.Width    = static_cast<float>(mipSize);
+            vp.Height   = static_cast<float>(mipSize);
+            vp.MaxDepth = 1.0f;
+            context->RSSetViewports(1, &vp);
+
+            for(u32 face = 0; face < 6; ++face) {
+                CBufferScene faceScene = BuildCubeFaceSceneData(face);
+                context->UpdateSubresource(m_sceneBuffer.Get(), 0, nullptr, &faceScene, 0, 0);
+                context->PSSetConstantBuffers(static_cast<UINT>(CBSlot::Scene), 1, m_sceneBuffer.GetAddressOf());
+
+                ID3D11RenderTargetView* rtv = m_iblPrefilteredSpecularCube->GetFaceRTV(face, mip);
+                context->OMSetRenderTargets(1, &rtv, nullptr);
+
+                context->Draw(3, 0);
+            }
+        }
+
+        //----------------------------------------------------------
+        // RTV・t20（キャプチャキューブ）の解除。
+        // このフレーム後半のLighting/Worldパスがプレフィルタ済みキューブを
+        // SRV（t18）として読むため、RTVを張ったままにしない
+        //----------------------------------------------------------
+        ID3D11RenderTargetView* nullRTV = nullptr;
+        context->OMSetRenderTargets(1, &nullRTV, nullptr);
+
+        ID3D11ShaderResourceView* nullCaptureSRV = nullptr;
+        context->PSSetShaderResources(captureSRVSlot, 1, &nullCaptureSRV);
+    }
+
+    //------------------------------------------------------------
+    //! @brief IBL BRDF LUT生成パスの実行（起動時に1回だけ呼ぶ）
+    //------------------------------------------------------------
+    void Renderer::ExecuteIBLBRDFLUTPass() {
+        if(!m_iblBRDFLUTRTV || !m_tonemapVS || !m_iblBRDFLUTPS)
+            return;
+
+        ID3D11DeviceContext* context = m_graphicsContext.GetContext();
+
+        context->VSSetShader(m_tonemapVS.Get(), nullptr, 0);
+        context->PSSetShader(m_iblBRDFLUTPS.Get(), nullptr, 0);
+        context->IASetInputLayout(nullptr);
+
+        context->OMSetDepthStencilState(m_commonStatesTK->DepthNone(), 0);
+        context->OMSetBlendState(m_commonStatesTK->Opaque(), nullptr, 0xFFFFFFFF);
+        context->RSSetState(m_commonStatesTK->CullNone());
+
+        D3D11_VIEWPORT vp{};
+        vp.Width    = static_cast<float>(kIBLBRDFLUTSize);
+        vp.Height   = static_cast<float>(kIBLBRDFLUTSize);
+        vp.MaxDepth = 1.0f;
+        context->RSSetViewports(1, &vp);
+
+        ID3D11RenderTargetView* rtv = m_iblBRDFLUTRTV.Get();
+        context->OMSetRenderTargets(1, &rtv, nullptr);
+
+        context->IASetVertexBuffers(0, 0, nullptr, nullptr, nullptr);
+        context->IASetIndexBuffer(nullptr, DXGI_FORMAT_UNKNOWN, 0);
+        context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+        context->Draw(3, 0);
+
+        // RTVバインドを解除する（定常フレームでこのLUTをSRV(t19)として読むため）
+        ID3D11RenderTargetView* nullRTV = nullptr;
+        context->OMSetRenderTargets(1, &nullRTV, nullptr);
+
+        context->OMSetDepthStencilState(m_commonStatesTK->DepthDefault(), 0);
+    }
+
+    //------------------------------------------------------------
+    //! @brief IBL消費側向けにb10, t17〜t19, s10をバインドする
+    //------------------------------------------------------------
+    void Renderer::BindIBLResources() {
+        ID3D11DeviceContext* context = m_graphicsContext.GetContext();
+
+        context->PSSetConstantBuffers(static_cast<UINT>(CBSlot::IBL), 1, m_iblBuffer.GetAddressOf());
+
+        ID3D11ShaderResourceView* iblSRVs[3] = {
+            m_iblIrradianceCube ? m_iblIrradianceCube->GetSRV() : nullptr,
+            m_iblPrefilteredSpecularCube ? m_iblPrefilteredSpecularCube->GetSRV() : nullptr,
+            m_iblBRDFLUTSRV.Get(),
+        };
+        constexpr UINT iblSRVSlot = static_cast<UINT>(SRVSlot::IBLIrradiance);
+        context->PSSetShaderResources(iblSRVSlot, 3, iblSRVs);
+
+        ID3D11SamplerState* linearClamp = m_samplers[static_cast<size_t>(Tsukino::GraphicsCommon::SamplerType::LinearClamp)].Get();
+        context->PSSetSamplers(static_cast<UINT>(SamplerSlot::IBL), 1, &linearClamp);
+    }
+
+    //------------------------------------------------------------
+    //! @brief BindIBLResourcesで張ったSRVを解除する
+    //------------------------------------------------------------
+    void Renderer::UnbindIBLResources() {
+        ID3D11DeviceContext*      context      = m_graphicsContext.GetContext();
+        ID3D11ShaderResourceView* nullSRVs[3]  = {nullptr, nullptr, nullptr};
+        constexpr UINT            iblSRVSlot   = static_cast<UINT>(SRVSlot::IBLIrradiance);
+        context->PSSetShaderResources(iblSRVSlot, 3, nullSRVs);
+    }
+
+    //------------------------------------------------------------
     //! @brief ディファードLightingパスの実行
     //! @note  G-Bufferと深度をもとに全ライトを1回でHDRバッファへ加算する。
     //!        深度0（Skyパスが描いた背景）はPS側でdiscardして保護する。
@@ -1791,6 +2255,11 @@ namespace Tsukino::Renderer {
         context->PSSetSamplers(gbufferSamplerSlot, 1, &pointClamp);
 
         //----------------------------------------------------------
+        // IBL (b10, t17〜t19, s10)：スカイ由来のアンビエント
+        //----------------------------------------------------------
+        BindIBLResources();
+
+        //----------------------------------------------------------
         // フルスクリーントライアングル描画
         //----------------------------------------------------------
         context->IASetVertexBuffers(0, 0, nullptr, nullptr, nullptr);
@@ -1799,13 +2268,14 @@ namespace Tsukino::Renderer {
         context->Draw(3, 0);
 
         //----------------------------------------------------------
-        // 後片付け：G-Buffer/深度/シャドウマップのSRVを解除
+        // 後片付け：G-Buffer/深度/シャドウマップ/IBLのSRVを解除
         // （直後にDSVとして再バインドする深度との同時バインド防止のため必須）
         //----------------------------------------------------------
         ID3D11ShaderResourceView* nullSRVs[6] = {nullptr, nullptr, nullptr, nullptr, nullptr, nullptr};
         context->PSSetShaderResources(gbufferSRVSlot, 6, nullSRVs);
         ID3D11ShaderResourceView* nullShadowSRV = nullptr;
         context->PSSetShaderResources(shadowSRVSlot, 1, &nullShadowSRV);
+        UnbindIBLResources();
 
         //----------------------------------------------------------
         // 深度ステートを元に戻す（HDRRenderTarget復帰後のWorld/Transparent用）

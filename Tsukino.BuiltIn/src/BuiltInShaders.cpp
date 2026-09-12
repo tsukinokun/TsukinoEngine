@@ -41,5 +41,9 @@ namespace Tsukino::BuiltIn {
 
         ambientParticleVS = assetManager->Load(root / "Tsukino.BuiltIn/Assets/Shaders/AmbientParticle.vs.hlsl");
         ambientParticlePS = assetManager->Load(root / "Tsukino.BuiltIn/Assets/Shaders/AmbientParticle.ps.hlsl");
+
+        iblIrradiancePS        = assetManager->Load(root / "Tsukino.BuiltIn/Assets/Shaders/IrradianceConvolve.ps.hlsl");
+        iblSpecularPrefilterPS = assetManager->Load(root / "Tsukino.BuiltIn/Assets/Shaders/SpecularPrefilter.ps.hlsl");
+        iblBRDFLUTPS            = assetManager->Load(root / "Tsukino.BuiltIn/Assets/Shaders/BRDFIntegrate.ps.hlsl");
     }
 }    // namespace Tsukino::BuiltIn

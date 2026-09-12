@@ -10,6 +10,7 @@
 //--------------------------------------------------------------
 #pragma pack_matrix(row_major)
 #include "PBR.hlsli"
+#include "IBL.hlsli"
 
 //--------------------------------------------------------------
 //! @brief マテリアル定数バッファ
@@ -151,10 +152,10 @@ float4 PSMain(PSInput input) : SV_TARGET
     float3 directLight = EvaluatePBR(N, V, L, albedo, metallic, roughness, specular, radiance);
 
     //----------------------------------------------------------
-    // アンビエント（IBLの代わりの定数環境光）
-    // 本格的なIBLにする場合はキューブマップサンプリングに差し替える
+    // アンビエント（スカイ由来のIBL。Lighting.ps.hlslと同じEvaluateIBLを使う）
+    // このフォワードパスはAOテクスチャを持たないため ao=1.0（未遮蔽）を渡す
     //----------------------------------------------------------
-    float3 ambient = float3(0.03f, 0.03f, 0.03f) * albedo;
+    float3 ambient = EvaluateIBL(N, V, albedo, metallic, roughness, specular, 1.0f);
 
     //----------------------------------------------------------
     // 最終カラー合成

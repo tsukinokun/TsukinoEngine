@@ -47,5 +47,9 @@ namespace Tsukino::BuiltIn {
         Tsukino::Asset::AssetHandle ambientParticleVS;    // 環境パーティクル用頂点シェーダーのハンドル（SV_VertexIDだけで板を生成する）
         Tsukino::Asset::AssetHandle ambientParticlePS;    // 環境パーティクル用ピクセルシェーダーのハンドル
 
+        // IBLベイク用ピクセルシェーダーのハンドル（VSはtonemapVS/skyVSを共用する）
+        Tsukino::Asset::AssetHandle iblIrradiancePS;         // 拡散IBL用irradiance畳み込みPS
+        Tsukino::Asset::AssetHandle iblSpecularPrefilterPS;  // 鏡面IBL用プレフィルタPS
+        Tsukino::Asset::AssetHandle iblBRDFLUTPS;            // split-sum用BRDF積分LUT生成PS
     };
 }    // namespace Tsukino::BuiltIn

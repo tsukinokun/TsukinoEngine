@@ -182,7 +182,7 @@ namespace Tsukino::Renderer {
     static constexpr unsigned int kMaxAmbientParticles = 65536;
 
     //--------------------------------------------------------------
-    //! スロット10 (b10) 用：環境パーティクルのパラメータ
+    //! スロット9 (b9) 用：環境パーティクルのパラメータ
     //! @note AmbientParticle.vs.hlsl の CBufferAmbientParticle と
     //!       1バイト単位で一致させること（全メンバfloat4で96バイト）。
     //!       ピクセルシェーダーはこのバッファを使わない。色も輝度も
@@ -195,6 +195,31 @@ namespace Tsukino::Renderer {
         hlslpp::float4 driftParams;     //!< xyz: 一定ドリフト速度（ワールド単位/秒）, w: 揺らぎの角速度（rad/秒）
         hlslpp::float4 swayParams;      //!< x: 揺らぎの振幅, y: 速度倍率の下限, z: 速度倍率の上限, w: きらめきの強さ(0〜1)
         hlslpp::float4 colorParams;     //!< xyz: 粒子色（linear）, w: 全体の強度
+    };
+
+    //--------------------------------------------------------------
+    //! @struct CBufferIBL
+    //! @brief  スロット10 (b10) 用：IBL（スカイ由来の環境光）パラメータ
+    //! @note   IBL.hlsli の CBufferIBL と1バイト単位で一致させること。
+    //!         irradiance/prefiltered specular/BRDF LUTの3枚のテクスチャは
+    //!         定数バッファではなくSRV（t17〜t19）経由で渡す。
+    //--------------------------------------------------------------
+    struct CBufferIBL {
+        float specularMipCount = 1.0f;    //!< プレフィルタ済みスペキュラキューブマップのミップ数（roughness→lod変換に使用）
+        float iblIntensity     = 1.0f;    //!< IBL全体の強度倍率
+        float pad[2]{};                   //!< 16バイトアライメント用
+    };
+
+    //--------------------------------------------------------------
+    //! @struct CBufferIBLBake
+    //! @brief  スロット11 (b11) 用：IBLベイク（キャプチャ/畳み込み/プレフィルタ）専用の一時パラメータ
+    //! @note   起動時の一発ベイク中だけバインドする一時バッファ。SpecularPrefilter.ps.hlsl の
+    //!         CBufferIBLBake と1バイト単位で一致させること。
+    //--------------------------------------------------------------
+    struct CBufferIBLBake {
+        float        roughness   = 0.0f;    //!< このmipに割り当てられたラフネス [0,1]
+        unsigned int sampleCount = 32;       //!< GGX重要度サンプリングのサンプル数（mipが荒いほど増やす）
+        float        pad[2]{};              //!< 16バイトアライメント用
     };
 
 }    // namespace Tsukino::Renderer
