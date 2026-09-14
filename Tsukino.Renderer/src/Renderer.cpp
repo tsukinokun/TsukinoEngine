@@ -1640,7 +1640,7 @@ namespace Tsukino::Renderer {
     //------------------------------------------------------------
     //! @brief ディレクショナルライトの設定
     //------------------------------------------------------------
-    void Renderer::SetDirectionalLight(const hlslpp::float3& direction, const hlslpp::float3& color, float intensity) {
+    void Renderer::SetDirectionalLight(const hlslpp::float3& direction, const hlslpp::float3& color, float intensity, const hlslpp::float3& focusPoint) {
         //------------------------------------------------------------
         // ライト方向を正規化
         //------------------------------------------------------------
@@ -1651,12 +1651,13 @@ namespace Tsukino::Renderer {
         // ディレクショナルライトは平行投影を使う
         //------------------------------------------------------------
 
-        // シャドウの投影範囲はカメラ位置を中心にする（ワールド原点固定だと、
-        // カメラが原点から離れるプレイヤー追従型のシーンで影が一切映らなくなる）。
-        // SetWorldCameraMatrix() がこのフレームのカメラ位置を毎フレーム先に
-        // 書き込む前提（SystemPriority::Camera が SystemPriority::Light より
-        // 先に実行される、CombatAndroidのSystemPriority.hpp参照）
-        hlslpp::float3 target   = m_worldSceneData.cameraPos.xyz;
+        // シャドウの投影範囲は呼び出し側から渡されたfocusPoint（通常はメインカメラの
+        // 注視点）を中心にする（ワールド原点固定だと、カメラが原点から離れる
+        // プレイヤー追従型のシーンで影が一切映らなくなる）。
+        // カメラ位置そのものを中心にしないのは、TPSカメラのように注視点から
+        // 離れた位置にカメラを置く構成だと、画面に映る注視点付近がシャドウ範囲の
+        // 端に寄ってしまい、キャラクターのすぐ近くで影が途切れて見えるため
+        hlslpp::float3 target   = focusPoint;
         // ライトの位置はターゲットから十分離れた場所に置く
         hlslpp::float3 lightPos = target - normalizedDir * 500.0f;
         hlslpp::float3 up       = hlslpp::float3(0.0f, 1.0f, 0.0f);

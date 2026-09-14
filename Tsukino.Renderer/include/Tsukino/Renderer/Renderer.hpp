@@ -313,16 +313,19 @@ namespace Tsukino::Renderer {
 
         //------------------------------------------------------------
         //! @brief ディレクショナルライトの設定
-        //! @param direction [in] ライトの方向（正規化推奨）
-        //! @param color     [in] ライトの色
-        //! @param intensity [in] ライトの強度
-        //! @note   シャドウマップの投影範囲（平行投影、±500ユニット）は
-        //!         ワールド原点ではなく、このフレームのカメラ位置
-        //!         （SetWorldCameraMatrix()が書き込んだ値）を中心にする。
-        //!         そのため、このフレームのカメラ更新（SetWorldCameraMatrix
-        //!         を呼ぶ側。通常はCameraSystem）より後に呼び出すこと
+        //! @param direction   [in] ライトの方向（正規化推奨）
+        //! @param color       [in] ライトの色
+        //! @param intensity   [in] ライトの強度
+        //! @param focusPoint  [in] シャドウマップの投影範囲（平行投影、±500ユニット）の中心。
+        //!                         カメラの注視点（プレイヤー頭上など）を渡すこと。
+        //! @note   カメラ位置そのものを中心にすると、注視点から離れた位置に
+        //!         カメラを置くTPSカメラ等では、実際に画面に映る注視点付近が
+        //!         シャドウ範囲の端に寄ってしまい、キャラクターのすぐ近くで
+        //!         影が途切れて見える。呼び出し側（通常はLightSystem）で
+        //!         メインカメラのlookAtTarget（useLookAtがfalseならカメラ位置）
+        //!         を求めてfocusPointに渡すこと
         //------------------------------------------------------------
-        void SetDirectionalLight(const hlslpp::float3& direction, const hlslpp::float3& color, float intensity);
+        void SetDirectionalLight(const hlslpp::float3& direction, const hlslpp::float3& color, float intensity, const hlslpp::float3& focusPoint);
 
         //------------------------------------------------------------
         //! @brief シャドウパイプラインのセット
