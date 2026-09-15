@@ -15,6 +15,9 @@
 #include <Tsukino/Renderer/SkyPass.hpp>
 #include <Tsukino/Renderer/IBLBaker.hpp>
 #include <Tsukino/Renderer/LightingPass.hpp>
+#include <Tsukino/Renderer/AmbientParticlePass.hpp>
+#include <Tsukino/Renderer/FogPass.hpp>
+#include <Tsukino/Renderer/MotionBlurPass.hpp>
 #include <Tsukino/Renderer/DrawCommandQueue.hpp>
 #include <Tsukino/Renderer/DX11/Texture/DX11Texture2D.hpp>
 #include <Tsukino/Renderer/DX11/Texture/DX11TextureCube.hpp>
@@ -281,117 +284,31 @@ namespace Tsukino::Renderer {
         }
 
         //------------------------------------------------------------
-        //! @brief モーションブラーパイプラインのセット
-        //! @param ps [in] ピクセルシェーダーアセット（VSはtonemapVSを共用する）
-        //! @return true: 成功, false: 失敗
-        //------------------------------------------------------------
-        bool SetMotionBlurPipeline(const Tsukino::Asset::ShaderAsset* ps);
-
-        //------------------------------------------------------------
-        //! @brief モーションブラーパラメータのセット
-        //! @param params [in] モーションブラー定数バッファデータ
-        //------------------------------------------------------------
-        void SetMotionBlurParameters(const CBufferMotionBlur& params);
-
-        //------------------------------------------------------------
-        //! @brief モーションブラーの有効・無効を切り替える
-        //! @param enabled [in] true: 有効, false: 無効
-        //! @note  このフラグはフレーム単位で、Render()の末尾で毎回falseへ戻る。
-        //!        有効にしたいフレームでは毎フレーム呼ぶこと（MotionBlurSystemの責務）。
-        //!        こうしておくと、MotionBlurSystemを持たないシーンへ切り替えたときに
-        //!        フラグが立ちっぱなしで残らない。
-        //!        無効時は速度バッファ用の前フレームボーン行列（8KB/ドロー）の
-        //!        転送もスキップされる。
-        //------------------------------------------------------------
-        void SetMotionBlurEnabled(bool enabled) noexcept {
-            m_motionBlurEnabled = enabled;
-        }
-
-        //------------------------------------------------------------
-        //! @brief フォグパラメータのセット
-        //! @param params [in] フォグ定数バッファデータ
-        //------------------------------------------------------------
-        void SetFogParameters(const CBufferFog& params);
-
-        //------------------------------------------------------------
-        //! @brief フォグの有効・無効を切り替える
-        //! @param enabled [in] true: 有効, false: 無効
-        //! @note  モーションブラーと同じくフレーム単位のフラグで、Render()の
-        //!        末尾で毎回falseへ戻る。有効にしたいフレームでは毎フレーム
-        //!        呼ぶこと（FogSystemの責務）。
-        //------------------------------------------------------------
-        void SetFogEnabled(bool enabled) noexcept {
-            m_fogEnabled = enabled;
-        }
-
-        //------------------------------------------------------------
-        //! 環境パーティクルのパラメータをセットします。
-        //! @param  [in] params        環境パーティクル定数バッファデータ
-        //! @param  [in] particleCount 粒子数（kMaxAmbientParticles でクランプされる）
-        //------------------------------------------------------------
-        void SetAmbientParticleParameters(const CBufferAmbientParticle& params, u32 particleCount);
-
-        //------------------------------------------------------------
-        //! 環境パーティクルの有効・無効を切り替えます。
-        //! @param [in] enabled true: 有効, false: 無効
-        //! @note  フォグと同じくフレーム単位のフラグで、Render()の末尾で
-        //!        毎回falseへ戻る。有効にしたいフレームでは毎フレーム
-        //!        呼ぶこと（AmbientParticleSystemの責務）。
-        //------------------------------------------------------------
-        void SetAmbientParticleEnabled(bool enabled) noexcept {
-            m_ambientParticleEnabled = enabled;
-        }
-
-    private:
-        //------------------------------------------------------------
-        // 定数バッファの作成
-        //! @return true: 定数バッファの作成成功, false: 定数バッファの作成失敗
-        //------------------------------------------------------------
-        [[nodiscard]] bool CreateConstantBuffer();
-
-        //------------------------------------------------------------
-        //! @brief モーションブラーパスの実行
-        //! @return true: ブラーを実行してポストプロセスバッファへ書いた
-        //!         false: 無効なので何もしていない（HDRバッファがそのまま最新）
-        //! @note  HDRバッファを読み、ポストプロセス用中間バッファへ書く。
-        //!        Transparentパスの直後・Tonemapパスの直前に呼ぶこと。
-        //------------------------------------------------------------
-        bool ExecuteMotionBlurPass();
-
-        //------------------------------------------------------------
-        //! @brief フォグパスの実行
-        //! @note  深度バッファだけを読み、HDRバッファへ直接over合成する。
-        //!        HDRをSRVとして読まないので中間バッファを消費しない。
-        //!        Transparentパスの直後・モーションブラーパスの直前に呼ぶこと。
-        //------------------------------------------------------------
-        void ExecuteFogPass();
-
-        //------------------------------------------------------------
-        //! @brief フォグパイプラインのセット
-        //! @param ps [in] ピクセルシェーダーアセット（VSはtonemapVSを共用する）
-        //! @return true: 成功, false: 失敗
+        //! @brief  環境パーティクル（火の粉・灰）パスを取得する
+        //! @return パラメータと有効フラグを受け付ける AmbientParticlePass
         //------------------------------------------------------------
         [[nodiscard]]
-        bool SetFogPipeline(const Tsukino::Asset::ShaderAsset* ps);
+        AmbientParticlePass& GetAmbientParticles() noexcept {
+            return m_ambientParticlePass;
+        }
 
         //------------------------------------------------------------
-        //! 環境パーティクルパスを実行します。
-        //! @note  頂点バッファもインデックスバッファも持たず、1回のDrawで
-        //!        粒子数×6頂点を出す。粒子の属性はすべて頂点シェーダーが
-        //!        SV_VertexIDのハッシュから作るため、送るのはb10のパラメータだけ。
-        //!        深度テストありのHDRバッファ描画なので世界の物体に隠れ、
-        //!        フォグとトーンマップの両方が乗る。フォグパスの直前に呼ぶこと。
-        //------------------------------------------------------------
-        void ExecuteAmbientParticlePass();
-
-        //------------------------------------------------------------
-        //! 環境パーティクルのパイプラインをセットします。
-        //! @param  [in] vs 頂点シェーダーアセット
-        //! @param  [in] ps ピクセルシェーダーアセット
-        //! @return true: 成功, false: 失敗
+        //! @brief  フォグパスを取得する
+        //! @return パラメータと有効フラグを受け付ける FogPass
         //------------------------------------------------------------
         [[nodiscard]]
-        bool SetAmbientParticlePipeline(const Tsukino::Asset::ShaderAsset* vs, const Tsukino::Asset::ShaderAsset* ps);
+        FogPass& GetFog() noexcept {
+            return m_fogPass;
+        }
+
+        //------------------------------------------------------------
+        //! @brief  モーションブラーパスを取得する
+        //! @return パラメータと有効フラグを受け付ける MotionBlurPass
+        //------------------------------------------------------------
+        [[nodiscard]]
+        MotionBlurPass& GetMotionBlur() noexcept {
+            return m_motionBlurPass;
+        }
 
     private:
         // DirectX 11の主要なインターフェース
@@ -410,13 +327,9 @@ namespace Tsukino::Renderer {
         SkyPass                              m_skyPass;            // スカイ（大気散乱）パス
         IBLBaker                             m_iblBaker;           // スカイ由来の環境光（m_fullscreenPass と m_skyPass を借りるので、その後に宣言する）
         LightingPass                         m_lightingPass;       // ディファードライティング（m_shadowPass と m_iblBaker を借りるので、その後に宣言する）
-
-        // モーションブラー用リソース
-        ComPtr<ID3D11Buffer>      m_motionBlurBuffer;      //!< モーションブラーパラメータ用バッファ (b8)
-        ComPtr<ID3D11PixelShader> m_motionBlurPS;          //!< モーションブラー用PS（VSはフルスクリーン三角形用を共用）
-        CBufferMotionBlur         m_motionBlurData{};      //!< CPU側のモーションブラーパラメータ
-        bool                      m_hasMotionBlur     = false;    //!< PSの構築が済んでいるか
-        bool                      m_motionBlurEnabled = false;    //!< 今フレームで有効か（MotionBlurSystemが毎フレーム設定）
+        AmbientParticlePass                  m_ambientParticlePass;    // 環境パーティクル
+        FogPass                              m_fogPass;                // フォグ（m_fullscreenPass を借りる）
+        MotionBlurPass                       m_motionBlurPass;         // モーションブラー（同上）
 
         std::array<float, 4> m_clearColor = {0.5f, 0.5f, 0.5f, 1.0f};    // 描画領域のクリアカラー (デフォルトはグレー)
 
@@ -430,23 +343,6 @@ namespace Tsukino::Renderer {
         //! として弾かれるため（SpriteRenderSystem/FontRendererSystemと同じ理由）。
         //! メンバに持たせてclear()で使い回し、毎フレームの確保を避ける
         std::vector<u32> m_overlayOrder;
-
-        // フォグ用リソース
-        ComPtr<ID3D11PixelShader> m_fogPS;                //!< フォグ用PS（VSはフルスクリーン三角形用を共用）
-        ComPtr<ID3D11Buffer>      m_fogBuffer;            //!< フォグパラメータ用バッファ (b9)
-        CBufferFog                m_fogData{};            //!< CPU側のフォグパラメータ
-        bool                      m_hasFog     = false;    //!< PSの構築が済んでいるか
-        bool                      m_fogEnabled = false;    //!< 今フレームで有効か（FogSystemが毎フレーム設定）
-
-        // 環境パーティクル用リソース
-        ComPtr<ID3D11VertexShader> m_ambientParticleVS;                     //!< 環境パーティクル用VS
-        ComPtr<ID3D11PixelShader>  m_ambientParticlePS;                     //!< 環境パーティクル用PS
-
-        ComPtr<ID3D11Buffer>       m_ambientParticleBuffer;                 //!< 環境パーティクルパラメータ用バッファ (b9)
-        CBufferAmbientParticle     m_ambientParticleData{};                 //!< CPU側の環境パーティクルパラメータ
-        u32                        m_ambientParticleCount   = 0;            //!< 今フレームの粒子数
-        bool                       m_hasAmbientParticle     = false;        //!< シェーダーの構築が済んでいるか
-        bool                       m_ambientParticleEnabled = false;        //!< 今フレームで有効か（AmbientParticleSystemが毎フレーム設定）
 
     };
 }    // namespace Tsukino::Renderer

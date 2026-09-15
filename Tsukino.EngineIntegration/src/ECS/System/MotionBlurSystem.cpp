@@ -46,7 +46,7 @@ namespace Tsukino::BuiltIn::ECS {
         // 挙動に頼らず意思を明示しておく。
         //--------------------------------------------------------------
         if(!activeBlur) {
-            ctx->renderer->SetMotionBlurEnabled(false);
+            ctx->renderer->GetMotionBlur().SetEnabled(false);
             return;
         }
 
@@ -69,8 +69,8 @@ namespace Tsukino::BuiltIn::ECS {
         //--------------------------------------------------------------
         params.shutterScale = activeBlur->targetFps * deltaTime;
 
-        ctx->renderer->SetMotionBlurParameters(params);
-        ctx->renderer->SetMotionBlurEnabled(true);
+        ctx->renderer->GetMotionBlur().SetParameters(params);
+        ctx->renderer->GetMotionBlur().SetEnabled(true);
 
         //--------------------------------------------------------------
         // 速度を出すエンティティに MotionVectorComponent を自動アタッチする

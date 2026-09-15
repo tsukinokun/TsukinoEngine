@@ -41,7 +41,7 @@ namespace Tsukino::BuiltIn::ECS {
         // 挙動に頼らず意思を明示しておく（MotionBlurSystemと同じ）。
         //--------------------------------------------------------------
         if(!activeFog) {
-            ctx->renderer->SetFogEnabled(false);
+            ctx->renderer->GetFog().SetEnabled(false);
             return;
         }
 
@@ -73,8 +73,8 @@ namespace Tsukino::BuiltIn::ECS {
         params.noiseParams    = hlslpp::float4(activeFog->noiseScale, activeFog->noiseIntensity, m_time, activeFog->noiseEnabled ? 1.0f : 0.0f);
         params.windParams     = hlslpp::float4(wind.x, wind.y, wind.z, activeFog->windSpeed);
 
-        ctx->renderer->SetFogParameters(params);
-        ctx->renderer->SetFogEnabled(true);
+        ctx->renderer->GetFog().SetParameters(params);
+        ctx->renderer->GetFog().SetEnabled(true);
     }
 
 }    // namespace Tsukino::BuiltIn::ECS

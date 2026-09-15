@@ -44,7 +44,7 @@ namespace Tsukino::BuiltIn::ECS {
         // 挙動に頼らず意思を明示しておく（FogSystemと同じ）。
         //--------------------------------------------------------------
         if(!activeParticle) {
-            ctx->renderer->SetAmbientParticleEnabled(false);
+            ctx->renderer->GetAmbientParticles().SetEnabled(false);
             return;
         }
 
@@ -96,8 +96,8 @@ namespace Tsukino::BuiltIn::ECS {
                                              std::clamp(activeParticle->twinkle, 0.0f, 1.0f));
         params.colorParams  = hlslpp::float4(activeParticle->color.x, activeParticle->color.y, activeParticle->color.z, activeParticle->intensity);
 
-        ctx->renderer->SetAmbientParticleParameters(params, count);
-        ctx->renderer->SetAmbientParticleEnabled(true);
+        ctx->renderer->GetAmbientParticles().SetParameters(params, count);
+        ctx->renderer->GetAmbientParticles().SetEnabled(true);
     }
 
 }    // namespace Tsukino::BuiltIn::ECS
