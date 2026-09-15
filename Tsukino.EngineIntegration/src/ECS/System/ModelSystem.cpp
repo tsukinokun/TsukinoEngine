@@ -194,7 +194,7 @@ namespace Tsukino::BuiltIn::ECS {
                                     return nullptr;
 
                                 auto texAsset = std::static_pointer_cast<Tsukino::Asset::TextureAsset>(texAssetBase);
-                                return ctx->renderer->GetTextureSRV(*texAsset);
+                                return ctx->renderer->GetResources().GetTextureSRV(*texAsset);
                             };
 
                             albedoSRV   = resolveSRV(matAsset->albedoHandle);
@@ -264,8 +264,8 @@ namespace Tsukino::BuiltIn::ECS {
                     //   白        : シェーダー側で cbuffer 定数との乗算になるため恒等元
                     //   フラット法線: 適用しても頂点法線がそのまま保たれる
                     //--------------------------------------------------------------
-                    ID3D11ShaderResourceView* whiteSRV      = ctx->renderer->GetWhiteTextureSRV();
-                    ID3D11ShaderResourceView* flatNormalSRV = ctx->renderer->GetFlatNormalTextureSRV();
+                    ID3D11ShaderResourceView* whiteSRV      = ctx->renderer->GetResources().GetWhiteTextureSRV();
+                    ID3D11ShaderResourceView* flatNormalSRV = ctx->renderer->GetResources().GetFlatNormalTextureSRV();
 
                     // 指定パイプラインでMaterialを1つ組み立てて、安定した参照を返す
                     // （複数DrawCommandから同じテクスチャ設定を使い回すためのヘルパー）
@@ -275,7 +275,7 @@ namespace Tsukino::BuiltIn::ECS {
 
                         Tsukino::Renderer::Material& mat = ctx->renderer->AllocMaterial();
                         mat.SetPipeline(pipeline.get());
-                        mat.SetSampler(ctx->renderer->GetSampler(Tsukino::GraphicsCommon::SamplerType::AnisotropicWrap));
+                        mat.SetSampler(ctx->renderer->GetResources().GetSampler(Tsukino::GraphicsCommon::SamplerType::AnisotropicWrap));
                         mat.SetTexture(Tsukino::Renderer::SRVSlot::Albedo, albedoSRV ? albedoSRV : whiteSRV);
                         mat.SetTexture(Tsukino::Renderer::SRVSlot::Normal, normalSRV ? normalSRV : flatNormalSRV);
                         mat.SetTexture(Tsukino::Renderer::SRVSlot::MetallicRoughness, mrSRV ? mrSRV : whiteSRV);
@@ -315,9 +315,9 @@ namespace Tsukino::BuiltIn::ECS {
                         // 半透明フォワード：先に深度だけ埋め（スキンメッシュの自己重なり対策）、
                         // 続けてその深度と一致する画素だけを1回シェーディングする。
                         // 影・モーションベクタはGBufferパス限定のため、フェード中は失われる
-                        auto depthPipeline = ctx->renderer->GetPipelineFactory()->Create(
+                        auto depthPipeline = ctx->renderer->GetResources().GetPipelineFactory()->Create(
                             *vsAsset, *psAsset, vertexFormat, Tsukino::Renderer::DepthMode::ReadWrite, Tsukino::Renderer::BlendMode::DepthOnly);
-                        auto colorPipeline = ctx->renderer->GetPipelineFactory()->Create(
+                        auto colorPipeline = ctx->renderer->GetResources().GetPipelineFactory()->Create(
                             *vsAsset, *psAsset, vertexFormat, Tsukino::Renderer::DepthMode::EqualReadOnly, blendMode);
 
                         if(auto* depthMat = buildMaterial(depthPipeline))
@@ -325,7 +325,7 @@ namespace Tsukino::BuiltIn::ECS {
                         if(auto* colorMat = buildMaterial(colorPipeline))
                             pushDrawCommand(colorMat, Tsukino::Renderer::RenderPass::Transparent);
                     } else {
-                        auto pipeline = ctx->renderer->GetPipelineFactory()->Create(*vsAsset, *psAsset, vertexFormat,
+                        auto pipeline = ctx->renderer->GetResources().GetPipelineFactory()->Create(*vsAsset, *psAsset, vertexFormat,
                                                                                     Tsukino::Renderer::DepthMode::ReadWrite, blendMode);
                         if(auto* mat = buildMaterial(pipeline)) {
                             // 不透明（PBR/Unlit/Toon）はG-Bufferパスへ回す

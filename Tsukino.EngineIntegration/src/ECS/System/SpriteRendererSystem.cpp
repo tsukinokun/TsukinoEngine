@@ -56,14 +56,14 @@ namespace Tsukino::BuiltIn::ECS {
                 //-------------------------------------------------------------
                 // 生レイアウト配列を削除し、VertexFormat::Sprite を指定
                 //-------------------------------------------------------------
-                m_pipelineCache = ctx->renderer->GetPipelineFactory()->Create(*vsAsset,
+                m_pipelineCache = ctx->renderer->GetResources().GetPipelineFactory()->Create(*vsAsset,
                                                                               *psAsset,
                                                                               Tsukino::GraphicsCommon::VertexFormat::Sprite,    // 頂点フォーマットを指定
                                                                               Tsukino::Renderer::DepthMode::None,
                                                                               Tsukino::Renderer::BlendMode::Alpha);
 
                 // 発光表現（EXP玉等）用。シェーダー自体はAlpha版と共通で、ブレンドステートだけ異なる
-                m_additivePipelineCache = ctx->renderer->GetPipelineFactory()->Create(*vsAsset,
+                m_additivePipelineCache = ctx->renderer->GetResources().GetPipelineFactory()->Create(*vsAsset,
                                                                                       *psAsset,
                                                                                       Tsukino::GraphicsCommon::VertexFormat::Sprite,
                                                                                       Tsukino::Renderer::DepthMode::None,
@@ -75,13 +75,13 @@ namespace Tsukino::BuiltIn::ECS {
             // （自身は深度を書かない＝奥から手前への並び替えはしないが、alpha/additiveの
             //   薄いエフェクト用途では十分。他の不透明オブジェクトの手前/後ろの判定は正しく出る）
             if(worldVsAsset && psAsset) {
-                m_worldPipelineCache = ctx->renderer->GetPipelineFactory()->Create(*worldVsAsset,
+                m_worldPipelineCache = ctx->renderer->GetResources().GetPipelineFactory()->Create(*worldVsAsset,
                                                                                    *psAsset,
                                                                                    Tsukino::GraphicsCommon::VertexFormat::Sprite,
                                                                                    Tsukino::Renderer::DepthMode::ReadOnly,
                                                                                    Tsukino::Renderer::BlendMode::Alpha);
 
-                m_worldAdditivePipelineCache = ctx->renderer->GetPipelineFactory()->Create(*worldVsAsset,
+                m_worldAdditivePipelineCache = ctx->renderer->GetResources().GetPipelineFactory()->Create(*worldVsAsset,
                                                                                            *psAsset,
                                                                                            Tsukino::GraphicsCommon::VertexFormat::Sprite,
                                                                                            Tsukino::Renderer::DepthMode::ReadOnly,
@@ -180,13 +180,13 @@ namespace Tsukino::BuiltIn::ECS {
             }
 
             // メッシュの指定
-            cmd.mesh = ctx->renderer->GetPrimitiveMesh(Tsukino::GraphicsCommon::PrimitiveType::Quad);
+            cmd.mesh = ctx->renderer->GetResources().GetPrimitiveMesh(Tsukino::GraphicsCommon::PrimitiveType::Quad);
 
             // マテリアルの構築（実体はキューが所有する）
             Tsukino::Renderer::Material& material = ctx->renderer->AllocMaterial();
 
             // サンプラー設定
-            material.SetSampler(ctx->renderer->GetSampler(Tsukino::GraphicsCommon::SamplerType::LinearClamp));
+            material.SetSampler(ctx->renderer->GetResources().GetSampler(Tsukino::GraphicsCommon::SamplerType::LinearClamp));
 
             // テクスチャ設定
             Tsukino::Asset::AssetHandle handleId = sprite.textureHandle;
@@ -195,7 +195,7 @@ namespace Tsukino::BuiltIn::ECS {
                 Tsukino::Core::Ref<Tsukino::Asset::IAsset> asset = ctx->assetManager->Get(sprite.textureHandle);
                 if(asset && asset->GetType() == Tsukino::Asset::AssetType::Texture) {
                     Tsukino::Core::Ref<Tsukino::Asset::TextureAsset> texAsset = std::static_pointer_cast<Tsukino::Asset::TextureAsset>(asset);
-                    m_textureCache[handleId]                                  = ctx->renderer->GetTextureSRV(*texAsset);
+                    m_textureCache[handleId]                                  = ctx->renderer->GetResources().GetTextureSRV(*texAsset);
                 } else {
                     m_textureCache[handleId] = nullptr;
                 }

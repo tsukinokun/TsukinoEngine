@@ -42,13 +42,13 @@ namespace Tsukino::Renderer {
         ID3D11Device*        device  = m_graphicsContext.GetDevice();     // DirectXのDevice
         ID3D11DeviceContext* context = m_graphicsContext.GetContext();    // DirectXのDeviceContext
 
-        // デバイスが準備できたので、Factoryを構築してoptionalに代入（遅延DI）
-        m_pipelineFactory.emplace(device);
-
         //------------------------------------------------------------
-        // DirectXTKの共通ステートの作成
+        // 描画で共有する資源（PipelineFactory・共通ステート・サンプラー・
+        // プリミティブメッシュ・既定テクスチャ）の作成。
+        // 以降のパイプライン生成が PipelineFactory を使うため最初に行う
         //------------------------------------------------------------
-        m_commonStatesTK = std::make_unique<DirectX::CommonStates>(device);    // DirectXTKの共通ステートを作成
+        if(!m_resources.Initialize(device, context))
+            return false;
 
         //------------------------------------------------------------
         // シャドウパイプラインの生成
@@ -59,28 +59,10 @@ namespace Tsukino::Renderer {
         }
 
         //------------------------------------------------------------
-        // メッシュバッファの作成
-        //------------------------------------------------------------
-        if(!CreatePrimitiveMeshes())
-            return false;    // メッシュバッファの作成に失敗した場合は false を返す
-
-        //------------------------------------------------------------
-        // 共通ステートの作成
-        //------------------------------------------------------------
-        if(!CreateCommonStates())
-            return false;    // 共通ステートの作成に失敗した場合は false を返す
-
-        //------------------------------------------------------------
         // 定数バッファの作成
         //------------------------------------------------------------
         if(!CreateConstantBuffer())
             return false;    // 定数バッファの作成に失敗した場合は false を返す
-
-        //------------------------------------------------------------
-        // マテリアル用デフォルトテクスチャ（白・フラット法線）の作成
-        //------------------------------------------------------------
-        if(!CreateDefaultTextures())
-            return false;    // デフォルトテクスチャの作成に失敗した場合は false を返す
 
         //------------------------------------------------------------
         // デバッグ用バッファの作成
@@ -355,7 +337,7 @@ namespace Tsukino::Renderer {
     bool Renderer::CreateShadowPipelines(const Tsukino::Asset::ShaderAsset* shadowStaticVS,
                                          const Tsukino::Asset::ShaderAsset* shadowSkeletalVS,
                                          const Tsukino::Asset::ShaderAsset* shadowPS) {
-        auto* factory = GetPipelineFactory();
+        auto* factory = m_resources.GetPipelineFactory();
         if(!factory)
             return false;
 
@@ -375,25 +357,6 @@ namespace Tsukino::Renderer {
                 Tsukino::Core::Log::Error("Renderer: Shadow Skeletal Pipeline generation failed.");
                 return false;
             }
-        }
-
-        return true;
-    }
-
-    //------------------------------------------------------------
-    //! @brief プリミティブメッシュの作成
-    //------------------------------------------------------------
-    bool Renderer::CreatePrimitiveMeshes() {
-        using namespace Tsukino::GraphicsCommon;
-
-        for(size_t i = 0; i < (size_t)PrimitiveType::Count; ++i) {
-            PrimitiveType type = static_cast<PrimitiveType>(i);
-
-            // CPU 側で形状生成
-            MeshData meshData = Tsukino::GraphicsCommon::CreatePrimitiveMeshData(type);
-
-            // GPU にアップロード
-            m_primitiveMeshes[i] = CreateMeshBuffer(m_graphicsContext.GetDevice(), meshData);
         }
 
         return true;
@@ -623,11 +586,11 @@ namespace Tsukino::Renderer {
         //------------------------------------------------------------
         if(postWorldPass) {
             ID3D11DeviceContext* context = m_graphicsContext.GetContext();
-            context->OMSetBlendState(m_commonStatesTK->AlphaBlend(), nullptr, 0xFFFFFFFF);
-            context->OMSetDepthStencilState(m_commonStatesTK->DepthNone(), 0);
+            context->OMSetBlendState(m_resources.GetCommonStatesTK()->AlphaBlend(), nullptr, 0xFFFFFFFF);
+            context->OMSetDepthStencilState(m_resources.GetCommonStatesTK()->DepthNone(), 0);
             postWorldPass->RenderPostWorld(context, m_worldSceneData.view, m_worldSceneData.projection);
-            context->OMSetBlendState(m_commonStatesTK->Opaque(), nullptr, 0xFFFFFFFF);
-            context->OMSetDepthStencilState(m_commonStatesTK->DepthDefault(), 0);
+            context->OMSetBlendState(m_resources.GetCommonStatesTK()->Opaque(), nullptr, 0xFFFFFFFF);
+            context->OMSetDepthStencilState(m_resources.GetCommonStatesTK()->DepthDefault(), 0);
         }
 
         //------------------------------------------------------------
@@ -709,10 +672,10 @@ namespace Tsukino::Renderer {
             context->IASetInputLayout(m_debugIL.Get());
 
             // ブレンドステート（不透明）と深度有効を設定（適宜CommonStates等で）
-            context->OMSetBlendState(m_commonStatesTK->Opaque(), nullptr, 0xFFFFFFFF);
-            context->OMSetDepthStencilState(m_commonStatesTK->DepthReverseZ(), 0);
+            context->OMSetBlendState(m_resources.GetCommonStatesTK()->Opaque(), nullptr, 0xFFFFFFFF);
+            context->OMSetDepthStencilState(m_resources.GetCommonStatesTK()->DepthReverseZ(), 0);
             // レンダリングステート設定（ここでは必要に応じてワイヤーフレーム用等の設定が必要になる可能性）
-            context->RSSetState(m_commonStatesTK->CullNone());
+            context->RSSetState(m_resources.GetCommonStatesTK()->CullNone());
 
             UINT stride = sizeof(Tsukino::GraphicsCommon::DebugVertex);
             UINT offset = 0;
@@ -741,10 +704,10 @@ namespace Tsukino::Renderer {
                     context->Unmap(m_debugTriangleVB.Get(), 0);
 
                     context->IASetVertexBuffers(0, 1, m_debugTriangleVB.GetAddressOf(), &stride, &offset);
-                    context->RSSetState(m_commonStatesTK->Wireframe());    // 三角形はワイヤーフレームで描画
+                    context->RSSetState(m_resources.GetCommonStatesTK()->Wireframe());    // 三角形はワイヤーフレームで描画
                     context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
                     context->Draw((UINT)count, 0);
-                    context->RSSetState(m_commonStatesTK->CullNone());    // 元に戻す
+                    context->RSSetState(m_resources.GetCommonStatesTK()->CullNone());    // 元に戻す
                 }
                 m_debugTriangleVertices.clear();
             }
@@ -818,32 +781,6 @@ namespace Tsukino::Renderer {
     }
 
     //------------------------------------------------------------
-    //! @brief テクスチャ（SRV）の取得（なければ生成してキャッシュ）
-    //------------------------------------------------------------
-    ID3D11ShaderResourceView* Renderer::GetTextureSRV(const Tsukino::Asset::TextureAsset& textureAsset) {
-        uint64_t handleValue = textureAsset.GetHandle().Value();
-
-        // 1. すでにキャッシュにあるか探す
-        auto it = m_textureCache.find(handleValue);
-        if(it != m_textureCache.end()) {
-            return it->second->GetSRV();    // 既存のものを返す
-        }
-
-        // 2. なければ新しく作成する
-        ID3D11Device* device = m_graphicsContext.GetDevice();
-
-        std::unique_ptr<DX11Texture2D> texture =
-            std::make_unique<DX11Texture2D>(textureAsset.width, textureAsset.height, textureAsset.format, textureAsset.pixels.data(), device);
-
-        ID3D11ShaderResourceView* srv = texture->GetSRV();
-
-        // 3. キャッシュに保存
-        m_textureCache.emplace(handleValue, std::move(texture));
-
-        return srv;
-    }
-
-    //------------------------------------------------------------
     //! @brief シーン定数バッファの更新
     //------------------------------------------------------------
     void Renderer::UpdateSceneBuffer(const CBufferScene& sceneData) {
@@ -891,14 +828,6 @@ namespace Tsukino::Renderer {
     }
 
     //------------------------------------------------------------
-    //! @brief SpriteFontの作成
-    //------------------------------------------------------------
-    std::unique_ptr<DirectX::SpriteFont> Renderer::CreateSpriteFont(const u8* data, size_t size) {
-        // ここで DirectX 11 のデバイスを使って、バイナリを「文字」として魂を吹き込む
-        return std::make_unique<DirectX::SpriteFont>(m_graphicsContext.GetDevice(), data, size);
-    }
-
-    //------------------------------------------------------------
     //! @brief ワールドカメラ行列のセット
     //------------------------------------------------------------
     void Renderer::SetWorldCameraMatrix(const CBufferScene& data) {
@@ -915,15 +844,6 @@ namespace Tsukino::Renderer {
     //------------------------------------------------------------
     void Renderer::SetOverlayCameraMatrix(const CBufferScene& data) {
         m_overlaySceneData = data;    // メンバ変数に保存
-    }
-
-    //------------------------------------------------------------
-    //! @brief SpriteBatchの作成
-    //------------------------------------------------------------
-    std::unique_ptr<DirectX::SpriteBatch> Renderer::CreateSpriteBatch() {
-        // Rendererが持っている m_deviceContext (ID3D11DeviceContext*) を渡す
-        // ※内部で ComPtr を使っている場合は .Get() で生ポインタを渡します
-        return std::make_unique<DirectX::SpriteBatch>(m_graphicsContext.GetContext());
     }
 
     //------------------------------------------------------------
@@ -1193,20 +1113,6 @@ namespace Tsukino::Renderer {
     }
 
     //------------------------------------------------------------
-    //! @brief 白テクスチャSRVの取得
-    //------------------------------------------------------------
-    ID3D11ShaderResourceView* Renderer::GetWhiteTextureSRV() {
-        return m_whiteSRV.Get();
-    }
-
-    //------------------------------------------------------------
-    //! @brief フラット法線テクスチャのSRVを取得
-    //------------------------------------------------------------
-    ID3D11ShaderResourceView* Renderer::GetFlatNormalTextureSRV() {
-        return m_flatNormalSRV.Get();
-    }
-
-    //------------------------------------------------------------
     //! @brief 大気散乱パラメータのセット
     //------------------------------------------------------------
     void Renderer::SetSkyParameters(const CBufferSky& sky) {
@@ -1438,12 +1344,12 @@ namespace Tsukino::Renderer {
 
             // SpriteBatchで汚されたステートをリセット
             // これを入れないとSpriteの後の描画が真っ暗になったり崩れます
-            context->OMSetBlendState(m_commonStatesTK->Opaque(), nullptr, 0xFFFFFFFF);
-            context->OMSetDepthStencilState(m_commonStatesTK->DepthDefault(), 0);
-            context->RSSetState(m_commonStatesTK->CullNone());
+            context->OMSetBlendState(m_resources.GetCommonStatesTK()->Opaque(), nullptr, 0xFFFFFFFF);
+            context->OMSetDepthStencilState(m_resources.GetCommonStatesTK()->DepthDefault(), 0);
+            context->RSSetState(m_resources.GetCommonStatesTK()->CullNone());
 
             // s0をLinearWrapに戻す（SpriteBatch汚染対策）
-            ID3D11SamplerState* linearWrap = m_samplers[static_cast<size_t>(Tsukino::GraphicsCommon::SamplerType::LinearWrap)].Get();
+            ID3D11SamplerState* linearWrap = m_resources.GetSampler(Tsukino::GraphicsCommon::SamplerType::LinearWrap);
             context->PSSetSamplers(static_cast<UINT>(SamplerSlot::Material), 1, &linearWrap);
             return;
         }
@@ -1569,75 +1475,6 @@ namespace Tsukino::Renderer {
     }
 
     //------------------------------------------------------------
-    //! @brief 共通ステート（サンプラー等）の作成
-    //------------------------------------------------------------
-    bool Renderer::CreateCommonStates() {
-        // デバイスを取得
-        ID3D11Device*      device = m_graphicsContext.GetDevice();
-        HRESULT            hr;
-        D3D11_SAMPLER_DESC desc{};
-
-        // 共通設定
-        desc.ComparisonFunc = D3D11_COMPARISON_NEVER;
-        desc.MinLOD         = 0;
-        desc.MaxLOD         = D3D11_FLOAT32_MAX;
-
-        // --- PointWrap ---
-        desc.Filter   = D3D11_FILTER_MIN_MAG_MIP_POINT;
-        desc.AddressU = D3D11_TEXTURE_ADDRESS_WRAP;
-        desc.AddressV = D3D11_TEXTURE_ADDRESS_WRAP;
-        desc.AddressW = D3D11_TEXTURE_ADDRESS_WRAP;
-        hr            = device->CreateSamplerState(&desc, m_samplers[static_cast<size_t>(Tsukino::GraphicsCommon::SamplerType::PointWrap)].GetAddressOf());
-        if(FAILED(hr))
-            return false;
-
-        // --- PointClamp ---
-        desc.AddressU = D3D11_TEXTURE_ADDRESS_CLAMP;
-        desc.AddressV = D3D11_TEXTURE_ADDRESS_CLAMP;
-        desc.AddressW = D3D11_TEXTURE_ADDRESS_CLAMP;
-        hr            = device->CreateSamplerState(&desc, m_samplers[static_cast<size_t>(Tsukino::GraphicsCommon::SamplerType::PointClamp)].GetAddressOf());
-        if(FAILED(hr))
-            return false;
-
-        // --- LinearWrap ---
-        desc.Filter   = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
-        desc.AddressU = D3D11_TEXTURE_ADDRESS_WRAP;
-        desc.AddressV = D3D11_TEXTURE_ADDRESS_WRAP;
-        desc.AddressW = D3D11_TEXTURE_ADDRESS_WRAP;
-        hr            = device->CreateSamplerState(&desc, m_samplers[static_cast<size_t>(Tsukino::GraphicsCommon::SamplerType::LinearWrap)].GetAddressOf());
-        if(FAILED(hr))
-            return false;
-
-        // --- LinearClamp ---
-        desc.AddressU = D3D11_TEXTURE_ADDRESS_CLAMP;
-        desc.AddressV = D3D11_TEXTURE_ADDRESS_CLAMP;
-        desc.AddressW = D3D11_TEXTURE_ADDRESS_CLAMP;
-        hr            = device->CreateSamplerState(&desc, m_samplers[static_cast<size_t>(Tsukino::GraphicsCommon::SamplerType::LinearClamp)].GetAddressOf());
-        if(FAILED(hr))
-            return false;
-
-        // --- AnisotropicWrap ---
-        desc.Filter        = D3D11_FILTER_ANISOTROPIC;
-        desc.AddressU      = D3D11_TEXTURE_ADDRESS_WRAP;
-        desc.AddressV      = D3D11_TEXTURE_ADDRESS_WRAP;
-        desc.AddressW      = D3D11_TEXTURE_ADDRESS_WRAP;
-        desc.MaxAnisotropy = 16;
-        hr = device->CreateSamplerState(&desc, m_samplers[static_cast<size_t>(Tsukino::GraphicsCommon::SamplerType::AnisotropicWrap)].GetAddressOf());
-        if(FAILED(hr))
-            return false;
-
-        // --- AnisotropicClamp ---
-        desc.AddressU = D3D11_TEXTURE_ADDRESS_CLAMP;
-        desc.AddressV = D3D11_TEXTURE_ADDRESS_CLAMP;
-        desc.AddressW = D3D11_TEXTURE_ADDRESS_CLAMP;
-        hr = device->CreateSamplerState(&desc, m_samplers[static_cast<size_t>(Tsukino::GraphicsCommon::SamplerType::AnisotropicClamp)].GetAddressOf());
-        if(FAILED(hr))
-            return false;
-
-        return true;
-    }
-
-    //------------------------------------------------------------
     //! @brief ディレクショナルライトの設定
     //------------------------------------------------------------
     void Renderer::SetDirectionalLight(const hlslpp::float3& direction, const hlslpp::float3& color, float intensity, const hlslpp::float3& focusPoint) {
@@ -1688,59 +1525,6 @@ namespace Tsukino::Renderer {
     }
 
     //------------------------------------------------------------
-    //! @brief 1x1のデフォルトテクスチャの作成
-    //------------------------------------------------------------
-    bool Renderer::Create1x1Texture(u32                                               rgba,
-                                    Microsoft::WRL::ComPtr<ID3D11Texture2D>&          outTex,
-                                    Microsoft::WRL::ComPtr<ID3D11ShaderResourceView>& outSRV,
-                                    const char*                                       debugName) {
-        ID3D11Device* device = m_graphicsContext.GetDevice();
-
-        D3D11_TEXTURE2D_DESC desc{};
-        desc.Width            = 1;
-        desc.Height           = 1;
-        desc.MipLevels        = 1;
-        desc.ArraySize        = 1;
-        desc.Format           = DXGI_FORMAT_R8G8B8A8_UNORM;
-        desc.SampleDesc.Count = 1;
-        desc.Usage            = D3D11_USAGE_IMMUTABLE;
-        desc.BindFlags        = D3D11_BIND_SHADER_RESOURCE;
-
-        D3D11_SUBRESOURCE_DATA initData{&rgba, 4, 0};
-
-        HRESULT hr = device->CreateTexture2D(&desc, &initData, outTex.GetAddressOf());
-        if(FAILED(hr)) {
-            Tsukino::Core::Log::Error(std::string("Failed to create default texture: ") + debugName + ".");
-            return false;
-        }
-
-        hr = device->CreateShaderResourceView(outTex.Get(), nullptr, outSRV.GetAddressOf());
-        if(FAILED(hr)) {
-            Tsukino::Core::Log::Error(std::string("Failed to create default texture SRV: ") + debugName + ".");
-            return false;
-        }
-
-        return true;
-    }
-
-    //------------------------------------------------------------
-    //! @brief マテリアル用デフォルトテクスチャの作成
-    //! @note  R8G8B8A8_UNORM はメモリ上のバイト順が R,G,B,A なので、
-    //!        リトルエンディアンのu32では 0xAABBGGRR の並びになる。
-    //------------------------------------------------------------
-    bool Renderer::CreateDefaultTextures() {
-        // 白 (1,1,1,1)：アルベド/MR/エミッシブ/AOの未設定時。乗算で恒等元になる
-        if(!Create1x1Texture(0xFFFFFFFF, m_whiteTex, m_whiteSRV, "white"))
-            return false;
-
-        // フラット法線：接空間の(0,0,1) → R=0x80, G=0x80, B=0xFF, A=0xFF
-        if(!Create1x1Texture(0xFFFF8080, m_flatNormalTex, m_flatNormalSRV, "flat normal"))
-            return false;
-
-        return true;
-    }
-
-    //------------------------------------------------------------
     //! @brief スカイパスの実行
     //------------------------------------------------------------
     void Renderer::ExecuteSkyPass() {
@@ -1759,9 +1543,9 @@ namespace Tsukino::Renderer {
         //----------------------------------------------------------
         // 深度書き込みなし（スカイは常に最背面）
         //----------------------------------------------------------
-        context->OMSetDepthStencilState(m_commonStatesTK->DepthRead(), 0);
-        context->OMSetBlendState(m_commonStatesTK->Opaque(), nullptr, 0xFFFFFFFF);
-        context->RSSetState(m_commonStatesTK->CullNone());
+        context->OMSetDepthStencilState(m_resources.GetCommonStatesTK()->DepthRead(), 0);
+        context->OMSetBlendState(m_resources.GetCommonStatesTK()->Opaque(), nullptr, 0xFFFFFFFF);
+        context->RSSetState(m_resources.GetCommonStatesTK()->CullNone());
 
         //----------------------------------------------------------
         // Scene (b0) をバインド（invViewProjの計算に使う）
@@ -1787,7 +1571,7 @@ namespace Tsukino::Renderer {
         //----------------------------------------------------------
         // ステートをリセット
         //----------------------------------------------------------
-        context->OMSetDepthStencilState(m_commonStatesTK->DepthDefault(), 0);
+        context->OMSetDepthStencilState(m_resources.GetCommonStatesTK()->DepthDefault(), 0);
     }
 
     //------------------------------------------------------------
@@ -1945,9 +1729,9 @@ namespace Tsukino::Renderer {
         context->IASetInputLayout(nullptr);
 
         // 深度バッファを持たないオフスクリーンキャプチャなので深度テストなし
-        context->OMSetDepthStencilState(m_commonStatesTK->DepthNone(), 0);
-        context->OMSetBlendState(m_commonStatesTK->Opaque(), nullptr, 0xFFFFFFFF);
-        context->RSSetState(m_commonStatesTK->CullNone());
+        context->OMSetDepthStencilState(m_resources.GetCommonStatesTK()->DepthNone(), 0);
+        context->OMSetBlendState(m_resources.GetCommonStatesTK()->Opaque(), nullptr, 0xFFFFFFFF);
+        context->RSSetState(m_resources.GetCommonStatesTK()->CullNone());
 
         D3D11_VIEWPORT vp{};
         vp.Width    = static_cast<float>(kIBLCaptureSize);
@@ -1981,7 +1765,7 @@ namespace Tsukino::Renderer {
         ID3D11RenderTargetView* nullRTV = nullptr;
         context->OMSetRenderTargets(1, &nullRTV, nullptr);
 
-        context->OMSetDepthStencilState(m_commonStatesTK->DepthDefault(), 0);
+        context->OMSetDepthStencilState(m_resources.GetCommonStatesTK()->DepthDefault(), 0);
     }
 
     //------------------------------------------------------------
@@ -1997,9 +1781,9 @@ namespace Tsukino::Renderer {
         context->PSSetShader(m_iblIrradiancePS.Get(), nullptr, 0);
         context->IASetInputLayout(nullptr);
 
-        context->OMSetDepthStencilState(m_commonStatesTK->DepthNone(), 0);
-        context->OMSetBlendState(m_commonStatesTK->Opaque(), nullptr, 0xFFFFFFFF);
-        context->RSSetState(m_commonStatesTK->CullNone());
+        context->OMSetDepthStencilState(m_resources.GetCommonStatesTK()->DepthNone(), 0);
+        context->OMSetBlendState(m_resources.GetCommonStatesTK()->Opaque(), nullptr, 0xFFFFFFFF);
+        context->RSSetState(m_resources.GetCommonStatesTK()->CullNone());
 
         D3D11_VIEWPORT vp{};
         vp.Width    = static_cast<float>(kIBLIrradianceSize);
@@ -2011,7 +1795,7 @@ namespace Tsukino::Renderer {
         constexpr UINT captureSRVSlot = static_cast<UINT>(SRVSlot::IBLCaptureSource);
         constexpr UINT bakeSamplerSlot = static_cast<UINT>(SamplerSlot::IBL);
         ID3D11ShaderResourceView* captureSRV = m_iblCaptureCube->GetSRV();
-        ID3D11SamplerState*       linearClamp = m_samplers[static_cast<size_t>(Tsukino::GraphicsCommon::SamplerType::LinearClamp)].Get();
+        ID3D11SamplerState*       linearClamp = m_resources.GetSampler(Tsukino::GraphicsCommon::SamplerType::LinearClamp);
         context->PSSetShaderResources(captureSRVSlot, 1, &captureSRV);
         context->PSSetSamplers(bakeSamplerSlot, 1, &linearClamp);
 
@@ -2055,14 +1839,14 @@ namespace Tsukino::Renderer {
         context->PSSetShader(m_iblSpecularPrefilterPS.Get(), nullptr, 0);
         context->IASetInputLayout(nullptr);
 
-        context->OMSetDepthStencilState(m_commonStatesTK->DepthNone(), 0);
-        context->OMSetBlendState(m_commonStatesTK->Opaque(), nullptr, 0xFFFFFFFF);
-        context->RSSetState(m_commonStatesTK->CullNone());
+        context->OMSetDepthStencilState(m_resources.GetCommonStatesTK()->DepthNone(), 0);
+        context->OMSetBlendState(m_resources.GetCommonStatesTK()->Opaque(), nullptr, 0xFFFFFFFF);
+        context->RSSetState(m_resources.GetCommonStatesTK()->CullNone());
 
         constexpr UINT captureSRVSlot   = static_cast<UINT>(SRVSlot::IBLCaptureSource);
         constexpr UINT bakeSamplerSlot  = static_cast<UINT>(SamplerSlot::IBL);
         ID3D11ShaderResourceView* captureSRV  = m_iblCaptureCube->GetSRV();
-        ID3D11SamplerState*       linearClamp = m_samplers[static_cast<size_t>(Tsukino::GraphicsCommon::SamplerType::LinearClamp)].Get();
+        ID3D11SamplerState*       linearClamp = m_resources.GetSampler(Tsukino::GraphicsCommon::SamplerType::LinearClamp);
         context->PSSetShaderResources(captureSRVSlot, 1, &captureSRV);
         context->PSSetSamplers(bakeSamplerSlot, 1, &linearClamp);
 
@@ -2128,9 +1912,9 @@ namespace Tsukino::Renderer {
         context->PSSetShader(m_iblBRDFLUTPS.Get(), nullptr, 0);
         context->IASetInputLayout(nullptr);
 
-        context->OMSetDepthStencilState(m_commonStatesTK->DepthNone(), 0);
-        context->OMSetBlendState(m_commonStatesTK->Opaque(), nullptr, 0xFFFFFFFF);
-        context->RSSetState(m_commonStatesTK->CullNone());
+        context->OMSetDepthStencilState(m_resources.GetCommonStatesTK()->DepthNone(), 0);
+        context->OMSetBlendState(m_resources.GetCommonStatesTK()->Opaque(), nullptr, 0xFFFFFFFF);
+        context->RSSetState(m_resources.GetCommonStatesTK()->CullNone());
 
         D3D11_VIEWPORT vp{};
         vp.Width    = static_cast<float>(kIBLBRDFLUTSize);
@@ -2150,7 +1934,7 @@ namespace Tsukino::Renderer {
         ID3D11RenderTargetView* nullRTV = nullptr;
         context->OMSetRenderTargets(1, &nullRTV, nullptr);
 
-        context->OMSetDepthStencilState(m_commonStatesTK->DepthDefault(), 0);
+        context->OMSetDepthStencilState(m_resources.GetCommonStatesTK()->DepthDefault(), 0);
     }
 
     //------------------------------------------------------------
@@ -2169,7 +1953,7 @@ namespace Tsukino::Renderer {
         constexpr UINT iblSRVSlot = static_cast<UINT>(SRVSlot::IBLIrradiance);
         context->PSSetShaderResources(iblSRVSlot, 3, iblSRVs);
 
-        ID3D11SamplerState* linearClamp = m_samplers[static_cast<size_t>(Tsukino::GraphicsCommon::SamplerType::LinearClamp)].Get();
+        ID3D11SamplerState* linearClamp = m_resources.GetSampler(Tsukino::GraphicsCommon::SamplerType::LinearClamp);
         context->PSSetSamplers(static_cast<UINT>(SamplerSlot::IBL), 1, &linearClamp);
     }
 
@@ -2209,9 +1993,9 @@ namespace Tsukino::Renderer {
         //----------------------------------------------------------
         // 深度テストなし・ブレンドなし（discardで背景ピクセルを保護する）
         //----------------------------------------------------------
-        context->OMSetDepthStencilState(m_commonStatesTK->DepthNone(), 0);
-        context->OMSetBlendState(m_commonStatesTK->Opaque(), nullptr, 0xFFFFFFFF);
-        context->RSSetState(m_commonStatesTK->CullNone());
+        context->OMSetDepthStencilState(m_resources.GetCommonStatesTK()->DepthNone(), 0);
+        context->OMSetBlendState(m_resources.GetCommonStatesTK()->Opaque(), nullptr, 0xFFFFFFFF);
+        context->RSSetState(m_resources.GetCommonStatesTK()->CullNone());
 
         //----------------------------------------------------------
         // Scene (b0) をバインド
@@ -2251,7 +2035,7 @@ namespace Tsukino::Renderer {
         //----------------------------------------------------------
         // G-Bufferサンプラー (s9)：フィルタなしのポイントサンプリング
         //----------------------------------------------------------
-        ID3D11SamplerState* pointClamp = m_samplers[static_cast<size_t>(Tsukino::GraphicsCommon::SamplerType::PointClamp)].Get();
+        ID3D11SamplerState* pointClamp = m_resources.GetSampler(Tsukino::GraphicsCommon::SamplerType::PointClamp);
         constexpr UINT      gbufferSamplerSlot = static_cast<UINT>(SamplerSlot::GBuffer);
         context->PSSetSamplers(gbufferSamplerSlot, 1, &pointClamp);
 
@@ -2281,7 +2065,7 @@ namespace Tsukino::Renderer {
         //----------------------------------------------------------
         // 深度ステートを元に戻す（HDRRenderTarget復帰後のWorld/Transparent用）
         //----------------------------------------------------------
-        context->OMSetDepthStencilState(m_commonStatesTK->DepthDefault(), 0);
+        context->OMSetDepthStencilState(m_resources.GetCommonStatesTK()->DepthDefault(), 0);
     }
 
     //------------------------------------------------------------
@@ -2309,7 +2093,7 @@ namespace Tsukino::Renderer {
         ID3D11ShaderResourceView* depthSRV     = m_graphicsContext.GetDepthSRV();
         context->PSSetShaderResources(depthSRVSlot, 1, &depthSRV);
 
-        ID3D11SamplerState* pointClamp         = m_samplers[static_cast<size_t>(Tsukino::GraphicsCommon::SamplerType::PointClamp)].Get();
+        ID3D11SamplerState* pointClamp         = m_resources.GetSampler(Tsukino::GraphicsCommon::SamplerType::PointClamp);
         constexpr UINT      gbufferSamplerSlot = static_cast<UINT>(SamplerSlot::GBuffer);
         context->PSSetSamplers(gbufferSamplerSlot, 1, &pointClamp);
 
@@ -2338,9 +2122,9 @@ namespace Tsukino::Renderer {
         // （DirectXTKのAlphaBlendは ONE / INV_SRC_ALPHA なので、
         //   PSがfloat4(color * f, f)を返せばそのまま正しいoverになる）
         //----------------------------------------------------------
-        context->OMSetDepthStencilState(m_commonStatesTK->DepthNone(), 0);
-        context->OMSetBlendState(m_commonStatesTK->AlphaBlend(), nullptr, 0xFFFFFFFF);
-        context->RSSetState(m_commonStatesTK->CullNone());
+        context->OMSetDepthStencilState(m_resources.GetCommonStatesTK()->DepthNone(), 0);
+        context->OMSetBlendState(m_resources.GetCommonStatesTK()->AlphaBlend(), nullptr, 0xFFFFFFFF);
+        context->RSSetState(m_resources.GetCommonStatesTK()->CullNone());
 
         //----------------------------------------------------------
         // フルスクリーントライアングル描画
@@ -2358,7 +2142,7 @@ namespace Tsukino::Renderer {
         ID3D11ShaderResourceView* nullSRV = nullptr;
         context->PSSetShaderResources(depthSRVSlot, 1, &nullSRV);
 
-        context->OMSetBlendState(m_commonStatesTK->Opaque(), nullptr, 0xFFFFFFFF);
+        context->OMSetBlendState(m_resources.GetCommonStatesTK()->Opaque(), nullptr, 0xFFFFFFFF);
     }
 
     //------------------------------------------------------------
@@ -2405,9 +2189,9 @@ namespace Tsukino::Renderer {
         // 深度を書かないことで粒子どうしの前後関係を気にせずに済み、
         // 加算合成なので描画順のソートも不要になる
         //----------------------------------------------------------
-        context->OMSetDepthStencilState(m_commonStatesTK->DepthReadReverseZ(), 0);
-        context->OMSetBlendState(m_commonStatesTK->Additive(), nullptr, 0xFFFFFFFF);
-        context->RSSetState(m_commonStatesTK->CullNone());
+        context->OMSetDepthStencilState(m_resources.GetCommonStatesTK()->DepthReadReverseZ(), 0);
+        context->OMSetBlendState(m_resources.GetCommonStatesTK()->Additive(), nullptr, 0xFFFFFFFF);
+        context->RSSetState(m_resources.GetCommonStatesTK()->CullNone());
 
         //----------------------------------------------------------
         // 頂点バッファなしで「1粒 = 三角形2枚」を一括描画
@@ -2420,8 +2204,8 @@ namespace Tsukino::Renderer {
         //----------------------------------------------------------
         // ステートを戻す（Sky / Fogと同じ流儀）
         //----------------------------------------------------------
-        context->OMSetDepthStencilState(m_commonStatesTK->DepthDefault(), 0);
-        context->OMSetBlendState(m_commonStatesTK->Opaque(), nullptr, 0xFFFFFFFF);
+        context->OMSetDepthStencilState(m_resources.GetCommonStatesTK()->DepthDefault(), 0);
+        context->OMSetBlendState(m_resources.GetCommonStatesTK()->Opaque(), nullptr, 0xFFFFFFFF);
     }
 
     //------------------------------------------------------------
@@ -2448,14 +2232,14 @@ namespace Tsukino::Renderer {
         ID3D11ShaderResourceView* hdrSRV = m_graphicsContext.GetHDRSRV();
         context->PSSetShaderResources(0, 1, &hdrSRV);
 
-        ID3D11SamplerState* linearClamp = m_samplers[static_cast<size_t>(Tsukino::GraphicsCommon::SamplerType::LinearClamp)].Get();
+        ID3D11SamplerState* linearClamp = m_resources.GetSampler(Tsukino::GraphicsCommon::SamplerType::LinearClamp);
         context->PSSetSamplers(0, 1, &linearClamp);
 
         constexpr UINT            velocitySRVSlot = static_cast<UINT>(SRVSlot::GBufferVelocity);
         ID3D11ShaderResourceView* velocitySRV     = m_graphicsContext.GetGBufferSRV(5);
         context->PSSetShaderResources(velocitySRVSlot, 1, &velocitySRV);
 
-        ID3D11SamplerState* pointClamp = m_samplers[static_cast<size_t>(Tsukino::GraphicsCommon::SamplerType::PointClamp)].Get();
+        ID3D11SamplerState* pointClamp = m_resources.GetSampler(Tsukino::GraphicsCommon::SamplerType::PointClamp);
         constexpr UINT      gbufferSamplerSlot = static_cast<UINT>(SamplerSlot::GBuffer);
         context->PSSetSamplers(gbufferSamplerSlot, 1, &pointClamp);
 
@@ -2476,9 +2260,9 @@ namespace Tsukino::Renderer {
         //----------------------------------------------------------
         // 深度なし・ブレンドなし
         //----------------------------------------------------------
-        context->OMSetDepthStencilState(m_commonStatesTK->DepthNone(), 0);
-        context->OMSetBlendState(m_commonStatesTK->Opaque(), nullptr, 0xFFFFFFFF);
-        context->RSSetState(m_commonStatesTK->CullNone());
+        context->OMSetDepthStencilState(m_resources.GetCommonStatesTK()->DepthNone(), 0);
+        context->OMSetBlendState(m_resources.GetCommonStatesTK()->Opaque(), nullptr, 0xFFFFFFFF);
+        context->RSSetState(m_resources.GetCommonStatesTK()->CullNone());
 
         //----------------------------------------------------------
         // フルスクリーントライアングル描画
@@ -2522,7 +2306,7 @@ namespace Tsukino::Renderer {
         context->PSSetShaderResources(0, 1, &hdrSRV);
 
         // LinearClampサンプラーをs0にバインド
-        ID3D11SamplerState* sampler = m_samplers[static_cast<size_t>(Tsukino::GraphicsCommon::SamplerType::LinearClamp)].Get();
+        ID3D11SamplerState* sampler = m_resources.GetSampler(Tsukino::GraphicsCommon::SamplerType::LinearClamp);
         context->PSSetSamplers(0, 1, &sampler);
 
         //----------------------------------------------------------
@@ -2535,9 +2319,9 @@ namespace Tsukino::Renderer {
         //----------------------------------------------------------
         // 深度なし・ブレンドなし
         //----------------------------------------------------------
-        context->OMSetDepthStencilState(m_commonStatesTK->DepthNone(), 0);
-        context->OMSetBlendState(m_commonStatesTK->Opaque(), nullptr, 0xFFFFFFFF);
-        context->RSSetState(m_commonStatesTK->CullNone());
+        context->OMSetDepthStencilState(m_resources.GetCommonStatesTK()->DepthNone(), 0);
+        context->OMSetBlendState(m_resources.GetCommonStatesTK()->Opaque(), nullptr, 0xFFFFFFFF);
+        context->RSSetState(m_resources.GetCommonStatesTK()->CullNone());
 
         //----------------------------------------------------------
         // フルスクリーントライアングル描画

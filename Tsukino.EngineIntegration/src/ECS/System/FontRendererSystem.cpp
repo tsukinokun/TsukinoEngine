@@ -72,7 +72,7 @@ namespace Tsukino::BuiltIn::ECS {
         // スプライトバッチがない場合は作成(キャッシュ)
         //-------------------------------------------------------------
         if(!m_spriteBatch) {
-            m_spriteBatch = ctx->renderer->CreateSpriteBatch();
+            m_spriteBatch = ctx->renderer->GetResources().CreateSpriteBatch();
         }
 
         ID3D11DeviceContext* immediateContext = ctx->renderer->GetContext();
@@ -162,7 +162,7 @@ namespace Tsukino::BuiltIn::ECS {
                     //-------------------------------------------------------------
                     // フォントを生成してキャッシュに保存
                     //-------------------------------------------------------------
-                    spriteFont = ctx->renderer->CreateSpriteFont(fontAsset->m_binaryData.data(), fontAsset->m_binaryData.size());
+                    spriteFont = ctx->renderer->GetResources().CreateSpriteFont(fontAsset->m_binaryData.data(), fontAsset->m_binaryData.size());
                 }
 
                 // キャプチャ：SpriteFont の生ポインタを渡す
@@ -228,7 +228,7 @@ namespace Tsukino::BuiltIn::ECS {
             return m_drawEntries[lhs].sortOrder < m_drawEntries[rhs].sortOrder;
         });
 
-        DirectX::CommonStates* states = ctx->renderer->GetCommonStatesTK();
+        DirectX::CommonStates* states = ctx->renderer->GetResources().GetCommonStatesTK();
 
         //-------------------------------------------------------------
         // 描画コマンドの作成。sortOrderが同じ連なり（＝同じUIの層）ごとに1個ずつ発行する。

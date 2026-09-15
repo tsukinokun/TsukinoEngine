@@ -9,7 +9,7 @@
 #include <Tsukino/Renderer/DX11/GraphicsContext.hpp>
 #include <Tsukino/Renderer/DX11/MeshBuffer.hpp>
 #include <Tsukino/Renderer/DX11/PipelineFactory.hpp>
-#include <Tsukino/Renderer/SpriteRenderer.hpp>
+#include <Tsukino/Renderer/RenderResources.hpp>
 #include <Tsukino/Renderer/DrawCommandQueue.hpp>
 #include <Tsukino/Renderer/DX11/Texture/DX11Texture2D.hpp>
 #include <Tsukino/Renderer/DX11/Texture/DX11TextureCube.hpp>
@@ -220,12 +220,13 @@ namespace Tsukino::Renderer {
         void FlushDebugDraw();
 
         //------------------------------------------------------------
-        // PipelineFactoryを使うためのGetterを公開
-        //! @return PipelineFactoryのポインタ
+        //! @brief  描画で共有する資源を取得する
+        //! @return 共通ステート・サンプラー・既定テクスチャ・テクスチャキャッシュ・
+        //!         プリミティブメッシュ・PipelineFactory をまとめて持つ RenderResources
         //------------------------------------------------------------
         [[nodiscard]]
-        PipelineFactory* GetPipelineFactory() {
-            return &m_pipelineFactory.value();
+        RenderResources& GetResources() noexcept {
+            return m_resources;
         }
 
         //------------------------------------------------------------
@@ -247,46 +248,10 @@ namespace Tsukino::Renderer {
         }
 
         //------------------------------------------------------------
-        // プリミティブメッシュの取得
-        //! @param type [in] 取得するプリミティブの種類
-        //! @return メッシュバッファへのポインタ
-        //------------------------------------------------------------
-        [[nodiscard]]
-        MeshBuffer* GetPrimitiveMesh(Tsukino::GraphicsCommon::PrimitiveType type) {
-            return &m_primitiveMeshes[static_cast<size_t>(type)];
-        }
-
-        //------------------------------------------------------------
-        // サンプラーの取得
-        //! @param type [in] 取得するサンプラーの種類
-        //! @return サンプラーステートへのポインタ
-        //------------------------------------------------------------
-        [[nodiscard]]
-        ID3D11SamplerState* GetSampler(Tsukino::GraphicsCommon::SamplerType type) const {
-            return m_samplers[static_cast<size_t>(type)].Get();
-        }
-
-        //------------------------------------------------------------
-        // テクスチャ（SRV）の取得（なければ生成してキャッシュ）
-        //! @param textureAsset [in] 取得元のテクスチャアセット
-        //! @return ID3D11ShaderResourceView へのポインタ
-        //------------------------------------------------------------
-        [[nodiscard]]
-        ID3D11ShaderResourceView* GetTextureSRV(const Tsukino::Asset::TextureAsset& textureAsset);
-
-        //------------------------------------------------------------
         // シーン定数バッファの更新
         //! @param sceneData [in] シーン定数バッファの値データ
         //------------------------------------------------------------
         void UpdateSceneBuffer(const CBufferScene& sceneData);
-
-        //------------------------------------------------------------
-        // スプライトフォントの作成
-        //! @param  data [in] フォントデータのバイナリ
-        //! @param  size [in] フォントデータのサイズ
-        //! @return SpriteFontのユニークポインタ
-        //------------------------------------------------------------
-        std::unique_ptr<DirectX::SpriteFont> CreateSpriteFont(const u8* data, size_t size);
 
         //------------------------------------------------------------
         // ワールドカメラ行列のセット
@@ -299,17 +264,6 @@ namespace Tsukino::Renderer {
         //! @param data [in] シーン定数バッファの値データ
         //------------------------------------------------------------
         void SetOverlayCameraMatrix(const CBufferScene& data);
-
-        //------------------------------------------------------------
-        // スプライトバッチの作成
-        //! @return SpriteBatchのユニークポインタ
-        //------------------------------------------------------------
-        std::unique_ptr<DirectX::SpriteBatch> CreateSpriteBatch();
-
-        //------------------------------------------------------------
-        //! @brief 共通ステートの取得
-        //------------------------------------------------------------
-        DirectX::CommonStates* GetCommonStatesTK() const { return m_commonStatesTK.get(); }
 
         //------------------------------------------------------------
         //! @brief ディレクショナルライトの設定
@@ -333,24 +287,6 @@ namespace Tsukino::Renderer {
         //! @param skeletalPipeline [in] スケルタルメッシュ用シャドウパイプライン
         //------------------------------------------------------------
         void SetShadowPipeline(std::shared_ptr<PipelineState> staticPipeline, std::shared_ptr<PipelineState> skeletalPipeline);
-
-        //------------------------------------------------------------
-        //! @brief 白テクスチャのSRVを取得
-        //! @return ID3D11ShaderResourceViewへのポインタ
-        //! @note  マテリアルテクスチャ未設定時のデフォルト。
-        //!        アルベド/MR/エミッシブ/AOはいずれもcbuffer定数との「乗算」で
-        //!        合成するため、白(=1.0)を掛ければ定数値がそのまま残る。
-        //------------------------------------------------------------
-        ID3D11ShaderResourceView* GetWhiteTextureSRV();
-
-        //------------------------------------------------------------
-        //! @brief フラット法線テクスチャのSRVを取得
-        //! @return ID3D11ShaderResourceViewへのポインタ
-        //! @note  ノーマルマップ未設定時のデフォルト。接空間の(0,0,1)を
-        //!        エンコードした値(R=0x80,G=0x80,B=0xFF)で、これを適用しても
-        //!        頂点法線がそのまま保たれる。白を使うと法線が斜めにずれる。
-        //------------------------------------------------------------
-        ID3D11ShaderResourceView* GetFlatNormalTextureSRV();
 
         //------------------------------------------------------------
         //! @brief 大気散乱パラメータのセット
@@ -465,24 +401,10 @@ namespace Tsukino::Renderer {
         [[nodiscard]] bool CreateConstantBuffer();
 
         //------------------------------------------------------------
-        // プリミティブメッシュの作成
-        //! @return true: プリミティブメッシュの作成成功, false:作成失敗
-        //------------------------------------------------------------
-        [[nodiscard]]
-        bool CreatePrimitiveMeshes();
-
-        //------------------------------------------------------------
         // 描画コマンドを実行
         //! @param cmd [in] 実行する描画コマンド
         //------------------------------------------------------------
         void ExecuteDrawCommand(const DrawCommand& cmd);
-
-        //------------------------------------------------------------
-        // 共通ステート（サンプラーなど）の作成
-        //! @return true: 作成成功, false: 作成失敗
-        //------------------------------------------------------------
-        [[nodiscard]]
-        bool CreateCommonStates();
 
         //------------------------------------------------------------
         // デバッグ用バッファとシェーダーの作成
@@ -551,33 +473,6 @@ namespace Tsukino::Renderer {
 
         //! @brief シェーダー側のボーン配列の宣言数（CBufferSkinning::bones と揃えること）
         static constexpr u32 kMaxBoneCount = 128;
-
-        //------------------------------------------------------------
-        //! @brief シャドウ用シェーダーと入力レイアウトの作成
-        //! @return true: 作成成功, false: 作成失敗
-        //------------------------------------------------------------
-        //------------------------------------------------------------
-        //! @brief 1x1のデフォルトテクスチャを作成する
-        //! @param rgba [in] ピクセル値。R8G8B8A8_UNORMはメモリ上のバイト順が
-        //!                  R,G,B,Aなので、リトルエンディアンでは0xAABBGGRRと書く
-        //!                  （例: フラット法線 R=0x80,G=0x80,B=0xFF,A=0xFF → 0xFFFF8080）
-        //! @param outTex [out] 作成したテクスチャ
-        //! @param outSRV [out] 作成したSRV
-        //! @param debugName [in] 失敗時のログに出す名前
-        //! @return true: 作成成功, false: 作成失敗
-        //------------------------------------------------------------
-        [[nodiscard]]
-        bool Create1x1Texture(u32                                               rgba,
-                              Microsoft::WRL::ComPtr<ID3D11Texture2D>&          outTex,
-                              Microsoft::WRL::ComPtr<ID3D11ShaderResourceView>& outSRV,
-                              const char*                                       debugName);
-
-        //------------------------------------------------------------
-        //! @brief マテリアル用デフォルトテクスチャ（白・フラット法線）の作成
-        //! @return true: 作成成功, false: 作成失敗
-        //------------------------------------------------------------
-        [[nodiscard]]
-        bool CreateDefaultTextures();
 
         //------------------------------------------------------------
         //! @brief スカイパスの実行
@@ -713,11 +608,11 @@ namespace Tsukino::Renderer {
 
     private:
         // DirectX 11の主要なインターフェース
-        GraphicsContext            m_graphicsContext;    // グラフィックスコンテキスト（Device, DeviceContext, SwapChainを管理）
-        ComPtr<ID3D11Buffer>       m_vertexBuffer;       // 頂点バッファ
-        ComPtr<ID3D11VertexShader> m_vertexShader;       // 頂点シェーダ
-        ComPtr<ID3D11PixelShader>  m_pixelShader;        // ピクセルシェーダ
-        ComPtr<ID3D11InputLayout>  m_inputLayout;        // 入力レイアウト
+        //! @note 【この宣言順は破棄順序の設計であり、並べ替えてはならない】
+        //!       以降の部品はすべて m_graphicsContext が持つデバイスを借りて資源を作るため、
+        //!       デバイスを最後まで生かすよう先頭に置く
+        GraphicsContext m_graphicsContext;    // グラフィックスコンテキスト（Device, DeviceContext, SwapChainを管理）
+        RenderResources m_resources;          // 描画で共有する資源（ステート・サンプラー・既定テクスチャ・テクスチャキャッシュ等）
 
         // 定数バッファ
         ComPtr<ID3D11Buffer> m_objectBuffer;      // オブジェクトデータ用定数バッファ
@@ -751,11 +646,6 @@ namespace Tsukino::Renderer {
 
         std::array<float, 4> m_clearColor = {0.5f, 0.5f, 0.5f, 1.0f};    // 描画領域のクリアカラー (デフォルトはグレー)
 
-        std::array<MeshBuffer, (size_t)Tsukino::GraphicsCommon::PrimitiveType::Count> m_primitiveMeshes;    // プリミティブメッシュバッファの配列
-        std::array<ComPtr<ID3D11SamplerState>, static_cast<size_t>(Tsukino::GraphicsCommon::SamplerType::Count)> m_samplers;
-        std::unordered_map<u64, std::unique_ptr<DX11Texture2D>> m_textureCache;       // Textureのキャッシュ (AssetHandle の Value(uint64_t) をキーにする)
-        std::optional<PipelineFactory>                          m_pipelineFactory;    // メンバとして持たせる
-        SpriteRenderer                                          m_spriteRenderer;     // スプライト描画クラスのインスタンス
         FrameStats m_frameStats;    // 1フレーム分の描画統計（Render()の先頭でリセットする）
 
         u32 m_lastDrawBoneBytes = 0;    // 直前のExecuteDrawCommandで転送したボーン行列のバイト数（統計用）
@@ -784,14 +674,6 @@ namespace Tsukino::Renderer {
         ComPtr<ID3D11VertexShader> m_debugVS;
         ComPtr<ID3D11PixelShader>  m_debugPS;
         ComPtr<ID3D11InputLayout>  m_debugIL;
-
-        std::unique_ptr<DirectX::CommonStates> m_commonStatesTK;
-
-        // マテリアルテクスチャ未設定時のデフォルト
-        Microsoft::WRL::ComPtr<ID3D11Texture2D>          m_whiteTex;
-        Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> m_whiteSRV;
-        Microsoft::WRL::ComPtr<ID3D11Texture2D>          m_flatNormalTex;
-        Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> m_flatNormalSRV;
 
         // スカイ用リソース
         ComPtr<ID3D11VertexShader> m_skyVS;             //!< スカイ用頂点シェーダー
