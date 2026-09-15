@@ -6,7 +6,7 @@
 //!         Renderer::ExecuteIBLIrradiancePass()が面ごとに計6回描画する。
 //!         出力先の面はCBufferScene(b0)のinvViewProjが決める
 //!         （Sky.ps.hlslのワールド方向再構成と同じ手法。面ごとに90°FOVの
-//!         ビュー/プロジェクション行列を差し替えてUpdateSceneBufferしてから呼ぶ）。
+//!         ビュー/プロジェクション行列を差し替えたb0を転送してから呼ぶ。IBLBaker参照）。
 //--------------------------------------------------------------
 #pragma pack_matrix(row_major)
 #include "PBR.hlsli"

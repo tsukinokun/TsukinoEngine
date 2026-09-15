@@ -33,7 +33,7 @@ namespace Tsukino::BuiltIn::ECS {
             auto psAsset = std::static_pointer_cast<Tsukino::Asset::ShaderAsset>(ctx->assetManager->Get(ctx->builtinAssets->shaders.skyPS));
 
             if(vsAsset && psAsset) {
-                ctx->renderer->SetSkyPipeline(vsAsset.get(), psAsset.get());
+                ctx->renderer->GetSky().SetPipeline(vsAsset.get(), psAsset.get());
                 m_pipelineInitialized = true;
             }
         }
@@ -70,7 +70,7 @@ namespace Tsukino::BuiltIn::ECS {
             skyData.groundColor        = hlslpp::float4(sky.groundColor.x, sky.groundColor.y, sky.groundColor.z, 0.0f);
             skyData.sunDirection       = hlslpp::float4(sunDir.x, sunDir.y, sunDir.z, 0.0f);
 
-            ctx->renderer->SetSkyParameters(skyData);
+            ctx->renderer->GetSky().SetParameters(skyData);
         });
     }
 
