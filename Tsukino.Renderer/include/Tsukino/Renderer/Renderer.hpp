@@ -36,22 +36,14 @@
 
 #include <array>
 #include <memory>
-#include <optional>
-#include <unordered_map>
 #include <vector>
-
-
-namespace Tsukino::Asset {
-    class TextureAsset;    // 前方宣言
-}
 
 // 名前空間 : Tsukino::Renderer
 namespace Tsukino::Renderer {
     // ComPtr の using 宣言。公開ヘッダなのでグローバルではなく名前空間の内側に置く
     using Microsoft::WRL::ComPtr;
 
-    struct CBufferScene;    // 前方宣言
-    class IPostWorldPass;   // 前方宣言（Worldパスの後に差し込む描画。実体は上位層が持つ）
+    class IPostWorldPass;         // 前方宣言（Worldパスの後に差し込む描画。実体は上位層が持つ）
     class DrawCommandExecutor;    // 前方宣言（描画コマンドの実行。Tsukino.Renderer の内部専用）
     class FullscreenPass;         // 前方宣言（フルスクリーン三角形の描画。同上）
     class TonemapPass;            // 前方宣言（トーンマップパス。同上）
@@ -87,7 +79,10 @@ namespace Tsukino::Renderer {
     //------------------------------------------------------------
     //! @class	 Renderer
     //! @brief	 レンダラークラス
-    //! @details DirectX11を使用してウィンドウに描画を行うクラス
+    //! @details DirectX11を使用してウィンドウに描画を行うクラス。
+    //!          各パスと共有資源を所有し、Render() でパスの順番を回す。
+    //!          パスごとの設定は Get*() で担当のクラスを借りて行う
+    //!          （例: GetFog().SetParameters()、GetLighting().SetLights()）
     //------------------------------------------------------------
     class Renderer {
     public:
@@ -335,7 +330,7 @@ namespace Tsukino::Renderer {
 
         FrameStats m_frameStats;    // 1フレーム分の描画統計（Render()の先頭でリセットする）
 
-        DrawCommandQueue                                        m_drawQueue;          // 描画コマンドキュー
+        DrawCommandQueue m_drawQueue;    // 描画コマンドキュー
 
         //! Overlayパスの実行順を決めるための添字バッファ。
         //! DrawCommand本体ではなく添字を並べ替えるのは、DrawCommandがhlsl++の

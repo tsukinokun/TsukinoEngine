@@ -3,8 +3,6 @@
 //! @brief  レンダラークラスの実装
 //! @author 山﨑愛
 //------------------------------------------------------------
-#include <Tsukino/Engine/Asset/Texture/TextureAsset.hpp>
-
 #include <Tsukino/Renderer/Renderer.hpp>
 #include <Tsukino/Renderer/ShaderLoader.hpp>
 #include <Tsukino/Renderer/ConstantBuffer.hpp>
@@ -18,8 +16,6 @@
 #include "ShadowPass.hpp"
 
 #include <Tsukino/Engine/Asset/Shader/ShaderAsset.hpp>
-
-#include <Tsukino/GraphicsCommon/Mesh/MeshPrimitives.hpp>
 
 #include <Tsukino/Core/Log.hpp>
 
@@ -171,7 +167,7 @@ namespace Tsukino::Renderer {
 
         //------------------------------------------------------------
         // 今フレームの描画統計をリセットする（負荷調査用）
-        // 実際の加算は各Execute*Commandが DrawIndexed の直前で行うため、
+        // 実際の加算は DrawCommandExecutor が DrawIndexed の直後に行うため、
         // 早期returnで描かれなかったコマンドは数に入らない
         //------------------------------------------------------------
         m_frameStats              = FrameStats{};
