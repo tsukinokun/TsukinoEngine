@@ -40,7 +40,7 @@ namespace Tsukino::BuiltIn::ECS {
     private:
         //-------------------------------------------------------------
         // マテリアル実体の置き場は DrawCommandQueue へ移した。
-        // Renderer::AllocMaterial() / AllocMaterialData() で確保する。
+        // Renderer::GetDrawQueue().AllocMaterial() / AllocMaterialData() で確保する。
         // System 側で持つと、System の Update 冒頭でクリアするのに対し
         // コマンドの破棄は Renderer::Render() の中でしか起きないため、
         // 両者の寿命が食い違ってダングリングの余地が残る

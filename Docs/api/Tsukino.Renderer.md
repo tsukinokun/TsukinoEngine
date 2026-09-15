@@ -16,57 +16,42 @@
 
 | シグネチャ | 説明 |
 |---|---|
-| `Renderer()=default` | コンストラクタ |
-| `~Renderer()=default` | デストラクタ |
+| `Renderer()` | コンストラクタ |
+| `~Renderer()` | デストラクタ |
 | `bool Initialize(HWND hwnd, uint32_t width, uint32_t height, const RendererShaderSet &shaders)` | レンダラーの初期化 |
 | `void Render(IPostWorldPass *postWorldPass=nullptr)` | 描画処理 |
 | `void Resize(uint32_t width, uint32_t height)` | 描画領域のリサイズ |
 | `void SetClearColor(float r, float g, float b, float a)` | クリアカラー設定 |
-| `void PushDrawCommand(const DrawCommand &cmd)` | 描画コマンドの追加 |
-| `Material & AllocMaterial()` | このフレームで使うマテリアル実体を1つ確保する |
-| `CBufferMaterial & AllocMaterialData()` | このフレームで使うマテリアル定数データを1つ確保する |
+| `DrawCommandQueue & GetDrawQueue() noexcept` | このフレームの描画コマンドキューを取得する |
 | `const FrameStats & GetFrameStats() const` | 直前のフレームの描画統計を取得する関数 |
 | `void SetVSyncEnabled(bool enabled)` | 垂直同期の有無を設定する関数 |
 | `bool IsVSyncEnabled() const` | 垂直同期が有効かを取得する関数 |
-| `void DrawDebugLine(const Tsukino::GraphicsCommon::DebugVertex &v1, const Tsukino::GraphicsCommon::DebugVertex &v2)` | デバッグラインの追加 |
-| `void DrawDebugTriangle(const Tsukino::GraphicsCommon::DebugVertex &v1, const Tsukino::GraphicsCommon::DebugVertex &v2, const Tsukino::GraphicsCommon::DebugVertex &v3)` | デバッグ三角形の追加 |
-| `void FlushDebugDraw()` | デバッグ描画の実行 |
-| `PipelineFactory * GetPipelineFactory()` |  |
+| `DebugDraw & GetDebugDraw() noexcept` | デバッグ用の線と三角形の描画を取得する |
+| `RenderResources & GetResources() noexcept` | 描画で共有する資源を取得する |
+| `FrameConstants & GetFrameConstants() noexcept` | フレーム単位のシーン定数（b0）を取得する |
 | `ID3D11Device * GetDevice() const` |  |
 | `ID3D11DeviceContext * GetContext() const` |  |
-| `MeshBuffer * GetPrimitiveMesh(Tsukino::GraphicsCommon::PrimitiveType type)` |  |
-| `ID3D11SamplerState * GetSampler(Tsukino::GraphicsCommon::SamplerType type) const` |  |
-| `ID3D11ShaderResourceView * GetTextureSRV(const Tsukino::Asset::TextureAsset &textureAsset)` | テクスチャ（SRV）の取得（なければ生成してキャッシュ） |
-| `void UpdateSceneBuffer(const CBufferScene &sceneData)` | シーン定数バッファの更新 |
-| `std::unique_ptr< DirectX::SpriteFont > CreateSpriteFont(const u8 *data, size_t size)` | SpriteFontの作成 |
-| `void SetWorldCameraMatrix(const CBufferScene &data)` | ワールドカメラ行列のセット |
-| `void SetOverlayCameraMatrix(const CBufferScene &data)` | オーバーレイカメラ行列のセット |
-| `std::unique_ptr< DirectX::SpriteBatch > CreateSpriteBatch()` | SpriteBatchの作成 |
-| `DirectX::CommonStates * GetCommonStatesTK() const` | 共通ステートの取得 |
-| `void SetDirectionalLight(const hlslpp::float3 &direction, const hlslpp::float3 &color, float intensity)` | ディレクショナルライトの設定 |
-| `void SetShadowPipeline(std::shared_ptr< PipelineState > staticPipeline, std::shared_ptr< PipelineState > skeletalPipeline)` | シャドウパイプラインのセット |
-| `ID3D11ShaderResourceView * GetWhiteTextureSRV()` | 白テクスチャのSRVを取得 |
-| `ID3D11ShaderResourceView * GetFlatNormalTextureSRV()` | フラット法線テクスチャのSRVを取得 |
-| `void SetSkyParameters(const CBufferSky &sky)` | 大気散乱パラメータのセット |
-| `void SetSkyPipeline(const Tsukino::Asset::ShaderAsset *vs, const Tsukino::Asset::ShaderAsset *ps)` | スカイパイプラインのセット |
-| `void SetLights(const GPULight *lights, u32 count)` | 点光源・スポットライト配列のセット（ディファードLightingパス用） |
-| `bool SetMotionBlurPipeline(const Tsukino::Asset::ShaderAsset *ps)` | モーションブラーパイプラインのセット |
-| `void SetMotionBlurParameters(const CBufferMotionBlur &params)` | モーションブラーパラメータのセット |
-| `void SetMotionBlurEnabled(bool enabled) noexcept` | モーションブラーの有効・無効を切り替える |
-| `void SetFogParameters(const CBufferFog &params)` | フォグパラメータのセット |
-| `void SetFogEnabled(bool enabled) noexcept` | フォグの有効・無効を切り替える |
-| `void SetAmbientParticleParameters(const CBufferAmbientParticle &params, u32 particleCount)` | 環境パーティクルのパラメータをセットします。 |
-| `void SetAmbientParticleEnabled(bool enabled) noexcept` |  |
-| `void AdvanceFrameTime(float deltaTime)` | フレームの経過時間を進めます。 |
+| `LightingPass & GetLighting() noexcept` | ディファードライティングパスを取得する |
+| `SkyPass & GetSky() noexcept` | スカイ（大気散乱）パスを取得する |
+| `IBLBaker & GetIBL() noexcept` | スカイ由来の環境光（IBL）のベイクを取得する |
+| `AmbientParticlePass & GetAmbientParticles() noexcept` | 環境パーティクル（火の粉・灰）パスを取得する |
+| `FogPass & GetFog() noexcept` | フォグパスを取得する |
+| `MotionBlurPass & GetMotionBlur() noexcept` | モーションブラーパスを取得する |
 
 ## 全公開型の索引
 
 メンバ名のみ。詳細が要るときはヘッダを開く。
 
+- **Tsukino::Renderer::AmbientParticlePass** — `Tsukino.Renderer/include/Tsukino/Renderer/AmbientParticlePass.hpp`
+  - Initialize(), SetParameters(), SetEnabled(), Execute(), EndFrame()
 - **Tsukino::Renderer::CBufferAmbientParticle** — `Tsukino.Renderer/include/Tsukino/Renderer/ConstantBuffer.hpp`
   - volumeParams, fadeParams, sizeParams, driftParams, swayParams, colorParams
 - **Tsukino::Renderer::CBufferFog** — `Tsukino.Renderer/include/Tsukino/Renderer/ConstantBuffer.hpp`
   - color, distanceParams, heightParams, sunColor, noiseParams, windParams
+- **Tsukino::Renderer::CBufferIBL** — `Tsukino.Renderer/include/Tsukino/Renderer/ConstantBuffer.hpp`
+  - specularMipCount, iblIntensity, pad
+- **Tsukino::Renderer::CBufferIBLBake** — `Tsukino.Renderer/include/Tsukino/Renderer/ConstantBuffer.hpp`
+  - roughness, sampleCount, pad
 - **Tsukino::Renderer::CBufferLights** — `Tsukino.Renderer/include/Tsukino/Renderer/ConstantBuffer.hpp`
   - lightCount, pad, lights
 - **Tsukino::Renderer::CBufferMaterial** — `Tsukino.Renderer/include/Tsukino/Renderer/ConstantBuffer.hpp`
@@ -85,8 +70,14 @@
   - world, prevWorld, motionFlags
 - **Tsukino::Renderer::DX11Texture2D** — `Tsukino.Renderer/include/Tsukino/Renderer/DX11/Texture/DX11Texture2D.hpp`
   - DX11Texture2D(), Bind(), GetWidth(), GetHeight(), GetSRV()
+- **Tsukino::Renderer::DX11TextureCube** — `Tsukino.Renderer/include/Tsukino/Renderer/DX11/Texture/DX11TextureCube.hpp`
+  - DX11TextureCube(), GetSRV(), GetFaceRTV(), GetBaseSize(), GetMipLevels(), GetMipSize(), IsValid()
+- **Tsukino::Renderer::DebugDraw** — `Tsukino.Renderer/include/Tsukino/Renderer/DebugDraw.hpp`
+  - Initialize(), DrawLine(), DrawTriangle(), Flush(), Clear()
 - **Tsukino::Renderer::DrawCommand** — `Tsukino.Renderer/include/Tsukino/Renderer/DrawCommand.hpp`
   - material, mesh, customDraw, transform, pass, materialData, sortOrder, boneMatrices, boneCount, instanceCount, instanceData, castsShadow, userConstantBuffer, userConstantSlot, prevTransform, prevBoneMatrices, hasPrevFrame
+- **Tsukino::Renderer::DrawCommandExecutor** — `Tsukino.Renderer/src/DrawCommandExecutor.hpp`
+  - Initialize(), Execute(), ExecuteShadow()
 - **Tsukino::Renderer::DrawCommandQueue** — `Tsukino.Renderer/include/Tsukino/Renderer/DrawCommandQueue.hpp`
   - Push(), AllocMaterial(), AllocMaterialData(), GetCommands(), Clear(), Size()
 - **Tsukino::Renderer::DynamicFontAtlas** — `Tsukino.Renderer/include/Tsukino/Renderer/Text/DynamicFontAtlas.hpp`
@@ -95,35 +86,55 @@
   - atlasRect, page, bearingX, bearingY, advanceX, hasInk
 - **Tsukino::Renderer::DynamicFontAtlas::Page** — `Tsukino.Renderer/include/Tsukino/Renderer/Text/DynamicFontAtlas.hpp`
   - texture, srv, cursorX, cursorY, shelfHeight
+- **Tsukino::Renderer::FogPass** — `Tsukino.Renderer/include/Tsukino/Renderer/FogPass.hpp`
+  - Initialize(), SetParameters(), SetEnabled(), Execute(), EndFrame()
+- **Tsukino::Renderer::FrameConstants** — `Tsukino.Renderer/include/Tsukino/Renderer/FrameConstants.hpp`
+  - Initialize(), SetWorldCamera(), SetOverlayCamera(), AdvanceTime(), SetDirectionalLight(), GetWorldSceneData(), UploadWorld(), UploadOverlay(), EndFrame(), GetSceneBuffer(), GetSceneBufferAddress()
+- **Tsukino::Renderer::FullscreenPass** — `Tsukino.Renderer/src/FullscreenPass.hpp`
+  - Initialize(), IsValid(), GetVertexShader(), BindGeometry(), Draw()
 - **Tsukino::Renderer::GPULight** — `Tsukino.Renderer/include/Tsukino/Renderer/ConstantBuffer.hpp`
   - positionRange, colorIntensity, directionType, spotParams
 - **Tsukino::Renderer::GraphicsContext** — `Tsukino.Renderer/include/Tsukino/Renderer/DX11/GraphicsContext.hpp`
   - GBufferCount, Initialize(), BeginFrame(), EndFrame(), GetDevice(), GetContext(), SetPipelineState(), SetMaterial(), GetHDRSRV(), BindBackBuffer(), BeginGBufferPass(), GetPostProcessSRV(), BindPostProcessTarget(), BindHDRRenderTarget(), BindHDRTargetOnly(), GetGBufferSRV(), GetDepthSRV(), Resize(), GetWidth(), GetHeight(), SetVSyncEnabled(), IsVSyncEnabled()
+- **Tsukino::Renderer::IBLBaker** — `Tsukino.Renderer/include/Tsukino/Renderer/IBLBaker.hpp`
+  - RequestRecapture(), CreateConstantBuffers(), Initialize(), BakeIfNeeded(), Bind(), Unbind()
 - **Tsukino::Renderer::IPostWorldPass** — `Tsukino.Renderer/include/Tsukino/Renderer/IPostWorldPass.hpp`
   - ~IPostWorldPass(), RenderPostWorld()
 - **Tsukino::Renderer::InstanceBuffer** — `Tsukino.Renderer/include/Tsukino/Renderer/DX11/InstanceBuffer.hpp`
   - buffer, srv, stride, capacity, activeCount, IsValid()
+- **Tsukino::Renderer::LightingPass** — `Tsukino.Renderer/include/Tsukino/Renderer/LightingPass.hpp`
+  - Initialize(), SetDirectionalLight(), SetLights(), Execute()
 - **Tsukino::Renderer::Material** — `Tsukino.Renderer/include/Tsukino/Renderer/DX11/Material.hpp`
   - TextureSlotCount, SetPipeline(), SetTexture(), SetTexture(), SetSampler(), GetPipeline(), GetTexture(), GetTextures(), GetSampler()
 - **Tsukino::Renderer::MeshBuffer** — `Tsukino.Renderer/include/Tsukino/Renderer/DX11/MeshBuffer.hpp`
   - vertexBuffer, indexBuffer, boneWeightBuffer, vertexCount, indexCount, stride
+- **Tsukino::Renderer::MotionBlurPass** — `Tsukino.Renderer/include/Tsukino/Renderer/MotionBlurPass.hpp`
+  - Initialize(), SetParameters(), SetEnabled(), IsEnabled(), Execute(), EndFrame()
 - **Tsukino::Renderer::PipelineFactory** — `Tsukino.Renderer/include/Tsukino/Renderer/DX11/PipelineFactory.hpp`
   - PipelineFactory(), Create()
 - **Tsukino::Renderer::PipelineHash** — `Tsukino.Renderer/include/Tsukino/Renderer/DX11/PipelineFactory.hpp`
   - operator()()
 - **Tsukino::Renderer::PipelineState** — `Tsukino.Renderer/include/Tsukino/Renderer/DX11/PipelineState.hpp`
   - vs, ps, inputLayout, rasterizer, blend, depth, topology
+- **Tsukino::Renderer::RenderResources** — `Tsukino.Renderer/include/Tsukino/Renderer/RenderResources.hpp`
+  - Initialize(), GetPipelineFactory(), GetCommonStatesTK(), GetSampler(), GetPrimitiveMesh(), GetTextureSRV(), GetWhiteTextureSRV(), GetFlatNormalTextureSRV(), CreateSpriteFont(), CreateSpriteBatch()
 - **Tsukino::Renderer::Renderer** — `Tsukino.Renderer/include/Tsukino/Renderer/Renderer.hpp`
-  - Renderer(), ~Renderer(), Initialize(), Render(), Resize(), SetClearColor(), PushDrawCommand(), AllocMaterial(), AllocMaterialData(), GetFrameStats(), SetVSyncEnabled(), IsVSyncEnabled(), DrawDebugLine(), DrawDebugTriangle(), FlushDebugDraw(), GetPipelineFactory(), GetDevice(), GetContext(), GetPrimitiveMesh(), GetSampler(), GetTextureSRV(), UpdateSceneBuffer(), CreateSpriteFont(), SetWorldCameraMatrix(), SetOverlayCameraMatrix(), CreateSpriteBatch(), GetCommonStatesTK(), SetDirectionalLight(), SetShadowPipeline(), GetWhiteTextureSRV(), GetFlatNormalTextureSRV(), SetSkyParameters(), SetSkyPipeline(), SetLights(), SetMotionBlurPipeline(), SetMotionBlurParameters(), SetMotionBlurEnabled(), SetFogParameters(), SetFogEnabled(), SetAmbientParticleParameters(), SetAmbientParticleEnabled(), AdvanceFrameTime()
+  - Renderer(), ~Renderer(), Initialize(), Render(), Resize(), SetClearColor(), GetDrawQueue(), GetFrameStats(), SetVSyncEnabled(), IsVSyncEnabled(), GetDebugDraw(), GetResources(), GetFrameConstants(), GetDevice(), GetContext(), GetLighting(), GetSky(), GetIBL(), GetAmbientParticles(), GetFog(), GetMotionBlur()
 - **Tsukino::Renderer::Renderer::FrameStats** — `Tsukino.Renderer/include/Tsukino/Renderer/Renderer.hpp`
   - commandCount, shadowDrawCalls, gbufferDrawCalls, worldDrawCalls, transparentDrawCalls, overlayDrawCalls, skinnedDrawCalls, triangleCount, boneBytesUploaded, TotalDrawCalls()
 - **Tsukino::Renderer::RendererShaderSet** — `Tsukino.Renderer/include/Tsukino/Renderer/Renderer.hpp`
-  - debugVS, debugPS, tonemapVS, tonemapPS, shadowStaticVS, shadowSkeletalVS, shadowPS, lightingPS, motionBlurPS, fogPS, ambientParticleVS, ambientParticlePS
+  - debugVS, debugPS, tonemapVS, tonemapPS, shadowStaticVS, shadowSkeletalVS, shadowPS, lightingPS, motionBlurPS, fogPS, ambientParticleVS, ambientParticlePS, iblIrradiancePS, iblSpecularPrefilterPS, iblBRDFLUTPS
 - **Tsukino::Renderer::Shader** — `Tsukino.Renderer/include/Tsukino/Renderer/Shader.hpp`
   - Shader(), ~Shader(), Bind()
 - **Tsukino::Renderer::ShaderLoader** — `Tsukino.Renderer/include/Tsukino/Renderer/ShaderLoader.hpp`
   - LoadFromFile()
+- **Tsukino::Renderer::ShadowPass** — `Tsukino.Renderer/src/ShadowPass.hpp`
+  - kMapSize, Initialize(), Execute(), BindForSampling(), ComputeLightViewProj()
+- **Tsukino::Renderer::SkyPass** — `Tsukino.Renderer/include/Tsukino/Renderer/SkyPass.hpp`
+  - Initialize(), SetParameters(), SetPipeline(), IsReady(), Execute(), GetVertexShader(), GetPixelShader(), GetBufferAddress()
 - **Tsukino::Renderer::SpriteRenderer** — `Tsukino.Renderer/include/Tsukino/Renderer/SpriteRenderer.hpp`
   - SpriteRenderer(), Draw()
+- **Tsukino::Renderer::TonemapPass** — `Tsukino.Renderer/src/TonemapPass.hpp`
+  - Initialize(), Execute()
 - **Tsukino::Renderer::UserConstantBuffer** — `Tsukino.Renderer/include/Tsukino/Renderer/DX11/UserConstantBuffer.hpp`
   - buffer, byteSize, IsValid()

@@ -53,7 +53,7 @@ namespace Tsukino::BuiltIn::ECS {
         std::shared_ptr<Tsukino::Renderer::PipelineState> m_worldAdditivePipelineCache;    // パイプラインステートのキャッシュ（World空間・Additive。深度テストあり）
         //-------------------------------------------------------------
         // マテリアル実体と定数データの置き場は DrawCommandQueue へ移した。
-        // Renderer::AllocMaterial() / AllocMaterialData() で確保する
+        // Renderer::GetDrawQueue().AllocMaterial() / AllocMaterialData() で確保する
         //-------------------------------------------------------------
         std::unordered_map<Tsukino::Asset::AssetHandle, ID3D11ShaderResourceView*>
             m_textureCache;    // ハンドルをキーにしてテクスチャのSRVをキャッシュ（毎フレームのアセット検索を回避）

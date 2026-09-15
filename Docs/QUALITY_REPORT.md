@@ -1,7 +1,7 @@
 # TsukinoEngine 品質レポート
 
 **初版:** 2026-08-17
-**最終更新:** 2026-09-10
+**最終更新:** 2026-09-15
 **対象:** TsukinoEngine 全 8 モジュール（約 25,000 行）
 
 エンジン全体のコードレビューで見つかった問題と、その後の対応状況の記録です。
@@ -22,6 +22,7 @@
 | C-1 | Renderer のレイヤ違反（`IPostWorldPass` で解消） |
 | C-2 | AssetManager の重複ロードと乱数ハンドル |
 | C-3 | TransformSystem の O(N²) |
+| C-4 | Renderer の神クラス化（パスごとのクラスへ分割） |
 | C-9 | `Tsukino.Physics` が空プロジェクト |
 | C-12 | DrawCommand の生ポインタが依存していた暗黙のフレーム契約 |
 
@@ -40,7 +41,6 @@
 
 | ID | 項目 | 規模 |
 |---|---|---|
-| C-4 | Renderer の神クラス化（1,999 行 / 104KB / 47 メソッド） | 大 |
 | C-5 | マテリアルソートとフラスタムカリングの不在 | 大 |
 | C-13 | モーションブラーが素朴な gather 実装 | 中 |
 
@@ -273,8 +273,8 @@ void Clear() {   // 3つを必ず同時に捨てる
 }
 ```
 
-`Renderer::AllocMaterial()` / `AllocMaterialData()` が転送し、System 側は
-`ctx->renderer->AllocMaterial()` で確保する。System からは arena が消えた。
+System 側は `ctx->renderer->GetDrawQueue().AllocMaterial()` で確保する。System からは arena が消えた。
+（当初は `Renderer::AllocMaterial()` が転送していたが、C-4 の分割でキューを直接触る形になった）
 
 コマンドとそれが指す実体を同じオブジェクトが所有するため、
 `Clear()` が呼ばれない限りポインタは有効で、Render を飛ばしても壊れない。
@@ -288,27 +288,61 @@ void Clear() {   // 3つを必ず同時に捨てる
 **影響範囲**: `DrawCommandQueue.hpp`、`Renderer.hpp/cpp`、
 `ModelSystem.hpp/cpp`、`SpriteRendererSystem.hpp/cpp`
 
+### C-4. Renderer の神クラス化 — 解消済み
+
+**当時の状況**
+初版では `Renderer.cpp` 1,999 行 / 47 メソッドだったものが、解消に着手した時点で
+**2,556 行**（ヘッダ 860 行）まで膨らんでいた。デバイス・共通ステート・テクスチャキャッシュ・
+定数バッファ・描画コマンドの実行・パス 11 本分のリソースと処理・デバッグ描画を 1 クラスが所有し、
+パスを 1 本足すたびに `Renderer.hpp` へ `Set*Parameters` / `Set*Enabled` / `Set*Pipeline` と
+メンバが増えていた。
+
+**採った対応: 共有部品 → パスの順に切り出し、公開 API も担当クラス経由へ作り直す**
+
+1 段ずつ切り出し、段ごとにビルドと描画結果の一致を確認してコミットした。
+
+| クラス | 公開 | 持つもの |
+|---|---|---|
+| `Renderer` | 公開 | 部品の所有とパスの実行順。初期化・リサイズ・クリア色・統計 |
+| `RenderResources` | 公開 | 共通ステート・サンプラー・既定テクスチャ・テクスチャキャッシュ・プリミティブ・PipelineFactory |
+| `FrameConstants` | 公開 | b0（ワールド／オーバーレイのシーン定数）・経過時間・前フレームの ViewProjection |
+| `DebugDraw` | 公開 | デバッグ線・三角形 |
+| `SkyPass` / `IBLBaker` / `LightingPass` | 公開 | スカイ、IBL ベイク、ディファードライティング |
+| `AmbientParticlePass` / `FogPass` / `MotionBlurPass` | 公開 | 各ポストパス（パラメータとフレーム単位の有効フラグ） |
+| `DrawCommandExecutor` | 内部（`src/`） | 描画コマンド 1 本の実行・Transform/マテリアル/ボーン行列の定数バッファ・統計 |
+| `ShadowPass` / `TonemapPass` / `FullscreenPass` | 内部（`src/`） | シャドウマップ、トーンマップ、共用のフルスクリーン三角形 |
+
+外から設定する必要のない部品は `src/` の内部ヘッダに置き（`Tsukino.Physics` の Jolt ヘッダと同じ扱い）、
+`Renderer` は前方宣言と `unique_ptr` で持つ。このためコンストラクタとデストラクタは `Renderer.cpp` で定義している。
+
+呼び出し側は `renderer->GetFog().SetParameters()` のように担当クラスを取得して設定する。
+新旧の対応表は CHANGELOG の `[Unreleased]` にある。
+
+**検証**
+テストが無いため、描画の一致で確認した。時間の刻みを 1/60 秒に固定する一時コードを入れ、
+ゲームとサンドボックス（`lights` / 既定のジャンプゲーム）を 240 フレーム回して、
+毎フレームの `FrameStats` と 30・120・240 フレーム目のバックバッファを分割前のビルドと比べた。
+全段で統計は完全一致、画像は 1 ピクセル単位で一致した
+（ゲームの 240 フレーム目だけは敵の湧きが乱数のため比較対象外）。
+負荷は、分割前後の Release ビルドを交互に 3 回ずつストレスベンチにかけて中央値で比べた。
+敵 200 体までは `render_ms` の差が ±1% 以内、500〜2000 体では分割後が約 3% 重い
+（2000 体で 9.89 → 10.18 ms）。fps は全段で差が 0.5% 以内。
+描画コマンドの実行が別クラスへ移り、統計を参照越しに積むようになったことによる
+1 ドローあたりの小さなコストと見ているが、原因の切り分けはしていない。
+
+**振る舞いが変わった点**（いずれも初期化失敗時のみ）
+- フォグ・モーションブラー・環境パーティクルの定数バッファ作成に失敗した場合、
+  `Renderer::Initialize` 全体を失敗させず、そのパスだけ無効にする（シェーダー作成失敗と同じ扱いに揃えた）
+- トーンマップ PS の作成に失敗しても、共用のフルスクリーン VS は作られる
+  （以前は VS も作られず、ライティング・フォグ・モーションブラーまで巻き添えで止まっていた）
+
+**影響範囲**: `Tsukino.Renderer` 全体、呼び出し側の組み込み System
+（Model / SpriteRenderer / FontRenderer / Physics / Camera / Light / SkyAtmosphere / Fog / MotionBlur / AmbientParticle）、
+`EngineAPI.cpp`、`RendererPhysicsDebugDraw.hpp`
+
 ---
 
 ## 3. 残っている設計負債
-
-### C-4. Renderer の神クラス化 — 未着手（v1.x へ送る）
-
-**現状**
-`Renderer.cpp` は 1,999 行 / 104KB / 47 メソッド。`Renderer.hpp` の宣言は 73 個。
-Device・SwapChain・シャドウ・スカイ・水面・トーンマップ・テクスチャキャッシュ・
-スプライト・デバッグ描画・フォント生成を 1 クラスが所有している。
-
-**移行手順**
-影響が小さい順に抽出していく。
-
-1. `TextureCache`（`m_textureCache` + `GetTextureSRV`）— 依存が閉じているので最初に切り出せる
-2. `ShadowPass`（`m_shadowMap*` + `CreateShadowMap` + `ExecuteShadowCommand`）
-3. `SkyPass` / `TonemapPass` / `WaterPass`
-
-**影響範囲**: 抽出のたびに `Renderer.hpp` の公開 API が変わるため、呼び出し側の System も追従が必要。
-このため v1.0.0 では手を付けず、README に「1.x の間も Renderer の公開 API は変わりうる」と
-明記する方針にしている。
 
 ### C-5. マテリアルソートとフラスタムカリングの不在 — 未着手
 
@@ -604,6 +638,8 @@ C-8 の警告件数（23 件）も実測値（89 件）と食い違っていま�
 
 2026-09-10 にブロック崩しサンプルを削除し、C-11 の記述を追従させました
 （Sandbox のシーンは 5 つから 4 つになっています）。
+
+2026-09-15 に C-4（Renderer の神クラス化）を解消し、「2. 解消した設計負債」へ移しました。
 
 このレポートは自動生成物ではないため、コードの変更に自動では追従しません。
 記述と実装が食い違っていたら、**実装のほうが正しい**と考えてレポートを直してください。

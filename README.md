@@ -158,10 +158,10 @@ systems in `Tsukino.EngineIntegration`. These are not expected to change, but th
 not had the same scrutiny as the list above, so a 1.x release may still adjust a
 signature here. Anything moved out of this list becomes stable.
 
-**Expected to change within 1.x** — `Tsukino.Renderer`. `Renderer` is currently a
-single class holding the device, shadows, sky, water, tonemapping, the texture cache,
-sprites and debug drawing, and it will be split into separate passes. Anything reaching
-into `Renderer` directly should expect to follow that.
+**Expected to change within 1.x** — `Tsukino.Renderer`. `Renderer` has been split into
+separate passes (`LightingPass`, `SkyPass`, `FogPass` and so on, reached through
+accessors such as `GetFog()`); see the CHANGELOG. Those pass interfaces are new and may
+still be adjusted, so code reaching into the renderer should expect to follow that.
 
 ### What the stable list does not cover
 

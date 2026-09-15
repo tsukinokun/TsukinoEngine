@@ -13,7 +13,7 @@
 - **Tsukino::BuiltIn::BuiltInFonts** — `Tsukino.BuiltIn/include/Tsukino/BuiltIn/BuiltInFonts.hpp`
   - defaultFont, Initialize()
 - **Tsukino::BuiltIn::BuiltInShaders** — `Tsukino.BuiltIn/include/Tsukino/BuiltIn/BuiltInShaders.hpp`
-  - spriteVS, spritePS, spriteWorldVS, modelVS, modelPS, staticModelVS, debugVS, debugPS, shadowVS, shadowStaticVS, shadowPS, skyVS, skyPS, tonemapVS, tonemapPS, gbufferPS, lightingPS, motionBlurPS, fogPS, ambientParticleVS, ambientParticlePS, Initialize()
+  - spriteVS, spritePS, spriteWorldVS, modelVS, modelPS, staticModelVS, debugVS, debugPS, shadowVS, shadowStaticVS, shadowPS, skyVS, skyPS, tonemapVS, tonemapPS, gbufferPS, lightingPS, motionBlurPS, fogPS, ambientParticleVS, ambientParticlePS, iblIrradiancePS, iblSpecularPrefilterPS, iblBRDFLUTPS, Initialize()
 - **Tsukino::BuiltIn::ECS::AmbientParticleComponent** — `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/AmbientParticleComponent.hpp`
   - enabled, count, volumeSize, seed, color, intensity, minSize, maxSize, minBrightness, maxBrightness, twinkle, driftVelocity, swayAmplitude, swayFrequency, minSpeedScale, maxSpeedScale, edgeFadeStart, nearFadeDistance
 - **Tsukino::BuiltIn::ECS::AnimationControllerComponent** — `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/AnimationControllerComponent.hpp`

@@ -7,6 +7,38 @@ carve-out for `Tsukino.Renderer` described under **API stability** in the README
 
 ## [Unreleased]
 
+### Changed
+
+- **`Renderer` is split into passes** (QUALITY_REPORT C-4). `Renderer` now owns the
+  parts and runs them in order; `Renderer.cpp` went from 2,556 to about 420 lines.
+  Rendering output is unchanged: frame stats and captured frames were compared against
+  the previous build after every step.
+
+  Settings move from `Renderer` to the class that uses them, reached through an accessor.
+  This is a breaking change to the `Tsukino.Renderer` API, as allowed by the carve-out in
+  the README.
+
+  | Before | After |
+  |---|---|
+  | `PushDrawCommand` / `AllocMaterial` / `AllocMaterialData` | `GetDrawQueue().Push` / `AllocMaterial` / `AllocMaterialData` |
+  | `GetPipelineFactory` / `GetSampler` / `GetTextureSRV` / `GetWhiteTextureSRV` / `GetFlatNormalTextureSRV` / `GetPrimitiveMesh` / `GetCommonStatesTK` / `CreateSpriteFont` / `CreateSpriteBatch` | `GetResources().` same name |
+  | `SetWorldCameraMatrix` / `SetOverlayCameraMatrix` / `AdvanceFrameTime` | `GetFrameConstants().SetWorldCamera` / `SetOverlayCamera` / `AdvanceTime` |
+  | `DrawDebugLine` / `DrawDebugTriangle` / `FlushDebugDraw` | `GetDebugDraw().DrawLine` / `DrawTriangle` / `Flush` |
+  | `SetDirectionalLight` / `SetLights` | `GetLighting().SetDirectionalLight` / `SetLights` |
+  | `SetSkyParameters` / `SetSkyPipeline` | `GetSky().SetParameters` / `SetPipeline` |
+  | `RequestIBLRecapture` | `GetIBL().RequestRecapture` |
+  | `SetFogParameters` / `SetFogEnabled` | `GetFog().SetParameters` / `SetEnabled` |
+  | `SetMotionBlurParameters` / `SetMotionBlurEnabled` | `GetMotionBlur().SetParameters` / `SetEnabled` |
+  | `SetAmbientParticleParameters` / `SetAmbientParticleEnabled` | `GetAmbientParticles().SetParameters` / `SetEnabled` |
+
+  `Initialize`, `Render`, `Resize`, `SetClearColor`, `GetDevice`, `GetContext`,
+  `GetFrameStats` and the VSync accessors are unchanged.
+
+### Removed
+
+- `Renderer::UpdateSceneBuffer`, `SetShadowPipeline` and `SetMotionBlurPipeline`. They
+  had no callers outside the renderer.
+
 ## [1.0.0] — 2026-09-05
 
 First tagged release. Development started 2026-02-15.
