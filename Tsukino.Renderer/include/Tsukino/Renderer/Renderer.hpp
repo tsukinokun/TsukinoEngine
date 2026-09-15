@@ -47,6 +47,8 @@ namespace Tsukino::Renderer {
     struct CBufferScene;    // 前方宣言
     class IPostWorldPass;   // 前方宣言（Worldパスの後に差し込む描画。実体は上位層が持つ）
     class DrawCommandExecutor;    // 前方宣言（描画コマンドの実行。Tsukino.Renderer の内部専用）
+    class FullscreenPass;         // 前方宣言（フルスクリーン三角形の描画。同上）
+    class TonemapPass;            // 前方宣言（トーンマップパス。同上）
 
     //------------------------------------------------------------
     //! @struct RendererShaderSet
@@ -509,20 +511,6 @@ namespace Tsukino::Renderer {
         [[nodiscard]]
         bool SetAmbientParticlePipeline(const Tsukino::Asset::ShaderAsset* vs, const Tsukino::Asset::ShaderAsset* ps);
 
-        //------------------------------------------------------------
-        //! @brief トーンマッピングパスの実行
-        //! @param source [in] 入力となるシーンカラーのSRV
-        //!                    （モーションブラーが走ったかどうかで切り替わる）
-        //------------------------------------------------------------
-        void ExecuteTonemapPass(ID3D11ShaderResourceView* source);
-
-        //------------------------------------------------------------
-        //! @brief トーンマッピングパイプラインのセット
-        //! @param vs [in] 頂点シェーダーアセット
-        //! @param ps [in] ピクセルシェーダーアセット
-        //------------------------------------------------------------
-        void SetTonemapPipeline(const Tsukino::Asset::ShaderAsset* vs, const Tsukino::Asset::ShaderAsset* ps);
-
     private:
         // DirectX 11の主要なインターフェース
         //! @note 【この宣言順は破棄順序の設計であり、並べ替えてはならない】
@@ -534,10 +522,12 @@ namespace Tsukino::Renderer {
 
         std::unique_ptr<DrawCommandExecutor> m_commandExecutor;    // 描画コマンドの実行（上の3つを借りるので、その後に宣言する）
         DebugDraw                            m_debugDraw;          // デバッグ用の線と三角形（同上）
+        std::unique_ptr<FullscreenPass>      m_fullscreenPass;     // フルスクリーン三角形の描画（ライティング・フォグ・モーションブラー・トーンマップ・IBLで共用）
+        std::unique_ptr<TonemapPass>         m_tonemapPass;        // トーンマップパス（m_fullscreenPass を借りるので、その後に宣言する）
 
         // モーションブラー用リソース
         ComPtr<ID3D11Buffer>      m_motionBlurBuffer;      //!< モーションブラーパラメータ用バッファ (b8)
-        ComPtr<ID3D11PixelShader> m_motionBlurPS;          //!< モーションブラー用PS（VSはm_tonemapVSを共用）
+        ComPtr<ID3D11PixelShader> m_motionBlurPS;          //!< モーションブラー用PS（VSはフルスクリーン三角形用を共用）
         CBufferMotionBlur         m_motionBlurData{};      //!< CPU側のモーションブラーパラメータ
         bool                      m_hasMotionBlur     = false;    //!< PSの構築が済んでいるか
         bool                      m_motionBlurEnabled = false;    //!< 今フレームで有効か（MotionBlurSystemが毎フレーム設定）
@@ -573,20 +563,15 @@ namespace Tsukino::Renderer {
         CBufferSky                 m_skyData{};         //!< スカイパラメータ
         bool                       m_hasSky = false;    //!< スカイが有効かどうか
 
-        // トーンマッピング用リソース
-        ComPtr<ID3D11VertexShader> m_tonemapVS;    //!< トーンマッピング用VS
-        ComPtr<ID3D11PixelShader>  m_tonemapPS;    //!< トーンマッピング用PS
-        bool                       m_hasTonemapper = false;
-
         // ディファードLightingパス用リソース
-        ComPtr<ID3D11PixelShader> m_lightingPS;              //!< Lightingパス用PS（VSはm_tonemapVSを共用）
+        ComPtr<ID3D11PixelShader> m_lightingPS;              //!< Lightingパス用PS（VSはフルスクリーン三角形用を共用）
         bool                      m_hasLighting = false;
         ComPtr<ID3D11Buffer>      m_lightsBuffer;             //!< 点光源・スポットライト配列用定数バッファ (b6)
         CBufferLights             m_lightsData{};              //!< CPU側のライト配列（毎フレームGPUへ転送）
         bool                      m_lightOverflowWarned = false;    //!< MAX_LIGHTS超過の警告を1回だけ出すためのフラグ
 
         // フォグ用リソース
-        ComPtr<ID3D11PixelShader> m_fogPS;                //!< フォグ用PS（VSはm_tonemapVSを共用）
+        ComPtr<ID3D11PixelShader> m_fogPS;                //!< フォグ用PS（VSはフルスクリーン三角形用を共用）
         ComPtr<ID3D11Buffer>      m_fogBuffer;            //!< フォグパラメータ用バッファ (b9)
         CBufferFog                m_fogData{};            //!< CPU側のフォグパラメータ
         bool                      m_hasFog     = false;    //!< PSの構築が済んでいるか
@@ -617,7 +602,7 @@ namespace Tsukino::Renderer {
         ComPtr<ID3D11RenderTargetView>   m_iblBRDFLUTRTV;    //!< 生成時（起動時1回だけ）に使うRTV
         ComPtr<ID3D11ShaderResourceView> m_iblBRDFLUTSRV;    //!< シェーダー読み取り用SRV（t19）
 
-        ComPtr<ID3D11PixelShader> m_iblIrradiancePS;           //!< irradiance畳み込み用PS（VSはm_tonemapVSを共用）
+        ComPtr<ID3D11PixelShader> m_iblIrradiancePS;           //!< irradiance畳み込み用PS（VSはフルスクリーン三角形用を共用）
         ComPtr<ID3D11PixelShader> m_iblSpecularPrefilterPS;    //!< スペキュラプレフィルタ用PS（同上）
         ComPtr<ID3D11PixelShader> m_iblBRDFLUTPS;              //!< BRDF LUT生成用PS（同上）
         bool m_hasIBLBakeShaders = false;    //!< 上記3PSと3キューブ/LUTの生成がすべて成功したか

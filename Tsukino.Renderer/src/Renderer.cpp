@@ -13,6 +13,8 @@
 #include <Tsukino/Renderer/IPostWorldPass.hpp>
 
 #include "DrawCommandExecutor.hpp"
+#include "FullscreenPass.hpp"
+#include "TonemapPass.hpp"
 
 #include <Tsukino/Engine/Asset/Shader/ShaderAsset.hpp>
 
@@ -98,9 +100,19 @@ namespace Tsukino::Renderer {
             return false;
 
         //------------------------------------------------------------
-        // トーンマッピングパイプラインの作成
+        // フルスクリーン三角形（ライティング・フォグ・モーションブラー・トーンマップ・
+        // IBLベイクの共用VS）とトーンマップパスの作成。
+        // 失敗しても初期化は続行し、それぞれのパスが何もしなくなるだけにする
         //------------------------------------------------------------
-        SetTonemapPipeline(shaders.tonemapVS, shaders.tonemapPS);
+        m_fullscreenPass = std::make_unique<FullscreenPass>();
+        if(!m_fullscreenPass->Initialize(device, shaders.tonemapVS)) {
+            Tsukino::Core::Log::Error("Renderer: Fullscreen passes are disabled because their vertex shader could not be created.");
+        }
+
+        m_tonemapPass = std::make_unique<TonemapPass>();
+        if(!m_tonemapPass->Initialize(m_graphicsContext, m_resources, *m_fullscreenPass, shaders.tonemapPS)) {
+            Tsukino::Core::Log::Error("Renderer: Tonemapping is disabled because its pixel shader could not be created.");
+        }
 
         //------------------------------------------------------------
         // シャドウマップ用リソースの作成
@@ -476,7 +488,7 @@ namespace Tsukino::Renderer {
         //------------------------------------------------------------
         // Tonemapパス（HDR → LDR変換してバックバッファへ）
         //------------------------------------------------------------
-        ExecuteTonemapPass(motionBlurred ? m_graphicsContext.GetPostProcessSRV() : m_graphicsContext.GetHDRSRV());
+        m_tonemapPass->Execute(motionBlurred ? m_graphicsContext.GetPostProcessSRV() : m_graphicsContext.GetHDRSRV());
 
         //------------------------------------------------------------
         // エフェクト描画パス（Overlayより前）
@@ -706,34 +718,8 @@ namespace Tsukino::Renderer {
     }
 
     //------------------------------------------------------------
-    //! @brief トーンマッピングパイプラインのセット
-    //------------------------------------------------------------
-    void Renderer::SetTonemapPipeline(const Tsukino::Asset::ShaderAsset* vs, const Tsukino::Asset::ShaderAsset* ps) {
-        if(!vs || !ps) {
-            Tsukino::Core::Log::Error("Renderer::SetTonemapPipeline - shader is null.");
-            return;
-        }
-
-        ID3D11Device* device = m_graphicsContext.GetDevice();
-
-        HRESULT hr = device->CreateVertexShader(vs->binary.data(), vs->binary.size(), nullptr, m_tonemapVS.GetAddressOf());
-        if(FAILED(hr)) {
-            Tsukino::Core::Log::Error("Failed to create tonemap vertex shader.");
-            return;
-        }
-
-        hr = device->CreatePixelShader(ps->binary.data(), ps->binary.size(), nullptr, m_tonemapPS.GetAddressOf());
-        if(FAILED(hr)) {
-            Tsukino::Core::Log::Error("Failed to create tonemap pixel shader.");
-            return;
-        }
-
-        m_hasTonemapper = true;
-    }
-
-    //------------------------------------------------------------
     //! @brief ディファードLightingパイプラインのセット
-    //! @note  頂点シェーダーはTonemapと同じフルスクリーン三角形用（m_tonemapVSを共用）のため、
+    //! @note  頂点シェーダーはTonemapと同じフルスクリーン三角形用（フルスクリーン三角形用を共用）のため、
     //!        ここではピクセルシェーダーのみ作成する。
     //------------------------------------------------------------
     bool Renderer::SetLightingPipeline(const Tsukino::Asset::ShaderAsset* ps) {
@@ -954,10 +940,7 @@ namespace Tsukino::Renderer {
         // 頂点バッファなしでフルスクリーントライアングルを描画
         // VSでSV_VertexIDから3頂点を生成する
         //----------------------------------------------------------
-        context->IASetVertexBuffers(0, 0, nullptr, nullptr, nullptr);
-        context->IASetIndexBuffer(nullptr, DXGI_FORMAT_UNKNOWN, 0);
-        context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-        context->Draw(3, 0);
+        FullscreenPass::Draw(context);
 
         //----------------------------------------------------------
         // ステートをリセット
@@ -1017,7 +1000,7 @@ namespace Tsukino::Renderer {
         }
 
         //------------------------------------------------------------
-        // ベイク用PS（VSはすべてm_tonemapVS/m_skyVSを共用するのでここでは作らない）
+        // ベイク用PS（VSはすべてフルスクリーン三角形用VS/m_skyVSを共用するのでここでは作らない）
         //------------------------------------------------------------
         if(!shaders.iblIrradiancePS || !shaders.iblSpecularPrefilterPS || !shaders.iblBRDFLUTPS) {
             Tsukino::Core::Log::Error("Renderer::CreateIBLResources - shader is null.");
@@ -1163,12 +1146,12 @@ namespace Tsukino::Renderer {
     //! @brief IBL irradiance畳み込みパスの実行
     //------------------------------------------------------------
     void Renderer::ExecuteIBLIrradiancePass() {
-        if(!m_iblIrradianceCube || !m_iblIrradianceCube->IsValid() || !m_iblCaptureCube || !m_tonemapVS || !m_iblIrradiancePS)
+        if(!m_iblIrradianceCube || !m_iblIrradianceCube->IsValid() || !m_iblCaptureCube || !m_fullscreenPass->IsValid() || !m_iblIrradiancePS)
             return;
 
         ID3D11DeviceContext* context = m_graphicsContext.GetContext();
 
-        context->VSSetShader(m_tonemapVS.Get(), nullptr, 0);
+        context->VSSetShader(m_fullscreenPass->GetVertexShader(), nullptr, 0);
         context->PSSetShader(m_iblIrradiancePS.Get(), nullptr, 0);
         context->IASetInputLayout(nullptr);
 
@@ -1220,13 +1203,13 @@ namespace Tsukino::Renderer {
     //! @brief IBLスペキュラプレフィルタパスの実行（面×mipごとに1回）
     //------------------------------------------------------------
     void Renderer::ExecuteIBLSpecularPrefilterPass() {
-        if(!m_iblPrefilteredSpecularCube || !m_iblPrefilteredSpecularCube->IsValid() || !m_iblCaptureCube || !m_tonemapVS
+        if(!m_iblPrefilteredSpecularCube || !m_iblPrefilteredSpecularCube->IsValid() || !m_iblCaptureCube || !m_fullscreenPass->IsValid()
            || !m_iblSpecularPrefilterPS)
             return;
 
         ID3D11DeviceContext* context = m_graphicsContext.GetContext();
 
-        context->VSSetShader(m_tonemapVS.Get(), nullptr, 0);
+        context->VSSetShader(m_fullscreenPass->GetVertexShader(), nullptr, 0);
         context->PSSetShader(m_iblSpecularPrefilterPS.Get(), nullptr, 0);
         context->IASetInputLayout(nullptr);
 
@@ -1294,12 +1277,12 @@ namespace Tsukino::Renderer {
     //! @brief IBL BRDF LUT生成パスの実行（起動時に1回だけ呼ぶ）
     //------------------------------------------------------------
     void Renderer::ExecuteIBLBRDFLUTPass() {
-        if(!m_iblBRDFLUTRTV || !m_tonemapVS || !m_iblBRDFLUTPS)
+        if(!m_iblBRDFLUTRTV || !m_fullscreenPass->IsValid() || !m_iblBRDFLUTPS)
             return;
 
         ID3D11DeviceContext* context = m_graphicsContext.GetContext();
 
-        context->VSSetShader(m_tonemapVS.Get(), nullptr, 0);
+        context->VSSetShader(m_fullscreenPass->GetVertexShader(), nullptr, 0);
         context->PSSetShader(m_iblBRDFLUTPS.Get(), nullptr, 0);
         context->IASetInputLayout(nullptr);
 
@@ -1316,10 +1299,7 @@ namespace Tsukino::Renderer {
         ID3D11RenderTargetView* rtv = m_iblBRDFLUTRTV.Get();
         context->OMSetRenderTargets(1, &rtv, nullptr);
 
-        context->IASetVertexBuffers(0, 0, nullptr, nullptr, nullptr);
-        context->IASetIndexBuffer(nullptr, DXGI_FORMAT_UNKNOWN, 0);
-        context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-        context->Draw(3, 0);
+        FullscreenPass::Draw(context);
 
         // RTVバインドを解除する（定常フレームでこのLUTをSRV(t19)として読むため）
         ID3D11RenderTargetView* nullRTV = nullptr;
@@ -1364,7 +1344,7 @@ namespace Tsukino::Renderer {
     //!        深度0（Skyパスが描いた背景）はPS側でdiscardして保護する。
     //------------------------------------------------------------
     void Renderer::ExecuteLightingPass() {
-        if(!m_hasLighting || !m_tonemapVS || !m_lightingPS)
+        if(!m_hasLighting || !m_fullscreenPass->IsValid() || !m_lightingPS)
             return;
 
         ID3D11DeviceContext* context = m_graphicsContext.GetContext();
@@ -1377,7 +1357,7 @@ namespace Tsukino::Renderer {
         //----------------------------------------------------------
         // シェーダーをセット（VSはTonemapと共用のフルスクリーン三角形用）
         //----------------------------------------------------------
-        context->VSSetShader(m_tonemapVS.Get(), nullptr, 0);
+        context->VSSetShader(m_fullscreenPass->GetVertexShader(), nullptr, 0);
         context->PSSetShader(m_lightingPS.Get(), nullptr, 0);
         context->IASetInputLayout(nullptr);
 
@@ -1438,10 +1418,7 @@ namespace Tsukino::Renderer {
         //----------------------------------------------------------
         // フルスクリーントライアングル描画
         //----------------------------------------------------------
-        context->IASetVertexBuffers(0, 0, nullptr, nullptr, nullptr);
-        context->IASetIndexBuffer(nullptr, DXGI_FORMAT_UNKNOWN, 0);
-        context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-        context->Draw(3, 0);
+        FullscreenPass::Draw(context);
 
         //----------------------------------------------------------
         // 後片付け：G-Buffer/深度/シャドウマップ/IBLのSRVを解除
@@ -1467,7 +1444,7 @@ namespace Tsukino::Renderer {
     //!        取り合いにならない）。
     //------------------------------------------------------------
     void Renderer::ExecuteFogPass() {
-        if(!m_fogEnabled || !m_hasFog || !m_tonemapVS || !m_fogPS)
+        if(!m_fogEnabled || !m_hasFog || !m_fullscreenPass->IsValid() || !m_fogPS)
             return;
 
         ID3D11DeviceContext* context = m_graphicsContext.GetContext();
@@ -1504,7 +1481,7 @@ namespace Tsukino::Renderer {
         //----------------------------------------------------------
         // シェーダーをセット（VSはTonemapと共用のフルスクリーン三角形用）
         //----------------------------------------------------------
-        context->VSSetShader(m_tonemapVS.Get(), nullptr, 0);
+        context->VSSetShader(m_fullscreenPass->GetVertexShader(), nullptr, 0);
         context->PSSetShader(m_fogPS.Get(), nullptr, 0);
         context->IASetInputLayout(nullptr);
 
@@ -1520,10 +1497,7 @@ namespace Tsukino::Renderer {
         //----------------------------------------------------------
         // フルスクリーントライアングル描画
         //----------------------------------------------------------
-        context->IASetVertexBuffers(0, 0, nullptr, nullptr, nullptr);
-        context->IASetIndexBuffer(nullptr, DXGI_FORMAT_UNKNOWN, 0);
-        context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-        context->Draw(3, 0);
+        FullscreenPass::Draw(context);
 
         //----------------------------------------------------------
         // 後片付け：深度を次フレームDSVとして再バインドするため、
@@ -1606,7 +1580,7 @@ namespace Tsukino::Renderer {
     //!        バックバッファへ直接描かれるため、ブラーの影響を受けない。
     //------------------------------------------------------------
     bool Renderer::ExecuteMotionBlurPass() {
-        if(!m_motionBlurEnabled || !m_hasMotionBlur || !m_tonemapVS || !m_motionBlurPS)
+        if(!m_motionBlurEnabled || !m_hasMotionBlur || !m_fullscreenPass->IsValid() || !m_motionBlurPS)
             return false;
 
         ID3D11DeviceContext* context = m_graphicsContext.GetContext();
@@ -1644,7 +1618,7 @@ namespace Tsukino::Renderer {
         //----------------------------------------------------------
         // シェーダーをセット（VSはTonemapと共用のフルスクリーン三角形用）
         //----------------------------------------------------------
-        context->VSSetShader(m_tonemapVS.Get(), nullptr, 0);
+        context->VSSetShader(m_fullscreenPass->GetVertexShader(), nullptr, 0);
         context->PSSetShader(m_motionBlurPS.Get(), nullptr, 0);
         context->IASetInputLayout(nullptr);
 
@@ -1658,10 +1632,7 @@ namespace Tsukino::Renderer {
         //----------------------------------------------------------
         // フルスクリーントライアングル描画
         //----------------------------------------------------------
-        context->IASetVertexBuffers(0, 0, nullptr, nullptr, nullptr);
-        context->IASetIndexBuffer(nullptr, DXGI_FORMAT_UNKNOWN, 0);
-        context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-        context->Draw(3, 0);
+        FullscreenPass::Draw(context);
 
         //----------------------------------------------------------
         // 後片付け：次フレームでHDR/G-BufferをRTVとして再バインドするため、
@@ -1674,58 +1645,4 @@ namespace Tsukino::Renderer {
         return true;
     }
 
-    //------------------------------------------------------------
-    //! @brief トーンマッピングパスの実行
-    //------------------------------------------------------------
-    void Renderer::ExecuteTonemapPass(ID3D11ShaderResourceView* source) {
-        if(!m_hasTonemapper || !m_tonemapVS || !m_tonemapPS)
-            return;
-
-        ID3D11DeviceContext* context = m_graphicsContext.GetContext();
-
-        //----------------------------------------------------------
-        // バックバッファに切り替え（入力SRVとRTVの同時バインド防止）
-        //----------------------------------------------------------
-        m_graphicsContext.BindBackBuffer();
-
-        //----------------------------------------------------------
-        // 入力となるシーンカラーをt0にバインド
-        // （モーションブラーが走った場合はポストプロセス用中間バッファ、
-        //   走らなかった場合はHDRバッファがそのまま渡ってくる）
-        //----------------------------------------------------------
-        ID3D11ShaderResourceView* hdrSRV = source;
-        context->PSSetShaderResources(0, 1, &hdrSRV);
-
-        // LinearClampサンプラーをs0にバインド
-        ID3D11SamplerState* sampler = m_resources.GetSampler(Tsukino::GraphicsCommon::SamplerType::LinearClamp);
-        context->PSSetSamplers(0, 1, &sampler);
-
-        //----------------------------------------------------------
-        // シェーダーをセット
-        //----------------------------------------------------------
-        context->VSSetShader(m_tonemapVS.Get(), nullptr, 0);
-        context->PSSetShader(m_tonemapPS.Get(), nullptr, 0);
-        context->IASetInputLayout(nullptr);
-
-        //----------------------------------------------------------
-        // 深度なし・ブレンドなし
-        //----------------------------------------------------------
-        context->OMSetDepthStencilState(m_resources.GetCommonStatesTK()->DepthNone(), 0);
-        context->OMSetBlendState(m_resources.GetCommonStatesTK()->Opaque(), nullptr, 0xFFFFFFFF);
-        context->RSSetState(m_resources.GetCommonStatesTK()->CullNone());
-
-        //----------------------------------------------------------
-        // フルスクリーントライアングル描画
-        //----------------------------------------------------------
-        context->IASetVertexBuffers(0, 0, nullptr, nullptr, nullptr);
-        context->IASetIndexBuffer(nullptr, DXGI_FORMAT_UNKNOWN, 0);
-        context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-        context->Draw(3, 0);
-
-        //----------------------------------------------------------
-        // HDR SRVのバインドを解除
-        //----------------------------------------------------------
-        ID3D11ShaderResourceView* nullSRV = nullptr;
-        context->PSSetShaderResources(0, 1, &nullSRV);
-    }
 }    // namespace Tsukino::Renderer
