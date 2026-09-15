@@ -51,6 +51,12 @@ namespace Tsukino::Renderer {
             return false;
 
         //------------------------------------------------------------
+        // フレーム単位のシーン定数（b0）の作成
+        //------------------------------------------------------------
+        if(!m_frameConstants.Initialize(m_graphicsContext, SHADOW_MAP_SIZE))
+            return false;
+
+        //------------------------------------------------------------
         // シャドウパイプラインの生成
         // ------------------------------------------------------------
         if(!CreateShadowPipelines(shaders.shadowStaticVS, shaders.shadowSkeletalVS, shaders.shadowPS)) {
@@ -131,20 +137,10 @@ namespace Tsukino::Renderer {
         desc.BindFlags         = D3D11_BIND_CONSTANT_BUFFER;
 
         //------------------------------------------------------------
-        // m_sceneBuffer (b0) の作成
-        //------------------------------------------------------------
-        desc.ByteWidth = sizeof(Tsukino::Renderer::CBufferScene);
-        HRESULT hr     = device->CreateBuffer(&desc, nullptr, m_sceneBuffer.GetAddressOf());
-        if(FAILED(hr)) {
-            Tsukino::Core::Log::Error("Failed to create scene constant buffer.");
-            return false;
-        }
-
-        //------------------------------------------------------------
         // m_objectBuffer (b1) の作成
         //------------------------------------------------------------
         desc.ByteWidth = sizeof(Tsukino::Renderer::CBufferTransform);
-        hr             = device->CreateBuffer(&desc, nullptr, m_objectBuffer.GetAddressOf());
+        HRESULT hr     = device->CreateBuffer(&desc, nullptr, m_objectBuffer.GetAddressOf());
         if(FAILED(hr)) {
             Tsukino::Core::Log::Error("Failed to create object constant buffer.");
             return false;
@@ -398,7 +394,7 @@ namespace Tsukino::Renderer {
             vp.MaxDepth = 1.0f;
             context->RSSetViewports(1, &vp);
 
-            UpdateSceneBuffer(m_worldSceneData);
+            m_frameConstants.UploadWorld();
 
             for(const auto& cmd : commands) {
                 if(cmd.pass != RenderPass::GBuffer)
@@ -419,7 +415,7 @@ namespace Tsukino::Renderer {
         //------------------------------------------------------------
         // Sky パス（GBufferパスの前、深度書き込みなし）
         //------------------------------------------------------------
-        UpdateSceneBuffer(m_worldSceneData);
+        m_frameConstants.UploadWorld();
         ExecuteSkyPass();
 
         //------------------------------------------------------------
@@ -434,7 +430,7 @@ namespace Tsukino::Renderer {
         // 毎フレーム発生するため、呼び出し側でのスロットリングが前提）。
         //
         // ここに置く理由：直前のExecuteSkyPass()でm_skyDataがこのフレームの
-        // 太陽方向で確定済みであり、直後のUpdateSceneBuffer(m_worldSceneData)
+        // 太陽方向で確定済みであり、直後のm_frameConstants.UploadWorld()
         // （GBufferパスの直前）が、ここで一時的に書き換えたCBufferScene(b0)を
         // 本来のカメラ値へ確実に戻してくれる
         //------------------------------------------------------------
@@ -460,7 +456,7 @@ namespace Tsukino::Renderer {
         //------------------------------------------------------------
         // GBuffer パス（不透明3Dモデル。ライティングは計算せずG-Bufferへ書き込むだけ）
         //------------------------------------------------------------
-        UpdateSceneBuffer(m_worldSceneData);
+        m_frameConstants.UploadWorld();
         m_graphicsContext.BeginGBufferPass();
         for(const auto& cmd : commands) {
             if(cmd.pass != RenderPass::GBuffer)
@@ -496,7 +492,7 @@ namespace Tsukino::Renderer {
             BindIBLResources();
         }
 
-        UpdateSceneBuffer(m_worldSceneData);
+        m_frameConstants.UploadWorld();
         for(const auto& cmd : commands) {
             if(cmd.pass != RenderPass::World)
                 continue;
@@ -511,7 +507,7 @@ namespace Tsukino::Renderer {
         // 深度だけを確定させておく。Transparent側はEqualReadOnlyでこの深度と
         // 一致する画素だけを1回シェーディングする
         //------------------------------------------------------------
-        UpdateSceneBuffer(m_worldSceneData);
+        m_frameConstants.UploadWorld();
         for(const auto& cmd : commands) {
             if(cmd.pass != RenderPass::TransparentDepth)
                 continue;
@@ -526,7 +522,7 @@ namespace Tsukino::Renderer {
         // 半透明同士の前後関係を正しく出すには奥から手前への
         // ソートが必要だが、それはコマンドキュー側の課題として未対応。
         //------------------------------------------------------------
-        UpdateSceneBuffer(m_worldSceneData);
+        m_frameConstants.UploadWorld();
         for(const auto& cmd : commands) {
             if(cmd.pass != RenderPass::Transparent)
                 continue;
@@ -588,7 +584,7 @@ namespace Tsukino::Renderer {
             ID3D11DeviceContext* context = m_graphicsContext.GetContext();
             context->OMSetBlendState(m_resources.GetCommonStatesTK()->AlphaBlend(), nullptr, 0xFFFFFFFF);
             context->OMSetDepthStencilState(m_resources.GetCommonStatesTK()->DepthNone(), 0);
-            postWorldPass->RenderPostWorld(context, m_worldSceneData.view, m_worldSceneData.projection);
+            postWorldPass->RenderPostWorld(context, m_frameConstants.GetWorldSceneData().view, m_frameConstants.GetWorldSceneData().projection);
             context->OMSetBlendState(m_resources.GetCommonStatesTK()->Opaque(), nullptr, 0xFFFFFFFF);
             context->OMSetDepthStencilState(m_resources.GetCommonStatesTK()->DepthDefault(), 0);
         }
@@ -607,7 +603,7 @@ namespace Tsukino::Renderer {
         // 昇順＝積んだ順に落ちるためで、一時バッファを取るstd::stable_sortを
         // 使わずに安定ソートと同じ結果が得られる
         //------------------------------------------------------------
-        UpdateSceneBuffer(m_overlaySceneData);
+        m_frameConstants.UploadOverlay();
 
         m_overlayOrder.clear();
         for(u32 index = 0; index < static_cast<u32>(commands.size()); ++index) {
@@ -634,7 +630,7 @@ namespace Tsukino::Renderer {
         // 「送られてきたタイミング」ではなく「フレームの末尾」で
         // 退避するのが確実。
         //------------------------------------------------------------
-        m_prevWorldViewProj = m_worldSceneData.viewProj;
+        m_frameConstants.EndFrame();
 
         //------------------------------------------------------------
         // モーションブラーの有効フラグはフレーム単位で消す
@@ -664,7 +660,7 @@ namespace Tsukino::Renderer {
     void Renderer::FlushDebugDraw() {
         ID3D11DeviceContext* context = m_graphicsContext.GetContext();
 
-        UpdateSceneBuffer(m_worldSceneData);
+        m_frameConstants.UploadWorld();
 
         if(!m_debugLineVertices.empty() || !m_debugTriangleVertices.empty()) {
             context->VSSetShader(m_debugVS.Get(), nullptr, 0);
@@ -781,72 +777,6 @@ namespace Tsukino::Renderer {
     }
 
     //------------------------------------------------------------
-    //! @brief シーン定数バッファの更新
-    //------------------------------------------------------------
-    void Renderer::UpdateSceneBuffer(const CBufferScene& sceneData) {
-        // デバイスコンテキストを取得
-        ID3D11DeviceContext* context = m_graphicsContext.GetContext();
-
-        //------------------------------------------------------------
-        // 前フレームのViewProjectionを差し込む
-        //
-        // 呼び出し側（CameraSystem）はこの値を知らないので、
-        // Renderer自身が退避しておいたものをここで合流させる。
-        //------------------------------------------------------------
-        CBufferScene uploadData = sceneData;
-        uploadData.prevViewProj = m_prevWorldViewProj;
-
-        //------------------------------------------------------------
-        // フレーム共通の素材（時間・解像度・シャドウマップ寸法）を差し込む。
-        //
-        // prevViewProjと同じ理由でここに集約している：呼び出し側
-        // （CameraSystem）はこれらを知らないし、知る必要も無い。
-        // ここで埋めておけば、どのシェーダーもb0を宣言するだけで
-        // 時間や画面サイズを使えるようになり、演出ごとに専用の
-        // 定数バッファを1本ずつ確保する必要が無くなる
-        //------------------------------------------------------------
-        uploadData.timeParams = hlslpp::float4(m_elapsedTime, m_frameDeltaTime, std::sin(m_elapsedTime), std::cos(m_elapsedTime));
-
-        const float screenWidth  = static_cast<float>(m_graphicsContext.GetWidth());
-        const float screenHeight = static_cast<float>(m_graphicsContext.GetHeight());
-        uploadData.screenParams  = hlslpp::float4(screenWidth, screenHeight, screenWidth > 0.0f ? 1.0f / screenWidth : 0.0f,
-                                                  screenHeight > 0.0f ? 1.0f / screenHeight : 0.0f);
-
-        constexpr float shadowMapSize = static_cast<float>(SHADOW_MAP_SIZE);
-        uploadData.shadowParams       = hlslpp::float4(shadowMapSize, 1.0f / shadowMapSize, 0.0f, 0.0f);
-
-        //------------------------------------------------------------
-        // GPU上のバッファ（m_sceneBuffer）の中身を書き換える
-        //------------------------------------------------------------
-        context->UpdateSubresource(m_sceneBuffer.Get(), 0, nullptr, &uploadData, 0, 0);
-
-        //------------------------------------------------------------
-        // スロット0（b0）にバインドする
-        //------------------------------------------------------------
-        context->VSSetConstantBuffers(static_cast<UINT>(CBSlot::Scene), 1, m_sceneBuffer.GetAddressOf());
-        context->PSSetConstantBuffers(static_cast<UINT>(CBSlot::Scene), 1, m_sceneBuffer.GetAddressOf());
-    }
-
-    //------------------------------------------------------------
-    //! @brief ワールドカメラ行列のセット
-    //------------------------------------------------------------
-    void Renderer::SetWorldCameraMatrix(const CBufferScene& data) {
-        // カメラ行列のみ更新し、ライト情報は上書きしない
-        m_worldSceneData.view        = data.view;
-        m_worldSceneData.projection  = data.projection;
-        m_worldSceneData.viewProj    = data.viewProj;
-        m_worldSceneData.invViewProj = data.invViewProj;
-        m_worldSceneData.cameraPos   = data.cameraPos;    // PBR視線ベクトル用
-    }
-
-    //------------------------------------------------------------
-    //! @brief オーバーレイカメラ行列のセット
-    //------------------------------------------------------------
-    void Renderer::SetOverlayCameraMatrix(const CBufferScene& data) {
-        m_overlaySceneData = data;    // メンバ変数に保存
-    }
-
-    //------------------------------------------------------------
     //! @brief シャドウマップ用リソースの作成
     //------------------------------------------------------------
     bool Renderer::CreateShadowMap() {
@@ -950,7 +880,7 @@ namespace Tsukino::Renderer {
         //------------------------------------------------------------
         // Scene (b0) を再バインド
         //------------------------------------------------------------
-        context->VSSetConstantBuffers(static_cast<UINT>(CBSlot::Scene), 1, m_sceneBuffer.GetAddressOf());
+        context->VSSetConstantBuffers(static_cast<UINT>(CBSlot::Scene), 1, m_frameConstants.GetSceneBufferAddress());
 
         //------------------------------------------------------------
         // Transform (b1)
@@ -1287,23 +1217,6 @@ namespace Tsukino::Renderer {
     }
 
     //------------------------------------------------------------
-    //! フレームの経過時間を進めます。
-    //------------------------------------------------------------
-    void Renderer::AdvanceFrameTime(float deltaTime) {
-        m_frameDeltaTime = deltaTime;
-        m_elapsedTime += deltaTime;
-
-        //--------------------------------------------------------------
-        // floatの精度が落ちて時間の刻みが粗くなるのを防ぐため、
-        // 一定時間で折り返す。sin/cosを使う演出が大半なので、
-        // 2πの整数倍で折り返せば見た目に不連続は出ない
-        //--------------------------------------------------------------
-        constexpr float kTimeWrap = 6.28318531f * 1000.0f;    // 約6283秒（1時間45分）
-        if(m_elapsedTime > kTimeWrap)
-            m_elapsedTime -= kTimeWrap;
-    }
-
-    //------------------------------------------------------------
     //! @brief 点光源・スポットライト配列のセット
     //! @note  MAX_LIGHTS を超える分は切り捨て、初回のみ警告を出す
     //------------------------------------------------------------
@@ -1363,7 +1276,7 @@ namespace Tsukino::Renderer {
         //------------------------------------------------------
         // Scene (b0) を毎回再バインド（ステート汚染対策）
         //------------------------------------------------------
-        context->VSSetConstantBuffers(static_cast<UINT>(CBSlot::Scene), 1, m_sceneBuffer.GetAddressOf());
+        context->VSSetConstantBuffers(static_cast<UINT>(CBSlot::Scene), 1, m_frameConstants.GetSceneBufferAddress());
 
         //------------------------------------------------------------
         // 通常描画
@@ -1517,11 +1430,11 @@ namespace Tsukino::Renderer {
         );
 
         //------------------------------------------------------------
-        // m_worldSceneData に書き込む
+        // ワールドのシーン定数へ書き込む
         //------------------------------------------------------------
-        m_worldSceneData.lightViewProj = hlslpp::mul(lightView, lightProj);
-        m_worldSceneData.lightDir      = hlslpp::float4(normalizedDir.x, normalizedDir.y, normalizedDir.z, 0.0f);
-        m_worldSceneData.lightColor    = hlslpp::float4(color.x, color.y, color.z, intensity);
+        m_frameConstants.SetDirectionalLight(hlslpp::mul(lightView, lightProj),
+                                             hlslpp::float4(normalizedDir.x, normalizedDir.y, normalizedDir.z, 0.0f),
+                                             hlslpp::float4(color.x, color.y, color.z, intensity));
     }
 
     //------------------------------------------------------------
@@ -1550,8 +1463,8 @@ namespace Tsukino::Renderer {
         //----------------------------------------------------------
         // Scene (b0) をバインド（invViewProjの計算に使う）
         //----------------------------------------------------------
-        context->VSSetConstantBuffers(static_cast<UINT>(CBSlot::Scene), 1, m_sceneBuffer.GetAddressOf());
-        context->PSSetConstantBuffers(static_cast<UINT>(CBSlot::Scene), 1, m_sceneBuffer.GetAddressOf());
+        context->VSSetConstantBuffers(static_cast<UINT>(CBSlot::Scene), 1, m_frameConstants.GetSceneBufferAddress());
+        context->PSSetConstantBuffers(static_cast<UINT>(CBSlot::Scene), 1, m_frameConstants.GetSceneBufferAddress());
 
         //----------------------------------------------------------
         // Sky (b4) をバインド
@@ -1699,7 +1612,7 @@ namespace Tsukino::Renderer {
 
         // lightDir/lightColor/timeParams等はメインカメラのフレームデータをそのまま引き継ぐ
         // （Sky.ps.hlslが太陽の色・向きとしてlightColor/lightDirを読むため）
-        CBufferScene data = m_worldSceneData;
+        CBufferScene data = m_frameConstants.GetWorldSceneData();
 
         constexpr float kFovRadians = 1.5707963267948966f;    // 90度：キューブの1面をちょうど覆う画角
         constexpr float kNearZ      = 0.1f;
@@ -1748,8 +1661,8 @@ namespace Tsukino::Renderer {
 
         for(u32 face = 0; face < 6; ++face) {
             CBufferScene faceScene = BuildCubeFaceSceneData(face);
-            context->UpdateSubresource(m_sceneBuffer.Get(), 0, nullptr, &faceScene, 0, 0);
-            context->PSSetConstantBuffers(static_cast<UINT>(CBSlot::Scene), 1, m_sceneBuffer.GetAddressOf());
+            context->UpdateSubresource(m_frameConstants.GetSceneBuffer(), 0, nullptr, &faceScene, 0, 0);
+            context->PSSetConstantBuffers(static_cast<UINT>(CBSlot::Scene), 1, m_frameConstants.GetSceneBufferAddress());
 
             ID3D11RenderTargetView* rtv = m_iblCaptureCube->GetFaceRTV(face, 0);
             context->OMSetRenderTargets(1, &rtv, nullptr);
@@ -1805,8 +1718,8 @@ namespace Tsukino::Renderer {
 
         for(u32 face = 0; face < 6; ++face) {
             CBufferScene faceScene = BuildCubeFaceSceneData(face);
-            context->UpdateSubresource(m_sceneBuffer.Get(), 0, nullptr, &faceScene, 0, 0);
-            context->PSSetConstantBuffers(static_cast<UINT>(CBSlot::Scene), 1, m_sceneBuffer.GetAddressOf());
+            context->UpdateSubresource(m_frameConstants.GetSceneBuffer(), 0, nullptr, &faceScene, 0, 0);
+            context->PSSetConstantBuffers(static_cast<UINT>(CBSlot::Scene), 1, m_frameConstants.GetSceneBufferAddress());
 
             ID3D11RenderTargetView* rtv = m_iblIrradianceCube->GetFaceRTV(face, 0);
             context->OMSetRenderTargets(1, &rtv, nullptr);
@@ -1877,8 +1790,8 @@ namespace Tsukino::Renderer {
 
             for(u32 face = 0; face < 6; ++face) {
                 CBufferScene faceScene = BuildCubeFaceSceneData(face);
-                context->UpdateSubresource(m_sceneBuffer.Get(), 0, nullptr, &faceScene, 0, 0);
-                context->PSSetConstantBuffers(static_cast<UINT>(CBSlot::Scene), 1, m_sceneBuffer.GetAddressOf());
+                context->UpdateSubresource(m_frameConstants.GetSceneBuffer(), 0, nullptr, &faceScene, 0, 0);
+                context->PSSetConstantBuffers(static_cast<UINT>(CBSlot::Scene), 1, m_frameConstants.GetSceneBufferAddress());
 
                 ID3D11RenderTargetView* rtv = m_iblPrefilteredSpecularCube->GetFaceRTV(face, mip);
                 context->OMSetRenderTargets(1, &rtv, nullptr);
@@ -2000,8 +1913,8 @@ namespace Tsukino::Renderer {
         //----------------------------------------------------------
         // Scene (b0) をバインド
         //----------------------------------------------------------
-        context->VSSetConstantBuffers(static_cast<UINT>(CBSlot::Scene), 1, m_sceneBuffer.GetAddressOf());
-        context->PSSetConstantBuffers(static_cast<UINT>(CBSlot::Scene), 1, m_sceneBuffer.GetAddressOf());
+        context->VSSetConstantBuffers(static_cast<UINT>(CBSlot::Scene), 1, m_frameConstants.GetSceneBufferAddress());
+        context->PSSetConstantBuffers(static_cast<UINT>(CBSlot::Scene), 1, m_frameConstants.GetSceneBufferAddress());
 
         //----------------------------------------------------------
         // Lights (b6) を更新してバインド
@@ -2101,7 +2014,7 @@ namespace Tsukino::Renderer {
         // Scene (b0) をバインド（invViewProj・cameraPos・lightDirを使う）
         //----------------------------------------------------------
         constexpr UINT sceneCBSlot = static_cast<UINT>(CBSlot::Scene);
-        context->PSSetConstantBuffers(sceneCBSlot, 1, m_sceneBuffer.GetAddressOf());
+        context->PSSetConstantBuffers(sceneCBSlot, 1, m_frameConstants.GetSceneBufferAddress());
 
         //----------------------------------------------------------
         // パラメータ (b9) を更新してバインド
@@ -2165,7 +2078,7 @@ namespace Tsukino::Renderer {
         // Scene (b0) をバインド（view・viewProj・cameraPosを頂点シェーダーで使う）
         //----------------------------------------------------------
         constexpr UINT sceneCBSlot = static_cast<UINT>(CBSlot::Scene);
-        context->VSSetConstantBuffers(sceneCBSlot, 1, m_sceneBuffer.GetAddressOf());
+        context->VSSetConstantBuffers(sceneCBSlot, 1, m_frameConstants.GetSceneBufferAddress());
 
         //----------------------------------------------------------
         // パラメータ (b10) を更新してバインド（頂点シェーダー専用）

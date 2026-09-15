@@ -10,6 +10,7 @@
 #include <Tsukino/Renderer/DX11/MeshBuffer.hpp>
 #include <Tsukino/Renderer/DX11/PipelineFactory.hpp>
 #include <Tsukino/Renderer/RenderResources.hpp>
+#include <Tsukino/Renderer/FrameConstants.hpp>
 #include <Tsukino/Renderer/DrawCommandQueue.hpp>
 #include <Tsukino/Renderer/DX11/Texture/DX11Texture2D.hpp>
 #include <Tsukino/Renderer/DX11/Texture/DX11TextureCube.hpp>
@@ -230,6 +231,15 @@ namespace Tsukino::Renderer {
         }
 
         //------------------------------------------------------------
+        //! @brief  フレーム単位のシーン定数（b0）を取得する
+        //! @return カメラ行列・ライト・経過時間を持つ FrameConstants
+        //------------------------------------------------------------
+        [[nodiscard]]
+        FrameConstants& GetFrameConstants() noexcept {
+            return m_frameConstants;
+        }
+
+        //------------------------------------------------------------
         // デバイスの取得を公開
         //! @return ID3D11Deviceのポインタ
         //------------------------------------------------------------
@@ -246,24 +256,6 @@ namespace Tsukino::Renderer {
         ID3D11DeviceContext* GetContext() const {
             return m_graphicsContext.GetContext();
         }
-
-        //------------------------------------------------------------
-        // シーン定数バッファの更新
-        //! @param sceneData [in] シーン定数バッファの値データ
-        //------------------------------------------------------------
-        void UpdateSceneBuffer(const CBufferScene& sceneData);
-
-        //------------------------------------------------------------
-        // ワールドカメラ行列のセット
-        //! @param data [in] シーン定数バッファの値データ
-        //------------------------------------------------------------
-        void SetWorldCameraMatrix(const CBufferScene& data);
-
-        //------------------------------------------------------------
-        // オーバーレイカメラ行列のセット
-        //! @param data [in] シーン定数バッファの値データ
-        //------------------------------------------------------------
-        void SetOverlayCameraMatrix(const CBufferScene& data);
 
         //------------------------------------------------------------
         //! @brief ディレクショナルライトの設定
@@ -383,16 +375,6 @@ namespace Tsukino::Renderer {
             m_iblBaked = false;
         }
 
-        //------------------------------------------------------------
-        //! フレームの経過時間を進めます。
-        //! @param deltaTime [in] 前フレームからの経過秒
-        //! @note  ここで進めた時間は CBufferScene(b0) の timeParams として
-        //!        全シェーダーへ配られる。演出ごとに自前の時間を持たずに済むよう、
-        //!        エンジンが1箇所で数える（UnityのTime / UEのView.GameTimeと同じ考え方）。
-        //!        毎フレーム1回だけ呼ぶこと
-        //------------------------------------------------------------
-        void AdvanceFrameTime(float deltaTime);
-
     private:
         //------------------------------------------------------------
         // 定数バッファの作成
@@ -495,7 +477,7 @@ namespace Tsukino::Renderer {
         //! @param face [in] キューブの面（0〜5：+X,-X,+Y,-Y,+Z,-Z）
         //! @return IBLベイク用に view/projection/viewProj/invViewProj/cameraPos を
         //!         差し替えたCBufferScene（lightDir/lightColor/timeParams等は
-        //!         m_worldSceneDataの値をそのまま引き継ぐ。Sky.ps.hlslが
+        //!         ワールドのシーン定数（FrameConstants）の値をそのまま引き継ぐ。Sky.ps.hlslが
         //!         lightColorを太陽の色として読むため）
         //------------------------------------------------------------
         [[nodiscard]]
@@ -613,10 +595,10 @@ namespace Tsukino::Renderer {
         //!       デバイスを最後まで生かすよう先頭に置く
         GraphicsContext m_graphicsContext;    // グラフィックスコンテキスト（Device, DeviceContext, SwapChainを管理）
         RenderResources m_resources;          // 描画で共有する資源（ステート・サンプラー・既定テクスチャ・テクスチャキャッシュ等）
+        FrameConstants  m_frameConstants;     // フレーム単位のシーン定数（b0）
 
         // 定数バッファ
         ComPtr<ID3D11Buffer> m_objectBuffer;      // オブジェクトデータ用定数バッファ
-        ComPtr<ID3D11Buffer> m_sceneBuffer;       // シーンデータ用定数バッファ
         ComPtr<ID3D11Buffer> m_materialBuffer;    // マテリアルデータ用定数バッファ
         ComPtr<ID3D11Buffer> m_skinningBuffer;    // ボーン行列用バッファ
 
@@ -627,11 +609,6 @@ namespace Tsukino::Renderer {
         CBufferMotionBlur         m_motionBlurData{};      //!< CPU側のモーションブラーパラメータ
         bool                      m_hasMotionBlur     = false;    //!< PSの構築が済んでいるか
         bool                      m_motionBlurEnabled = false;    //!< 今フレームで有効か（MotionBlurSystemが毎フレーム設定）
-
-        //! @brief 前フレームのViewProjection行列
-        //! @note  CameraSystemはdirty時しか行列を再計算しないため、
-        //!        Render()の末尾でフレーム単位に退避するのが確実。
-        Tsukino::Core::Math::matrix m_prevWorldViewProj = Tsukino::Core::Math::matrix::identity();
 
         // シャドウマップ用リソース
         static constexpr uint32_t        SHADOW_MAP_SIZE = 2048;
@@ -659,10 +636,6 @@ namespace Tsukino::Renderer {
         //! として弾かれるため（SpriteRenderSystem/FontRendererSystemと同じ理由）。
         //! メンバに持たせてclear()で使い回し、毎フレームの確保を避ける
         std::vector<u32> m_overlayOrder;
-
-        // カメラ行列のセットを保存する変数
-        Tsukino::Renderer::CBufferScene m_worldSceneData;      // 3D（メインカメラ）用
-        Tsukino::Renderer::CBufferScene m_overlaySceneData;    // 2D（UIカメラ）用
 
         // デバッグ描画用の頂点群
         std::vector<Tsukino::GraphicsCommon::DebugVertex> m_debugLineVertices;
@@ -704,8 +677,6 @@ namespace Tsukino::Renderer {
         // 環境パーティクル用リソース
         ComPtr<ID3D11VertexShader> m_ambientParticleVS;                     //!< 環境パーティクル用VS
         ComPtr<ID3D11PixelShader>  m_ambientParticlePS;                     //!< 環境パーティクル用PS
-        float                      m_elapsedTime    = 0.0f;                 //!< 起動からの経過秒（b0のtimeParams.xへ配られる）
-        float                      m_frameDeltaTime = 0.0f;                 //!< 前フレームからの経過秒（同 timeParams.y）
 
         ComPtr<ID3D11Buffer>       m_ambientParticleBuffer;                 //!< 環境パーティクルパラメータ用バッファ (b9)
         CBufferAmbientParticle     m_ambientParticleData{};                 //!< CPU側の環境パーティクルパラメータ

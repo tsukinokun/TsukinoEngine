@@ -118,9 +118,9 @@ namespace Tsukino::BuiltIn::ECS {
             sceneData.cameraPos   = hlslpp::float4(transform.position.x, transform.position.y, transform.position.z, 1.0f);
             // シーン定数バッファをRendererにセット
             if(camera.isPrimary) {
-                ctx->renderer->SetWorldCameraMatrix(sceneData);
+                ctx->renderer->GetFrameConstants().SetWorldCamera(sceneData);
             } else {
-                ctx->renderer->SetOverlayCameraMatrix(sceneData);
+                ctx->renderer->GetFrameConstants().SetOverlayCamera(sceneData);
             }
         });
     }
