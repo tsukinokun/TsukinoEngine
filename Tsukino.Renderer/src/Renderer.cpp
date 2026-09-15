@@ -128,11 +128,12 @@ namespace Tsukino::Renderer {
         }
 
         //------------------------------------------------------------
-        // ディファードLightingパイプラインの作成
+        // ディファードLightingパスの作成
         // GBufferパスのPS(gbufferPS)はModelSystem側でPipelineFactory経由の
         // 通常のDrawCommandとして扱うため、ここでは不要。
         //------------------------------------------------------------
-        if(!SetLightingPipeline(shaders.lightingPS))
+        if(!m_lightingPass.Initialize(m_graphicsContext, m_resources, m_frameConstants, *m_fullscreenPass, *m_shadowPass, m_iblBaker,
+                                      shaders.lightingPS))
             return false;
 
         //------------------------------------------------------------
@@ -178,20 +179,10 @@ namespace Tsukino::Renderer {
         desc.BindFlags         = D3D11_BIND_CONSTANT_BUFFER;
 
         //------------------------------------------------------------
-        // m_lightsBuffer (b6) の作成（ディファードLightingパス用の点光源・スポットライト配列）
-        //------------------------------------------------------------
-        desc.ByteWidth = sizeof(Tsukino::Renderer::CBufferLights);
-        HRESULT hr     = device->CreateBuffer(&desc, nullptr, m_lightsBuffer.GetAddressOf());
-        if(FAILED(hr)) {
-            Tsukino::Core::Log::Error("Failed to create lights constant buffer.");
-            return false;
-        }
-
-        //------------------------------------------------------------
         // m_motionBlurBuffer (b8) の作成
         //------------------------------------------------------------
         desc.ByteWidth = sizeof(Tsukino::Renderer::CBufferMotionBlur);
-        hr             = device->CreateBuffer(&desc, nullptr, m_motionBlurBuffer.GetAddressOf());
+        HRESULT hr     = device->CreateBuffer(&desc, nullptr, m_motionBlurBuffer.GetAddressOf());
         if(FAILED(hr)) {
             Tsukino::Core::Log::Error("Failed to create motion blur constant buffer.");
             return false;
@@ -283,7 +274,7 @@ namespace Tsukino::Renderer {
         //------------------------------------------------------------
         // Lighting パス（G-Bufferと深度から全ライトを1回でHDRへ加算する）
         //------------------------------------------------------------
-        ExecuteLightingPass();
+        m_lightingPass.Execute();
 
         //------------------------------------------------------------
         // HDRバッファへ復帰（Lightingの結果を保持したままDSVも再度有効化）
@@ -493,29 +484,6 @@ namespace Tsukino::Renderer {
     }
 
     //------------------------------------------------------------
-    //! @brief ディファードLightingパイプラインのセット
-    //! @note  頂点シェーダーはTonemapと同じフルスクリーン三角形用（フルスクリーン三角形用を共用）のため、
-    //!        ここではピクセルシェーダーのみ作成する。
-    //------------------------------------------------------------
-    bool Renderer::SetLightingPipeline(const Tsukino::Asset::ShaderAsset* ps) {
-        if(!ps) {
-            Tsukino::Core::Log::Error("Renderer::SetLightingPipeline - shader is null.");
-            return false;
-        }
-
-        ID3D11Device* device = m_graphicsContext.GetDevice();
-
-        HRESULT hr = device->CreatePixelShader(ps->binary.data(), ps->binary.size(), nullptr, m_lightingPS.GetAddressOf());
-        if(FAILED(hr)) {
-            Tsukino::Core::Log::Error("Failed to create lighting pixel shader.");
-            return false;
-        }
-
-        m_hasLighting = true;
-        return true;
-    }
-
-    //------------------------------------------------------------
     //! @brief モーションブラーパイプラインのセット
     //! @note  VSはトーンマッピングと共用（フルスクリーン三角形）なのでPSだけ作る
     //------------------------------------------------------------
@@ -608,139 +576,6 @@ namespace Tsukino::Renderer {
     }
 
     //------------------------------------------------------------
-    //! @brief 点光源・スポットライト配列のセット
-    //! @note  MAX_LIGHTS を超える分は切り捨て、初回のみ警告を出す
-    //------------------------------------------------------------
-    void Renderer::SetLights(const GPULight* lights, u32 count) {
-        u32 copyCount = std::min(count, MAX_LIGHTS);
-
-        if(count > MAX_LIGHTS && !m_lightOverflowWarned) {
-            Tsukino::Core::Log::Error("Renderer::SetLights - light count (" + std::to_string(count) + ") exceeds MAX_LIGHTS ("
-                                      + std::to_string(MAX_LIGHTS) + "). Extra lights are dropped.");
-            m_lightOverflowWarned = true;
-        }
-
-        m_lightsData.lightCount = copyCount;
-        if(copyCount > 0) {
-            std::memcpy(m_lightsData.lights, lights, sizeof(GPULight) * copyCount);
-        }
-    }
-
-    //------------------------------------------------------------
-    //! @brief ディレクショナルライトの設定
-    //------------------------------------------------------------
-    void Renderer::SetDirectionalLight(const hlslpp::float3& direction, const hlslpp::float3& color, float intensity, const hlslpp::float3& focusPoint) {
-        //------------------------------------------------------------
-        // ライト方向を正規化
-        //------------------------------------------------------------
-        hlslpp::float3 normalizedDir = hlslpp::normalize(direction);
-
-        //------------------------------------------------------------
-        // ライト空間の ViewProjection（シャドウマップの投影）を求めて、
-        // ワールドのシーン定数へ書き込む
-        //------------------------------------------------------------
-        m_frameConstants.SetDirectionalLight(ShadowPass::ComputeLightViewProj(normalizedDir, focusPoint),
-                                             hlslpp::float4(normalizedDir.x, normalizedDir.y, normalizedDir.z, 0.0f),
-                                             hlslpp::float4(color.x, color.y, color.z, intensity));
-    }
-
-    //------------------------------------------------------------
-    //! @brief ディファードLightingパスの実行
-    //! @note  G-Bufferと深度をもとに全ライトを1回でHDRバッファへ加算する。
-    //!        深度0（Skyパスが描いた背景）はPS側でdiscardして保護する。
-    //------------------------------------------------------------
-    void Renderer::ExecuteLightingPass() {
-        if(!m_hasLighting || !m_fullscreenPass->IsValid() || !m_lightingPS)
-            return;
-
-        ID3D11DeviceContext* context = m_graphicsContext.GetContext();
-
-        //----------------------------------------------------------
-        // HDRバッファのみをRTVにバインド（深度をSRVとして読むためDSVは外す）
-        //----------------------------------------------------------
-        m_graphicsContext.BindHDRTargetOnly();
-
-        //----------------------------------------------------------
-        // シェーダーをセット（VSはTonemapと共用のフルスクリーン三角形用）
-        //----------------------------------------------------------
-        context->VSSetShader(m_fullscreenPass->GetVertexShader(), nullptr, 0);
-        context->PSSetShader(m_lightingPS.Get(), nullptr, 0);
-        context->IASetInputLayout(nullptr);
-
-        //----------------------------------------------------------
-        // 深度テストなし・ブレンドなし（discardで背景ピクセルを保護する）
-        //----------------------------------------------------------
-        context->OMSetDepthStencilState(m_resources.GetCommonStatesTK()->DepthNone(), 0);
-        context->OMSetBlendState(m_resources.GetCommonStatesTK()->Opaque(), nullptr, 0xFFFFFFFF);
-        context->RSSetState(m_resources.GetCommonStatesTK()->CullNone());
-
-        //----------------------------------------------------------
-        // Scene (b0) をバインド
-        //----------------------------------------------------------
-        context->VSSetConstantBuffers(static_cast<UINT>(CBSlot::Scene), 1, m_frameConstants.GetSceneBufferAddress());
-        context->PSSetConstantBuffers(static_cast<UINT>(CBSlot::Scene), 1, m_frameConstants.GetSceneBufferAddress());
-
-        //----------------------------------------------------------
-        // Lights (b6) を更新してバインド
-        //----------------------------------------------------------
-        context->UpdateSubresource(m_lightsBuffer.Get(), 0, nullptr, &m_lightsData, 0, 0);
-        constexpr UINT lightsCBSlot = static_cast<UINT>(CBSlot::Lights);
-        context->PSSetConstantBuffers(lightsCBSlot, 1, m_lightsBuffer.GetAddressOf());
-
-        //----------------------------------------------------------
-        // G-Buffer (t9〜t12)、深度 (t13)、ワールド座標 (t14) をバインド
-        //----------------------------------------------------------
-        ID3D11ShaderResourceView* gbufferSRVs[6] = {
-            m_graphicsContext.GetGBufferSRV(0),
-            m_graphicsContext.GetGBufferSRV(1),
-            m_graphicsContext.GetGBufferSRV(2),
-            m_graphicsContext.GetGBufferSRV(3),
-            m_graphicsContext.GetDepthSRV(),
-            m_graphicsContext.GetGBufferSRV(4),
-        };
-        constexpr UINT gbufferSRVSlot = static_cast<UINT>(SRVSlot::GBufferAlbedo);
-        context->PSSetShaderResources(gbufferSRVSlot, 6, gbufferSRVs);
-
-        //----------------------------------------------------------
-        // シャドウマップ (t8/s8) をバインド
-        //----------------------------------------------------------
-        constexpr UINT shadowSRVSlot = static_cast<UINT>(SRVSlot::ShadowMap);
-        m_shadowPass->BindForSampling(context);
-
-        //----------------------------------------------------------
-        // G-Bufferサンプラー (s9)：フィルタなしのポイントサンプリング
-        //----------------------------------------------------------
-        ID3D11SamplerState* pointClamp = m_resources.GetSampler(Tsukino::GraphicsCommon::SamplerType::PointClamp);
-        constexpr UINT      gbufferSamplerSlot = static_cast<UINT>(SamplerSlot::GBuffer);
-        context->PSSetSamplers(gbufferSamplerSlot, 1, &pointClamp);
-
-        //----------------------------------------------------------
-        // IBL (b10, t17〜t19, s10)：スカイ由来のアンビエント
-        //----------------------------------------------------------
-        m_iblBaker.Bind();
-
-        //----------------------------------------------------------
-        // フルスクリーントライアングル描画
-        //----------------------------------------------------------
-        FullscreenPass::Draw(context);
-
-        //----------------------------------------------------------
-        // 後片付け：G-Buffer/深度/シャドウマップ/IBLのSRVを解除
-        // （直後にDSVとして再バインドする深度との同時バインド防止のため必須）
-        //----------------------------------------------------------
-        ID3D11ShaderResourceView* nullSRVs[6] = {nullptr, nullptr, nullptr, nullptr, nullptr, nullptr};
-        context->PSSetShaderResources(gbufferSRVSlot, 6, nullSRVs);
-        ID3D11ShaderResourceView* nullShadowSRV = nullptr;
-        context->PSSetShaderResources(shadowSRVSlot, 1, &nullShadowSRV);
-        m_iblBaker.Unbind();
-
-        //----------------------------------------------------------
-        // 深度ステートを元に戻す（HDRRenderTarget復帰後のWorld/Transparent用）
-        //----------------------------------------------------------
-        context->OMSetDepthStencilState(m_resources.GetCommonStatesTK()->DepthDefault(), 0);
-    }
-
-    //------------------------------------------------------------
     //! @brief フォグパスの実行
     //! @note  深度(t13)だけを読み、HDRバッファへプリマルチプライのover合成で
     //!        書き込む。HDRをSRVとして読まないためRTVに張ったままでよく、
@@ -805,7 +640,7 @@ namespace Tsukino::Renderer {
 
         //----------------------------------------------------------
         // 後片付け：深度を次フレームDSVとして再バインドするため、
-        // SRVのバインドを必ず解除する（ExecuteLightingPassと同じ理由）。
+        // SRVのバインドを必ず解除する（LightingPass::Executeと同じ理由）。
         // ブレンドも不透明へ戻しておく
         //----------------------------------------------------------
         ID3D11ShaderResourceView* nullSRV = nullptr;
@@ -940,7 +775,7 @@ namespace Tsukino::Renderer {
 
         //----------------------------------------------------------
         // 後片付け：次フレームでHDR/G-BufferをRTVとして再バインドするため、
-        // SRVのバインドを必ず解除する（ExecuteLightingPassと同じ理由）
+        // SRVのバインドを必ず解除する（LightingPass::Executeと同じ理由）
         //----------------------------------------------------------
         ID3D11ShaderResourceView* nullSRV = nullptr;
         context->PSSetShaderResources(0, 1, &nullSRV);

@@ -14,6 +14,7 @@
 #include <Tsukino/Renderer/DebugDraw.hpp>
 #include <Tsukino/Renderer/SkyPass.hpp>
 #include <Tsukino/Renderer/IBLBaker.hpp>
+#include <Tsukino/Renderer/LightingPass.hpp>
 #include <Tsukino/Renderer/DrawCommandQueue.hpp>
 #include <Tsukino/Renderer/DX11/Texture/DX11Texture2D.hpp>
 #include <Tsukino/Renderer/DX11/Texture/DX11TextureCube.hpp>
@@ -253,20 +254,13 @@ namespace Tsukino::Renderer {
         }
 
         //------------------------------------------------------------
-        //! @brief ディレクショナルライトの設定
-        //! @param direction   [in] ライトの方向（正規化推奨）
-        //! @param color       [in] ライトの色
-        //! @param intensity   [in] ライトの強度
-        //! @param focusPoint  [in] シャドウマップの投影範囲（平行投影、±500ユニット）の中心。
-        //!                         カメラの注視点（プレイヤー頭上など）を渡すこと。
-        //! @note   カメラ位置そのものを中心にすると、注視点から離れた位置に
-        //!         カメラを置くTPSカメラ等では、実際に画面に映る注視点付近が
-        //!         シャドウ範囲の端に寄ってしまい、キャラクターのすぐ近くで
-        //!         影が途切れて見える。呼び出し側（通常はLightSystem）で
-        //!         メインカメラのlookAtTarget（useLookAtがfalseならカメラ位置）
-        //!         を求めてfocusPointに渡すこと
+        //! @brief  ディファードライティングパスを取得する
+        //! @return ディレクショナルライトと点光源・スポットライトを受け付ける LightingPass
         //------------------------------------------------------------
-        void SetDirectionalLight(const hlslpp::float3& direction, const hlslpp::float3& color, float intensity, const hlslpp::float3& focusPoint);
+        [[nodiscard]]
+        LightingPass& GetLighting() noexcept {
+            return m_lightingPass;
+        }
 
         //------------------------------------------------------------
         //! @brief  スカイ（大気散乱）パスを取得する
@@ -285,13 +279,6 @@ namespace Tsukino::Renderer {
         IBLBaker& GetIBL() noexcept {
             return m_iblBaker;
         }
-
-        //------------------------------------------------------------
-        //! @brief 点光源・スポットライト配列のセット（ディファードLightingパス用）
-        //! @param lights [in] GPULightの配列
-        //! @param count  [in] 配列の要素数（MAX_LIGHTSを超える分は切り捨てられる）
-        //------------------------------------------------------------
-        void SetLights(const GPULight* lights, u32 count);
 
         //------------------------------------------------------------
         //! @brief モーションブラーパイプラインのセット
@@ -363,19 +350,6 @@ namespace Tsukino::Renderer {
         [[nodiscard]] bool CreateConstantBuffer();
 
         //------------------------------------------------------------
-        //! @brief ディファードLightingパスの実行
-        //------------------------------------------------------------
-        void ExecuteLightingPass();
-
-        //------------------------------------------------------------
-        //! @brief ディファードLightingパイプラインのセット
-        //! @param ps [in] ピクセルシェーダーアセット（VSはTonemapと共用）
-        //! @return true: 成功, false: 失敗
-        //------------------------------------------------------------
-        [[nodiscard]]
-        bool SetLightingPipeline(const Tsukino::Asset::ShaderAsset* ps);
-
-        //------------------------------------------------------------
         //! @brief モーションブラーパスの実行
         //! @return true: ブラーを実行してポストプロセスバッファへ書いた
         //!         false: 無効なので何もしていない（HDRバッファがそのまま最新）
@@ -435,6 +409,7 @@ namespace Tsukino::Renderer {
         std::unique_ptr<ShadowPass>          m_shadowPass;         // シャドウマップパス（m_commandExecutor を借りる）
         SkyPass                              m_skyPass;            // スカイ（大気散乱）パス
         IBLBaker                             m_iblBaker;           // スカイ由来の環境光（m_fullscreenPass と m_skyPass を借りるので、その後に宣言する）
+        LightingPass                         m_lightingPass;       // ディファードライティング（m_shadowPass と m_iblBaker を借りるので、その後に宣言する）
 
         // モーションブラー用リソース
         ComPtr<ID3D11Buffer>      m_motionBlurBuffer;      //!< モーションブラーパラメータ用バッファ (b8)
@@ -455,13 +430,6 @@ namespace Tsukino::Renderer {
         //! として弾かれるため（SpriteRenderSystem/FontRendererSystemと同じ理由）。
         //! メンバに持たせてclear()で使い回し、毎フレームの確保を避ける
         std::vector<u32> m_overlayOrder;
-
-        // ディファードLightingパス用リソース
-        ComPtr<ID3D11PixelShader> m_lightingPS;              //!< Lightingパス用PS（VSはフルスクリーン三角形用を共用）
-        bool                      m_hasLighting = false;
-        ComPtr<ID3D11Buffer>      m_lightsBuffer;             //!< 点光源・スポットライト配列用定数バッファ (b6)
-        CBufferLights             m_lightsData{};              //!< CPU側のライト配列（毎フレームGPUへ転送）
-        bool                      m_lightOverflowWarned = false;    //!< MAX_LIGHTS超過の警告を1回だけ出すためのフラグ
 
         // フォグ用リソース
         ComPtr<ID3D11PixelShader> m_fogPS;                //!< フォグ用PS（VSはフルスクリーン三角形用を共用）

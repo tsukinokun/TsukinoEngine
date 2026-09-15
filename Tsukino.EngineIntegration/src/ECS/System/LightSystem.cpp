@@ -64,7 +64,7 @@ namespace Tsukino::BuiltIn::ECS {
             if(!light.castShadow)
                 return;
 
-            ctx->renderer->SetDirectionalLight(light.direction, light.color, light.intensity, shadowFocusPoint);
+            ctx->renderer->GetLighting().SetDirectionalLight(light.direction, light.color, light.intensity, shadowFocusPoint);
         });
 
         //--------------------------------------------------------------
@@ -115,6 +115,6 @@ namespace Tsukino::BuiltIn::ECS {
             gpuLights.push_back(gpuLight);
         });
 
-        ctx->renderer->SetLights(gpuLights.data(), static_cast<u32>(gpuLights.size()));
+        ctx->renderer->GetLighting().SetLights(gpuLights.data(), static_cast<u32>(gpuLights.size()));
     }
 }    // namespace Tsukino::BuiltIn::ECS
