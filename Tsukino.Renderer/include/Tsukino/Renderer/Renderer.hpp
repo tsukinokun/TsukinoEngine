@@ -28,6 +28,7 @@
 #include <CommonStates.h>
 
 #include <array>
+#include <memory>
 #include <optional>
 #include <unordered_map>
 #include <vector>
@@ -44,6 +45,7 @@ namespace Tsukino::Renderer {
 
     struct CBufferScene;    // 前方宣言
     class IPostWorldPass;   // 前方宣言（Worldパスの後に差し込む描画。実体は上位層が持つ）
+    class DrawCommandExecutor;    // 前方宣言（描画コマンドの実行。Tsukino.Renderer の内部専用）
 
     //------------------------------------------------------------
     //! @struct RendererShaderSet
@@ -82,12 +84,13 @@ namespace Tsukino::Renderer {
         //------------------------------------------------------------
         //! @brief コンストラクタ
         //------------------------------------------------------------
-        Renderer() = default;
+        Renderer();
 
         //------------------------------------------------------------
         //! @brief デストラクタ
+        //! @note  内部専用の部品を前方宣言だけで持っているため、定義は Renderer.cpp に置く
         //------------------------------------------------------------
-        ~Renderer() = default;
+        ~Renderer();
 
         //------------------------------------------------------------
         // レンダラーの初期化
@@ -126,27 +129,17 @@ namespace Tsukino::Renderer {
         void SetClearColor(float r, float g, float b, float a);
 
         //------------------------------------------------------------
-        // 描画コマンドの追加
-        //! @param cmd [in] 追加する描画コマンド
-        //------------------------------------------------------------
-        void PushDrawCommand(const DrawCommand& cmd);
-
-        //------------------------------------------------------------
-        // このフレームで使うマテリアル実体を1つ確保する
-        //! @return 確保したマテリアルへの参照
-        //! @note   DrawCommand::material が指す実体は必ずここから取ること。
-        //!         System 側で持つと、コマンドの寿命と食い違ってダングリングになる
+        //! @brief  このフレームの描画コマンドキューを取得する
+        //! @return 描画コマンドとマテリアルを受け付ける DrawCommandQueue
+        //! @note   DrawCommand::material / materialData が指す実体は、必ずこのキューの
+        //!         AllocMaterial() / AllocMaterialData() から取ること。System 側で持つと、
+        //!         コマンドの寿命と食い違ってダングリングになる。
+        //!         キューの中身は Render() の末尾で破棄される
         //------------------------------------------------------------
         [[nodiscard]]
-        Material& AllocMaterial();
-
-        //------------------------------------------------------------
-        // このフレームで使うマテリアル定数データを1つ確保する
-        //! @return 確保した定数データへの参照
-        //! @note   DrawCommand::materialData が指す実体は必ずここから取ること
-        //------------------------------------------------------------
-        [[nodiscard]]
-        CBufferMaterial& AllocMaterialData();
+        DrawCommandQueue& GetDrawQueue() noexcept {
+            return m_drawQueue;
+        }
 
         //------------------------------------------------------------
         //! @struct FrameStats
@@ -383,12 +376,6 @@ namespace Tsukino::Renderer {
         [[nodiscard]] bool CreateConstantBuffer();
 
         //------------------------------------------------------------
-        // 描画コマンドを実行
-        //! @param cmd [in] 実行する描画コマンド
-        //------------------------------------------------------------
-        void ExecuteDrawCommand(const DrawCommand& cmd);
-
-        //------------------------------------------------------------
         // デバッグ用バッファとシェーダーの作成
         //! @return true: 作成成功, false: 作成失敗
         //------------------------------------------------------------
@@ -413,48 +400,6 @@ namespace Tsukino::Renderer {
         //------------------------------------------------------------
         [[nodiscard]]
         bool CreateShadowMap();
-
-        //------------------------------------------------------------
-        //! @brief シャドウパスの実行（シャドウマップへの深度書き込み）
-        //! @param cmd [in] 実行する描画コマンド
-        //------------------------------------------------------------
-        void ExecuteShadowCommand(const DrawCommand& cmd);
-
-        //------------------------------------------------------------
-        //! @brief パス別のドローコール数と三角形数を数える関数
-        //! @param pass       [in] 描画パス
-        //! @param indexCount [in] 描画したインデックス数
-        //------------------------------------------------------------
-        void CountDrawCall(RenderPass pass, u32 indexCount);
-
-        //------------------------------------------------------------
-        //! インスタンスごとのデータを頂点シェーダーへバインドします。
-        //! @param srv [in] バインドするSRV。nullptrならスロットを明示的に空にする
-        //! @note  スロットを空にする処理が要るのは、インスタンス描画をしない
-        //!        コマンドが直前のコマンドのSRVを引き継いでしまうのを防ぐため
-        //------------------------------------------------------------
-        void BindInstanceData(ID3D11ShaderResourceView* srv);
-
-        //------------------------------------------------------------
-        //! ゲーム定義の定数バッファをバインドします。
-        //! @param buffer [in] バインドするバッファ。nullptrならスロットを空にする
-        //! @param slot   [in] バインド先。User0 / User1 以外は無視する
-        //! @note  エンジンが使う b0〜b9 を上書きされると描画が壊れるため、
-        //!        ゲーム予約枠以外は弾く
-        //------------------------------------------------------------
-        void BindUserConstantBuffer(ID3D11Buffer* buffer, CBSlot slot);
-
-        //------------------------------------------------------------
-        //! @brief  ボーン行列を定数バッファへ転送する関数
-        //! @param  buffer       [in] 転送先の定数バッファ（DYNAMICであること）
-        //! @param  boneMatrices [in] ボーン行列の配列
-        //! @param  boneCount    [in] ボーン数
-        //! @return 実際に転送したバイト数（統計用）
-        //------------------------------------------------------------
-        u32 UploadBoneMatrices(ID3D11Buffer* buffer, const void* boneMatrices, u32 boneCount);
-
-        //! @brief シェーダー側のボーン配列の宣言数（CBufferSkinning::bones と揃えること）
-        static constexpr u32 kMaxBoneCount = 128;
 
         //------------------------------------------------------------
         //! @brief スカイパスの実行
@@ -597,13 +542,9 @@ namespace Tsukino::Renderer {
         RenderResources m_resources;          // 描画で共有する資源（ステート・サンプラー・既定テクスチャ・テクスチャキャッシュ等）
         FrameConstants  m_frameConstants;     // フレーム単位のシーン定数（b0）
 
-        // 定数バッファ
-        ComPtr<ID3D11Buffer> m_objectBuffer;      // オブジェクトデータ用定数バッファ
-        ComPtr<ID3D11Buffer> m_materialBuffer;    // マテリアルデータ用定数バッファ
-        ComPtr<ID3D11Buffer> m_skinningBuffer;    // ボーン行列用バッファ
+        std::unique_ptr<DrawCommandExecutor> m_commandExecutor;    // 描画コマンドの実行（上の3つを借りるので、その後に宣言する）
 
         // モーションブラー用リソース
-        ComPtr<ID3D11Buffer>      m_prevSkinningBuffer;    //!< 前フレームのボーン行列用バッファ (b7)
         ComPtr<ID3D11Buffer>      m_motionBlurBuffer;      //!< モーションブラーパラメータ用バッファ (b8)
         ComPtr<ID3D11PixelShader> m_motionBlurPS;          //!< モーションブラー用PS（VSはm_tonemapVSを共用）
         CBufferMotionBlur         m_motionBlurData{};      //!< CPU側のモーションブラーパラメータ
@@ -624,9 +565,6 @@ namespace Tsukino::Renderer {
         std::array<float, 4> m_clearColor = {0.5f, 0.5f, 0.5f, 1.0f};    // 描画領域のクリアカラー (デフォルトはグレー)
 
         FrameStats m_frameStats;    // 1フレーム分の描画統計（Render()の先頭でリセットする）
-
-        u32 m_lastDrawBoneBytes = 0;    // 直前のExecuteDrawCommandで転送したボーン行列のバイト数（統計用）
-        u32 m_shadowBoneBytes   = 0;    // 直前のExecuteShadowCommandで転送したボーン行列のバイト数（統計用）
 
         DrawCommandQueue                                        m_drawQueue;          // 描画コマンドキュー
 

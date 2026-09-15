@@ -183,7 +183,7 @@ namespace Tsukino::BuiltIn::ECS {
             cmd.mesh = ctx->renderer->GetResources().GetPrimitiveMesh(Tsukino::GraphicsCommon::PrimitiveType::Quad);
 
             // マテリアルの構築（実体はキューが所有する）
-            Tsukino::Renderer::Material& material = ctx->renderer->AllocMaterial();
+            Tsukino::Renderer::Material& material = ctx->renderer->GetDrawQueue().AllocMaterial();
 
             // サンプラー設定
             material.SetSampler(ctx->renderer->GetResources().GetSampler(Tsukino::GraphicsCommon::SamplerType::LinearClamp));
@@ -211,7 +211,7 @@ namespace Tsukino::BuiltIn::ECS {
                 material.SetPipeline(isAdditive ? m_additivePipelineCache.get() : m_pipelineCache.get());
 
             // tintColorをb2(CBufferMaterial::baseColor)経由でSprite.ps.hlslへ渡す
-            Tsukino::Renderer::CBufferMaterial& materialData = ctx->renderer->AllocMaterialData();
+            Tsukino::Renderer::CBufferMaterial& materialData = ctx->renderer->GetDrawQueue().AllocMaterialData();
             materialData.baseColor                            = sprite.tintColor;
 
             cmd.material     = &material;
@@ -235,7 +235,7 @@ namespace Tsukino::BuiltIn::ECS {
         std::sort(m_entries.begin(), m_entries.end(), [](const SpriteEntry& a, const SpriteEntry& b) { return a.sortOrder < b.sortOrder; });
         // ソート済みの順でpush
         for(auto& e : m_entries) {
-            ctx->renderer->PushDrawCommand(e.cmd);
+            ctx->renderer->GetDrawQueue().Push(e.cmd);
         }
     }
 }    // namespace Tsukino::BuiltIn::ECS

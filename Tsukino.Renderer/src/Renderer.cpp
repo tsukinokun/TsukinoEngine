@@ -12,6 +12,8 @@
 
 #include <Tsukino/Renderer/IPostWorldPass.hpp>
 
+#include "DrawCommandExecutor.hpp"
+
 #include <Tsukino/Engine/Asset/Shader/ShaderAsset.hpp>
 
 #include <Tsukino/GraphicsCommon/Mesh/MeshPrimitives.hpp>
@@ -27,6 +29,18 @@
 
 // 名前空間 : Tsukino::Renderer
 namespace Tsukino::Renderer {
+    //------------------------------------------------------------
+    //! @brief コンストラクタ
+    //! @note  内部専用の部品を前方宣言だけで持っているため、
+    //!        その完全型が見える Renderer.cpp で定義する
+    //------------------------------------------------------------
+    Renderer::Renderer() = default;
+
+    //------------------------------------------------------------
+    //! @brief デストラクタ
+    //------------------------------------------------------------
+    Renderer::~Renderer() = default;
+
     //------------------------------------------------------------
     //! @brief レンダラーの初期化
     //------------------------------------------------------------
@@ -54,6 +68,13 @@ namespace Tsukino::Renderer {
         // フレーム単位のシーン定数（b0）の作成
         //------------------------------------------------------------
         if(!m_frameConstants.Initialize(m_graphicsContext, SHADOW_MAP_SIZE))
+            return false;
+
+        //------------------------------------------------------------
+        // 描画コマンドの実行器（Transform・マテリアル・ボーン行列の定数バッファ）の作成
+        //------------------------------------------------------------
+        m_commandExecutor = std::make_unique<DrawCommandExecutor>();
+        if(!m_commandExecutor->Initialize(m_graphicsContext, m_resources, m_frameConstants))
             return false;
 
         //------------------------------------------------------------
@@ -137,51 +158,10 @@ namespace Tsukino::Renderer {
         desc.BindFlags         = D3D11_BIND_CONSTANT_BUFFER;
 
         //------------------------------------------------------------
-        // m_objectBuffer (b1) の作成
-        //------------------------------------------------------------
-        desc.ByteWidth = sizeof(Tsukino::Renderer::CBufferTransform);
-        HRESULT hr     = device->CreateBuffer(&desc, nullptr, m_objectBuffer.GetAddressOf());
-        if(FAILED(hr)) {
-            Tsukino::Core::Log::Error("Failed to create object constant buffer.");
-            return false;
-        }
-
-        //------------------------------------------------------------
-        // m_materialBuffer (b2) の作成
-        //------------------------------------------------------------
-        desc.ByteWidth = sizeof(Tsukino::Renderer::CBufferMaterial);
-        hr             = device->CreateBuffer(&desc, nullptr, m_materialBuffer.GetAddressOf());
-        if(FAILED(hr)) {
-            Tsukino::Core::Log::Error("Failed to create material constant buffer.");
-            return false;
-        }
-
-        // ------------------------------------------------------------
-        // m_skinningBuffer (b3) の作成
-        // ------------------------------------------------------------
-        // ボーン行列は1ドローごとに書き換えるうえ1本あたり8KBと大きいため、
-        // DEFAULT+UpdateSubresourceではなくDYNAMIC+Map(WRITE_DISCARD)で更新する。
-        // 実ボーン数ぶんだけ書けるようになり、転送量とCPU側のゼロ初期化が消える
-        desc.Usage          = D3D11_USAGE_DYNAMIC;
-        desc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
-
-        desc.ByteWidth = sizeof(Tsukino::Renderer::CBufferSkinning);
-        hr             = device->CreateBuffer(&desc, nullptr, m_skinningBuffer.GetAddressOf());
-        if(FAILED(hr)) {
-            Tsukino::Core::Log::Error("Failed to create skinning constant buffer.");
-            return false;
-        }
-
-        // descは以降のバッファ作成でも使い回すため、既定（DEFAULT + UpdateSubresource）へ戻す。
-        // DYNAMICのままにするとUpdateSubresourceで更新している他のバッファがAPIエラーになる
-        desc.Usage          = D3D11_USAGE_DEFAULT;
-        desc.CPUAccessFlags = 0;
-
-        //------------------------------------------------------------
         // m_skyBuffer (b4) の作成
         //------------------------------------------------------------
         desc.ByteWidth = sizeof(Tsukino::Renderer::CBufferSky);
-        hr             = device->CreateBuffer(&desc, nullptr, m_skyBuffer.GetAddressOf());
+        HRESULT hr     = device->CreateBuffer(&desc, nullptr, m_skyBuffer.GetAddressOf());
         if(FAILED(hr)) {
             Tsukino::Core::Log::Error("Failed to create sky constant buffer.");
             return false;
@@ -196,23 +176,6 @@ namespace Tsukino::Renderer {
             Tsukino::Core::Log::Error("Failed to create lights constant buffer.");
             return false;
         }
-
-        //------------------------------------------------------------
-        // m_prevSkinningBuffer (b7) の作成（速度バッファ生成用の前フレームボーン行列）
-        //------------------------------------------------------------
-        // b3と同じ理由でDYNAMICにする
-        desc.Usage          = D3D11_USAGE_DYNAMIC;
-        desc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
-
-        desc.ByteWidth = sizeof(Tsukino::Renderer::CBufferSkinningPrev);
-        hr             = device->CreateBuffer(&desc, nullptr, m_prevSkinningBuffer.GetAddressOf());
-        if(FAILED(hr)) {
-            Tsukino::Core::Log::Error("Failed to create previous frame skinning constant buffer.");
-            return false;
-        }
-
-        desc.Usage          = D3D11_USAGE_DEFAULT;
-        desc.CPUAccessFlags = 0;
 
         //------------------------------------------------------------
         // m_motionBlurBuffer (b8) の作成
@@ -405,7 +368,7 @@ namespace Tsukino::Renderer {
                 if(!cmd.castsShadow)
                     continue;
 
-                ExecuteShadowCommand(cmd);
+                m_commandExecutor->ExecuteShadow(cmd, m_shadowStaticPipeline.get(), m_shadowSkeletalPipeline.get(), m_frameStats);
             }
 
             // RTとビューポートをBeginFrame時の状態に戻す
@@ -461,7 +424,7 @@ namespace Tsukino::Renderer {
         for(const auto& cmd : commands) {
             if(cmd.pass != RenderPass::GBuffer)
                 continue;
-            ExecuteDrawCommand(cmd);
+            m_commandExecutor->Execute(cmd, m_motionBlurEnabled, m_frameStats);
         }
 
         //------------------------------------------------------------
@@ -496,7 +459,7 @@ namespace Tsukino::Renderer {
         for(const auto& cmd : commands) {
             if(cmd.pass != RenderPass::World)
                 continue;
-            ExecuteDrawCommand(cmd);
+            m_commandExecutor->Execute(cmd, m_motionBlurEnabled, m_frameStats);
         }
 
         //------------------------------------------------------------
@@ -511,7 +474,7 @@ namespace Tsukino::Renderer {
         for(const auto& cmd : commands) {
             if(cmd.pass != RenderPass::TransparentDepth)
                 continue;
-            ExecuteDrawCommand(cmd);
+            m_commandExecutor->Execute(cmd, m_motionBlurEnabled, m_frameStats);
         }
 
         //------------------------------------------------------------
@@ -526,7 +489,7 @@ namespace Tsukino::Renderer {
         for(const auto& cmd : commands) {
             if(cmd.pass != RenderPass::Transparent)
                 continue;
-            ExecuteDrawCommand(cmd);
+            m_commandExecutor->Execute(cmd, m_motionBlurEnabled, m_frameStats);
         }
 
         //------------------------------------------------------------
@@ -618,7 +581,7 @@ namespace Tsukino::Renderer {
         });
 
         for(u32 index : m_overlayOrder) {
-            ExecuteDrawCommand(commands[index]);
+            m_commandExecutor->Execute(commands[index], m_motionBlurEnabled, m_frameStats);
         }
 
         m_drawQueue.Clear();
@@ -756,27 +719,6 @@ namespace Tsukino::Renderer {
     }
 
     //------------------------------------------------------------
-    //! @brief 描画コマンドの追加
-    //------------------------------------------------------------
-    void Renderer::PushDrawCommand(const DrawCommand& cmd) {
-        m_drawQueue.Push(cmd);
-    }
-
-    //------------------------------------------------------------
-    //! @brief このフレームで使うマテリアル実体を1つ確保する
-    //------------------------------------------------------------
-    Material& Renderer::AllocMaterial() {
-        return m_drawQueue.AllocMaterial();
-    }
-
-    //------------------------------------------------------------
-    //! @brief このフレームで使うマテリアル定数データを1つ確保する
-    //------------------------------------------------------------
-    CBufferMaterial& Renderer::AllocMaterialData() {
-        return m_drawQueue.AllocMaterialData();
-    }
-
-    //------------------------------------------------------------
     //! @brief シャドウマップ用リソースの作成
     //------------------------------------------------------------
     bool Renderer::CreateShadowMap() {
@@ -854,184 +796,6 @@ namespace Tsukino::Renderer {
         }
 
         return true;
-    }
-
-    //------------------------------------------------------------
-    //! @brief シャドウパスの実行（シャドウマップへの深度書き込み）
-    //------------------------------------------------------------
-    void Renderer::ExecuteShadowCommand(const DrawCommand& cmd) {
-        if(!cmd.mesh)
-            return;
-
-        ID3D11DeviceContext* context = m_graphicsContext.GetContext();
-
-        bool isSkeletal = cmd.boneMatrices && cmd.boneCount > 0;
-
-        //------------------------------------------------------------
-        // シャドウ用パイプラインをセット
-        //------------------------------------------------------------
-        auto* pipeline = isSkeletal ? m_shadowSkeletalPipeline.get() : m_shadowStaticPipeline.get();
-
-        if(!pipeline)
-            return;
-
-        m_graphicsContext.SetPipelineState(*pipeline);
-
-        //------------------------------------------------------------
-        // Scene (b0) を再バインド
-        //------------------------------------------------------------
-        context->VSSetConstantBuffers(static_cast<UINT>(CBSlot::Scene), 1, m_frameConstants.GetSceneBufferAddress());
-
-        //------------------------------------------------------------
-        // Transform (b1)
-        //------------------------------------------------------------
-        CBufferTransform cb{};
-        cb.world = cmd.transform;
-        context->UpdateSubresource(m_objectBuffer.Get(), 0, nullptr, &cb, 0, 0);
-        context->VSSetConstantBuffers(static_cast<UINT>(CBSlot::Transform), 1, m_objectBuffer.GetAddressOf());
-
-        //------------------------------------------------------------
-        // ボーン行列 (b3)
-        //------------------------------------------------------------
-        if(isSkeletal) {
-            m_shadowBoneBytes = UploadBoneMatrices(m_skinningBuffer.Get(), cmd.boneMatrices, cmd.boneCount);
-            context->VSSetConstantBuffers(static_cast<UINT>(CBSlot::Skinning), 1, m_skinningBuffer.GetAddressOf());
-        } else {
-            m_shadowBoneBytes = 0;
-            ID3D11Buffer* nullBuffer = nullptr;
-            context->VSSetConstantBuffers(static_cast<UINT>(CBSlot::Skinning), 1, &nullBuffer);
-        }
-
-        //------------------------------------------------------------
-        // 頂点バッファ・インデックスバッファのセット
-        //------------------------------------------------------------
-        if(isSkeletal && cmd.mesh->boneWeightBuffer.Get() != nullptr) {
-            ID3D11Buffer* vbs[]     = {cmd.mesh->vertexBuffer.Get(), cmd.mesh->boneWeightBuffer.Get()};
-            UINT          strides[] = {cmd.mesh->stride, sizeof(Tsukino::GraphicsCommon::BoneWeight)};
-            UINT          offsets[] = {0, 0};
-            context->IASetVertexBuffers(0, 2, vbs, strides, offsets);
-        } else {
-            ID3D11Buffer* vbs[]     = {cmd.mesh->vertexBuffer.Get(), nullptr};
-            UINT          strides[] = {cmd.mesh->stride, 0};
-            UINT          offsets[] = {0, 0};
-            context->IASetVertexBuffers(0, 2, vbs, strides, offsets);
-        }
-
-        context->IASetIndexBuffer(cmd.mesh->indexBuffer.Get(), DXGI_FORMAT_R32_UINT, 0);
-        context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-
-        //------------------------------------------------------------
-        // インスタンスごとのデータのバインド。
-        // これが無いとインスタンス描画したオブジェクトが影を落とさない
-        //------------------------------------------------------------
-        BindInstanceData(cmd.instanceData);
-
-        // ゲームが自前のシェーダーで描くときのパラメータ。使わないコマンドでも
-        // 明示的に空を書き、直前のコマンドのバッファを引き継がせない
-        BindUserConstantBuffer(cmd.userConstantBuffer, cmd.userConstantSlot);
-
-        //------------------------------------------------------------
-        // 描画
-        //------------------------------------------------------------
-        if(cmd.instanceCount > 1) {
-            context->DrawIndexedInstanced(cmd.mesh->indexCount, cmd.instanceCount, 0, 0, 0);
-        } else {
-            context->DrawIndexed(cmd.mesh->indexCount, 0, 0);
-        }
-
-        //------------------------------------------------------------
-        // 統計の加算（負荷調査用）
-        // GBufferと同じ形状をもう一度描いているので、ドロー数もボーン転送量も
-        // ここで二重に計上されるのが実態どおり
-        //------------------------------------------------------------
-        ++m_frameStats.shadowDrawCalls;
-        m_frameStats.triangleCount += (cmd.mesh->indexCount * cmd.instanceCount) / 3;
-        if(isSkeletal) {
-            ++m_frameStats.skinnedDrawCalls;
-            m_frameStats.boneBytesUploaded += m_shadowBoneBytes;
-        }
-    }
-
-    //------------------------------------------------------------
-    //! @brief ボーン行列を定数バッファへ転送する
-    //------------------------------------------------------------
-    u32 Renderer::UploadBoneMatrices(ID3D11Buffer* buffer, const void* boneMatrices, u32 boneCount) {
-        if(!buffer || !boneMatrices || boneCount == 0)
-            return 0;
-
-        // シェーダー側の宣言（float4x4 bones[128]）を超えて書かない
-        const u32 copyCount = (boneCount < kMaxBoneCount) ? boneCount : kMaxBoneCount;
-        const u32 byteCount = copyCount * static_cast<u32>(sizeof(hlslpp::float4x4));
-
-        //--------------------------------------------------------
-        // WRITE_DISCARDで新しい領域をもらい、実ボーン数ぶんだけ書く。
-        //
-        // 以前は8KBの構造体をスタックにゼロ初期化で作り、実ボーン数ぶんmemcpyしてから
-        // UpdateSubresourceで8KB全体を転送していた。Mixamoのリグは65本程度なので、
-        // ゼロ初期化と転送の半分以上が捨てられていたことになる。
-        // スキンメッシュはShadowとGBufferの2パスで描かれるため、この無駄は2倍で効く
-        //--------------------------------------------------------
-        ID3D11DeviceContext*     context = m_graphicsContext.GetContext();
-        D3D11_MAPPED_SUBRESOURCE mapped{};
-
-        if(FAILED(context->Map(buffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped)))
-            return 0;
-
-        std::memcpy(mapped.pData, boneMatrices, byteCount);
-        context->Unmap(buffer, 0);
-
-        return byteCount;
-    }
-
-    //------------------------------------------------------------
-    //! @brief パス別のドローコール数と三角形数を数える
-    //------------------------------------------------------------
-    void Renderer::CountDrawCall(RenderPass pass, u32 indexCount) {
-        switch(pass) {
-        case RenderPass::GBuffer:          ++m_frameStats.gbufferDrawCalls; break;
-        case RenderPass::World:            ++m_frameStats.worldDrawCalls; break;
-        case RenderPass::TransparentDepth: ++m_frameStats.transparentDrawCalls; break;
-        case RenderPass::Transparent:      ++m_frameStats.transparentDrawCalls; break;
-        case RenderPass::Overlay:          ++m_frameStats.overlayDrawCalls; break;
-        }
-
-        m_frameStats.triangleCount += indexCount / 3;
-    }
-
-    //------------------------------------------------------------
-    //! インスタンスごとのデータを頂点シェーダーへバインドします。
-    //------------------------------------------------------------
-    void Renderer::BindInstanceData(ID3D11ShaderResourceView* srv) {
-        ID3D11DeviceContext* context = m_graphicsContext.GetContext();
-
-        constexpr UINT slot = static_cast<UINT>(SRVSlot::InstanceData);
-
-        // nullptrのときも「空を書き込む」のが肝。ここを素通りさせると、
-        // 直前のインスタンス描画が残したSRVを次のコマンドが読んでしまう
-        ID3D11ShaderResourceView* views[] = {srv};
-        context->VSSetShaderResources(slot, 1, views);
-    }
-
-    //------------------------------------------------------------
-    //! ゲーム定義の定数バッファをバインドします。
-    //------------------------------------------------------------
-    void Renderer::BindUserConstantBuffer(ID3D11Buffer* buffer, CBSlot slot) {
-        ID3D11DeviceContext* context = m_graphicsContext.GetContext();
-
-        //--------------------------------------------------------------
-        // ゲーム予約枠（User0 / User1）以外を指定されたら何もしない。
-        // エンジンが使う b0〜b9 を上書きされると描画が壊れるため、
-        // ここで弾いておく
-        //--------------------------------------------------------------
-        if(slot != CBSlot::User0 && slot != CBSlot::User1)
-            return;
-
-        // BindInstanceDataと同じ理由で、nullptrのときも明示的に空を書く
-        ID3D11Buffer* buffers[] = {buffer};
-
-        const UINT slotIndex = static_cast<UINT>(slot);
-        context->VSSetConstantBuffers(slotIndex, 1, buffers);
-        context->PSSetConstantBuffers(slotIndex, 1, buffers);
     }
 
     //------------------------------------------------------------
@@ -1232,158 +996,6 @@ namespace Tsukino::Renderer {
         m_lightsData.lightCount = copyCount;
         if(copyCount > 0) {
             std::memcpy(m_lightsData.lights, lights, sizeof(GPULight) * copyCount);
-        }
-    }
-
-    //------------------------------------------------------------
-    //! @brief 描画コマンドの実行
-    //------------------------------------------------------------
-    void Renderer::ExecuteDrawCommand(const DrawCommand& cmd) {
-        // デバイスコンテキストを取得
-        ID3D11DeviceContext* context = m_graphicsContext.GetContext();
-
-        //------------------------------------------------------------
-        // カスタム描画（フォント等）がある場合
-        //------------------------------------------------------------
-        if(cmd.customDraw) {
-            // スロットをクリア
-            ID3D11Buffer* nullBuffers[] = {nullptr, nullptr};
-            UINT          strides[]     = {0, 0};
-            UINT          offsets[]     = {0, 0};
-            context->IASetVertexBuffers(0, 2, nullBuffers, strides, offsets);
-
-            // カスタム描画実行
-            cmd.customDraw(context);
-
-            // SpriteBatchで汚されたステートをリセット
-            // これを入れないとSpriteの後の描画が真っ暗になったり崩れます
-            context->OMSetBlendState(m_resources.GetCommonStatesTK()->Opaque(), nullptr, 0xFFFFFFFF);
-            context->OMSetDepthStencilState(m_resources.GetCommonStatesTK()->DepthDefault(), 0);
-            context->RSSetState(m_resources.GetCommonStatesTK()->CullNone());
-
-            // s0をLinearWrapに戻す（SpriteBatch汚染対策）
-            ID3D11SamplerState* linearWrap = m_resources.GetSampler(Tsukino::GraphicsCommon::SamplerType::LinearWrap);
-            context->PSSetSamplers(static_cast<UINT>(SamplerSlot::Material), 1, &linearWrap);
-            return;
-        }
-
-        //------------------------------------------------------------
-        // 無効なコマンドは何もしない
-        //------------------------------------------------------------
-        if(!cmd.material || !cmd.mesh)
-            return;
-
-        //------------------------------------------------------
-        // Scene (b0) を毎回再バインド（ステート汚染対策）
-        //------------------------------------------------------
-        context->VSSetConstantBuffers(static_cast<UINT>(CBSlot::Scene), 1, m_frameConstants.GetSceneBufferAddress());
-
-        //------------------------------------------------------------
-        // 通常描画
-        //------------------------------------------------------------
-
-        //------------------------------------------------------
-        // Transform を定数バッファに書き込む
-        //------------------------------------------------------
-        // ------------------------------------------------------------
-        // モーションブラーが有効で、かつこのオブジェクトに前フレームの
-        // データがあるときだけ速度を出す。それ以外は motionFlags.x = 0 に
-        // して、VS側で prevClip = curClip（＝速度ゼロ）へ短絡させる。
-        // ------------------------------------------------------------
-        const bool writeVelocity = m_motionBlurEnabled && cmd.hasPrevFrame;
-
-        CBufferTransform cb{};
-        cb.world       = cmd.transform;
-        cb.prevWorld   = writeVelocity ? cmd.prevTransform : cmd.transform;
-        cb.motionFlags = hlslpp::float4(writeVelocity ? 1.0f : 0.0f, 0.0f, 0.0f, 0.0f);
-        context->UpdateSubresource(m_objectBuffer.Get(), 0, nullptr, &cb, 0, 0);
-        context->VSSetConstantBuffers(static_cast<UINT>(CBSlot::Transform), 1, m_objectBuffer.GetAddressOf());
-
-        // ------------------------------------------------------------
-        // ボーン行列 (b3) の適用
-        // ------------------------------------------------------------
-        if(cmd.boneMatrices && cmd.boneCount > 0) {
-            m_lastDrawBoneBytes = UploadBoneMatrices(m_skinningBuffer.Get(), cmd.boneMatrices, cmd.boneCount);
-            context->VSSetConstantBuffers(static_cast<UINT>(CBSlot::Skinning), 1, m_skinningBuffer.GetAddressOf());
-
-            // --------------------------------------------------------
-            // 前フレームのボーン行列 (b7) の適用
-            // スキン1体あたり8KBの転送になるため、速度を出さないときは
-            // 転送もバインドも行わない
-            // --------------------------------------------------------
-            if(writeVelocity && cmd.prevBoneMatrices) {
-                constexpr UINT prevSkinSlot = static_cast<UINT>(CBSlot::SkinningPrev);
-                m_lastDrawBoneBytes += UploadBoneMatrices(m_prevSkinningBuffer.Get(), cmd.prevBoneMatrices, cmd.boneCount);
-                context->VSSetConstantBuffers(prevSkinSlot, 1, m_prevSkinningBuffer.GetAddressOf());
-            }
-        } else {
-            m_lastDrawBoneBytes = 0;
-            // スキニングを使わないオブジェクトを描画するときは、
-            // スロット3を nullptr でクリアして、前のオブジェクトのボーン行列が残らないようにする
-            ID3D11Buffer* nullBuffer = nullptr;
-            context->VSSetConstantBuffers(static_cast<UINT>(CBSlot::Skinning), 1, &nullBuffer);
-        }
-
-        //------------------------------------------------------
-        // Material を適用
-        //------------------------------------------------------
-        m_graphicsContext.SetMaterial(*cmd.material);
-
-        if(cmd.materialData) {
-            context->UpdateSubresource(m_materialBuffer.Get(), 0, nullptr, cmd.materialData, 0, 0);
-            context->PSSetConstantBuffers(static_cast<UINT>(CBSlot::Material), 1, m_materialBuffer.GetAddressOf());
-        }
-
-        //------------------------------------------------------
-        // MeshBuffer をセット
-        //------------------------------------------------------
-        // どちらの分岐もスロット0と1をまとめて設定するので、
-        // ここで先にスロット0だけを設定しても上書きされるだけになる。
-        if(cmd.boneMatrices && cmd.boneCount > 0 && cmd.mesh->boneWeightBuffer.Get() != nullptr) {
-            // ボーンあり：スロット0と1をバインド
-            ID3D11Buffer* vbs[]     = {cmd.mesh->vertexBuffer.Get(), cmd.mesh->boneWeightBuffer.Get()};
-            UINT          strides[] = {cmd.mesh->stride, sizeof(Tsukino::GraphicsCommon::BoneWeight)};
-            UINT          offsets[] = {0, 0};
-            context->IASetVertexBuffers(0, 2, vbs, strides, offsets);
-        } else {
-            // ボーンなし：スロット0のみバインドし、スロット1は必ず明示的にクリア！
-            // クリアしないと直前に描いたスキンメッシュのボーンウェイトが残る
-            ID3D11Buffer* vbs[]     = {cmd.mesh->vertexBuffer.Get(), nullptr};
-            UINT          strides[] = {cmd.mesh->stride, 0};
-            UINT          offsets[] = {0, 0};
-            context->IASetVertexBuffers(0, 2, vbs, strides, offsets);
-        }
-
-        context->IASetIndexBuffer(cmd.mesh->indexBuffer.Get(), DXGI_FORMAT_R32_UINT, 0);
-        context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-
-        //------------------------------------------------------
-        // インスタンスごとのデータを頂点シェーダーへバインドする。
-        // 使わないコマンドが直前のSRVを引き継がないよう、無いときは明示的に外す
-        //------------------------------------------------------
-        BindInstanceData(cmd.instanceData);
-
-        // ゲームが自前のシェーダーで描くときのパラメータ。使わないコマンドでも
-        // 明示的に空を書き、直前のコマンドのバッファを引き継がせない
-        BindUserConstantBuffer(cmd.userConstantBuffer, cmd.userConstantSlot);
-
-        //------------------------------------------------------
-        // 描画
-        //------------------------------------------------------
-        if(cmd.instanceCount > 1) {
-            context->DrawIndexedInstanced(cmd.mesh->indexCount, cmd.instanceCount, 0, 0, 0);
-        } else {
-            // 既定値が1なので、既存の描画はすべてこちらを通り続ける
-            context->DrawIndexed(cmd.mesh->indexCount, 0, 0);
-        }
-
-        //------------------------------------------------------
-        // 統計の加算（負荷調査用）
-        //------------------------------------------------------
-        CountDrawCall(cmd.pass, cmd.mesh->indexCount * cmd.instanceCount);
-        if(cmd.boneMatrices && cmd.boneCount > 0) {
-            ++m_frameStats.skinnedDrawCalls;
-            m_frameStats.boneBytesUploaded += m_lastDrawBoneBytes;
         }
     }
 

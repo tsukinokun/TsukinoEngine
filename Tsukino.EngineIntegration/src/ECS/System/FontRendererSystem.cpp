@@ -265,7 +265,7 @@ namespace Tsukino::BuiltIn::ECS {
             // 今フレーム収集したものと一致する
             cmd.customDraw = [this, states, runBegin, runEnd](ID3D11DeviceContext* context) { DrawRange(context, states, runBegin, runEnd); };
 
-            ctx->renderer->PushDrawCommand(cmd);
+            ctx->renderer->GetDrawQueue().Push(cmd);
 
             runBegin = runEnd;
         }

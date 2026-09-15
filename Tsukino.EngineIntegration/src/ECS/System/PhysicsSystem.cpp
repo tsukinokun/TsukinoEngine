@@ -571,7 +571,7 @@ namespace Tsukino::BuiltIn::ECS {
 
                 Tsukino::Renderer::DrawCommand cmd{};
                 cmd.customDraw = [renderer = ctx->renderer](ID3D11DeviceContext* context) { renderer->FlushDebugDraw(); };
-                ctx->renderer->PushDrawCommand(cmd);
+                ctx->renderer->GetDrawQueue().Push(cmd);
             }
         }
 #endif    // TSUKINO_DEBUG_COLLISION_DRAW

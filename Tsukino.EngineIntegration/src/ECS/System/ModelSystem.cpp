@@ -230,7 +230,7 @@ namespace Tsukino::BuiltIn::ECS {
                     }
 
                     // 実体はキューが所有する（Render() の Clear() まで有効）
-                    Tsukino::Renderer::CBufferMaterial* pCbMat = &ctx->renderer->AllocMaterialData();
+                    Tsukino::Renderer::CBufferMaterial* pCbMat = &ctx->renderer->GetDrawQueue().AllocMaterialData();
                     *pCbMat                                    = cbMat;
 
                     // シェーダーアセットの取得
@@ -273,7 +273,7 @@ namespace Tsukino::BuiltIn::ECS {
                         if(!pipeline)
                             return nullptr;
 
-                        Tsukino::Renderer::Material& mat = ctx->renderer->AllocMaterial();
+                        Tsukino::Renderer::Material& mat = ctx->renderer->GetDrawQueue().AllocMaterial();
                         mat.SetPipeline(pipeline.get());
                         mat.SetSampler(ctx->renderer->GetResources().GetSampler(Tsukino::GraphicsCommon::SamplerType::AnisotropicWrap));
                         mat.SetTexture(Tsukino::Renderer::SRVSlot::Albedo, albedoSRV ? albedoSRV : whiteSRV);
@@ -308,7 +308,7 @@ namespace Tsukino::BuiltIn::ECS {
                             cmd.prevBoneMatrices = motionVec->prevBones;
                         cmd.pass = pass;
 
-                        ctx->renderer->PushDrawCommand(cmd);
+                        ctx->renderer->GetDrawQueue().Push(cmd);
                     };
 
                     if(isFading) {
