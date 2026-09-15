@@ -31,7 +31,7 @@ namespace Tsukino::EngineIntegration {
             if(!m_renderer)
                 return;
 
-            m_renderer->DrawDebugLine(MakeVertex(from, color), MakeVertex(to, color));
+            m_renderer->GetDebugDraw().DrawLine(MakeVertex(from, color), MakeVertex(to, color));
         }
 
         //! 三角形を1枚描画します。
@@ -46,7 +46,7 @@ namespace Tsukino::EngineIntegration {
             if(!m_renderer)
                 return;
 
-            m_renderer->DrawDebugTriangle(MakeVertex(v0, color), MakeVertex(v1, color), MakeVertex(v2, color));
+            m_renderer->GetDebugDraw().DrawTriangle(MakeVertex(v0, color), MakeVertex(v1, color), MakeVertex(v2, color));
         }
 
     private:

@@ -11,6 +11,7 @@
 #include <Tsukino/Renderer/DX11/PipelineFactory.hpp>
 #include <Tsukino/Renderer/RenderResources.hpp>
 #include <Tsukino/Renderer/FrameConstants.hpp>
+#include <Tsukino/Renderer/DebugDraw.hpp>
 #include <Tsukino/Renderer/DrawCommandQueue.hpp>
 #include <Tsukino/Renderer/DX11/Texture/DX11Texture2D.hpp>
 #include <Tsukino/Renderer/DX11/Texture/DX11TextureCube.hpp>
@@ -201,17 +202,13 @@ namespace Tsukino::Renderer {
         }
 
         //------------------------------------------------------------
-        // デバッグライン/三角形の追加
+        //! @brief  デバッグ用の線と三角形の描画を取得する
+        //! @return 線・三角形を積んでまとめて描く DebugDraw
         //------------------------------------------------------------
-        void DrawDebugLine(const Tsukino::GraphicsCommon::DebugVertex& v1, const Tsukino::GraphicsCommon::DebugVertex& v2);
-        void DrawDebugTriangle(const Tsukino::GraphicsCommon::DebugVertex& v1,
-                               const Tsukino::GraphicsCommon::DebugVertex& v2,
-                               const Tsukino::GraphicsCommon::DebugVertex& v3);
-
-        //------------------------------------------------------------
-        // 追加されたデバッグ線を実際に描画する
-        //------------------------------------------------------------
-        void FlushDebugDraw();
+        [[nodiscard]]
+        DebugDraw& GetDebugDraw() noexcept {
+            return m_debugDraw;
+        }
 
         //------------------------------------------------------------
         //! @brief  描画で共有する資源を取得する
@@ -376,13 +373,6 @@ namespace Tsukino::Renderer {
         [[nodiscard]] bool CreateConstantBuffer();
 
         //------------------------------------------------------------
-        // デバッグ用バッファとシェーダーの作成
-        //! @return true: 作成成功, false: 作成失敗
-        //------------------------------------------------------------
-        [[nodiscard]]
-        bool CreateDebugBuffers(const Tsukino::Asset::ShaderAsset* vs, const Tsukino::Asset::ShaderAsset* ps);
-
-        //------------------------------------------------------------
         //! @brief シャドウ用パイプラインの生成関数
         //! @param shadowStaticVS   [in] スタティックメッシュ用シャドウ頂点シェーダーアセット
         //! @param shadowSkeletalVS [in] スケルタルメッシュ用
@@ -543,6 +533,7 @@ namespace Tsukino::Renderer {
         FrameConstants  m_frameConstants;     // フレーム単位のシーン定数（b0）
 
         std::unique_ptr<DrawCommandExecutor> m_commandExecutor;    // 描画コマンドの実行（上の3つを借りるので、その後に宣言する）
+        DebugDraw                            m_debugDraw;          // デバッグ用の線と三角形（同上）
 
         // モーションブラー用リソース
         ComPtr<ID3D11Buffer>      m_motionBlurBuffer;      //!< モーションブラーパラメータ用バッファ (b8)
@@ -574,17 +565,6 @@ namespace Tsukino::Renderer {
         //! として弾かれるため（SpriteRenderSystem/FontRendererSystemと同じ理由）。
         //! メンバに持たせてclear()で使い回し、毎フレームの確保を避ける
         std::vector<u32> m_overlayOrder;
-
-        // デバッグ描画用の頂点群
-        std::vector<Tsukino::GraphicsCommon::DebugVertex> m_debugLineVertices;
-        std::vector<Tsukino::GraphicsCommon::DebugVertex> m_debugTriangleVertices;
-
-        // デバッグ描画用の動的バッファ等
-        ComPtr<ID3D11Buffer>       m_debugLineVB;
-        ComPtr<ID3D11Buffer>       m_debugTriangleVB;
-        ComPtr<ID3D11VertexShader> m_debugVS;
-        ComPtr<ID3D11PixelShader>  m_debugPS;
-        ComPtr<ID3D11InputLayout>  m_debugIL;
 
         // スカイ用リソース
         ComPtr<ID3D11VertexShader> m_skyVS;             //!< スカイ用頂点シェーダー
