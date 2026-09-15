@@ -49,6 +49,7 @@ namespace Tsukino::Renderer {
     class DrawCommandExecutor;    // 前方宣言（描画コマンドの実行。Tsukino.Renderer の内部専用）
     class FullscreenPass;         // 前方宣言（フルスクリーン三角形の描画。同上）
     class TonemapPass;            // 前方宣言（トーンマップパス。同上）
+    class ShadowPass;             // 前方宣言（シャドウマップパス。同上）
 
     //------------------------------------------------------------
     //! @struct RendererShaderSet
@@ -266,13 +267,6 @@ namespace Tsukino::Renderer {
         void SetDirectionalLight(const hlslpp::float3& direction, const hlslpp::float3& color, float intensity, const hlslpp::float3& focusPoint);
 
         //------------------------------------------------------------
-        //! @brief シャドウパイプラインのセット
-        //! @param staticPipeline   [in] スタティックメッシュ用シャド
-        //! @param skeletalPipeline [in] スケルタルメッシュ用シャドウパイプライン
-        //------------------------------------------------------------
-        void SetShadowPipeline(std::shared_ptr<PipelineState> staticPipeline, std::shared_ptr<PipelineState> skeletalPipeline);
-
-        //------------------------------------------------------------
         //! @brief 大気散乱パラメータのセット
         //! @param sky [in] 大気散乱定数バッファデータ
         //------------------------------------------------------------
@@ -373,25 +367,6 @@ namespace Tsukino::Renderer {
         //! @return true: 定数バッファの作成成功, false: 定数バッファの作成失敗
         //------------------------------------------------------------
         [[nodiscard]] bool CreateConstantBuffer();
-
-        //------------------------------------------------------------
-        //! @brief シャドウ用パイプラインの生成関数
-        //! @param shadowStaticVS   [in] スタティックメッシュ用シャドウ頂点シェーダーアセット
-        //! @param shadowSkeletalVS [in] スケルタルメッシュ用
-        //! @param shadowPS         [in] シャドウピクセルシェーダーアセット
-        //! @return true: 作成成功, false: 作成失敗
-        //------------------------------------------------------------
-        [[nodiscard]]
-        bool CreateShadowPipelines(const Tsukino::Asset::ShaderAsset* shadowStaticVS,
-                                   const Tsukino::Asset::ShaderAsset* shadowSkeletalVS,
-                                   const Tsukino::Asset::ShaderAsset* shadowPS);
-
-        //------------------------------------------------------------
-        //! @brief シャドウマップ用リソースの作成
-        //! @return true: 作成成功, false: 作成失敗
-        //------------------------------------------------------------
-        [[nodiscard]]
-        bool CreateShadowMap();
 
         //------------------------------------------------------------
         //! @brief スカイパスの実行
@@ -524,6 +499,7 @@ namespace Tsukino::Renderer {
         DebugDraw                            m_debugDraw;          // デバッグ用の線と三角形（同上）
         std::unique_ptr<FullscreenPass>      m_fullscreenPass;     // フルスクリーン三角形の描画（ライティング・フォグ・モーションブラー・トーンマップ・IBLで共用）
         std::unique_ptr<TonemapPass>         m_tonemapPass;        // トーンマップパス（m_fullscreenPass を借りるので、その後に宣言する）
+        std::unique_ptr<ShadowPass>          m_shadowPass;         // シャドウマップパス（m_commandExecutor を借りる）
 
         // モーションブラー用リソース
         ComPtr<ID3D11Buffer>      m_motionBlurBuffer;      //!< モーションブラーパラメータ用バッファ (b8)
@@ -531,17 +507,6 @@ namespace Tsukino::Renderer {
         CBufferMotionBlur         m_motionBlurData{};      //!< CPU側のモーションブラーパラメータ
         bool                      m_hasMotionBlur     = false;    //!< PSの構築が済んでいるか
         bool                      m_motionBlurEnabled = false;    //!< 今フレームで有効か（MotionBlurSystemが毎フレーム設定）
-
-        // シャドウマップ用リソース
-        static constexpr uint32_t        SHADOW_MAP_SIZE = 2048;
-        ComPtr<ID3D11Texture2D>          m_shadowMapTex;     //!< シャドウマップテクスチャ
-        ComPtr<ID3D11DepthStencilView>   m_shadowMapDSV;     //!< シャドウマップDSV（深度書き込み用）
-        ComPtr<ID3D11ShaderResourceView> m_shadowMapSRV;     //!< シャドウマップSRV（PSでのサンプリング用）
-        ComPtr<ID3D11SamplerState>       m_shadowSampler;    //!< PCF用比較サンプラー
-
-        // シャドウ用パイプラインステート
-        std::shared_ptr<PipelineState> m_shadowStaticPipeline;      //!< スタティック用シャドウパイプライン
-        std::shared_ptr<PipelineState> m_shadowSkeletalPipeline;    //!< スケルタル用シャドウパイプライン
 
         std::array<float, 4> m_clearColor = {0.5f, 0.5f, 0.5f, 1.0f};    // 描画領域のクリアカラー (デフォルトはグレー)
 

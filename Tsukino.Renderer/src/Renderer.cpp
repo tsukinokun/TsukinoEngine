@@ -15,6 +15,7 @@
 #include "DrawCommandExecutor.hpp"
 #include "FullscreenPass.hpp"
 #include "TonemapPass.hpp"
+#include "ShadowPass.hpp"
 
 #include <Tsukino/Engine/Asset/Shader/ShaderAsset.hpp>
 
@@ -69,7 +70,7 @@ namespace Tsukino::Renderer {
         //------------------------------------------------------------
         // フレーム単位のシーン定数（b0）の作成
         //------------------------------------------------------------
-        if(!m_frameConstants.Initialize(m_graphicsContext, SHADOW_MAP_SIZE))
+        if(!m_frameConstants.Initialize(m_graphicsContext, ShadowPass::kMapSize))
             return false;
 
         //------------------------------------------------------------
@@ -80,9 +81,11 @@ namespace Tsukino::Renderer {
             return false;
 
         //------------------------------------------------------------
-        // シャドウパイプラインの生成
-        // ------------------------------------------------------------
-        if(!CreateShadowPipelines(shaders.shadowStaticVS, shaders.shadowSkeletalVS, shaders.shadowPS)) {
+        // シャドウマップパス（影用パイプラインとシャドウマップ）の作成
+        //------------------------------------------------------------
+        m_shadowPass = std::make_unique<ShadowPass>();
+        if(!m_shadowPass->Initialize(m_graphicsContext, m_resources, m_frameConstants, *m_commandExecutor, shaders.shadowStaticVS,
+                                     shaders.shadowSkeletalVS, shaders.shadowPS)) {
             Tsukino::Core::Log::Error("Failed to create shadow pipelines.");
             return false;
         }
@@ -113,12 +116,6 @@ namespace Tsukino::Renderer {
         if(!m_tonemapPass->Initialize(m_graphicsContext, m_resources, *m_fullscreenPass, shaders.tonemapPS)) {
             Tsukino::Core::Log::Error("Renderer: Tonemapping is disabled because its pixel shader could not be created.");
         }
-
-        //------------------------------------------------------------
-        // シャドウマップ用リソースの作成
-        //------------------------------------------------------------
-        if(!CreateShadowMap())
-            return false;
 
         //------------------------------------------------------------
         // ディファードLightingパイプラインの作成
@@ -245,37 +242,6 @@ namespace Tsukino::Renderer {
     }
 
     //------------------------------------------------------------
-    //! @brief シャドウマップ用パイプラインの作成
-    //------------------------------------------------------------
-    bool Renderer::CreateShadowPipelines(const Tsukino::Asset::ShaderAsset* shadowStaticVS,
-                                         const Tsukino::Asset::ShaderAsset* shadowSkeletalVS,
-                                         const Tsukino::Asset::ShaderAsset* shadowPS) {
-        auto* factory = m_resources.GetPipelineFactory();
-        if(!factory)
-            return false;
-
-        // 静的メッシュ用シャドウパイプライン
-        if(shadowStaticVS && shadowPS) {
-            m_shadowStaticPipeline = factory->Create(*shadowStaticVS, *shadowPS, Tsukino::GraphicsCommon::VertexFormat::PositionNormalUV, DepthMode::ReadWrite);
-            if(!m_shadowStaticPipeline) {
-                Tsukino::Core::Log::Error("Renderer: Shadow Static Pipeline generation failed.");
-                return false;
-            }
-        }
-
-        // スキニングメッシュ用シャドウパイプライン
-        if(shadowSkeletalVS && shadowPS) {
-            m_shadowSkeletalPipeline = factory->Create(*shadowSkeletalVS, *shadowPS, Tsukino::GraphicsCommon::VertexFormat::Skinned, DepthMode::ReadWrite);
-            if(!m_shadowSkeletalPipeline) {
-                Tsukino::Core::Log::Error("Renderer: Shadow Skeletal Pipeline generation failed.");
-                return false;
-            }
-        }
-
-        return true;
-    }
-
-    //------------------------------------------------------------
     //! @brief 描画処理
     //------------------------------------------------------------
     void Renderer::Render(IPostWorldPass* postWorldPass) {
@@ -294,37 +260,7 @@ namespace Tsukino::Renderer {
         //------------------------------------------------------------
         // Shadow パス（ディファードGBufferの対象＝不透明3Dモデルのみ影を落とす）
         //------------------------------------------------------------
-        if(m_shadowStaticPipeline || m_shadowSkeletalPipeline) {
-            ID3D11DeviceContext* context = m_graphicsContext.GetContext();
-
-            // シャドウマップをクリア
-            context->ClearDepthStencilView(m_shadowMapDSV.Get(), D3D11_CLEAR_DEPTH, 0.0f, 0);
-
-            // カラーRTをnullにしてDSVだけセット
-            ID3D11RenderTargetView* nullRTV = nullptr;
-            context->OMSetRenderTargets(1, &nullRTV, m_shadowMapDSV.Get());
-
-            // シャドウマップ解像度でビューポートをセット
-            D3D11_VIEWPORT vp{};
-            vp.Width    = static_cast<float>(SHADOW_MAP_SIZE);
-            vp.Height   = static_cast<float>(SHADOW_MAP_SIZE);
-            vp.MaxDepth = 1.0f;
-            context->RSSetViewports(1, &vp);
-
-            m_frameConstants.UploadWorld();
-
-            for(const auto& cmd : commands) {
-                if(cmd.pass != RenderPass::GBuffer)
-                    continue;
-
-                // 頂点シェーダーが独自に頂点を組み立てるオブジェクトは、
-                // 固定のシャドウ用シェーダーでは形を再現できないので外す
-                if(!cmd.castsShadow)
-                    continue;
-
-                m_commandExecutor->ExecuteShadow(cmd, m_shadowStaticPipeline.get(), m_shadowSkeletalPipeline.get(), m_frameStats);
-            }
-
+        if(m_shadowPass->Execute(commands, m_frameStats)) {
             // RTとビューポートをBeginFrame時の状態に戻す
             m_graphicsContext.BeginFrame(m_clearColor[0], m_clearColor[1], m_clearColor[2], m_clearColor[3]);
         }
@@ -399,10 +335,7 @@ namespace Tsukino::Renderer {
         {
             ID3D11DeviceContext* context = m_graphicsContext.GetContext();
             // シャドウマップをt8・s8にバインド（フォワードでライティングするシェーダー向け）
-            constexpr UINT shadowSRVSlot     = static_cast<UINT>(SRVSlot::ShadowMap);
-            constexpr UINT shadowSamplerSlot = static_cast<UINT>(SamplerSlot::ShadowMap);
-            context->PSSetShaderResources(shadowSRVSlot, 1, m_shadowMapSRV.GetAddressOf());
-            context->PSSetSamplers(shadowSamplerSlot, 1, m_shadowSampler.GetAddressOf());
+            m_shadowPass->BindForSampling(context);
 
             // IBL (b10, t17〜t19, s10)：Model.ps.hlslのEvaluateIBL向け。
             // World/TransparentDepth/Transparentの3パスを通して張りっぱなしにする
@@ -597,94 +530,6 @@ namespace Tsukino::Renderer {
     }
 
     //------------------------------------------------------------
-    //! @brief シャドウマップ用リソースの作成
-    //------------------------------------------------------------
-    bool Renderer::CreateShadowMap() {
-        ID3D11Device* device = m_graphicsContext.GetDevice();
-
-        //------------------------------------------------------------
-        // シャドウマップテクスチャの作成
-        // R32_TYPELESS : DSV(D32_FLOAT)とSRV(R32_FLOAT)で共有するため
-        //------------------------------------------------------------
-        D3D11_TEXTURE2D_DESC texDesc{};
-        texDesc.Width            = SHADOW_MAP_SIZE;
-        texDesc.Height           = SHADOW_MAP_SIZE;
-        texDesc.MipLevels        = 1;
-        texDesc.ArraySize        = 1;
-        texDesc.Format           = DXGI_FORMAT_R32_TYPELESS;
-        texDesc.SampleDesc.Count = 1;
-        texDesc.Usage            = D3D11_USAGE_DEFAULT;
-        texDesc.BindFlags        = D3D11_BIND_DEPTH_STENCIL | D3D11_BIND_SHADER_RESOURCE;
-
-        HRESULT hr = device->CreateTexture2D(&texDesc, nullptr, m_shadowMapTex.GetAddressOf());
-        if(FAILED(hr)) {
-            Tsukino::Core::Log::Error("Failed to create shadow map texture.");
-            return false;
-        }
-
-        //------------------------------------------------------------
-        // DSVの作成（深度書き込み用）
-        //------------------------------------------------------------
-        D3D11_DEPTH_STENCIL_VIEW_DESC dsvDesc{};
-        dsvDesc.Format        = DXGI_FORMAT_D32_FLOAT;
-        dsvDesc.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2D;
-
-        hr = device->CreateDepthStencilView(m_shadowMapTex.Get(), &dsvDesc, m_shadowMapDSV.GetAddressOf());
-        if(FAILED(hr)) {
-            Tsukino::Core::Log::Error("Failed to create shadow map DSV.");
-            return false;
-        }
-
-        //------------------------------------------------------------
-        // SRVの作成（PSでのサンプリング用）
-        //------------------------------------------------------------
-        D3D11_SHADER_RESOURCE_VIEW_DESC srvDesc{};
-        srvDesc.Format                    = DXGI_FORMAT_R32_FLOAT;
-        srvDesc.ViewDimension             = D3D11_SRV_DIMENSION_TEXTURE2D;
-        srvDesc.Texture2D.MipLevels       = 1;
-        srvDesc.Texture2D.MostDetailedMip = 0;
-
-        hr = device->CreateShaderResourceView(m_shadowMapTex.Get(), &srvDesc, m_shadowMapSRV.GetAddressOf());
-        if(FAILED(hr)) {
-            Tsukino::Core::Log::Error("Failed to create shadow map SRV.");
-            return false;
-        }
-
-        //------------------------------------------------------------
-        // PCF用比較サンプラーの作成
-        // SampleCmpLevelZero で使用する
-        //------------------------------------------------------------
-        D3D11_SAMPLER_DESC samplerDesc{};
-        samplerDesc.Filter         = D3D11_FILTER_COMPARISON_MIN_MAG_MIP_LINEAR;
-        samplerDesc.AddressU       = D3D11_TEXTURE_ADDRESS_BORDER;
-        samplerDesc.AddressV       = D3D11_TEXTURE_ADDRESS_BORDER;
-        samplerDesc.AddressW       = D3D11_TEXTURE_ADDRESS_BORDER;
-        samplerDesc.BorderColor[0] = 1.0f;    // 範囲外は「影なし」にする
-        samplerDesc.BorderColor[1] = 1.0f;
-        samplerDesc.BorderColor[2] = 1.0f;
-        samplerDesc.BorderColor[3] = 1.0f;
-        samplerDesc.ComparisonFunc = D3D11_COMPARISON_GREATER_EQUAL;
-        samplerDesc.MinLOD         = 0;
-        samplerDesc.MaxLOD         = D3D11_FLOAT32_MAX;
-
-        hr = device->CreateSamplerState(&samplerDesc, m_shadowSampler.GetAddressOf());
-        if(FAILED(hr)) {
-            Tsukino::Core::Log::Error("Failed to create shadow sampler.");
-            return false;
-        }
-
-        return true;
-    }
-
-    //------------------------------------------------------------
-    //! @brief シャドウパイプラインのセット
-    //------------------------------------------------------------
-    void Renderer::SetShadowPipeline(std::shared_ptr<PipelineState> staticPipeline, std::shared_ptr<PipelineState> skeletalPipeline) {
-        m_shadowStaticPipeline   = staticPipeline;
-        m_shadowSkeletalPipeline = skeletalPipeline;
-    }
-
-    //------------------------------------------------------------
     //! @brief 大気散乱パラメータのセット
     //------------------------------------------------------------
     void Renderer::SetSkyParameters(const CBufferSky& sky) {
@@ -861,42 +706,10 @@ namespace Tsukino::Renderer {
         hlslpp::float3 normalizedDir = hlslpp::normalize(direction);
 
         //------------------------------------------------------------
-        // lightViewProj の計算
-        // ディレクショナルライトは平行投影を使う
-        //------------------------------------------------------------
-
-        // シャドウの投影範囲は呼び出し側から渡されたfocusPoint（通常はメインカメラの
-        // 注視点）を中心にする（ワールド原点固定だと、カメラが原点から離れる
-        // プレイヤー追従型のシーンで影が一切映らなくなる）。
-        // カメラ位置そのものを中心にしないのは、TPSカメラのように注視点から
-        // 離れた位置にカメラを置く構成だと、画面に映る注視点付近がシャドウ範囲の
-        // 端に寄ってしまい、キャラクターのすぐ近くで影が途切れて見えるため
-        hlslpp::float3 target   = focusPoint;
-        // ライトの位置はターゲットから十分離れた場所に置く
-        hlslpp::float3 lightPos = target - normalizedDir * 500.0f;
-        hlslpp::float3 up       = hlslpp::float3(0.0f, 1.0f, 0.0f);
-
-        // ライト方向が真上/真下に近いときupベクトルが平行になるので回避
-        float dotUp = std::abs(hlslpp::dot(normalizedDir, up));
-        if(dotUp > 0.99f) {
-            up = hlslpp::float3(0.0f, 0.0f, 1.0f);
-        }
-
-        // LookAt でライトのView行列を作成
-        Tsukino::Core::Math::matrix lightView = Tsukino::Core::Math::matrix::lookAtLH(lightPos, target, up);
-        // 平行投影でライトのProj行列を作成
-        Tsukino::Core::Math::matrix lightProj = Tsukino::Core::Math::matrix::orthographicOffCenterLH(-500.0f,    // left
-                                                                                                     500.0f,     // right
-                                                                                                     -500.0f,    // bottom
-                                                                                                     500.0f,     // top
-                                                                                                     2000.0f,    // far
-                                                                                                     1.0f        // near
-        );
-
-        //------------------------------------------------------------
+        // ライト空間の ViewProjection（シャドウマップの投影）を求めて、
         // ワールドのシーン定数へ書き込む
         //------------------------------------------------------------
-        m_frameConstants.SetDirectionalLight(hlslpp::mul(lightView, lightProj),
+        m_frameConstants.SetDirectionalLight(ShadowPass::ComputeLightViewProj(normalizedDir, focusPoint),
                                              hlslpp::float4(normalizedDir.x, normalizedDir.y, normalizedDir.z, 0.0f),
                                              hlslpp::float4(color.x, color.y, color.z, intensity));
     }
@@ -1398,10 +1211,8 @@ namespace Tsukino::Renderer {
         //----------------------------------------------------------
         // シャドウマップ (t8/s8) をバインド
         //----------------------------------------------------------
-        constexpr UINT shadowSRVSlot     = static_cast<UINT>(SRVSlot::ShadowMap);
-        constexpr UINT shadowSamplerSlot = static_cast<UINT>(SamplerSlot::ShadowMap);
-        context->PSSetShaderResources(shadowSRVSlot, 1, m_shadowMapSRV.GetAddressOf());
-        context->PSSetSamplers(shadowSamplerSlot, 1, m_shadowSampler.GetAddressOf());
+        constexpr UINT shadowSRVSlot = static_cast<UINT>(SRVSlot::ShadowMap);
+        m_shadowPass->BindForSampling(context);
 
         //----------------------------------------------------------
         // G-Bufferサンプラー (s9)：フィルタなしのポイントサンプリング
