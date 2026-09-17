@@ -9,6 +9,7 @@
 
 #include <Audio.h>
 #include <unordered_map>
+#include <vector>
 #include <algorithm>
 
 #include <locale>
@@ -34,8 +35,21 @@ namespace Tsukino::Audio {
     //--------------------------------------------------------------
     class AudioContext {
     public:
+        //--------------------------------------------------------------
+        //! @struct PlayingSound
+        //! @brief  再生中（または一時停止中）の音1つぶん。
+        //!         どのアセットの音かを覚えておき、Stop / IsPlaying で引き当てる
+        //--------------------------------------------------------------
+        struct PlayingSound {
+            std::string                                   waveBankPath;    //!< 属しているWaveBank（AudioAsset::waveBankPath）
+            u32                                           waveIndex = 0;   //!< WaveBank内のインデックス（AudioAsset::waveIndex）
+            std::unique_ptr<DirectX::SoundEffectInstance> instance;        //!< 再生を止める・状態を問うためのハンドル
+        };
+
         std::unique_ptr<DirectX::AudioEngine> engine;
         std::unordered_map<std::string, std::unique_ptr<DirectX::WaveBank>> waveBanks;
+        //! 再生中のインスタンス。WaveBankの音を参照しているので、engine・waveBanksより後に宣言して先に破棄させる
+        std::vector<PlayingSound> playing;
 
         //--------------------------------------------------------------
         //! @brief 初期化
@@ -63,6 +77,12 @@ namespace Tsukino::Audio {
                     Tsukino::Core::Log::Error("AudioEngine critical error detected.");
                 }
             }
+
+            // 鳴り終わった音を一覧から外す。撃ちっぱなしの効果音（ヒット音など）が
+            // 溜まり続けてボイスを食い潰さないようにする
+            std::erase_if(playing, [](const PlayingSound& sound) {
+                return !sound.instance || sound.instance->GetState() == DirectX::STOPPED;
+            });
         }
 
         //--------------------------------------------------------------
@@ -130,40 +150,77 @@ namespace Tsukino::Audio {
     //--------------------------------------------------------------
     //! @brief 音声を再生する
     //--------------------------------------------------------------
-    void AudioManager::Play(const Tsukino::Asset::AudioAsset& audioAsset, bool /*isLoop*/, float volume) {
+    void AudioManager::Play(const Tsukino::Asset::AudioAsset& audioAsset, bool isLoop, float volume) {
         if (!m_audioContext || !m_audioContext->engine) return;
 
         DirectX::WaveBank* waveBank = m_audioContext->GetOrLoadWaveBank(audioAsset.waveBankPath);
-        if (waveBank) {
-            // DirectXTK の WaveBank::Play() は内部の AudioEngine を用いて再生を開始します
-            waveBank->Play(audioAsset.waveIndex, volume * m_masterVolume, 0.0f, 0.0f);
+        if (!waveBank) return;
+
+        // 撃ちっぱなしの WaveBank::Play() では後から止められないため、
+        // 1回の再生ごとにインスタンスを作って手元に持つ
+        std::unique_ptr<DirectX::SoundEffectInstance> instance;
+        try {
+            instance = waveBank->CreateInstance(audioAsset.waveIndex);
+        } catch (const std::exception& e) {
+            Tsukino::Core::Log::Error(std::string("AudioManager::Play - Failed to create sound instance: ") + e.what());
+            return;
         }
+
+        if (!instance) {
+            // ストリーミング用のWaveBankなど、インスタンスを作れない音
+            Tsukino::Core::Log::Error("AudioManager::Play - Sound instance is not available for: " + audioAsset.waveBankPath);
+            return;
+        }
+
+        // マスター音量は SetMasterVolume が AudioEngine 側へ設定済みなので、ここでは掛けない
+        instance->SetVolume(std::clamp(volume, 0.0f, 1.0f));
+        instance->Play(isLoop);
+
+        m_audioContext->playing.push_back({audioAsset.waveBankPath, audioAsset.waveIndex, std::move(instance)});
     }
 
     //--------------------------------------------------------------
     //! @brief 特定の音声を停止する
     //--------------------------------------------------------------
-    void AudioManager::Stop(const Tsukino::Asset::AudioAsset& /*audioAsset*/) {
-        // DirectXTK の単発再生 (SoundEffect::Play) は個別に停止できません。
-        Tsukino::Core::Log::Warn("AudioManager::Stop - Specific stopping requires SoundEffectInstance which is unsupported by basic WaveBank::Play.");
+    void AudioManager::Stop(const Tsukino::Asset::AudioAsset& audioAsset) {
+        if (!m_audioContext) return;
+
+        // 同じ音を重ねて鳴らしている場合は、そのすべてを止める
+        std::erase_if(m_audioContext->playing, [&](AudioContext::PlayingSound& sound) {
+            if (sound.waveIndex != audioAsset.waveIndex || sound.waveBankPath != audioAsset.waveBankPath) {
+                return false;
+            }
+            if (sound.instance) {
+                sound.instance->Stop(true);    // 余韻を待たずに即座に止める
+            }
+            return true;
+        });
     }
 
     //--------------------------------------------------------------
     //! @brief 全ての音声を停止する
     //--------------------------------------------------------------
     void AudioManager::StopAll() {
-        if (m_audioContext && m_audioContext->engine) {
-            // 一時停止して再開扱いにするか、保持しているInstanceを破棄するアプローチを取ります
-            m_audioContext->engine->Suspend();
-            m_audioContext->engine->Resume();
+        if (!m_audioContext) return;
+
+        for (AudioContext::PlayingSound& sound : m_audioContext->playing) {
+            if (sound.instance) {
+                sound.instance->Stop(true);
+            }
         }
+        m_audioContext->playing.clear();
     }
 
     //--------------------------------------------------------------
     //! @brief 特定の音声が再生中か確認する
     //--------------------------------------------------------------
-    bool AudioManager::IsPlaying(const Tsukino::Asset::AudioAsset& /*audioAsset*/) const {
-        return false; // Instance管理拡張後に実装
+    bool AudioManager::IsPlaying(const Tsukino::Asset::AudioAsset& audioAsset) const {
+        if (!m_audioContext) return false;
+
+        return std::any_of(m_audioContext->playing.begin(), m_audioContext->playing.end(), [&](const AudioContext::PlayingSound& sound) {
+            return sound.waveIndex == audioAsset.waveIndex && sound.waveBankPath == audioAsset.waveBankPath && sound.instance
+                   && sound.instance->GetState() == DirectX::PLAYING;
+        });
     }
 
     //--------------------------------------------------------------

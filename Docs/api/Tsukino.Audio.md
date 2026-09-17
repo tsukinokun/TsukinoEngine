@@ -36,6 +36,8 @@
 メンバ名のみ。詳細が要るときはヘッダを開く。
 
 - **Tsukino::Audio::AudioContext** — `Tsukino.Audio/src/Audio/AudioManager.cpp`
-  - engine, waveBanks, Initialize(), Update(), GetOrLoadWaveBank()
+  - engine, waveBanks, playing, Initialize(), Update(), GetOrLoadWaveBank()
+- **Tsukino::Audio::AudioContext::PlayingSound** — `Tsukino.Audio/src/Audio/AudioManager.cpp`
+  - waveBankPath, waveIndex, instance
 - **Tsukino::Audio::AudioManager** — `Tsukino.Audio/include/Tsukino/Audio/AudioManager.hpp`
   - AudioManager(), ~AudioManager(), AudioManager(), operator=(), AudioManager(), operator=(), Initialize(), Update(), Play(), Stop(), StopAll(), IsPlaying(), SetMasterVolume(), GetMasterVolume()

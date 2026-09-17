@@ -59,14 +59,16 @@ namespace Tsukino::Audio {
         //--------------------------------------------------------------
         // 音声を再生する
         //! @param audioAsset       [in] 再生対象のオーディオアセット（AssetManagerでロード済みのもの）
-        //! @param isLoop           [in] ループ再生するかどうか
-        //! @param volume           [in] 再生音量（0.0f ~ 1.0f）
+        //! @param isLoop           [in] ループ再生するかどうか。trueならStopを呼ぶまで鳴り続ける
+        //! @param volume           [in] 再生音量（0.0f ~ 1.0f）。マスター音量はこれとは別に全体へ掛かる
+        //! @note  呼ぶたびに新しく鳴らす（同じ音を重ねて鳴らせる）。鳴り終わった音はUpdateが片付ける
         //--------------------------------------------------------------
         void Play(const Tsukino::Asset::AudioAsset& audioAsset, bool isLoop = false, float volume = 1.0f);
 
         //--------------------------------------------------------------
         // 特定の音声を停止する
         //! @param audioAsset [in] 停止対象のオーディオアセット
+        //! @note  そのアセットを重ねて鳴らしている場合は、すべてを即座に止める
         //--------------------------------------------------------------
         void Stop(const Tsukino::Asset::AudioAsset& audioAsset);
 

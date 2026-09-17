@@ -34,6 +34,20 @@ carve-out for `Tsukino.Renderer` described under **API stability** in the README
   `Initialize`, `Render`, `Resize`, `SetClearColor`, `GetDevice`, `GetContext`,
   `GetFrameStats` and the VSync accessors are unchanged.
 
+### Fixed
+
+- **`AudioManager` can stop sounds.** Playback used fire-and-forget `WaveBank::Play`, so
+  `Stop` only logged a warning, `IsPlaying` always returned `false`, and the `isLoop`
+  argument was ignored. Each `Play` now creates a `SoundEffectInstance` that the manager
+  keeps until it finishes, which makes all three work:
+  - `Stop(asset)` stops every playing instance of that asset immediately.
+  - `IsPlaying(asset)` reports whether any instance of it is playing.
+  - `Play(asset, true)` loops until stopped. `AudioComponent::loop` therefore loops too.
+  - `StopAll` stops the tracked instances instead of suspending and resuming the engine.
+- `AudioManager::Play` applied the master volume twice (once to the sound, once to the
+  audio engine). It is now applied only by the engine, so sounds are louder than before
+  whenever the master volume is below 1.
+
 ### Removed
 
 - `Renderer::UpdateSceneBuffer`, `SetShadowPipeline` and `SetMotionBlurPipeline`. They

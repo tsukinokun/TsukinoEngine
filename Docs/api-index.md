@@ -11,6 +11,7 @@
 ## Tsukino.Audio — [`api/Tsukino.Audio.md`](api/Tsukino.Audio.md)
 
 - `Tsukino::Audio::AudioContext` — `Tsukino.Audio/src/Audio/AudioManager.cpp`
+- `Tsukino::Audio::AudioContext::PlayingSound` — `Tsukino.Audio/src/Audio/AudioManager.cpp`
 - `Tsukino::Audio::AudioManager` — `Tsukino.Audio/include/Tsukino/Audio/AudioManager.hpp`
 
 ## Tsukino.BuiltIn — [`api/Tsukino.BuiltIn.md`](api/Tsukino.BuiltIn.md)
