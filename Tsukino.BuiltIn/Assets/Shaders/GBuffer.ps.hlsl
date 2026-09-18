@@ -109,7 +109,10 @@ PSOutput PSMain(PSInput input)
     //----------------------------------------------------------
     float3 V     = normalize(cameraPos.xyz - input.worldPos);
     float  NdotV = saturate(dot(N, V)) + 1e-5f;
-    float  rim   = pow(saturate(1.0f - NdotV), rimParams.x);
+    // pow(0, 0) は exp2(0 * log2(0)) = NaN になる。リム無効（鋭さ0）のモデルでも
+    // 真正面を向いた画素で 1 - NdotV が 0 になるため、そのまま pow に渡すと
+    // 発光がNaNになり、トーンマップで黒い点として出る
+    float  rim   = rimParams.x > 0.0f ? pow(max(1.0f - NdotV, 1e-6f), rimParams.x) : 0.0f;
 
     float3 emissiveSample = emissiveTexture.Sample(albedoSampler, input.uv).rgb;
     float3 emissiveTotal  = emissive * emissiveSample + rimColor.rgb * rim * rimColor.w + rimParams.y;

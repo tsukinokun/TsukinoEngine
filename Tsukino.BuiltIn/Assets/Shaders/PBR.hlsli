@@ -187,7 +187,11 @@ float3 ApplyNormalMap(float3 N, float3 worldPos, float2 uv, float3 tangentNormal
     // maxLenSq が 0 のときは invmax も 0 になり、TBN の1行目・2行目が 0 になる。
     // その結果は ±N（＝頂点法線そのまま）で、縮退面での挙動として正しい
     float3x3 TBN = float3x3(T * invmax, B * invmax, N);
-    return normalize(mul(tangentNormal, TBN));
+    float3   n   = mul(tangentNormal, TBN);
+
+    // 打ち消し合って長さ0になったら normalize が NaN を返すので、頂点法線へ逃がす
+    float lenSq = dot(n, n);
+    return (lenSq > 1e-12f) ? n * rsqrt(lenSq) : N;
 }
 
 //--------------------------------------------------------------

@@ -134,8 +134,10 @@ float4 PSMain(PSInput input) : SV_TARGET
     //   白発光: モデル全体を一律に持ち上げる。HDRターゲットへ書くため
     //           1.0を超えた分はトーンマップで白へ寄っていく
     //----------------------------------------------------------
+    // pow(0, 0) は exp2(0 * log2(0)) = NaN になる。リム無効（鋭さ0）のモデルでも
+    // 真正面を向いた画素で 1 - NdotV が 0 になるため、そのまま pow に渡すと黒い点が出る
     float NdotV = saturate(dot(N, V)) + 1e-5f;
-    float rim = pow(saturate(1.0f - NdotV), rimParams.x);
+    float rim   = rimParams.x > 0.0f ? pow(max(1.0f - NdotV, 1e-6f), rimParams.x) : 0.0f;
     finalColor += rimColor.rgb * rim * rimColor.w;
     finalColor += rimParams.y;
 
