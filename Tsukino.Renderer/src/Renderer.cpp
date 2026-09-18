@@ -66,7 +66,7 @@ namespace Tsukino::Renderer {
         //------------------------------------------------------------
         // フレーム単位のシーン定数（b0）の作成
         //------------------------------------------------------------
-        if(!m_frameConstants.Initialize(m_graphicsContext, ShadowPass::kMapSize))
+        if(!m_frameConstants.Initialize(m_graphicsContext, ShadowPass::kMapSize, ShadowPass::kOrthoHalfExtent * 2.0f, ShadowPass::kDepthRange))
             return false;
 
         //------------------------------------------------------------

@@ -33,9 +33,11 @@ namespace Tsukino::Renderer {
         //! 定数バッファを作成します。
         //! @param  [in] graphicsContext デバイスと画面サイズの取得元（Renderer がこのクラスより長生きさせる）
         //! @param  [in] shadowMapSize   シャドウマップの一辺（b0 の shadowParams へ配る）
+        //! @param  [in] shadowWorldSize シャドウマップ1枚が覆うワールドの幅（1テクセルの幅を求めてshadowParams.zへ配る）
+        //! @param  [in] shadowDepthRange シャドウの平行投影の奥行き（ワールド距離。逆数をshadowParams.wへ配る）
         //! @return true: 作成成功, false: 作成失敗
         [[nodiscard]]
-        bool Initialize(const GraphicsContext& graphicsContext, u32 shadowMapSize);
+        bool Initialize(const GraphicsContext& graphicsContext, u32 shadowMapSize, float shadowWorldSize, float shadowDepthRange);
 
         //! ワールド（メインカメラ）のカメラ行列を設定します。
         //! @param  [in] data カメラ行列を詰めたシーン定数。view / projection / viewProj / invViewProj / cameraPos だけを使う
@@ -109,6 +111,8 @@ namespace Tsukino::Renderer {
         const GraphicsContext*               m_graphicsContext = nullptr;    // デバイスと画面サイズの取得元（借りている）
         Microsoft::WRL::ComPtr<ID3D11Buffer> m_sceneBuffer;                  // b0 の定数バッファ
         float                                m_shadowMapSize = 0.0f;         // シャドウマップの一辺（b0 の shadowParams へ配る）
+        float                                m_shadowTexelWorldSize = 0.0f;  // シャドウマップ1テクセルのワールド幅（shadowParams.z）
+        float                                m_shadowDepthRange     = 1.0f;  // シャドウの平行投影の奥行き（shadowParams.wはその逆数）
 
         CBufferScene m_worldSceneData{};      // 3D（メインカメラ）用
         CBufferScene m_overlaySceneData{};    // 2D（UIカメラ）用

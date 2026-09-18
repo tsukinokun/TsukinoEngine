@@ -16,9 +16,11 @@ namespace Tsukino::Renderer {
     //------------------------------------------------------------------------
     //! 定数バッファを作成します。
     //------------------------------------------------------------------------
-    bool FrameConstants::Initialize(const GraphicsContext& graphicsContext, u32 shadowMapSize) {
-        m_graphicsContext = &graphicsContext;
-        m_shadowMapSize   = static_cast<float>(shadowMapSize);
+    bool FrameConstants::Initialize(const GraphicsContext& graphicsContext, u32 shadowMapSize, float shadowWorldSize, float shadowDepthRange) {
+        m_graphicsContext      = &graphicsContext;
+        m_shadowMapSize        = static_cast<float>(shadowMapSize);
+        m_shadowTexelWorldSize = shadowWorldSize / m_shadowMapSize;
+        m_shadowDepthRange     = shadowDepthRange;
 
         D3D11_BUFFER_DESC desc = {};
         desc.Usage             = D3D11_USAGE_DEFAULT;
@@ -111,7 +113,7 @@ namespace Tsukino::Renderer {
         uploadData.screenParams  = hlslpp::float4(screenWidth, screenHeight, screenWidth > 0.0f ? 1.0f / screenWidth : 0.0f,
                                                   screenHeight > 0.0f ? 1.0f / screenHeight : 0.0f);
 
-        uploadData.shadowParams = hlslpp::float4(m_shadowMapSize, 1.0f / m_shadowMapSize, 0.0f, 0.0f);
+        uploadData.shadowParams = hlslpp::float4(m_shadowMapSize, 1.0f / m_shadowMapSize, m_shadowTexelWorldSize, 1.0f / m_shadowDepthRange);
 
         // GPU上のバッファの中身を書き換えて、スロット0（b0）にバインドする
         context->UpdateSubresource(m_sceneBuffer.Get(), 0, nullptr, &uploadData, 0, 0);

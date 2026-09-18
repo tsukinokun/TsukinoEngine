@@ -118,11 +118,7 @@ namespace Tsukino::Renderer {
         // 離れた位置にカメラを置く構成だと、画面に映る注視点付近がシャドウ範囲の
         // 端に寄ってしまい、キャラクターのすぐ近くで影が途切れて見えるため
         //--------------------------------------------------------------------
-        hlslpp::float3 target = focusPoint;
-
-        // ライトの位置はターゲットから十分離れた場所に置く
-        hlslpp::float3 lightPos = target - normalizedDir * 500.0f;
-        hlslpp::float3 up       = hlslpp::float3(0.0f, 1.0f, 0.0f);
+        hlslpp::float3 up = hlslpp::float3(0.0f, 1.0f, 0.0f);
 
         // ライト方向が真上/真下に近いときupベクトルが平行になるので回避
         float dotUp = std::abs(hlslpp::dot(normalizedDir, up));
@@ -130,14 +126,33 @@ namespace Tsukino::Renderer {
             up = hlslpp::float3(0.0f, 0.0f, 1.0f);
         }
 
-        // LookAt でライトのView行列、平行投影でProj行列を作成
-        Tsukino::Core::Math::matrix lightView = Tsukino::Core::Math::matrix::lookAtLH(lightPos, target, up);
-        Tsukino::Core::Math::matrix lightProj = Tsukino::Core::Math::matrix::orthographicOffCenterLH(-500.0f,    // left
-                                                                                                     500.0f,     // right
-                                                                                                     -500.0f,    // bottom
-                                                                                                     500.0f,     // top
-                                                                                                     2000.0f,    // far
-                                                                                                     1.0f        // near
+        //--------------------------------------------------------------------
+        // View行列はワールド原点から光の向きへ見るものに固定し、注視点ではなく
+        // 投影範囲（off-center）の側を動かす。
+        //
+        // 注視点に合わせてView行列ごと動かすと、注視点が1テクセル未満動くたびに
+        // シャドウマップ上の格子もずれ、影の縁がカメラの移動に合わせてちらつく
+        // （プレイヤー追従のTPSでは常に動いている）。原点基準のView空間で
+        // 注視点の位置をテクセル幅の整数倍へ丸めてから範囲を置けば、格子は
+        // ワールドに対して動かず、影の縁は止まって見える
+        //--------------------------------------------------------------------
+        const hlslpp::float3        origin    = hlslpp::float3(0.0f, 0.0f, 0.0f);
+        Tsukino::Core::Math::matrix lightView = Tsukino::Core::Math::matrix::lookAtLH(origin, normalizedDir, up);
+
+        const hlslpp::float4 focusInLight = hlslpp::mul(hlslpp::float4(focusPoint, 1.0f), lightView);
+
+        const float texelWorldSize = 2.0f * kOrthoHalfExtent / static_cast<float>(kMapSize);
+        const float centerX        = std::floor(static_cast<float>(focusInLight.x) / texelWorldSize) * texelWorldSize;
+        const float centerY        = std::floor(static_cast<float>(focusInLight.y) / texelWorldSize) * texelWorldSize;
+        const float focusDepth     = static_cast<float>(focusInLight.z);
+
+        // リバースZのため far → near の順に渡す（以前の「注視点から500後ろにライト、near1 / far2000」と同じ奥行き）
+        Tsukino::Core::Math::matrix lightProj = Tsukino::Core::Math::matrix::orthographicOffCenterLH(centerX - kOrthoHalfExtent,    // left
+                                                                                                     centerX + kOrthoHalfExtent,    // right
+                                                                                                     centerY - kOrthoHalfExtent,    // bottom
+                                                                                                     centerY + kOrthoHalfExtent,    // top
+                                                                                                     focusDepth + kDepthAwayFromLight,    // far
+                                                                                                     focusDepth - kDepthTowardLight       // near
         );
 
         return hlslpp::mul(lightView, lightProj);

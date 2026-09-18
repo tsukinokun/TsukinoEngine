@@ -68,7 +68,7 @@ float4 PSMain(PSInput input) : SV_TARGET
     //----------------------------------------------------------
     {
         float3 L      = normalize(-lightDir.xyz);    // lightDirは「ライトが向いている方向」なので反転
-        float  shadow = GetShadowPCF(worldPos);
+        float  shadow = GetShadowPCF(worldPos, N, L);
 
         // 影の値を「0.0〜1.0」ではなく「minShadow〜1.0」の範囲にする
         float minShadow = 0.25f;

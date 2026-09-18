@@ -242,7 +242,10 @@ namespace Tsukino::Renderer {
         //   2 : r = metallic, g = roughness, b = AO, a = specular
         //   3 : rgb = emissive（リム発光・全体白発光を含む）
         //   4 : rgb = ワールド座標（頂点シェーダーの補間値をそのまま出力。
-        //             深度からの再構成はリバースZ+遠距離での精度劣化を避けるため使わない）
+        //             深度からの再構成はリバースZ+遠距離での精度劣化を避けるため使わない）。
+        //             32bit floatで持つ。16bitだと原点から512離れた所で0.5単位刻みになり、
+        //             シャドウマップ1テクセル（約0.5）と同じ粗さで影の参照位置が飛ぶため、
+        //             プレイヤーが原点から離れるほど影の輪郭が階段状に崩れていた
         //   5 : rg  = 1フレームあたりのUV移動量（符号付き。モーションブラー用）
         //--------------------------------------------------------------
         static constexpr DXGI_FORMAT kGBufferFormats[GBufferCount] = {
@@ -250,7 +253,7 @@ namespace Tsukino::Renderer {
             DXGI_FORMAT_R10G10B10A2_UNORM,     // GBuffer1 : Normal + ShadingModel
             DXGI_FORMAT_R8G8B8A8_UNORM,        // GBuffer2 : Metallic/Roughness/AO/Specular
             DXGI_FORMAT_R11G11B10_FLOAT,       // GBuffer3 : Emissive
-            DXGI_FORMAT_R16G16B16A16_FLOAT,    // GBuffer4 : World Position
+            DXGI_FORMAT_R32G32B32A32_FLOAT,    // GBuffer4 : World Position（32bit：理由は上のコメント）
             DXGI_FORMAT_R16G16_FLOAT,          // GBuffer5 : Velocity（符号付きのため FLOAT）
         };
 

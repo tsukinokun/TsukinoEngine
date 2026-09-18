@@ -38,7 +38,7 @@ namespace Tsukino::Renderer {
         //--------------------------------------------------------------
         hlslpp::float4 timeParams;      //!< x: 起動からの経過秒, y: 前フレームからの経過秒, z: sin(x), w: cos(x)
         hlslpp::float4 screenParams;    //!< xy: 描画領域の解像度(px), zw: その逆数(1/w, 1/h)
-        hlslpp::float4 shadowParams;    //!< x: シャドウマップの一辺(px), y: その逆数(=texelSize), zw: 予約
+        hlslpp::float4 shadowParams;    //!< x: シャドウマップの一辺(px), y: その逆数(=texelSize), z: 1テクセルのワールド幅, w: 1/奥行き（ワールド距離→深度値の換算）
     };
 
     //--------------------------------------------------------------

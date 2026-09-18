@@ -54,49 +54,12 @@ struct PSInput
 };
 
 //--------------------------------------------------------------
-//! @brief PCFシャドウサンプリング
+//! @brief PCFシャドウサンプリング（式はPBR.hlsliのSampleShadowPCFに一元化してある）
 //! @return 遮蔽量 0.0f(暗) - 1.0f(明)
 //--------------------------------------------------------------
-float GetShadowPCF(float3 worldPos)
+float GetShadowPCF(float3 worldPos, float3 N, float3 L)
 {
-    //----------------------------------------------------------
-    // ワールド座標をライト空間に変換
-    //----------------------------------------------------------
-    float4 lightSpace = mul(float4(worldPos, 1.0f), lightViewProj);
-
-    //----------------------------------------------------------
-    // クリップ座標をUV座標に変換
-    // x: [-1, 1] → [0, 1]
-    // y: [-1, 1] → [1, 0] （DirectXはY反転）
-    //----------------------------------------------------------
-    float2 uv = lightSpace.xy * float2(0.5f, -0.5f) + 0.5f;
-
-    // UV範囲外は影なし
-    if (any(uv < 0.0f) || any(1.0f < uv))
-        return 1.0f;
-
-    // 深度値 + シャドウアクネ対策バイアス
-    float depth = lightSpace.z + 0.001f;
-
-    //----------------------------------------------------------
-    // 3x3 PCF : 9サンプルの平均を取る
-    //----------------------------------------------------------
-    float shadow = 0.0f;
-    float texelSize = 1.0f / 2048.0f; // SHADOW_MAP_SIZEに合わせる
-
-    [unroll]
-    for (int x = -1; x <= 1; x++)
-    {
-        [unroll]
-        for (int y = -1; y <= 1; y++)
-        {
-            float2 offset = float2(x, y) * texelSize;
-            shadow += shadowMap.SampleCmpLevelZero(
-                shadowSampler, uv + offset, depth);
-        }
-    }
-
-    return shadow / 9.0f;
+    return SampleShadowPCF(shadowMap, shadowSampler, worldPos, N, L);
 }
 
 //--------------------------------------------------------------
@@ -140,7 +103,7 @@ float4 PSMain(PSInput input) : SV_TARGET
     //----------------------------------------------------------
     // シャドウ係数とライト放射輝度 (radiance) を取得
     //----------------------------------------------------------
-    float shadow = GetShadowPCF(input.worldPos);
+    float shadow = GetShadowPCF(input.worldPos, N, L);
 
     // 影の値を「0.0～1.0」ではなく「minShadow～1.0」の範囲にする
     float minShadow = 0.25f; // 0.0にすると真っ黒、0.3くらいにすると少し明るい影になる

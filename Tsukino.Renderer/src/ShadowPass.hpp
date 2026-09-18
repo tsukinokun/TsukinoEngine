@@ -23,6 +23,16 @@ namespace Tsukino::Renderer {
         //! シャドウマップの一辺（ピクセル）。画面サイズに依存しないのでリサイズでは作り直さない
         static constexpr u32 kMapSize = 2048;
 
+        //! 平行投影の範囲（注視点から左右・上下へのワールド距離）。1テクセルのワールド幅は
+        //! 2 * kOrthoHalfExtent / kMapSize で、シェーダーのバイアスはこの幅を単位にして決める
+        static constexpr float kOrthoHalfExtent = 500.0f;
+
+        //! 平行投影の奥行き。注視点から光の来る側へkDepthTowardLight、向こう側へkDepthAwayFromLightまでを収める。
+        //! シェーダーはこの合計（kDepthRange）で深度バイアスをワールド距離から深度値へ換算する
+        static constexpr float kDepthTowardLight   = 499.0f;
+        static constexpr float kDepthAwayFromLight = 1500.0f;
+        static constexpr float kDepthRange         = kDepthTowardLight + kDepthAwayFromLight;
+
         //! シャドウマップと影用パイプラインを作成します。
         //! @param  [in] graphicsContext  デバイスとデバイスコンテキストの取得元
         //! @param  [in] resources        PipelineFactory の取得元
@@ -54,7 +64,8 @@ namespace Tsukino::Renderer {
 
         //! ディレクショナルライトの ViewProjection 行列を求めます。
         //! @param  [in] normalizedDir 光の向き（正規化済み）
-        //! @param  [in] focusPoint    シャドウマップの投影範囲（平行投影、±500ユニット）の中心
+        //! @param  [in] focusPoint    シャドウマップの投影範囲（平行投影、±kOrthoHalfExtent）の中心。
+        //!                            範囲はテクセル単位に丸めて置くので、厳密な中心からは最大1テクセルずれる
         //! @return ライト空間の ViewProjection 行列
         [[nodiscard]]
         static Tsukino::Core::Math::matrix ComputeLightViewProj(const hlslpp::float3& normalizedDir, const hlslpp::float3& focusPoint);

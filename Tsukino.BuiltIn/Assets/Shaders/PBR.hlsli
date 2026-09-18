@@ -22,6 +22,9 @@ cbuffer CBufferScene : register(b0)
     float4 lightColor;       // xyz: ライトの色, w: 強度
     float4 cameraPos;        // xyz: カメラのワールド座標, w: 未使用
     matrix prevViewProj;     // 前フレームのViewProjection行列（速度バッファ生成用）
+    float4 timeParams;       // x: 起動からの経過秒, y: 前フレームからの経過秒, z: sin(x), w: cos(x)
+    float4 screenParams;     // xy: 描画領域の解像度(px), zw: その逆数
+    float4 shadowParams;     // x: シャドウマップの一辺(px), y: その逆数, z: 1テクセルのワールド幅, w: 1/奥行き
 };
 
 static const float PI = 3.14159265358979323846f;
@@ -185,6 +188,70 @@ float3 ApplyNormalMap(float3 N, float3 worldPos, float2 uv, float3 tangentNormal
     // その結果は ±N（＝頂点法線そのまま）で、縮退面での挙動として正しい
     float3x3 TBN = float3x3(T * invmax, B * invmax, N);
     return normalize(mul(tangentNormal, TBN));
+}
+
+//--------------------------------------------------------------
+// シャドウのバイアス（単位はシャドウマップ1テクセルのワールド幅＝shadowParams.z）。
+//
+// 一定の深度バイアスだけだと、光に対して斜めの面ほど1テクセルの中で深度が大きく
+// 変わるため、自分の影を拾って縞や黒い斑点（シャドウアクネ）になる。太陽が低い
+// シーンでは特にひどい。そこで次の2つを組み合わせる：
+//   法線オフセット：影を引く位置を面の法線方向へ押し出す。光に対して斜めな面ほど
+//                   （N・Lが小さいほど）大きく押し出す
+//   傾き比例の深度バイアス：面の傾き（tan）に比例させ、真横に近い面で暴れないよう上限を付ける
+// 大きくしすぎると影が足元から浮く（peter panning）ので、PCFの広がり（±1テクセル）を
+// 覆える最小限にしている
+//--------------------------------------------------------------
+static const float kShadowNormalOffset   = 1.5f;    // 法線方向の押し出し（テクセル）。N・L=0のときの値
+static const float kShadowConstantBias   = 1.0f;    // 深度バイアスの一定分（テクセル）
+static const float kShadowSlopeBias      = 1.0f;    // 深度バイアスの傾き比例分（テクセル / tan）
+static const float kShadowMaxSlope       = 4.0f;    // tanの上限（約76度。これより斜めな面は同じ扱い）
+
+//--------------------------------------------------------------
+//! @brief  ディレクショナルライトの影をPCF（3x3）で引く
+//! @param  map      シャドウマップ（t8）
+//! @param  samp     比較サンプラー（s8。リバースZなのでGREATER_EQUALで比較する）
+//! @param  worldPos 影を調べる点のワールド座標
+//! @param  N        その点の法線（正規化済み）
+//! @param  L        光の来る方向（正規化済み）
+//! @return 遮蔽量 0.0f(暗) - 1.0f(明)
+//! @note   ディファード（Lighting.hlsli）とフォワード（Model.ps.hlsl）の両方がこれを使う
+//--------------------------------------------------------------
+float SampleShadowPCF(Texture2D map, SamplerComparisonState samp, float3 worldPos, float3 N, float3 L)
+{
+    const float texelWorld = shadowParams.z;
+    const float NdotL      = saturate(dot(N, L));
+
+    // 法線オフセット。光に正対する面は押し出さない
+    float3 samplePos = worldPos + N * (texelWorld * kShadowNormalOffset * (1.0f - NdotL));
+
+    float4 lightSpace = mul(float4(samplePos, 1.0f), lightViewProj);
+
+    // クリップ座標をUV座標に変換（DirectXはY反転）
+    float2 uv = lightSpace.xy * float2(0.5f, -0.5f) + 0.5f;
+
+    // 投影範囲の外は影なし
+    if(any(uv < 0.0f) || any(1.0f < uv))
+        return 1.0f;
+
+    // 傾き比例の深度バイアス。ワールド距離で求めてから深度値へ換算する（shadowParams.w = 1/奥行き）。
+    // リバースZなので、光へ近づける向き＝深度値を足す向き
+    const float tanTheta  = min(sqrt(saturate(1.0f - NdotL * NdotL)) / max(NdotL, 1.0e-3f), kShadowMaxSlope);
+    const float biasWorld = texelWorld * (kShadowConstantBias + kShadowSlopeBias * tanTheta);
+    const float depth     = lightSpace.z + biasWorld * shadowParams.w;
+
+    float shadow = 0.0f;
+
+    [unroll]
+    for(int x = -1; x <= 1; x++) {
+        [unroll]
+        for(int y = -1; y <= 1; y++) {
+            float2 offset = float2(x, y) * shadowParams.y;
+            shadow += map.SampleCmpLevelZero(samp, uv + offset, depth);
+        }
+    }
+
+    return shadow / 9.0f;
 }
 
 #endif    // TSUKINO_PBR_HLSLI
