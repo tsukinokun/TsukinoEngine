@@ -9,8 +9,14 @@
 #include <ctime>
 #include <filesystem>
 #include <fstream>
+#include <mutex>
 // 名前空間 : Tsukino::Core
 namespace Tsukino::Core {
+    namespace {
+        //! ログファイルのパスと書き出しを守る排他。アセットを裏スレッドで読むと
+        //! 本体スレッドと同時に書き出すことがあり、行が混ざったりパスの読み書きが競合したりする
+        std::mutex s_logMutex;
+    }    // namespace
 
     // 出力先のログファイル。空の間はファイルへ書き出さない
     std::string Log::s_LogFilePath;
@@ -49,6 +55,7 @@ namespace Tsukino::Core {
             std::filesystem::create_directories(outputPath.parent_path(), errorCode);
         }
 
+        std::lock_guard lock(s_logMutex);
         s_LogFilePath = filePath;
 
         // 追記運用のため、起動ごとの区切りを1行入れておく。
@@ -71,6 +78,7 @@ namespace Tsukino::Core {
     //! ファイルへのログ出力を停止します。
     //--------------------------------------------------------------
     void Log::CloseLogFile() {
+        std::lock_guard lock(s_logMutex);
         s_LogFilePath.clear();
     }
 
@@ -81,6 +89,7 @@ namespace Tsukino::Core {
         std::string out = std::string("[") + level + "] " + msg + "\n";
         OutputDebugStringA(out.c_str());
 
+        std::lock_guard lock(s_logMutex);
         if (s_LogFilePath.empty())
             return;
 

@@ -84,10 +84,47 @@ namespace Tsukino::Asset {
         // （キャッシュのキーとハンドルの元が食い違うと、同じアセットに別ハンドルが出る）
         const std::string pathKey = AssetHandleGenerator::NormalizeKey(path.string());
 
-        auto cachedIt = m_pathToHandle.find(pathKey);
-        if(cachedIt != m_pathToHandle.end())
-            return cachedIt->second;
+        //--------------------------------------------------------------
+        // ロード済みならそのハンドルを返す。別のスレッドが同じパスを読み込み中なら、
+        // 終わるのを待ってから表を引き直す（失敗して登録されなければ、自分で読み直す）
+        //--------------------------------------------------------------
+        {
+            std::unique_lock lock(m_mutex);
+            for(;;) {
+                auto cachedIt = m_pathToHandle.find(pathKey);
+                if(cachedIt != m_pathToHandle.end())
+                    return cachedIt->second;
 
+                if(!m_loadingPaths.contains(pathKey))
+                    break;
+
+                m_loadFinished.wait(lock);
+            }
+            m_loadingPaths.insert(pathKey);
+        }
+
+        //--------------------------------------------------------------
+        // どの経路で抜けても（失敗・例外を含む）読み込み中の印を外し、待っている側を起こす
+        //--------------------------------------------------------------
+        struct LoadingMarkGuard {
+            AssetManager*      owner;
+            const std::string& key;
+            ~LoadingMarkGuard() {
+                {
+                    std::lock_guard lock(owner->m_mutex);
+                    owner->m_loadingPaths.erase(key);
+                }
+                owner->m_loadFinished.notify_all();
+            }
+        } loadingMarkGuard{this, pathKey};
+
+        return LoadUncached(path, pathKey);
+    }
+
+    //--------------------------------------------------------------
+    //! @brief キャッシュに無いアセットを実際に読み込む関数
+    //--------------------------------------------------------------
+    AssetHandle AssetManager::LoadUncached(const Tsukino::Core::Path& path, const std::string& pathKey) {
         //--------------------------------------------------------------
         // 入力パスを basePath と fragment に分解
         //--------------------------------------------------------------
@@ -177,6 +214,9 @@ namespace Tsukino::Asset {
 
                 AssetHandle handle = AssetHandleGenerator::GenerateFromKey(pathKey);
                 asset->SetHandle(handle);
+
+                // 作り終えてから表へ入れる（他のスレッドの Get が作りかけを見ないように）
+                std::lock_guard lock(m_mutex);
                 m_assets.insert({handle.Value(), asset});
                 m_pathToHandle.insert({pathKey, handle});
                 return handle;
@@ -190,6 +230,7 @@ namespace Tsukino::Asset {
     //! @brief 任意のアセットハンドルからアセットを取得する関数
     //--------------------------------------------------------------
     Tsukino::Core::Ref<IAsset> AssetManager::Get(AssetHandle handle) {
+        std::lock_guard lock(m_mutex);
         auto it = m_assets.find(handle.Value());
         return it != m_assets.end() ? it->second : nullptr;
     }
@@ -198,6 +239,7 @@ namespace Tsukino::Asset {
     //! @brief アセットハンドルが存在するか確認する関数
     //--------------------------------------------------------------
     bool AssetManager::Exists(AssetHandle handle) {
+        std::lock_guard lock(m_mutex);
         return m_assets.contains(handle.Value());
     }
 
@@ -222,6 +264,7 @@ namespace Tsukino::Asset {
     //! @brief アセットを登録する関数
     //--------------------------------------------------------------
     void AssetManager::RegisterAsset(AssetHandle handle, Tsukino::Core::Ref<IAsset> asset) {
+        std::lock_guard lock(m_mutex);
         m_assets.insert({handle.Value(), asset});
     }
 

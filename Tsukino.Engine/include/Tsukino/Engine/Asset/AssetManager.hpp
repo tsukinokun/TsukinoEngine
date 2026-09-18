@@ -12,9 +12,13 @@
 #include <Tsukino/Core/Path.hpp>
 #include <Tsukino/Core/Memory.hpp>
 
-#include <unordered_map>
-#include <vector>
+#include <condition_variable>
 #include <memory>
+#include <mutex>
+#include <string>
+#include <unordered_map>
+#include <unordered_set>
+#include <vector>
 // 名前空間 : Tsukino::Asset
 namespace Tsukino::Asset {
     class IAsset;          // 前方宣言
@@ -22,6 +26,14 @@ namespace Tsukino::Asset {
     //--------------------------------------------------------------
     //! @class  AssetManager
     //! @brief  アセットのロード、管理を行うクラス
+    //! @note   Load / Get / Exists / RegisterAsset は任意のスレッドから呼べる
+    //!         （ロード画面が裏スレッドで読み、本体スレッドは描画で Get し続ける使い方を想定）。
+    //!         インポート・ロードの本体はロックを持たずに走るので、裏で重い変換をしている間も
+    //!         本体スレッドの Get は待たされない。アセット層は CPU 側のデータを作るだけで
+    //!         D3D には触らない（GPU リソースは描画側が本体スレッドで遅延生成する）。
+    //!         テクスチャの変換は WIC（COM）を使うため、裏スレッドから Load する場合は
+    //!         呼び出し側がそのスレッドで CoInitializeEx を済ませておくこと。
+    //!         Initialize / RegisterImporter はスレッドを立てる前（起動時）に呼ぶこと
     //--------------------------------------------------------------
     class AssetManager {
     public:
@@ -80,6 +92,16 @@ namespace Tsukino::Asset {
 
     private:
         //--------------------------------------------------------------
+        // キャッシュに無いアセットを実際に読み込む関数（Load の本体）
+        //! @param  path    [in] ロードするアセットのパス
+        //! @param  pathKey [in] 正規化済みのパス（表のキー）
+        //! @return ロードしたアセットのハンドル。失敗したら Invalid
+        //! @note   ロックを持たずに呼ぶ。表への登録だけ中でロックする
+        //--------------------------------------------------------------
+        [[nodiscard]]
+        AssetHandle LoadUncached(const Tsukino::Core::Path& path, const std::string& pathKey);
+
+        //--------------------------------------------------------------
         // ローダーを登録する関数
         //! @param  loader [in] 登録するローダーのshared_ptr
         //--------------------------------------------------------------
@@ -132,6 +154,23 @@ namespace Tsukino::Asset {
 
         // ImporterもAssetManagerが共有所有
         ImporterMap m_importers;
+
+        //--------------------------------------------------------------
+        // スレッド間の排他。
+        //
+        // m_assets / m_pathToHandle / m_loadingPaths を触る瞬間だけ取る。
+        // インポート・ロードの本体の間は持たないので、ModelLoader が中で
+        // テクスチャを Load し直す（再帰）ときにも自分で詰まらない。
+        // m_loaders / m_importers は Initialize 後に変わらないので守らない。
+        //
+        // m_loadingPaths は「今どこかのスレッドが読み込み中のパス」。同じパスを
+        // 2つのスレッドが同時に読むと、同じキャッシュファイルへ同時に書き込んで
+        // 壊しかねないので、後から来た方は m_loadFinished で完了を待ち、
+        // 先の方が登録したハンドルをそのまま返す
+        //--------------------------------------------------------------
+        std::mutex                      m_mutex;
+        std::condition_variable         m_loadFinished;
+        std::unordered_set<std::string> m_loadingPaths;
     };
 
 }    // namespace Tsukino::Asset
