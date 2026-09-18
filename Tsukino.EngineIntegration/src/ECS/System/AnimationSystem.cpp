@@ -22,6 +22,8 @@
 #include <algorithm>
 #include <cmath>
 #include <iterator>
+#include <string>
+#include <string_view>
 #include <unordered_map>
 #include <unordered_set>
 
@@ -54,10 +56,43 @@ namespace Tsukino::BuiltIn::ECS {
         }
 
         std::vector<std::int32_t> table(model.nodes.size(), -1);
+        std::unordered_map<std::string, std::size_t> nodeIndexByName;
+        nodeIndexByName.reserve(model.nodes.size());
         for(std::size_t nodeIndex = 0; nodeIndex < model.nodes.size(); ++nodeIndex) {
+            nodeIndexByName.emplace(model.nodes[nodeIndex].name, nodeIndex);
+
             const auto found = channelIndexByName.find(model.nodes[nodeIndex].name);
             if(found != channelIndexByName.end())
                 table[nodeIndex] = found->second;
+        }
+
+        //---------------------------------------------------------
+        // Assimpのピボット補助ノード（"<ボーン名>_$AssimpFbx$_Rotation"）の食い違いを埋める。
+        //
+        // AssimpはFBXのボーンを「_Translation → _PreRotation → _Rotation → 本体」の
+        // 補助ノード列に分解するが、_Rotationを作るのは「そのファイルでLcl Rotationが
+        // 0でない（またはアニメーションしている）」ボーンだけ。そのため同じリグでも
+        //   モデル側（バインドポーズで回転0）   … "LeftArm_$AssimpFbx$_Rotation" が無い
+        //   クリップ側（回転がアニメーションする）… 回転キーがその補助ノード宛てに入る
+        // という食い違いが起き、名前が一致しないチャンネルは丸ごと捨てられていた
+        // （Mixamoの一部クリップで腕・背骨が動かず上半身がTポーズのままになる不具合）。
+        //
+        // モデル側に補助ノードが無いなら、その回転は本体ノードのローカル回転そのもの
+        // （本体の手前の_PreRotationまでは両者で同じ）なので、本体ノードへ当ててよい。
+        // 本体ノード宛てのチャンネルが既にあればそちらを優先する
+        //---------------------------------------------------------
+        static constexpr std::string_view kRotationPivotSuffix = "_$AssimpFbx$_Rotation";
+        for(const auto& [channelName, channelIndex] : channelIndexByName) {
+            if(channelName.size() <= kRotationPivotSuffix.size()
+               || channelName.compare(channelName.size() - kRotationPivotSuffix.size(), kRotationPivotSuffix.size(), kRotationPivotSuffix) != 0)
+                continue;
+
+            if(nodeIndexByName.contains(channelName))
+                continue;    // モデル側にも補助ノードがある＝上の完全一致で対応済み
+
+            const auto bone = nodeIndexByName.find(channelName.substr(0, channelName.size() - kRotationPivotSuffix.size()));
+            if(bone != nodeIndexByName.end() && table[bone->second] < 0)
+                table[bone->second] = channelIndex;
         }
 
         return m_channelTables.emplace(key, std::move(table)).first->second;
