@@ -4,6 +4,8 @@
 //! @author 山﨑愛
 //! @note   フォワード(Model.ps.hlsl)とディファード(GBuffer.ps.hlsl / Lighting.ps.hlsl)で
 //!         BRDFの式が乖離しないよう、ここに一元化する。
+//!         トーンマップはここには無い。Tonemap.ps.hlslがHDRバッファに対して
+//!         1回だけ掛けるのが唯一の場所で、アルベドやBRDFの途中結果には掛けない。
 //--------------------------------------------------------------
 #ifndef TSUKINO_PBR_HLSLI
 #define TSUKINO_PBR_HLSLI
@@ -28,19 +30,6 @@ cbuffer CBufferScene : register(b0)
 };
 
 static const float PI = 3.14159265358979323846f;
-
-//--------------------------------------------------------------
-//! @brief ACESトーンマッピング
-//--------------------------------------------------------------
-float3 ACES(float3 x)
-{
-    float a = 2.51f;
-    float b = 0.03f;
-    float c = 2.43f;
-    float d = 0.59f;
-    float e = 0.14f;
-    return saturate((x * (a * x + b)) / (x * (c * x + d) + e));
-}
 
 //--------------------------------------------------------------
 //! @brief 法線分布関数 (NDF): GGX / Trowbridge-Reitz

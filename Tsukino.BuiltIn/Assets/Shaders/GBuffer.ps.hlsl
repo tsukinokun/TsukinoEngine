@@ -52,9 +52,9 @@ PSOutput PSMain(PSInput input)
 
     //----------------------------------------------------------
     // アルベド
-    // Model.ps.hlsl（フォワード）と同じくACESを通す。トーンマップとの
-    // 二重掛けだが、既存の見た目との差分をゼロにするため意図的に踏襲する
-    // （除去は別途ポストプロセス整備のタイミングで扱う）
+    // トーンマップは通さない。アルベドは反射率（どの波長をどれだけ返すか）であって
+    // 輝度ではないので、トーンマップの対象ではない。
+    // トーンマップはTonemap.ps.hlslがHDRバッファに対して1回だけ掛ける
     //----------------------------------------------------------
     float4 albedoSample = albedoTexture.Sample(albedoSampler, input.uv);
 
@@ -69,7 +69,7 @@ PSOutput PSMain(PSInput input)
     //----------------------------------------------------------
     clip(albedoSample.a - alphaCutoff);
 
-    float3 albedo        = ACES(albedoSample.rgb * baseColor.rgb);
+    float3 albedo        = albedoSample.rgb * baseColor.rgb;
 
     //----------------------------------------------------------
     // 法線

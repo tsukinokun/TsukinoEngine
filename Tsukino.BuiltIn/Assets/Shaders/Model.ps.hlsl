@@ -71,7 +71,8 @@ float4 PSMain(PSInput input) : SV_TARGET
     //----------------------------------------------------------
     clip(albedoSample.a - alphaCutoff);
 
-    float3 albedo = ACES(albedoSample.rgb * baseColor.rgb); // テクスチャ × 定数色
+    // アルベドは反射率なのでトーンマップは通さない（GBuffer.ps.hlslと同じ扱い）
+    float3 albedo = albedoSample.rgb * baseColor.rgb;    // テクスチャ × 定数色
 
     //----------------------------------------------------------
     // 法線（現状は頂点法線をそのまま使用）

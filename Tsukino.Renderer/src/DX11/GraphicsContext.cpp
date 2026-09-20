@@ -237,7 +237,12 @@ namespace Tsukino::Renderer {
 
         //--------------------------------------------------------------
         // G-Buffer の作成（ディファードGBufferパスの出力先 / Lightingパスの入力）
-        //   0 : rgb = albedo
+        //   0 : rgb = albedo（sRGBで格納する。アルベドテクスチャは BC3_UNORM_SRGB で
+        //             暗部に細かい刻みを持っており、シェーダーでリニア化した値を
+        //             リニア8bitへ書き戻すとその精度を再量子化で捨ててしまう。
+        //             _SRGB にすると書き込み時に linear→sRGB、読み出し時に sRGB→linear が
+        //             ハードウェアで掛かるので、8bitを知覚的に有効利用できる。
+        //             変換はrgbのみでaは素通し。Lightingパス側は無改修でよい）
         //   1 : rgb = ワールド法線 (n*0.5+0.5), a = ShadingModel ID
         //   2 : r = metallic, g = roughness, b = AO, a = specular
         //   3 : rgb = emissive（リムグローを含む）
@@ -249,7 +254,7 @@ namespace Tsukino::Renderer {
         //   5 : rg  = 1フレームあたりのUV移動量（符号付き。モーションブラー用）
         //--------------------------------------------------------------
         static constexpr DXGI_FORMAT kGBufferFormats[GBufferCount] = {
-            DXGI_FORMAT_R8G8B8A8_UNORM,        // GBuffer0 : Albedo
+            DXGI_FORMAT_R8G8B8A8_UNORM_SRGB,   // GBuffer0 : Albedo（sRGB格納：理由は上のコメント）
             DXGI_FORMAT_R10G10B10A2_UNORM,     // GBuffer1 : Normal + ShadingModel
             DXGI_FORMAT_R8G8B8A8_UNORM,        // GBuffer2 : Metallic/Roughness/AO/Specular
             DXGI_FORMAT_R11G11B10_FLOAT,       // GBuffer3 : Emissive

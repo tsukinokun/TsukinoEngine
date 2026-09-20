@@ -150,8 +150,5 @@ float4 PSMain(PSInput input) : SV_TARGET
         skyColor = lerp(groundColor.rgb, skyColor, blend);
     }
 
-    // 露出補正（小さい値を可視範囲にスケール）
-    skyColor *= 1.0f;
-
     return float4(skyColor, 1.0f);
 }

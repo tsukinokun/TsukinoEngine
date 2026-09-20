@@ -46,6 +46,33 @@ carve-out for `Tsukino.Renderer` described under **API stability** in the README
 
 ### Fixed
 
+- **ACES is no longer applied twice.** `GBuffer.ps.hlsl` and `Model.ps.hlsl` ran the
+  albedo through `ACES()` before lighting it, and `Tonemap.ps.hlsl` then tonemapped the
+  finished HDR frame. Albedo is a reflectance, not a radiance, so tonemapping it is wrong
+  on its own terms, and doing it twice bent every material away from its authored colour.
+  The albedo now goes into the BRDF as read, and `Tonemap.ps.hlsl` holds the single
+  remaining `ACES()` in the pipeline. The dead copy in `PBR.hlsli` is gone.
+
+  **Material appearance changes.** Removing the curve darkens mid and low albedo values
+  and, below about 0.065, *reduces* saturation rather than raising it — so colours
+  authored against the old pipeline will need retuning. Anything that never went through
+  albedo is untouched, which was verified by measurement: the sky (`Sky.ps.hlsl` has no
+  `ACES`) and the UI (drawn to the back buffer after tonemapping) came back bit-identical
+  across builds, while ground patches moved as predicted.
+
+  The exposure multiplier in `Tonemap.ps.hlsl` is now the named `kExposure` with its
+  provenance written down: 0.6 is an empirical value inherited from the old look, not a
+  physical one. `Sky.ps.hlsl` also loses a `skyColor *= 1.0f;` that was labelled
+  "exposure correction" and multiplied by one.
+
+- **G-Buffer 0 stores albedo as sRGB.** Albedo textures arrive as `BC3_UNORM_SRGB`, which
+  spends its 8 bits where the eye can see them. Decoding that to linear and writing it
+  back into a linear `R8G8B8A8_UNORM` target threw the source precision away in the darks.
+  The target is now `R8G8B8A8_UNORM_SRGB`, so the hardware encodes on write and decodes on
+  read. Views are created with a null desc and inherit the format, the conversion skips
+  alpha, and nothing blends into that target, so this is the one format line — the
+  lighting pass is unchanged.
+
 - **`CBufferMaterial` (b2) no longer feeds the shader shifted PBR values.**
   `hlslpp::float3` occupies a full 16-byte SIMD register, while HLSL's `float3` is
   12 bytes and lets the next scalar share its 16-byte row. `emissive` was the only
