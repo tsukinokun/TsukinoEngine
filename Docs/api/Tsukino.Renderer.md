@@ -55,7 +55,7 @@
 - **Tsukino::Renderer::CBufferLights** — `Tsukino.Renderer/include/Tsukino/Renderer/ConstantBuffer.hpp`
   - lightCount, pad, lights
 - **Tsukino::Renderer::CBufferMaterial** — `Tsukino.Renderer/include/Tsukino/Renderer/ConstantBuffer.hpp`
-  - baseColor, emissive, metallic, roughness, specular, rimColor, rimParams
+  - baseColor, emissive, metallic, roughness, specular, alphaCutoff, rimColor, rimParams
 - **Tsukino::Renderer::CBufferMotionBlur** — `Tsukino.Renderer/include/Tsukino/Renderer/ConstantBuffer.hpp`
   - strength, maxBlurRadius, shutterScale, sampleCount
 - **Tsukino::Renderer::CBufferScene** — `Tsukino.Renderer/include/Tsukino/Renderer/ConstantBuffer.hpp`
@@ -129,7 +129,7 @@
 - **Tsukino::Renderer::ShaderLoader** — `Tsukino.Renderer/include/Tsukino/Renderer/ShaderLoader.hpp`
   - LoadFromFile()
 - **Tsukino::Renderer::ShadowPass** — `Tsukino.Renderer/src/ShadowPass.hpp`
-  - kMapSize, Initialize(), Execute(), BindForSampling(), ComputeLightViewProj()
+  - kMapSize, kOrthoHalfExtent, kDepthTowardLight, kDepthAwayFromLight, kDepthRange, Initialize(), Execute(), BindForSampling(), ComputeLightViewProj()
 - **Tsukino::Renderer::SkyPass** — `Tsukino.Renderer/include/Tsukino/Renderer/SkyPass.hpp`
   - Initialize(), SetParameters(), SetPipeline(), IsReady(), Execute(), GetVertexShader(), GetPixelShader(), GetBufferAddress()
 - **Tsukino::Renderer::SpriteRenderer** — `Tsukino.Renderer/include/Tsukino/Renderer/SpriteRenderer.hpp`

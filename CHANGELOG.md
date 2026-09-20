@@ -9,6 +9,16 @@ carve-out for `Tsukino.Renderer` described under **API stability** in the README
 
 ### Changed
 
+- **`CBufferMaterial` (b2) now lives in one place.** The struct was hand-written in
+  `GBuffer.ps.hlsl`, `Model.ps.hlsl` and `Sprite.ps.hlsl`; all three now
+  `#include "Material.hlsli"`, which also holds `EvaluateRimGlow`. The rim-glow formula
+  had been copy-pasted into the forward and deferred paths and had already drifted apart.
+
+  `alphaCutoff` becomes a named field instead of riding in `rimParams.z`. That removes
+  the ordering trap in `ModelSystem`, where the cutoff had to be written *after* the
+  rim-glow block or a highlighted model silently lost its alpha test. `rimColor` and
+  `rimParams` keep their meaning and their byte offsets.
+
 - **`Renderer` is split into passes** (QUALITY_REPORT C-4). `Renderer` now owns the
   parts and runs them in order; `Renderer.cpp` went from 2,556 to about 420 lines.
   Rendering output is unchanged: frame stats and captured frames were compared against
@@ -35,6 +45,20 @@ carve-out for `Tsukino.Renderer` described under **API stability** in the README
   `GetFrameStats` and the VSync accessors are unchanged.
 
 ### Fixed
+
+- **`CBufferMaterial` (b2) no longer feeds the shader shifted PBR values.**
+  `hlslpp::float3` occupies a full 16-byte SIMD register, while HLSL's `float3` is
+  12 bytes and lets the next scalar share its 16-byte row. `emissive` was the only
+  `float3` in the file followed by scalars, so `metallic`, `roughness` and `specular`
+  sat 4 bytes further along in C++ than the shader expected: the shader read the
+  material's `metallic` as `roughness`, its `roughness` as `specular`, and picked up
+  the unused fourth lane of `emissive` as `metallic`. Both structs were 80 bytes, so
+  a size check could never have caught it.
+
+  `Material.hlsli` now declares an explicit `emissivePad` after `emissive`, and
+  `ConstantBuffer.hpp` pins the size *and* the offsets of `metallic`, `alphaCutoff`,
+  `rimColor` and `rimParams` with `static_assert`. Material appearance changes, because
+  authored metallic / roughness / specular values finally reach the shader.
 
 - **`AudioManager` can stop sounds.** Playback used fire-and-forget `WaveBank::Play`, so
   `Stop` only logged a warning, `IsPlaying` always returned `false`, and the `isLoop`

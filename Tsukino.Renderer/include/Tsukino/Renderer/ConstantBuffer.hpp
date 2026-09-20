@@ -4,6 +4,7 @@
 //! @author 山﨑愛
 //--------------------------------------------------------------
 #pragma once
+#include <cstddef>    // offsetof（b2のレイアウト検査に使う）
 #include <Tsukino/Core/Math/Matrix.hpp>
 #include <hlsl++.h>
 // 名前空間 : Tsukino::Renderer
@@ -56,16 +57,35 @@ namespace Tsukino::Renderer {
     //--------------------------------------------------------------
     //! @struct CBufferMaterial
     //! @brief  スロット2 (b2) 用：マテリアルごとの固有データ
+    //! @note   Material.hlsli の CBufferMaterial と1バイト単位で一致させること。
+    //!         気をつける点が2つある。
+    //!         1つ目は hlslpp::float3 がSIMDレジスタ幅の16バイトを占めること。
+    //!         HLSLの float3 は12バイトで、直後のスカラーが同じ16バイト行へ
+    //!         詰められるため、放っておくと metallic 以降が4バイトずれる。
+    //!         これを防ぐため、HLSL側には emissive の直後に emissivePad を置いてある。
+    //!         2つ目は float4 が16バイト境界を跨げないこと。alphaCutoff までの
+    //!         4つのスカラーがちょうど1行を埋め、rimColor が48から始まる。
     //--------------------------------------------------------------
     struct CBufferMaterial {
         hlslpp::float4 baseColor;
-        hlslpp::float3 emissive;
+        hlslpp::float3 emissive;       //!< xyz: 自発光色（hlslpp::float3は16バイト。余る4番目のレーンがHLSL側のemissivePad）
         float          metallic;
         float          roughness;
         float          specular;
-        hlslpp::float4 rimColor;     //!< xyz: ふちの色, w: ふちの強さ（旧paddingを転用。ハイライト演出用）
-        hlslpp::float4 rimParams;    //!< x: ふちの鋭さ(pow指数), y: 全体の白発光量, z: alphaCutoff（0=アルファテスト無効）, w: 予約
+        float          alphaCutoff;    //!< アルファテストのしきい値（0=無効）
+        hlslpp::float4 rimColor;       //!< xyz: ふちの色, w: ふちの強さ
+        hlslpp::float4 rimParams;      //!< x: ふちの鋭さ(pow指数), y: 全体の白発光量, zw: 予約
     };
+
+    // b2のレイアウトはMaterial.hlsli側と手で合わせるしかないので、機械的に見張る。
+    // 総サイズだけでは不十分な点に注意。hlslpp::float3が余分に食う4バイトと、
+    // float4が16バイト境界まで送られる分は打ち消し合うことがあり、
+    // 中身がずれていてもサイズだけは一致してしまう。だからオフセットも固定する
+    static_assert(sizeof(CBufferMaterial) == 80, "CBufferMaterial must stay 80 bytes to match Material.hlsli (b2).");
+    static_assert(offsetof(CBufferMaterial, metallic) == 32, "metallic must sit at byte 32; emissivePad in Material.hlsli covers 28..31.");
+    static_assert(offsetof(CBufferMaterial, alphaCutoff) == 44, "alphaCutoff must fill the last slot before rimColor.");
+    static_assert(offsetof(CBufferMaterial, rimColor) == 48, "rimColor must start on the 16-byte boundary at 48.");
+    static_assert(offsetof(CBufferMaterial, rimParams) == 64, "rimParams must start on the 16-byte boundary at 64.");
 
     //--------------------------------------------------------------
     //! @struct CBufferSkinning

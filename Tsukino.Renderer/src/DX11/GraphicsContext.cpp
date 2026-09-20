@@ -240,7 +240,7 @@ namespace Tsukino::Renderer {
         //   0 : rgb = albedo
         //   1 : rgb = ワールド法線 (n*0.5+0.5), a = ShadingModel ID
         //   2 : r = metallic, g = roughness, b = AO, a = specular
-        //   3 : rgb = emissive（リム発光・全体白発光を含む）
+        //   3 : rgb = emissive（リムグローを含む）
         //   4 : rgb = ワールド座標（頂点シェーダーの補間値をそのまま出力。
         //             深度からの再構成はリバースZ+遠距離での精度劣化を避けるため使わない）。
         //             32bit floatで持つ。16bitだと原点から512離れた所で0.5単位刻みになり、

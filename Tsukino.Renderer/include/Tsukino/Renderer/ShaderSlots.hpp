@@ -84,7 +84,7 @@ namespace Tsukino::Renderer {
         GBufferAlbedo   = 9,     //!< t9  : G-Buffer0 (rgb: albedo)
         GBufferNormal   = 10,    //!< t10 : G-Buffer1 (rgb: ワールド法線, a: ShadingModel ID)
         GBufferMaterial = 11,    //!< t11 : G-Buffer2 (r: metallic, g: roughness, b: specular, a: AO)
-        GBufferEmissive = 12,    //!< t12 : G-Buffer3 (rgb: emissive + リム発光)
+        GBufferEmissive = 12,    //!< t12 : G-Buffer3 (rgb: emissive + リムグロー)
         GBufferDepth    = 13,    //!< t13 : 深度（G-Bufferパスと共有するDSVのSRVビュー）
         GBufferWorldPos = 14,    //!< t14 : G-Buffer4 (rgb: ワールド座標。頂点シェーダー補間値そのまま)
         GBufferVelocity = 15,    //!< t15 : G-Buffer5 (rg: 1フレームあたりのUV移動量。モーションブラーパスで読む)

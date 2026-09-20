@@ -9,19 +9,10 @@ SamplerState u_Sampler : register(s0); // サンプラー
 
 //--------------------------------------------------------------
 // 定数バッファ：マテリアル（b2）。SpriteComponent::tintColorがbaseColorとして渡ってくる。
-// レイアウトはCBufferMaterial（Tsukino/Renderer/ConstantBuffer.hpp）と一致させること。
-// スプライトではbaseColor以外は使わない
+// スプライトではbaseColor以外は使わないが、b2のレイアウトはModel系と
+// 共有しているのでMaterial.hlsliから取り込む
 //--------------------------------------------------------------
-cbuffer CBufferMaterial : register(b2)
-{
-    float4 baseColor;
-    float3 emissive;
-    float metallic;
-    float roughness;
-    float specular;
-    float4 rimColor;
-    float4 rimParams;
-};
+#include "Material.hlsli"
 
 //--------------------------------------------------------------
 // 頂点シェーダーから受け取った情報の構造体

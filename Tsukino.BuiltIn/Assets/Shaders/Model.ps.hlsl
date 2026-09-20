@@ -11,20 +11,7 @@
 #pragma pack_matrix(row_major)
 #include "PBR.hlsli"
 #include "IBL.hlsli"
-
-//--------------------------------------------------------------
-//! @brief マテリアル定数バッファ
-//--------------------------------------------------------------
-cbuffer CBufferMaterial : register(b2)
-{
-    float4 baseColor;
-    float3 emissive;
-    float metallic;
-    float roughness;
-    float specular;
-    float4 rimColor;    // xyz: ふちの色, w: ふちの強さ
-    float4 rimParams;   // x: ふちの鋭さ(pow指数), y: 全体の白発光量, z: alphaCutoff（0=アルファテスト無効）, w: 予約
-};
+#include "Material.hlsli"
 
 //--------------------------------------------------------------
 //! @brief アルベドテクスチャ (t0)
@@ -75,14 +62,14 @@ float4 PSMain(PSInput input) : SV_TARGET
 
     //----------------------------------------------------------
     // アルファテスト（カットアウト）
-    // rimParams.z はマテリアルのalphaCutoff。0のときは無効化される。
+    // alphaCutoffはマテリアルのしきい値。0のときは無効化される。
     // baseColor.aを掛けないのが重要で、このシェーダーはフェード中
     // （ModelComponent::opacityがbaseColor.aへ乗算される）にも通るため、
     // 掛けてしまうとフェードが進んだ瞬間にモデル全体が消える。
     // 深度事前パス（TransparentDepth）も同じシェーダーを使うので、
     // ここで破棄しないと透明テクセルが深度を書いて背後を不正に遮蔽する
     //----------------------------------------------------------
-    clip(albedoSample.a - rimParams.z);
+    clip(albedoSample.a - alphaCutoff);
 
     float3 albedo = ACES(albedoSample.rgb * baseColor.rgb); // テクスチャ × 定数色
 
@@ -129,17 +116,11 @@ float4 PSMain(PSInput input) : SV_TARGET
     float3 finalColor = ambient + directLight + emissive;
 
     //----------------------------------------------------------
-    // ハイライト演出（拾えるアイテムの強調など）
-    //   リム : 視線に対して斜めを向いた面ほど光らせる（輪郭がネオンのように光る）
-    //   白発光: モデル全体を一律に持ち上げる。HDRターゲットへ書くため
-    //           1.0を超えた分はトーンマップで白へ寄っていく
+    // リムグロー（拾えるアイテムの強調など）の上乗せ。
+    // 式はMaterial.hlsliに一元化してあり、ディファード側
+    // （GBuffer.ps.hlsl）と乖離しない
     //----------------------------------------------------------
-    // pow(0, 0) は exp2(0 * log2(0)) = NaN になる。リム無効（鋭さ0）のモデルでも
-    // 真正面を向いた画素で 1 - NdotV が 0 になるため、そのまま pow に渡すと黒い点が出る
-    float NdotV = saturate(dot(N, V)) + 1e-5f;
-    float rim   = rimParams.x > 0.0f ? pow(max(1.0f - NdotV, 1e-6f), rimParams.x) : 0.0f;
-    finalColor += rimColor.rgb * rim * rimColor.w;
-    finalColor += rimParams.y;
+    finalColor += EvaluateRimGlow(N, V);
 
     return float4(finalColor, baseColor.a * albedoSample.a);
 }

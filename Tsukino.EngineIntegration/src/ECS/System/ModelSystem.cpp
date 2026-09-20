@@ -205,18 +205,17 @@ namespace Tsukino::BuiltIn::ECS {
                         }
                     }
 
-                    // エンティティ単位のハイライト上書き（マテリアルアセットより後に適用する）
-                    if(auto* highlight = registry.try_get<RimGlowComponent>(entity); highlight && highlight->active) {
-                        cbMat.rimColor  = hlslpp::float4(highlight->rimColor, highlight->rimIntensity);
-                        cbMat.rimParams = hlslpp::float4(highlight->rimPower, highlight->glow, 0.0f, 0.0f);
+                    //--------------------------------------------------------------
+                    // エンティティ単位のリムグローの上乗せ（マテリアルアセットより後に適用する）。
+                    // コンポーネントが無い／非activeなら cbMat{} のゼロ初期化がそのまま残り、
+                    // rimColorもrimIntensityも0なので描画には一切影響しない
+                    //--------------------------------------------------------------
+                    if(auto* rimGlow = registry.try_get<RimGlowComponent>(entity); rimGlow && rimGlow->active) {
+                        cbMat.rimColor  = hlslpp::float4(rimGlow->rimColor, rimGlow->rimIntensity);
+                        cbMat.rimParams = hlslpp::float4(rimGlow->rimPower, rimGlow->glow, 0.0f, 0.0f);
                     }
 
-                    //--------------------------------------------------------------
-                    // アルファテストのしきい値をrimParams.zへ載せる。
-                    // ハイライト演出がrimParamsを丸ごと書き換えるため、必ずその後に入れる
-                    // （先に入れるとハイライト中だけカットアウトが無効化される）
-                    //--------------------------------------------------------------
-                    cbMat.rimParams.z = alphaCutoff;
+                    cbMat.alphaCutoff = alphaCutoff;
 
                     //--------------------------------------------------------------
                     // 半透明フェード（ModelComponent::opacity）。1.0未満なら通常のディファード

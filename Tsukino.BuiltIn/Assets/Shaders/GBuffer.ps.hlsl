@@ -7,20 +7,7 @@
 //--------------------------------------------------------------
 #pragma pack_matrix(row_major)
 #include "PBR.hlsli"
-
-//--------------------------------------------------------------
-//! @brief マテリアル定数バッファ (b2)
-//--------------------------------------------------------------
-cbuffer CBufferMaterial : register(b2)
-{
-    float4 baseColor;
-    float3 emissive;
-    float  metallic;
-    float  roughness;
-    float  specular;
-    float4 rimColor;     // xyz: ふちの色, w: ふちの強さ
-    float4 rimParams;    // x: ふちの鋭さ(pow指数), y: 全体の白発光量, z: alphaCutoff（0=アルファテスト無効）, w: 予約
-};
+#include "Material.hlsli"
 
 //--------------------------------------------------------------
 //! @brief マテリアルテクスチャ (t0〜t4)
@@ -54,7 +41,7 @@ struct PSOutput
     float4 albedo      : SV_TARGET0;    // rgb: albedo, a: 未使用
     float4 normal      : SV_TARGET1;    // rgb: ワールド法線(エンコード済み), a: 未使用（将来のShadingModel ID等に予約）
     float4 material    : SV_TARGET2;    // r: metallic, g: roughness, b: specular, a: AO
-    float4 emissiveOut : SV_TARGET3;    // rgb: emissive + リム発光 + 全体白発光, a: 未使用
+    float4 emissiveOut : SV_TARGET3;    // rgb: emissive + リムグロー, a: 未使用
     float4 worldPosOut : SV_TARGET4;    // rgb: ワールド座標（頂点シェーダー補間値そのまま）, a: 未使用
     float2 velocity    : SV_TARGET5;    // rg: 1フレームあたりのUV移動量（符号付き）
 };
@@ -73,14 +60,14 @@ PSOutput PSMain(PSInput input)
 
     //----------------------------------------------------------
     // アルファテスト（カットアウト）
-    // rimParams.z はマテリアルのalphaCutoff。0のときは無効化される
+    // alphaCutoffはマテリアルのしきい値。0のときは無効化される
     // （clipは引数が0未満のときだけ破棄するため、しきい値0ならアルファ0でも残る）。
     // ここで破棄しておかないと、透明テクセルがG-Bufferと深度を書いてしまう。
     // 判定にbaseColor.aを掛けないのは、くり抜き形状はテクスチャのアルファだけが
     // 持つ情報であり、オブジェクト全体のフェード（ModelComponent::opacity）と
     // 混ぜるとフェード途中で形状が破綻するため
     //----------------------------------------------------------
-    clip(albedoSample.a - rimParams.z);
+    clip(albedoSample.a - alphaCutoff);
 
     float3 albedo        = ACES(albedoSample.rgb * baseColor.rgb);
 
@@ -104,18 +91,13 @@ PSOutput PSMain(PSInput input)
     float  ao       = aoTexture.Sample(albedoSampler, input.uv).r;
 
     //----------------------------------------------------------
-    // リム発光・全体白発光（Model.ps.hlslのハイライト演出と同じ式）
-    // Lightingパス側の計算を単純化するため、この段階で焼き込んでおく
+    // リムグロー（式はMaterial.hlsliに一元化。フォワード側のModel.ps.hlslと共用）。
+    // Lightingパス側の計算を単純化するため、この段階でエミッシブへ焼き込んでおく
     //----------------------------------------------------------
-    float3 V     = normalize(cameraPos.xyz - input.worldPos);
-    float  NdotV = saturate(dot(N, V)) + 1e-5f;
-    // pow(0, 0) は exp2(0 * log2(0)) = NaN になる。リム無効（鋭さ0）のモデルでも
-    // 真正面を向いた画素で 1 - NdotV が 0 になるため、そのまま pow に渡すと
-    // 発光がNaNになり、トーンマップで黒い点として出る
-    float  rim   = rimParams.x > 0.0f ? pow(max(1.0f - NdotV, 1e-6f), rimParams.x) : 0.0f;
+    float3 V = normalize(cameraPos.xyz - input.worldPos);
 
     float3 emissiveSample = emissiveTexture.Sample(albedoSampler, input.uv).rgb;
-    float3 emissiveTotal  = emissive * emissiveSample + rimColor.rgb * rim * rimColor.w + rimParams.y;
+    float3 emissiveTotal  = emissive * emissiveSample + EvaluateRimGlow(N, V);
 
     //----------------------------------------------------------
     // 速度（モーションブラー用）
