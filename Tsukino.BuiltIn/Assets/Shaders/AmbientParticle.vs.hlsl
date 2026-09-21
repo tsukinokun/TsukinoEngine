@@ -11,22 +11,8 @@
 // 有限の粒子数でカメラがどこへ動いても空間が埋まり続ける。
 #pragma pack_matrix(row_major)
 
-//--------------------------------------------------------------
-// 定数バッファ：シーン (b0)
-// PBR.hlsliのCBufferSceneと同じ並び。使うのはview / viewProj / cameraPosだけ
-// なので末尾のprevViewProjは宣言しない（前方のメンバの配置は変わらない）
-//--------------------------------------------------------------
-cbuffer CBufferScene : register(b0)
-{
-    matrix view;
-    matrix projection;
-    matrix viewProj;
-    matrix invViewProj;
-    matrix lightViewProj;
-    float4 lightDir;
-    float4 lightColor;
-    float4 cameraPos;
-};
+// シーン定数バッファ(b0)。手書きせずScene.hlsliから取り込む（理由は同ファイル参照）
+#include "Scene.hlsli"
 
 //--------------------------------------------------------------
 // 定数バッファ：環境パーティクル (b10)

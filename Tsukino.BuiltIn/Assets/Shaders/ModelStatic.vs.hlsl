@@ -5,21 +5,8 @@
 //--------------------------------------------------------------
 #pragma pack_matrix(row_major)
 
-//--------------------------------------------------------------
-//! @brief シーン用定数バッファ
-//--------------------------------------------------------------
-cbuffer CBufferScene : register(b0)
-{
-    matrix view;
-    matrix projection;
-    matrix viewProj;
-    matrix invViewProj;
-    matrix lightViewProj; // ライト空間のViewProjection行列
-    float4 lightDir; // xyz: ライト方向（正規化済み）
-    float4 lightColor; // xyz: ライトの色, w: 未使用
-    float4 cameraPos; // xyz: カメラのワールド座標, w: 未使用
-    matrix prevViewProj; // 前フレームのViewProjection行列（速度バッファ生成用）
-};
+// シーン定数バッファ(b0)。手書きせずScene.hlsliから取り込む（理由は同ファイル参照）
+#include "Scene.hlsli"
 
 
 //--------------------------------------------------------------

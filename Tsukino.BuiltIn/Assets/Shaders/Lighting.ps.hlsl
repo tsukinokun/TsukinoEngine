@@ -70,9 +70,8 @@ float4 PSMain(PSInput input) : SV_TARGET
         float3 L      = normalize(-lightDir.xyz);    // lightDirは「ライトが向いている方向」なので反転
         float  shadow = GetShadowPCF(worldPos, N, L);
 
-        // 影の値を「0.0〜1.0」ではなく「minShadow〜1.0」の範囲にする
-        float minShadow = 0.25f;
-        shadow           = max(shadow, minShadow);
+        // 影を真っ黒にしない（下限はPBR.hlsliのkShadowMinLit。フォワード側と共用）
+        shadow = max(shadow, kShadowMinLit);
 
         float3 radiance = lightColor.rgb * lightColor.w * shadow;
         lit += EvaluatePBR(N, V, L, albedo, metallic, roughness, specular, radiance);

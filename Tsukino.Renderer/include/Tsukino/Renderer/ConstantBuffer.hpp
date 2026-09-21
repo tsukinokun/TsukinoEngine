@@ -42,6 +42,16 @@ namespace Tsukino::Renderer {
         hlslpp::float4 shadowParams;    //!< x: シャドウマップの一辺(px), y: その逆数(=texelSize), z: 1テクセルのワールド幅, w: 1/奥行き（ワールド距離→深度値の換算）
     };
 
+    // b0のレイアウトもMaterial.hlsli同様に手で合わせるしかないので、機械的に見張る。
+    // b2と違いパディングの細工は無いが、見張る理由はむしろこちらの方が強い。
+    // 実際にShadowMapStatic.vs.hlslがinvViewProjの宣言を落としており、
+    // 以降が64バイトずれてスタティックメッシュの影が壊れていた（Scene.hlsli参照）。
+    // 先頭の行列を1本増減させると全メンバが動くので、要所のオフセットを固定する
+    static_assert(sizeof(CBufferScene) == 480, "CBufferScene must stay 480 bytes to match Scene.hlsli (b0).");
+    static_assert(offsetof(CBufferScene, lightViewProj) == 256, "lightViewProj must sit at byte 256; a missing matrix before it shifts the shadow pass by 64 bytes.");
+    static_assert(offsetof(CBufferScene, prevViewProj) == 368, "prevViewProj must sit at byte 368.");
+    static_assert(offsetof(CBufferScene, shadowParams) == 464, "shadowParams must sit at byte 464.");
+
     //--------------------------------------------------------------
     //! @struct CBufferTransform
     //! @brief  スロット1 (b1) 用：オブジェクトごとの固有データ
@@ -80,7 +90,10 @@ namespace Tsukino::Renderer {
     // b2のレイアウトはMaterial.hlsli側と手で合わせるしかないので、機械的に見張る。
     // 総サイズだけでは不十分な点に注意。hlslpp::float3が余分に食う4バイトと、
     // float4が16バイト境界まで送られる分は打ち消し合うことがあり、
-    // 中身がずれていてもサイズだけは一致してしまう。だからオフセットも固定する
+    // 中身がずれていてもサイズだけは一致してしまう。だからオフセットも固定する。
+    //
+    // ただし守れるのはこちら側だけ。Material.hlsli の emissivePad を消しても
+    // 以下のアサートは全て通り、描画結果が静かに壊れる。片方を触ったら必ず両方見る
     static_assert(sizeof(CBufferMaterial) == 80, "CBufferMaterial must stay 80 bytes to match Material.hlsli (b2).");
     static_assert(offsetof(CBufferMaterial, metallic) == 32, "metallic must sit at byte 32; emissivePad in Material.hlsli covers 28..31.");
     static_assert(offsetof(CBufferMaterial, alphaCutoff) == 44, "alphaCutoff must fill the last slot before rimColor.");
@@ -97,7 +110,7 @@ namespace Tsukino::Renderer {
 
     //--------------------------------------------------------------
     //! @struct CBufferSkinningPrev
-    //! @brief  スロット7 (b7) 用：前フレームのボーン行列（速度バッファ生成用）
+    //! @brief  スロット6 (b6) 用：前フレームのボーン行列（速度バッファ生成用）
     //! @note   CBufferSkinning と同じレイアウト。モーションブラーが無効なときは
     //!         転送もバインドも行わない（スキン1体あたり8KBの転送を節約する）。
     //--------------------------------------------------------------
@@ -107,7 +120,7 @@ namespace Tsukino::Renderer {
 
     //--------------------------------------------------------------
     //! @struct CBufferMotionBlur
-    //! @brief  スロット8 (b8) 用：モーションブラーパラメータ
+    //! @brief  スロット7 (b7) 用：モーションブラーパラメータ
     //! @note   速度バッファには「1フレームあたりの生のUV移動量」だけが入っている。
     //!         強度・シャッター補正はすべてここで掛ける（G-Bufferをタイミング
     //!         パラメータから独立させるため）。
@@ -171,7 +184,7 @@ namespace Tsukino::Renderer {
 
     //--------------------------------------------------------------
     //! @struct CBufferLights
-    //! @brief  スロット6 (b6) 用：点光源・スポットライト配列（ディファードLightingパス用）
+    //! @brief  スロット5 (b5) 用：点光源・スポットライト配列（ディファードLightingパス用）
     //--------------------------------------------------------------
     struct CBufferLights {
         unsigned int lightCount = 0;
@@ -181,7 +194,7 @@ namespace Tsukino::Renderer {
 
     //--------------------------------------------------------------
     //! @struct CBufferFog
-    //! @brief  スロット9 (b9) 用：フォグパラメータ
+    //! @brief  スロット8 (b8) 用：フォグパラメータ
     //! @note   Fog.ps.hlsl の CBufferFog と1バイト単位で一致させること。
     //!         距離フォグ・高さフォグ・ノイズ揺らぎをまとめて持つ。
     //--------------------------------------------------------------

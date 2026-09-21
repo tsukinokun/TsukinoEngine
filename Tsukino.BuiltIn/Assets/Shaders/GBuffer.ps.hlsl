@@ -91,13 +91,15 @@ PSOutput PSMain(PSInput input)
     float  ao       = aoTexture.Sample(albedoSampler, input.uv).r;
 
     //----------------------------------------------------------
-    // リムグロー（式はMaterial.hlsliに一元化。フォワード側のModel.ps.hlslと共用）。
-    // Lightingパス側の計算を単純化するため、この段階でエミッシブへ焼き込んでおく
+    // リムグロー ＋ 面全体の一律発光（式はMaterial.hlsliに一元化。
+    // フォワード側のModel.ps.hlslと同じ関数を呼ぶので乖離しない）。
+    // Lightingパス側の計算を単純化するため、この段階でエミッシブへ焼き込んでおく。
+    // 書き込み先のGBuffer3はR11G11B10_FLOATなので、1.0を超えた分も潰れずに残る
     //----------------------------------------------------------
     float3 V = normalize(cameraPos.xyz - input.worldPos);
 
     float3 emissiveSample = emissiveTexture.Sample(albedoSampler, input.uv).rgb;
-    float3 emissiveTotal  = emissive * emissiveSample + EvaluateRimGlow(N, V);
+    float3 emissiveTotal  = emissive * emissiveSample + EvaluateEmissiveBoost(N, V);
 
     //----------------------------------------------------------
     // 速度（モーションブラー用）

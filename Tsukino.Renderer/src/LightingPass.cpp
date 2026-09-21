@@ -138,7 +138,7 @@ namespace Tsukino::Renderer {
         context->PSSetConstantBuffers(static_cast<UINT>(CBSlot::Scene), 1, m_frameConstants->GetSceneBufferAddress());
 
         //----------------------------------------------------------
-        // Lights (b6) を更新してバインド
+        // Lights (b5) を更新してバインド
         //----------------------------------------------------------
         context->UpdateSubresource(m_lightsBuffer.Get(), 0, nullptr, &m_lightsData, 0, 0);
         constexpr UINT lightsCBSlot = static_cast<UINT>(CBSlot::Lights);

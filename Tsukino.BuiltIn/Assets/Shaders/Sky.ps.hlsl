@@ -7,20 +7,8 @@
 
 static const float PI = 3.14159265358979f;
 
-//--------------------------------------------------------------
-//! @brief シーン定数バッファ (b0)
-//--------------------------------------------------------------
-cbuffer CBufferScene : register(b0)
-{
-    matrix view;
-    matrix projection;
-    matrix viewProj;
-    matrix invViewProj;
-    matrix lightViewProj;
-    float4 lightDir;
-    float4 lightColor;
-    float4 cameraPos;
-};
+// シーン定数バッファ(b0)。手書きせずScene.hlsliから取り込む（理由は同ファイル参照）
+#include "Scene.hlsli"
 
 //--------------------------------------------------------------
 //! @brief 大気散乱定数バッファ (b4)

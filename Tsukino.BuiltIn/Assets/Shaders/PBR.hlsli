@@ -10,24 +10,8 @@
 #ifndef TSUKINO_PBR_HLSLI
 #define TSUKINO_PBR_HLSLI
 
-//--------------------------------------------------------------
-//! @brief シーン用定数バッファ (b0)
-//--------------------------------------------------------------
-cbuffer CBufferScene : register(b0)
-{
-    matrix view;
-    matrix projection;
-    matrix viewProj;
-    matrix invViewProj;
-    matrix lightViewProj;    // ライト空間のViewProjection行列
-    float4 lightDir;         // xyz: ライト方向（正規化済み）
-    float4 lightColor;       // xyz: ライトの色, w: 強度
-    float4 cameraPos;        // xyz: カメラのワールド座標, w: 未使用
-    matrix prevViewProj;     // 前フレームのViewProjection行列（速度バッファ生成用）
-    float4 timeParams;       // x: 起動からの経過秒, y: 前フレームからの経過秒, z: sin(x), w: cos(x)
-    float4 screenParams;     // xy: 描画領域の解像度(px), zw: その逆数
-    float4 shadowParams;     // x: シャドウマップの一辺(px), y: その逆数, z: 1テクセルのワールド幅, w: 1/奥行き
-};
+// シーン定数バッファ(b0)。手書きせずScene.hlsliから取り込む（理由は同ファイル参照）
+#include "Scene.hlsli"
 
 static const float PI = 3.14159265358979323846f;
 
@@ -199,6 +183,14 @@ static const float kShadowNormalOffset   = 1.5f;    // 法線方向の押し出�
 static const float kShadowConstantBias   = 1.0f;    // 深度バイアスの一定分（テクセル）
 static const float kShadowSlopeBias      = 1.0f;    // 深度バイアスの傾き比例分（テクセル / tan）
 static const float kShadowMaxSlope       = 4.0f;    // tanの上限（約76度。これより斜めな面は同じ扱い）
+
+//--------------------------------------------------------------
+// 影の中でも平行光源をこの割合だけ残す（0にすると影が真っ黒に潰れる）。
+// 上のバイアス類と違って物理的な根拠は無く、見た目の調整値。
+// ディファード(Lighting.ps.hlsl)とフォワード(Model.ps.hlsl)の両方が使うので、
+// 同じ数値を2箇所へ書かないようここに置く
+//--------------------------------------------------------------
+static const float kShadowMinLit = 0.25f;
 
 //--------------------------------------------------------------
 //! @brief  ディレクショナルライトの影をPCF（3x3）で引く

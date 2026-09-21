@@ -93,9 +93,8 @@ float4 PSMain(PSInput input) : SV_TARGET
     //----------------------------------------------------------
     float shadow = GetShadowPCF(input.worldPos, N, L);
 
-    // 影の値を「0.0～1.0」ではなく「minShadow～1.0」の範囲にする
-    float minShadow = 0.25f; // 0.0にすると真っ黒、0.3くらいにすると少し明るい影になる
-    shadow = max(shadow, minShadow);
+    // 影を真っ黒にしない（下限はPBR.hlsliのkShadowMinLit。ディファード側と共用）
+    shadow = max(shadow, kShadowMinLit);
 
     float3 radiance = lightColor.rgb * lightColor.w * shadow; // 色 × 強度 × 影
 
@@ -117,11 +116,11 @@ float4 PSMain(PSInput input) : SV_TARGET
     float3 finalColor = ambient + directLight + emissive;
 
     //----------------------------------------------------------
-    // リムグロー（拾えるアイテムの強調など）の上乗せ。
+    // リムグロー（拾えるアイテムの強調など）＋ 面全体の一律発光の上乗せ。
     // 式はMaterial.hlsliに一元化してあり、ディファード側
-    // （GBuffer.ps.hlsl）と乖離しない
+    // （GBuffer.ps.hlsl）と同じ関数を呼ぶので乖離しない
     //----------------------------------------------------------
-    finalColor += EvaluateRimGlow(N, V);
+    finalColor += EvaluateEmissiveBoost(N, V);
 
     return float4(finalColor, baseColor.a * albedoSample.a);
 }

@@ -9,12 +9,103 @@
 #include <Tsukino/Core/IO/FileSystem.hpp>
 
 #include <d3dcompiler.h>
+#include <cstdint>
 #include <fstream>
+#include <map>
+#include <memory>
 #include <set>
 #include <string>
 #include <vector>
 // 名前空間 Tsukino::Asset
 namespace Tsukino::Asset {
+    namespace {
+        //--------------------------------------------------------------
+        //! エンジン組み込みシェーダー（Scene.hlsli等の共有ヘッダ）の置き場所を返します。
+        //--------------------------------------------------------------
+        Tsukino::Core::Path BuiltInShaderDirectory() {
+            return Tsukino::IO::FileSystem::GetEngineAssetRootPath() / Tsukino::Core::Path(std::string("Tsukino.BuiltIn/Assets/Shaders"));
+        }
+
+        //--------------------------------------------------------------
+        //! @class ShaderIncludeHandler
+        //! @brief #include の探索先にエンジン組み込みシェーダーの置き場所を足すハンドラ
+        //! @note  D3D_COMPILE_STANDARD_FILE_INCLUDE はインクルード元からの相対しか見ない。
+        //!        そのためゲーム側のシェーダーからはエンジンのScene.hlsliへ手が届かず、
+        //!        b0の宣言をゲーム側で書き写すしかなかった。書き写した宣言はいつか本体と
+        //!        ずれる（実際にShadowMapStatic.vs.hlslがinvViewProjを落として
+        //!        スタティックメッシュの影が壊れていた）ので、探索先を1つ増やして
+        //!        どのリポジトリのシェーダーからでもincludeできるようにする。
+        //!
+        //!        探索順は「インクルード元のディレクトリ → エンジンのShaders」。
+        //!        ゲーム側が同名のファイルを置いたときはゲーム側が勝つ
+        //--------------------------------------------------------------
+        class ShaderIncludeHandler final : public ID3DInclude {
+        public:
+            //----------------------------------------------------------
+            //! @param [in] sourceDirectory コンパイル対象のシェーダーが置かれたディレクトリ
+            //----------------------------------------------------------
+            explicit ShaderIncludeHandler(Tsukino::Core::Path sourceDirectory)
+                : m_sourceDirectory(std::move(sourceDirectory))
+                , m_builtInDirectory(BuiltInShaderDirectory()) {}
+
+            //----------------------------------------------------------
+            //! インクルード先を開きます。
+            //! @note 実体はCloseが呼ばれるまでこのクラスが握り続ける
+            //----------------------------------------------------------
+            HRESULT __stdcall Open(D3D_INCLUDE_TYPE, LPCSTR fileName, LPCVOID parentData, LPCVOID* outData, UINT* outBytes) override {
+                *outData  = nullptr;
+                *outBytes = 0;
+
+                if(!fileName)
+                    return E_FAIL;
+
+                //--------------------------------------------------
+                // 入れ子のincludeは親バッファが読まれた場所を基準にする。
+                // 親が分からない（＝コンパイル対象そのものからのinclude）ときは
+                // コンパイル対象のディレクトリを使う
+                //--------------------------------------------------
+                const auto                parent    = m_directoryOf.find(parentData);
+                const Tsukino::Core::Path searchDir = (parent != m_directoryOf.end()) ? parent->second : m_sourceDirectory;
+
+                Tsukino::Core::Path resolved = searchDir / Tsukino::Core::Path(std::string(fileName));
+                if(!Tsukino::IO::FileSystem::Exists(resolved)) {
+                    resolved = m_builtInDirectory / Tsukino::Core::Path(std::string(fileName));
+                    if(!Tsukino::IO::FileSystem::Exists(resolved))
+                        return E_FAIL;
+                }
+
+                auto buffer = std::make_unique<std::vector<std::uint8_t>>(Tsukino::IO::FileSystem::ReadBinary(resolved));
+
+                // data()がnullptrを返さないよう最低1バイト持たせる（空のヘッダでも通す）
+                if(buffer->empty())
+                    buffer->push_back('\n');
+
+                void* data = buffer->data();
+                *outData   = data;
+                *outBytes  = static_cast<UINT>(buffer->size());
+
+                m_directoryOf[data] = resolved.parent_path();
+                m_buffers[data]     = std::move(buffer);
+                return S_OK;
+            }
+
+            //----------------------------------------------------------
+            //! Openで開いた実体を解放します。
+            //----------------------------------------------------------
+            HRESULT __stdcall Close(LPCVOID data) override {
+                m_directoryOf.erase(data);
+                m_buffers.erase(data);
+                return S_OK;
+            }
+
+        private:
+            Tsukino::Core::Path                                           m_sourceDirectory;    // コンパイル対象のディレクトリ
+            Tsukino::Core::Path                                           m_builtInDirectory;   // エンジン組み込みシェーダーのディレクトリ
+            std::map<LPCVOID, Tsukino::Core::Path>                        m_directoryOf;        // 開いたバッファ → そのファイルのディレクトリ
+            std::map<LPCVOID, std::unique_ptr<std::vector<std::uint8_t>>> m_buffers;            // Closeまで生かしておく実体
+        };
+    }    // namespace
+
     //--------------------------------------------------------------
     //! @brief  シェーダーアセットをインポートする関数
     //--------------------------------------------------------------
@@ -86,9 +177,13 @@ namespace Tsukino::Asset {
         ID3DBlob* shaderBlob = nullptr;
         ID3DBlob* errorBlob  = nullptr;
 
+        // #includeの解決。標準ハンドラはインクルード元からの相対しか見ないため、
+        // エンジン組み込みシェーダーの置き場所も探す自前のハンドラを使う
+        ShaderIncludeHandler includeHandler(absoluteInputPath.parent_path());
+
         HRESULT hr = D3DCompileFromFile(absoluteInputPath.ToWString().c_str(),
                                         nullptr,
-                                        D3D_COMPILE_STANDARD_FILE_INCLUDE,
+                                        &includeHandler,
                                         entrypoint.c_str(),
                                         target.c_str(),
                                         flags,
@@ -164,9 +259,15 @@ namespace Tsukino::Asset {
                 if(includeName.empty())
                     continue;
 
+                // 探索順はShaderIncludeHandler::Openと必ず揃えること。
+                // ここが食い違うと、Scene.hlsliを直してもゲーム側シェーダーの
+                // キャッシュが無効化されず、古い.csoを使い続けてしまう
                 Tsukino::Core::Path includePath = parentDir / Tsukino::Core::Path(includeName);
-                if(!Tsukino::IO::FileSystem::Exists(includePath))
-                    continue;
+                if(!Tsukino::IO::FileSystem::Exists(includePath)) {
+                    includePath = BuiltInShaderDirectory() / Tsukino::Core::Path(includeName);
+                    if(!Tsukino::IO::FileSystem::Exists(includePath))
+                        continue;
+                }
 
                 outDeps.push_back(includePath);
 
