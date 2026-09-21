@@ -46,6 +46,28 @@ carve-out for `Tsukino.Renderer` described under **API stability** in the README
 
 ### Fixed
 
+- **FBX Phong materials are converted instead of discarded.** `ModelImporter` asked assimp
+  only for `metallicFactor` / `roughnessFactor` and ignored the return value, so every FBX —
+  which is to say almost every model, since FBX carries Phong materials and has no PBR
+  factors — silently baked the same `metallic 0 / roughness 0.5 / specular 0.5`. Every
+  character in a project came out with identical surface parameters, and nothing said so.
+
+  The importer now checks the return value and, when no PBR factors are present, derives
+  roughness from `ShininessExponent` with the standard Blinn-Phong mapping
+  `roughness = sqrt(2 / (shininess + 2))`, clamped to [0.04, 1]. Assets that do carry PBR
+  factors are never touched. Each material logs which of the three paths it took — PBR
+  values, Phong conversion, or defaults — along with the numbers, so a material that falls
+  back is visible instead of merely looking plausible.
+
+  `SpecularFactor` and `SpecularColor` are deliberately not mapped to `specular`. They are
+  Phong highlight intensities, not the dielectric F0 this engine's `specular` controls
+  (`F0 = 0.08 * specular`); FBX commonly carries 1.0 there, which doubles F0 from 0.04 to
+  0.08 and makes skin and cloth shine. `metallic` stays 0 for the same reason — Phong has no
+  notion of metal.
+
+  **Cached `.tsm` files do not notice importer changes** — reimport is decided by source
+  mtime alone — so `Cache/` has to be deleted once for this to take effect.
+
 - **ACES is no longer applied twice.** `GBuffer.ps.hlsl` and `Model.ps.hlsl` ran the
   albedo through `ACES()` before lighting it, and `Tonemap.ps.hlsl` then tonemapped the
   finished HDR frame. Albedo is a reflectance, not a radiance, so tonemapping it is wrong

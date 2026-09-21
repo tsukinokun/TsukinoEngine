@@ -6,6 +6,8 @@
 #define NOMINMAX
 
 #include <Tsukino/Engine/Asset/Model/ModelImporter.hpp>
+#include <algorithm>
+#include <cmath>
 #include <cstring>
 #include <cwchar>
 
@@ -269,14 +271,69 @@ namespace Tsukino::Asset {
                 dstMat.emissive = hlslpp::float3(emissive.r, emissive.g, emissive.b);
             }
 
-            // メタリック・ラフネス
-            // メタリック・ラフネス（Assimp 5.0.1 対応）
-            float metallic  = 0.0f;
-            float roughness = 0.5f;
-            aiMat->Get("$mat.metallicFactor", 0, 0, metallic);
-            aiMat->Get("$mat.roughnessFactor", 0, 0, roughness);
+            //----------------------------------------------------------
+            // 表面パラメータ（metallic / roughness / specular）
+            //
+            // 優先順位は「PBR値 → Phongからの変換 → 既定値」。
+            // glTFのようにPBR値を持つアセットの値は絶対に上書きしない。
+            //
+            // FBXのマテリアルはほぼ例外なくPhong（DiffuseColor / SpecularColor /
+            // ShininessExponent）で、metallicFactor / roughnessFactor を持たない。
+            // ここで変換しないと全アセットが既定値のまま焼かれ、どのモデルも
+            // 同じ質感になる。FBXはこのエンジンが最も多く読む形式なので、
+            // 「対応しない」ではなく「インポート時に片方へ寄せる」を選んでいる
+            // （スペック/グロス用のShadingModelを足すとBRDFの分岐が倍になるため）。
+            //
+            // 文字列キーを直に書いているのは、Assimp 5.0.1 に
+            // AI_MATKEY_METALLIC_FACTOR / AI_MATKEY_ROUGHNESS_FACTOR が無いため。
+            // 中身は後続バージョンのマクロと同じ ("$mat.metallicFactor", 0, 0)
+            //----------------------------------------------------------
+            float      metallic     = 0.0f;
+            float      roughness    = 0.5f;
+            const bool hasMetallic  = (aiMat->Get("$mat.metallicFactor", 0, 0, metallic) == AI_SUCCESS);
+            const bool hasRoughness = (aiMat->Get("$mat.roughnessFactor", 0, 0, roughness) == AI_SUCCESS);
+
             dstMat.metallic  = metallic;
             dstMat.roughness = roughness;
+
+            if(!hasMetallic && !hasRoughness) {
+                float      shininess    = 0.0f;
+                const bool hasShininess = (aiMat->Get(AI_MATKEY_SHININESS, shininess) == AI_SUCCESS);
+
+                //------------------------------------------------------
+                // Blinn-Phongの鏡面指数とGGXのラフネスの標準的な対応。
+                //     roughness = sqrt(2 / (shininess + 2))
+                // shininess=0 なら完全にラフ(1.0)になり、これは妥当な結果。
+                // ただしShininessExponentの桁はエクスポータ依存で大きく違う
+                // （MayaとMaxで別物）ため、クランプで守ったうえで変換前後の値を
+                // ログへ出し、見た目がおかしいときに式ではなく範囲を調整できるようにする
+                //------------------------------------------------------
+                if(hasShininess) {
+                    const float converted = std::sqrt(2.0f / (std::max(shininess, 0.0f) + 2.0f));
+                    dstMat.roughness      = std::clamp(converted, 0.04f, 1.0f);
+                }
+
+                //------------------------------------------------------
+                // specularとmetallicは既定値のままにする。
+                //
+                // SpecularFactor / SpecularColor には手を出さない。これらはPhongの
+                // 「ハイライトの強さ」であって、このエンジンのspecular（F0 = 0.08 * specular
+                // で、誘電体の垂直入射反射率を決める物理量）とは意味が違う。
+                // 実測するとFBXのSpecularFactorは1.0のことが多く、そのまま写すと
+                // F0が既定の0.04から0.08へ倍増して、肌や布まで一律に照る。
+                // 値が入っていても「物理的な反射率としての情報」ではないので使わない。
+                //
+                // metallicも同様。Phongには金属の概念が無く、0が既定として正しい
+                //------------------------------------------------------
+                if(hasShininess) {
+                    Tsukino::Core::Log::Info("Material '" + dstMat.name + "': converted Phong to metallic-roughness (shininess "
+                                             + std::to_string(shininess) + " -> roughness " + std::to_string(dstMat.roughness) + ").");
+                } else {
+                    Tsukino::Core::Log::Warn("Material '" + dstMat.name
+                                             + "' has neither PBR nor Phong values. Falling back to defaults (metallic 0, roughness 0.5, specular 0.5), "
+                                               "so this material will look the same as every other one that hits this path.");
+                }
+            }
         };
 
         //--------------------------------------------------------------
