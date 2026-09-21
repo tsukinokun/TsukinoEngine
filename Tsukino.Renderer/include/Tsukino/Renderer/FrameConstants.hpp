@@ -17,6 +17,8 @@
 
 #include <hlsl++.h>
 
+#include <array>
+
 // 名前空間 : Tsukino::Renderer
 namespace Tsukino::Renderer {
     class GraphicsContext;    // 前方宣言
@@ -33,11 +35,10 @@ namespace Tsukino::Renderer {
         //! 定数バッファを作成します。
         //! @param  [in] graphicsContext デバイスと画面サイズの取得元（Renderer がこのクラスより長生きさせる）
         //! @param  [in] shadowMapSize   シャドウマップの一辺（b0 の shadowParams へ配る）
-        //! @param  [in] shadowWorldSize シャドウマップ1枚が覆うワールドの幅（1テクセルの幅を求めてshadowParams.zへ配る）
         //! @param  [in] shadowDepthRange シャドウの平行投影の奥行き（ワールド距離。逆数をshadowParams.wへ配る）
         //! @return true: 作成成功, false: 作成失敗
         [[nodiscard]]
-        bool Initialize(const GraphicsContext& graphicsContext, u32 shadowMapSize, float shadowWorldSize, float shadowDepthRange);
+        bool Initialize(const GraphicsContext& graphicsContext, u32 shadowMapSize, float shadowDepthRange);
 
         //! ワールド（メインカメラ）のカメラ行列を設定します。
         //! @param  [in] data カメラ行列を詰めたシーン定数。view / projection / viewProj / invViewProj / cameraPos だけを使う
@@ -56,10 +57,20 @@ namespace Tsukino::Renderer {
         void AdvanceTime(float deltaTime);
 
         //! ディレクショナルライトの情報をワールドのシーン定数へ書き込みます。
-        //! @param  [in] lightViewProj ライト空間の ViewProjection 行列
-        //! @param  [in] lightDir      ライトの方向（xyz。正規化済み）
-        //! @param  [in] lightColor    ライトの色（xyz）と強度（w）
-        void SetDirectionalLight(const Tsukino::Core::Math::matrix& lightViewProj, const hlslpp::float4& lightDir, const hlslpp::float4& lightColor);
+        //! @param  [in] cascadeViewProj   カスケードごとのライト空間 ViewProjection（近→遠）
+        //! @param  [in] cascadeTexelWorld カスケードごとの1テクセルのワールド幅（xyzが各カスケード）
+        //! @param  [in] lightDir          ライトの方向（xyz。正規化済み）
+        //! @param  [in] lightColor        ライトの色（xyz）と強度（w）
+        void SetDirectionalLight(const std::array<Tsukino::Core::Math::matrix, kShadowCascadeCount>& cascadeViewProj,
+                                 const hlslpp::float4& cascadeTexelWorld, const hlslpp::float4& lightDir, const hlslpp::float4& lightColor);
+
+        //! シャドウパスが今どのカスケードを描いているかを設定します。
+        //! @param  [in] cascade カスケード番号（0が最も近い）
+        //! @note   シャドウ用の頂点シェーダーはこれを見て cascadeViewProj[] を引く。
+        //!         設定しただけでは反映されないので、続けて UploadWorld() を呼ぶこと
+        void SetShadowCascadeIndex(unsigned int cascade) noexcept {
+            m_worldSceneData.shadowParams.z = static_cast<float>(cascade);
+        }
 
         //! ワールドのシーン定数を取得します。
         //! @return ワールドのシーン定数
@@ -111,7 +122,6 @@ namespace Tsukino::Renderer {
         const GraphicsContext*               m_graphicsContext = nullptr;    // デバイスと画面サイズの取得元（借りている）
         Microsoft::WRL::ComPtr<ID3D11Buffer> m_sceneBuffer;                  // b0 の定数バッファ
         float                                m_shadowMapSize = 0.0f;         // シャドウマップの一辺（b0 の shadowParams へ配る）
-        float                                m_shadowTexelWorldSize = 0.0f;  // シャドウマップ1テクセルのワールド幅（shadowParams.z）
         float                                m_shadowDepthRange     = 1.0f;  // シャドウの平行投影の奥行き（shadowParams.wはその逆数）
 
         CBufferScene m_worldSceneData{};      // 3D（メインカメラ）用

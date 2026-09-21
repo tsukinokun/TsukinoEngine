@@ -9,6 +9,7 @@
 #include <Tsukino/Core/typedef.hpp>
 
 #include <d3d11.h>
+#include <hlsl++.h>
 #include <wrl/client.h>
 
 // 名前空間 : Tsukino::GraphicsCommon
@@ -29,6 +30,20 @@ namespace Tsukino::Renderer {
         u32                                  vertexCount = 0;    // 頂点数
         u32                                  indexCount  = 0;    // インデックス数
         u32                                  stride      = 0;    // 頂点のストライド（バイト単位）
+
+        //----------------------------------------------------------
+        // バウンディング球（ローカル空間）。MeshData の AABB から作る。
+        // シャドウパスがカスケードの範囲外を間引くのに使う。
+        //
+        // AABBではなく球にしてあるのは、ワールド行列で回してもサイズが
+        // 変わらないため。AABBのまま回すと軸に沿い直す計算が毎回要る。
+        //
+        // boundsRadius が 0 のときは「バウンド不明」として扱い、間引かない。
+        // プリミティブのように MeshData 側が bounds を埋めていない経路があるため、
+        // 既定値のまま誤って消えることが無いようにしている
+        //----------------------------------------------------------
+        hlslpp::float3 boundsCenter = hlslpp::float3(0.0f, 0.0f, 0.0f);
+        float          boundsRadius = 0.0f;
     };
 
     //--------------------------------------------------------------

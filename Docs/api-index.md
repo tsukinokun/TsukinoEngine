@@ -250,6 +250,7 @@
 - `Tsukino::Renderer::Shader` — `Tsukino.Renderer/include/Tsukino/Renderer/Shader.hpp`
 - `Tsukino::Renderer::ShaderLoader` — `Tsukino.Renderer/include/Tsukino/Renderer/ShaderLoader.hpp`
 - `Tsukino::Renderer::ShadowPass` — `Tsukino.Renderer/src/ShadowPass.hpp`
+- `Tsukino::Renderer::ShadowPass::Cascade` — `Tsukino.Renderer/src/ShadowPass.hpp`
 - `Tsukino::Renderer::SkyPass` — `Tsukino.Renderer/include/Tsukino/Renderer/SkyPass.hpp`
 - `Tsukino::Renderer::SpriteRenderer` — `Tsukino.Renderer/include/Tsukino/Renderer/SpriteRenderer.hpp`
 - `Tsukino::Renderer::TonemapPass` — `Tsukino.Renderer/src/TonemapPass.hpp`

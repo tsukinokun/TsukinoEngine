@@ -26,5 +26,7 @@ struct VSInput
 float4 VSMain(VSInput input) : SV_POSITION
 {
     float4 worldPos = mul(float4(input.position, 1.0f), world);
-    return mul(worldPos, lightViewProj);
+    // シャドウパスが描画中のカスケード番号はshadowParams.zに入っている。
+    // こうしておくとこのシェーダーはカスケードの枚数を知らなくて済む
+    return mul(worldPos, cascadeViewProj[(uint)shadowParams.z]);
 }

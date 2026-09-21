@@ -6,6 +6,8 @@
 #include <Tsukino/Renderer/DX11/MeshBuffer.hpp>
 #include <Tsukino/GraphicsCommon/Mesh/MeshData.hpp>
 
+#include <cmath>
+
 namespace Tsukino::Renderer {
     //--------------------------------------------------------------
     //! @brief  メッシュデータを作成する関数
@@ -72,6 +74,22 @@ namespace Tsukino::Renderer {
         //--------------------------------------------------------------
         // メタ情報を保存
         //--------------------------------------------------------------
+        //--------------------------------------------------------------
+        // バウンディング球。MeshData::bounds は ModelImporter が埋めて .tsm へ
+        // 書いているので、ここでは写して球へ直すだけでよい。
+        // bounds を埋めていない経路（プリミティブなど）では min == max になり、
+        // 半径0＝「バウンド不明」として扱われる
+        //--------------------------------------------------------------
+        const float extentX = (meshData.bounds.max.x - meshData.bounds.min.x) * 0.5f;
+        const float extentY = (meshData.bounds.max.y - meshData.bounds.min.y) * 0.5f;
+        const float extentZ = (meshData.bounds.max.z - meshData.bounds.min.z) * 0.5f;
+        const float radius  = std::sqrt(extentX * extentX + extentY * extentY + extentZ * extentZ);
+
+        buffer.boundsCenter  = hlslpp::float3((meshData.bounds.max.x + meshData.bounds.min.x) * 0.5f,
+                                              (meshData.bounds.max.y + meshData.bounds.min.y) * 0.5f,
+                                              (meshData.bounds.max.z + meshData.bounds.min.z) * 0.5f);
+        buffer.boundsRadius  = (std::isfinite(radius) && radius > 0.0f) ? radius : 0.0f;
+
         buffer.vertexCount = meshData.vertexCount;     
         buffer.indexCount  = meshData.indexCount;      
         buffer.stride      = meshData.vertexStride;    

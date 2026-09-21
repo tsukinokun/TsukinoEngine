@@ -7,6 +7,8 @@
 #include "FullscreenPass.hpp"
 #include "ShadowPass.hpp"
 
+#include <array>
+
 #include <Tsukino/Renderer/DX11/GraphicsContext.hpp>
 #include <Tsukino/Renderer/RenderResources.hpp>
 #include <Tsukino/Renderer/FrameConstants.hpp>
@@ -77,10 +79,29 @@ namespace Tsukino::Renderer {
         hlslpp::float3 normalizedDir = hlslpp::normalize(direction);
 
         //------------------------------------------------------------
-        // ライト空間の ViewProjection（シャドウマップの投影）を求めて、
-        // ワールドのシーン定数へ書き込む
+        // カスケードごとのライト空間 ViewProjection を求めて、
+        // ワールドのシーン定数へ書き込む。
+        //
+        // 半径は定数だけから決まる（カメラにもライトにも依らない）ので、
+        // シャドウパス側も同じ関数を呼んで同じ値を得られる。
+        // 値を共有する状態を持たずに済ませるための作りになっている
         //------------------------------------------------------------
-        m_frameConstants->SetDirectionalLight(ShadowPass::ComputeLightViewProj(normalizedDir, focusPoint),
+        const std::array<float, ShadowPass::kCascadeCount> extents = ShadowPass::ComputeCascadeExtents();
+
+        // テクセル幅はfloat4 1本で運ぶので、カスケードは最大4枚まで
+        static_assert(kShadowCascadeCount <= 4, "cascadeTexelWorld is a single float4; it holds at most 4 cascades.");
+
+        std::array<Tsukino::Core::Math::matrix, ShadowPass::kCascadeCount> cascadeViewProj{};
+        float                                                              texel[4]{};
+
+        for(unsigned int i = 0; i < ShadowPass::kCascadeCount; ++i) {
+            cascadeViewProj[i] = ShadowPass::ComputeLightViewProj(normalizedDir, focusPoint, extents[i]);
+            texel[i]           = 2.0f * extents[i] / static_cast<float>(ShadowPass::kMapSize);
+        }
+
+        const hlslpp::float4 texelWorld(texel[0], texel[1], texel[2], texel[3]);
+
+        m_frameConstants->SetDirectionalLight(cascadeViewProj, texelWorld,
                                              hlslpp::float4(normalizedDir.x, normalizedDir.y, normalizedDir.z, 0.0f),
                                              hlslpp::float4(color.x, color.y, color.z, intensity));
     }

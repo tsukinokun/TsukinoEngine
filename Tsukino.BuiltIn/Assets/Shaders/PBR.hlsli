@@ -194,49 +194,79 @@ static const float kShadowMinLit = 0.25f;
 
 //--------------------------------------------------------------
 //! @brief  ディレクショナルライトの影をPCF（3x3）で引く
-//! @param  map      シャドウマップ（t8）
+//! @param  map      カスケードシャドウマップ（t8。スライス=カスケード）
 //! @param  samp     比較サンプラー（s8。リバースZなのでGREATER_EQUALで比較する）
 //! @param  worldPos 影を調べる点のワールド座標
 //! @param  N        その点の法線（正規化済み）
 //! @param  L        光の来る方向（正規化済み）
-//! @return 遮蔽量 0.0f(暗) - 1.0f(明)
+//! @return 遮蔽されていない割合 0.0f(影) - 1.0f(明)
 //! @note   ディファード（Lighting.hlsli）とフォワード（Model.ps.hlsl）の両方がこれを使う
 //--------------------------------------------------------------
-float SampleShadowPCF(Texture2D map, SamplerComparisonState samp, float3 worldPos, float3 N, float3 L)
+float SampleShadowPCF(Texture2DArray map, SamplerComparisonState samp, float3 worldPos, float3 N, float3 L)
 {
-    const float texelWorld = shadowParams.z;
-    const float NdotL      = saturate(dot(N, L));
+    const float NdotL = saturate(dot(N, L));
 
-    // 法線オフセット。光に正対する面は押し出さない
-    float3 samplePos = worldPos + N * (texelWorld * kShadowNormalOffset * (1.0f - NdotL));
+    //----------------------------------------------------------
+    // 傾きの分だけバイアスを増やす係数を先に出しておく。
+    // tan(θ) = sin/cos を内積から直接求めている。
+    // 光と平行に近い面でNdotLが0へ近づくとtanが発散するので上限を付ける
+    //----------------------------------------------------------
+    const float tanTheta = min(sqrt(saturate(1.0f - NdotL * NdotL)) / max(NdotL, 1.0e-3f), kShadowMaxSlope);
 
-    float4 lightSpace = mul(float4(samplePos, 1.0f), lightViewProj);
+    //----------------------------------------------------------
+    // カスケードの選択。
+    //
+    // カスケードは注視点を中心とした同心の箱なので、「UVが0〜1に収まる
+    // 最小のカスケード」が、その点を最も高い解像度で覆っているものになる。
+    // 距離で比較する方式より行列積のぶん重いが、判定と投影範囲が定義上
+    // 一致するため、境界の決め方を別途合わせ込む必要がない。
+    //
+    // breakで抜けるのは、ここの分岐がピクセルごとに結果の変わる
+    // 動的分岐だからである（rimParamsのような定数バッファ由来の分岐と違い、
+    // fxcは平坦化せず本物の制御フローを出す）。近景の画素ほど早く抜ける
+    //----------------------------------------------------------
+    [loop]
+    for(uint cascade = 0; cascade < TSUKINO_SHADOW_CASCADE_COUNT; ++cascade) {
+        const float texelWorld = cascadeTexelWorld[cascade];
 
-    // クリップ座標をUV座標に変換（DirectXはY反転）
-    float2 uv = lightSpace.xy * float2(0.5f, -0.5f) + 0.5f;
+        // 法線オフセット。光に正対する面は押し出さない。
+        // 押し出し量はテクセル幅が単位なので、カスケードごとに自動で追従する
+        const float3 samplePos = worldPos + N * (texelWorld * kShadowNormalOffset * (1.0f - NdotL));
 
-    // 投影範囲の外は影なし
-    if(any(uv < 0.0f) || any(1.0f < uv))
-        return 1.0f;
+        const float4 lightSpace = mul(float4(samplePos, 1.0f), cascadeViewProj[cascade]);
 
-    // 傾き比例の深度バイアス。ワールド距離で求めてから深度値へ換算する（shadowParams.w = 1/奥行き）。
-    // リバースZなので、光へ近づける向き＝深度値を足す向き
-    const float tanTheta  = min(sqrt(saturate(1.0f - NdotL * NdotL)) / max(NdotL, 1.0e-3f), kShadowMaxSlope);
-    const float biasWorld = texelWorld * (kShadowConstantBias + kShadowSlopeBias * tanTheta);
-    const float depth     = lightSpace.z + biasWorld * shadowParams.w;
+        // クリップ座標をUV座標に変換（DirectXはY反転）。
+        // 平行投影なのでwは常に1で、透視除算は要らない
+        const float2 uv = lightSpace.xy * float2(0.5f, -0.5f) + 0.5f;
 
-    float shadow = 0.0f;
+        // このカスケードの外なら、1つ外側のカスケードへ回す
+        if(any(uv < 0.0f) || any(1.0f < uv))
+            continue;
 
-    [unroll]
-    for(int x = -1; x <= 1; x++) {
+        //------------------------------------------------------
+        // 傾き比例の深度バイアス。ワールド距離で求めてから深度値へ換算する
+        // （shadowParams.w = 1/奥行き。奥行きは全カスケード共通）。
+        // リバースZなので、光へ近づける向き＝深度値を足す向き
+        //------------------------------------------------------
+        const float biasWorld = texelWorld * (kShadowConstantBias + kShadowSlopeBias * tanTheta);
+        const float depth     = lightSpace.z + biasWorld * shadowParams.w;
+
+        float shadow = 0.0f;
+
         [unroll]
-        for(int y = -1; y <= 1; y++) {
-            float2 offset = float2(x, y) * shadowParams.y;
-            shadow += map.SampleCmpLevelZero(samp, uv + offset, depth);
+        for(int x = -1; x <= 1; x++) {
+            [unroll]
+            for(int y = -1; y <= 1; y++) {
+                const float2 offset = float2(x, y) * shadowParams.y;
+                shadow += map.SampleCmpLevelZero(samp, float3(uv + offset, cascade), depth);
+            }
         }
+
+        return shadow / 9.0f;
     }
 
-    return shadow / 9.0f;
+    // どのカスケードにも入らなかった（＝影を出す距離の外）
+    return 1.0f;
 }
 
 #endif    // TSUKINO_PBR_HLSLI

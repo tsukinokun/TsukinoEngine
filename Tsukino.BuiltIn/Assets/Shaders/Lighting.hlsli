@@ -53,7 +53,7 @@ SamplerState gbufferSampler : register(s9);
 //--------------------------------------------------------------
 //! @brief シャドウマップ (t8) と比較サンプラー (s8)
 //--------------------------------------------------------------
-Texture2D               shadowMap : register(t8);
+Texture2DArray          shadowMap : register(t8);    // スライス=カスケード（近→遠）
 SamplerComparisonState  shadowSampler : register(s8);
 
 //--------------------------------------------------------------

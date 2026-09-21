@@ -66,7 +66,7 @@ namespace Tsukino::Renderer {
         //------------------------------------------------------------
         // フレーム単位のシーン定数（b0）の作成
         //------------------------------------------------------------
-        if(!m_frameConstants.Initialize(m_graphicsContext, ShadowPass::kMapSize, ShadowPass::kOrthoHalfExtent * 2.0f, ShadowPass::kDepthRange))
+        if(!m_frameConstants.Initialize(m_graphicsContext, ShadowPass::kMapSize, ShadowPass::kDepthRange))
             return false;
 
         //------------------------------------------------------------
@@ -416,6 +416,14 @@ namespace Tsukino::Renderer {
     //------------------------------------------------------------
     void Renderer::SetClearColor(float r, float g, float b, float a) {
         m_clearColor = {r, g, b, a};
+    }
+
+    //------------------------------------------------------------
+    //! @brief シャドウパスのカリングの有無を設定
+    //------------------------------------------------------------
+    void Renderer::SetShadowCullingEnabled(bool enabled) {
+        if(m_shadowPass)
+            m_shadowPass->SetCullingEnabled(enabled);
     }
 
 }    // namespace Tsukino::Renderer

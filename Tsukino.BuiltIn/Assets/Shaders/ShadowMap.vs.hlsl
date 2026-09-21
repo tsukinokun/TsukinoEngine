@@ -43,5 +43,7 @@ float4 VSMain(VSInput input) : SV_POSITION
         bones[input.boneIndices.w] * input.boneWeights.w;
 
     float4 worldPos = mul(mul(float4(input.position, 1.0f), skinMatrix), world);
-    return mul(worldPos, lightViewProj);
+    // シャドウパスが描画中のカスケード番号はshadowParams.zに入っている。
+    // こうしておくとこのシェーダーはカスケードの枚数を知らなくて済む
+    return mul(worldPos, cascadeViewProj[(uint)shadowParams.z]);
 }
