@@ -16,7 +16,7 @@
 //! @note ShadowPass::kCascadeCount と一致させること。
 //!       cascadeViewProj の要素数がこれで決まるため、b0のレイアウトに直結する
 //--------------------------------------------------------------
-#define TSUKINO_SHADOW_CASCADE_COUNT 3
+#define TSUKINO_SHADOW_CASCADE_COUNT 4
 
 //--------------------------------------------------------------
 //! シーン用定数バッファ (b0)
@@ -53,14 +53,14 @@ cbuffer CBufferScene : register(b0)
     matrix viewProj;                                        // 128
     matrix invViewProj;                                     // 192  viewProjの逆行列（スカイ・ポストエフェクト等で使用）
     matrix cascadeViewProj[TSUKINO_SHADOW_CASCADE_COUNT];   // 256  カスケードごとのライト空間ViewProjection（近→遠）
-    float4 lightDir;                                        // 448  xyz: ライト方向（正規化済み）
-    float4 lightColor;                                      // 464  xyz: ライトの色, w: 強度
-    float4 cameraPos;                                       // 480  xyz: カメラのワールド座標, w: 未使用
-    matrix prevViewProj;                                    // 496  前フレームのViewProjection行列（速度バッファ生成用）
-    float4 timeParams;                                      // 560  x: 起動からの経過秒, y: 前フレームからの経過秒, z: sin(x), w: cos(x)
-    float4 screenParams;                                    // 576  xy: 描画領域の解像度(px), zw: その逆数
-    float4 shadowParams;                                    // 592  x: シャドウマップの一辺(px), y: その逆数, z: シャドウパスが描画中のカスケード番号, w: 1/奥行き
-    float4 cascadeTexelWorld;                               // 608  xyz: 各カスケードの1テクセルのワールド幅（シャドウバイアスの単位）, w: 予約
+    float4 lightDir;                                        // 512  xyz: ライト方向（正規化済み）
+    float4 lightColor;                                      // 528  xyz: ライトの色, w: 強度
+    float4 cameraPos;                                       // 544  xyz: カメラのワールド座標, w: 未使用
+    matrix prevViewProj;                                    // 560  前フレームのViewProjection行列（速度バッファ生成用）
+    float4 timeParams;                                      // 624  x: 起動からの経過秒, y: 前フレームからの経過秒, z: sin(x), w: cos(x)
+    float4 screenParams;                                    // 640  xy: 描画領域の解像度(px), zw: その逆数
+    float4 shadowParams;                                    // 656  x: シャドウマップの一辺(px), y: その逆数, z: シャドウパスが描画中のカスケード番号, w: 1/奥行き
+    float4 cascadeTexelWorld;                               // 672  xyzw: 各カスケードの1テクセルのワールド幅（シャドウバイアスの単位。カスケード4枚ぶん）
 };
 
 #endif    // TSUKINO_SCENE_HLSLI

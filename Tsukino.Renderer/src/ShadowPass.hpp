@@ -27,9 +27,11 @@ namespace Tsukino::Renderer {
         //! カスケードの枚数。b0のcascadeViewProjの要素数と同じでなければならない
         static constexpr u32 kCascadeCount = kShadowCascadeCount;
 
-        //! 影を出す最大距離（ワールド）。カメラのfarZ(1000)まで覆う必要は無い。
-        //! 遠景はフォグに沈んで影が見えないため、そこへ解像度を割くと近景が粗くなるだけ
-        static constexpr float kShadowDistance = 600.0f;
+        //! 影を出す最大距離（ワールド）。フォグに沈んで見えなくなるより手前で切る。
+        //! 画面に映っている間は影が要るので、敵が湧く距離（CombatAndroidは注視点から900〜1300）を
+        //! 覆える値にしてある。ここを伸ばすぶんはカスケードを増やして補う
+        //! （枚数を据え置いて伸ばすと、近景1枚あたりの受け持ちが広がって足元の影が粗くなる）
+        static constexpr float kShadowDistance = 1400.0f;
 
         //! 分割の対数寄せ具合（practical split scheme）。1.0で完全な対数分割、0.0で等分割。
         //! 大きいほど近景へ解像度が寄る
@@ -44,9 +46,14 @@ namespace Tsukino::Renderer {
         static constexpr float kSkinnedBoundsInflate = 1.6f;
 
         //! 平行投影の奥行き。注視点から光の来る側へkDepthTowardLight、向こう側へkDepthAwayFromLightまでを収める。
-        //! シェーダーはこの合計（kDepthRange）で深度バイアスをワールド距離から深度値へ換算する
-        static constexpr float kDepthTowardLight   = 499.0f;
-        static constexpr float kDepthAwayFromLight = 1500.0f;
+        //! シェーダーはこの合計（kDepthRange）で深度バイアスをワールド距離から深度値へ換算する。
+        //!
+        //! 全カスケードで同じ値を使うので、一番広いカスケード（kShadowDistance）が
+        //! 斜めから見て収まるだけの奥行きが要る。ここが足りないと、注視点から光の方向へ
+        //! 離れた位置にいる物が near 面の手前へ出てしまい、影マップに描かれない
+        //! （「遠くの敵だけ影が出ない」という形で現れる）
+        static constexpr float kDepthTowardLight   = 2000.0f;
+        static constexpr float kDepthAwayFromLight = 3000.0f;
         static constexpr float kDepthRange         = kDepthTowardLight + kDepthAwayFromLight;
 
         //! シャドウマップと影用パイプラインを作成します。

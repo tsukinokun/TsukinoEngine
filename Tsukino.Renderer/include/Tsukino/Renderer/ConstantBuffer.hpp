@@ -15,7 +15,7 @@ namespace Tsukino::Renderer {
     //!       CBufferScene の cascadeViewProj の要素数がこれで決まるため、
     //!       b0 のレイアウトに直結する（ShadowPass::kCascadeCount もこれを使う）
     //--------------------------------------------------------------
-    static constexpr unsigned int kShadowCascadeCount = 3;
+    static constexpr unsigned int kShadowCascadeCount = 4;
 
     //--------------------------------------------------------------
     //! @struct CBufferScene
@@ -48,7 +48,7 @@ namespace Tsukino::Renderer {
         hlslpp::float4 timeParams;      //!< x: 起動からの経過秒, y: 前フレームからの経過秒, z: sin(x), w: cos(x)
         hlslpp::float4 screenParams;    //!< xy: 描画領域の解像度(px), zw: その逆数(1/w, 1/h)
         hlslpp::float4 shadowParams;         //!< x: シャドウマップの一辺(px), y: その逆数(=texelSize), z: シャドウパスが描画中のカスケード番号, w: 1/奥行き（ワールド距離→深度値の換算）
-        hlslpp::float4 cascadeTexelWorld;    //!< xyz: 各カスケードの1テクセルのワールド幅（シャドウバイアスの単位）, w: 予約
+        hlslpp::float4 cascadeTexelWorld;    //!< xyzw: 各カスケードの1テクセルのワールド幅（シャドウバイアスの単位。カスケード4枚ぶん）
     };
 
     // b0のレイアウトもMaterial.hlsli同様に手で合わせるしかないので、機械的に見張る。
@@ -56,11 +56,11 @@ namespace Tsukino::Renderer {
     // 実際にShadowMapStatic.vs.hlslがinvViewProjの宣言を落としており、
     // 以降が64バイトずれてスタティックメッシュの影が壊れていた（Scene.hlsli参照）。
     // 先頭の行列を1本増減させると全メンバが動くので、要所のオフセットを固定する
-    static_assert(sizeof(CBufferScene) == 624, "CBufferScene must stay 624 bytes to match Scene.hlsli (b0).");
+    static_assert(sizeof(CBufferScene) == 688, "CBufferScene must stay 688 bytes to match Scene.hlsli (b0).");
     static_assert(offsetof(CBufferScene, cascadeViewProj) == 256, "cascadeViewProj must start at byte 256; a missing matrix before it shifts every cascade by 64 bytes.");
-    static_assert(offsetof(CBufferScene, prevViewProj) == 496, "prevViewProj must sit at byte 496 (right after the cascade matrices).");
-    static_assert(offsetof(CBufferScene, shadowParams) == 592, "shadowParams must sit at byte 592.");
-    static_assert(offsetof(CBufferScene, cascadeTexelWorld) == 608, "cascadeTexelWorld must sit at byte 624; the shadow bias reads it per cascade.");
+    static_assert(offsetof(CBufferScene, prevViewProj) == 560, "prevViewProj must sit at byte 560 (right after the cascade matrices).");
+    static_assert(offsetof(CBufferScene, shadowParams) == 656, "shadowParams must sit at byte 656.");
+    static_assert(offsetof(CBufferScene, cascadeTexelWorld) == 672, "cascadeTexelWorld must sit at byte 672; the shadow bias reads it per cascade.");
 
     //--------------------------------------------------------------
     //! @struct CBufferTransform
