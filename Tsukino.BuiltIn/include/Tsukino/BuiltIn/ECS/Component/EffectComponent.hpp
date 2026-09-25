@@ -17,8 +17,8 @@ namespace Tsukino::BuiltIn::ECS {
     struct EffectComponent {
         //--------------------------------------------------------------
         // AssetHandleはプロセス内限定の値でJSONへ直接書き出せないため、パスを保持する
-        // AssetRefで参照する。Prefabからの生成時はPrefabFactoryがAssetRefResolverArchive
-        // を通してパスをハンドルへ解決する（ModelComponent／SpriteComponentと同じ設計）
+        // AssetRefで参照する。Prefabからの生成時はPrefabFactoryがJSONの読み込み中に
+        // パスをハンドルへ解決する（ModelComponent／SpriteComponentと同じ設計）
         //--------------------------------------------------------------
         Tsukino::Asset::AssetRef effectAsset;          //!< .efk アセットへの参照
         Tsukino::Core::Path      effectPath;           //!< エフェクトの基準ディレクトリ解決に使うパス

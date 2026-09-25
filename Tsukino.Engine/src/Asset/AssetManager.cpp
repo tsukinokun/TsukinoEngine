@@ -4,6 +4,7 @@
 //! @author 山﨑愛
 //--------------------------------------------------------------
 #include <Tsukino/Engine/Asset/AssetManager.hpp>
+#include <Tsukino/Engine/Asset/AssetRef.hpp>
 #include <Tsukino/Engine/Asset/IAsset.hpp>
 #include <Tsukino/Engine/Asset/IAssetLoader.hpp>
 #include <Tsukino/Engine/Asset/Util/AssetHandleGenerator.hpp>
@@ -372,6 +373,13 @@ namespace Tsukino::Asset {
         }
 
         return Tsukino::Core::Path(cacheBasePath.string() + "#" + sourceFragment);
+    }
+
+    //--------------------------------------------------------------------
+    // パスからアセットを読んでハンドルを得る（AssetRefのload_minimalから呼ばれる）
+    //--------------------------------------------------------------------
+    AssetHandle ResolveAssetRefPath(AssetManager& assetManager, const std::string& path) {
+        return assetManager.Load(Tsukino::Core::Path(path));
     }
 
 }    // namespace Tsukino::Asset

@@ -28,11 +28,6 @@ namespace Tsukino::BuiltIn::ECS {
     void load(Archive& archive, EffectComponent& effect) {
         archive(effect.effectAsset, effect.playSpeed, effect.looping);
 
-        //--------------------------------------------------------------
-        // AssetRefResolverArchiveによる再訪問でもこのload()が呼ばれる。
-        // ローカル変数へ読んでから書き戻すと、解決パスでは空文字が読まれて
-        // メンバを壊すため、必ずメンバへ直接読み込むこと
-        //--------------------------------------------------------------
         effect.effectPath = Tsukino::Core::Path(effect.effectAsset.path);
         effect.handle     = -1;
         effect.stopped    = false;

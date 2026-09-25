@@ -14,6 +14,7 @@
 
 // 名前空間 : Tsukino::Asset
 namespace Tsukino::Asset {
+    class AssetManager;
 
     //--------------------------------------------------------------------
     //! @struct AssetRef
@@ -21,7 +22,7 @@ namespace Tsukino::Asset {
     //!
     //!         AssetHandle はプロセス内限定の値でありJSONへ直接書き出せないため、
     //!         代わりにこの型がパス文字列を保持し、PrefabFactoryがInstantiate時に
-    //!         AssetManager::Loadで解決してhandleへ書き込む（EntityRefと対になる設計）。
+    //!         AssetManager::Loadで解決してhandleへ書き込む（ScopedAssetRefResolver参照）。
     //!
     //!         AssetHandleとの暗黙変換・主要メソッドの転送を持つ「透過的なラッパー」
     //!         として設計しているため、既存のAssetHandleを直接扱っているコードは
@@ -80,12 +81,69 @@ namespace Tsukino::Asset {
     }
 
     //--------------------------------------------------------------------
-    //! @brief  cereal用：読み込み処理（pathのみを読み込む。handleの解決はAssetRefResolverArchiveが行う）
+    //! @brief  パスからアセットを読んでハンドルを得る（AssetManager::Loadへの転送）
+    //! @param  assetManager [in] 読み込みに使うAssetManager
+    //! @param  path         [in] アセットのパス
+    //! @return 読み込んだアセットのハンドル
+    //! @note   load_minimalはテンプレートで、ここでAssetManagerを完全型にすると
+    //!         AssetManager.hppとの循環includeになるため、実体はAssetManager.cppに置く
+    //--------------------------------------------------------------------
+    AssetHandle ResolveAssetRefPath(AssetManager& assetManager, const std::string& path);
+
+    //--------------------------------------------------------------------
+    //! @class  ScopedAssetRefResolver
+    //! @brief  生存している間、このスレッドで読み込まれるAssetRefのhandleまで解決させるスコープ
+    //! @note   PrefabFactory::Instantiateが、Componentを本物のJSONアーカイブで読む間だけ張る。
+    //!         以前はload()を擬似アーカイブで再訪問して解決していたが、hlslppのベクトル等の
+    //!         load()が「ローカルへ読んで代入」する作りのため、再訪問で全て0に上書きされていた。
+    //!         読み込みの最中に解決すれば再訪問そのものが要らない
+    //--------------------------------------------------------------------
+    class ScopedAssetRefResolver {
+    public:
+        //--------------------------------------------------------------------
+        //! @brief  このスレッドの解決先を設定する
+        //! @param  assetManager [in] 解決に使うAssetManager（nullptrなら解決しない）
+        //--------------------------------------------------------------------
+        explicit ScopedAssetRefResolver(AssetManager* assetManager)
+            : m_previous(Current()) {
+            Current() = assetManager;
+        }
+
+        //--------------------------------------------------------------------
+        //! @brief  解決先を元に戻す（入れ子にしても外側のスコープの設定へ戻る）
+        //--------------------------------------------------------------------
+        ~ScopedAssetRefResolver() { Current() = m_previous; }
+
+        ScopedAssetRefResolver(const ScopedAssetRefResolver&)            = delete;
+        ScopedAssetRefResolver& operator=(const ScopedAssetRefResolver&) = delete;
+
+        //--------------------------------------------------------------------
+        //! @brief  このスレッドで現在有効な解決先を得る
+        //! @return 解決に使うAssetManager（スコープ外ならnullptr）
+        //--------------------------------------------------------------------
+        [[nodiscard]]
+        static AssetManager*& Current() {
+            thread_local AssetManager* s_current = nullptr;
+            return s_current;
+        }
+
+    private:
+        AssetManager* m_previous;    // 入れ子のとき戻す先
+    };
+
+    //--------------------------------------------------------------------
+    //! @brief  cereal用：読み込み処理
+    //! @note   pathを読む。ScopedAssetRefResolverの内側（Prefabの生成中）なら、handleまで解決する。
+    //!         外側（PrefabFactory::Loadなど）ではpathだけを読み、handleは未解決のまま残す
     //--------------------------------------------------------------------
     template <class Archive>
     void load_minimal(const Archive&, AssetRef& ref, const std::string& value) {
         ref.path   = value;
         ref.handle = AssetHandle::Invalid();
+
+        AssetManager* assetManager = ScopedAssetRefResolver::Current();
+        if(assetManager != nullptr && !value.empty())
+            ref.handle = ResolveAssetRefPath(*assetManager, value);
     }
 
 }    // namespace Tsukino::Asset
