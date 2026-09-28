@@ -310,14 +310,19 @@ namespace Tsukino::BuiltIn::ECS {
                         ctx->renderer->GetDrawQueue().Push(cmd);
                     };
 
+                    // 閉じたメッシュは裏面を捨てる。カメラが敵の中へめり込んでも内面のテクスチャが見えない
+                    const Tsukino::Renderer::CullMode cullMode =
+                        modelComp.doubleSided ? Tsukino::Renderer::CullMode::None : Tsukino::Renderer::CullMode::Back;
+
                     if(isFading) {
                         // 半透明フォワード：先に深度だけ埋め（スキンメッシュの自己重なり対策）、
                         // 続けてその深度と一致する画素だけを1回シェーディングする。
                         // 影・モーションベクタはGBufferパス限定のため、フェード中は失われる
                         auto depthPipeline = ctx->renderer->GetResources().GetPipelineFactory()->Create(
-                            *vsAsset, *psAsset, vertexFormat, Tsukino::Renderer::DepthMode::ReadWrite, Tsukino::Renderer::BlendMode::DepthOnly);
+                            *vsAsset, *psAsset, vertexFormat, Tsukino::Renderer::DepthMode::ReadWrite, Tsukino::Renderer::BlendMode::DepthOnly,
+                            cullMode);
                         auto colorPipeline = ctx->renderer->GetResources().GetPipelineFactory()->Create(
-                            *vsAsset, *psAsset, vertexFormat, Tsukino::Renderer::DepthMode::EqualReadOnly, blendMode);
+                            *vsAsset, *psAsset, vertexFormat, Tsukino::Renderer::DepthMode::EqualReadOnly, blendMode, cullMode);
 
                         if(auto* depthMat = buildMaterial(depthPipeline))
                             pushDrawCommand(depthMat, Tsukino::Renderer::RenderPass::TransparentDepth);
@@ -325,7 +330,7 @@ namespace Tsukino::BuiltIn::ECS {
                             pushDrawCommand(colorMat, Tsukino::Renderer::RenderPass::Transparent);
                     } else {
                         auto pipeline = ctx->renderer->GetResources().GetPipelineFactory()->Create(*vsAsset, *psAsset, vertexFormat,
-                                                                                    Tsukino::Renderer::DepthMode::ReadWrite, blendMode);
+                                                                                    Tsukino::Renderer::DepthMode::ReadWrite, blendMode, cullMode);
                         if(auto* mat = buildMaterial(pipeline)) {
                             // 不透明（PBR/Unlit/Toon）はG-Bufferパスへ回す
                             pushDrawCommand(mat, Tsukino::Renderer::RenderPass::GBuffer);

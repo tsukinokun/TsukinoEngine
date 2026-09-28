@@ -6,6 +6,7 @@
 #pragma once
 #include <Tsukino/Renderer/DX11/PipelineState.hpp>
 #include <Tsukino/Renderer/DX11/DepthMode.hpp>
+#include <Tsukino/Renderer/DX11/CullMode.hpp>
 
 #include <Tsukino/Renderer/BlendMode.hpp>
 
@@ -24,7 +25,7 @@ namespace Tsukino::Asset {
 // 名前空間 : Tsukino::Renderer
 namespace Tsukino::Renderer {
     // パイプラインステートのキャッシュ用キー
-    using PipelineKey = std::tuple<u64, u64, Tsukino::GraphicsCommon::VertexFormat, DepthMode, BlendMode>;
+    using PipelineKey = std::tuple<u64, u64, Tsukino::GraphicsCommon::VertexFormat, DepthMode, BlendMode, CullMode>;
 
     //--------------------------------------------------------------
     //! @struct PipelineHash
@@ -37,7 +38,8 @@ namespace Tsukino::Renderer {
             auto h3 = std::hash<int>()(static_cast<int>(std::get<2>(key)));
             auto h4 = std::hash<int>()(static_cast<int>(std::get<3>(key)));
             auto h5 = std::hash<int>()(static_cast<int>(std::get<4>(key)));
-            return h1 ^ (h2 << 1) ^ (h3 << 2) ^ (h4 << 3) ^ (h5 << 4);
+            auto h6 = std::hash<int>()(static_cast<int>(std::get<5>(key)));
+            return h1 ^ (h2 << 1) ^ (h3 << 2) ^ (h4 << 3) ^ (h5 << 4) ^ (h6 << 5);
         }
     };
 
@@ -61,6 +63,8 @@ namespace Tsukino::Renderer {
         //! @param  layout       [in] 入力レイアウトの配列
         //! @param  layoutCount  [in] 入力レイアウトの数
         //! @param  depthMode    [in] デプスステンシルステートの設定
+        //! @param  blendMode    [in] ブレンドステートの設定
+        //! @param  cullMode     [in] 面カリングの設定（既定は両面描画）
         //! @return パイプラインステートのポインタ
         //--------------------------------------------------------------
         [[nodiscard]]
@@ -68,7 +72,8 @@ namespace Tsukino::Renderer {
                                               const Tsukino::Asset::ShaderAsset&    ps,
                                               Tsukino::GraphicsCommon::VertexFormat format,
                                               DepthMode                             depthMode,
-                                              BlendMode                             blendMode = BlendMode::Opaque);
+                                              BlendMode                             blendMode = BlendMode::Opaque,
+                                              CullMode                              cullMode  = CullMode::None);
 
     private:
         // DirectXのデバイス

@@ -22,6 +22,10 @@ namespace Tsukino::BuiltIn::ECS {
         // ディファードのライティング結果はTonemapパスがrgbしか読まないため、
         // baseColorのアルファを下げてもディファード経路では一切フェードしない
         float opacity = 1.0f;
+
+        // falseなら裏面を捨てる（カメラがめり込んでも内面が見えない）。
+        // マントや髪など、片面ポリゴンを両側から見せたいモデルだけtrueにする
+        bool doubleSided = false;
     };
 
 }    // namespace Tsukino::BuiltIn::ECS

@@ -15,12 +15,12 @@ namespace Tsukino::Renderer {
                                                            const Tsukino::Asset::ShaderAsset&    ps,
                                                            Tsukino::GraphicsCommon::VertexFormat format,
                                                            DepthMode                             depthMode,
-                                                           BlendMode                             blendMode) {
+                                                           BlendMode                             blendMode,
+                                                           CullMode                              cullMode) {
         //--------------------------------------------------------------
-        // シェーダーのハンドル値とフォーマット、デプスモードからキーを作成
-        // 4つの要素を正しく波括弧初期化
+        // シェーダーのハンドル値とフォーマット、デプス・ブレンド・カリングの設定からキーを作成
         //--------------------------------------------------------------
-        PipelineKey key = {vs.GetHandle().Value(), ps.GetHandle().Value(), format, depthMode, blendMode};
+        PipelineKey key = {vs.GetHandle().Value(), ps.GetHandle().Value(), format, depthMode, blendMode, cullMode};
 
         //--------------------------------------------------------------
         // キャッシュに存在する場合はそれを即座に返す（これによって毎フレームの生成コストをゼロ化）
@@ -131,7 +131,10 @@ namespace Tsukino::Renderer {
         //--------------------------------------------------------------
         D3D11_RASTERIZER_DESC rasterDesc = {};
         rasterDesc.FillMode              = D3D11_FILL_SOLID;
-        rasterDesc.CullMode              = D3D11_CULL_NONE;
+        // 表面の巡回順は D3D の既定（時計回りが表）のまま。右手系の FBX を変換せずに
+        // 左手系（perspectiveFovLH）で描くため鏡像になり、元の反時計回りが画面上で時計回りになる
+        rasterDesc.CullMode              = (cullMode == CullMode::Back) ? D3D11_CULL_BACK : D3D11_CULL_NONE;
+        rasterDesc.FrontCounterClockwise = FALSE;
         rasterDesc.DepthClipEnable       = TRUE;
         m_device->CreateRasterizerState(&rasterDesc, p->rasterizer.GetAddressOf());
 
