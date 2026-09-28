@@ -298,6 +298,7 @@ namespace Tsukino::Asset {
             {".tsm",     AssetType::Model  },
 
             {".wav",     AssetType::Audio  },
+            {".mp3",     AssetType::Audio  },
 
             {".font",    AssetType::Font   },
             {".dfont",   AssetType::DynamicFont},
@@ -340,6 +341,7 @@ namespace Tsukino::Asset {
 
             // Audio
             {".wav",     ".xwb"       },
+            {".mp3",     ".xwb"       },
 
             // Cubemap
             {".cubemap", ".tcc"       },
