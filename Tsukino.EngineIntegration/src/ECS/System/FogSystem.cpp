@@ -72,6 +72,8 @@ namespace Tsukino::BuiltIn::ECS {
         params.sunColor       = hlslpp::float4(activeFog->sunColor.x, activeFog->sunColor.y, activeFog->sunColor.z, activeFog->sunScatterPower);
         params.noiseParams    = hlslpp::float4(activeFog->noiseScale, activeFog->noiseIntensity, m_time, activeFog->noiseEnabled ? 1.0f : 0.0f);
         params.windParams     = hlslpp::float4(wind.x, wind.y, wind.z, activeFog->windSpeed);
+        params.originParams   = hlslpp::float4(activeFog->distanceOrigin.x, activeFog->distanceOrigin.y, activeFog->distanceOrigin.z,
+                                               activeFog->useCustomDistanceOrigin ? 1.0f : 0.0f);
 
         ctx->renderer->GetFog().SetParameters(params);
         ctx->renderer->GetFog().SetEnabled(true);

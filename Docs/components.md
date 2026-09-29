@@ -180,6 +180,7 @@
 | `modelHandle` | `Tsukino::Asset::AssetRef` | "path/to/asset" | — |
 | `visible` | `bool` | true / false | `true` |
 | `opacity` | `float` | number | `1.0f` |
+| `doubleSided` | `bool` | true / false | `false` |
 
 ### MotionBlurComponent
 

@@ -45,13 +45,13 @@
 - **Tsukino::BuiltIn::ECS::EffectComponent** — `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/EffectComponent.hpp`
   - effectAsset, effectPath, handle, playSpeed, looping, stopped, active, scale, followRotation
 - **Tsukino::BuiltIn::ECS::FogComponent** — `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/FogComponent.hpp`
-  - enabled, color, density, startDistance, maxOpacity, heightFogEnabled, height, heightFalloff, heightDensity, sunColor, sunScatterPower, noiseEnabled, noiseScale, noiseIntensity, windDirection, windSpeed
+  - enabled, color, density, startDistance, maxOpacity, heightFogEnabled, height, heightFalloff, heightDensity, sunColor, sunScatterPower, noiseEnabled, noiseScale, noiseIntensity, windDirection, windSpeed, useCustomDistanceOrigin, distanceOrigin
 - **Tsukino::BuiltIn::ECS::FontComponent** — `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/FontComponent.hpp`
   - text, fontHandle, color, origin, horizontalAlign, verticalAlign, outlineColor, outlineWidth, sortOrder
 - **Tsukino::BuiltIn::ECS::ImpulseRequestComponent** — `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/ImpulseRequestComponent.hpp`
   - impulse, angularImpulse
 - **Tsukino::BuiltIn::ECS::ModelComponent** — `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/ModelComponent.hpp`
-  - modelHandle, visible, opacity
+  - modelHandle, visible, opacity, doubleSided
 - **Tsukino::BuiltIn::ECS::MotionBlurComponent** — `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/MotionBlurComponent.hpp`
   - enabled, strength, maxBlurRadius, sampleCount, targetFps
 - **Tsukino::BuiltIn::ECS::MotionVectorComponent** — `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/MotionVectorComponent.hpp`

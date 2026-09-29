@@ -63,5 +63,18 @@ namespace Tsukino::BuiltIn::ECS {
         float          noiseIntensity = 0.4f;                                 // 0 = 濃さ一定, 1 = 最大の濃淡
         hlslpp::float3 windDirection  = hlslpp::float3(1.0f, 0.0f, 0.3f);    // 霧が流れる向き（Systemが正規化して転送する）
         float          windSpeed      = 0.5f;                                 // 霧が流れる速さ
+
+        //----------------------------------------------------------
+        // 距離フォグの基準点（既定はカメラ位置）
+        //----------------------------------------------------------
+        //! @note trueなら距離フォグの距離をカメラ位置ではなくdistanceOriginから計算する。
+        //!       TPSカメラがプレイヤーの周りを旋回すると、カメラ基準では同じ位置の敵でも
+        //!       旋回角度によってフォグへの入り方が変わってしまうため、プレイヤー等の
+        //!       固定点を渡して円形に安定させたい場合に使う。高さフォグ・ノイズは
+        //!       引き続きカメラ基準（視点からの物理積分のため）。
+        //!       アプリ層のSystemが毎フレーム書き換える想定で、cerealのシリアライズ対象には
+        //!       含めない（Prefab JSONで初期値を持たせる意味が無いランタイム専用の値のため）。
+        bool           useCustomDistanceOrigin = false;
+        hlslpp::float3 distanceOrigin          = hlslpp::float3(0.0f, 0.0f, 0.0f);
     };
 }    // namespace Tsukino::BuiltIn::ECS

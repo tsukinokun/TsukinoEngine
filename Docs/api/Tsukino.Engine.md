@@ -172,6 +172,8 @@
   - Import()
 - **Tsukino::Asset::ModelLoader** — `Tsukino.Engine/include/Tsukino/Engine/Asset/Model/ModelLoader.hpp`
   - ModelLoader(), CanLoad(), Load()
+- **Tsukino::Asset::ScopedAssetRefResolver** — `Tsukino.Engine/include/Tsukino/Engine/Asset/AssetRef.hpp`
+  - ScopedAssetRefResolver(), ~ScopedAssetRefResolver(), ScopedAssetRefResolver(), operator=(), Current()
 - **Tsukino::Asset::ShaderAsset** — `Tsukino.Engine/include/Tsukino/Engine/Asset/Shader/ShaderAsset.hpp`
   - shaderStage, entryPoint, profile, source, binary, filePath, ShaderAsset(), GetHandle(), GetType(), SetHandle()
 - **Tsukino::Asset::ShaderImporter** — `Tsukino.Engine/include/Tsukino/Engine/Asset/Shader/ShaderImporter.hpp`

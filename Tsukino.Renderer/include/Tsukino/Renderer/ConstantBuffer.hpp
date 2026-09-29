@@ -215,6 +215,7 @@ namespace Tsukino::Renderer {
         hlslpp::float4 sunColor;          //!< xyz: 太陽方向の散乱色, w: 散乱の鋭さ(pow指数)
         hlslpp::float4 noiseParams;       //!< x: ノイズスケール, y: ノイズ強度, z: 経過時間, w: ノイズ有効(0/1)
         hlslpp::float4 windParams;        //!< xyz: 風向き(正規化済み), w: 風速
+        hlslpp::float4 originParams;      //!< xyz: 距離フォグの基準点, w: 有効(0/1)。0ならカメラ位置を使う
     };
 
     //--------------------------------------------------------------

@@ -48,7 +48,7 @@
 - **Tsukino::Renderer::CBufferAmbientParticle** — `Tsukino.Renderer/include/Tsukino/Renderer/ConstantBuffer.hpp`
   - volumeParams, fadeParams, sizeParams, driftParams, swayParams, colorParams
 - **Tsukino::Renderer::CBufferFog** — `Tsukino.Renderer/include/Tsukino/Renderer/ConstantBuffer.hpp`
-  - color, distanceParams, heightParams, sunColor, noiseParams, windParams
+  - color, distanceParams, heightParams, sunColor, noiseParams, windParams, originParams
 - **Tsukino::Renderer::CBufferIBL** — `Tsukino.Renderer/include/Tsukino/Renderer/ConstantBuffer.hpp`
   - specularMipCount, iblIntensity, pad
 - **Tsukino::Renderer::CBufferIBLBake** — `Tsukino.Renderer/include/Tsukino/Renderer/ConstantBuffer.hpp`

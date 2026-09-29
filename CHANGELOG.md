@@ -7,6 +7,20 @@ carve-out for `Tsukino.Renderer` described under **API stability** in the README
 
 ## [Unreleased]
 
+### Added
+
+- **`FogComponent` can anchor distance fog to a custom world point instead of the
+  camera.** New fields `useCustomDistanceOrigin` / `distanceOrigin` (not serialized —
+  runtime-only, meant to be written every frame by app-layer code, same convention as
+  `density`). With a TPS-style camera that orbits around a followed character, distance
+  fog measured from the camera made a fixed-position object drift in and out of the fog
+  band as the camera swung around it, even though its distance to the character never
+  changed. `Fog.ps.hlsl` now computes the distance-fog term from `originParams.xyz` when
+  `originParams.w > 0.5`, falling back to `cameraPos` otherwise; height fog and the noise
+  wobble are unaffected and still integrate along the camera's view ray. `CBufferFog`
+  gained a 7th `float4` (`originParams`) appended at the end, so existing byte offsets are
+  unchanged.
+
 ### Changed
 
 - **`CBufferMaterial` (b2) now lives in one place.** The struct was hand-written in

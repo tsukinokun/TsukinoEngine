@@ -684,6 +684,13 @@
                     "cppType": "float",
                     "jsonShape": "number",
                     "default": "1.0f"
+                },
+                {
+                    "jsonKey": "doubleSided",
+                    "field": "doubleSided",
+                    "cppType": "bool",
+                    "jsonShape": "true / false",
+                    "default": "false"
                 }
             ]
         },

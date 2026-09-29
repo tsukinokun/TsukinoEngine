@@ -108,6 +108,7 @@
 - `Tsukino::Asset::ModelAsset` — `Tsukino.Engine/include/Tsukino/Engine/Asset/Model/ModelAsset.hpp`
 - `Tsukino::Asset::ModelImporter` — `Tsukino.Engine/include/Tsukino/Engine/Asset/Model/ModelImporter.hpp`
 - `Tsukino::Asset::ModelLoader` — `Tsukino.Engine/include/Tsukino/Engine/Asset/Model/ModelLoader.hpp`
+- `Tsukino::Asset::ScopedAssetRefResolver` — `Tsukino.Engine/include/Tsukino/Engine/Asset/AssetRef.hpp`
 - `Tsukino::Asset::ShaderAsset` — `Tsukino.Engine/include/Tsukino/Engine/Asset/Shader/ShaderAsset.hpp`
 - `Tsukino::Asset::ShaderImporter` — `Tsukino.Engine/include/Tsukino/Engine/Asset/Shader/ShaderImporter.hpp`
 - `Tsukino::Asset::ShaderLoader` — `Tsukino.Engine/include/Tsukino/Engine/Asset/Shader/ShaderLoader.hpp`

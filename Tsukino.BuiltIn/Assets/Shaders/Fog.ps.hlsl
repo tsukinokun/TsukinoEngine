@@ -24,6 +24,7 @@ cbuffer CBufferFog : register(b8)
     float4 sunFogColor;       // xyz: 太陽方向の散乱色, w: 散乱の鋭さ(pow指数)
     float4 noiseParams;       // x: ノイズスケール, y: ノイズ強度, z: 経過時間, w: ノイズ有効(0/1)
     float4 windParams;        // xyz: 風向き(正規化済み), w: 風速
+    float4 originParams;     // xyz: 距離フォグの基準点, w: 有効(0/1)。0ならカメラ位置を使う
 };
 
 //--------------------------------------------------------------
@@ -206,19 +207,26 @@ float4 PSMain(PSInput input) : SV_TARGET
     bool  isBackground = (depth <= 0.0f);
     float dist         = FOG_SKY_RAY_LENGTH;
 
+    //----------------------------------------------------------
+    // 距離フォグ（開始距離より手前は素通し）
+    //
+    // 基準点は既定でカメラ位置だが、originParams.w>0.5ならoriginParams.xyzを使う。
+    // TPSカメラがプレイヤーの周りを旋回する場合、カメラ基準だと同じ位置の敵でも
+    // 旋回角度によって距離が変わってしまうため、プレイヤー等の固定点を渡せるように
+    // している（高さフォグ・ノイズは視点からの物理積分なので引き続きカメラ基準のdistを使う）
+    //----------------------------------------------------------
+    float distOptical = 0.0f;
+
     if(!isBackground) {
         float4 worldPos = mul(float4(ndc, depth, 1.0f), invViewProj);
         worldPos /= worldPos.w;
 
         dist = length(worldPos.xyz - cameraPos.xyz);
-    }
 
-    //----------------------------------------------------------
-    // 距離フォグ（開始距離より手前は素通し）
-    //----------------------------------------------------------
-    float distOptical = 0.0f;
-    if(!isBackground)
-        distOptical = fogColor.w * max(0.0f, dist - distanceParams.x);
+        float3 fogOrigin = (originParams.w > 0.5f) ? originParams.xyz : cameraPos.xyz;
+        float  fogDist    = length(worldPos.xyz - fogOrigin);
+        distOptical = fogColor.w * max(0.0f, fogDist - distanceParams.x);
+    }
 
     //----------------------------------------------------------
     // 高さフォグ
