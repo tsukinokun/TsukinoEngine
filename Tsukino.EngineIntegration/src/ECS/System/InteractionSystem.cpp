@@ -6,6 +6,7 @@
 #include <Tsukino/EngineIntegration/ECS/System/InteractionSystem.hpp>
 #include <Tsukino/BuiltIn/ECS/Component/TransformComponent.hpp>
 #include <Tsukino/BuiltIn/ECS/Component/DraggableComponent.hpp>
+#include <Tsukino/BuiltIn/ECS/Component/PointerTargetComponent.hpp>
 #include <Tsukino/BuiltIn/ECS/Component/SpriteComponent.hpp>
 #include <Tsukino/BuiltIn/ECS/Transform/TransformUtility.hpp>
 
@@ -64,6 +65,12 @@ namespace Tsukino::BuiltIn::ECS {
             int                  pickedOrder = std::numeric_limits<int>::min();
 
             registry.View<TransformComponent, SpriteComponent>().each([&](auto entity, const TransformComponent& transform, const SpriteComponent& sprite) {
+                // マウス座標は画面ピクセルなので、画面空間のスプライトだけと比べる。
+                // ワールド空間のビルボードはpositionが3Dワールド座標で、同じ式で比べると
+                // 画面上の無関係な場所で当たってしまう
+                if(sprite.space != SpriteSpace::Screen)
+                    return;
+
                 bool isInside = false;
                 if(!ComputeSpriteHit(ctx, transform, sprite, point, &isInside) || !isInside)
                     return;
@@ -79,20 +86,22 @@ namespace Tsukino::BuiltIn::ECS {
         }
 
         //-------------------------------------------------------------
-        //! @brief  指定エンティティから親を遡り、最も近いDraggableComponent持ちを返す
+        //! @brief  指定エンティティから親を遡り、Tを持つ最も近いエンティティ（自身を含む）を返す
         //! @note   これにより「手やカウンターを掴んでも、その親であるペンギン本体
         //!         （＝ドラッグの根）が動く」という挙動になる。子はTransformSystemが
-        //!         ワールド行列を伝播させるので追従コードは要らない
+        //!         ワールド行列を伝播させるので追従コードは要らない。
+        //!         PointerTargetComponentも同じ規則で、子スプライトの上でも親が反応する
         //! @return 見つからなければ entt::null
         //-------------------------------------------------------------
-        Tsukino::ECS::Entity FindDragRoot(Tsukino::ECS::Registry& registry, Tsukino::ECS::Entity entity) {
+        template <class T>
+        Tsukino::ECS::Entity FindNearestWith(Tsukino::ECS::Registry& registry, Tsukino::ECS::Entity entity) {
             Tsukino::ECS::Entity current = entity;
 
             for(int depth = 0; depth < TU::kMaxHierarchyDepth; ++depth) {
                 if(current == entt::null || !registry.HasComponent<TransformComponent>(current))
                     return entt::null;
 
-                if(registry.HasComponent<DraggableComponent>(current))
+                if(registry.HasComponent<T>(current))
                     return current;
 
                 current = registry.GetComponent<TransformComponent>(current).parent;
@@ -100,6 +109,38 @@ namespace Tsukino::BuiltIn::ECS {
 
             // 深すぎる（または循環している）。TransformSystem側で警告を出しているのでここでは黙って諦める
             return entt::null;
+        }
+
+        //-------------------------------------------------------------
+        //! @brief  マウスの重なりとクリックをPointerTargetComponentへ書く
+        //! @param  registry   [in] ECS レジストリ
+        //! @param  ctx        [in] エンジンコンテキスト
+        //! @param  mousePos   [in] マウスの画面座標
+        //! @param  pressed    [in] このフレームに左ボタンが押されたか
+        //-------------------------------------------------------------
+        void UpdatePointerTargets(Tsukino::ECS::Registry& registry, Tsukino::EngineIntegration::EngineContext* ctx,
+                                  const hlslpp::float2& mousePos, bool pressed) {
+            auto targetView = registry.View<PointerTargetComponent>();
+            if(targetView.empty())
+                return;    // 使っていないシーンでは、スプライトを総なめする判定も省く
+
+            // 前フレームの結果は持ち越さない。重なっていたものが外れたらそのまま false になる
+            targetView.each([](PointerTargetComponent& target) {
+                target.hovered = false;
+                target.clicked = false;
+            });
+
+            const Tsukino::ECS::Entity hitEntity = PickTopmostSprite(registry, ctx, mousePos);
+            if(hitEntity == entt::null)
+                return;
+
+            const Tsukino::ECS::Entity targetEntity = FindNearestWith<PointerTargetComponent>(registry, hitEntity);
+            if(targetEntity == entt::null)
+                return;
+
+            PointerTargetComponent& target = registry.GetComponent<PointerTargetComponent>(targetEntity);
+            target.hovered                 = true;
+            target.clicked                 = pressed;
         }
     }    // namespace
 
@@ -115,6 +156,12 @@ namespace Tsukino::BuiltIn::ECS {
         i32   mouseX, mouseY;
         input->GetMousePosition(&mouseX, &mouseY);
         hlslpp::float2 mousePos = {(float)mouseX, (float)mouseY};
+
+        //-------------------------------------------------------------
+        // マウスの重なり・クリックの受け取り（メニューの選択肢・ボタン用）。
+        // ドラッグとは独立に、毎フレーム先に書いておく
+        //-------------------------------------------------------------
+        UpdatePointerTargets(registry, ctx, mousePos, input->IsKeyPressed(Input::KeyCode::LButton));
 
         //-------------------------------------------------------------
         // ドラッグ中のエンティティの更新。
@@ -158,7 +205,7 @@ namespace Tsukino::BuiltIn::ECS {
         if(hitEntity == entt::null)
             return;
 
-        const Tsukino::ECS::Entity dragRoot = FindDragRoot(registry, hitEntity);
+        const Tsukino::ECS::Entity dragRoot = FindNearestWith<DraggableComponent>(registry, hitEntity);
         if(dragRoot == entt::null)
             return;
 
@@ -202,7 +249,7 @@ namespace Tsukino::BuiltIn::ECS {
         if(hitEntity == entt::null)
             return false;
 
-        return FindDragRoot(registry, hitEntity) != entt::null;
+        return FindNearestWith<DraggableComponent>(registry, hitEntity) != entt::null;
     }
 
 }    // namespace Tsukino::BuiltIn::ECS

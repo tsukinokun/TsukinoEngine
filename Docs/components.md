@@ -4,7 +4,7 @@
 
 再生成: `vendor\premake5.exe gen-manifest`（または `generate-docs.bat`）
 
-コンポーネント 33 個（Prefab 登録済み 19 個 / シリアライズ定義あり 17 個）
+コンポーネント 34 個（Prefab 登録済み 19 個 / シリアライズ定義あり 17 個）
 
 ## 読み方
 
@@ -330,6 +330,7 @@
 | `MotionVectorComponent` | — | — | `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/MotionVectorComponent.hpp` |
 | `NodeWorldMatrixComponent` | — | — | `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/NodeWorldMatrixComponent.hpp` |
 | `NodeWorldPoseComponent` | — | — | `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/NodeWorldPoseComponent.hpp` |
+| `PointerTargetComponent` | — | — | `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/PointerTargetComponent.hpp` |
 | `RimGlowComponent` | — | — | `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/RimGlowComponent.hpp` |
 | `RootMotionComponent` | — | — | `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/RootMotionComponent.hpp` |
 | `SkeletonOutputComponent` | — | — | `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/SkeletonOutputComponent.hpp` |

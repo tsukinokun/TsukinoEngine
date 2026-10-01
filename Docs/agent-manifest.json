@@ -10,7 +10,7 @@
         "pathBase": "working directory (Debug: repository root / Release: next to the exe)"
     },
     "stats": {
-        "components": 33,
+        "components": 34,
         "registered": 19,
         "serializable": 17
     },
@@ -813,6 +813,17 @@
                     "default": "true"
                 }
             ]
+        },
+        {
+            "name": "PointerTargetComponent",
+            "typeName": "Tsukino::BuiltIn::ECS::PointerTargetComponent",
+            "registered": false,
+            "registeredName": null,
+            "serializable": false,
+            "header": "Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/PointerTargetComponent.hpp",
+            "serializationHeader": null,
+            "registrationSite": null,
+            "fields": []
         },
         {
             "name": "RigidbodyComponent",

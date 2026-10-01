@@ -62,6 +62,8 @@
   - poses
 - **Tsukino::BuiltIn::ECS::PointLightComponent** — `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/PointLightComponent.hpp`
   - color, intensity, range, enabled
+- **Tsukino::BuiltIn::ECS::PointerTargetComponent** — `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/PointerTargetComponent.hpp`
+  - hovered, clicked
 - **Tsukino::BuiltIn::ECS::RigidbodyComponent** — `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/RigidbodyComponent.hpp`
   - type, isTypeDirty, mass, friction, restitution, gravityFactor, linearVelocity, angularVelocity, force, torque, isInitialized, isGrounded, groundCheckDistance, groundCheckRadius, freezePositionX, freezePositionY, freezePositionZ, freezeRotationX, freezeRotationY, freezeRotationZ, isFreezeDirty
 - **Tsukino::BuiltIn::ECS::RimGlowComponent** — `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/RimGlowComponent.hpp`

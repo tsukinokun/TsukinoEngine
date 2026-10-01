@@ -12,6 +12,14 @@ namespace Tsukino::BuiltIn::ECS {
     //-------------------------------------------------------------
     //! @class  InteractionSystem
     //! @brief  インタラクションを管理するシステム
+    //! @note   画面空間のスプライトに対するマウス操作を2つ扱う。
+    //!         ・PointerTargetComponent：マウスの重なり（hovered）とクリック（clicked）を毎フレーム書く
+    //!         ・DraggableComponent     ：左ボタンで掴んでドラッグする
+    //!         どちらも、マウスの下で最も手前（sortOrderが大きい）のスプライト1つだけが対象で、
+    //!         そこから親を辿って最初に見つかったコンポーネントが反応する。
+    //!         判定はスプライトのworldMatrixで行う。フレームの先頭（UIを動かす処理や
+    //!         TransformSystemより前）に置けば、前フレームに描いた＝画面に見えている配置と一致し、
+    //!         同じフレームのメニュー処理が結果を読める
     //-------------------------------------------------------------
     class InteractionSystem final : public Tsukino::ECS::ISystem {
     public:

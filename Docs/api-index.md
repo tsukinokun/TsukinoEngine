@@ -43,6 +43,7 @@
 - `Tsukino::BuiltIn::ECS::NodeWorldMatrixComponent` — `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/NodeWorldMatrixComponent.hpp`
 - `Tsukino::BuiltIn::ECS::NodeWorldPoseComponent` — `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/NodeWorldPoseComponent.hpp`
 - `Tsukino::BuiltIn::ECS::PointLightComponent` — `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/PointLightComponent.hpp`
+- `Tsukino::BuiltIn::ECS::PointerTargetComponent` — `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/PointerTargetComponent.hpp`
 - `Tsukino::BuiltIn::ECS::RigidbodyComponent` — `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/RigidbodyComponent.hpp`
 - `Tsukino::BuiltIn::ECS::RimGlowComponent` — `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/RimGlowComponent.hpp`
 - `Tsukino::BuiltIn::ECS::RootMotionComponent` — `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/RootMotionComponent.hpp`
