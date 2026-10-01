@@ -6,25 +6,12 @@
 #include <Tsukino/Audio/AudioManager.hpp>
 #include <Tsukino/Engine/Asset/Audio/AudioAsset.hpp>
 #include <Tsukino/Core/Log.hpp>
+#include <Tsukino/Core/Path.hpp>
 
 #include <Audio.h>
 #include <unordered_map>
 #include <vector>
 #include <algorithm>
-
-#include <locale>
-#include <codecvt>
-
-namespace {
-    // std::string から std::wstring へ変換するユーティリティ
-    std::wstring ToWString(const std::string& str) {
-        if (str.empty()) return std::wstring();
-        int size_needed = MultiByteToWideChar(CP_UTF8, 0, &str[0], (int)str.size(), NULL, 0);
-        std::wstring wstrTo(size_needed, 0);
-        MultiByteToWideChar(CP_UTF8, 0, &str[0], (int)str.size(), &wstrTo[0], size_needed);
-        return wstrTo;
-    }
-}
 
 // 名前空間 : Tsukino::Audio
 namespace Tsukino::Audio {
@@ -95,13 +82,18 @@ namespace Tsukino::Audio {
             }
 
             try {
-                std::wstring wPath = ToWString(waveBankPath);
+                // waveBankPath は AssetManager が GetAssetRootPath() から組み立てた絶対パスで、
+                // エンジンの他のパスと同じく ANSI（日本語 Windows では CP932）で入っている。
+                // UTF-8 として変換すると、exe を日本語を含むフォルダへ置いたときだけ文字化けして
+                // 読み込めなくなり、音が一切鳴らなくなる（AudioLoader は ANSI で開けているので気付きにくい）。
+                // 変換はエンジン共通の Path::ToWString() に揃える
+                std::wstring wPath = Tsukino::Core::Path(waveBankPath).ToWString();
                 auto wb = std::make_unique<DirectX::WaveBank>(engine.get(), wPath.c_str());
                 DirectX::WaveBank* rawPtr = wb.get();
                 waveBanks[waveBankPath] = std::move(wb);
                 return rawPtr;
             } catch (const std::exception& e) {
-                Tsukino::Core::Log::Error(std::string("Failed to load WaveBank: ") + e.what());
+                Tsukino::Core::Log::Error(std::string("Failed to load WaveBank: ") + waveBankPath + " (" + e.what() + ")");
                 return nullptr;
             }
         }
