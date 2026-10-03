@@ -155,6 +155,13 @@ namespace Tsukino::BuiltIn::ECS {
     }
 
     //-------------------------------------------------------------
+    // 1メートルが何単位かを物理ワールドへ設定する
+    //-------------------------------------------------------------
+    void PhysicsSystem::SetUnitsPerMeter(float unitsPerMeter) {
+        m_world->SetUnitsPerMeter(unitsPerMeter);
+    }
+
+    //-------------------------------------------------------------
     // デストラクタ
     //-------------------------------------------------------------
     PhysicsSystem::~PhysicsSystem() {
@@ -225,7 +232,6 @@ namespace Tsukino::BuiltIn::ECS {
         // エンティティをキーにした付随データも一緒に片付ける。
         // ここを漏らすとフレームごとに増え続けるだけのマップになる。
         //-------------------------------------------------------------
-        m_prevPositions.erase(entity);
         m_world->ForgetShapeCache(static_cast<uint64_t>(entity));
     }
 
@@ -359,14 +365,14 @@ namespace Tsukino::BuiltIn::ECS {
                 Tsukino::Physics::ComposeTransform(
                     tf.position, tf.rotation, col.offsetPosition, col.offsetRotation, bodyPosition, bodyRotation);
 
-                m_world->SetPositionAndRotation(col.bodyID, bodyPosition, bodyRotation);
-
-                auto it = m_prevPositions.find(entity);
-                if(it != m_prevPositions.end()) {
-                    const hlslpp::float3 velocity = (hlslpp::float3(tf.position) - it->second) / stepTime;
-                    m_world->SetLinearVelocity(col.bodyID, velocity);
-                }
-                m_prevPositions[entity] = tf.position;
+                //-------------------------------------------------------------
+                // このステップの終わりに Transform の位置へ着くよう、速度として動かす。
+                // 以前は SetPositionAndRotation で瞬間移動させたうえで前フレームとの差分速度も
+                // 与えていたため、Step 中にさらに速度ぶん進む二重移動になっていた。
+                // 瞬間移動は接触として扱われず、押される側にめり込んだ状態から押し出しが
+                // 始まるので、薄い物（コイン等）が Kinematic の下や裏へ抜けていた
+                //-------------------------------------------------------------
+                m_world->MoveKinematic(col.bodyID, bodyPosition, bodyRotation, stepTime);
             }
         }
 

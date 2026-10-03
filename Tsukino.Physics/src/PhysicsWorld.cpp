@@ -34,6 +34,8 @@
 #include <Jolt/Physics/PhysicsSystem.h>
 #include <Jolt/RegisterTypes.h>
 
+#include <cstdarg>
+#include <cstdio>
 #include <string>
 #include <thread>
 #include <unordered_map>
@@ -113,10 +115,45 @@ namespace Tsukino::Physics {
         //! @note   アロケータ・ファクトリ・型登録はプロセスに1組しか持てないため、
         //!         PhysicsWorld を複数生成しても初回のみ実行されます
         //--------------------------------------------------------------------
+        //--------------------------------------------------------------------
+        //! Jolt のメッセージ出力をエンジンのログへ流します。
+        //! @param  [in] inFMT printf 形式の書式
+        //! @note   既定の出力先（DummyTrace）は何も書かずにアサートで止まるため、
+        //!         「Jolt がなぜ止まったか」がログにもデバッガにも残らなかった
+        //--------------------------------------------------------------------
+        void JoltTrace(const char* inFMT, ...) {
+            char    buffer[1024];
+            va_list args;
+            va_start(args, inFMT);
+            vsnprintf(buffer, sizeof(buffer), inFMT, args);
+            va_end(args);
+
+            Tsukino::Core::Log::Warn(std::string("Jolt: ") + buffer);
+        }
+
+#ifdef JPH_ENABLE_ASSERTS
+        //--------------------------------------------------------------------
+        //! Jolt のアサート失敗をエンジンのログへ書きます。
+        //! @param  [in] inExpression 失敗した条件式
+        //! @param  [in] inMessage    付随メッセージ（無い場合は nullptr）
+        //! @param  [in] inFile       ファイル名
+        //! @param  [in] inLine       行番号
+        //! @return 常に true を返し、従来どおりブレークポイントで止めます。
+        //--------------------------------------------------------------------
+        bool JoltAssertFailed(const char* inExpression, const char* inMessage, const char* inFile, JPH::uint inLine) {
+            Tsukino::Core::Log::Error(std::string("Jolt assert failed: ") + inExpression + (inMessage ? std::string(" (") + inMessage + ")" : std::string()) +
+                                      " at " + inFile + ":" + std::to_string(inLine));
+            return true;
+        }
+#endif    // JPH_ENABLE_ASSERTS
+
         void EnsureJoltInitialized() {
             static bool isJoltInitialized = false;
             if(isJoltInitialized)
                 return;
+
+            JPH::Trace = JoltTrace;
+            JPH_IF_ENABLE_ASSERTS(JPH::AssertFailed = JoltAssertFailed;)
 
             JPH::RegisterDefaultAllocator();
             JPH::Factory::sInstance = new JPH::Factory();
@@ -227,7 +264,9 @@ namespace Tsukino::Physics {
 
         EnsureJoltInitialized();
 
-        m_impl->tempAllocator = new JPH::TempAllocatorImpl(10 * 1024 * 1024);
+        // 1ステップ中の作業領域。接触の上限（下の cMaxContactConstraints）ぶんの領域もここから取られるため、
+        // 上限を上げたら合わせて広げること（足りないと Jolt が Trace を出して止まる）
+        m_impl->tempAllocator = new JPH::TempAllocatorImpl(32 * 1024 * 1024);
 
         // hardware_concurrency() は情報を取得できないとき 0 を返す。
         // 符号なしのまま 1 を引くと巨大な値になりワーカースレッドの確保が破綻するため、下限を 1 で押さえる。
@@ -237,10 +276,15 @@ namespace Tsukino::Physics {
         m_impl->jobSystem = new JPH::JobSystemThreadPool(JPH::cMaxPhysicsJobs, JPH::cMaxPhysicsBarriers, workerThreads);
 
         m_impl->physicsSystem                 = new JPH::PhysicsSystem();
-        const uint32_t cMaxBodies             = 1024;
+        //--------------------------------------------------------------------
+        // 同時に扱える上限。超えると Jolt は接触を捨て（Debug ではアサートで停止する）。
+        // ボディ数より接触の数のほうが先に尽きる: 小物を敷き詰める場面（コインプッシャー等）では
+        // 1ボディが周囲の数個と同時に接しているため、ボディ数の数倍の枠が要る
+        //--------------------------------------------------------------------
+        const uint32_t cMaxBodies             = 4096;
         const uint32_t cNumBodyMutexes        = 0;
-        const uint32_t cMaxBodyPairs          = 1024;
-        const uint32_t cMaxContactConstraints = 1024;
+        const uint32_t cMaxBodyPairs          = 16384;
+        const uint32_t cMaxContactConstraints = 16384;
 
         m_impl->physicsSystem->Init(
             cMaxBodies, cNumBodyMutexes, cMaxBodyPairs, cMaxContactConstraints, m_impl->bpLayerInterface, m_impl->objVsBpFilter, m_impl->objPairFilter);
@@ -288,10 +332,10 @@ namespace Tsukino::Physics {
         JPH::BodyCreationSettings settings(
             shape, ToJoltRVec3(desc.position), ToJoltQuat(desc.rotation), ToJoltMotionType(desc.motion), ToObjectLayer(desc.motion));
 
-        settings.mIsSensor      = desc.isSensor;
-        settings.mFriction      = desc.friction;
-        settings.mRestitution   = desc.restitution;
-        settings.mGravityFactor = desc.gravityFactor;
+        settings.mIsSensor                             = desc.isSensor;
+        settings.mFriction                             = desc.friction;
+        settings.mRestitution                          = desc.restitution;
+        settings.mGravityFactor                        = desc.gravityFactor;
 
         //--------------------------------------------------------------------
         // 質量と許可軸は、呼び出し側が明示したときだけ上書きする。
@@ -353,6 +397,18 @@ namespace Tsukino::Physics {
 
         m_impl->physicsSystem->GetBodyInterface().SetPositionAndRotation(
             JPH::BodyID(handle.value), ToJoltRVec3(position), ToJoltQuat(rotation), JPH::EActivation::Activate);
+    }
+
+    //------------------------------------------------------------------------
+    //! Kinematic ボディを、次の Step() の終わりに目標の位置と向きへ着くように動かします。
+    //------------------------------------------------------------------------
+    void PhysicsWorld::MoveKinematic(BodyHandle handle, const hlslpp::float3& targetPosition, const hlslpp::quaternion& targetRotation, float deltaTime) {
+        if(!m_impl || !m_impl->physicsSystem || !handle.IsValid() || deltaTime <= 0.0f)
+            return;
+
+        // Jolt が「deltaTime 後に目標へ着く」線速度・角速度を設定する（位置はStep中に積分される）
+        m_impl->physicsSystem->GetBodyInterface().MoveKinematic(
+            JPH::BodyID(handle.value), ToJoltRVec3(targetPosition), ToJoltQuat(targetRotation), deltaTime);
     }
 
     //------------------------------------------------------------------------
@@ -506,6 +562,37 @@ namespace Tsukino::Physics {
     }
 
     //------------------------------------------------------------------------
+    //! 1メートルが何単位かを設定し、重力と接触判定の許容値をその長さに合わせます。
+    //------------------------------------------------------------------------
+    void PhysicsWorld::SetUnitsPerMeter(float unitsPerMeter) {
+        if(!m_impl || !m_impl->physicsSystem || unitsPerMeter <= 0.0f)
+            return;
+
+        //--------------------------------------------------------------------
+        // 既定値から作り直す（現在値に掛けると、2回呼んだときに倍率が累積するため）。
+        // 長さの次元を持つ値だけを拡大し、比率・角度・回数・時間はそのまま
+        //--------------------------------------------------------------------
+        const JPH::PhysicsSettings defaults;
+        const float                scale   = unitsPerMeter;
+        const float                scaleSq = unitsPerMeter * unitsPerMeter;
+
+        JPH::PhysicsSettings settings                  = m_impl->physicsSystem->GetPhysicsSettings();
+        settings.mSpeculativeContactDistance           = defaults.mSpeculativeContactDistance * scale;
+        settings.mPenetrationSlop                      = defaults.mPenetrationSlop * scale;
+        settings.mManifoldTolerance                    = defaults.mManifoldTolerance * scale;
+        settings.mMaxPenetrationDistance               = defaults.mMaxPenetrationDistance * scale;
+        settings.mBodyPairCacheMaxDeltaPositionSq      = defaults.mBodyPairCacheMaxDeltaPositionSq * scaleSq;
+        settings.mContactPointPreserveLambdaMaxDistSq  = defaults.mContactPointPreserveLambdaMaxDistSq * scaleSq;
+        settings.mInternalEdgeRemovalVertexToleranceSq = defaults.mInternalEdgeRemovalVertexToleranceSq * scaleSq;
+        settings.mMinVelocityForRestitution            = defaults.mMinVelocityForRestitution * scale;
+        settings.mPointVelocitySleepThreshold          = defaults.mPointVelocitySleepThreshold * scale;
+        m_impl->physicsSystem->SetPhysicsSettings(settings);
+
+        // Jolt の既定の重力は (0, -9.81, 0) [m/s^2]
+        m_impl->physicsSystem->SetGravity(JPH::Vec3(0.0f, -9.81f * scale, 0.0f));
+    }
+
+    //------------------------------------------------------------------------
     //! 物理シミュレーションを1ステップ進めます。
     //------------------------------------------------------------------------
     void PhysicsWorld::Step(float deltaTime) {
@@ -583,9 +670,9 @@ namespace Tsukino::Physics {
         }
 
         JPH::CharacterVirtualSettings settings;
-        settings.mShape         = shape;
-        settings.mMaxSlopeAngle = JPH::DegreesToRadians(desc.maxSlopeDeg);
-        settings.mMass          = desc.mass;
+        settings.mShape                                = shape;
+        settings.mMaxSlopeAngle                        = JPH::DegreesToRadians(desc.maxSlopeDeg);
+        settings.mMass                                 = desc.mass;
 
         //--------------------------------------------------------------------
         // 接地判定に使う平面。カプセル底面付近を接地面とみなす
@@ -595,7 +682,7 @@ namespace Tsukino::Physics {
         //   +centerOffset.y を足していた以前の実装は符号が逆で、足元(y≈0)の接触点が
         //   常に許容範囲外になり、isGrounded が恒久的に false のままになっていた）
         //--------------------------------------------------------------------
-        settings.mSupportingVolume = JPH::Plane(JPH::Vec3::sAxisY(), -desc.radius);
+        settings.mSupportingVolume                     = JPH::Plane(JPH::Vec3::sAxisY(), -desc.radius);
 
         JPH::Ref<JPH::CharacterVirtual> character = new JPH::CharacterVirtual(
             &settings, ToJoltRVec3(desc.position), ToJoltQuat(desc.rotation), desc.userData, m_impl->physicsSystem);

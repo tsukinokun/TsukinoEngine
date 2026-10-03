@@ -39,7 +39,7 @@
 - **Tsukino::Physics::ObjectVsBroadPhaseLayerFilterImpl** — `Tsukino.Physics/src/JoltLayers.hpp`
   - ShouldCollide()
 - **Tsukino::Physics::PhysicsWorld** — `Tsukino.Physics/include/Tsukino/Physics/PhysicsWorld.hpp`
-  - PhysicsWorld(), ~PhysicsWorld(), PhysicsWorld(), operator=(), CreateBody(), DestroyBody(), ForgetShapeCache(), SetPositionAndRotation(), SetLinearVelocity(), AddImpulse(), AddAngularImpulse(), AddForce(), AddTorque(), SetMotionType(), SetAllowedDofs(), GetMotionType(), GetBodyState(), GetGravity(), Step(), OverlapCapsule(), OverlapBox(), CreateCharacter(), DestroyCharacter(), IsCharacterSupported(), StepCharacter(), DrainContacts(), DebugDrawBody(), DebugDrawCharacters()
+  - PhysicsWorld(), ~PhysicsWorld(), PhysicsWorld(), operator=(), CreateBody(), DestroyBody(), ForgetShapeCache(), SetPositionAndRotation(), MoveKinematic(), SetLinearVelocity(), AddImpulse(), AddAngularImpulse(), AddForce(), AddTorque(), SetMotionType(), SetAllowedDofs(), GetMotionType(), GetBodyState(), GetGravity(), SetUnitsPerMeter(), Step(), OverlapCapsule(), OverlapBox(), CreateCharacter(), DestroyCharacter(), IsCharacterSupported(), StepCharacter(), DrainContacts(), DebugDrawBody(), DebugDrawCharacters()
 - **Tsukino::Physics::PhysicsWorld::Impl** — `Tsukino.Physics/src/PhysicsWorld.cpp`
   - tempAllocator, jobSystem, bpLayerInterface, objVsBpFilter, objPairFilter, physicsSystem, contactListener, debugRenderer, heightfieldCache, characterContactListener, characters, nextCharacterId, CreateShape(), CreateHeightfieldShape()
 - **Tsukino::Physics::ShapeDesc** — `Tsukino.Physics/include/Tsukino/Physics/PhysicsTypes.hpp`

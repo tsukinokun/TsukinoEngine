@@ -9,6 +9,23 @@ carve-out for `Tsukino.Renderer` described under **API stability** in the README
 
 ### Added
 
+- **`PhysicsWorld::SetUnitsPerMeter` / `PhysicsSystem::SetUnitsPerMeter`.** Jolt's defaults
+  (gravity 9.81, a 2 cm speculative contact distance, 2 cm penetration slop, sleep and
+  restitution velocity thresholds) assume 1 unit = 1 m, while the engine's own convention is
+  1 unit = 1 cm. In a cm scene gravity was 1/100 of real (samples compensated with
+  `gravityFactor`) and contacts were only created once bodies were 1/100 as close, so thin or
+  fast bodies sank several units into floors before being pushed out. Calling
+  `SetUnitsPerMeter(100)` scales gravity and every length/velocity tolerance in
+  `JPH::PhysicsSettings` from Jolt's defaults (not from the current values, so repeated calls
+  do not compound). The default stays 1, so existing scenes are unchanged.
+
+- **`PhysicsWorld::MoveKinematic`**, a wrapper over `BodyInterface::MoveKinematic`.
+
+- **Jolt trace and assert messages now reach `Log`.** Jolt's default `Trace` handler wrote
+  nothing and stopped on a breakpoint, so a Debug build simply crashed with `0x80000003`
+  and no hint of the cause. `Trace` now goes to `Log::Warn` and failed asserts to
+  `Log::Error` (asserts still break into the debugger).
+
 - **`FogComponent` can anchor distance fog to a custom world point instead of the
   camera.** New fields `useCustomDistanceOrigin` / `distanceOrigin` (not serialized —
   runtime-only, meant to be written every frame by app-layer code, same convention as
@@ -59,6 +76,23 @@ carve-out for `Tsukino.Renderer` described under **API stability** in the README
   `GetFrameStats` and the VSync accessors are unchanged.
 
 ### Fixed
+
+- **Kinematic bodies push instead of teleporting.** `PhysicsSystem` moved every Kinematic
+  body with `SetPositionAndRotation` and then also set a velocity derived from last frame's
+  position, so during `Step` the body travelled the same distance a second time and was
+  snapped back on the next frame. Because a teleport is not a contact, each frame started
+  with the Kinematic body already overlapping whatever it was pushing; thin bodies (coins
+  in front of a pusher) were resolved downward and ended up underneath or behind it. The
+  sync now calls `PhysicsWorld::MoveKinematic`, which sets the velocity that reaches the
+  Transform position at the end of the step. A Kinematic body that is moved a long way in
+  one frame now sweeps through and pushes what is in between, instead of appearing there.
+  The per-entity `m_prevPositions` map is gone.
+
+- **The Jolt world no longer overflows with a few hundred touching bodies.** It was created
+  with 1,024 body pairs and 1,024 contact constraints. A bed of ~230 small bodies, each
+  touching several neighbours, exceeded that and Jolt stopped on an assert in Debug
+  (Release silently dropped contacts). Limits are now 4,096 bodies and 16,384 body pairs /
+  contact constraints, and the temp allocator grows from 10 MB to 32 MB to hold them.
 
 - **FBX Phong materials are converted instead of discarded.** `ModelImporter` asked assimp
   only for `metallicFactor` / `roughnessFactor` and ignored the return value, so every FBX —

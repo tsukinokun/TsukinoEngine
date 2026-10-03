@@ -75,6 +75,16 @@ namespace Tsukino::BuiltIn::ECS {
         //-------------------------------------------------------------
         void SetDebugDrawEnabled(bool enabled);
 
+        //-------------------------------------------------------------
+        //! @brief  1メートルが何単位かを物理ワールドへ設定する
+        //! @param  unitsPerMeter [in] 1メートルあたりの単位数（1unit=1cm なら 100）。既定は 1
+        //! @note   重力と接触判定の許容値がこの長さに合わせて拡大される
+        //!         （詳細は Tsukino::Physics::PhysicsWorld::SetUnitsPerMeter）。
+        //!         既定の 1 のままだと、cm 単位のシーンでは重力が 1/100 になり、
+        //!         薄い物が床などにめり込みやすい
+        //-------------------------------------------------------------
+        void SetUnitsPerMeter(float unitsPerMeter);
+
     private:
         //-------------------------------------------------------------
         //! @brief  Registry の破棄シグナルへ購読する（初回 Update で一度だけ）
@@ -107,9 +117,6 @@ namespace Tsukino::BuiltIn::ECS {
 
         //! 物理ワールド本体。Jolt はこの中に閉じている
         std::unique_ptr<Tsukino::Physics::PhysicsWorld> m_world;
-
-        //! Kinematic ボディの速度算出に使う、前フレームの位置
-        std::unordered_map<entt::entity, hlslpp::float3> m_prevPositions;
 
         //! エンティティごとのキャラクターコントローラー
         std::unordered_map<entt::entity, Tsukino::Physics::CharacterHandle> m_characters;

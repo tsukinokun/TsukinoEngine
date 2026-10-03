@@ -62,6 +62,16 @@ namespace Tsukino::Physics {
         //! @param  [in] rotation 設定する向き
         void SetPositionAndRotation(BodyHandle handle, const hlslpp::float3& position, const hlslpp::quaternion& rotation);
 
+        //! Kinematic ボディを、次の Step() の終わりに目標の位置と向きへ着くように動かします。
+        //! @param  [in] handle         対象のボディ（Kinematic）
+        //! @param  [in] targetPosition 到達させる位置
+        //! @param  [in] targetRotation 到達させる向き
+        //! @param  [in] deltaTime      次の Step() に渡す経過時間（秒）
+        //! @note   SetPositionAndRotation() と違い、移動を速度として扱うので、途中にある Dynamic ボディを接触として押す。
+        //!         瞬間移動させると相手にめり込んだ状態から押し出しが始まり、薄い物は押し出す向きが乱れて
+        //!         Kinematic の下や裏へ抜けてしまう。
+        void MoveKinematic(BodyHandle handle, const hlslpp::float3& targetPosition, const hlslpp::quaternion& targetRotation, float deltaTime);
+
         //! ボディの並進速度を設定します。
         //! @param  [in] handle   対象のボディ
         //! @param  [in] velocity 設定する速度
@@ -116,6 +126,19 @@ namespace Tsukino::Physics {
         //! ワールドの重力加速度を取得します。
         //! @return 重力加速度
         hlslpp::float3 GetGravity() const;
+
+        //--------------------------------------------------------------------
+        // ワールドの設定
+        //--------------------------------------------------------------------
+
+        //! 1メートルが何単位かを設定し、重力と接触判定の許容値をその長さに合わせます。
+        //! @param  [in] unitsPerMeter 1メートルあたりの単位数（1unit=1cm なら 100）。既定は 1
+        //! @note   Jolt の既定値（重力 9.81、接触を作り始める距離 2cm など）はメートル単位を前提にしている。
+        //!         cm 単位のまま使うと重力が 1/100 になり、接触が 1/100 の距離まで近づかないと作られないため、
+        //!         薄い物や速い物が床やほかの物にめり込みやすい。
+        //!         速度のしきい値（スリープ判定・反発の最低速度）と重力もこの値で拡大する。
+        //!         呼ぶたびに既定値から計算し直すので、何度呼んでも倍率は累積しない。
+        void SetUnitsPerMeter(float unitsPerMeter);
 
         //--------------------------------------------------------------------
         // シミュレーション
