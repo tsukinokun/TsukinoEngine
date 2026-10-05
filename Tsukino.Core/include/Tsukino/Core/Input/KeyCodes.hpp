@@ -28,6 +28,10 @@ namespace Tsukino::Input {
         Alt       = 0x12,
         Escape    = 0x1B,
         Space     = 0x20,
+        PageUp    = 0x21,
+        PageDown  = 0x22,
+        End       = 0x23,
+        Home      = 0x24,
 
         // 矢印キー
         Left  = 0x25,

@@ -10,8 +10,8 @@
         "pathBase": "working directory (Debug: repository root / Release: next to the exe)"
     },
     "stats": {
-        "components": 34,
-        "registered": 19,
+        "components": 37,
+        "registered": 22,
         "serializable": 17
     },
     "components": [
@@ -951,6 +951,28 @@
             "fields": []
         },
         {
+            "name": "ScrollBarComponent",
+            "typeName": "Tsukino::BuiltIn::ECS::ScrollBarComponent",
+            "registered": true,
+            "registeredName": "ScrollBarComponent",
+            "serializable": false,
+            "header": "Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/ScrollBarComponent.hpp",
+            "serializationHeader": null,
+            "registrationSite": "Tsukino.EngineIntegration/src/EngineIntegration.cpp",
+            "fields": []
+        },
+        {
+            "name": "ScrollViewComponent",
+            "typeName": "Tsukino::BuiltIn::ECS::ScrollViewComponent",
+            "registered": true,
+            "registeredName": "ScrollViewComponent",
+            "serializable": false,
+            "header": "Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/ScrollViewComponent.hpp",
+            "serializationHeader": null,
+            "registrationSite": "Tsukino.EngineIntegration/src/EngineIntegration.cpp",
+            "fields": []
+        },
+        {
             "name": "SkeletonOutputComponent",
             "typeName": "Tsukino::BuiltIn::ECS::SkeletonOutputComponent",
             "registered": false,
@@ -1262,6 +1284,17 @@
                     "default": null
                 }
             ]
+        },
+        {
+            "name": "UIClipComponent",
+            "typeName": "Tsukino::BuiltIn::ECS::UIClipComponent",
+            "registered": true,
+            "registeredName": "UIClipComponent",
+            "serializable": false,
+            "header": "Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/UIClipComponent.hpp",
+            "serializationHeader": null,
+            "registrationSite": "Tsukino.EngineIntegration/src/EngineIntegration.cpp",
+            "fields": []
         },
         {
             "name": "WorldAnchorComponent",

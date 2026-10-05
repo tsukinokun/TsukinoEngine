@@ -114,7 +114,7 @@
 - **Tsukino::BuiltIn::ECS::FontRendererSystem** — `Tsukino.EngineIntegration/include/Tsukino/EngineIntegration/ECS/System/FontRendererSystem.hpp`
   - FontRendererSystem(), ~FontRendererSystem(), Update()
 - **Tsukino::BuiltIn::ECS::FontRendererSystem::DrawEntry** — `Tsukino.EngineIntegration/include/Tsukino/EngineIntegration/ECS/System/FontRendererSystem.hpp`
-  - atlas, spriteFont, text, position, origin, color, outlineColor, outlineWidth, scale, sortOrder
+  - atlas, spriteFont, text, position, origin, color, outlineColor, outlineWidth, scale, sortOrder, hasClip, clipRect
 - **Tsukino::BuiltIn::ECS::HeightmapGenerationSystem** — `Tsukino.EngineIntegration/include/Tsukino/EngineIntegration/ECS/System/HeightmapGenerationSystem.hpp`
   - Update()
 - **Tsukino::BuiltIn::ECS::InteractionSystem** — `Tsukino.EngineIntegration/include/Tsukino/EngineIntegration/ECS/System/InteractionSystem.hpp`
@@ -129,6 +129,8 @@
   - Update()
 - **Tsukino::BuiltIn::ECS::PhysicsSystem** — `Tsukino.EngineIntegration/include/Tsukino/EngineIntegration/ECS/System/PhysicsSystem.hpp`
   - PhysicsSystem(), ~PhysicsSystem(), Update(), OverlapCapsule(), SetDebugDrawEnabled(), SetUnitsPerMeter()
+- **Tsukino::BuiltIn::ECS::ScrollViewSystem** — `Tsukino.EngineIntegration/include/Tsukino/EngineIntegration/ECS/System/ScrollViewSystem.hpp`
+  - Update()
 - **Tsukino::BuiltIn::ECS::SkyAtmosphereSystem** — `Tsukino.EngineIntegration/include/Tsukino/EngineIntegration/ECS/System/SkyAtmosphereSystem.hpp`
   - Update()
 - **Tsukino::BuiltIn::ECS::SpriteRenderSystem** — `Tsukino.EngineIntegration/include/Tsukino/EngineIntegration/ECS/System/SpriteRendererSystem.hpp`

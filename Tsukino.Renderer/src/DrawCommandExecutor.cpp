@@ -150,6 +150,16 @@ namespace Tsukino::Renderer {
         //--------------------------------------------------------------------
         m_graphicsContext->SetMaterial(*cmd.material);
 
+        //--------------------------------------------------------------------
+        // 切り取り。SetMaterial がパイプラインのラスタライザを毎回設定し直すので、
+        // ここで差し替えても次のコマンドへは持ち越されない
+        //--------------------------------------------------------------------
+        if(cmd.hasClipRect) {
+            const D3D11_RECT scissor = {cmd.clipRect.left, cmd.clipRect.top, cmd.clipRect.right, cmd.clipRect.bottom};
+            context->RSSetState(m_resources->GetScissorRasterizerState());
+            context->RSSetScissorRects(1, &scissor);
+        }
+
         if(cmd.materialData) {
             context->UpdateSubresource(m_materialBuffer.Get(), 0, nullptr, cmd.materialData, 0, 0);
             context->PSSetConstantBuffers(static_cast<UINT>(CBSlot::Material), 1, m_materialBuffer.GetAddressOf());

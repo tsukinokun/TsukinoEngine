@@ -62,6 +62,14 @@ namespace Tsukino::Renderer {
             return m_commonStates.get();
         }
 
+        //! シザー（切り取り）を有効にしたラスタライザステートを取得します。
+        //! @return カリング無し・シザー有効のラスタライザステート
+        //! @note   DrawCommand::hasClipRect のコマンドと、文字の切り取りで使う
+        [[nodiscard]]
+        ID3D11RasterizerState* GetScissorRasterizerState() const {
+            return m_scissorRasterizer.Get();
+        }
+
         //! サンプラーを取得します。
         //! @param  [in] type 取得するサンプラーの種類
         //! @return サンプラーステートへのポインタ
@@ -151,6 +159,7 @@ namespace Tsukino::Renderer {
 
         std::optional<PipelineFactory>         m_pipelineFactory;    // デバイスが決まってから構築するため optional
         std::unique_ptr<DirectX::CommonStates> m_commonStates;       // DirectXTK の共通ステート
+        Microsoft::WRL::ComPtr<ID3D11RasterizerState> m_scissorRasterizer;    // カリング無し・シザー有効のラスタライザ
 
         std::array<Microsoft::WRL::ComPtr<ID3D11SamplerState>, static_cast<size_t>(Tsukino::GraphicsCommon::SamplerType::Count)> m_samplers;
         std::array<MeshBuffer, static_cast<size_t>(Tsukino::GraphicsCommon::PrimitiveType::Count)>                              m_primitiveMeshes;

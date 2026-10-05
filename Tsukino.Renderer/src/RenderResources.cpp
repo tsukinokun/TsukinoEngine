@@ -28,6 +28,21 @@ namespace Tsukino::Renderer {
         // DirectXTK の共通ステート
         m_commonStates = std::make_unique<DirectX::CommonStates>(device);
 
+        //--------------------------------------------------------------------
+        // 切り取り用のラスタライザ。CommonStates::CullNone と同じ設定にシザーだけを足す
+        // （UI は裏返しで描かれることもあるのでカリングしない）
+        //--------------------------------------------------------------------
+        D3D11_RASTERIZER_DESC scissorDesc = {};
+        scissorDesc.FillMode              = D3D11_FILL_SOLID;
+        scissorDesc.CullMode              = D3D11_CULL_NONE;
+        scissorDesc.DepthClipEnable       = TRUE;
+        scissorDesc.MultisampleEnable     = TRUE;
+        scissorDesc.ScissorEnable         = TRUE;
+        if(FAILED(device->CreateRasterizerState(&scissorDesc, m_scissorRasterizer.GetAddressOf()))) {
+            Tsukino::Core::Log::Error("Failed to create scissor rasterizer state.");
+            return false;
+        }
+
         CreatePrimitiveMeshes();
 
         if(!CreateSamplers())

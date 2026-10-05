@@ -69,6 +69,8 @@
   - rayleighScattering, mieScattering, mieAnisotropy, sunIntensity, atmosphereHeight, planetRadius, sunDiskSize, padding0, groundColor, sunDirection
 - **Tsukino::Renderer::CBufferTransform** — `Tsukino.Renderer/include/Tsukino/Renderer/ConstantBuffer.hpp`
   - world, prevWorld, motionFlags
+- **Tsukino::Renderer::ClipRect** — `Tsukino.Renderer/include/Tsukino/Renderer/DrawCommand.hpp`
+  - left, top, right, bottom
 - **Tsukino::Renderer::DX11Texture2D** — `Tsukino.Renderer/include/Tsukino/Renderer/DX11/Texture/DX11Texture2D.hpp`
   - DX11Texture2D(), Bind(), GetWidth(), GetHeight(), GetSRV()
 - **Tsukino::Renderer::DX11TextureCube** — `Tsukino.Renderer/include/Tsukino/Renderer/DX11/Texture/DX11TextureCube.hpp`
@@ -76,7 +78,7 @@
 - **Tsukino::Renderer::DebugDraw** — `Tsukino.Renderer/include/Tsukino/Renderer/DebugDraw.hpp`
   - Initialize(), DrawLine(), DrawTriangle(), Flush(), Clear()
 - **Tsukino::Renderer::DrawCommand** — `Tsukino.Renderer/include/Tsukino/Renderer/DrawCommand.hpp`
-  - material, mesh, customDraw, transform, pass, materialData, sortOrder, boneMatrices, boneCount, instanceCount, instanceData, castsShadow, userConstantBuffer, userConstantSlot, prevTransform, prevBoneMatrices, hasPrevFrame
+  - material, mesh, customDraw, transform, pass, materialData, sortOrder, boneMatrices, boneCount, instanceCount, instanceData, castsShadow, userConstantBuffer, userConstantSlot, prevTransform, prevBoneMatrices, hasPrevFrame, hasClipRect, clipRect
 - **Tsukino::Renderer::DrawCommandExecutor** — `Tsukino.Renderer/src/DrawCommandExecutor.hpp`
   - Initialize(), Execute(), ExecuteShadow()
 - **Tsukino::Renderer::DrawCommandQueue** — `Tsukino.Renderer/include/Tsukino/Renderer/DrawCommandQueue.hpp`
@@ -118,7 +120,7 @@
 - **Tsukino::Renderer::PipelineState** — `Tsukino.Renderer/include/Tsukino/Renderer/DX11/PipelineState.hpp`
   - vs, ps, inputLayout, rasterizer, blend, depth, topology
 - **Tsukino::Renderer::RenderResources** — `Tsukino.Renderer/include/Tsukino/Renderer/RenderResources.hpp`
-  - Initialize(), GetPipelineFactory(), GetCommonStatesTK(), GetSampler(), GetPrimitiveMesh(), GetTextureSRV(), GetWhiteTextureSRV(), GetFlatNormalTextureSRV(), CreateSpriteFont(), CreateSpriteBatch()
+  - Initialize(), GetPipelineFactory(), GetCommonStatesTK(), GetScissorRasterizerState(), GetSampler(), GetPrimitiveMesh(), GetTextureSRV(), GetWhiteTextureSRV(), GetFlatNormalTextureSRV(), CreateSpriteFont(), CreateSpriteBatch()
 - **Tsukino::Renderer::Renderer** — `Tsukino.Renderer/include/Tsukino/Renderer/Renderer.hpp`
   - Renderer(), ~Renderer(), Initialize(), Render(), Resize(), SetClearColor(), GetDrawQueue(), SetShadowCullingEnabled(), GetFrameStats(), SetVSyncEnabled(), IsVSyncEnabled(), GetDebugDraw(), GetResources(), GetFrameConstants(), GetDevice(), GetContext(), GetLighting(), GetSky(), GetIBL(), GetAmbientParticles(), GetFog(), GetMotionBlur()
 - **Tsukino::Renderer::Renderer::FrameStats** — `Tsukino.Renderer/include/Tsukino/Renderer/Renderer.hpp`
