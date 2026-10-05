@@ -83,7 +83,7 @@
 - **Tsukino::BuiltIn::ECS::SpringBoneComponent::ColliderDef** — `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/SpringBoneComponent.hpp`
   - attachNodeName, localOffset, radius
 - **Tsukino::BuiltIn::ECS::SpriteComponent** — `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/SpriteComponent.hpp`
-  - textureHandle, blendMode, space, tintColor, uvRect, sortOrder
+  - textureHandle, blendMode, space, tintColor, uvRect, sortOrder, fillMode, fillAmount, fillStartAngle, fillClockwise
 - **Tsukino::BuiltIn::ECS::TerrainGenerationRequestComponent** — `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/TerrainGenerationRequestComponent.hpp`
   - amplitude, noiseFrequency, seed, noiseType, collisionModelHandle
 - **Tsukino::BuiltIn::ECS::TransformComponent** — `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/TransformComponent.hpp`
