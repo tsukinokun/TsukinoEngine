@@ -138,7 +138,18 @@ namespace Tsukino::Physics {
         //!         薄い物や速い物が床やほかの物にめり込みやすい。
         //!         速度のしきい値（スリープ判定・反発の最低速度）と重力もこの値で拡大する。
         //!         呼ぶたびに既定値から計算し直すので、何度呼んでも倍率は累積しない。
+        //!         拡大した許容値（めり込みを直さずに許す量・接触を作り始める距離は 2cm 相当）は、
+        //!         薄い物（厚み1cm前後）を積むゲームでは大きすぎ、上の物が沈んで見える。
+        //!         その場合はこの後で SetContactTolerances を呼んで小さくする
         void SetUnitsPerMeter(float unitsPerMeter);
+
+        //! 接触判定の許容値を、ワールドの長さの単位で直接設定します。
+        //! @param  [in] penetrationSlop            めり込みを直さずに許す量。0 以下なら変えない
+        //! @param  [in] speculativeContactDistance 離れていても接触を作り始める距離。0 以下なら変えない
+        //! @note   SetUnitsPerMeter は許容値を既定値から作り直すので、SetUnitsPerMeter の後に呼ぶこと。
+        //!         めり込みの許容値を物の厚みより小さくすると、積んだ物が沈まなくなる。
+        //!         接触を作り始める距離を小さくしすぎると、速い物が薄い物をすり抜けやすくなる
+        void SetContactTolerances(float penetrationSlop, float speculativeContactDistance);
 
         //--------------------------------------------------------------------
         // シミュレーション

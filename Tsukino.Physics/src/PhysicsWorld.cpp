@@ -593,6 +593,21 @@ namespace Tsukino::Physics {
     }
 
     //------------------------------------------------------------------------
+    //! 接触判定の許容値を、ワールドの長さの単位で直接設定します。
+    //------------------------------------------------------------------------
+    void PhysicsWorld::SetContactTolerances(float penetrationSlop, float speculativeContactDistance) {
+        if(!m_impl || !m_impl->physicsSystem)
+            return;
+
+        JPH::PhysicsSettings settings = m_impl->physicsSystem->GetPhysicsSettings();
+        if(penetrationSlop > 0.0f)
+            settings.mPenetrationSlop = penetrationSlop;
+        if(speculativeContactDistance > 0.0f)
+            settings.mSpeculativeContactDistance = speculativeContactDistance;
+        m_impl->physicsSystem->SetPhysicsSettings(settings);
+    }
+
+    //------------------------------------------------------------------------
     //! 物理シミュレーションを1ステップ進めます。
     //------------------------------------------------------------------------
     void PhysicsWorld::Step(float deltaTime) {
