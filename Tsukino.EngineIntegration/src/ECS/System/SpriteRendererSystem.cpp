@@ -136,6 +136,11 @@ namespace Tsukino::BuiltIn::ECS {
             if(sprite.space == Tsukino::BuiltIn::ECS::SpriteSpace::World && !hasCamera)
                 return;
 
+            // 円形の塗りで割合が 0 なら1ピクセルも塗られないので、拡大率 0 と同じく積まない
+            const bool isRadialFill = sprite.fillMode == Tsukino::BuiltIn::ECS::SpriteFillMode::Radial;
+            if(isRadialFill && sprite.fillAmount <= 0.0f)
+                return;
+
             std::shared_ptr<Tsukino::Asset::TextureAsset> textureAsset =
                 std::static_pointer_cast<Tsukino::Asset::TextureAsset>(ctx->assetManager->Get(sprite.textureHandle));
             if(!textureAsset)
@@ -213,6 +218,12 @@ namespace Tsukino::BuiltIn::ECS {
             // tintColorをb2(CBufferMaterial::baseColor)経由でSprite.ps.hlslへ渡す
             Tsukino::Renderer::CBufferMaterial& materialData = ctx->renderer->GetDrawQueue().AllocMaterialData();
             materialData.baseColor                            = sprite.tintColor;
+
+            // 円形の塗り（Sprite.ps.hlsl が塗らない角度の不透明度を 0 にする）。開始角は度で持っているのでラジアンへ
+            constexpr float kDegToRad = 3.14159265358979323846f / 180.0f;
+            materialData.spriteFill   = isRadialFill ? hlslpp::float4(1.0f, std::clamp(sprite.fillAmount, 0.0f, 1.0f), sprite.fillStartAngle * kDegToRad,
+                                                                      sprite.fillClockwise ? 1.0f : -1.0f)
+                                                     : hlslpp::float4(0.0f, 1.0f, 0.0f, 1.0f);
 
             cmd.material     = &material;
             cmd.materialData = &materialData;

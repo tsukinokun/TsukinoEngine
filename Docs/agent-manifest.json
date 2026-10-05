@@ -1145,6 +1145,34 @@
                     "cppType": "int",
                     "jsonShape": "number",
                     "default": "0"
+                },
+                {
+                    "jsonKey": "fillMode",
+                    "field": "fillMode",
+                    "cppType": "SpriteFillMode",
+                    "jsonShape": "number（enum の整数値）",
+                    "default": "SpriteFillMode::None"
+                },
+                {
+                    "jsonKey": "fillAmount",
+                    "field": "fillAmount",
+                    "cppType": "float",
+                    "jsonShape": "number",
+                    "default": "1.0f"
+                },
+                {
+                    "jsonKey": "fillStartAngle",
+                    "field": "fillStartAngle",
+                    "cppType": "float",
+                    "jsonShape": "number",
+                    "default": "0.0f"
+                },
+                {
+                    "jsonKey": "fillClockwise",
+                    "field": "fillClockwise",
+                    "cppType": "bool",
+                    "jsonShape": "true / false",
+                    "default": "true"
                 }
             ]
         },

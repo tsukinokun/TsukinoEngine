@@ -283,6 +283,10 @@
 | `tintColor` | `hlslpp::float4` | { "x", "y", "z", "w" } | `hlslpp::float4(1.0f, 1.0f, 1.0f, 1.0f)` |
 | `uvRect` | `hlslpp::float4` | { "x", "y", "z", "w" } | `hlslpp::float4(0.0f, 0.0f, 1.0f, 1.0f)` |
 | `sortOrder` | `int` | number | `0` |
+| `fillMode` | `SpriteFillMode` | number（enum の整数値） | `SpriteFillMode::None` |
+| `fillAmount` | `float` | number | `1.0f` |
+| `fillStartAngle` | `float` | number | `0.0f` |
+| `fillClockwise` | `bool` | true / false | `true` |
 
 ### TerrainGenerationRequestComponent
 

@@ -37,6 +37,17 @@ namespace Tsukino::BuiltIn::ECS {
     };
 
     //-------------------------------------------------------------
+    //! @enum   SpriteFillMode
+    //! @brief  スプライトの一部だけを塗る方法
+    //! @note   Radial は画像の中心から見た角度で塗る範囲を決める（リング状のゲージ・
+    //!         クールダウン表示向け）。塗らない部分は不透明度 0 になる
+    //-------------------------------------------------------------
+    enum class SpriteFillMode {
+        None = 0,    // 画像全体を描く（既定）
+        Radial,      // 中心を軸に、開始角から fillAmount の割合だけ扇形に描く
+    };
+
+    //-------------------------------------------------------------
     //! @struct SpriteComponent
     //! @brief  スプライト（2D画像）描画に必要な情報を管理するコンポーネント
     //-------------------------------------------------------------
@@ -63,6 +74,18 @@ namespace Tsukino::BuiltIn::ECS {
         // FontComponent::sortOrderと同じ1本の軸として比較されるため、
         // 画面固定UIの重なりはスプライトと文字の種類を問わずここの値だけで決まる
         int sortOrder = 0;
+
+        // 塗り方（既定はNoneで画像全体を描く）。Radialにすると fillAmount の割合だけ扇形に描く
+        SpriteFillMode fillMode = SpriteFillMode::None;
+
+        // 塗る割合（0〜1）。fillModeがNoneのときは使わない
+        float fillAmount = 1.0f;
+
+        // 塗り始めの角度（度）。0 が真上で、fillClockwise の向きに増える
+        float fillStartAngle = 0.0f;
+
+        // 時計回りに塗るか（falseなら反時計回り）
+        bool fillClockwise = true;
     };
 
 }    // namespace Tsukino::BuiltIn::ECS

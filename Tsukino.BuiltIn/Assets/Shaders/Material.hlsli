@@ -21,6 +21,7 @@ cbuffer CBufferMaterial : register(b2)
     float  alphaCutoff;    // 44（アルファテストのしきい値。0=無効）
     float4 rimColor;       // 48  xyz: ふちの色, w: ふちの強さ
     float4 rimParams;      // 64  x: ふちの鋭さ(pow指数), y: 全体の白発光量, zw: 予約
+    float4 spriteFill;     // 80  スプライト専用の塗り。x: 塗り方(0=全体, 1=円形), y: 塗る割合, z: 開始角(ラジアン), w: 向き(+1=時計回り, -1=反時計回り)
 };
 
 //--------------------------------------------------------------
