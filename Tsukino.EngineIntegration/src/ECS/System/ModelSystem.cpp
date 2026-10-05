@@ -310,9 +310,18 @@ namespace Tsukino::BuiltIn::ECS {
                         ctx->renderer->GetDrawQueue().Push(cmd);
                     };
 
-                    // 閉じたメッシュは裏面を捨てる。カメラが敵の中へめり込んでも内面のテクスチャが見えない
-                    const Tsukino::Renderer::CullMode cullMode =
-                        modelComp.doubleSided ? Tsukino::Renderer::CullMode::None : Tsukino::Renderer::CullMode::Back;
+                    //--------------------------------------------------------------
+                    // 閉じたメッシュは裏面を捨てる。カメラが敵の中へめり込んでも内面のテクスチャが見えない。
+                    // ただし変換に鏡像（拡縮がマイナス。例: ノードの拡縮が -20,-20,-20 の FBX）が入っていると
+                    // 三角形の巡回順が画面上で逆になり、裏面を捨てると手前の外側の面が消えて奥の内面が見える。
+                    // その場合は表面を捨てて同じ見え方にする。鏡像かどうかは行列式の符号で判定する
+                    // （拡縮・回転・移動だけのアフィン変換なので、4x4 の行列式は左上 3x3 の行列式と同じ）
+                    //--------------------------------------------------------------
+                    Tsukino::Renderer::CullMode cullMode = Tsukino::Renderer::CullMode::None;
+                    if(!modelComp.doubleSided) {
+                        const bool isMirrored = float(hlslpp::determinant(static_cast<const hlslpp::float4x4&>(finalTransform))) < 0.0f;
+                        cullMode              = isMirrored ? Tsukino::Renderer::CullMode::Front : Tsukino::Renderer::CullMode::Back;
+                    }
 
                     if(isFading) {
                         // 半透明フォワード：先に深度だけ埋め（スキンメッシュの自己重なり対策）、

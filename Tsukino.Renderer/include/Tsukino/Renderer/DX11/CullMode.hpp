@@ -11,6 +11,7 @@ namespace Tsukino::Renderer {
     enum class CullMode {
         None,    // 両面を描く（草の板ポリ・スプライト・影など）
         Back,    // 裏面を捨てる（閉じたメッシュ。カメラがめり込んでも内面が見えない）
+        Front,   // 表面を捨てる（拡縮がマイナスで鏡像になったメッシュは巡回順が逆になるので、これで Back と同じ見え方になる）
     };
 
 }    // namespace Tsukino::Renderer

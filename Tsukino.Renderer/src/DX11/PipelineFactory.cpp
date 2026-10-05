@@ -133,7 +133,17 @@ namespace Tsukino::Renderer {
         rasterDesc.FillMode              = D3D11_FILL_SOLID;
         // 表面の巡回順は D3D の既定（時計回りが表）のまま。右手系の FBX を変換せずに
         // 左手系（perspectiveFovLH）で描くため鏡像になり、元の反時計回りが画面上で時計回りになる
-        rasterDesc.CullMode              = (cullMode == CullMode::Back) ? D3D11_CULL_BACK : D3D11_CULL_NONE;
+        switch(cullMode) {
+            case CullMode::Back:
+                rasterDesc.CullMode = D3D11_CULL_BACK;
+                break;
+            case CullMode::Front:
+                rasterDesc.CullMode = D3D11_CULL_FRONT;
+                break;
+            default:
+                rasterDesc.CullMode = D3D11_CULL_NONE;
+                break;
+        }
         rasterDesc.FrontCounterClockwise = FALSE;
         rasterDesc.DepthClipEnable       = TRUE;
         m_device->CreateRasterizerState(&rasterDesc, p->rasterizer.GetAddressOf());
