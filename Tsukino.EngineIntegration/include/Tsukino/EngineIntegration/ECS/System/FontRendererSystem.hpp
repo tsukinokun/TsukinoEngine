@@ -7,6 +7,7 @@
 #include <Tsukino/Core/ECS/System/ISystem.hpp>
 
 #include <Tsukino/Renderer/Renderer.hpp>
+#include <Tsukino/Renderer/DrawCommand.hpp>
 #include <Tsukino/Renderer/Text/DynamicFontAtlas.hpp>
 
 #include <Tsukino/Engine/Asset/AssetHandle.hpp>
@@ -57,13 +58,16 @@ namespace Tsukino::BuiltIn::ECS {
         //-------------------------------------------------------------
         //! @brief  m_drawOrderの一部区間をSpriteBatchで描画する関数
         //! @param  context    [in] デバイスコンテキスト
-        //! @param  states     [in] TK製CommonStates（ブレンド／深度ステート取得用）
-        //! @param  beginIndex [in] m_drawOrderの開始位置
-        //! @param  endIndex   [in] m_drawOrderの終端位置（この位置は含まない）
+        //! @param  states       [in] TK製CommonStates（ブレンド／深度ステート取得用）
+        //! @param  scissorState [in] シザー有効のラスタライザ（区間の文字に切り取り枠があるときに使う）
+        //! @param  beginIndex   [in] m_drawOrderの開始位置
+        //! @param  endIndex     [in] m_drawOrderの終端位置（この位置は含まない）
         //! @note   customDrawから呼ばれる。呼び出し時点はRenderer::Render()の中で、
-        //!         同フレームのUpdateが全て終わった後なのでメンバは今フレームの内容
+        //!         同フレームのUpdateが全て終わった後なのでメンバは今フレームの内容。
+        //!         区間の文字は全て同じ切り取り枠を持つ（Update がそう区切る）
         //-------------------------------------------------------------
-        void DrawRange(ID3D11DeviceContext* context, DirectX::CommonStates* states, std::uint32_t beginIndex, std::uint32_t endIndex);
+        void DrawRange(ID3D11DeviceContext* context, DirectX::CommonStates* states, ID3D11RasterizerState* scissorState, std::uint32_t beginIndex,
+                       std::uint32_t endIndex);
 
         //-------------------------------------------------------------
         //! @struct DrawEntry
@@ -82,6 +86,9 @@ namespace Tsukino::BuiltIn::ECS {
             float          outlineWidth = 0.0f;             // 縁取りの太さ（ピクセル）
             float          scale        = 1.0f;             // 拡大率
             int            sortOrder    = 0;                // 描画順
+
+            bool                        hasClip = false;    // 祖先の UIClipComponent で切り取るか
+            Tsukino::Renderer::ClipRect clipRect;           // 切り取る矩形（hasClip のときだけ有効）
         };
 
         // スプライトバッチのキャッシュ

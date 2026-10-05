@@ -11,6 +11,8 @@
 #include <Tsukino/BuiltIn/ECS/Component/TransformComponent.hpp>
 #include <Tsukino/BuiltIn/ECS/Component/SpriteComponent.hpp>
 #include <Tsukino/BuiltIn/ECS/Component/CameraComponent.hpp>
+#include <Tsukino/BuiltIn/ECS/Transform/TransformUtility.hpp>
+#include <Tsukino/BuiltIn/ECS/UI/UIClipUtility.hpp>
 
 #include <Tsukino/Renderer/Renderer.hpp>
 #include <Tsukino/Renderer/DrawCommand.hpp>
@@ -121,7 +123,7 @@ namespace Tsukino::BuiltIn::ECS {
         auto view = registry.View<TransformComponent, SpriteComponent>();
 
         // 各エンティティから情報を抽出して描画コマンドを作成する
-        view.each([&](entt::entity, const Tsukino::BuiltIn::ECS::TransformComponent& transform, const Tsukino::BuiltIn::ECS::SpriteComponent& sprite) {
+        view.each([&](entt::entity entity, const Tsukino::BuiltIn::ECS::TransformComponent& transform, const Tsukino::BuiltIn::ECS::SpriteComponent& sprite) {
             //-------------------------------------------------------------
             // スケールが潰れているスプライトは面積ゼロで、描いても1ピクセルも塗られない。
             // 敵の頭上HPバーは被弾していない間ずっと scale=0 で待機しているため、
@@ -150,6 +152,26 @@ namespace Tsukino::BuiltIn::ECS {
             float texH = static_cast<float>(textureAsset->height);
 
             Tsukino::Renderer::DrawCommand cmd;
+
+            //-------------------------------------------------------------
+            // 画面空間のスプライトは、祖先の UIClipComponent の枠で切り取る。
+            // 枠と1ピクセルも重ならないもの（スクロールで枠の外へ出た行など）は積まない
+            //-------------------------------------------------------------
+            if(sprite.space == Tsukino::BuiltIn::ECS::SpriteSpace::Screen) {
+                UIClipUtility::ClipBounds clip;
+                if(UIClipUtility::TryGetClipBounds(registry, entity, clip)) {
+                    const hlslpp::float3 center = TransformUtility::GetWorldPosition(transform);
+                    const hlslpp::float2 size   = hlslpp::float2(texW, texH) * TransformUtility::GetWorldScale2D(transform);
+                    if(!clip.Overlaps(hlslpp::float2(center.x, center.y), size))
+                        return;
+
+                    cmd.hasClipRect     = true;
+                    cmd.clipRect.left   = static_cast<i32>(std::floor(clip.left));
+                    cmd.clipRect.top    = static_cast<i32>(std::floor(clip.top));
+                    cmd.clipRect.right  = static_cast<i32>(std::ceil(clip.right));
+                    cmd.clipRect.bottom = static_cast<i32>(std::ceil(clip.bottom));
+                }
+            }
 
             if(sprite.space == Tsukino::BuiltIn::ECS::SpriteSpace::World) {
                 //-------------------------------------------------------------

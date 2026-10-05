@@ -63,13 +63,17 @@
 - **Tsukino::BuiltIn::ECS::PointLightComponent** — `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/PointLightComponent.hpp`
   - color, intensity, range, enabled
 - **Tsukino::BuiltIn::ECS::PointerTargetComponent** — `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/PointerTargetComponent.hpp`
-  - hovered, clicked
+  - hovered, clicked, pressed
 - **Tsukino::BuiltIn::ECS::RigidbodyComponent** — `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/RigidbodyComponent.hpp`
   - type, isTypeDirty, mass, friction, restitution, gravityFactor, linearVelocity, angularVelocity, force, torque, isInitialized, isGrounded, groundCheckDistance, groundCheckRadius, freezePositionX, freezePositionY, freezePositionZ, freezeRotationX, freezeRotationY, freezeRotationZ, isFreezeDirty
 - **Tsukino::BuiltIn::ECS::RimGlowComponent** — `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/RimGlowComponent.hpp`
   - active, rimColor, rimIntensity, rimPower, glow
 - **Tsukino::BuiltIn::ECS::RootMotionComponent** — `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/RootMotionComponent.hpp`
   - delta_position, delta_rotation
+- **Tsukino::BuiltIn::ECS::ScrollBarComponent** — `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/ScrollBarComponent.hpp`
+  - thumb, size, minThumbLength
+- **Tsukino::BuiltIn::ECS::ScrollViewComponent** — `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/ScrollViewComponent.hpp`
+  - content, scrollBar, contentHeight, enabled, wheelStep, keyStep, followSpeed, dragThreshold, offset, targetOffset, pointerDown, dragScrolling, pressPointerY, pressOffset, thumbDragging, thumbGrabOffset, ScrollTo(), ScrollToTop()
 - **Tsukino::BuiltIn::ECS::SkeletonOutputComponent** — `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/SkeletonOutputComponent.hpp`
   - MAX_BONES, local_matrices, bone_count
 - **Tsukino::BuiltIn::ECS::SkyAtmosphereComponent** — `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/SkyAtmosphereComponent.hpp`
@@ -88,5 +92,9 @@
   - amplitude, noiseFrequency, seed, noiseType, collisionModelHandle
 - **Tsukino::BuiltIn::ECS::TransformComponent** — `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/TransformComponent.hpp`
   - position, rotation, scale, localMatrix, worldMatrix, parent, dirty
+- **Tsukino::BuiltIn::ECS::UIClipComponent** — `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/UIClipComponent.hpp`
+  - size
+- **Tsukino::BuiltIn::ECS::UIClipUtility::ClipBounds** — `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/UI/UIClipUtility.hpp`
+  - left, top, right, bottom, Contains(), Overlaps(), Height()
 - **Tsukino::BuiltIn::ECS::WorldAnchorComponent** — `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/WorldAnchorComponent.hpp`
   - target, useFixedWorldPosition, fixedWorldPosition, worldOffset, screenOffset, visible

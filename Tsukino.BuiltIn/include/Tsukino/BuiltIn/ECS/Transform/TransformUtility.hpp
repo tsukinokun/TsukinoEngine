@@ -77,6 +77,31 @@ namespace Tsukino::BuiltIn::ECS::TransformUtility {
     }
 
     //--------------------------------------------------------------
+    //! @brief  指定エンティティから親を遡り、Tを持つ最も近いエンティティ（自身を含む）を返す
+    //! @note   子スプライトの上でも親のPointerTargetComponentが反応する、
+    //!         子孫のスプライトが祖先のUIClipComponentで切られる、といった
+    //!         「親に付けた設定が子孫に効く」仕組みの共通の探し方
+    //! @return 見つからなければ entt::null
+    //--------------------------------------------------------------
+    template <class T>
+    [[nodiscard]] Tsukino::ECS::Entity FindNearestWith(Tsukino::ECS::Registry& registry, Tsukino::ECS::Entity entity) {
+        Tsukino::ECS::Entity current = entity;
+
+        for(int depth = 0; depth < kMaxHierarchyDepth; ++depth) {
+            if(current == entt::null || !registry.HasComponent<TransformComponent>(current))
+                return entt::null;
+
+            if(registry.HasComponent<T>(current))
+                return current;
+
+            current = registry.GetComponent<TransformComponent>(current).parent;
+        }
+
+        // 深すぎる（または循環している）。TransformSystem側で警告を出しているのでここでは黙って諦める
+        return entt::null;
+    }
+
+    //--------------------------------------------------------------
     //! @brief  ワールド座標を指定する（親がいればローカル座標へ変換して格納）
     //! @note   dirtyを必ず立てるので、呼び出し側で立て忘れる事故が起きない
     //--------------------------------------------------------------

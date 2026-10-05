@@ -32,6 +32,17 @@ namespace Tsukino::Renderer {
     };
 
     //------------------------------------------------------------
+    //! @struct ClipRect
+    //! @brief  描画を切り取る矩形（レンダーターゲットのピクセル。左上原点、右・下は含まない）
+    //------------------------------------------------------------
+    struct ClipRect {
+        i32 left   = 0;
+        i32 top    = 0;
+        i32 right  = 0;
+        i32 bottom = 0;
+    };
+
+    //------------------------------------------------------------
     //! @struct DrawCommand
     //! @brief  描画コマンドを表す構造体
     //------------------------------------------------------------
@@ -104,5 +115,15 @@ namespace Tsukino::Renderer {
         Tsukino::Core::Math::matrix prevTransform;               // 前フレームのモデル行列
         const void*                 prevBoneMatrices = nullptr;  // 前フレームのボーン行列配列（boneCount と同じ本数）
         bool                        hasPrevFrame     = false;    // 前フレームの値が有効か
+
+        //--------------------------------------------------------
+        // 切り取り（シザー）。
+        // hasClipRect が true のコマンドは clipRect の外に描かれない（スクロールする UI の枠など）。
+        // 既定は false なので、既存の描画コマンドは今までどおり全体に描かれる。
+        // customDraw のコマンドには効かないので、customDraw の中で自分で
+        // RSSetScissorRects とシザー有効のラスタライザを設定すること（FontRendererSystem 参照）
+        //--------------------------------------------------------
+        bool     hasClipRect = false;    // clipRect で切り取るか
+        ClipRect clipRect;               // 切り取る矩形
     };
 }    // namespace Tsukino::Renderer

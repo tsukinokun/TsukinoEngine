@@ -9,6 +9,7 @@
 #include <Tsukino/BuiltIn/ECS/Component/TransformComponent.hpp>
 #include <Tsukino/BuiltIn/ECS/Component/FontComponent.hpp>
 #include <Tsukino/BuiltIn/ECS/Component/WorldAnchorComponent.hpp>
+#include <Tsukino/BuiltIn/ECS/UI/UIClipUtility.hpp>
 #include <Tsukino/BuiltIn/BuiltInAssets.hpp>
 
 #include <Tsukino/Engine/Asset/AssetManager.hpp>
@@ -23,6 +24,7 @@
 #include <SpriteFont.h>
 
 #include <algorithm>
+#include <cmath>
 // 名前空間 : Tsukino::BuiltIn::ECS
 namespace Tsukino::BuiltIn::ECS {
     namespace {
@@ -98,6 +100,20 @@ namespace Tsukino::BuiltIn::ECS {
             if(const auto* anchor = registry.try_get<WorldAnchorComponent>(entity); anchor && !anchor->visible)
                 return;
 
+            //-------------------------------------------------------------
+            // 祖先の UIClipComponent の枠（スクロールする UI の枠など）。描くときにシザーで切る
+            //-------------------------------------------------------------
+            bool                        hasClip = false;
+            Tsukino::Renderer::ClipRect clipRect;
+            UIClipUtility::ClipBounds   clipBounds;
+            if(UIClipUtility::TryGetClipBounds(registry, entity, clipBounds)) {
+                hasClip         = true;
+                clipRect.left   = static_cast<i32>(std::floor(clipBounds.left));
+                clipRect.top    = static_cast<i32>(std::floor(clipBounds.top));
+                clipRect.right  = static_cast<i32>(std::ceil(clipBounds.right));
+                clipRect.bottom = static_cast<i32>(std::ceil(clipBounds.bottom));
+            }
+
             Tsukino::Asset::AssetHandle fontHandle = font.fontHandle;
 
             // フォントハンドルが無効ならデフォルトフォントを使う
@@ -147,6 +163,8 @@ namespace Tsukino::BuiltIn::ECS {
                 entry.outlineWidth = font.outlineWidth;
                 entry.scale        = finalScale;
                 entry.sortOrder    = font.sortOrder;
+                entry.hasClip      = hasClip;
+                entry.clipRect     = clipRect;
             } else {
                 //-------------------------------------------------------------
                 // 事前ベイクされたSpriteFont経路（既存）
@@ -205,6 +223,8 @@ namespace Tsukino::BuiltIn::ECS {
                 entry.outlineWidth = font.outlineWidth;
                 entry.scale        = finalScale;
                 entry.sortOrder    = font.sortOrder;
+                entry.hasClip      = hasClip;
+                entry.clipRect     = clipRect;
             }
         });
 
@@ -243,12 +263,22 @@ namespace Tsukino::BuiltIn::ECS {
         // （EngineAPI::Update → EngineAPI::Render）なので、メンバの内容は
         // 今フレーム収集したものと一致する
         //-------------------------------------------------------------
+        auto sameClip = [](const DrawEntry& lhs, const DrawEntry& rhs) {
+            if(lhs.hasClip != rhs.hasClip)
+                return false;
+            return !lhs.hasClip || (lhs.clipRect.left == rhs.clipRect.left && lhs.clipRect.top == rhs.clipRect.top && lhs.clipRect.right == rhs.clipRect.right
+                                    && lhs.clipRect.bottom == rhs.clipRect.bottom);
+        };
+
         std::uint32_t runBegin = 0;
         while(runBegin < static_cast<std::uint32_t>(m_drawOrder.size())) {
-            const int layer = m_drawEntries[m_drawOrder[runBegin]].sortOrder;
+            const DrawEntry& first = m_drawEntries[m_drawOrder[runBegin]];
+            const int        layer = first.sortOrder;
 
+            // 同じ層でも切り取り枠が違う文字は同じ Begin/End にまとめられない（シザーは1回の描画に1つ）ので、そこでも区切る
             std::uint32_t runEnd = runBegin + 1;
-            while(runEnd < static_cast<std::uint32_t>(m_drawOrder.size()) && m_drawEntries[m_drawOrder[runEnd]].sortOrder == layer)
+            while(runEnd < static_cast<std::uint32_t>(m_drawOrder.size()) && m_drawEntries[m_drawOrder[runEnd]].sortOrder == layer
+                  && sameClip(m_drawEntries[m_drawOrder[runEnd]], first))
                 ++runEnd;
 
             Tsukino::Renderer::DrawCommand cmd{};
@@ -263,7 +293,10 @@ namespace Tsukino::BuiltIn::ECS {
             // Renderer::Render()の中で、これは同フレームのUpdateが全て終わった後
             // （EngineAPI::Update → EngineAPI::Render）なので、描画時点の内容は
             // 今フレーム収集したものと一致する
-            cmd.customDraw = [this, states, runBegin, runEnd](ID3D11DeviceContext* context) { DrawRange(context, states, runBegin, runEnd); };
+            ID3D11RasterizerState* scissorState = ctx->renderer->GetResources().GetScissorRasterizerState();
+            cmd.customDraw = [this, states, scissorState, runBegin, runEnd](ID3D11DeviceContext* context) {
+                DrawRange(context, states, scissorState, runBegin, runEnd);
+            };
 
             ctx->renderer->GetDrawQueue().Push(cmd);
 
@@ -274,12 +307,26 @@ namespace Tsukino::BuiltIn::ECS {
     //-------------------------------------------------------------
     //! @brief m_drawOrderの一部区間をSpriteBatchで描画する関数
     //-------------------------------------------------------------
-    void FontRendererSystem::DrawRange(ID3D11DeviceContext* context, DirectX::CommonStates* states, std::uint32_t beginIndex, std::uint32_t endIndex) {
+    void FontRendererSystem::DrawRange(ID3D11DeviceContext* context, DirectX::CommonStates* states, ID3D11RasterizerState* scissorState,
+                                       std::uint32_t beginIndex, std::uint32_t endIndex) {
+        //-------------------------------------------------------------
+        // 切り取り枠のあるまとまりは、シザー有効のラスタライザで描く。
+        // シザー矩形は SpriteBatch が触らないので Begin の前に設定しておけば End の描画に効く。
+        // 描き終えた後のラスタライザは DrawCommandExecutor が customDraw の後で戻す
+        //-------------------------------------------------------------
+        const DrawEntry&       first      = m_drawEntries[m_drawOrder[beginIndex]];
+        ID3D11RasterizerState* rasterizer = nullptr;
+        if(first.hasClip && scissorState) {
+            const D3D11_RECT scissor = {first.clipRect.left, first.clipRect.top, first.clipRect.right, first.clipRect.bottom};
+            context->RSSetScissorRects(1, &scissor);
+            rasterizer = scissorState;
+        }
+
         m_spriteBatch->Begin(DirectX::SpriteSortMode_Deferred,    // 積んだ順に描く
                              states->NonPremultiplied(),          // 一般的なアルファブレンドを強制
                              nullptr,                             // サンプラーステート（デフォルトでOK）
                              states->DepthRead(),                 // 奥行きを読み取るけど書き込まない
-                             nullptr                              // ラスタライザステート
+                             rasterizer                           // ラスタライザステート（nullptr なら SpriteBatch の既定）
         );
 
         for(std::uint32_t order = beginIndex; order < endIndex; ++order) {

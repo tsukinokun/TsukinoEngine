@@ -28,6 +28,9 @@
 #include <Tsukino/BuiltIn/ECS/Component/TerrainGenerationRequestComponent.hpp>
 #include <Tsukino/BuiltIn/ECS/Component/SpriteComponent.hpp>
 #include <Tsukino/BuiltIn/ECS/Component/DraggableComponent.hpp>
+#include <Tsukino/BuiltIn/ECS/Component/UIClipComponent.hpp>
+#include <Tsukino/BuiltIn/ECS/Component/ScrollViewComponent.hpp>
+#include <Tsukino/BuiltIn/ECS/Component/ScrollBarComponent.hpp>
 
 #include <Tsukino/BuiltIn/ECS/Serialization/CameraComponentSerialization.hpp>
 #include <Tsukino/BuiltIn/ECS/Serialization/TransformComponentSerialization.hpp>
@@ -351,5 +354,9 @@ namespace Tsukino::EngineIntegration {
         m_prefabFactory->RegisterComponent<Tsukino::BuiltIn::ECS::SpriteComponent>("SpriteComponent");
         // isDragging/dragOffsetは実行時状態のみのため、シリアライズ対応不要（アタッチのみでよい）
         m_prefabFactory->RegisterComponent<Tsukino::BuiltIn::ECS::DraggableComponent>("DraggableComponent");
+        // 画面UIの切り取り枠とスクロール。中身・スクロールバーをエンティティで指すため実行時専用（アタッチのみでよい）
+        m_prefabFactory->RegisterComponent<Tsukino::BuiltIn::ECS::UIClipComponent>("UIClipComponent");
+        m_prefabFactory->RegisterComponent<Tsukino::BuiltIn::ECS::ScrollViewComponent>("ScrollViewComponent");
+        m_prefabFactory->RegisterComponent<Tsukino::BuiltIn::ECS::ScrollBarComponent>("ScrollBarComponent");
     }
 }    // namespace Tsukino::EngineIntegration
