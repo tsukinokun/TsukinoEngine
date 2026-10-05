@@ -162,6 +162,13 @@ namespace Tsukino::BuiltIn::ECS {
     }
 
     //-------------------------------------------------------------
+    // 接触判定の許容値をワールドの長さの単位で直接設定する
+    //-------------------------------------------------------------
+    void PhysicsSystem::SetContactTolerances(float penetrationSlop, float speculativeContactDistance) {
+        m_world->SetContactTolerances(penetrationSlop, speculativeContactDistance);
+    }
+
+    //-------------------------------------------------------------
     // デストラクタ
     //-------------------------------------------------------------
     PhysicsSystem::~PhysicsSystem() {

@@ -85,6 +85,15 @@ namespace Tsukino::BuiltIn::ECS {
         //-------------------------------------------------------------
         void SetUnitsPerMeter(float unitsPerMeter);
 
+        //-------------------------------------------------------------
+        //! @brief  接触判定の許容値をワールドの長さの単位で直接設定する
+        //! @param  penetrationSlop            [in] めり込みを直さずに許す量。0 以下なら変えない
+        //! @param  speculativeContactDistance [in] 離れていても接触を作り始める距離。0 以下なら変えない
+        //! @note   SetUnitsPerMeter の後に呼ぶこと（詳細は Tsukino::Physics::PhysicsWorld::SetContactTolerances）。
+        //!         薄い物を積むゲームで、上の物が沈んで見えるときに小さくする
+        //-------------------------------------------------------------
+        void SetContactTolerances(float penetrationSlop, float speculativeContactDistance);
+
     private:
         //-------------------------------------------------------------
         //! @brief  Registry の破棄シグナルへ購読する（初回 Update で一度だけ）
