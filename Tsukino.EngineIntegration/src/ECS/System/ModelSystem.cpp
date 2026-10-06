@@ -14,6 +14,7 @@
 #include <Tsukino/BuiltIn/ECS/Component/CollisionComponent.hpp>
 #include <Tsukino/BuiltIn/ECS/Component/RigidbodyComponent.hpp>
 #include <Tsukino/BuiltIn/ECS/Component/RimGlowComponent.hpp>
+#include <Tsukino/BuiltIn/ECS/Component/MaterialPropertyBlockComponent.hpp>
 #include <Tsukino/BuiltIn/ECS/Component/MotionVectorComponent.hpp>
 #include <Tsukino/Engine/Asset/AssetManager.hpp>
 #include <Tsukino/Engine/Asset/Model/ModelAsset.hpp>
@@ -168,8 +169,17 @@ namespace Tsukino::BuiltIn::ECS {
                     // アルファテストのしきい値（0 = 無効）。ModelImporterが自動設定する
                     float alphaCutoff = 0.0f;
 
-                    if(meshData.materialIndex < modelAsset->materialHandles.size()) {
-                        auto matHandle    = modelAsset->materialHandles[meshData.materialIndex];
+                    //--------------------------------------------------------------
+                    // 使うマテリアル。ModelComponent::materials に差し替え（.tmat など）があればそれを、
+                    // 無ければモデルのマテリアルを使う
+                    //--------------------------------------------------------------
+                    Tsukino::Asset::AssetHandle matHandle = Tsukino::Asset::AssetHandle::Invalid();
+                    if(meshData.materialIndex < modelComp.materials.size() && modelComp.materials[meshData.materialIndex].IsValid())
+                        matHandle = modelComp.materials[meshData.materialIndex];
+                    else if(meshData.materialIndex < modelAsset->materialHandles.size())
+                        matHandle = modelAsset->materialHandles[meshData.materialIndex];
+
+                    if(matHandle.IsValid()) {
                         auto matAssetBase = ctx->assetManager->Get(matHandle);
                         if(matAssetBase && matAssetBase->GetType() == Tsukino::Asset::AssetType::Material) {
                             Tsukino::Core::Ref<Tsukino::Asset::MaterialAsset> matAsset = std::static_pointer_cast<Tsukino::Asset::MaterialAsset>(matAssetBase);
@@ -203,6 +213,21 @@ namespace Tsukino::BuiltIn::ECS {
                             emissiveSRV = resolveSRV(matAsset->emissiveHandle);
                             aoSRV       = resolveSRV(matAsset->aoHandle);
                         }
+                    }
+
+                    //--------------------------------------------------------------
+                    // エンティティ単位のマテリアルの値の上書き（MaterialPropertyBlock に当たる）。
+                    // 値の入っている項目だけをマテリアルの値の代わりに使う（アセットは変えない）
+                    //--------------------------------------------------------------
+                    if(const auto* block = registry.try_get<MaterialPropertyBlockComponent>(entity)) {
+                        if(block->baseColor)
+                            cbMat.baseColor = *block->baseColor;
+                        if(block->emissive)
+                            cbMat.emissive = *block->emissive;
+                        if(block->metallic)
+                            cbMat.metallic = *block->metallic;
+                        if(block->roughness)
+                            cbMat.roughness = *block->roughness;
                     }
 
                     //--------------------------------------------------------------

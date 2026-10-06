@@ -21,6 +21,7 @@
 #include <string>
 #include <unordered_map>
 #include <utility>
+#include <vector>
 
 // 名前空間 : Tsukino::ECS
 namespace Tsukino::ECS {
@@ -79,6 +80,19 @@ namespace Tsukino::ECS {
                 ref.entity = it->second;
             } else {
                 Tsukino::Core::Log::Warn("EntityRef unresolved: " + ref.localName);
+            }
+        }
+
+        //--------------------------------------------------------------------
+        //! @brief  std::vector は要素を1つずつ辿る（要素数は変えない）
+        //! @note   cereal の vector の load は「要素数を読む → resize → 要素を読む」なので、
+        //!         下の汎用の経路で辿ると、要素数を読まない（このクラスは何も読まない）まま
+        //!         resize が走って中身が壊れる。既にロード済みの要素だけを訪問する
+        //--------------------------------------------------------------------
+        template <typename T, typename Allocator>
+        void Process(std::vector<T, Allocator>& values) {
+            for(T& value : values) {
+                Process(value);
             }
         }
 

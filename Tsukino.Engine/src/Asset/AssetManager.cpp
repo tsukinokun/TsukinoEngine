@@ -12,6 +12,7 @@
 #include <Tsukino/Engine/Asset/Shader/ShaderLoader.hpp>
 #include <Tsukino/Engine/Asset/Font/FontLoader.hpp>
 #include <Tsukino/Engine/Asset/Font/DynamicFontLoader.hpp>
+#include <Tsukino/Engine/Asset/Material/MaterialLoader.hpp>
 #include <Tsukino/Engine/Asset/Audio/AudioLoader.hpp>
 #include <Tsukino/Engine/Asset/Model/ModelLoader.hpp>
 #include <Tsukino/Engine/Asset/Cubemap/CubemapLoader.hpp>
@@ -22,6 +23,7 @@
 #include <Tsukino/Engine/Asset/Shader/ShaderImporter.hpp>
 #include <Tsukino/Engine/Asset/Font/FontImporter.hpp>
 #include <Tsukino/Engine/Asset/Font/DynamicFontImporter.hpp>
+#include <Tsukino/Engine/Asset/Material/MaterialImporter.hpp>
 #include <Tsukino/Engine/Asset/Audio/AudioImporter.hpp>
 #include <Tsukino/Engine/Asset/Model/ModelImporter.hpp>
 #include <Tsukino/Engine/Asset/Cubemap/CubemapImporter.hpp>
@@ -53,6 +55,7 @@ namespace Tsukino::Asset {
         RegisterLoader(Tsukino::Core::CreateRef<DynamicFontLoader>());  // 動的フォントローダーを登録
         RegisterLoader(Tsukino::Core::CreateRef<AudioLoader>());        // オーディオローダーを登録
         RegisterLoader(Tsukino::Core::CreateRef<ModelLoader>(this));    // モデルローダーを登録
+        RegisterLoader(Tsukino::Core::CreateRef<MaterialLoader>(this)); // マテリアルローダー（.tmat）を登録
         RegisterLoader(Tsukino::Core::CreateRef<CubemapLoader>());      // キューブマップローダーを登録
         RegisterLoader(Tsukino::Core::CreateRef<EffectLoader>());       // エフェクトローダーを登録
 
@@ -65,6 +68,7 @@ namespace Tsukino::Asset {
         RegisterImporter(AssetType::DynamicFont, Tsukino::Core::CreateRef<DynamicFontImporter>());    // 動的フォントインポーターの登録
         RegisterImporter(AssetType::Audio, Tsukino::Core::CreateRef<AudioImporter>());        // オーディオインポーターの登録
         RegisterImporter(AssetType::Model, Tsukino::Core::CreateRef<ModelImporter>());        // モデルインポーターの登録
+        RegisterImporter(AssetType::Material, Tsukino::Core::CreateRef<MaterialImporter>());  // マテリアルインポーター（.tmat）の登録
         RegisterImporter(AssetType::Cubemap, Tsukino::Core::CreateRef<CubemapImporter>());    // キューブマップインポーターを登録
         RegisterImporter(AssetType::Effect, Tsukino::Core::CreateRef<EffectImporter>());      // エフェクトインポーターを登録
     }
@@ -302,6 +306,8 @@ namespace Tsukino::Asset {
 
             {".font",    AssetType::Font   },
             {".dfont",   AssetType::DynamicFont},
+
+            {".tmat",    AssetType::Material},
 
             {".cubemap", AssetType::Cubemap},
             {".tcc",     AssetType::Cubemap},

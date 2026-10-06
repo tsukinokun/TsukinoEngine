@@ -164,6 +164,10 @@
   - ~IAssetLoader(), CanLoad(), Load()
 - **Tsukino::Asset::MaterialAsset** — `Tsukino.Engine/include/Tsukino/Engine/Asset/Material/MaterialAsset.hpp`
   - data, albedoHandle, normalHandle, metallicRoughnessHandle, emissiveHandle, aoHandle, vertexShaderHandle, pixelShaderHandle, GetHandle(), GetType(), SetHandle()
+- **Tsukino::Asset::MaterialImporter** — `Tsukino.Engine/include/Tsukino/Engine/Asset/Material/MaterialImporter.hpp`
+  - Import()
+- **Tsukino::Asset::MaterialLoader** — `Tsukino.Engine/include/Tsukino/Engine/Asset/Material/MaterialLoader.hpp`
+  - MaterialLoader(), CanLoad(), Load()
 - **Tsukino::Asset::MeshAsset** — `Tsukino.Engine/include/Tsukino/Engine/Asset/Mesh/MeshAsset.hpp`
   - data, MeshAsset(), GetHandle(), GetType(), SetHandle()
 - **Tsukino::Asset::ModelAsset** — `Tsukino.Engine/include/Tsukino/Engine/Asset/Model/ModelAsset.hpp`

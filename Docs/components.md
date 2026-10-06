@@ -4,7 +4,7 @@
 
 再生成: `vendor\premake5.exe gen-manifest`（または `generate-docs.bat`）
 
-コンポーネント 37 個（Prefab 登録済み 22 個 / シリアライズ定義あり 17 個）
+コンポーネント 38 個（Prefab 登録済み 22 個 / シリアライズ定義あり 17 個）
 
 ## 読み方
 
@@ -183,6 +183,7 @@
 | `visible` | `bool` | true / false | `true` |
 | `opacity` | `float` | number | `1.0f` |
 | `doubleSided` | `bool` | true / false | `false` |
+| `materials` | `std::vector<Tsukino::Asset::AssetRef>` | ? | — |
 
 ### MotionBlurComponent
 
@@ -333,6 +334,7 @@
 | `DebugCameraTag` | `DebugCameraTag` | — | `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/DebugCameraTag.hpp` |
 | `DraggableComponent` | `DraggableComponent` | — | `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/DraggableComponent.hpp` |
 | `ImpulseRequestComponent` | — | — | `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/ImpulseRequestComponent.hpp` |
+| `MaterialPropertyBlockComponent` | — | — | `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/MaterialPropertyBlockComponent.hpp` |
 | `MotionVectorComponent` | — | — | `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/MotionVectorComponent.hpp` |
 | `NodeWorldMatrixComponent` | — | — | `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/NodeWorldMatrixComponent.hpp` |
 | `NodeWorldPoseComponent` | — | — | `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/NodeWorldPoseComponent.hpp` |

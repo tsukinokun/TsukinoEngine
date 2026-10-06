@@ -50,8 +50,10 @@
   - text, fontHandle, color, origin, horizontalAlign, verticalAlign, outlineColor, outlineWidth, maxWidth, sortOrder
 - **Tsukino::BuiltIn::ECS::ImpulseRequestComponent** — `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/ImpulseRequestComponent.hpp`
   - impulse, angularImpulse
+- **Tsukino::BuiltIn::ECS::MaterialPropertyBlockComponent** — `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/MaterialPropertyBlockComponent.hpp`
+  - baseColor, emissive, metallic, roughness
 - **Tsukino::BuiltIn::ECS::ModelComponent** — `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/ModelComponent.hpp`
-  - modelHandle, visible, opacity, doubleSided
+  - modelHandle, visible, opacity, doubleSided, materials
 - **Tsukino::BuiltIn::ECS::MotionBlurComponent** — `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/MotionBlurComponent.hpp`
   - enabled, strength, maxBlurRadius, sampleCount, targetFps
 - **Tsukino::BuiltIn::ECS::MotionVectorComponent** — `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/MotionVectorComponent.hpp`

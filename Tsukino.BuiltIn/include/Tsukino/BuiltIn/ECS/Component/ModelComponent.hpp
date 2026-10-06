@@ -7,6 +7,8 @@
 #include <Tsukino/Engine/Asset/AssetRef.hpp>
 
 #include <hlsl++.h>
+
+#include <vector>
 // 名前空間 : Tsukino::BuiltIn::ECS
 namespace Tsukino::BuiltIn::ECS {
     //-------------------------------------------------------------
@@ -26,6 +28,13 @@ namespace Tsukino::BuiltIn::ECS {
         // falseなら裏面を捨てる（カメラがめり込んでも内面が見えない）。
         // マントや髪など、片面ポリゴンを両側から見せたいモデルだけtrueにする
         bool doubleSided = false;
+
+        // マテリアルの差し替え（Unity の MeshRenderer.sharedMaterials に当たる）。
+        // 添字はモデルのマテリアルのスロット（メッシュの materialIndex）。有効なハンドルがあるスロットだけ
+        // そのマテリアル（.tmat など）で描き、空・範囲外・無効のスロットはモデルのマテリアルのまま。
+        // モデルのアセットは書き換えないので、同じモデルを使う別のエンティティには影響しない。
+        // エンティティごとに色だけ変えたいときは MaterialPropertyBlockComponent を使う
+        std::vector<Tsukino::Asset::AssetRef> materials;
     };
 
 }    // namespace Tsukino::BuiltIn::ECS

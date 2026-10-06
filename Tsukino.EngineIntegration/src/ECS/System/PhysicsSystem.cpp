@@ -377,7 +377,7 @@ namespace Tsukino::BuiltIn::ECS {
                 // 以前は SetPositionAndRotation で瞬間移動させたうえで前フレームとの差分速度も
                 // 与えていたため、Step 中にさらに速度ぶん進む二重移動になっていた。
                 // 瞬間移動は接触として扱われず、押される側にめり込んだ状態から押し出しが
-                // 始まるので、薄い物（コイン等）が Kinematic の下や裏へ抜けていた
+                // 始まるので、薄い物が Kinematic の下や裏へ抜けていた
                 //-------------------------------------------------------------
                 m_world->MoveKinematic(col.bodyID, bodyPosition, bodyRotation, stepTime);
             }

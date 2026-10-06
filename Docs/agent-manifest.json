@@ -10,7 +10,7 @@
         "pathBase": "working directory (Debug: repository root / Release: next to the exe)"
     },
     "stats": {
-        "components": 37,
+        "components": 38,
         "registered": 22,
         "serializable": 17
     },
@@ -669,6 +669,17 @@
             "fields": []
         },
         {
+            "name": "MaterialPropertyBlockComponent",
+            "typeName": "Tsukino::BuiltIn::ECS::MaterialPropertyBlockComponent",
+            "registered": false,
+            "registeredName": null,
+            "serializable": false,
+            "header": "Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/MaterialPropertyBlockComponent.hpp",
+            "serializationHeader": null,
+            "registrationSite": null,
+            "fields": []
+        },
+        {
             "name": "ModelComponent",
             "typeName": "Tsukino::BuiltIn::ECS::ModelComponent",
             "registered": true,
@@ -705,6 +716,13 @@
                     "cppType": "bool",
                     "jsonShape": "true / false",
                     "default": "false"
+                },
+                {
+                    "jsonKey": "materials",
+                    "field": "materials",
+                    "cppType": "std::vector<Tsukino::Asset::AssetRef>",
+                    "jsonShape": "?",
+                    "default": null
                 }
             ]
         },

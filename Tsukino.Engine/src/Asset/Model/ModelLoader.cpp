@@ -6,6 +6,7 @@
 #include <Tsukino/Engine/Asset/Model/ModelLoader.hpp>
 #include <Tsukino/Engine/Asset/Model/ModelAsset.hpp>
 #include <Tsukino/Engine/Asset/Material/MaterialAsset.hpp>
+#include <Tsukino/Engine/Asset/Material/MaterialAssetBuilder.hpp>
 #include <Tsukino/Engine/Asset/AssetManager.hpp>
 #include <Tsukino/Engine/Asset/Util/AssetHandleGenerator.hpp>
 
@@ -68,20 +69,8 @@ namespace Tsukino::Asset {
             for(u32 i = 0; i < asset->modelData.materials.size(); ++i) {
                 const auto& matData = asset->modelData.materials[i];
 
-                auto matAsset  = Tsukino::Core::CreateRef<MaterialAsset>();
-                matAsset->data = matData;
-
-                // テクスチャをロード
-                if(!matData.albedoMap.empty())
-                    matAsset->albedoHandle = m_assetManager->Load(Tsukino::Core::Path(matData.albedoMap));
-                if(!matData.normalMap.empty())
-                    matAsset->normalHandle = m_assetManager->Load(Tsukino::Core::Path(matData.normalMap));
-                if(!matData.metallicRoughnessMap.empty())
-                    matAsset->metallicRoughnessHandle = m_assetManager->Load(Tsukino::Core::Path(matData.metallicRoughnessMap));
-                if(!matData.emissiveMap.empty())
-                    matAsset->emissiveHandle = m_assetManager->Load(Tsukino::Core::Path(matData.emissiveMap));
-                if(!matData.aoMap.empty())
-                    matAsset->aoHandle = m_assetManager->Load(Tsukino::Core::Path(matData.aoMap));
+                // テクスチャを読み込んでマテリアルアセットを組み立てる（単体のマテリアルファイル .tmat と同じ手順）
+                auto matAsset = BuildMaterialAsset(*m_assetManager, matData);
 
                 // MaterialAssetをAssetManagerに登録してハンドルを取得。
                 // マテリアルは単体のファイルを持たないため、モデルのパスと
