@@ -4,7 +4,7 @@
 //! @author 山﨑愛
 //-------------------------------------------------------------
 #pragma once
-#include <Tsukino/Engine/Asset/AssetHandle.hpp>
+#include <Tsukino/Engine/Asset/AssetRef.hpp>
 
 #include <hlsl++.h>
 #include <cstdint>
@@ -39,7 +39,7 @@ namespace Tsukino::BuiltIn::ECS {
     //-------------------------------------------------------------
     struct FontComponent {
         std::wstring                text;                     // 描画するテキスト
-        Tsukino::Asset::AssetHandle fontHandle;               // フォントアセットのハンドル
+        Tsukino::Asset::AssetRef    fontHandle;               // フォントアセット（未設定なら既定フォント）。Prefab JSONではパス文字列で書ける
         hlslpp::float4              color  = {1, 1, 1, 1};    // フォントの色
         hlslpp::float2              origin = {0, 0};          // 回転の中心点などの微調整用
 

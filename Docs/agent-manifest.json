@@ -647,6 +647,13 @@
                     "cppType": "float",
                     "jsonShape": "number",
                     "default": "0.0f"
+                },
+                {
+                    "jsonKey": "fontHandle",
+                    "field": "fontHandle",
+                    "cppType": "Tsukino::Asset::AssetRef",
+                    "jsonShape": "\"path/to/asset\"",
+                    "default": null
                 }
             ]
         },

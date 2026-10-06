@@ -168,6 +168,7 @@
 | `outlineWidth` | `float` | number | `0.0f` |
 | `sortOrder` | `int` | number | `0` |
 | `maxWidth` | `float` | number | `0.0f` |
+| `fontHandle` | `Tsukino::Asset::AssetRef` | "path/to/asset" | — |
 
 ### ModelComponent
 

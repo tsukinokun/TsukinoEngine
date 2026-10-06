@@ -345,8 +345,8 @@ namespace Tsukino::EngineIntegration {
         m_prefabFactory->RegisterComponent<Tsukino::BuiltIn::ECS::DebugCameraComponent>("DebugCameraComponent");
         // タグのみのコンポーネントはシリアライズ対応不要（アタッチのみでよい）
         m_prefabFactory->RegisterComponent<Tsukino::BuiltIn::ECS::DebugCameraTag>("DebugCameraTag");
-        // text（std::wstring）とfontHandle（AssetHandle、プロセス内限定でシリアライズ不可）は
-        // シリアライズ対象外。それ以外の見た目パラメータ（色・揃え位置など）は対応済み。
+        // text（std::wstring）はシリアライズ対象外。fontHandle（AssetRef＝パス文字列）と
+        // 見た目パラメータ（色・揃え位置など）は対応済み。
         m_prefabFactory->RegisterComponent<Tsukino::BuiltIn::ECS::FontComponent>("FontComponent");
         m_prefabFactory->RegisterComponent<Tsukino::BuiltIn::ECS::ModelComponent>("ModelComponent");
         m_prefabFactory->RegisterComponent<Tsukino::BuiltIn::ECS::CollisionComponent>("CollisionComponent");
