@@ -8,6 +8,7 @@
 #include <Tsukino/Core/Log.hpp>
 
 #include <algorithm>
+#include <cmath>
 
 // 名前空間 : Tsukino::Renderer
 namespace Tsukino::Renderer {
@@ -163,59 +164,86 @@ namespace Tsukino::Renderer {
     }
 
     //------------------------------------------------------------
-    //! @brief  グリフをキャッシュから取得、無ければラスタライズしてキャッシュする関数
+    //! 文字のメトリクスをキャッシュから取得し、無ければフォントから読み込んでキャッシュします。
     //------------------------------------------------------------
-    const DynamicFontAtlas::GlyphInfo& DynamicFontAtlas::GetOrRasterizeGlyph(wchar_t codepoint, ID3D11DeviceContext* context) {
+    const DynamicFontAtlas::GlyphMetrics& DynamicFontAtlas::GetGlyphMetrics(wchar_t codepoint) {
         const uint32_t key = static_cast<uint32_t>(codepoint);
+        if(auto it = m_metricsCache.find(key); it != m_metricsCache.end())
+            return it->second;
 
+        GlyphMetrics metrics{};
+        UINT32       codepoint32 = key;
+        m_fontFace->GetGlyphIndices(&codepoint32, 1, &metrics.glyphIndex);
+
+        // 文字送りはフォントの設計値から求める（描く大きさによらず、位置がずれない）
+        DWRITE_GLYPH_METRICS designMetrics{};
+        m_fontFace->GetDesignGlyphMetrics(&metrics.glyphIndex, 1, &designMetrics, FALSE);
+        metrics.advanceX = static_cast<float>(designMetrics.advanceWidth) * m_scale;
+
+        auto [it, _] = m_metricsCache.emplace(key, metrics);
+        return it->second;
+    }
+
+    //------------------------------------------------------------
+    //! グリフを指定の大きさでキャッシュから取得し、無ければラスタライズしてキャッシュします。
+    //------------------------------------------------------------
+    const DynamicFontAtlas::GlyphImage& DynamicFontAtlas::GetOrRasterizeGlyph(wchar_t codepoint, int rasterSize, ID3D11DeviceContext* context) {
+        const uint64_t key = (static_cast<uint64_t>(rasterSize) << 32) | static_cast<uint32_t>(codepoint);
         if(auto it = m_glyphCache.find(key); it != m_glyphCache.end())
             return it->second;
 
-        GlyphInfo info{};
-
-        UINT32 codepoint32 = key;
-        UINT16 glyphIndex   = 0;
-        m_fontFace->GetGlyphIndices(&codepoint32, 1, &glyphIndex);
-
-        DWRITE_GLYPH_METRICS designMetrics{};
-        m_fontFace->GetDesignGlyphMetrics(&glyphIndex, 1, &designMetrics, FALSE);
-        info.advanceX = static_cast<float>(designMetrics.advanceWidth) * m_scale;
+        GlyphImage          image{};
+        const GlyphMetrics& metrics = GetGlyphMetrics(codepoint);
 
         DWRITE_GLYPH_RUN run{};
-        run.fontFace      = m_fontFace.Get();
-        run.fontEmSize    = m_pixelSize;
-        run.glyphCount    = 1;
-        run.glyphIndices  = &glyphIndex;
+        run.fontFace     = m_fontFace.Get();
+        run.fontEmSize   = static_cast<float>(rasterSize);
+        run.glyphCount   = 1;
+        run.glyphIndices = &metrics.glyphIndex;
 
-        // DWRITE_TEXTURE_ALIASED_1x1(1ピクセル1バイトのグレースケールカバレッジ)を取得するには
-        // レンダリングモードもDWRITE_RENDERING_MODE_ALIASEDに合わせる必要がある
-        // (NATURAL等のClearType系モードと組み合わせるとGetAlphaTextureBoundsが常に空矩形を返す)
+        //--------------------------------------------------------------
+        // グレースケールのアンチエイリアスでラスタライズする。
+        // ALIASED（白黒の2値）だと縁が段々になり、縮小・拡大するとさらに目立つ。
+        // グリッドフィットを切るのは、大きさごとに字形が崩れて見えるのを防ぐため
+        //--------------------------------------------------------------
         ComPtr<IDWriteGlyphRunAnalysis> analysis;
-        HRESULT hr = m_factory->CreateGlyphRunAnalysis(
-            &run, 1.0f, nullptr, DWRITE_RENDERING_MODE_ALIASED, DWRITE_MEASURING_MODE_NATURAL, 0.0f, 0.0f, &analysis);
+        IDWriteFactory3*                factory3 = m_factory.Get();
+        HRESULT hr = factory3->CreateGlyphRunAnalysis(&run, nullptr, DWRITE_RENDERING_MODE1_NATURAL_SYMMETRIC, DWRITE_MEASURING_MODE_NATURAL,
+                                                      DWRITE_GRID_FIT_MODE_DISABLED, DWRITE_TEXT_ANTIALIAS_MODE_GRAYSCALE, 0.0f, 0.0f, &analysis);
         if(FAILED(hr)) {
             Tsukino::Core::Log::Error("DynamicFontAtlas: Failed to create glyph run analysis.");
-            auto [it, _] = m_glyphCache.emplace(key, info);
+            auto [it, _] = m_glyphCache.emplace(key, image);
             return it->second;
         }
 
-        RECT bounds{};
+        //--------------------------------------------------------------
+        // カバレッジを取り出す。グレースケールの結果は 1x1（1ピクセル1バイト）で返る環境と、
+        // 3x1（RGB の3バイト。グレースケールなので3つとも同じ値）で返る環境があるので両方に対応する
+        //--------------------------------------------------------------
+        RECT                 bounds{};
+        DWRITE_TEXTURE_TYPE  textureType  = DWRITE_TEXTURE_ALIASED_1x1;
+        uint32_t             bytesPerTexel = 1;
         analysis->GetAlphaTextureBounds(DWRITE_TEXTURE_ALIASED_1x1, &bounds);
+        if(bounds.right <= bounds.left || bounds.bottom <= bounds.top) {
+            textureType   = DWRITE_TEXTURE_CLEARTYPE_3x1;
+            bytesPerTexel = 3;
+            analysis->GetAlphaTextureBounds(DWRITE_TEXTURE_CLEARTYPE_3x1, &bounds);
+        }
 
-        const uint32_t width  = static_cast<uint32_t>(bounds.right - bounds.left);
-        const uint32_t height = static_cast<uint32_t>(bounds.bottom - bounds.top);
+        const uint32_t width  = static_cast<uint32_t>(std::max<LONG>(0, bounds.right - bounds.left));
+        const uint32_t height = static_cast<uint32_t>(std::max<LONG>(0, bounds.bottom - bounds.top));
 
-        // インクの無いグリフ(全角スペース・結合文字等)はアドバンス情報のみキャッシュする
+        // インクの無いグリフ(全角スペース・結合文字等)は位置情報だけキャッシュする
         if(width == 0 || height == 0) {
-            auto [it, _] = m_glyphCache.emplace(key, info);
+            auto [it, _] = m_glyphCache.emplace(key, image);
             return it->second;
         }
 
-        std::vector<uint8_t> alphaBuffer(static_cast<size_t>(width) * height);
-        hr = analysis->CreateAlphaTexture(DWRITE_TEXTURE_ALIASED_1x1, &bounds, alphaBuffer.data(), static_cast<UINT32>(alphaBuffer.size()));
+        std::vector<uint8_t> coverage(static_cast<size_t>(width) * height * bytesPerTexel);
+        hr = analysis->CreateAlphaTexture(textureType, &bounds, coverage.data(), static_cast<UINT32>(coverage.size()));
         if(FAILED(hr)) {
             Tsukino::Core::Log::Error("DynamicFontAtlas: Failed to get alpha texture.");
-            auto [it, _] = m_glyphCache.emplace(key, info);
+            auto [it, _] = m_glyphCache.emplace(key, image);
             return it->second;
         }
 
@@ -227,13 +255,13 @@ namespace Tsukino::Renderer {
             rgbaBuffer[i * 4 + 0] = 255;
             rgbaBuffer[i * 4 + 1] = 255;
             rgbaBuffer[i * 4 + 2] = 255;
-            rgbaBuffer[i * 4 + 3] = alphaBuffer[i];
+            rgbaBuffer[i * 4 + 3] = coverage[i * bytesPerTexel];
         }
 
         int      pageIndex = 0;
         uint32_t atlasX = 0, atlasY = 0;
         if(!AllocateRect(width, height, pageIndex, atlasX, atlasY)) {
-            auto [it, _] = m_glyphCache.emplace(key, info);
+            auto [it, _] = m_glyphCache.emplace(key, image);
             return it->second;
         }
 
@@ -247,42 +275,38 @@ namespace Tsukino::Renderer {
 
         context->UpdateSubresource(m_pages[pageIndex].texture.Get(), 0, &box, rgbaBuffer.data(), width * 4, 0);
 
-        info.hasInk   = true;
-        info.page     = pageIndex;
-        info.atlasRect = RECT{static_cast<LONG>(atlasX), static_cast<LONG>(atlasY), static_cast<LONG>(atlasX + width), static_cast<LONG>(atlasY + height)};
-        info.bearingX = static_cast<float>(bounds.left);
-        info.bearingY = static_cast<float>(bounds.top);
+        image.hasInk    = true;
+        image.page      = pageIndex;
+        image.atlasRect = RECT{static_cast<LONG>(atlasX), static_cast<LONG>(atlasY), static_cast<LONG>(atlasX + width), static_cast<LONG>(atlasY + height)};
+        image.bearingX  = static_cast<float>(bounds.left);
+        image.bearingY  = static_cast<float>(bounds.top);
 
-        auto [it, _] = m_glyphCache.emplace(key, info);
+        auto [it, _] = m_glyphCache.emplace(key, image);
         return it->second;
     }
 
     //------------------------------------------------------------
-    //! @brief  1文字分ペンを進める関数
+    //! 1文字分ペンを進めます。
     //------------------------------------------------------------
-    const DynamicFontAtlas::GlyphInfo* DynamicFontAtlas::AdvancePen(wchar_t ch, ID3D11DeviceContext* context, float& penX, float& penY,
-                                                                     float& maxPenX) {
+    bool DynamicFontAtlas::AdvancePen(wchar_t ch, float& penX, float& penY, float& maxPenX) {
         if(ch == L'\n') {
             if(penX > maxPenX)
                 maxPenX = penX;
             penX = 0.0f;
             penY += m_lineHeight;
-            return nullptr;
+            return false;
         }
 
-        const GlyphInfo& glyph = GetOrRasterizeGlyph(ch, context);
-
-        penX += glyph.advanceX;
+        penX += GetGlyphMetrics(ch).advanceX;
         if(penX > maxPenX)
             maxPenX = penX;
-
-        return &glyph;
+        return true;
     }
 
     //------------------------------------------------------------
     //! @brief  文字列の描画サイズを取得する関数
     //------------------------------------------------------------
-    hlslpp::float2 DynamicFontAtlas::MeasureString(const std::wstring& text, ID3D11DeviceContext* context) {
+    hlslpp::float2 DynamicFontAtlas::MeasureString(const std::wstring& text, ID3D11DeviceContext* /*context*/) {
         if(!m_fontFace || text.empty())
             return hlslpp::float2(0.0f, 0.0f);
 
@@ -291,7 +315,7 @@ namespace Tsukino::Renderer {
         float maxPenX = 0.0f;
 
         for(wchar_t ch : text) {
-            AdvancePen(ch, context, penX, penY, maxPenX);
+            AdvancePen(ch, penX, penY, maxPenX);
         }
 
         // penYは「最終行の先頭までの送り量」なので、1行分の高さを足したものが全体の高さになる
@@ -304,8 +328,16 @@ namespace Tsukino::Renderer {
     void DynamicFontAtlas::DrawString(DirectX::SpriteBatch* spriteBatch, ID3D11DeviceContext* context, const std::wstring& text,
                                        hlslpp::float2 position, hlslpp::float4 color, hlslpp::float2 origin, float scale,
                                        hlslpp::float4 outlineColor, float outlineWidth) {
-        if(!m_fontFace)
+        if(!m_fontFace || scale <= 0.0f)
             return;
+
+        //------------------------------------------------------------
+        // 実際に描く大きさでラスタライズしたグリフを使う。
+        // 描く大きさを整数に丸めた分の差だけを描画時の拡大率（ほぼ 1）で埋める
+        //------------------------------------------------------------
+        const float drawSize    = m_pixelSize * scale;
+        const int   rasterSize  = std::clamp(static_cast<int>(std::lround(drawSize)), kMinRasterSize, kMaxRasterSize);
+        const float rasterScale = drawSize / static_cast<float>(rasterSize);
 
         //------------------------------------------------------------
         // 1パス分の描画。offsetX/offsetYだけずらした位置に指定色で文字列を描く
@@ -314,7 +346,8 @@ namespace Tsukino::Renderer {
             DirectX::XMFLOAT4 dxColor(passColor.x, passColor.y, passColor.z, passColor.w);
             DirectX::XMVECTOR colorVec = DirectX::XMLoadFloat4(&dxColor);
 
-            const DirectX::XMFLOAT2 penStart(position.x - origin.x * scale + offsetX, position.y - origin.y * scale + offsetY);
+            const float startX = position.x - origin.x * scale + offsetX;
+            const float startY = position.y - origin.y * scale + offsetY;
 
             // position は上端(top-left)を指す運用にしたいため、最初の行のベースラインを
             // アセント分だけ下げる(DirectWriteのグリフ座標はベースライン基準のため)
@@ -327,32 +360,33 @@ namespace Tsukino::Renderer {
                 const float glyphPenX = penX;
                 const float glyphPenY = penY;
 
-                const GlyphInfo* glyph = AdvancePen(ch, context, penX, penY, maxPenX);
-                if(!glyph || !glyph->hasInk)
-                    continue;    // 改行、または実体のないグリフ（半角/全角スペース等）
+                if(!AdvancePen(ch, penX, penY, maxPenX))
+                    continue;    // 改行
 
-                RECT sourceRect = glyph->atlasRect;
+                const GlyphImage& glyph = GetOrRasterizeGlyph(ch, rasterSize, context);
+                if(!glyph.hasInk)
+                    continue;    // 実体のないグリフ（半角/全角スペース等）
 
-                DirectX::XMFLOAT2 destPos(penStart.x + (glyphPenX + glyph->bearingX) * scale,
-                                          penStart.y + (glyphPenY + glyph->bearingY) * scale);
+                RECT sourceRect = glyph.atlasRect;
 
-                spriteBatch->Draw(m_pages[glyph->page].srv.Get(), destPos, &sourceRect, colorVec, 0.0f, DirectX::XMFLOAT2(0.0f, 0.0f), scale);
+                // グリフの左上を整数ピクセルにそろえる（半端な位置だとバイリニアサンプリングでにじむ）
+                DirectX::XMFLOAT2 destPos(std::round(startX + glyphPenX * scale + glyph.bearingX * rasterScale),
+                                          std::round(startY + glyphPenY * scale + glyph.bearingY * rasterScale));
+
+                spriteBatch->Draw(m_pages[glyph.page].srv.Get(), destPos, &sourceRect, colorVec, 0.0f, DirectX::XMFLOAT2(0.0f, 0.0f), rasterScale);
             }
         };
 
         //------------------------------------------------------------
-        // 縁取り：本体より先に8方向へずらして描く。SpriteSortMode_Deferredなので
-        // 積んだ順にそのまま描かれ、縁取りが本体の下に入る
+        // 縁取り：本体より先に周りへずらして描く。SpriteSortMode_Deferredなので
+        // 積んだ順にそのまま描かれ、縁取りが本体の下に入る。
+        // ずらす向きは円周上に等間隔に取り、縁を丸くする（太いときは向きを増やして、でこぼこを減らす）
         //------------------------------------------------------------
         if(outlineWidth > 0.0f && outlineColor.w > 0.0f) {
-            constexpr float kOutlineOffsets[8][2] = {
-                {-1.0f, -1.0f}, {0.0f, -1.0f}, {1.0f, -1.0f},
-                {-1.0f,  0.0f},                {1.0f,  0.0f},
-                {-1.0f,  1.0f}, {0.0f,  1.0f}, {1.0f,  1.0f},
-            };
-
-            for(const auto& offset : kOutlineOffsets) {
-                drawPass(offset[0] * outlineWidth, offset[1] * outlineWidth, outlineColor);
+            const int directions = (outlineWidth >= 2.0f) ? 16 : 8;
+            for(int i = 0; i < directions; ++i) {
+                const float angle = 6.28318530718f * static_cast<float>(i) / static_cast<float>(directions);
+                drawPass(std::cos(angle) * outlineWidth, std::sin(angle) * outlineWidth, outlineColor);
             }
         }
 

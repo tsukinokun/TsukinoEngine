@@ -640,6 +640,13 @@
                     "cppType": "int",
                     "jsonShape": "number",
                     "default": "0"
+                },
+                {
+                    "jsonKey": "maxWidth",
+                    "field": "maxWidth",
+                    "cppType": "float",
+                    "jsonShape": "number",
+                    "default": "0.0f"
                 }
             ]
         },

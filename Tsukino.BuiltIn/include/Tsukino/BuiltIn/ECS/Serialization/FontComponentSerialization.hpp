@@ -27,7 +27,8 @@ namespace Tsukino::BuiltIn::ECS {
                 cereal::make_nvp("verticalAlign", font.verticalAlign),
                 cereal::make_nvp("outlineColor", font.outlineColor),
                 cereal::make_nvp("outlineWidth", font.outlineWidth),
-                cereal::make_nvp("sortOrder", font.sortOrder));
+                cereal::make_nvp("sortOrder", font.sortOrder),
+                cereal::make_nvp("maxWidth", font.maxWidth));
     }
 
     //--------------------------------------------------------------
@@ -36,6 +37,12 @@ namespace Tsukino::BuiltIn::ECS {
     template <class Archive>
     void load(Archive& archive, FontComponent& font) {
         archive(font.color, font.origin, font.horizontalAlign, font.verticalAlign, font.outlineColor, font.outlineWidth, font.sortOrder);
+
+        // maxWidth は後から足した項目。古いPrefab JSONには無いので、無ければ既定値（制限なし）のまま
+        try {
+            archive(cereal::make_nvp("maxWidth", font.maxWidth));
+        } catch(const cereal::Exception&) {
+        }
     }
 
 }    // namespace Tsukino::BuiltIn::ECS

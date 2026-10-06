@@ -85,8 +85,10 @@
   - Push(), AllocMaterial(), AllocMaterialData(), GetCommands(), Clear(), Size()
 - **Tsukino::Renderer::DynamicFontAtlas** — `Tsukino.Renderer/include/Tsukino/Renderer/Text/DynamicFontAtlas.hpp`
   - DynamicFontAtlas(), DynamicFontAtlas(), operator=(), DrawString(), MeasureString(), GetLineHeight(), GetAscent()
-- **Tsukino::Renderer::DynamicFontAtlas::GlyphInfo** — `Tsukino.Renderer/include/Tsukino/Renderer/Text/DynamicFontAtlas.hpp`
-  - atlasRect, page, bearingX, bearingY, advanceX, hasInk
+- **Tsukino::Renderer::DynamicFontAtlas::GlyphImage** — `Tsukino.Renderer/include/Tsukino/Renderer/Text/DynamicFontAtlas.hpp`
+  - atlasRect, page, bearingX, bearingY, hasInk
+- **Tsukino::Renderer::DynamicFontAtlas::GlyphMetrics** — `Tsukino.Renderer/include/Tsukino/Renderer/Text/DynamicFontAtlas.hpp`
+  - glyphIndex, advanceX
 - **Tsukino::Renderer::DynamicFontAtlas::Page** — `Tsukino.Renderer/include/Tsukino/Renderer/Text/DynamicFontAtlas.hpp`
   - texture, srv, cursorX, cursorY, shelfHeight
 - **Tsukino::Renderer::FogPass** — `Tsukino.Renderer/include/Tsukino/Renderer/FogPass.hpp`

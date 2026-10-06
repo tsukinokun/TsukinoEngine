@@ -59,6 +59,21 @@ namespace Tsukino::BuiltIn::ECS {
 
             return origin;
         }
+
+        //-------------------------------------------------------------
+        //! 枠に収まるようにスケールを縮めます。
+        //! @param  [in] scale         Transformから求めたスケール
+        //! @param  [in] measuredWidth スケール適用前の文字列の幅
+        //! @param  [in] maxWidth      描画幅の上限（ピクセル。0以下なら制限なし）
+        //! @return 描画に使うスケール
+        //-------------------------------------------------------------
+        [[nodiscard]]
+        float FitScale(float scale, float measuredWidth, float maxWidth) {
+            if(maxWidth <= 0.0f || measuredWidth <= 0.0f)
+                return scale;
+            const float width = measuredWidth * scale;
+            return (width > maxWidth) ? scale * (maxWidth / width) : scale;
+        }
     }    // namespace
 
     //-------------------------------------------------------------
@@ -148,20 +163,23 @@ namespace Tsukino::BuiltIn::ECS {
                 // キャプチャ：DynamicFontAtlas の生ポインタを渡す
                 Tsukino::Renderer::DynamicFontAtlas* nativeAtlas = atlas.get();
 
+                // 揃え位置と枠に収める計算のどちらかが要るときだけ測る
+                const bool     needsMeasure = NeedsMeasure(font.horizontalAlign, font.verticalAlign) || font.maxWidth > 0.0f;
+                hlslpp::float2 measured(0.0f, 0.0f);
+                if(needsMeasure)
+                    measured = nativeAtlas->MeasureString(font.text, immediateContext);
+
                 DrawEntry& entry  = m_drawEntries.emplace_back();
                 entry.atlas       = nativeAtlas;
                 entry.text        = font.text;
                 entry.position    = hlslpp::float2(worldPos.x, worldPos.y);
                 entry.origin      = NeedsMeasure(font.horizontalAlign, font.verticalAlign)
-                                        ? ResolveAlignedOrigin(font.origin,
-                                                               nativeAtlas->MeasureString(font.text, immediateContext),
-                                                               font.horizontalAlign,
-                                                               font.verticalAlign)
+                                        ? ResolveAlignedOrigin(font.origin, measured, font.horizontalAlign, font.verticalAlign)
                                         : font.origin;
                 entry.color        = font.color;
                 entry.outlineColor = font.outlineColor;
                 entry.outlineWidth = font.outlineWidth;
-                entry.scale        = finalScale;
+                entry.scale        = FitScale(finalScale, float(measured.x), font.maxWidth);
                 entry.sortOrder    = font.sortOrder;
                 entry.hasClip      = hasClip;
                 entry.clipRect     = clipRect;
@@ -204,11 +222,11 @@ namespace Tsukino::BuiltIn::ECS {
                 if(safeText.empty())
                     return;
 
-                hlslpp::float2 alignedOrigin = font.origin;
-                if(NeedsMeasure(font.horizontalAlign, font.verticalAlign)) {
-                    DirectX::XMFLOAT2 measured{};
+                hlslpp::float2    alignedOrigin = font.origin;
+                DirectX::XMFLOAT2 measured{};
+                if(NeedsMeasure(font.horizontalAlign, font.verticalAlign) || font.maxWidth > 0.0f)
                     DirectX::XMStoreFloat2(&measured, nativeFont->MeasureString(safeText.c_str()));
-
+                if(NeedsMeasure(font.horizontalAlign, font.verticalAlign)) {
                     alignedOrigin =
                         ResolveAlignedOrigin(font.origin, hlslpp::float2(measured.x, measured.y), font.horizontalAlign, font.verticalAlign);
                 }
@@ -221,7 +239,7 @@ namespace Tsukino::BuiltIn::ECS {
                 entry.color        = font.color;
                 entry.outlineColor = font.outlineColor;
                 entry.outlineWidth = font.outlineWidth;
-                entry.scale        = finalScale;
+                entry.scale        = FitScale(finalScale, measured.x, font.maxWidth);
                 entry.sortOrder    = font.sortOrder;
                 entry.hasClip      = hasClip;
                 entry.clipRect     = clipRect;

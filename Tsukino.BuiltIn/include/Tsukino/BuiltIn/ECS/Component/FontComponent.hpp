@@ -49,9 +49,13 @@ namespace Tsukino::BuiltIn::ECS {
         VerticalAlign   verticalAlign   = VerticalAlign::Top;       // 垂直方向の基準位置
 
         // 縁取り。明るい背景の上でも文字が読めるようにするためのもの。
-        // outlineWidthが0より大きいときだけ、本体の下に8方向へずらした文字が描かれる
+        // outlineWidthが0より大きいときだけ、本体の下に周りへずらした文字が描かれる
         hlslpp::float4 outlineColor = {0, 0, 0, 1};    // 縁取りの色
         float          outlineWidth = 0.0f;            // 縁取りの太さ（ピクセル単位。0で無効）
+
+        // 枠に収める幅。文字列の幅（スケール適用後）がこれを超えるときは、収まるところまで
+        // 文字全体を縮めて描く（高さも一緒に縮む）。揃え位置はそのまま保たれる
+        float maxWidth = 0.0f;    // 描画幅の上限（ピクセル単位。0で制限なし）
 
         // 描画順（小さいほど先に描かれる）。RenderPass::Overlayへ積まれる文字は
         // SpriteComponent::sortOrderと同じ1本の軸として比較されるため、

@@ -167,6 +167,7 @@
 | `outlineColor` | `hlslpp::float4` | { "x", "y", "z", "w" } | `{0, 0, 0, 1}` |
 | `outlineWidth` | `float` | number | `0.0f` |
 | `sortOrder` | `int` | number | `0` |
+| `maxWidth` | `float` | number | `0.0f` |
 
 ### ModelComponent
 
