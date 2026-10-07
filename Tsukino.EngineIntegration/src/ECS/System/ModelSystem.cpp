@@ -16,6 +16,8 @@
 #include <Tsukino/BuiltIn/ECS/Component/RimGlowComponent.hpp>
 #include <Tsukino/BuiltIn/ECS/Component/MaterialPropertyBlockComponent.hpp>
 #include <Tsukino/BuiltIn/ECS/Component/ScreenModelComponent.hpp>
+#include <Tsukino/BuiltIn/ECS/Transform/TransformUtility.hpp>
+#include <Tsukino/BuiltIn/ECS/UI/UIClipUtility.hpp>
 #include <Tsukino/BuiltIn/ECS/Component/MotionVectorComponent.hpp>
 #include <Tsukino/Engine/Asset/AssetManager.hpp>
 #include <Tsukino/Engine/Asset/Model/ModelAsset.hpp>
@@ -46,47 +48,24 @@ namespace Tsukino::BuiltIn::ECS {
         constexpr float kScreenModelDepthHalfRange = 1000.0f;
 
         //-------------------------------------------------------------
-        //! モデルの持ち主か、その親をたどった先にある ScreenModelComponent を探します。
-        //! @param  [in]  registry レジストリ
-        //! @param  [in]  entity   モデルの持ち主
-        //! @param  [out] owner    見つかったコンポーネントを持つエンティティ
-        //! @return 見つかったコンポーネント（無ければ nullptr。ワールドに描くモデル）
-        //-------------------------------------------------------------
-        const ScreenModelComponent* FindScreenModel(Tsukino::ECS::Registry& registry, entt::entity entity, entt::entity& owner) {
-            // 親子が輪になっていても止まるよう、たどる回数に上限を設ける
-            constexpr int kMaxDepth = 64;
-            entt::entity  current   = entity;
-            for(int depth = 0; depth < kMaxDepth && current != entt::null && registry.IsValid(current); ++depth) {
-                if(const auto* screen = registry.try_get<ScreenModelComponent>(current)) {
-                    owner = current;
-                    return screen;
-                }
-                const auto* transform = registry.try_get<TransformComponent>(current);
-                if(!transform)
-                    break;
-                current = transform->parent;
-            }
-            return nullptr;
-        }
-
-        //-------------------------------------------------------------
         //! UI の層に描くモデルのカメラ（正射影）を作ります。
-        //! 持ち主のワールド位置を screenPosition に、1unit を pixelsPerUnit ピクセルで映し、
+        //! 持ち主のワールド位置を画面の screenPixel に、1unit を pixelsPerUnit ピクセルで映し、
         //! 手前（+z の側）から -z の向きに見ます。深度はリバースZ（手前ほど大きい）
-        //! @param  [in] center       持ち主のワールド位置
-        //! @param  [in] screen       画面への置き方
-        //! @param  [in] screenWidth  画面の幅（ピクセル）
-        //! @param  [in] screenHeight 画面の高さ（ピクセル）
+        //! @param  [in] center        持ち主のワールド位置
+        //! @param  [in] screenPixel   持ち主を映す画面の位置（ピクセル。左上が原点）
+        //! @param  [in] pixelsPerUnit 1unit を何ピクセルで描くか
+        //! @param  [in] screenWidth   画面の幅（ピクセル）
+        //! @param  [in] screenHeight  画面の高さ（ピクセル）
         //! @return カメラ行列を詰めたシーン定数（view / projection / viewProj / invViewProj / cameraPos）
         //-------------------------------------------------------------
-        Tsukino::Renderer::CBufferScene MakeScreenModelCamera(const hlslpp::float3& center, const ScreenModelComponent& screen, float screenWidth,
-                                                              float screenHeight) {
-            const float          pixelsPerUnit = std::max(screen.pixelsPerUnit, 1.0e-4f);
-            const hlslpp::float3 eye           = center + hlslpp::float3(0.0f, 0.0f, kScreenModelDepthHalfRange);
+        Tsukino::Renderer::CBufferScene MakeScreenModelCamera(const hlslpp::float3& center, const hlslpp::float2& screenPixel, float pixelsPerUnit,
+                                                              float screenWidth, float screenHeight) {
+            pixelsPerUnit            = std::max(pixelsPerUnit, 1.0e-4f);
+            const hlslpp::float3 eye = center + hlslpp::float3(0.0f, 0.0f, kScreenModelDepthHalfRange);
 
             // ビュー空間では持ち主が (0, 0, 奥行きの半分) に来る。画面の左上 (0, 0) から右下までを unit に直して映す
-            const float sx     = float(screen.screenPosition.x);
-            const float sy     = float(screen.screenPosition.y);
+            const float sx     = float(screenPixel.x);
+            const float sy     = float(screenPixel.y);
             const float left   = -sx / pixelsPerUnit;
             const float right  = (screenWidth - sx) / pixelsPerUnit;
             const float top    = sy / pixelsPerUnit;
@@ -159,20 +138,39 @@ namespace Tsukino::BuiltIn::ECS {
 
             //-------------------------------------------------------------
             // UI の層に描くモデル（自身か親に ScreenModelComponent がある）は、
-            // そのカメラを作って Overlay パスへ積む（ワールドには描かない）
+            // そのカメラを作って Overlay パスへ積む（ワールドには描かない）。
+            // anchor（UI の部品）があれば、その画面上の位置を基準にし、その祖先の UIClipComponent の枠で切り取る
             //-------------------------------------------------------------
-            entt::entity                           screenOwner  = entt::null;
-            const ScreenModelComponent*            screenModel  = FindScreenModel(registry, entity, screenOwner);
+            const Tsukino::ECS::Entity             screenOwner  = TransformUtility::FindNearestWith<ScreenModelComponent>(registry, entity);
+            const ScreenModelComponent*            screenModel  = (screenOwner != entt::null) ? &registry.GetComponent<ScreenModelComponent>(screenOwner) : nullptr;
             const Tsukino::Renderer::CBufferScene* screenCamera = nullptr;
+            bool                                   screenClipped = false;
+            Tsukino::Renderer::ClipRect            screenClip;
             if(screenModel) {
-                const auto* ownerTransform = registry.try_get<TransformComponent>(screenOwner);
-                if(!ownerTransform || !ctx->window)
+                if(!ctx->window)
                     return;
-                const hlslpp::float4 center =
-                    hlslpp::mul(hlslpp::float4(0.0f, 0.0f, 0.0f, 1.0f), static_cast<const hlslpp::float4x4&>(ownerTransform->worldMatrix));
 
+                hlslpp::float2       screenPixel = screenModel->screenPosition;
+                const Tsukino::ECS::Entity anchor = screenModel->anchor;
+                if(anchor != entt::null) {
+                    if(!registry.IsValid(anchor) || !registry.HasComponent<TransformComponent>(anchor))
+                        return;
+                    const hlslpp::float3 anchorPosition = TransformUtility::GetWorldPosition(registry.GetComponent<TransformComponent>(anchor));
+                    screenPixel += hlslpp::float2(anchorPosition.xy);
+
+                    UIClipUtility::ClipBounds clip;
+                    if(UIClipUtility::TryGetClipBounds(registry, anchor, clip)) {
+                        screenClipped     = true;
+                        screenClip.left   = static_cast<i32>(std::floor(clip.left));
+                        screenClip.top    = static_cast<i32>(std::floor(clip.top));
+                        screenClip.right  = static_cast<i32>(std::ceil(clip.right));
+                        screenClip.bottom = static_cast<i32>(std::ceil(clip.bottom));
+                    }
+                }
+
+                const hlslpp::float3             center = TransformUtility::GetWorldPosition(registry.GetComponent<TransformComponent>(screenOwner));
                 Tsukino::Renderer::CBufferScene& camera = ctx->renderer->GetDrawQueue().AllocSceneData();
-                camera = MakeScreenModelCamera(hlslpp::float3(center.xyz), *screenModel, static_cast<float>(ctx->window->GetWidth()),
+                camera = MakeScreenModelCamera(center, screenPixel, screenModel->pixelsPerUnit, static_cast<float>(ctx->window->GetWidth()),
                                                static_cast<float>(ctx->window->GetHeight()));
                 screenCamera = &camera;
             }
@@ -456,6 +454,8 @@ namespace Tsukino::BuiltIn::ECS {
                             cmd.sortOrder      = screenModel->sortOrder;
                             cmd.cameraOverride = screenCamera;
                             cmd.castsShadow    = false;
+                            cmd.hasClipRect    = screenClipped;
+                            cmd.clipRect       = screenClip;
                             if(isSkeletal) {
                                 cmd.boneMatrices = skeletonOut->local_matrices;
                                 cmd.boneCount    = skeletonOut->bone_count;

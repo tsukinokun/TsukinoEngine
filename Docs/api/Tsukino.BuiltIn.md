@@ -73,7 +73,7 @@
 - **Tsukino::BuiltIn::ECS::RootMotionComponent** — `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/RootMotionComponent.hpp`
   - delta_position, delta_rotation
 - **Tsukino::BuiltIn::ECS::ScreenModelComponent** — `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/ScreenModelComponent.hpp`
-  - screenPosition, pixelsPerUnit, sortOrder
+  - screenPosition, pixelsPerUnit, sortOrder, anchor
 - **Tsukino::BuiltIn::ECS::ScrollBarComponent** — `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/ScrollBarComponent.hpp`
   - thumb, size, minThumbLength
 - **Tsukino::BuiltIn::ECS::ScrollViewComponent** — `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/ScrollViewComponent.hpp`

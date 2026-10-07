@@ -369,19 +369,26 @@ namespace Tsukino::Renderer {
         //------------------------------------------------------------
         // Overlay に積まれた 3D モデル（cameraOverride を持つコマンド。ScreenModelComponent）。
         // 最初の1つの前に深度を消してバインドし、空の環境光（IBL）を張る。
+        // sortOrder の違うモデルは重ね順で前後を決めるので、sortOrder が変わるたびに深度を消し直す
+        // （消さないと、重ね順が後のモデルが、先に描いた別の層のモデルの奥行きに隠れる）。
         // カメラはコマンドごとに差し替え、ふつうのコマンドに戻ったら UI のカメラに戻す。
         // スプライトと文字は深度を使わないので、深度をバインドしても今までどおり
         // sortOrder の順に上へ重なる
         //------------------------------------------------------------
-        bool overlayDepthBound   = false;    // 深度バッファと IBL を張ったか
-        bool overlayCameraOnLoan = false;    // b0 のカメラを差し替えているか
+        bool overlayDepthBound     = false;    // 深度バッファと IBL を張ったか
+        bool overlayCameraOnLoan   = false;    // b0 のカメラを差し替えているか
+        int  overlayDepthSortOrder = 0;        // 今の深度を使っているモデルの sortOrder
         for(u32 index : m_overlayOrder) {
             const DrawCommand& cmd = commands[index];
             if(cmd.cameraOverride) {
                 if(!overlayDepthBound) {
                     m_graphicsContext.BindBackBufferWithClearedDepth();
                     m_iblBaker.Bind();
-                    overlayDepthBound = true;
+                    overlayDepthBound     = true;
+                    overlayDepthSortOrder = cmd.sortOrder;
+                } else if(cmd.sortOrder != overlayDepthSortOrder) {
+                    m_graphicsContext.BindBackBufferWithClearedDepth();
+                    overlayDepthSortOrder = cmd.sortOrder;
                 }
                 m_frameConstants.UploadWorldWithCamera(*cmd.cameraOverride);
                 overlayCameraOnLoan = true;
