@@ -26,7 +26,8 @@ namespace Tsukino::BuiltIn::ECS {
                 cereal::make_nvp("farZ", camera.farZ),
                 cereal::make_nvp("useLookAt", camera.useLookAt),
                 cereal::make_nvp("lookAtTarget", camera.lookAtTarget),
-                cereal::make_nvp("isPrimary", camera.isPrimary));
+                cereal::make_nvp("isPrimary", camera.isPrimary),
+                cereal::make_nvp("referenceResolution", camera.referenceResolution));
         // viewMatrix などのキャッシュは保存しない！
     }
 
@@ -45,6 +46,12 @@ namespace Tsukino::BuiltIn::ECS {
                 camera.useLookAt,
                 camera.lookAtTarget,
                 camera.isPrimary);
+
+        // referenceResolution は後から足した項目。古いPrefab JSONには無いので、無ければ既定値（UI の座標 ＝ ピクセル）のまま
+        try {
+            archive(cereal::make_nvp("referenceResolution", camera.referenceResolution));
+        } catch(const cereal::Exception&) {
+        }
         // ロード直後は行列の再計算が必要なので、dirtyフラグを強制的に立てる！
         camera.dirty = true;
     }

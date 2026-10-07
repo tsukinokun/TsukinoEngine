@@ -28,6 +28,12 @@ namespace Tsukino::BuiltIn::ECS {
         // Ortho用の表示幅(ウィンドウの縦ピクセル数)
         float orthoSize = 720.0f;
 
+        // UI の基準の解像度（正射影の UI カメラで使う）。
+        // 指定すると、この解像度で作った画面 UI を、縦横比を保ったままウィンドウに収まる大きさに拡大して
+        // 真ん中に寄せる（UICanvas 参照。Unity の CanvasScaler の Scale With Screen Size に当たる）。
+        // 0 なら UI の座標 ＝ ウィンドウのピクセル（ウィンドウを広げても UI は大きくならない）
+        hlslpp::float2 referenceResolution = hlslpp::float2(0.0f, 0.0f);
+
         // --- 投影パラメータ ---
         float fov         = 45.0f;           // 垂直画角
         float aspectRatio = 16.0f / 9.0f;    // 画面の幅と高さの比率

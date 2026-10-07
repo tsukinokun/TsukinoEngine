@@ -8,6 +8,7 @@
 #include <Tsukino/BuiltIn/ECS/Component/TransformComponent.hpp>
 #include <Tsukino/BuiltIn/ECS/Component/CameraComponent.hpp>
 #include <Tsukino/BuiltIn/ECS/Component/WorldAnchorComponent.hpp>
+#include <Tsukino/BuiltIn/ECS/UI/UICanvas.hpp>
 
 #include <Tsukino/Core/Window.hpp>
 #include <Tsukino/Core/Math/Matrix.hpp>
@@ -46,8 +47,9 @@ namespace Tsukino::BuiltIn::ECS {
             }
         }
 
-        float screenWidth  = static_cast<float>(ctx->window->GetWidth());
-        float screenHeight = static_cast<float>(ctx->window->GetHeight());
+        float           screenWidth  = static_cast<float>(ctx->window->GetWidth());
+        float           screenHeight = static_cast<float>(ctx->window->GetHeight());
+        const UICanvas& canvas       = GetUICanvas(registry);
 
         //-------------------------------------------------------------
         // WorldAnchorComponentを持つ各エンティティについて、targetのワールド座標を
@@ -90,7 +92,9 @@ namespace Tsukino::BuiltIn::ECS {
             float screenX = (ndc.x * 0.5f + 0.5f) * screenWidth;
             float screenY = (0.5f - ndc.y * 0.5f) * screenHeight;
 
-            transform.position = hlslpp::float3(screenX + anchor.screenOffset.x, screenY + anchor.screenOffset.y, 0.0f);
+            // 画面のピクセル → UI の座標（UI のカメラが基準の解像度で拡大していても、同じ所に出る）。ずらす量は UI の単位
+            const hlslpp::float2 uiPosition = canvas.ToUI(hlslpp::float2(screenX, screenY));
+            transform.position              = hlslpp::float3(float(uiPosition.x) + anchor.screenOffset.x, float(uiPosition.y) + anchor.screenOffset.y, 0.0f);
             transform.dirty    = true;
             anchor.visible      = true;
         });

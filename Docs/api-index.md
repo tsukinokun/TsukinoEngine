@@ -60,6 +60,7 @@
 - `Tsukino::BuiltIn::ECS::SpriteComponent` — `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/SpriteComponent.hpp`
 - `Tsukino::BuiltIn::ECS::TerrainGenerationRequestComponent` — `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/TerrainGenerationRequestComponent.hpp`
 - `Tsukino::BuiltIn::ECS::TransformComponent` — `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/TransformComponent.hpp`
+- `Tsukino::BuiltIn::ECS::UICanvas` — `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/UI/UICanvas.hpp`
 - `Tsukino::BuiltIn::ECS::UIClipComponent` — `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/UIClipComponent.hpp`
 - `Tsukino::BuiltIn::ECS::UIClipUtility::ClipBounds` — `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/UI/UIClipUtility.hpp`
 - `Tsukino::BuiltIn::ECS::WorldAnchorComponent` — `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/WorldAnchorComponent.hpp`

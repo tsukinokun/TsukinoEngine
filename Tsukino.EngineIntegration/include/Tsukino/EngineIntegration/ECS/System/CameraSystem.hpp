@@ -17,5 +17,9 @@ namespace Tsukino::BuiltIn::ECS {
         //! @brief 更新処理
         //-------------------------------------------------------------
         void Update(Tsukino::ECS::Registry& registry, float deltaTime) override;
+
+    private:
+        float m_lastScreenWidth  = 0.0f;    // 前回行列を作ったときの画面の幅（大きさが変わったら全カメラを作り直す）
+        float m_lastScreenHeight = 0.0f;    // 同じく高さ
     };
 }    // namespace Tsukino::BuiltIn::ECS

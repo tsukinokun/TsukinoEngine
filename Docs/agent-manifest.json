@@ -269,6 +269,13 @@
                     "cppType": "bool",
                     "jsonShape": "true / false",
                     "default": "true"
+                },
+                {
+                    "jsonKey": "referenceResolution",
+                    "field": "referenceResolution",
+                    "cppType": "hlslpp::float2",
+                    "jsonShape": "{ \"x\", \"y\" }",
+                    "default": "hlslpp::float2(0.0f, 0.0f)"
                 }
             ]
         },

@@ -10,6 +10,7 @@
 #include <Tsukino/BuiltIn/ECS/Component/ScrollViewComponent.hpp>
 #include <Tsukino/BuiltIn/ECS/Component/SpriteComponent.hpp>
 #include <Tsukino/BuiltIn/ECS/Transform/TransformUtility.hpp>
+#include <Tsukino/BuiltIn/ECS/UI/UICanvas.hpp>
 #include <Tsukino/BuiltIn/ECS/UI/UIClipUtility.hpp>
 
 #include <Tsukino/EngineIntegration/EngineContext.hpp>
@@ -160,7 +161,8 @@ namespace Tsukino::BuiltIn::ECS {
         auto& input = ctx->inputSystem;
         i32   mouseX, mouseY;
         input->GetMousePosition(&mouseX, &mouseY);
-        hlslpp::float2 mousePos = {(float)mouseX, (float)mouseY};
+        // マウスは画面のピクセル。スプライトは UI の座標で置かれているので、UI の座標にしてから比べる
+        hlslpp::float2 mousePos = GetUICanvas(registry).ToUI(hlslpp::float2((float)mouseX, (float)mouseY));
 
         //-------------------------------------------------------------
         // マウスの重なり・クリックの受け取り（メニューの選択肢・ボタン用）。
@@ -249,7 +251,7 @@ namespace Tsukino::BuiltIn::ECS {
         // クリックを受け取る。子スプライト（手やカウンター背景）自身が
         // DraggableComponentを持っていなくても透過しない
         //-------------------------------------------------------------
-        const hlslpp::float2       point     = {x, y};
+        const hlslpp::float2       point     = GetUICanvas(registry).ToUI(hlslpp::float2(x, y));    // 画面のピクセル → UI の座標
         const Tsukino::ECS::Entity hitEntity = PickTopmostSprite(registry, ctx, point);
         if(hitEntity == entt::null)
             return false;

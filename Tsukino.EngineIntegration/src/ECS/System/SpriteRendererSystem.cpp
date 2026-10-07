@@ -12,6 +12,7 @@
 #include <Tsukino/BuiltIn/ECS/Component/SpriteComponent.hpp>
 #include <Tsukino/BuiltIn/ECS/Component/CameraComponent.hpp>
 #include <Tsukino/BuiltIn/ECS/Transform/TransformUtility.hpp>
+#include <Tsukino/BuiltIn/ECS/UI/UICanvas.hpp>
 #include <Tsukino/BuiltIn/ECS/UI/UIClipUtility.hpp>
 
 #include <Tsukino/Renderer/Renderer.hpp>
@@ -165,11 +166,13 @@ namespace Tsukino::BuiltIn::ECS {
                     if(!clip.Overlaps(hlslpp::float2(center.x, center.y), size))
                         return;
 
-                    cmd.hasClipRect     = true;
-                    cmd.clipRect.left   = static_cast<i32>(std::floor(clip.left));
-                    cmd.clipRect.top    = static_cast<i32>(std::floor(clip.top));
-                    cmd.clipRect.right  = static_cast<i32>(std::ceil(clip.right));
-                    cmd.clipRect.bottom = static_cast<i32>(std::ceil(clip.bottom));
+                    // 枠は UI の座標、シザーは画面のピクセルなので変換する
+                    const UIClipUtility::ClipBounds pixel = GetUICanvas(registry).ToPixel(clip);
+                    cmd.hasClipRect                       = true;
+                    cmd.clipRect.left                     = static_cast<i32>(std::floor(pixel.left));
+                    cmd.clipRect.top                      = static_cast<i32>(std::floor(pixel.top));
+                    cmd.clipRect.right                    = static_cast<i32>(std::ceil(pixel.right));
+                    cmd.clipRect.bottom                   = static_cast<i32>(std::ceil(pixel.bottom));
                 }
             }
 

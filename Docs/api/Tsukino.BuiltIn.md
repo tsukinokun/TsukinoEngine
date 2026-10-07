@@ -27,7 +27,7 @@
 - **Tsukino::BuiltIn::ECS::BoxCollider2DComponent** — `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/BoxCollider2DComponent.hpp`
   - offset, size
 - **Tsukino::BuiltIn::ECS::CameraComponent** — `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/CameraComponent.hpp`
-  - projectionType, orthoSize, fov, aspectRatio, nearZ, farZ, useLookAt, lookAtTarget, viewMatrix, projectionMatrix, viewProjMatrix, invViewProjMatrix, isPrimary, dirty
+  - projectionType, orthoSize, referenceResolution, fov, aspectRatio, nearZ, farZ, useLookAt, lookAtTarget, viewMatrix, projectionMatrix, viewProjMatrix, invViewProjMatrix, isPrimary, dirty
 - **Tsukino::BuiltIn::ECS::CharacterControllerComponent** — `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/CharacterControllerComponent.hpp`
   - radius, halfHeight, maxSlopeDeg, mass, gravityFactor, centerOffset, isInitialized, moveInput, jumpRequested, jumpSpeed, verticalVelocity, isGrounded
 - **Tsukino::BuiltIn::ECS::CollisionComponent** — `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/CollisionComponent.hpp`
@@ -96,6 +96,8 @@
   - amplitude, noiseFrequency, seed, noiseType, collisionModelHandle
 - **Tsukino::BuiltIn::ECS::TransformComponent** — `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/TransformComponent.hpp`
   - position, rotation, scale, localMatrix, worldMatrix, parent, dirty
+- **Tsukino::BuiltIn::ECS::UICanvas** — `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/UI/UICanvas.hpp`
+  - scale, offset, size, ToPixel(), ToUI(), ToPixel(), Fit()
 - **Tsukino::BuiltIn::ECS::UIClipComponent** — `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/UIClipComponent.hpp`
   - size
 - **Tsukino::BuiltIn::ECS::UIClipUtility::ClipBounds** — `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/UI/UIClipUtility.hpp`

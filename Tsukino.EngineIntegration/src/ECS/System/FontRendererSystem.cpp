@@ -9,6 +9,7 @@
 #include <Tsukino/BuiltIn/ECS/Component/TransformComponent.hpp>
 #include <Tsukino/BuiltIn/ECS/Component/FontComponent.hpp>
 #include <Tsukino/BuiltIn/ECS/Component/WorldAnchorComponent.hpp>
+#include <Tsukino/BuiltIn/ECS/UI/UICanvas.hpp>
 #include <Tsukino/BuiltIn/ECS/UI/UIClipUtility.hpp>
 #include <Tsukino/BuiltIn/BuiltInAssets.hpp>
 
@@ -100,6 +101,10 @@ namespace Tsukino::BuiltIn::ECS {
         //-------------------------------------------------------------
         m_drawEntries.clear();
 
+        // UI の座標と画面のピクセルの対応。文字は UI のカメラを通らず SpriteBatch がピクセルで描くので、
+        // 位置・大きさ・縁の太さ・切り取り枠をここでピクセルにする（大きさを掛けてから文字の画像を作るので、拡大してもぼやけない）
+        const UICanvas& canvas = GetUICanvas(registry);
+
         // Transform と Font を両方持つエンティティを走査
         auto view = registry.View<TransformComponent, FontComponent>();
 
@@ -122,11 +127,12 @@ namespace Tsukino::BuiltIn::ECS {
             Tsukino::Renderer::ClipRect clipRect;
             UIClipUtility::ClipBounds   clipBounds;
             if(UIClipUtility::TryGetClipBounds(registry, entity, clipBounds)) {
-                hasClip         = true;
-                clipRect.left   = static_cast<i32>(std::floor(clipBounds.left));
-                clipRect.top    = static_cast<i32>(std::floor(clipBounds.top));
-                clipRect.right  = static_cast<i32>(std::ceil(clipBounds.right));
-                clipRect.bottom = static_cast<i32>(std::ceil(clipBounds.bottom));
+                const UIClipUtility::ClipBounds pixel = canvas.ToPixel(clipBounds);
+                hasClip                               = true;
+                clipRect.left                         = static_cast<i32>(std::floor(pixel.left));
+                clipRect.top                          = static_cast<i32>(std::floor(pixel.top));
+                clipRect.right                        = static_cast<i32>(std::ceil(pixel.right));
+                clipRect.bottom                       = static_cast<i32>(std::ceil(pixel.bottom));
             }
 
             Tsukino::Asset::AssetHandle fontHandle = font.fontHandle;
@@ -172,14 +178,14 @@ namespace Tsukino::BuiltIn::ECS {
                 DrawEntry& entry  = m_drawEntries.emplace_back();
                 entry.atlas       = nativeAtlas;
                 entry.text        = font.text;
-                entry.position    = hlslpp::float2(worldPos.x, worldPos.y);
+                entry.position    = canvas.ToPixel(hlslpp::float2(worldPos.x, worldPos.y));
                 entry.origin      = NeedsMeasure(font.horizontalAlign, font.verticalAlign)
                                         ? ResolveAlignedOrigin(font.origin, measured, font.horizontalAlign, font.verticalAlign)
                                         : font.origin;
                 entry.color        = font.color;
                 entry.outlineColor = font.outlineColor;
-                entry.outlineWidth = font.outlineWidth;
-                entry.scale        = FitScale(finalScale, float(measured.x), font.maxWidth);
+                entry.outlineWidth = font.outlineWidth * canvas.scale;
+                entry.scale        = FitScale(finalScale, float(measured.x), font.maxWidth) * canvas.scale;    // 収める幅は UI の単位で計算してからピクセルにする
                 entry.sortOrder    = font.sortOrder;
                 entry.hasClip      = hasClip;
                 entry.clipRect     = clipRect;
@@ -234,12 +240,12 @@ namespace Tsukino::BuiltIn::ECS {
                 DrawEntry& entry   = m_drawEntries.emplace_back();
                 entry.spriteFont   = nativeFont;
                 entry.text         = std::move(safeText);
-                entry.position     = hlslpp::float2(worldPos.x, worldPos.y);
+                entry.position     = canvas.ToPixel(hlslpp::float2(worldPos.x, worldPos.y));
                 entry.origin       = alignedOrigin;
                 entry.color        = font.color;
                 entry.outlineColor = font.outlineColor;
-                entry.outlineWidth = font.outlineWidth;
-                entry.scale        = FitScale(finalScale, measured.x, font.maxWidth);
+                entry.outlineWidth = font.outlineWidth * canvas.scale;
+                entry.scale        = FitScale(finalScale, measured.x, font.maxWidth) * canvas.scale;
                 entry.sortOrder    = font.sortOrder;
                 entry.hasClip      = hasClip;
                 entry.clipRect     = clipRect;

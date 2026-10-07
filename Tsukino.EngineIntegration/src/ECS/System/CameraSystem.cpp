@@ -8,6 +8,7 @@
 
 #include <Tsukino/BuiltIn/ECS/Component/TransformComponent.hpp>
 #include <Tsukino/BuiltIn/ECS/Component/CameraComponent.hpp>
+#include <Tsukino/BuiltIn/ECS/UI/UICanvas.hpp>
 
 #include <Tsukino/Renderer/Renderer.hpp>
 #include <Tsukino/Renderer/ConstantBuffer.hpp>
@@ -37,15 +38,32 @@ namespace Tsukino::BuiltIn::ECS {
         float currentAspect = screenW / screenH;
 
         //-------------------------------------------------------------
+        // 画面の大きさが変わったら、全カメラの行列を作り直す。
+        // 縦横比だけを見ていると、同じ縦横比のまま広げたとき（1280x720 → 1920x1080）に
+        // UI カメラが作り直されず、UI が引き伸ばされる
+        //-------------------------------------------------------------
+        const bool screenResized = (screenW != m_lastScreenWidth || screenH != m_lastScreenHeight);
+        m_lastScreenWidth        = screenW;
+        m_lastScreenHeight       = screenH;
+
+        // UI の座標と画面のピクセルの対応（UI カメラが見つからなければ UI の座標 ＝ ピクセル）
+        UICanvas canvas = UICanvas::Fit(hlslpp::float2(0.0f, 0.0f), hlslpp::float2(screenW, screenH));
+
+        //-------------------------------------------------------------
         // viewを取得して各カメラエンティティを更新
         //-------------------------------------------------------------
         auto view = registry.View<TransformComponent, CameraComponent>();
         view.each([&](entt::entity entity, const Tsukino::BuiltIn::ECS::TransformComponent& transform, Tsukino::BuiltIn::ECS::CameraComponent& camera) {
             // アスペクト比が前回計算時と異なれば Dirty フラグを立てる
-            if(camera.aspectRatio != currentAspect) {
+            if(camera.aspectRatio != currentAspect || screenResized) {
                 camera.aspectRatio = currentAspect;
                 camera.dirty       = true;
             }
+
+            // メインでない正射影のカメラは画面 UI のカメラ。基準の解像度から UI の座標と画面の対応を決める
+            const bool isUICamera = !camera.isPrimary && camera.projectionType == CameraComponent::ProjectionType::Orthographic;
+            if(isUICamera)
+                canvas = UICanvas::Fit(camera.referenceResolution, hlslpp::float2(screenW, screenH));
 
             //-------------------------------------------------------------
             // Transform か Camera のパラメータが変わっていれば行列を更新
@@ -75,14 +93,14 @@ namespace Tsukino::BuiltIn::ECS {
                 // Projection行列の計算 (投影方法の分岐)
                 //-------------------------------------------------------------
                 if(camera.projectionType == CameraComponent::ProjectionType::Orthographic) {
-                    // Left=0, Right=screenW, Bottom=screenH, Top=0 にして上下反転
-                    camera.projectionMatrix =
-                        Tsukino::Core::Math::matrix::orthographicOffCenterLH(0.0f,
-                                                                             screenW,    // Left, Right
-                                                                             0.0f,       // Bottom, Top 
-                                                                             screenH,
-                                                                             camera.nearZ,
-                                                                             camera.farZ);
+                    // 画面に映る UI の座標の範囲（基準が無ければ 0〜screenW, 0〜screenH）。
+                    // Bottom に上端、Top に下端を渡して上下反転する（Sprite.vs.hlsl が Y を反転するので左上原点になる）
+                    const UICanvas       fit      = isUICamera ? canvas : UICanvas::Fit(camera.referenceResolution, hlslpp::float2(screenW, screenH));
+                    const hlslpp::float2 topLeft  = fit.ToUI(hlslpp::float2(0.0f, 0.0f));
+                    const hlslpp::float2 lowRight = fit.ToUI(hlslpp::float2(screenW, screenH));
+                    camera.projectionMatrix       = Tsukino::Core::Math::matrix::orthographicOffCenterLH(float(topLeft.x), float(lowRight.x),    // Left, Right
+                                                                                                         float(topLeft.y), float(lowRight.y),    // Bottom, Top
+                                                                                                         camera.nearZ, camera.farZ);
 
                 } else {
                     // 自作の perspectiveFovLH を使用
@@ -104,6 +122,9 @@ namespace Tsukino::BuiltIn::ECS {
                 camera.dirty = false;
             }
         });
+
+        // UI を扱うシステム（文字・切り取り・マウスの当たり判定など）が使う、UI の座標と画面のピクセルの対応
+        registry.SetContext<UICanvas>() = canvas;
 
         //-------------------------------------------------------------
         // viewを再度ループして、シーン定数バッファを更新

@@ -11,6 +11,7 @@
 #include <Tsukino/BuiltIn/ECS/Component/TransformComponent.hpp>
 #include <Tsukino/BuiltIn/ECS/Component/UIClipComponent.hpp>
 #include <Tsukino/BuiltIn/ECS/Transform/TransformUtility.hpp>
+#include <Tsukino/BuiltIn/ECS/UI/UICanvas.hpp>
 #include <Tsukino/BuiltIn/ECS/UI/UIClipUtility.hpp>
 
 #include <Tsukino/Engine/Asset/AssetManager.hpp>
@@ -147,9 +148,10 @@ namespace Tsukino::BuiltIn::ECS {
         i32                                rawMouseX = 0;
         i32                                rawMouseY = 0;
         input.GetMousePosition(&rawMouseX, &rawMouseY);
-        const float          mouseX = static_cast<float>(rawMouseX);
-        const float          mouseY = static_cast<float>(rawMouseY);
-        const hlslpp::float2 mouse(mouseX, mouseY);
+        // マウスは画面のピクセル。枠やスクロールバーは UI の座標なので、UI の座標にしてから比べる
+        const hlslpp::float2 mouse  = GetUICanvas(registry).ToUI(hlslpp::float2(static_cast<float>(rawMouseX), static_cast<float>(rawMouseY)));
+        const float          mouseX = float(mouse.x);
+        const float          mouseY = float(mouse.y);
 
         const float wheel         = input.GetWheelDelta();
         const bool  buttonPressed = input.IsKeyPressed(Input::KeyCode::LButton);

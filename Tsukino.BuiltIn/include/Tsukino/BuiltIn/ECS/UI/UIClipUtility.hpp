@@ -17,7 +17,7 @@ namespace Tsukino::BuiltIn::ECS::UIClipUtility {
 
     //--------------------------------------------------------------
     //! @struct ClipBounds
-    //! @brief  切り取り枠の範囲（画面ピクセル。左上原点）
+    //! @brief  切り取り枠の範囲（UI の座標。左上原点。シザーに使うときは UICanvas::ToPixel で画面のピクセルにする）
     //--------------------------------------------------------------
     struct ClipBounds {
         float left   = 0.0f;    // 左端

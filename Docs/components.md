@@ -69,6 +69,7 @@
 | `useLookAt` | `bool` | true / false | `false` |
 | `lookAtTarget` | `hlslpp::float3` | { "x", "y", "z" } | `hlslpp::float3(0, 0, 0)` |
 | `isPrimary` | `bool` | true / false | `true` |
+| `referenceResolution` | `hlslpp::float2` | { "x", "y" } | `hlslpp::float2(0.0f, 0.0f)` |
 
 ### CollisionComponent
 

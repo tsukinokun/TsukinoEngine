@@ -17,6 +17,7 @@
 #include <Tsukino/BuiltIn/ECS/Component/MaterialPropertyBlockComponent.hpp>
 #include <Tsukino/BuiltIn/ECS/Component/ScreenModelComponent.hpp>
 #include <Tsukino/BuiltIn/ECS/Transform/TransformUtility.hpp>
+#include <Tsukino/BuiltIn/ECS/UI/UICanvas.hpp>
 #include <Tsukino/BuiltIn/ECS/UI/UIClipUtility.hpp>
 #include <Tsukino/BuiltIn/ECS/Component/MotionVectorComponent.hpp>
 #include <Tsukino/Engine/Asset/AssetManager.hpp>
@@ -160,17 +161,23 @@ namespace Tsukino::BuiltIn::ECS {
 
                     UIClipUtility::ClipBounds clip;
                     if(UIClipUtility::TryGetClipBounds(registry, anchor, clip)) {
-                        screenClipped     = true;
-                        screenClip.left   = static_cast<i32>(std::floor(clip.left));
-                        screenClip.top    = static_cast<i32>(std::floor(clip.top));
-                        screenClip.right  = static_cast<i32>(std::ceil(clip.right));
-                        screenClip.bottom = static_cast<i32>(std::ceil(clip.bottom));
+                        // 枠は UI の座標、シザーは画面のピクセルなので変換する
+                        const UIClipUtility::ClipBounds pixel = GetUICanvas(registry).ToPixel(clip);
+                        screenClipped                         = true;
+                        screenClip.left                       = static_cast<i32>(std::floor(pixel.left));
+                        screenClip.top                        = static_cast<i32>(std::floor(pixel.top));
+                        screenClip.right                      = static_cast<i32>(std::ceil(pixel.right));
+                        screenClip.bottom                     = static_cast<i32>(std::ceil(pixel.bottom));
                     }
                 }
 
+                // ここまでは UI の座標。カメラは画面のピクセルで作るので、位置と大きさをピクセルにする
+                const UICanvas& canvas = GetUICanvas(registry);
+                screenPixel            = canvas.ToPixel(screenPixel);
+
                 const hlslpp::float3             center = TransformUtility::GetWorldPosition(registry.GetComponent<TransformComponent>(screenOwner));
                 Tsukino::Renderer::CBufferScene& camera = ctx->renderer->GetDrawQueue().AllocSceneData();
-                camera = MakeScreenModelCamera(center, screenPixel, screenModel->pixelsPerUnit, static_cast<float>(ctx->window->GetWidth()),
+                camera = MakeScreenModelCamera(center, screenPixel, screenModel->pixelsPerUnit * canvas.scale, static_cast<float>(ctx->window->GetWidth()),
                                                static_cast<float>(ctx->window->GetHeight()));
                 screenCamera = &camera;
             }
