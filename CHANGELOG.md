@@ -9,6 +9,16 @@ carve-out for `Tsukino.Renderer` described under **API stability** in the README
 
 ### Added
 
+- **`tsukino_icon(iconPath)` premake helper for the application icon.** Call it in the
+  executable's project after `location`; it generates `TsukinoAppIcon.rc` next to the
+  project (`TSUKINO_APP_ICON ICON "<abs path>"`) and adds it to `files`, so the `.ico`
+  becomes the exe's icon in Explorer. `Window::Create` now loads that resource for
+  `hIcon` / `hIconSm` (sized via `SM_CXICON` / `SM_CXSMICON`), so the title bar,
+  taskbar and Alt+Tab match. Projects that do not call it keep the Windows default icon.
+  A missing `.ico` only warns at premake time. The `.rc` is rewritten only when its
+  content changes, so regenerating does not force a relink. The Sandbox uses it with
+  `image/Icon.ico` (the face from `image/Logo.png`).
+
 - **`PhysicsWorld::SetUnitsPerMeter` / `PhysicsSystem::SetUnitsPerMeter`.** Jolt's defaults
   (gravity 9.81, a 2 cm speculative contact distance, 2 cm penetration slop, sleep and
   restitution velocity thresholds) assume 1 unit = 1 m, while the engine's own convention is

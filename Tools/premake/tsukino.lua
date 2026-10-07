@@ -17,6 +17,7 @@
 --       ...
 --       tsukino_link()
 --       tsukino_release_payload()
+--       tsukino_icon("Assets/Icon/App.ico")   -- 任意。exe とウィンドウのアイコン
 --
 -- エンジン本体のSandboxも同じ関数を使っている。片方だけ書き換わって
 -- 食い違うことが無いように、定義はここ1箇所に置くこと。
@@ -151,4 +152,38 @@ function tsukino_release_payload()
             "{COPYFILE} " .. root .. "/THIRD_PARTY_NOTICES.md %{cfg.targetdir}/THIRD_PARTY_NOTICES.md",
         }
     filter {}
+end
+
+----------------------------------------
+-- 実行ファイルのproject直下で、location を指定した「後」に呼ぶ（任意）。
+-- .ico を exe のリソースに埋め込み、エクスプローラー上の exe のアイコンにする。
+-- Window::Create() が同じリソースを読むので、タイトルバー・タスクバー・
+-- Alt+Tab のアイコンも揃う。
+--
+--   iconPath: ワークスペースルート（ゲーム側 premake5.lua のある場所）からの相対パス
+--
+-- .rc はプロジェクトの location へ生成する。中身の .ico のパスは絶対パスになるが、
+-- 生成物なのでリポジトリには入らない。
+-- リソース名 TSUKINO_APP_ICON は Window.cpp の kAppIconResourceName と揃えること。
+----------------------------------------
+function tsukino_icon(iconPath)
+    local icon = path.getabsolute(path.join(_MAIN_SCRIPT_DIR, iconPath))
+    if not os.isfile(icon) then
+        premake.warn("tsukino_icon: アイコンが見つかりません: %s（既定のアイコンのままビルドします）", icon)
+        return
+    end
+
+    local prj = project()
+    local dir = prj.location or prj.basedir
+    local rc  = path.join(dir, "TsukinoAppIcon.rc")
+
+    -- rc の文字列では \ がエスケープ文字になるため、区切りは / のまま書く。
+    -- 中身が同じなら書き直さない（更新日時が変わると、premake を回すたびに
+    -- リソースのコンパイルとリンクがやり直しになる）
+    os.mkdir(dir)
+    if os.writefile_ifnotequal("TSUKINO_APP_ICON ICON \"" .. icon .. "\"\n", rc) < 0 then
+        premake.error("tsukino_icon: %s を書き出せませんでした", rc)
+    end
+
+    files { rc }
 end

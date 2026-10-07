@@ -695,6 +695,10 @@ project "Tsukino.Sandbox"
     -- （組み込みAssets / Tools / ライセンス条文）はヘルパーが設定する
     tsukino_release_payload()
 
+    -- exe とウィンドウのアイコン。image/Logo.png の顔のあたり（左上 175,65 から 330px 四方）を
+    -- 16〜256px の各サイズに縮めて1つの .ico にまとめたもの
+    tsukino_icon("image/Icon.ico")
+
     if not IS_SAME_AS_ROOT then
         -- サブモジュール等でこのプロジェクトのルート≠workspaceルートの場合は、Debugでも
         -- 自身のAssetsをworkspaceルート直下へ同期する

@@ -278,6 +278,10 @@ namespace Tsukino::Core {
         std::vector<QueuedInputEvent> m_inputQueue;    // フックから積まれた未処理の入力
 
         HWND m_hWnd;      // ウィンドウハンドル
+
+        HICON m_icon      = nullptr;    // exe に埋め込まれた大きいアイコン（無ければ nullptr）
+        HICON m_iconSmall = nullptr;    // exe に埋め込まれた小さいアイコン（無ければ nullptr）
+
         int  m_width;     // ウィンドウの幅
         int  m_height;    // ウィンドウの高さ
 

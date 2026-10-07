@@ -16,6 +16,9 @@ namespace Tsukino::Core {
     static HHOOK   g_kbHook    = nullptr;
     static Window* g_instance  = nullptr;
 
+    // exe に埋め込むアイコンのリソース名（Tools/premake/tsukino.lua の tsukino_icon() と揃える）
+    static constexpr const TCHAR* kAppIconResourceName = TEXT("TSUKINO_APP_ICON");
+
     // 共通の入力転送ロジック
     //
     // フック内では InvokeCallback を直接呼ばず、キューへ積むだけにする。
@@ -116,6 +119,16 @@ namespace Tsukino::Core {
             DestroyWindow(m_hWnd);    // ウィンドウを破棄
             m_hWnd = nullptr;         // ハンドルをリセット
         }
+
+        // LoadImage で読んだアイコンは共有されないので自分で解放する（ウィンドウ破棄の後）
+        if(m_icon) {
+            DestroyIcon(m_icon);
+            m_icon = nullptr;
+        }
+        if(m_iconSmall) {
+            DestroyIcon(m_iconSmall);
+            m_iconSmall = nullptr;
+        }
     }
 
     //--------------------------------------------------------------
@@ -135,6 +148,28 @@ namespace Tsukino::Core {
         wc.hInstance     = GetModuleHandle(nullptr);          // アプリケーションインスタンスを取得して設定
         wc.lpszClassName = TEXT("TsukinoWindowClass");        // ウィンドウクラス名を設定
         wc.hCursor       = LoadCursor(nullptr, IDC_ARROW);    // デフォルトの矢印カーソルを設定
+
+        //--------------------------------------------------------------
+        // exe に埋め込まれたアイコンの読み込み（tsukino_icon() で埋め込んだもの）
+        //
+        // タイトルバー・Alt+Tab 用の大きいアイコンと、タスクバー・左上用の
+        // 小さいアイコンを、それぞれ表示サイズに合わせて .ico から選ばせる。
+        // 埋め込まれていなければ nullptr のままになり、Windows 既定のアイコンが出る
+        //--------------------------------------------------------------
+        m_icon = static_cast<HICON>(LoadImage(wc.hInstance,
+                                              kAppIconResourceName,
+                                              IMAGE_ICON,
+                                              GetSystemMetrics(SM_CXICON),
+                                              GetSystemMetrics(SM_CYICON),
+                                              LR_DEFAULTCOLOR));
+        m_iconSmall = static_cast<HICON>(LoadImage(wc.hInstance,
+                                                   kAppIconResourceName,
+                                                   IMAGE_ICON,
+                                                   GetSystemMetrics(SM_CXSMICON),
+                                                   GetSystemMetrics(SM_CYSMICON),
+                                                   LR_DEFAULTCOLOR));
+        wc.hIcon   = m_icon;         // 大きいアイコンを設定
+        wc.hIconSm = m_iconSmall;    // 小さいアイコンを設定
 
         //--------------------------------------------------------------
         // ウィンドウクラスの登録に失敗した場合はエラーメッセージを表示して終了
