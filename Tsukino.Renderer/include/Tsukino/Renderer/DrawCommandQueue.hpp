@@ -43,6 +43,14 @@ namespace Tsukino::Renderer {
         CBufferMaterial& AllocMaterialData() { return m_materialDataArena.emplace_back(); }
 
         //----------------------------------------------------------
+        // このフレームで使うシーン定数（カメラの差し替え用）を1つ確保する
+        //! @return 確保したシーン定数への参照
+        //! @note   DrawCommand::cameraOverride が指す実体はここから取ること
+        //----------------------------------------------------------
+        [[nodiscard]]
+        CBufferScene& AllocSceneData() { return m_sceneDataArena.emplace_back(); }
+
+        //----------------------------------------------------------
         //! @brief コマンド一覧を取得
         //! @return コマンドのリスト
         //----------------------------------------------------------
@@ -52,14 +60,15 @@ namespace Tsukino::Renderer {
         }
 
         //----------------------------------------------------------
-        // コマンドと、コマンドが指すマテリアル実体をまとめて破棄する
-        //! @note   3つを必ず同時に捨てること。片方だけ捨てると
+        // コマンドと、コマンドが指すマテリアル実体・シーン定数をまとめて破棄する
+        //! @note   すべてを必ず同時に捨てること。片方だけ捨てると
         //!         DrawCommand の生ポインタがダングリングになる
         //----------------------------------------------------------
         void Clear() {
             m_commands.clear();
             m_materialArena.clear();
             m_materialDataArena.clear();
+            m_sceneDataArena.clear();
         }
 
         //----------------------------------------------------------
@@ -86,6 +95,7 @@ namespace Tsukino::Renderer {
         //----------------------------------------------------------
         std::deque<Material>        m_materialArena;        // マテリアル実体
         std::deque<CBufferMaterial> m_materialDataArena;    // マテリアル定数データ
+        std::deque<CBufferScene>    m_sceneDataArena;       // カメラを差し替えるシーン定数
     };
 
 }    // namespace Tsukino::Renderer

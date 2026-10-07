@@ -366,8 +366,35 @@ namespace Tsukino::Renderer {
             return lhs < rhs;
         });
 
+        //------------------------------------------------------------
+        // Overlay に積まれた 3D モデル（cameraOverride を持つコマンド。ScreenModelComponent）。
+        // 最初の1つの前に深度を消してバインドし、空の環境光（IBL）を張る。
+        // カメラはコマンドごとに差し替え、ふつうのコマンドに戻ったら UI のカメラに戻す。
+        // スプライトと文字は深度を使わないので、深度をバインドしても今までどおり
+        // sortOrder の順に上へ重なる
+        //------------------------------------------------------------
+        bool overlayDepthBound   = false;    // 深度バッファと IBL を張ったか
+        bool overlayCameraOnLoan = false;    // b0 のカメラを差し替えているか
         for(u32 index : m_overlayOrder) {
-            m_commandExecutor->Execute(commands[index], m_motionBlurPass.IsEnabled(), m_frameStats);
+            const DrawCommand& cmd = commands[index];
+            if(cmd.cameraOverride) {
+                if(!overlayDepthBound) {
+                    m_graphicsContext.BindBackBufferWithClearedDepth();
+                    m_iblBaker.Bind();
+                    overlayDepthBound = true;
+                }
+                m_frameConstants.UploadWorldWithCamera(*cmd.cameraOverride);
+                overlayCameraOnLoan = true;
+            } else if(overlayCameraOnLoan) {
+                m_frameConstants.UploadOverlay();
+                overlayCameraOnLoan = false;
+            }
+            m_commandExecutor->Execute(cmd, m_motionBlurPass.IsEnabled(), m_frameStats);
+        }
+        if(overlayDepthBound) {
+            // 深度バッファは次のフレームの BeginFrame でワールド用に戻す（DSVとSRVの同時バインド防止）
+            m_iblBaker.Unbind();
+            m_graphicsContext.BindBackBuffer();
         }
 
         m_drawQueue.Clear();

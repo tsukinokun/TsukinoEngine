@@ -54,6 +54,19 @@ namespace Tsukino::Renderer {
     }
 
     //------------------------------------------------------------------------
+    //! ワールドのシーン定数のカメラだけを差し替えて b0 へ転送してバインドします。
+    //------------------------------------------------------------------------
+    void FrameConstants::UploadWorldWithCamera(const CBufferScene& camera) {
+        CBufferScene sceneData = m_worldSceneData;
+        sceneData.view         = camera.view;
+        sceneData.projection   = camera.projection;
+        sceneData.viewProj     = camera.viewProj;
+        sceneData.invViewProj  = camera.invViewProj;
+        sceneData.cameraPos    = camera.cameraPos;
+        Upload(sceneData);
+    }
+
+    //------------------------------------------------------------------------
     //! フレームの経過時間を進めます。
     //------------------------------------------------------------------------
     void FrameConstants::AdvanceTime(float deltaTime) {

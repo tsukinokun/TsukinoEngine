@@ -4,7 +4,7 @@
 
 再生成: `vendor\premake5.exe gen-manifest`（または `generate-docs.bat`）
 
-コンポーネント 38 個（Prefab 登録済み 22 個 / シリアライズ定義あり 17 個）
+コンポーネント 39 個（Prefab 登録済み 22 個 / シリアライズ定義あり 17 個）
 
 ## 読み方
 
@@ -341,6 +341,7 @@
 | `PointerTargetComponent` | — | — | `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/PointerTargetComponent.hpp` |
 | `RimGlowComponent` | — | — | `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/RimGlowComponent.hpp` |
 | `RootMotionComponent` | — | — | `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/RootMotionComponent.hpp` |
+| `ScreenModelComponent` | — | — | `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/ScreenModelComponent.hpp` |
 | `ScrollBarComponent` | `ScrollBarComponent` | — | `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/ScrollBarComponent.hpp` |
 | `ScrollViewComponent` | `ScrollViewComponent` | — | `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/ScrollViewComponent.hpp` |
 | `SkeletonOutputComponent` | — | — | `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/SkeletonOutputComponent.hpp` |

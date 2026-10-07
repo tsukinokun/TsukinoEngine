@@ -18,6 +18,7 @@ namespace Tsukino::Renderer {
     class Material;
     struct MeshBuffer;
     struct CBufferMaterial;
+    struct CBufferScene;
 
     //------------------------------------------------------------
     //! @enum RenderPass
@@ -125,5 +126,15 @@ namespace Tsukino::Renderer {
         //--------------------------------------------------------
         bool     hasClipRect = false;    // clipRect で切り取るか
         ClipRect clipRect;               // 切り取る矩形
+
+        //--------------------------------------------------------
+        // カメラの差し替え（Overlay パスに 3D モデルを積むとき。ScreenModelComponent 参照）。
+        // nullptr でないコマンドは、b0 のカメラ（view / projection / viewProj / invViewProj / cameraPos）を
+        // これに替えて描く。ライトなどほかの値はワールドのまま使う。
+        // Overlay パスでこれを持つコマンドが来たときだけ深度バッファを使う（その最初の1回で深度を消す）。
+        // 既定は nullptr なので、既存の描画コマンドは今までどおり描かれる。
+        // 実体は DrawCommandQueue::AllocSceneData() で確保する
+        //--------------------------------------------------------
+        const CBufferScene* cameraOverride = nullptr;    // 差し替えるカメラ（不要なら nullptr）
     };
 }    // namespace Tsukino::Renderer

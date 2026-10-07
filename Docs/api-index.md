@@ -48,6 +48,7 @@
 - `Tsukino::BuiltIn::ECS::RigidbodyComponent` — `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/RigidbodyComponent.hpp`
 - `Tsukino::BuiltIn::ECS::RimGlowComponent` — `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/RimGlowComponent.hpp`
 - `Tsukino::BuiltIn::ECS::RootMotionComponent` — `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/RootMotionComponent.hpp`
+- `Tsukino::BuiltIn::ECS::ScreenModelComponent` — `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/ScreenModelComponent.hpp`
 - `Tsukino::BuiltIn::ECS::ScrollBarComponent` — `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/ScrollBarComponent.hpp`
 - `Tsukino::BuiltIn::ECS::ScrollViewComponent` — `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/ScrollViewComponent.hpp`
 - `Tsukino::BuiltIn::ECS::SkeletonOutputComponent` — `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/SkeletonOutputComponent.hpp`

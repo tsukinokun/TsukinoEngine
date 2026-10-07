@@ -15,12 +15,15 @@
 #include <Tsukino/BuiltIn/ECS/Component/RigidbodyComponent.hpp>
 #include <Tsukino/BuiltIn/ECS/Component/RimGlowComponent.hpp>
 #include <Tsukino/BuiltIn/ECS/Component/MaterialPropertyBlockComponent.hpp>
+#include <Tsukino/BuiltIn/ECS/Component/ScreenModelComponent.hpp>
 #include <Tsukino/BuiltIn/ECS/Component/MotionVectorComponent.hpp>
 #include <Tsukino/Engine/Asset/AssetManager.hpp>
 #include <Tsukino/Engine/Asset/Model/ModelAsset.hpp>
 #include <Tsukino/Engine/Asset/Shader/ShaderAsset.hpp>
 #include <Tsukino/Engine/Asset/Material/MaterialAsset.hpp>
 #include <Tsukino/Engine/Asset/Texture/TextureAsset.hpp>
+#include <Tsukino/Core/Window.hpp>
+#include <Tsukino/Renderer/ConstantBuffer.hpp>
 #include <Tsukino/Renderer/Renderer.hpp>
 #include <Tsukino/Renderer/DX11/MeshBuffer.hpp>
 #include <Tsukino/Renderer/ShaderSlots.hpp>
@@ -35,6 +38,70 @@
 #include <algorithm>
 
 namespace Tsukino::BuiltIn::ECS {
+    namespace {
+        //-------------------------------------------------------------
+        //! UI の層に描くモデルのカメラで、正射影の奥行きの半分（unit）。
+        //! この範囲に収まる大きさのモデルなら、前後が切れずに描ける
+        //-------------------------------------------------------------
+        constexpr float kScreenModelDepthHalfRange = 1000.0f;
+
+        //-------------------------------------------------------------
+        //! モデルの持ち主か、その親をたどった先にある ScreenModelComponent を探します。
+        //! @param  [in]  registry レジストリ
+        //! @param  [in]  entity   モデルの持ち主
+        //! @param  [out] owner    見つかったコンポーネントを持つエンティティ
+        //! @return 見つかったコンポーネント（無ければ nullptr。ワールドに描くモデル）
+        //-------------------------------------------------------------
+        const ScreenModelComponent* FindScreenModel(Tsukino::ECS::Registry& registry, entt::entity entity, entt::entity& owner) {
+            // 親子が輪になっていても止まるよう、たどる回数に上限を設ける
+            constexpr int kMaxDepth = 64;
+            entt::entity  current   = entity;
+            for(int depth = 0; depth < kMaxDepth && current != entt::null && registry.IsValid(current); ++depth) {
+                if(const auto* screen = registry.try_get<ScreenModelComponent>(current)) {
+                    owner = current;
+                    return screen;
+                }
+                const auto* transform = registry.try_get<TransformComponent>(current);
+                if(!transform)
+                    break;
+                current = transform->parent;
+            }
+            return nullptr;
+        }
+
+        //-------------------------------------------------------------
+        //! UI の層に描くモデルのカメラ（正射影）を作ります。
+        //! 持ち主のワールド位置を screenPosition に、1unit を pixelsPerUnit ピクセルで映し、
+        //! 手前（+z の側）から -z の向きに見ます。深度はリバースZ（手前ほど大きい）
+        //! @param  [in] center       持ち主のワールド位置
+        //! @param  [in] screen       画面への置き方
+        //! @param  [in] screenWidth  画面の幅（ピクセル）
+        //! @param  [in] screenHeight 画面の高さ（ピクセル）
+        //! @return カメラ行列を詰めたシーン定数（view / projection / viewProj / invViewProj / cameraPos）
+        //-------------------------------------------------------------
+        Tsukino::Renderer::CBufferScene MakeScreenModelCamera(const hlslpp::float3& center, const ScreenModelComponent& screen, float screenWidth,
+                                                              float screenHeight) {
+            const float          pixelsPerUnit = std::max(screen.pixelsPerUnit, 1.0e-4f);
+            const hlslpp::float3 eye           = center + hlslpp::float3(0.0f, 0.0f, kScreenModelDepthHalfRange);
+
+            // ビュー空間では持ち主が (0, 0, 奥行きの半分) に来る。画面の左上 (0, 0) から右下までを unit に直して映す
+            const float sx     = float(screen.screenPosition.x);
+            const float sy     = float(screen.screenPosition.y);
+            const float left   = -sx / pixelsPerUnit;
+            const float right  = (screenWidth - sx) / pixelsPerUnit;
+            const float top    = sy / pixelsPerUnit;
+            const float bottom = (sy - screenHeight) / pixelsPerUnit;
+
+            Tsukino::Renderer::CBufferScene camera{};
+            camera.view = Tsukino::Core::Math::matrix::lookAtLH(eye, center, hlslpp::float3(0.0f, 1.0f, 0.0f));
+            // near と far を入れ替えてリバースZにする（ワールドのカメラと同じ深度の向き）
+            camera.projection  = Tsukino::Core::Math::matrix::orthographicOffCenterLH(left, right, bottom, top, kScreenModelDepthHalfRange * 2.0f, 0.0f);
+            camera.viewProj    = hlslpp::mul(camera.view, camera.projection);
+            camera.invViewProj = hlslpp::inverse(camera.viewProj);
+            camera.cameraPos   = hlslpp::float4(eye, 1.0f);
+            return camera;
+        }
+    }    // namespace
 
     //-------------------------------------------------------------
     //! @brief システムの更新
@@ -89,6 +156,26 @@ namespace Tsukino::BuiltIn::ECS {
                 hasPrev = false;
 
             const Tsukino::Core::Math::matrix prevWorldMatrix = hasPrev ? motionVec->prevWorld : transform.worldMatrix;
+
+            //-------------------------------------------------------------
+            // UI の層に描くモデル（自身か親に ScreenModelComponent がある）は、
+            // そのカメラを作って Overlay パスへ積む（ワールドには描かない）
+            //-------------------------------------------------------------
+            entt::entity                           screenOwner  = entt::null;
+            const ScreenModelComponent*            screenModel  = FindScreenModel(registry, entity, screenOwner);
+            const Tsukino::Renderer::CBufferScene* screenCamera = nullptr;
+            if(screenModel) {
+                const auto* ownerTransform = registry.try_get<TransformComponent>(screenOwner);
+                if(!ownerTransform || !ctx->window)
+                    return;
+                const hlslpp::float4 center =
+                    hlslpp::mul(hlslpp::float4(0.0f, 0.0f, 0.0f, 1.0f), static_cast<const hlslpp::float4x4&>(ownerTransform->worldMatrix));
+
+                Tsukino::Renderer::CBufferScene& camera = ctx->renderer->GetDrawQueue().AllocSceneData();
+                camera = MakeScreenModelCamera(hlslpp::float3(center.xyz), *screenModel, static_cast<float>(ctx->window->GetWidth()),
+                                               static_cast<float>(ctx->window->GetHeight()));
+                screenCamera = &camera;
+            }
 
             // ノードとメッシュの巡回ループ
             for(const auto& node : modelAsset->modelData.nodes) {
@@ -273,6 +360,12 @@ namespace Tsukino::BuiltIn::ECS {
                         blendMode = Tsukino::Renderer::BlendMode::Alpha;
                     }
 
+                    // UI の層に描くモデルはトーンマップの後に描かれるので、トーンマップまで掛けるシェーダーで描く
+                    if(screenModel) {
+                        psHandle  = ctx->builtinAssets->shaders.screenModelPS;
+                        blendMode = Tsukino::Renderer::BlendMode::Alpha;
+                    }
+
                     auto vsAsset = std::static_pointer_cast<Tsukino::Asset::ShaderAsset>(ctx->assetManager->Get(vsHandle));
                     auto psAsset = std::static_pointer_cast<Tsukino::Asset::ShaderAsset>(ctx->assetManager->Get(psHandle));
 
@@ -348,7 +441,28 @@ namespace Tsukino::BuiltIn::ECS {
                         cullMode              = isMirrored ? Tsukino::Renderer::CullMode::Front : Tsukino::Renderer::CullMode::Back;
                     }
 
-                    if(isFading) {
+                    if(screenModel) {
+                        // UI の層：画面スプライト・文字と同じ Overlay パスへ、sortOrder 付きで積む。
+                        // モデル同士の前後は深度で決める（Renderer が最初の1つの前に深度を消す）
+                        auto pipeline = ctx->renderer->GetResources().GetPipelineFactory()->Create(*vsAsset, *psAsset, vertexFormat,
+                                                                                    Tsukino::Renderer::DepthMode::ReadWrite, blendMode, cullMode);
+                        if(auto* mat = buildMaterial(pipeline)) {
+                            Tsukino::Renderer::DrawCommand cmd{};
+                            cmd.mesh           = const_cast<Tsukino::Renderer::MeshBuffer*>(&targetMeshBuffer);
+                            cmd.transform      = finalTransform;
+                            cmd.material       = mat;
+                            cmd.materialData   = pCbMat;
+                            cmd.pass           = Tsukino::Renderer::RenderPass::Overlay;
+                            cmd.sortOrder      = screenModel->sortOrder;
+                            cmd.cameraOverride = screenCamera;
+                            cmd.castsShadow    = false;
+                            if(isSkeletal) {
+                                cmd.boneMatrices = skeletonOut->local_matrices;
+                                cmd.boneCount    = skeletonOut->bone_count;
+                            }
+                            ctx->renderer->GetDrawQueue().Push(cmd);
+                        }
+                    } else if(isFading) {
                         // 半透明フォワード：先に深度だけ埋め（スキンメッシュの自己重なり対策）、
                         // 続けてその深度と一致する画素だけを1回シェーディングする。
                         // 影・モーションベクタはGBufferパス限定のため、フェード中は失われる

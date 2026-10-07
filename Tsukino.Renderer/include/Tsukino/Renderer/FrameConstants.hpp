@@ -89,6 +89,11 @@ namespace Tsukino::Renderer {
             Upload(m_overlaySceneData);
         }
 
+        //! ワールドのシーン定数のカメラだけを差し替えて b0 へ転送してバインドします。
+        //! @param  [in] camera カメラ行列を詰めたシーン定数。view / projection / viewProj / invViewProj / cameraPos だけを使う
+        //! @note   ライトなどほかの値はワールドのまま。Overlay パスに積んだ 3D モデル（DrawCommand::cameraOverride）を描くときに使う
+        void UploadWorldWithCamera(const CBufferScene& camera);
+
         //! フレームの終わりの処理をします（次フレームの速度計算用に ViewProjection を退避します）。
         //! @note   CameraSystem は dirty 時しか行列を再計算しないため、
         //!         「送られてきたタイミング」ではなく「フレームの末尾」で退避するのが確実

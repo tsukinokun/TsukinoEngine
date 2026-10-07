@@ -10,7 +10,7 @@
         "pathBase": "working directory (Debug: repository root / Release: next to the exe)"
     },
     "stats": {
-        "components": 38,
+        "components": 39,
         "registered": 22,
         "serializable": 17
     },
@@ -978,6 +978,17 @@
             "registeredName": null,
             "serializable": false,
             "header": "Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/RootMotionComponent.hpp",
+            "serializationHeader": null,
+            "registrationSite": null,
+            "fields": []
+        },
+        {
+            "name": "ScreenModelComponent",
+            "typeName": "Tsukino::BuiltIn::ECS::ScreenModelComponent",
+            "registered": false,
+            "registeredName": null,
+            "serializable": false,
+            "header": "Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/ScreenModelComponent.hpp",
             "serializationHeader": null,
             "registrationSite": null,
             "fields": []

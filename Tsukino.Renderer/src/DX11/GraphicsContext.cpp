@@ -417,6 +417,16 @@ namespace Tsukino::Renderer {
     }
 
     //--------------------------------------------------------------
+    //! @brief バックバッファのRTVと、消した深度バッファをバインドする
+    //--------------------------------------------------------------
+    void GraphicsContext::BindBackBufferWithClearedDepth() {
+        m_context->OMSetRenderTargets(1, m_rtv.GetAddressOf(), m_dsv.Get());
+
+        // リバースZなので、一番奥は 0
+        m_context->ClearDepthStencilView(m_dsv.Get(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 0.0f, 0);
+    }
+
+    //--------------------------------------------------------------
     //! @brief G-Buffer（全枚数）をRTVとして、DSVを深度書き込みありでバインドしてクリアする
     //! @note  GBufferパスの先頭で呼ぶ。HDRバッファは対象外（Lightingパスの出力先）。
     //--------------------------------------------------------------

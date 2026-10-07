@@ -24,6 +24,7 @@ namespace Tsukino::BuiltIn {
         spriteWorldVS  = assetManager->Load(root / "Tsukino.BuiltIn/Assets/Shaders/Sprite3D.vs.hlsl");
         modelVS        = assetManager->Load(root / "Tsukino.BuiltIn/Assets/Shaders/Model.vs.hlsl");
         modelPS        = assetManager->Load(root / "Tsukino.BuiltIn/Assets/Shaders/Model.ps.hlsl");
+        screenModelPS  = assetManager->Load(root / "Tsukino.BuiltIn/Assets/Shaders/ScreenModel.ps.hlsl");
         staticModelVS  = assetManager->Load(root / "Tsukino.BuiltIn/Assets/Shaders/ModelStatic.vs.hlsl");
         debugVS        = assetManager->Load(root / "Tsukino.BuiltIn/Assets/Shaders/DebugLine.vs.hlsl");
         debugPS        = assetManager->Load(root / "Tsukino.BuiltIn/Assets/Shaders/DebugLine.ps.hlsl");
