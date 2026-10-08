@@ -92,7 +92,7 @@
 - **Tsukino::Renderer::DynamicFontAtlas::Page** — `Tsukino.Renderer/include/Tsukino/Renderer/Text/DynamicFontAtlas.hpp`
   - texture, srv, cursorX, cursorY, shelfHeight
 - **Tsukino::Renderer::FogPass** — `Tsukino.Renderer/include/Tsukino/Renderer/FogPass.hpp`
-  - Initialize(), SetParameters(), SetEnabled(), Execute(), EndFrame()
+  - Initialize(), SetParameters(), SetEnabled(), Execute(), BindForwardFog(), UnbindForwardFog(), EndFrame()
 - **Tsukino::Renderer::FrameConstants** — `Tsukino.Renderer/include/Tsukino/Renderer/FrameConstants.hpp`
   - Initialize(), SetWorldCamera(), SetOverlayCamera(), AdvanceTime(), SetDirectionalLight(), SetShadowCascadeIndex(), GetWorldSceneData(), UploadWorld(), UploadOverlay(), UploadWorldWithCamera(), EndFrame(), GetSceneBuffer(), GetSceneBufferAddress()
 - **Tsukino::Renderer::FullscreenPass** — `Tsukino.Renderer/src/FullscreenPass.hpp`

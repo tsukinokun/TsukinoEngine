@@ -33,9 +33,11 @@ namespace Tsukino::Renderer {
         desc.Usage             = D3D11_USAGE_DEFAULT;
         desc.BindFlags         = D3D11_BIND_CONSTANT_BUFFER;
         desc.ByteWidth         = sizeof(CBufferFog);
-        if(FAILED(device->CreateBuffer(&desc, nullptr, m_buffer.GetAddressOf()))) {
+        if(FAILED(device->CreateBuffer(&desc, nullptr, m_buffer.GetAddressOf()))
+           || FAILED(device->CreateBuffer(&desc, nullptr, m_forwardBuffer.GetAddressOf()))) {
             Tsukino::Core::Log::Error("Failed to create fog constant buffer.");
             m_buffer.Reset();
+            m_forwardBuffer.Reset();
             return false;
         }
 
@@ -121,5 +123,26 @@ namespace Tsukino::Renderer {
         context->PSSetShaderResources(depthSRVSlot, 1, &nullSRV);
 
         context->OMSetBlendState(m_resources->GetCommonStatesTK()->Opaque(), nullptr, 0xFFFFFFFF);
+    }
+
+    void FogPass::BindForwardFog() {
+        if(!m_enabled || !m_forwardBuffer)
+            return;
+
+        // フォグパスと同じ値に「シェーダーの中で掛ける」印（distanceParams.w=1）だけを立てる
+        CBufferFog forwardData       = m_data;
+        forwardData.distanceParams.w = 1.0f;
+
+        ID3D11DeviceContext* context = m_graphicsContext->GetContext();
+        context->UpdateSubresource(m_forwardBuffer.Get(), 0, nullptr, &forwardData, 0, 0);
+
+        constexpr UINT fogCBSlot = static_cast<UINT>(CBSlot::Fog);
+        context->PSSetConstantBuffers(fogCBSlot, 1, m_forwardBuffer.GetAddressOf());
+    }
+
+    void FogPass::UnbindForwardFog() {
+        ID3D11Buffer*  nullBuffer = nullptr;
+        constexpr UINT fogCBSlot  = static_cast<UINT>(CBSlot::Fog);
+        m_graphicsContext->GetContext()->PSSetConstantBuffers(fogCBSlot, 1, &nullBuffer);
     }
 }    // namespace Tsukino::Renderer

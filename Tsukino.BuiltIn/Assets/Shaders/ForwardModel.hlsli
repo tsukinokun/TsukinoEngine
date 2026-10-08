@@ -2,6 +2,7 @@
 //! @file   ForwardModel.hlsli
 //! @brief  3Dモデルをフォワードで照らす式（Model.ps.hlsl と ScreenModel.ps.hlsl で共用）
 //! @detail ディレクショナルライト（PBR）・空の環境光（IBL）・自発光・リムグローを足した HDR の色を返します。
+//!         半透明のパスでは、そこへフォグも掛けます（Fog.hlsli）。
 //!         FORWARD_MODEL_NO_SHADOW を定義してから include すると、シャドウマップを使わない（影なし）。
 //!         BRDF・シャドウPCFの式はPBR.hlsliに一元化してあり、
 //!         ディファード側（GBuffer.ps.hlsl / Lighting.ps.hlsl）と乖離しない。
@@ -11,6 +12,7 @@
 #include "PBR.hlsli"
 #include "IBL.hlsli"
 #include "Material.hlsli"
+#include "Fog.hlsli"
 
 //--------------------------------------------------------------
 //! @brief アルベドテクスチャ (t0)
@@ -129,6 +131,18 @@ float4 ShadeForwardModel(PSInput input)
     // （GBuffer.ps.hlsl）と同じ関数を呼ぶので乖離しない
     //----------------------------------------------------------
     finalColor += EvaluateEmissiveBoost(N, V);
+
+    //----------------------------------------------------------
+    // フォグ。半透明のパスの間だけ、フォワード用のフォグ定数（distanceParams.w=1）が
+    // b8に張られている（FogPass::BindForwardFog）。不透明の絵にはフォグパスが
+    // 先に掛け終わっているので、半透明の物はここで自分の距離ぶんだけ霧に沈める。
+    // それ以外の描画（画面に出すモデルなど）ではb8が空で0が読まれ、何もしない
+    //----------------------------------------------------------
+    if(distanceParams.w > 0.5f) {
+        float3 toPixel = input.worldPos - cameraPos.xyz;
+        float4 fog     = ComputeFog(input.worldPos, normalize(toPixel), false);
+        finalColor     = lerp(finalColor, fog.rgb, fog.a);
+    }
 
     return float4(finalColor, baseColor.a * albedoSample.a);
 }

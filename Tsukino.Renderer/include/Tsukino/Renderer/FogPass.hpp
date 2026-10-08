@@ -33,7 +33,7 @@ namespace Tsukino::Renderer {
     class FogPass {
     public:
 
-        //! 定数バッファ（b9）とピクセルシェーダーを作成します。
+        //! 定数バッファ（b8。フォグパス用と半透明モデル用の2つ）とピクセルシェーダーを作成します。
         //! @param  [in] graphicsContext デバイスと深度バッファの取得元
         //! @param  [in] resources       共通ステートとサンプラーの取得元
         //! @param  [in] frameConstants  b0 の取得元
@@ -57,8 +57,21 @@ namespace Tsukino::Renderer {
         }
 
         //! フォグを HDR バッファへ合成します。
-        //! @note   Transparent パスの直後・モーションブラーパスの直前に呼ぶこと
+        //! @note   World パスの直後・TransparentDepth パスの直前に呼ぶこと。深度バッファに
+        //!         不透明の深度しか無いうちに掛けないと、半透明モデルが重なった画素の奥の景色へ
+        //!         そのモデルの距離でフォグが掛かってしまう（ほぼ素通しになる）。
+        //!         終わると DSV が外れているので、続けて3Dを描くなら HDR＋DSV を張り直すこと
         void Execute();
+
+        //! 半透明モデルのフォワード描画で、シェーダーの中でフォグを掛けさせます。
+        //! @note   Transparent パスの直前に呼び、終わったら UnbindForwardFog() で外すこと。
+        //!         distanceParams.w を1にした定数を b8 へ張る（ForwardModel.hlsli がこれを見る）。
+        //!         このフレームでフォグが無効なら何も張らない（＝シェーダーは何もしない）
+        void BindForwardFog();
+
+        //! BindForwardFog() で張った定数を外します。
+        //! @note   張ったままにすると、後のフォワード描画（画面に出すモデルなど）にもフォグが掛かる
+        void UnbindForwardFog();
 
         //! フレームの終わりの処理をします（有効フラグを false へ戻します）。
         //! @note   毎フレーム FogSystem が再度 true にする前提にしておくと、FogSystem を持たない
@@ -74,7 +87,8 @@ namespace Tsukino::Renderer {
         const FullscreenPass* m_fullscreenPass  = nullptr;    // フルスクリーン三角形の描画（借りている）
 
         Microsoft::WRL::ComPtr<ID3D11PixelShader> m_ps;                 // フォグ用ピクセルシェーダー
-        Microsoft::WRL::ComPtr<ID3D11Buffer>      m_buffer;             // フォグパラメータ用バッファ (b9)
+        Microsoft::WRL::ComPtr<ID3D11Buffer>      m_buffer;             // フォグパラメータ用バッファ (b8)
+        Microsoft::WRL::ComPtr<ID3D11Buffer>      m_forwardBuffer;      // 半透明モデル用（distanceParams.w=1）のバッファ (b8)
         CBufferFog                                m_data{};             // CPU側のフォグパラメータ
         bool                                      m_enabled = false;    // このフレームで有効か
     };
