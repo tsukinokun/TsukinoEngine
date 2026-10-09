@@ -256,7 +256,13 @@ namespace Tsukino::BuiltIn::ECS {
                     ID3D11ShaderResourceView* emissiveSRV = nullptr;
                     ID3D11ShaderResourceView* aoSRV       = nullptr;
 
-                    Tsukino::GraphicsCommon::ShadingModel shadingModel = Tsukino::GraphicsCommon::ShadingModel::PBR;
+                    // 照らし方とトゥーンの値（既定は MaterialData の既定値）
+                    Tsukino::GraphicsCommon::MaterialData defaultMaterial;
+                    Tsukino::GraphicsCommon::ShadingModel shadingModel     = defaultMaterial.shadingModel;
+                    float                                 toonThreshold    = defaultMaterial.toonThreshold;
+                    float                                 toonSmoothness   = defaultMaterial.toonSmoothness;
+                    hlslpp::float3                        toonShadeColor   = hlslpp::float3(defaultMaterial.toonShadeColor.x, defaultMaterial.toonShadeColor.y, defaultMaterial.toonShadeColor.z);
+                    float                                 toonSpecularSize = defaultMaterial.toonSpecularSize;
 
                     // アルファテストのしきい値（0 = 無効）。ModelImporterが自動設定する
                     float alphaCutoff = 0.0f;
@@ -283,8 +289,12 @@ namespace Tsukino::BuiltIn::ECS {
                             cbMat.roughness = matAsset->data.roughness;
                             cbMat.specular  = matAsset->data.specular;
 
-                            shadingModel = matAsset->data.shadingModel;
-                            alphaCutoff  = matAsset->data.alphaCutoff;
+                            shadingModel     = matAsset->data.shadingModel;
+                            toonThreshold    = matAsset->data.toonThreshold;
+                            toonSmoothness   = matAsset->data.toonSmoothness;
+                            toonShadeColor   = hlslpp::float3(matAsset->data.toonShadeColor.x, matAsset->data.toonShadeColor.y, matAsset->data.toonShadeColor.z);
+                            toonSpecularSize = matAsset->data.toonSpecularSize;
+                            alphaCutoff      = matAsset->data.alphaCutoff;
 
                             // AssetHandle から SRV を引く（無効ハンドル・未ロードは nullptr）
                             auto resolveSRV = [&](const Tsukino::Asset::AssetHandle& handle) -> ID3D11ShaderResourceView* {
@@ -320,7 +330,21 @@ namespace Tsukino::BuiltIn::ECS {
                             cbMat.metallic = *block->metallic;
                         if(block->roughness)
                             cbMat.roughness = *block->roughness;
+                        if(block->shadingModel)
+                            shadingModel = *block->shadingModel;
+                        if(block->toonThreshold)
+                            toonThreshold = *block->toonThreshold;
+                        if(block->toonSmoothness)
+                            toonSmoothness = *block->toonSmoothness;
+                        if(block->toonShadeColor)
+                            toonShadeColor = *block->toonShadeColor;
+                        if(block->toonSpecularSize)
+                            toonSpecularSize = *block->toonSpecularSize;
                     }
+
+                    // 照らし方。番号は ShadingModel の並び（シェーダー側の SHADING_MODEL_* と一致させる）
+                    cbMat.shading        = hlslpp::float4(static_cast<float>(shadingModel), toonThreshold, toonSmoothness, toonSpecularSize);
+                    cbMat.toonShadeColor = hlslpp::float4(toonShadeColor, 0.0f);
 
                     //--------------------------------------------------------------
                     // エンティティ単位のリムグローの上乗せ（マテリアルアセットより後に適用する）。

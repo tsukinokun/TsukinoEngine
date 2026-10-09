@@ -3,6 +3,8 @@
 //! @brief  エンティティ単位でマテリアルの値を上書きするコンポーネント
 //----------------------------------------------------------------------------
 #pragma once
+#include <Tsukino/GraphicsCommon/Material/MaterialData.hpp>
+
 #include <hlsl++.h>
 
 #include <optional>
@@ -21,11 +23,21 @@ namespace Tsukino::BuiltIn::ECS {
     //!       不透明（GBuffer）と半透明（フォワード）のどちらの描画にも効く。
     //!
     //!       マテリアルそのものを別のものにしたいとき（質感そのものを変えたいとき）は
-    //!       ModelComponent::materials を使う。こちらはエンティティごとの小さな違い（色だけを変えるなど）に使う
+    //!       ModelComponent::materials を使う。こちらはエンティティごとの小さな違い（色だけを変えるなど）に使う。
+    //!       shadingModel も上書きできるので、モデルに入っているマテリアル（テクスチャ）のまま照らし方だけを変えられる
     struct MaterialPropertyBlockComponent {
         std::optional<hlslpp::float4> baseColor;    // 基本色（アルファを含む）
         std::optional<hlslpp::float3> emissive;     // 自己発光の色（HDR なので 1.0 超も可）
         std::optional<float>          metallic;     // メタリック（0〜1）
         std::optional<float>          roughness;    // ラフネス（0〜1）
+
+        //--------------------------------------------------------------
+        // 照らし方（意味は MaterialData の同名の項目と同じ）
+        //--------------------------------------------------------------
+        std::optional<Tsukino::GraphicsCommon::ShadingModel> shadingModel;        // 照らし方（PBR / Unlit / Toon）
+        std::optional<float>                                 toonThreshold;       // トゥーンの明るい側と暗い側の境目（0〜1）
+        std::optional<float>                                 toonSmoothness;      // トゥーンの境目のぼかし幅（0〜1）
+        std::optional<hlslpp::float3>                        toonShadeColor;      // トゥーンの暗い側に掛ける色（0〜1）
+        std::optional<float>                                 toonSpecularSize;    // トゥーンのハイライトの大きさ（0〜1。0 で無し）
     };
 }    // namespace Tsukino::BuiltIn::ECS

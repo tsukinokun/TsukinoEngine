@@ -8,6 +8,7 @@
 #pragma pack_matrix(row_major)
 #include "PBR.hlsli"
 #include "Material.hlsli"
+#include "Toon.hlsli"
 
 //--------------------------------------------------------------
 //! @brief マテリアルテクスチャ (t0〜t4)
@@ -39,10 +40,10 @@ struct PSInput
 struct PSOutput
 {
     float4 albedo      : SV_TARGET0;    // rgb: albedo, a: 未使用
-    float4 normal      : SV_TARGET1;    // rgb: ワールド法線(エンコード済み), a: 未使用（将来のShadingModel ID等に予約）
-    float4 material    : SV_TARGET2;    // r: metallic, g: roughness, b: specular, a: AO
+    float4 normal      : SV_TARGET1;    // rgb: ワールド法線(エンコード済み), a: ShadingModel の番号（EncodeShadingModel）
+    float4 material    : SV_TARGET2;    // r: metallic, g: roughness, b: specular, a: AO（Toon のときは r: 境目, g: ぼかし幅, b: ハイライトの大きさ）
     float4 emissiveOut : SV_TARGET3;    // rgb: emissive + リムグロー, a: 未使用
-    float4 worldPosOut : SV_TARGET4;    // rgb: ワールド座標（頂点シェーダー補間値そのまま）, a: 未使用
+    float4 worldPosOut : SV_TARGET4;    // rgb: ワールド座標（頂点シェーダー補間値そのまま）, a: Toon の暗い側の色（PackShadeColor）
     float2 velocity    : SV_TARGET5;    // rg: 1フレームあたりのUV移動量（符号付き）
 };
 
@@ -114,11 +115,23 @@ PSOutput PSMain(PSInput input)
     // アルファは書かない（1.0固定）。カットアウトは上のclipで済んでおり、
     // ここでアルファを書くとLightingパス経由でHDRバッファのアルファを下げ、
     // 透明テクセルが真っ黒に潰れる原因になる
+    //----------------------------------------------------------
+    // 照らし方。Toon は metallic/roughness/specular を使わないので、
+    // その場所にトゥーンの値を入れる（Lighting.ps.hlsl が番号を見て読み分ける）
+    //----------------------------------------------------------
+    const uint shadingModel = (uint)round(shading.x);
+    float4     materialOut  = float4(met, rough, specular, ao);
+    float      shadeOut     = 0.0f;
+    if(shadingModel == SHADING_MODEL_TOON) {
+        materialOut = float4(shading.y, shading.z, shading.w, ao);
+        shadeOut    = PackShadeColor(toonShadeColor.rgb);
+    }
+
     output.albedo      = float4(albedo, 1.0f);
-    output.normal      = float4(EncodeNormal(N), 0.0f);
-    output.material    = float4(met, rough, specular, ao);
+    output.normal      = float4(EncodeNormal(N), EncodeShadingModel(shadingModel));
+    output.material    = materialOut;
     output.emissiveOut = float4(emissiveTotal, 0.0f);
-    output.worldPosOut = float4(input.worldPos, 0.0f);
+    output.worldPosOut = float4(input.worldPos, shadeOut);
     output.velocity    = curUV - prevUV;
 
     return output;

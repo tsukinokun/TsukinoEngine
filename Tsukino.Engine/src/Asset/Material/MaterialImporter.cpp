@@ -116,6 +116,23 @@ namespace Tsukino::Asset {
                     data.emissive = hlslpp::float3(v[0], v[1], v[2]);
                 else
                     warn(lineNumber, "Emissive needs 3 numbers");
+            } else if(key == "ToonShadeColor") {
+                if(ParseFloats(value, 3, v))
+                    data.toonShadeColor = hlslpp::float3(std::clamp(v[0], 0.0f, 1.0f), std::clamp(v[1], 0.0f, 1.0f), std::clamp(v[2], 0.0f, 1.0f));
+                else
+                    warn(lineNumber, "ToonShadeColor needs 3 numbers");
+            } else if(key == "ToonThreshold" || key == "ToonSmoothness" || key == "ToonSpecularSize") {
+                if(!ParseFloats(value, 1, v)) {
+                    warn(lineNumber, key + " needs a number");
+                    continue;
+                }
+                const float clamped = std::clamp(v[0], 0.0f, 1.0f);
+                if(key == "ToonThreshold")
+                    data.toonThreshold = clamped;
+                else if(key == "ToonSmoothness")
+                    data.toonSmoothness = clamped;
+                else
+                    data.toonSpecularSize = clamped;
             } else if(key == "Metallic" || key == "Roughness" || key == "Specular" || key == "AlphaCutoff") {
                 if(!ParseFloats(value, 1, v)) {
                     warn(lineNumber, key + " needs a number");

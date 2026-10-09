@@ -1,7 +1,8 @@
 //--------------------------------------------------------------
 //! @file   ForwardModel.hlsli
 //! @brief  3Dモデルをフォワードで照らす式（Model.ps.hlsl と ScreenModel.ps.hlsl で共用）
-//! @detail ディレクショナルライト（PBR）・空の環境光（IBL）・自発光・リムグローを足した HDR の色を返します。
+//! @detail ディレクショナルライト・空の環境光（IBL）・自発光・リムグローを足した HDR の色を返します。
+//!         照らし方はマテリアルの ShadingModel（shading.x）で PBR / Unlit / Toon を切り替えます（Toon.hlsli）。
 //!         半透明のパスでは、そこへフォグも掛けます（Fog.hlsli）。
 //!         FORWARD_MODEL_NO_SHADOW を定義してから include すると、シャドウマップを使わない（影なし）。
 //!         BRDF・シャドウPCFの式はPBR.hlsliに一元化してあり、
@@ -13,6 +14,7 @@
 #include "IBL.hlsli"
 #include "Material.hlsli"
 #include "Fog.hlsli"
+#include "Toon.hlsli"
 
 //--------------------------------------------------------------
 //! @brief アルベドテクスチャ (t0)
@@ -103,19 +105,34 @@ float4 ShadeForwardModel(PSInput input)
     //----------------------------------------------------------
     float shadow = GetShadowPCF(input.worldPos, N, L);
 
-    // 影を真っ黒にしない（下限はPBR.hlsliのkShadowMinLit。ディファード側と共用）
-    shadow = max(shadow, kShadowMinLit);
+    const uint shadingModel = (uint)round(shading.x);
+    float3     directLight  = float3(0.0f, 0.0f, 0.0f);
+    float3     ambient      = float3(0.0f, 0.0f, 0.0f);
 
-    float3 radiance = lightColor.rgb * lightColor.w * shadow; // 色 × 強度 × 影
+    if(shadingModel == SHADING_MODEL_UNLIT) {
+        // ライティングなし。アルベドをそのまま出す
+        directLight = albedo;
+    } else if(shadingModel == SHADING_MODEL_TOON) {
+        // トゥーン。影は暗い側の色で表すので kShadowMinLit は掛けない（Toon.hlsliに一元化）
+        directLight = EvaluateToon(N, V, L, albedo, lightColor.rgb * lightColor.w, shadow, shading.y, shading.z, toonShadeColor.rgb, shading.w, true);
 
-    // 直接照明 = Cook-Torrance BRDF × radiance × NdotL（PBR.hlsliに一元化）
-    float3 directLight = EvaluatePBR(N, V, L, albedo, metallic, roughness, specular, radiance);
+        // アンビエントは拡散だけ（金属感・鏡面の映り込みは付けない）
+        ambient = EvaluateIBL(N, V, albedo, 0.0f, 1.0f, 0.0f, 1.0f);
+    } else {
+        // 影を真っ黒にしない（下限はPBR.hlsliのkShadowMinLit。ディファード側と共用）
+        shadow = max(shadow, kShadowMinLit);
 
-    //----------------------------------------------------------
-    // アンビエント（スカイ由来のIBL。Lighting.ps.hlslと同じEvaluateIBLを使う）
-    // このフォワードパスはAOテクスチャを持たないため ao=1.0（未遮蔽）を渡す
-    //----------------------------------------------------------
-    float3 ambient = EvaluateIBL(N, V, albedo, metallic, roughness, specular, 1.0f);
+        float3 radiance = lightColor.rgb * lightColor.w * shadow; // 色 × 強度 × 影
+
+        // 直接照明 = Cook-Torrance BRDF × radiance × NdotL（PBR.hlsliに一元化）
+        directLight = EvaluatePBR(N, V, L, albedo, metallic, roughness, specular, radiance);
+
+        //----------------------------------------------------------
+        // アンビエント（スカイ由来のIBL。Lighting.ps.hlslと同じEvaluateIBLを使う）
+        // このフォワードパスはAOテクスチャを持たないため ao=1.0（未遮蔽）を渡す
+        //----------------------------------------------------------
+        ambient = EvaluateIBL(N, V, albedo, metallic, roughness, specular, 1.0f);
+    }
 
     //----------------------------------------------------------
     // 最終カラー合成

@@ -96,6 +96,8 @@ namespace Tsukino::Renderer {
         hlslpp::float4 rimColor;       //!< xyz: ふちの色, w: ふちの強さ
         hlslpp::float4 rimParams;      //!< x: ふちの鋭さ(pow指数), y: 全体の白発光量, zw: 予約
         hlslpp::float4 spriteFill = hlslpp::float4(0.0f, 0.0f, 0.0f, 0.0f);    //!< スプライト専用の塗り。x: 塗り方(0=全体, 1=円形), y: 塗る割合, z: 開始角(ラジアン), w: 向き(+1=時計回り, -1=反時計回り)
+        hlslpp::float4 shading    = hlslpp::float4(0.0f, 0.5f, 0.05f, 0.0f);    //!< x: ShadingModel の番号(0=PBR, 1=Unlit, 2=Toon), y: トゥーンの境目, z: トゥーンのぼかし幅, w: トゥーンのハイライトの大きさ
+        hlslpp::float4 toonShadeColor = hlslpp::float4(0.5f, 0.5f, 0.5f, 0.0f);    //!< xyz: トゥーンの暗い側に掛ける色, w: 予約
     };
 
     // b2のレイアウトはMaterial.hlsli側と手で合わせるしかないので、機械的に見張る。
@@ -105,12 +107,14 @@ namespace Tsukino::Renderer {
     //
     // ただし守れるのはこちら側だけ。Material.hlsli の emissivePad を消しても
     // 以下のアサートは全て通り、描画結果が静かに壊れる。片方を触ったら必ず両方見る
-    static_assert(sizeof(CBufferMaterial) == 96, "CBufferMaterial must stay 96 bytes to match Material.hlsli (b2).");
+    static_assert(sizeof(CBufferMaterial) == 128, "CBufferMaterial must stay 128 bytes to match Material.hlsli (b2).");
     static_assert(offsetof(CBufferMaterial, metallic) == 32, "metallic must sit at byte 32; emissivePad in Material.hlsli covers 28..31.");
     static_assert(offsetof(CBufferMaterial, alphaCutoff) == 44, "alphaCutoff must fill the last slot before rimColor.");
     static_assert(offsetof(CBufferMaterial, rimColor) == 48, "rimColor must start on the 16-byte boundary at 48.");
     static_assert(offsetof(CBufferMaterial, rimParams) == 64, "rimParams must start on the 16-byte boundary at 64.");
     static_assert(offsetof(CBufferMaterial, spriteFill) == 80, "spriteFill must start on the 16-byte boundary at 80.");
+    static_assert(offsetof(CBufferMaterial, shading) == 96, "shading must start on the 16-byte boundary at 96.");
+    static_assert(offsetof(CBufferMaterial, toonShadeColor) == 112, "toonShadeColor must start on the 16-byte boundary at 112.");
 
     //--------------------------------------------------------------
     //! @struct CBufferSkinning

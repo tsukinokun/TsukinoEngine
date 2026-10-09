@@ -14,6 +14,12 @@
 //!         AlphaCutoff  = 0
 //!         AlbedoMap    = Assets/Textures/Albedo.png   (NormalMap / MetallicRoughnessMap / EmissiveMap / AoMap も同じ)
 //!
+//!         # ShadingModel = Toon のときだけ使う項目（0〜1）
+//!         ToonThreshold    = 0.5               (明るい側と暗い側の境目)
+//!         ToonSmoothness   = 0.05              (境目のぼかし幅。0 でくっきり)
+//!         ToonShadeColor   = 0.5, 0.5, 0.5     (暗い側に掛ける色)
+//!         ToonSpecularSize = 0                 (くっきりしたハイライトの大きさ。0 で無し)
+//!
 //!         テクスチャのパスはアセットのルートからのパスで書きます。書いていない項目は MaterialData の既定値です。
 //----------------------------------------------------------------------------
 #pragma once

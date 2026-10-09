@@ -149,7 +149,8 @@ namespace Tsukino::Asset {
         //------------------------------------------------
         // Importer
         //------------------------------------------------
-        auto importerIt = m_importers.find(type);    // 対応するインポーターを検索
+        auto importerIt   = m_importers.find(type);    // 対応するインポーターを検索
+        bool usedOldCache = false;                     // 作り直さずに既存のキャッシュを使ったか
         if(importerIt != m_importers.end()) {
             bool shouldImport = false;    // インポートが必要かどうかのフラグ
 
@@ -204,31 +205,50 @@ namespace Tsukino::Asset {
                 if(!importerIt->second->Import(sourceBasePath, cacheDir)) {
                     Tsukino::Core::Log::Error("AssetManager: Import failed: " + path.string());
                 }
+            } else {
+                usedOldCache = Tsukino::IO::FileSystem::Exists(Tsukino::IO::FileSystem::GetAssetRootPath() / sourceBasePath);
             }
         }
 
         //------------------------------------------------
         // Loader
         //------------------------------------------------
-        for(auto& loader : m_loaders) {
-            if(loader->CanLoad(cacheBasePath.extension())) {
-                // ローダーには fragment 付きで渡す（Audio サブリソース解決用）
-                Tsukino::Core::Ref<IAsset> asset = loader->Load(cachePathWithFragment);
-                if(!asset)
+        auto loadFromCache = [&]() -> Tsukino::Core::Ref<IAsset> {
+            for(auto& loader : m_loaders) {
+                if(!loader->CanLoad(cacheBasePath.extension()))
                     continue;
-
-                AssetHandle handle = AssetHandleGenerator::GenerateFromKey(pathKey);
-                asset->SetHandle(handle);
-
-                // 作り終えてから表へ入れる（他のスレッドの Get が作りかけを見ないように）
-                std::lock_guard lock(m_mutex);
-                m_assets.insert({handle.Value(), asset});
-                m_pathToHandle.insert({pathKey, handle});
-                return handle;
+                // ローダーには fragment 付きで渡す（Audio サブリソース解決用）
+                if(Tsukino::Core::Ref<IAsset> asset = loader->Load(cachePathWithFragment))
+                    return asset;
             }
+            return nullptr;
+        };
+
+        Tsukino::Core::Ref<IAsset> asset = loadFromCache();
+
+        //------------------------------------------------
+        // ソースより新しいキャッシュでも、エンジンの更新でキャッシュの形式
+        // （MaterialData のシリアライズなど）が変わると読めなくなる。
+        // 更新日時だけでは気付けないので、読めなかったときはソースから
+        // 1度だけ作り直して読み直す
+        //------------------------------------------------
+        if(!asset && usedOldCache) {
+            Tsukino::Core::Log::Warn("AssetManager: The cache could not be read (the format may have changed). Re-importing: " + path.string());
+            if(importerIt->second->Import(sourceBasePath, Tsukino::IO::FileSystem::GetAssetRootPath() / "Cache"))
+                asset = loadFromCache();
         }
 
-        return AssetHandle::Invalid();
+        if(!asset)
+            return AssetHandle::Invalid();
+
+        AssetHandle handle = AssetHandleGenerator::GenerateFromKey(pathKey);
+        asset->SetHandle(handle);
+
+        // 作り終えてから表へ入れる（他のスレッドの Get が作りかけを見ないように）
+        std::lock_guard lock(m_mutex);
+        m_assets.insert({handle.Value(), asset});
+        m_pathToHandle.insert({pathKey, handle});
+        return handle;
     }
 
     //--------------------------------------------------------------

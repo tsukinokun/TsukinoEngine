@@ -51,7 +51,7 @@
 - **Tsukino::BuiltIn::ECS::ImpulseRequestComponent** — `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/ImpulseRequestComponent.hpp`
   - impulse, angularImpulse
 - **Tsukino::BuiltIn::ECS::MaterialPropertyBlockComponent** — `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/MaterialPropertyBlockComponent.hpp`
-  - baseColor, emissive, metallic, roughness
+  - baseColor, emissive, metallic, roughness, shadingModel, toonThreshold, toonSmoothness, toonShadeColor, toonSpecularSize
 - **Tsukino::BuiltIn::ECS::ModelComponent** — `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/ModelComponent.hpp`
   - modelHandle, visible, opacity, doubleSided, materials
 - **Tsukino::BuiltIn::ECS::MotionBlurComponent** — `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/MotionBlurComponent.hpp`

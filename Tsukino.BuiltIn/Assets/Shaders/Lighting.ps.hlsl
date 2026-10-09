@@ -18,6 +18,7 @@
 //--------------------------------------------------------------
 #include "Lighting.hlsli"
 #include "IBL.hlsli"
+#include "Toon.hlsli"
 
 struct PSInput
 {
@@ -45,19 +46,34 @@ float4 PSMain(PSInput input) : SV_TARGET
     // ワールド座標はGBufferパスの頂点シェーダー補間値をそのまま読む
     // （深度からの再構成はリバースZ+遠距離で精度が崩れるため使わない）
     //----------------------------------------------------------
-    float3 worldPos = gbufferWorldPos.Sample(gbufferSampler, screenUV).xyz;
+    float4 worldPosSample = gbufferWorldPos.Sample(gbufferSampler, screenUV);
+    float3 worldPos       = worldPosSample.xyz;
 
     float4 albedoSample   = gbufferAlbedo.Sample(gbufferSampler, screenUV);
-    float3 normalSample   = gbufferNormal.Sample(gbufferSampler, screenUV).rgb;
+    float4 normalSample   = gbufferNormal.Sample(gbufferSampler, screenUV);
     float4 materialSample = gbufferMaterial.Sample(gbufferSampler, screenUV);
     float3 emissiveSample = gbufferEmissive.Sample(gbufferSampler, screenUV).rgb;
 
     float3 albedo    = albedoSample.rgb;
-    float3 N         = DecodeNormal(normalSample);
+    float3 N         = DecodeNormal(normalSample.rgb);
     float  metallic  = materialSample.r;
     float  roughness = materialSample.g;
     float  specular  = materialSample.b;
     float  ao        = materialSample.a;
+
+    //----------------------------------------------------------
+    // 照らし方。Unlit はアルベドと自発光だけ。
+    // Toon は metallic/roughness/specular の場所にトゥーンの値が入っている（GBuffer.ps.hlsl）
+    //----------------------------------------------------------
+    const uint shadingModel = DecodeShadingModel(normalSample.a);
+    if(shadingModel == SHADING_MODEL_UNLIT)
+        return float4(albedo + emissiveSample, 1.0f);
+
+    const bool   isToon         = (shadingModel == SHADING_MODEL_TOON);
+    const float  toonThreshold  = materialSample.r;
+    const float  toonSmoothness = materialSample.g;
+    const float  toonSpecular   = materialSample.b;
+    const float3 toonShade      = UnpackShadeColor(worldPosSample.a);
 
     float3 V = normalize(cameraPos.xyz - worldPos);
 
@@ -70,11 +86,16 @@ float4 PSMain(PSInput input) : SV_TARGET
         float3 L      = normalize(-lightDir.xyz);    // lightDirは「ライトが向いている方向」なので反転
         float  shadow = GetShadowPCF(worldPos, N, L);
 
-        // 影を真っ黒にしない（下限はPBR.hlsliのkShadowMinLit。フォワード側と共用）
-        shadow = max(shadow, kShadowMinLit);
+        if(isToon) {
+            // 影は暗い側の色で表すので kShadowMinLit は掛けない
+            lit += EvaluateToon(N, V, L, albedo, lightColor.rgb * lightColor.w, shadow, toonThreshold, toonSmoothness, toonShade, toonSpecular, true);
+        } else {
+            // 影を真っ黒にしない（下限はPBR.hlsliのkShadowMinLit。フォワード側と共用）
+            shadow = max(shadow, kShadowMinLit);
 
-        float3 radiance = lightColor.rgb * lightColor.w * shadow;
-        lit += EvaluatePBR(N, V, L, albedo, metallic, roughness, specular, radiance);
+            float3 radiance = lightColor.rgb * lightColor.w * shadow;
+            lit += EvaluatePBR(N, V, L, albedo, metallic, roughness, specular, radiance);
+        }
     }
 
     //----------------------------------------------------------
@@ -98,14 +119,18 @@ float4 PSMain(PSInput input) : SV_TARGET
         }
 
         float3 radiance = light.colorIntensity.rgb * light.colorIntensity.a * atten;
-        lit += EvaluatePBR(N, V, L, albedo, metallic, roughness, specular, radiance);
+        if(isToon)
+            lit += EvaluateToon(N, V, L, albedo, radiance, 1.0f, toonThreshold, toonSmoothness, toonShade, toonSpecular, false);
+        else
+            lit += EvaluatePBR(N, V, L, albedo, metallic, roughness, specular, radiance);
     }
 
     //----------------------------------------------------------
     // アンビエント（スカイ由来のIBL。拡散はirradiance、鏡面はプレフィルタ済み
-    // キューブマップ+BRDF LUTのsplit-sum近似。AOで遮蔽する）
+    // キューブマップ+BRDF LUTのsplit-sum近似。AOで遮蔽する）。
+    // Toon は拡散だけ（金属感・鏡面の映り込みは付けない）
     //----------------------------------------------------------
-    float3 ambient = EvaluateIBL(N, V, albedo, metallic, roughness, specular, ao);
+    float3 ambient = isToon ? EvaluateIBL(N, V, albedo, 0.0f, 1.0f, 0.0f, ao) : EvaluateIBL(N, V, albedo, metallic, roughness, specular, ao);
 
     float3 finalColor = ambient + lit + emissiveSample;
 
