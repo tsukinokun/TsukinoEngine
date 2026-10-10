@@ -10,8 +10,8 @@
         "pathBase": "working directory (Debug: repository root / Release: next to the exe)"
     },
     "stats": {
-        "components": 39,
-        "registered": 22,
+        "components": 40,
+        "registered": 23,
         "serializable": 17
     },
     "components": [
@@ -1342,6 +1342,17 @@
             "registeredName": "UIClipComponent",
             "serializable": false,
             "header": "Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/UIClipComponent.hpp",
+            "serializationHeader": null,
+            "registrationSite": "Tsukino.EngineIntegration/src/EngineIntegration.cpp",
+            "fields": []
+        },
+        {
+            "name": "UIVisibilityComponent",
+            "typeName": "Tsukino::BuiltIn::ECS::UIVisibilityComponent",
+            "registered": true,
+            "registeredName": "UIVisibilityComponent",
+            "serializable": false,
+            "header": "Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/UIVisibilityComponent.hpp",
             "serializationHeader": null,
             "registrationSite": "Tsukino.EngineIntegration/src/EngineIntegration.cpp",
             "fields": []

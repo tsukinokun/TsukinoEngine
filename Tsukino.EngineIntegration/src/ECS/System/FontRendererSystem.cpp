@@ -11,6 +11,7 @@
 #include <Tsukino/BuiltIn/ECS/Component/WorldAnchorComponent.hpp>
 #include <Tsukino/BuiltIn/ECS/UI/UICanvas.hpp>
 #include <Tsukino/BuiltIn/ECS/UI/UIClipUtility.hpp>
+#include <Tsukino/BuiltIn/ECS/UI/UIVisibilityUtility.hpp>
 #include <Tsukino/BuiltIn/BuiltInAssets.hpp>
 
 #include <Tsukino/Engine/Asset/AssetManager.hpp>
@@ -118,6 +119,10 @@ namespace Tsukino::BuiltIn::ECS {
             // これが無いと対象がカメラ後方へ回った瞬間の座標に文字が取り残される
             //-------------------------------------------------------------
             if(const auto* anchor = registry.try_get<WorldAnchorComponent>(entity); anchor && !anchor->visible)
+                return;
+
+            // 自身か祖先の UIVisibilityComponent で隠されている
+            if(UIVisibilityUtility::IsHidden(registry, entity))
                 return;
 
             //-------------------------------------------------------------

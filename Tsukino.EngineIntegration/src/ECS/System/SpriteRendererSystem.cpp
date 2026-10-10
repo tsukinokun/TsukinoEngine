@@ -14,6 +14,7 @@
 #include <Tsukino/BuiltIn/ECS/Transform/TransformUtility.hpp>
 #include <Tsukino/BuiltIn/ECS/UI/UICanvas.hpp>
 #include <Tsukino/BuiltIn/ECS/UI/UIClipUtility.hpp>
+#include <Tsukino/BuiltIn/ECS/UI/UIVisibilityUtility.hpp>
 
 #include <Tsukino/Renderer/Renderer.hpp>
 #include <Tsukino/Renderer/DrawCommand.hpp>
@@ -159,6 +160,10 @@ namespace Tsukino::BuiltIn::ECS {
             // 枠と1ピクセルも重ならないもの（スクロールで枠の外へ出た行など）は積まない
             //-------------------------------------------------------------
             if(sprite.space == Tsukino::BuiltIn::ECS::SpriteSpace::Screen) {
+                // 自身か祖先の UIVisibilityComponent で隠されている
+                if(UIVisibilityUtility::IsHidden(registry, entity))
+                    return;
+
                 UIClipUtility::ClipBounds clip;
                 if(UIClipUtility::TryGetClipBounds(registry, entity, clip)) {
                     const hlslpp::float3 center = TransformUtility::GetWorldPosition(transform);

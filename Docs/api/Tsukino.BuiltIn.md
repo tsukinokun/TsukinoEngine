@@ -102,5 +102,7 @@
   - size
 - **Tsukino::BuiltIn::ECS::UIClipUtility::ClipBounds** — `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/UI/UIClipUtility.hpp`
   - left, top, right, bottom, Contains(), Overlaps(), Height()
+- **Tsukino::BuiltIn::ECS::UIVisibilityComponent** — `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/UIVisibilityComponent.hpp`
+  - visible
 - **Tsukino::BuiltIn::ECS::WorldAnchorComponent** — `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/WorldAnchorComponent.hpp`
   - target, useFixedWorldPosition, fixedWorldPosition, worldOffset, screenOffset, visible

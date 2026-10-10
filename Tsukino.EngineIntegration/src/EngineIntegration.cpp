@@ -30,6 +30,7 @@
 #include <Tsukino/BuiltIn/ECS/Component/DraggableComponent.hpp>
 #include <Tsukino/BuiltIn/ECS/Component/UIClipComponent.hpp>
 #include <Tsukino/BuiltIn/ECS/Component/ScrollViewComponent.hpp>
+#include <Tsukino/BuiltIn/ECS/Component/UIVisibilityComponent.hpp>
 #include <Tsukino/BuiltIn/ECS/Component/ScrollBarComponent.hpp>
 
 #include <Tsukino/BuiltIn/ECS/Serialization/CameraComponentSerialization.hpp>
@@ -358,5 +359,7 @@ namespace Tsukino::EngineIntegration {
         m_prefabFactory->RegisterComponent<Tsukino::BuiltIn::ECS::UIClipComponent>("UIClipComponent");
         m_prefabFactory->RegisterComponent<Tsukino::BuiltIn::ECS::ScrollViewComponent>("ScrollViewComponent");
         m_prefabFactory->RegisterComponent<Tsukino::BuiltIn::ECS::ScrollBarComponent>("ScrollBarComponent");
+        // 画面UIの表示・非表示（子孫ごと）。実行時に切り替える状態なのでアタッチのみでよい
+        m_prefabFactory->RegisterComponent<Tsukino::BuiltIn::ECS::UIVisibilityComponent>("UIVisibilityComponent");
     }
 }    // namespace Tsukino::EngineIntegration

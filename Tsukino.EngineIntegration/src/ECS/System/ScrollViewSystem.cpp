@@ -13,6 +13,7 @@
 #include <Tsukino/BuiltIn/ECS/Transform/TransformUtility.hpp>
 #include <Tsukino/BuiltIn/ECS/UI/UICanvas.hpp>
 #include <Tsukino/BuiltIn/ECS/UI/UIClipUtility.hpp>
+#include <Tsukino/BuiltIn/ECS/UI/UIVisibilityUtility.hpp>
 
 #include <Tsukino/Engine/Asset/AssetManager.hpp>
 #include <Tsukino/Engine/Asset/Texture/TextureAsset.hpp>
@@ -56,15 +57,16 @@ namespace Tsukino::BuiltIn::ECS {
         //! @param  registry  [in] ECS レジストリ
         //! @param  scroll    [in] スクロールビュー
         //! @param  viewSize  [in] 枠の高さ
+        //! @param  active    [in] 入力を受け付けて表示しているか（enabled で、UIVisibilityComponent で隠されていない）
         //! @param  maxOffset [in] 表示位置の最大値
         //! @return スクロールバーの形。スクロールバーが無い・中身が枠に収まるときは valid が false
         //-------------------------------------------------------------
-        BarGeometry ComputeBarGeometry(Tsukino::ECS::Registry& registry, const ScrollViewComponent& scroll, float viewSize, float maxOffset) {
+        BarGeometry ComputeBarGeometry(Tsukino::ECS::Registry& registry, const ScrollViewComponent& scroll, bool active, float viewSize, float maxOffset) {
             BarGeometry geometry;
             if(scroll.scrollBar == entt::null || !registry.HasComponent<TransformComponent>(scroll.scrollBar) ||
                !registry.HasComponent<ScrollBarComponent>(scroll.scrollBar))
                 return geometry;
-            if(!scroll.enabled || maxOffset <= 0.0f || scroll.contentHeight <= 0.0f)
+            if(!active || maxOffset <= 0.0f || scroll.contentHeight <= 0.0f)
                 return geometry;
 
             const ScrollBarComponent& bar    = registry.GetComponent<ScrollBarComponent>(scroll.scrollBar);
@@ -158,19 +160,22 @@ namespace Tsukino::BuiltIn::ECS {
         const bool  buttonDown    = input.IsKeyDown(Input::KeyCode::LButton);
 
         registry.View<TransformComponent, UIClipComponent, ScrollViewComponent>().each(
-            [&](Tsukino::ECS::Entity, const TransformComponent& transform, const UIClipComponent& clip, ScrollViewComponent& scroll) {
+            [&](Tsukino::ECS::Entity entity, const TransformComponent& transform, const UIClipComponent& clip, ScrollViewComponent& scroll) {
                 const UIClipUtility::ClipBounds bounds    = UIClipUtility::ComputeBounds(transform, clip);
                 const float                     viewSize  = bounds.Height();
                 const float                     maxOffset = std::max(0.0f, scroll.contentHeight - viewSize);
 
+                // UIVisibilityComponent で隠されているビュー（選ばれていないタブの中身など）は、enabled でないのと同じに扱う
+                const bool active = scroll.enabled && !UIVisibilityUtility::IsHidden(registry, entity);
+
                 //-------------------------------------------------------------
-                // 入力。enabled でないビュー（閉じている画面など）は何も受けず、ドラッグも打ち切る
+                // 入力。enabled でない・隠されているビュー（閉じている画面など）は何も受けず、ドラッグも打ち切る
                 //-------------------------------------------------------------
-                if(!scroll.enabled) {
+                if(!active) {
                     scroll.pointerDown   = false;
                     scroll.thumbDragging = false;
                 } else {
-                    BarGeometry bar = ComputeBarGeometry(registry, scroll, viewSize, maxOffset);
+                    BarGeometry bar = ComputeBarGeometry(registry, scroll, active, viewSize, maxOffset);
 
                     // ホイール（上へ回すと正なので、表示位置は上＝小さい方へ）
                     const bool overBar = bar.valid && mouseX >= bar.trackLeft && mouseX <= bar.trackRight && mouseY >= bar.trackTop &&
@@ -259,7 +264,7 @@ namespace Tsukino::BuiltIn::ECS {
                     }
                 }
 
-                PlaceScrollBar(registry, ctx, scroll, ComputeBarGeometry(registry, scroll, viewSize, maxOffset));
+                PlaceScrollBar(registry, ctx, scroll, ComputeBarGeometry(registry, scroll, active, viewSize, maxOffset));
             });
     }
 }    // namespace Tsukino::BuiltIn::ECS

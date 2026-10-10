@@ -12,6 +12,7 @@
 #include <Tsukino/BuiltIn/ECS/Transform/TransformUtility.hpp>
 #include <Tsukino/BuiltIn/ECS/UI/UICanvas.hpp>
 #include <Tsukino/BuiltIn/ECS/UI/UIClipUtility.hpp>
+#include <Tsukino/BuiltIn/ECS/UI/UIVisibilityUtility.hpp>
 
 #include <Tsukino/EngineIntegration/EngineContext.hpp>
 
@@ -72,6 +73,10 @@ namespace Tsukino::BuiltIn::ECS {
                 // ワールド空間のビルボードはpositionが3Dワールド座標で、同じ式で比べると
                 // 画面上の無関係な場所で当たってしまう
                 if(sprite.space != SpriteSpace::Screen)
+                    return;
+
+                // 自身か祖先の UIVisibilityComponent で隠されているものには当たらない（後ろの物に通す）
+                if(UIVisibilityUtility::IsHidden(registry, entity))
                     return;
 
                 bool isInside = false;

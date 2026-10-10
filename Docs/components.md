@@ -4,7 +4,7 @@
 
 再生成: `vendor\premake5.exe gen-manifest`（または `generate-docs.bat`）
 
-コンポーネント 39 個（Prefab 登録済み 22 個 / シリアライズ定義あり 17 個）
+コンポーネント 40 個（Prefab 登録済み 23 個 / シリアライズ定義あり 17 個）
 
 ## 読み方
 
@@ -348,5 +348,6 @@
 | `SkeletonOutputComponent` | — | — | `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/SkeletonOutputComponent.hpp` |
 | `SpringBoneComponent` | — | — | `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/SpringBoneComponent.hpp` |
 | `UIClipComponent` | `UIClipComponent` | — | `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/UIClipComponent.hpp` |
+| `UIVisibilityComponent` | `UIVisibilityComponent` | — | `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/UIVisibilityComponent.hpp` |
 | `WorldAnchorComponent` | — | — | `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/WorldAnchorComponent.hpp` |
 

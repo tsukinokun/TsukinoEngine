@@ -63,6 +63,7 @@
 - `Tsukino::BuiltIn::ECS::UICanvas` — `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/UI/UICanvas.hpp`
 - `Tsukino::BuiltIn::ECS::UIClipComponent` — `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/UIClipComponent.hpp`
 - `Tsukino::BuiltIn::ECS::UIClipUtility::ClipBounds` — `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/UI/UIClipUtility.hpp`
+- `Tsukino::BuiltIn::ECS::UIVisibilityComponent` — `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/UIVisibilityComponent.hpp`
 - `Tsukino::BuiltIn::ECS::WorldAnchorComponent` — `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/WorldAnchorComponent.hpp`
 
 ## Tsukino.Core — [`api/Tsukino.Core.md`](api/Tsukino.Core.md)

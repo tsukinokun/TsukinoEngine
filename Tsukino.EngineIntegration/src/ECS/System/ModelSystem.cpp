@@ -19,6 +19,7 @@
 #include <Tsukino/BuiltIn/ECS/Transform/TransformUtility.hpp>
 #include <Tsukino/BuiltIn/ECS/UI/UICanvas.hpp>
 #include <Tsukino/BuiltIn/ECS/UI/UIClipUtility.hpp>
+#include <Tsukino/BuiltIn/ECS/UI/UIVisibilityUtility.hpp>
 #include <Tsukino/BuiltIn/ECS/Component/MotionVectorComponent.hpp>
 #include <Tsukino/Engine/Asset/AssetManager.hpp>
 #include <Tsukino/Engine/Asset/Model/ModelAsset.hpp>
@@ -151,10 +152,17 @@ namespace Tsukino::BuiltIn::ECS {
                 if(!ctx->window)
                     return;
 
+                // 自身か祖先の UIVisibilityComponent で隠されている（UI の層のモデルだけ。ワールドのモデルは対象外）
+                if(UIVisibilityUtility::IsHidden(registry, entity))
+                    return;
+
                 hlslpp::float2       screenPixel = screenModel->screenPosition;
                 const Tsukino::ECS::Entity anchor = screenModel->anchor;
                 if(anchor != entt::null) {
                     if(!registry.IsValid(anchor) || !registry.HasComponent<TransformComponent>(anchor))
+                        return;
+                    // 基準の UI の部品が隠されていれば、モデルも隠す（スクロールする一覧の行など）
+                    if(UIVisibilityUtility::IsHidden(registry, anchor))
                         return;
                     const hlslpp::float3 anchorPosition = TransformUtility::GetWorldPosition(registry.GetComponent<TransformComponent>(anchor));
                     screenPixel += hlslpp::float2(anchorPosition.xy);
