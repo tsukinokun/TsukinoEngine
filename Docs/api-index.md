@@ -69,6 +69,7 @@
 - `Tsukino::BuiltIn::ECS::UITween` — `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/UITweenComponent.hpp`
 - `Tsukino::BuiltIn::ECS::UITweenComponent` — `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/UITweenComponent.hpp`
 - `Tsukino::BuiltIn::ECS::UIVisibilityComponent` — `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/UIVisibilityComponent.hpp`
+- `Tsukino::BuiltIn::ECS::UnscaledTimeContext` — `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/UI/UnscaledTimeContext.hpp`
 - `Tsukino::BuiltIn::ECS::WorldAnchorComponent` — `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/WorldAnchorComponent.hpp`
 
 ## Tsukino.Core — [`api/Tsukino.Core.md`](api/Tsukino.Core.md)

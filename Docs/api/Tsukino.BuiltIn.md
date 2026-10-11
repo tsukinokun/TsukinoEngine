@@ -109,10 +109,12 @@
 - **Tsukino::BuiltIn::ECS::UIMotionComponent** — `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/UIMotionComponent.hpp`
   - offset, scale, rotation, pivot, pivotIsSelf, source
 - **Tsukino::BuiltIn::ECS::UITween** — `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/UITweenComponent.hpp`
-  - property, from, to, duration, delay, repeatDelay, ease, loop, holdAtEnd, tag, elapsed
+  - property, from, to, duration, delay, repeatDelay, ease, loop, holdAtEnd, unscaledTime, tag, elapsed
 - **Tsukino::BuiltIn::ECS::UITweenComponent** — `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/UITweenComponent.hpp`
   - tweens
 - **Tsukino::BuiltIn::ECS::UIVisibilityComponent** — `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/UIVisibilityComponent.hpp`
   - visible
+- **Tsukino::BuiltIn::ECS::UnscaledTimeContext** — `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/UI/UnscaledTimeContext.hpp`
+  - deltaTime
 - **Tsukino::BuiltIn::ECS::WorldAnchorComponent** — `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/WorldAnchorComponent.hpp`
   - target, useFixedWorldPosition, fixedWorldPosition, worldOffset, screenOffset, visible

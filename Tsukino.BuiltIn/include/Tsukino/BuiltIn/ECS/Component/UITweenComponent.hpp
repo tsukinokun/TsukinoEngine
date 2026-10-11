@@ -44,7 +44,8 @@ namespace Tsukino::BuiltIn::ECS {
         Tsukino::Core::Math::Easing::EaseType ease        = Tsukino::Core::Math::Easing::EaseType::OutCubic;    // 緩急の付け方
         UITweenLoop                           loop        = UITweenLoop::Once;                                  // 繰り返し方
         bool                                  holdAtEnd   = false;                                              // Once が終わっても終わりの値を当て続けるか
-        std::uint32_t                         tag         = 0;       // 種類の目印（同じ tag を再生し直すと置き換わる）
+        bool                                  unscaledTime = false;    // ゲームの時間の止まり・スローに左右されずに進めるか（UnscaledTimeContext。メニューの UI など）
+        std::uint32_t                         tag         = 0;      // 種類の目印（同じ tag を再生し直すと置き換わる）
         float                                 elapsed     = 0.0f;    // 経過時間（秒。delay を含む。UITweenSystem が進める）
     };
 

@@ -9,6 +9,19 @@ carve-out for `Tsukino.Renderer` described under **API stability** in the README
 
 ### Added
 
+- **`UITween::unscaledTime` and `UnscaledTimeContext`.** Games commonly pass
+  `deltaTime = 0` to every system while paused (or shrink it during slow motion), which
+  also froze menu tweens and button feedback. A scene can now publish the real elapsed time
+  each frame with `registry.SetContext<UnscaledTimeContext>(realDeltaTime)`. `UITweenSystem`
+  advances tweens flagged `unscaledTime` and all `UIButtonFeedbackComponent`s with it. Without
+  the context, everything advances with the system's `deltaTime` exactly as before.
+
+- **`Tsukino::Core::Math::Spring::Step`** (`Spring.hpp`). Advances a damped harmonic
+  oscillator (position, velocity → target) by an exact analytic step, for `float` and vector
+  types. Unlike an implicit-Euler spring, the motion is identical at any frame rate and stays
+  stable for large `deltaTime`. Use it for camera follow/shake or any value that should
+  overshoot and settle.
+
 - **Screen-UI motion: `UIMotionComponent`, `UICanvasGroupComponent`, `UITweenComponent`,
   `UIButtonFeedbackComponent` and `UITweenSystem`.** Until now, UI could only change
   instantly. Every system that animated something (pop-ins, fades, hover feedback) had to

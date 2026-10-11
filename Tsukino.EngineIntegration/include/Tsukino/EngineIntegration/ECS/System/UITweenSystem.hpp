@@ -18,6 +18,8 @@ namespace Tsukino::BuiltIn::ECS {
     //!            UICanvasGroupComponent::alpha を写す。自分の動きも持つものは、自分の動きのあとに写し元の動きを重ねる。
     //!            写し元が写し先でないものを先に処理するので、パネル → ボタン → ラベルの2段まで正しく写る
     //!         必要な UIMotionComponent・UICanvasGroupComponent は無ければ付ける。
+    //!         UITween::unscaledTime のトゥイーンとボタンの手ごたえは、レジストリに UnscaledTimeContext があれば
+    //!         その経過時間で進める（ゲームがポーズ中に deltaTime = 0 を渡しても、メニューの UI は動かせる）。
     //!         InteractionSystem の後（同じフレームのホバー・クリックを読む）、トゥイーンを再生する UI のシステムの後、
     //!         TransformSystem の前（同じフレームの worldMatrix に反映する）に置くこと
     class UITweenSystem : public Tsukino::ECS::ISystem {

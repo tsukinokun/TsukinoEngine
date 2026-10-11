@@ -11,6 +11,7 @@
 #include <Tsukino/BuiltIn/ECS/Component/UIMotionComponent.hpp>
 #include <Tsukino/BuiltIn/ECS/Component/UITweenComponent.hpp>
 #include <Tsukino/BuiltIn/ECS/UI/UIMotionUtility.hpp>
+#include <Tsukino/BuiltIn/ECS/UI/UnscaledTimeContext.hpp>
 
 #include <Tsukino/Core/ECS/Registry/Registry.hpp>
 #include <Tsukino/Core/Math/Easing.hpp>
@@ -120,6 +121,11 @@ namespace Tsukino::BuiltIn::ECS {
     //! トゥイーンとボタンの手ごたえを反映します。
     //----------------------------------------------------------------------------
     void UITweenSystem::Update(Tsukino::ECS::Registry& registry, float deltaTime) {
+        // ゲームの時間の止まり・スローに左右されない経過時間（シーンが設定していなければ渡された deltaTime と同じ）。
+        // unscaledTime のトゥイーンと、ボタンの手ごたえ（メニュー中にも反応させたい）はこちらで進める
+        const float unscaledDeltaTime =
+            registry.HasContext<UnscaledTimeContext>() ? std::max(registry.GetContext<UnscaledTimeContext>().deltaTime, 0.0f) : deltaTime;
+
         //--------------------------------------------------------------
         // 足りないコンポーネントを先に付ける（View の反復中に付けるとプールが組み替わるため、集めてから付ける）
         //--------------------------------------------------------------
@@ -183,7 +189,7 @@ namespace Tsukino::BuiltIn::ECS {
             for(UITween& tween : component.tweens) {
                 // 終わった Once は終わりの値を当ててから取り除く（Punch なら始めの値に戻っている。holdAtEnd なら残す）
                 bool        finished = false;
-                const float value    = AdvanceTween(tween, deltaTime, finished);
+                const float value    = AdvanceTween(tween, tween.unscaledTime ? unscaledDeltaTime : deltaTime, finished);
                 Apply(tween.property, value, motion, alpha);
                 if(finished && !tween.holdAtEnd) {
                     tween.duration = -1.0f;    // 取り除く印
@@ -217,12 +223,12 @@ namespace Tsukino::BuiltIn::ECS {
                     if(pointer->clicked && feedback.clickPunch > 0.0f)
                         feedback.punchElapsed = 0.0f;
                 }
-                feedback.currentScale = Easing::Damp(feedback.currentScale, target, feedback.speed, deltaTime);
+                feedback.currentScale = Easing::Damp(feedback.currentScale, target, feedback.speed, unscaledDeltaTime);
 
                 // クリックの弾み
                 float punch = 0.0f;
                 if(feedback.punchElapsed >= 0.0f) {
-                    feedback.punchElapsed += deltaTime;
+                    feedback.punchElapsed += unscaledDeltaTime;
                     const float t          = feedback.punchElapsed / std::max(feedback.punchSeconds, kMinDuration);
                     if(t >= 1.0f)
                         feedback.punchElapsed = -1.0f;
