@@ -18,6 +18,7 @@
 #include <Tsukino/BuiltIn/ECS/Component/ScreenModelComponent.hpp>
 #include <Tsukino/BuiltIn/ECS/Transform/TransformUtility.hpp>
 #include <Tsukino/BuiltIn/ECS/UI/UICanvas.hpp>
+#include <Tsukino/BuiltIn/ECS/UI/UICanvasGroupUtility.hpp>
 #include <Tsukino/BuiltIn/ECS/UI/UIClipUtility.hpp>
 #include <Tsukino/BuiltIn/ECS/UI/UIVisibilityUtility.hpp>
 #include <Tsukino/BuiltIn/ECS/Component/MotionVectorComponent.hpp>
@@ -148,12 +149,18 @@ namespace Tsukino::BuiltIn::ECS {
             const Tsukino::Renderer::CBufferScene* screenCamera = nullptr;
             bool                                   screenClipped = false;
             Tsukino::Renderer::ClipRect            screenClip;
+            float                                  screenAlpha = 1.0f;    // 自身と anchor の祖先の UICanvasGroupComponent の不透明度
             if(screenModel) {
                 if(!ctx->window)
                     return;
 
                 // 自身か祖先の UIVisibilityComponent で隠されている（UI の層のモデルだけ。ワールドのモデルは対象外）
                 if(UIVisibilityUtility::IsHidden(registry, entity))
+                    return;
+
+                // 自身か祖先の UICanvasGroupComponent でほぼ透明
+                screenAlpha = UICanvasGroupUtility::GetAlpha(registry, entity);
+                if(screenAlpha < UICanvasGroupUtility::kInvisibleAlpha)
                     return;
 
                 hlslpp::float2       screenPixel = screenModel->screenPosition;
@@ -163,6 +170,10 @@ namespace Tsukino::BuiltIn::ECS {
                         return;
                     // 基準の UI の部品が隠されていれば、モデルも隠す（スクロールする一覧の行など）
                     if(UIVisibilityUtility::IsHidden(registry, anchor))
+                        return;
+                    // 基準の UI の部品の透明度も掛ける（パネルのフェードで一緒に薄くなる）
+                    screenAlpha *= UICanvasGroupUtility::GetAlpha(registry, anchor);
+                    if(screenAlpha < UICanvasGroupUtility::kInvisibleAlpha)
                         return;
                     const hlslpp::float3 anchorPosition = TransformUtility::GetWorldPosition(registry.GetComponent<TransformComponent>(anchor));
                     screenPixel += hlslpp::float2(anchorPosition.xy);
@@ -401,6 +412,8 @@ namespace Tsukino::BuiltIn::ECS {
                     if(screenModel) {
                         psHandle  = ctx->builtinAssets->shaders.screenModelPS;
                         blendMode = Tsukino::Renderer::BlendMode::Alpha;
+                        // UICanvasGroupComponent の不透明度（フェード中のパネルの中の果物など）
+                        pCbMat->baseColor.w *= screenAlpha;
                     }
 
                     auto vsAsset = std::static_pointer_cast<Tsukino::Asset::ShaderAsset>(ctx->assetManager->Get(vsHandle));

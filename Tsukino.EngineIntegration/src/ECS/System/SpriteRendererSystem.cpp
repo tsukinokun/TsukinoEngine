@@ -13,6 +13,7 @@
 #include <Tsukino/BuiltIn/ECS/Component/CameraComponent.hpp>
 #include <Tsukino/BuiltIn/ECS/Transform/TransformUtility.hpp>
 #include <Tsukino/BuiltIn/ECS/UI/UICanvas.hpp>
+#include <Tsukino/BuiltIn/ECS/UI/UICanvasGroupUtility.hpp>
 #include <Tsukino/BuiltIn/ECS/UI/UIClipUtility.hpp>
 #include <Tsukino/BuiltIn/ECS/UI/UIVisibilityUtility.hpp>
 
@@ -155,6 +156,9 @@ namespace Tsukino::BuiltIn::ECS {
 
             Tsukino::Renderer::DrawCommand cmd;
 
+            // 自身と祖先の UICanvasGroupComponent の不透明度（画面空間のスプライトだけ）
+            float groupAlpha = 1.0f;
+
             //-------------------------------------------------------------
             // 画面空間のスプライトは、祖先の UIClipComponent の枠で切り取る。
             // 枠と1ピクセルも重ならないもの（スクロールで枠の外へ出た行など）は積まない
@@ -162,6 +166,11 @@ namespace Tsukino::BuiltIn::ECS {
             if(sprite.space == Tsukino::BuiltIn::ECS::SpriteSpace::Screen) {
                 // 自身か祖先の UIVisibilityComponent で隠されている
                 if(UIVisibilityUtility::IsHidden(registry, entity))
+                    return;
+
+                // 自身か祖先の UICanvasGroupComponent でほぼ透明なら積まない
+                groupAlpha = UICanvasGroupUtility::GetAlpha(registry, entity);
+                if(groupAlpha < UICanvasGroupUtility::kInvisibleAlpha)
                     return;
 
                 UIClipUtility::ClipBounds clip;
@@ -248,6 +257,7 @@ namespace Tsukino::BuiltIn::ECS {
             // tintColorをb2(CBufferMaterial::baseColor)経由でSprite.ps.hlslへ渡す
             Tsukino::Renderer::CBufferMaterial& materialData = ctx->renderer->GetDrawQueue().AllocMaterialData();
             materialData.baseColor                            = sprite.tintColor;
+            materialData.baseColor.w                          = sprite.tintColor.w * groupAlpha;
 
             // 円形の塗り（Sprite.ps.hlsl が塗らない角度の不透明度を 0 にする）。開始角は度で持っているのでラジアンへ
             constexpr float kDegToRad = 3.14159265358979323846f / 180.0f;

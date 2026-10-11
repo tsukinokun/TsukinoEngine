@@ -31,6 +31,10 @@
 #include <Tsukino/BuiltIn/ECS/Component/UIClipComponent.hpp>
 #include <Tsukino/BuiltIn/ECS/Component/ScrollViewComponent.hpp>
 #include <Tsukino/BuiltIn/ECS/Component/UIVisibilityComponent.hpp>
+#include <Tsukino/BuiltIn/ECS/Component/UIMotionComponent.hpp>
+#include <Tsukino/BuiltIn/ECS/Component/UICanvasGroupComponent.hpp>
+#include <Tsukino/BuiltIn/ECS/Component/UITweenComponent.hpp>
+#include <Tsukino/BuiltIn/ECS/Component/UIButtonFeedbackComponent.hpp>
 #include <Tsukino/BuiltIn/ECS/Component/ScrollBarComponent.hpp>
 
 #include <Tsukino/BuiltIn/ECS/Serialization/CameraComponentSerialization.hpp>
@@ -361,5 +365,11 @@ namespace Tsukino::EngineIntegration {
         m_prefabFactory->RegisterComponent<Tsukino::BuiltIn::ECS::ScrollBarComponent>("ScrollBarComponent");
         // 画面UIの表示・非表示（子孫ごと）。実行時に切り替える状態なのでアタッチのみでよい
         m_prefabFactory->RegisterComponent<Tsukino::BuiltIn::ECS::UIVisibilityComponent>("UIVisibilityComponent");
+        // 画面UIの動き（見た目だけのずれ・まとめての透明・トゥイーン・ボタンの手ごたえ）。
+        // 値は UITweenSystem や作る側のコードが実行時に書くのでアタッチのみでよい（既定値で付く）
+        m_prefabFactory->RegisterComponent<Tsukino::BuiltIn::ECS::UIMotionComponent>("UIMotionComponent");
+        m_prefabFactory->RegisterComponent<Tsukino::BuiltIn::ECS::UICanvasGroupComponent>("UICanvasGroupComponent");
+        m_prefabFactory->RegisterComponent<Tsukino::BuiltIn::ECS::UITweenComponent>("UITweenComponent");
+        m_prefabFactory->RegisterComponent<Tsukino::BuiltIn::ECS::UIButtonFeedbackComponent>("UIButtonFeedbackComponent");
     }
 }    // namespace Tsukino::EngineIntegration

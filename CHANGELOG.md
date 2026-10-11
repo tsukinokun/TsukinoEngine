@@ -9,6 +9,38 @@ carve-out for `Tsukino.Renderer` described under **API stability** in the README
 
 ### Added
 
+- **Screen-UI motion: `UIMotionComponent`, `UICanvasGroupComponent`, `UITweenComponent`,
+  `UIButtonFeedbackComponent` and `UITweenSystem`.** Until now, UI could only change
+  instantly. Every system that animated something (pop-ins, fades, hover feedback) had to
+  overwrite `TransformComponent` / colours itself, which fought the systems that already
+  write those values every frame.
+  - `UIMotionComponent` is a visual-only offset / pivoted scale / rotation.
+    `TransformSystem` multiplies it after the local matrix when it builds `worldMatrix`, and
+    never touches `position` / `scale` / `localMatrix` / `dirty`. Children, text size (taken
+    from the world scale) and pointer hit tests (`InteractionSystem` uses `worldMatrix`)
+    follow it automatically. `source` mirrors another entity's motion, for example a label
+    that is a separate entity from its button, or the loose parts of a panel.
+  - `UICanvasGroupComponent::alpha` multiplies the alpha of the entity and its descendants,
+    walking ancestors the same way as `UIVisibilityComponent`. It applies to screen sprites,
+    text and its outline, and screen models (including the `anchor`'s ancestors). Nearly
+    transparent groups are skipped by the renderers and by the pointer hit test.
+  - `UITweenComponent` holds `UITween` entries. Each entry has a property (offset / scale /
+    rotation / alpha), from/to, duration, delay, ease, loop (`Once` / `Loop` / `PingPong`),
+    `repeatDelay`, `holdAtEnd` and a replaceable `tag`. Play and stop them through
+    `UITweenUtility::Play / Stop / IsPlaying`. Tweens on the same property are combined:
+    scale and alpha multiply, offset and rotation add.
+  - `UIButtonFeedbackComponent` reads `PointerTargetComponent` to grow the button on hover,
+    shrink it while pressed and punch it on click. It does nothing while `interactable` is
+    false.
+  - `UITweenSystem` drives all of the above. Place it after `InteractionSystem` and after
+    the systems that start tweens, and before `TransformSystem`.
+  - The Sandbox's `SceneSample1` shows button feedback on the sprite and a breathing tween
+    on the text.
+
+- **`Tsukino::Core::Math::Easing`** (`Easing.hpp`). It provides the standard easing curves
+  (quad / cubic / back / elastic / bounce / sine, plus a decaying `Punch`),
+  `Evaluate(EaseType, t)` and a frame-rate independent `Damp`.
+
 - **`tsukino_icon(iconPath)` premake helper for the application icon.** Call it in the
   executable's project after `location`; it generates `TsukinoAppIcon.rc` next to the
   project (`TSUKINO_APP_ICON ICON "<abs path>"`) and adds it to `files`, so the `.ico`

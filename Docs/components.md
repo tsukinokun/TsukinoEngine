@@ -4,7 +4,7 @@
 
 再生成: `vendor\premake5.exe gen-manifest`（または `generate-docs.bat`）
 
-コンポーネント 40 個（Prefab 登録済み 23 個 / シリアライズ定義あり 17 個）
+コンポーネント 44 個（Prefab 登録済み 27 個 / シリアライズ定義あり 17 個）
 
 ## 読み方
 
@@ -347,7 +347,11 @@
 | `ScrollViewComponent` | `ScrollViewComponent` | — | `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/ScrollViewComponent.hpp` |
 | `SkeletonOutputComponent` | — | — | `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/SkeletonOutputComponent.hpp` |
 | `SpringBoneComponent` | — | — | `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/SpringBoneComponent.hpp` |
+| `UIButtonFeedbackComponent` | `UIButtonFeedbackComponent` | — | `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/UIButtonFeedbackComponent.hpp` |
+| `UICanvasGroupComponent` | `UICanvasGroupComponent` | — | `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/UICanvasGroupComponent.hpp` |
 | `UIClipComponent` | `UIClipComponent` | — | `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/UIClipComponent.hpp` |
+| `UIMotionComponent` | `UIMotionComponent` | — | `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/UIMotionComponent.hpp` |
+| `UITweenComponent` | `UITweenComponent` | — | `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/UITweenComponent.hpp` |
 | `UIVisibilityComponent` | `UIVisibilityComponent` | — | `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/UIVisibilityComponent.hpp` |
 | `WorldAnchorComponent` | — | — | `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/WorldAnchorComponent.hpp` |
 

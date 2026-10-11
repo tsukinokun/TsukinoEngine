@@ -27,6 +27,8 @@
 #include <Tsukino/EngineIntegration/ECS/System/SkyAtmosphereSystem.hpp>
 #include <Tsukino/EngineIntegration/ECS/System/DebugCameraSystem.hpp>
 #include <Tsukino/EngineIntegration/ECS/System/EffectSystem.hpp>
+#include <Tsukino/EngineIntegration/ECS/System/InteractionSystem.hpp>
+#include <Tsukino/EngineIntegration/ECS/System/UITweenSystem.hpp>
 
 #include <Tsukino/BuiltIn/ECS/Component/TransformComponent.hpp>
 #include <Tsukino/BuiltIn/ECS/Component/CameraComponent.hpp>
@@ -45,6 +47,9 @@
 #include <Tsukino/BuiltIn/ECS/Component/DebugCameraComponent.hpp>
 #include <Tsukino/BuiltIn/ECS/Component/DebugCameraTag.hpp>
 #include <Tsukino/BuiltIn/ECS/Component/EffectComponent.hpp>
+#include <Tsukino/BuiltIn/ECS/Component/PointerTargetComponent.hpp>
+#include <Tsukino/BuiltIn/ECS/Component/UIButtonFeedbackComponent.hpp>
+#include <Tsukino/BuiltIn/ECS/UI/UITweenUtility.hpp>
 
 #include <Tsukino/BuiltIn/ECS/Serialization/TransformComponentSerialization.hpp>
 #include <Tsukino/BuiltIn/ECS/Serialization/CameraComponentSerialization.hpp>
@@ -92,6 +97,9 @@ namespace Tsukino::Sandbox {
         //--------------------------------------------------------------
         // システムの生成と追加
         //--------------------------------------------------------------
+        // マウスの重なりとクリック、それを読む画面UIの動きは Transform の前に行う (優先度 -2, -1)
+        m_scene.AddSystem(std::make_shared<Tsukino::BuiltIn::ECS::InteractionSystem>(), -2);
+        m_scene.AddSystem(std::make_shared<Tsukino::BuiltIn::ECS::UITweenSystem>(), -1);
         // Transformは一番最初に計算する (優先度 0)
         m_scene.AddSystem(std::make_shared<Tsukino::BuiltIn::ECS::TransformSystem>(), 0);
         // アニメーションはTransformの後に更新する (優先度 2)
@@ -166,6 +174,10 @@ namespace Tsukino::Sandbox {
         sprite.tintColor                               = hlslpp::float4(1.0f, 1.0f, 1.0f, 1.0f);    // 白色
         sprite.uvRect                                  = hlslpp::float4(0.0f, 0.0f, 1.0f, 1.0f);
 
+        // ボタンの手ごたえ（カーソルが重なると少し大きく、押すと縮み、クリックで弾む）
+        registry.AddComponent<Tsukino::BuiltIn::ECS::PointerTargetComponent>(entity);
+        registry.AddComponent<Tsukino::BuiltIn::ECS::UIButtonFeedbackComponent>(entity);
+
         //--------------------------------------------------------------
         // Fontエンティティ生成
         //--------------------------------------------------------------
@@ -182,6 +194,16 @@ namespace Tsukino::Sandbox {
         // FontRendererComponent の追加
         Tsukino::BuiltIn::ECS::FontComponent& font = registry.AddComponent<Tsukino::BuiltIn::ECS::FontComponent>(fontEntity);
         font.text                                  = L"こんにちは, Tsukino!";    // 描画するテキスト
+
+        // 画面UIのトゥイーン（ゆっくり呼吸するように拡大・縮小を繰り返す）
+        Tsukino::BuiltIn::ECS::UITween breathe;
+        breathe.property = Tsukino::BuiltIn::ECS::UITweenProperty::Scale;
+        breathe.from     = 1.0f;
+        breathe.to       = 1.08f;
+        breathe.duration = 0.8f;
+        breathe.ease     = Tsukino::Core::Math::Easing::EaseType::InOutSine;
+        breathe.loop     = Tsukino::BuiltIn::ECS::UITweenLoop::PingPong;
+        Tsukino::BuiltIn::ECS::UITweenUtility::Play(registry, fontEntity, breathe);
 
         //--------------------------------------------------------------
         // Modelエンティティ生成

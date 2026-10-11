@@ -10,8 +10,8 @@
         "pathBase": "working directory (Debug: repository root / Release: next to the exe)"
     },
     "stats": {
-        "components": 40,
-        "registered": 23,
+        "components": 44,
+        "registered": 27,
         "serializable": 17
     },
     "components": [
@@ -1336,12 +1336,56 @@
             ]
         },
         {
+            "name": "UIButtonFeedbackComponent",
+            "typeName": "Tsukino::BuiltIn::ECS::UIButtonFeedbackComponent",
+            "registered": true,
+            "registeredName": "UIButtonFeedbackComponent",
+            "serializable": false,
+            "header": "Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/UIButtonFeedbackComponent.hpp",
+            "serializationHeader": null,
+            "registrationSite": "Tsukino.EngineIntegration/src/EngineIntegration.cpp",
+            "fields": []
+        },
+        {
+            "name": "UICanvasGroupComponent",
+            "typeName": "Tsukino::BuiltIn::ECS::UICanvasGroupComponent",
+            "registered": true,
+            "registeredName": "UICanvasGroupComponent",
+            "serializable": false,
+            "header": "Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/UICanvasGroupComponent.hpp",
+            "serializationHeader": null,
+            "registrationSite": "Tsukino.EngineIntegration/src/EngineIntegration.cpp",
+            "fields": []
+        },
+        {
             "name": "UIClipComponent",
             "typeName": "Tsukino::BuiltIn::ECS::UIClipComponent",
             "registered": true,
             "registeredName": "UIClipComponent",
             "serializable": false,
             "header": "Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/UIClipComponent.hpp",
+            "serializationHeader": null,
+            "registrationSite": "Tsukino.EngineIntegration/src/EngineIntegration.cpp",
+            "fields": []
+        },
+        {
+            "name": "UIMotionComponent",
+            "typeName": "Tsukino::BuiltIn::ECS::UIMotionComponent",
+            "registered": true,
+            "registeredName": "UIMotionComponent",
+            "serializable": false,
+            "header": "Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/UIMotionComponent.hpp",
+            "serializationHeader": null,
+            "registrationSite": "Tsukino.EngineIntegration/src/EngineIntegration.cpp",
+            "fields": []
+        },
+        {
+            "name": "UITweenComponent",
+            "typeName": "Tsukino::BuiltIn::ECS::UITweenComponent",
+            "registered": true,
+            "registeredName": "UITweenComponent",
+            "serializable": false,
+            "header": "Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/UITweenComponent.hpp",
             "serializationHeader": null,
             "registrationSite": "Tsukino.EngineIntegration/src/EngineIntegration.cpp",
             "fields": []

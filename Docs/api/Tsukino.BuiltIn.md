@@ -96,12 +96,22 @@
   - amplitude, noiseFrequency, seed, noiseType, collisionModelHandle
 - **Tsukino::BuiltIn::ECS::TransformComponent** — `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/TransformComponent.hpp`
   - position, rotation, scale, localMatrix, worldMatrix, parent, dirty
+- **Tsukino::BuiltIn::ECS::UIButtonFeedbackComponent** — `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/UIButtonFeedbackComponent.hpp`
+  - hoverScale, pressScale, clickPunch, punchSeconds, speed, interactable, currentScale, punchElapsed
 - **Tsukino::BuiltIn::ECS::UICanvas** — `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/UI/UICanvas.hpp`
   - scale, offset, size, ToPixel(), ToUI(), ToPixel(), Fit()
+- **Tsukino::BuiltIn::ECS::UICanvasGroupComponent** — `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/UICanvasGroupComponent.hpp`
+  - alpha
 - **Tsukino::BuiltIn::ECS::UIClipComponent** — `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/UIClipComponent.hpp`
   - size
 - **Tsukino::BuiltIn::ECS::UIClipUtility::ClipBounds** — `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/UI/UIClipUtility.hpp`
   - left, top, right, bottom, Contains(), Overlaps(), Height()
+- **Tsukino::BuiltIn::ECS::UIMotionComponent** — `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/UIMotionComponent.hpp`
+  - offset, scale, rotation, pivot, pivotIsSelf, source
+- **Tsukino::BuiltIn::ECS::UITween** — `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/UITweenComponent.hpp`
+  - property, from, to, duration, delay, repeatDelay, ease, loop, holdAtEnd, tag, elapsed
+- **Tsukino::BuiltIn::ECS::UITweenComponent** — `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/UITweenComponent.hpp`
+  - tweens
 - **Tsukino::BuiltIn::ECS::UIVisibilityComponent** — `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/UIVisibilityComponent.hpp`
   - visible
 - **Tsukino::BuiltIn::ECS::WorldAnchorComponent** — `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/WorldAnchorComponent.hpp`

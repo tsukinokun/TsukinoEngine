@@ -11,6 +11,7 @@
 #include <Tsukino/BuiltIn/ECS/Component/SpriteComponent.hpp>
 #include <Tsukino/BuiltIn/ECS/Transform/TransformUtility.hpp>
 #include <Tsukino/BuiltIn/ECS/UI/UICanvas.hpp>
+#include <Tsukino/BuiltIn/ECS/UI/UICanvasGroupUtility.hpp>
 #include <Tsukino/BuiltIn/ECS/UI/UIClipUtility.hpp>
 #include <Tsukino/BuiltIn/ECS/UI/UIVisibilityUtility.hpp>
 
@@ -77,6 +78,10 @@ namespace Tsukino::BuiltIn::ECS {
 
                 // 自身か祖先の UIVisibilityComponent で隠されているものには当たらない（後ろの物に通す）
                 if(UIVisibilityUtility::IsHidden(registry, entity))
+                    return;
+
+                // 自身か祖先の UICanvasGroupComponent でほぼ透明なものにも当たらない
+                if(UICanvasGroupUtility::IsInvisible(registry, entity))
                     return;
 
                 bool isInside = false;

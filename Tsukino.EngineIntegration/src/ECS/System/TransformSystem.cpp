@@ -5,6 +5,8 @@
 //-------------------------------------------------------------
 #include <Tsukino/EngineIntegration/ECS/System/TransformSystem.hpp>
 #include <Tsukino/BuiltIn/ECS/Component/TransformComponent.hpp>
+#include <Tsukino/BuiltIn/ECS/Component/UIMotionComponent.hpp>
+#include <Tsukino/BuiltIn/ECS/UI/UIMotionUtility.hpp>
 
 #include <Tsukino/Core/Log.hpp>
 
@@ -139,6 +141,15 @@ namespace Tsukino::BuiltIn::ECS {
         //   ModelSystemのmul(nodeTransform, worldMatrix)とも一致する）
         //---------------------------------------------------------
         transform.worldMatrix = hlslpp::mul(transform.localMatrix, parentWorld);
+
+        //---------------------------------------------------------
+        // 画面UIの見た目だけのずれ（UIMotionComponent）があれば、ローカル行列のあとに重ねる。
+        // localMatrix と dirty は触らないので、毎フレーム変わる動きでも元の値は書き換わらない
+        //---------------------------------------------------------
+        if(const auto* motion = registry.try_get<UIMotionComponent>(entity); motion && !UIMotionUtility::IsIdentity(*motion)) {
+            const auto motionMatrix = UIMotionUtility::MakeMatrix(*motion, transform);
+            transform.worldMatrix   = hlslpp::mul(hlslpp::mul(transform.localMatrix, motionMatrix), parentWorld);
+        }
 
         //---------------------------------------------------------
         // 子エンティティを再帰的に更新する。

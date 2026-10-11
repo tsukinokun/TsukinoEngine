@@ -10,6 +10,7 @@
 #include <Tsukino/BuiltIn/ECS/Component/FontComponent.hpp>
 #include <Tsukino/BuiltIn/ECS/Component/WorldAnchorComponent.hpp>
 #include <Tsukino/BuiltIn/ECS/UI/UICanvas.hpp>
+#include <Tsukino/BuiltIn/ECS/UI/UICanvasGroupUtility.hpp>
 #include <Tsukino/BuiltIn/ECS/UI/UIClipUtility.hpp>
 #include <Tsukino/BuiltIn/ECS/UI/UIVisibilityUtility.hpp>
 #include <Tsukino/BuiltIn/BuiltInAssets.hpp>
@@ -125,6 +126,11 @@ namespace Tsukino::BuiltIn::ECS {
             if(UIVisibilityUtility::IsHidden(registry, entity))
                 return;
 
+            // 自身と祖先の UICanvasGroupComponent の不透明度。ほぼ透明なら描かない
+            const float groupAlpha = UICanvasGroupUtility::GetAlpha(registry, entity);
+            if(groupAlpha < UICanvasGroupUtility::kInvisibleAlpha)
+                return;
+
             //-------------------------------------------------------------
             // 祖先の UIClipComponent の枠（スクロールする UI の枠など）。描くときにシザーで切る
             //-------------------------------------------------------------
@@ -189,6 +195,8 @@ namespace Tsukino::BuiltIn::ECS {
                                         : font.origin;
                 entry.color        = font.color;
                 entry.outlineColor = font.outlineColor;
+                entry.color.w *= groupAlpha;
+                entry.outlineColor.w *= groupAlpha;
                 entry.outlineWidth = font.outlineWidth * canvas.scale;
                 entry.scale        = FitScale(finalScale, float(measured.x), font.maxWidth) * canvas.scale;    // 収める幅は UI の単位で計算してからピクセルにする
                 entry.sortOrder    = font.sortOrder;
@@ -249,6 +257,8 @@ namespace Tsukino::BuiltIn::ECS {
                 entry.origin       = alignedOrigin;
                 entry.color        = font.color;
                 entry.outlineColor = font.outlineColor;
+                entry.color.w *= groupAlpha;
+                entry.outlineColor.w *= groupAlpha;
                 entry.outlineWidth = font.outlineWidth * canvas.scale;
                 entry.scale        = FitScale(finalScale, measured.x, font.maxWidth) * canvas.scale;
                 entry.sortOrder    = font.sortOrder;

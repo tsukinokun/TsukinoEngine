@@ -139,6 +139,8 @@
   - sortOrder, cmd
 - **Tsukino::BuiltIn::ECS::TransformSystem** — `Tsukino.EngineIntegration/include/Tsukino/EngineIntegration/ECS/System/TransformSystem.hpp`
   - Update()
+- **Tsukino::BuiltIn::ECS::UITweenSystem** — `Tsukino.EngineIntegration/include/Tsukino/EngineIntegration/ECS/System/UITweenSystem.hpp`
+  - Update()
 - **Tsukino::BuiltIn::ECS::WorldAnchorSystem** — `Tsukino.EngineIntegration/include/Tsukino/EngineIntegration/ECS/System/WorldAnchorSystem.hpp`
   - Update()
 - **Tsukino::EngineIntegration::EffectFileInterface** — `Tsukino.EngineIntegration/include/Tsukino/EngineIntegration/IO/EffectFileInterface.hpp`
