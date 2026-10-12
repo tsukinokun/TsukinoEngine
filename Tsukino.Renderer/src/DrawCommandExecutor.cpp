@@ -114,9 +114,11 @@ namespace Tsukino::Renderer {
         CBufferTransform cb{};
         cb.world       = cmd.transform;
         cb.prevWorld   = writeVelocity ? cmd.prevTransform : cmd.transform;
-        cb.motionFlags = hlslpp::float4(writeVelocity ? 1.0f : 0.0f, 0.0f, 0.0f, 0.0f);
+        cb.motionFlags = hlslpp::float4(writeVelocity ? 1.0f : 0.0f, cmd.ditherFade, 0.0f, 0.0f);
         context->UpdateSubresource(m_objectBuffer.Get(), 0, nullptr, &cb, 0, 0);
         context->VSSetConstantBuffers(static_cast<UINT>(CBSlot::Transform), 1, m_objectBuffer.GetAddressOf());
+        // 網点フェード（motionFlags.y）はピクセルシェーダーが読むので、PS にも同じものを束ねる
+        context->PSSetConstantBuffers(static_cast<UINT>(CBSlot::Transform), 1, m_objectBuffer.GetAddressOf());
 
         //--------------------------------------------------------------------
         // ボーン行列 (b3) の適用
@@ -221,11 +223,33 @@ namespace Tsukino::Renderer {
         // Scene (b0) を再バインド
         context->VSSetConstantBuffers(static_cast<UINT>(CBSlot::Scene), 1, m_frameConstants->GetSceneBufferAddress());
 
-        // Transform (b1)
+        // Transform (b1)。網点フェード（motionFlags.y）はピクセルシェーダーが読むので PS にも束ねる
         CBufferTransform cb{};
-        cb.world = cmd.transform;
+        cb.world       = cmd.transform;
+        cb.motionFlags = hlslpp::float4(0.0f, cmd.ditherFade, 0.0f, 0.0f);
         context->UpdateSubresource(m_objectBuffer.Get(), 0, nullptr, &cb, 0, 0);
         context->VSSetConstantBuffers(static_cast<UINT>(CBSlot::Transform), 1, m_objectBuffer.GetAddressOf());
+        context->PSSetConstantBuffers(static_cast<UINT>(CBSlot::Transform), 1, m_objectBuffer.GetAddressOf());
+
+        //--------------------------------------------------------------------
+        // くり抜き（アルファテスト）の影。葉のカードのように、アルベドのアルファで
+        // 形を抜いたものが四角い影を落とさないよう、影のピクセルシェーダーにも
+        // アルベド (t0)・サンプラー (s0)・マテリアル定数 (b2) を渡す。
+        // マテリアル定数の無いコマンドは alphaCutoff = 0（くり抜かない）を渡して、
+        // 直前のコマンドの値が残らないようにする
+        //--------------------------------------------------------------------
+        ID3D11ShaderResourceView* albedo  = cmd.material ? cmd.material->GetTexture() : nullptr;
+        ID3D11SamplerState*       sampler = cmd.material ? cmd.material->GetSampler() : nullptr;
+        if(!albedo)
+            albedo = m_resources->GetWhiteTextureSRV();
+        if(!sampler)
+            sampler = m_resources->GetSampler(Tsukino::GraphicsCommon::SamplerType::LinearWrap);
+        context->PSSetShaderResources(static_cast<UINT>(SRVSlot::Albedo), 1, &albedo);
+        context->PSSetSamplers(static_cast<UINT>(SamplerSlot::Material), 1, &sampler);
+
+        static const CBufferMaterial kNoCutoutMaterial{};
+        context->UpdateSubresource(m_materialBuffer.Get(), 0, nullptr, cmd.materialData ? cmd.materialData : &kNoCutoutMaterial, 0, 0);
+        context->PSSetConstantBuffers(static_cast<UINT>(CBSlot::Material), 1, m_materialBuffer.GetAddressOf());
 
         // ボーン行列 (b3)
         u32 boneBytesThis = 0;

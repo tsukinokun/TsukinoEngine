@@ -33,7 +33,16 @@ struct VSInput
     float4 boneWeights : BONE_WEIGHTS;
 };
 
-float4 VSMain(VSInput input) : SV_POSITION
+//--------------------------------------------------------------
+//! @brief VS出力構造体（くり抜きの影のため、ピクセルシェーダーへ UV も渡す）
+//--------------------------------------------------------------
+struct VSOutput
+{
+    float4 position : SV_POSITION;
+    float2 uv : TEXCOORD0;
+};
+
+VSOutput VSMain(VSInput input)
 {
     // スキニング行列の合成
     matrix skinMatrix =
@@ -45,5 +54,8 @@ float4 VSMain(VSInput input) : SV_POSITION
     float4 worldPos = mul(mul(float4(input.position, 1.0f), skinMatrix), world);
     // シャドウパスが描画中のカスケード番号はshadowParams.zに入っている。
     // こうしておくとこのシェーダーはカスケードの枚数を知らなくて済む
-    return mul(worldPos, cascadeViewProj[(uint)shadowParams.z]);
+    VSOutput output;
+    output.position = mul(worldPos, cascadeViewProj[(uint)shadowParams.z]);
+    output.uv       = input.uv;
+    return output;
 }

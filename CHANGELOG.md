@@ -9,6 +9,22 @@ carve-out for `Tsukino.Renderer` described under **API stability** in the README
 
 ### Added
 
+- **`DrawCommand::ditherFade` (dithered "screen-door" fade).** Objects that pop in at the
+  edge of a draw distance (or switch LOD) can now fade in without going translucent.
+  `ditherFade` is the visible fraction (default `1.0` = drawn normally). The executor
+  passes it in `CBufferTransform::motionFlags.y` and now also binds b1 to the pixel shader.
+  `GBuffer.ps.hlsl` and `ShadowMap.ps.hlsl` discard pixels against a 4×4 Bayer threshold
+  (`Dither.hlsli` → `ClipDither`), so the object, its depth and its shadow fade together and
+  stay in the deferred path. There is no TAA, so the pattern is visible while fading; put the
+  fade band where fog already softens it.
+
+- **Alpha-tested (cutout) shadows.** The shadow pass used to ignore `alphaCutoff`, so
+  cutout geometry such as leaf cards cast solid quad shadows. `ExecuteShadow` now binds the
+  command's albedo texture (t0), sampler (s0) and material constants (b2) to the pixel
+  shader. The shadow VSs pass the UV through, and `ShadowMap.ps.hlsl` clips with the same
+  test as `GBuffer.ps.hlsl`. Commands without material constants get a zero material
+  (cutoff 0), and opaque materials skip the texture fetch, so ordinary shadows cost the same.
+
 - **`UITween::unscaledTime` and `UnscaledTimeContext`.** Games commonly pass
   `deltaTime = 0` to every system while paused (or shrink it during slow motion), which
   also froze menu tweens and button feedback. A scene can now publish the real elapsed time

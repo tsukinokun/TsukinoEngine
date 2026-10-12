@@ -71,7 +71,7 @@ namespace Tsukino::Renderer {
     struct CBufferTransform {
         Tsukino::Core::Math::matrix world;
         Tsukino::Core::Math::matrix prevWorld;      //!< 前フレームのワールド行列（速度バッファ生成用）
-        hlslpp::float4              motionFlags;    //!< x: 1=前フレーム有効 / 0=速度ゼロ, yzw: 予約
+        hlslpp::float4              motionFlags;    //!< x: 1=前フレーム有効 / 0=速度ゼロ, y: 網点フェードの見えている割合（DrawCommand::ditherFade）, zw: 予約
     };
 
     //--------------------------------------------------------------

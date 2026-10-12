@@ -9,6 +9,18 @@
 #include "PBR.hlsli"
 #include "Material.hlsli"
 #include "Toon.hlsli"
+#include "Dither.hlsli"
+
+//--------------------------------------------------------------
+//! @brief トランスフォーム定数バッファ (b1)
+//! @note  VS と同じものが PS にも束ねられている。ここで読むのは網点フェード（motionFlags.y）だけ
+//--------------------------------------------------------------
+cbuffer CBufferTransform : register(b1)
+{
+    matrix world;
+    matrix prevWorld;
+    float4 motionFlags;    // x: 前フレーム有効, y: 網点フェードの見えている割合（1で普通に描く）
+};
 
 //--------------------------------------------------------------
 //! @brief マテリアルテクスチャ (t0〜t4)
@@ -50,6 +62,12 @@ struct PSOutput
 PSOutput PSMain(PSInput input)
 {
     PSOutput output;
+
+    //----------------------------------------------------------
+    // 網点フェード（DrawCommand::ditherFade）。描画距離の端で物を少しずつ出すときに、
+    // 見えている割合に応じて画素を網点状に抜く。1 のときは何もしない
+    //----------------------------------------------------------
+    ClipDither(input.position.xy, motionFlags.y);
 
     //----------------------------------------------------------
     // アルベド
