@@ -9,6 +9,15 @@ carve-out for `Tsukino.Renderer` described under **API stability** in the README
 
 ### Added
 
+- **`DrawCommand::shadowPipeline` (per-draw shadow pipeline override).** Objects whose
+  vertex shader moves vertices (wind-swayed foliage, procedurally placed grass) used to cast
+  shadows from the fixed `ShadowMapStatic.vs.hlsl`, so the shadow stayed still, or they had
+  to turn shadows off. A command can now supply its own shadow pipeline, built from a matching
+  shadow VS plus the built-in `ShadowMap.ps.hlsl`, and `ExecuteShadow` uses it instead. b1 and
+  the game's b12 constant buffer are bound during shadow draws as well, so the shadow VS sees
+  the same parameters. Cutout and dithered fade keep working through the built-in shadow PS.
+  `nullptr` (the default) keeps the built-in pipelines.
+
 - **`DrawCommand::ditherFade` (dithered "screen-door" fade).** Objects that pop in at the
   edge of a draw distance (or switch LOD) can now fade in without going translucent.
   `ditherFade` is the visible fraction (default `1.0` = drawn normally). The executor

@@ -108,8 +108,9 @@ namespace Tsukino::Renderer {
                 if(cmd.pass != RenderPass::GBuffer)
                     continue;
 
-                // 頂点シェーダーが独自に頂点を組み立てるオブジェクトは、
-                // 固定のシャドウ用シェーダーでは形を再現できないので外す
+                // 影を落とさない物は外す。頂点シェーダーが独自に頂点を組み立てる物は、
+                // 同じ動きの影用パイプライン（DrawCommand::shadowPipeline）を渡せば影を落とせる。
+                // 渡さないなら固定のシャドウ用シェーダーでは形を再現できないので、castsShadow を false にしておく
                 if(!cmd.castsShadow)
                     continue;
 

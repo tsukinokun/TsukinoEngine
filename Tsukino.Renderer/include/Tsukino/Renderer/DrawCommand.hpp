@@ -19,6 +19,7 @@ namespace Tsukino::Renderer {
     struct MeshBuffer;
     struct CBufferMaterial;
     struct CBufferScene;
+    struct PipelineState;
 
     //------------------------------------------------------------
     //! @enum RenderPass
@@ -100,6 +101,16 @@ namespace Tsukino::Renderer {
         // GBuffer パスとシャドウパスの両方で効く（GBuffer.ps.hlsl / ShadowMap.ps.hlsl が b1 の motionFlags.y から読む）
         //--------------------------------------------------------
         float ditherFade = 1.0f;
+
+        //--------------------------------------------------------
+        // 影を描くときに使うパイプライン。null なら組み込みの影用（ShadowMapStatic / ShadowMap）を使う。
+        // 自前の頂点シェーダーで頂点を動かす物（風で揺れる木など）は、組み込みの影用では
+        // 動かない形で影が描かれてしまう。同じ動きをする影用の頂点シェーダーで作った
+        // パイプラインをここへ渡すと、影も本体と一緒に動く。
+        // ピクセルシェーダーは組み込みの ShadowMap.ps.hlsl を使えば、くり抜きと網点フェードもそのまま効く。
+        // 影の描画でも b1・b12（userConstantBuffer）は束ねられるので、本体と同じパラメータが読める
+        //--------------------------------------------------------
+        const PipelineState* shadowPipeline = nullptr;
 
         //--------------------------------------------------------
         // ゲーム定義の定数バッファ。

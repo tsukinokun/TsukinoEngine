@@ -213,8 +213,8 @@ namespace Tsukino::Renderer {
 
         const bool isSkeletal = cmd.boneMatrices && cmd.boneCount > 0;
 
-        // シャドウ用パイプラインをセット
-        const PipelineState* pipeline = isSkeletal ? skeletalPipeline : staticPipeline;
+        // シャドウ用パイプラインをセット。コマンドが自前の影用（頂点を動かす物）を持っていればそれを使う
+        const PipelineState* pipeline = cmd.shadowPipeline ? cmd.shadowPipeline : (isSkeletal ? skeletalPipeline : staticPipeline);
         if(!pipeline)
             return;
 
