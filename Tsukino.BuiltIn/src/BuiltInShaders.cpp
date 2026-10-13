@@ -40,6 +40,10 @@ namespace Tsukino::BuiltIn {
         motionBlurPS   = assetManager->Load(root / "Tsukino.BuiltIn/Assets/Shaders/MotionBlur.ps.hlsl");
         fogPS          = assetManager->Load(root / "Tsukino.BuiltIn/Assets/Shaders/Fog.ps.hlsl");
 
+        bloomPrefilterPS  = assetManager->Load(root / "Tsukino.BuiltIn/Assets/Shaders/BloomPrefilter.ps.hlsl");
+        bloomDownsamplePS = assetManager->Load(root / "Tsukino.BuiltIn/Assets/Shaders/BloomDownsample.ps.hlsl");
+        bloomUpsamplePS   = assetManager->Load(root / "Tsukino.BuiltIn/Assets/Shaders/BloomUpsample.ps.hlsl");
+
         ambientParticleVS = assetManager->Load(root / "Tsukino.BuiltIn/Assets/Shaders/AmbientParticle.vs.hlsl");
         ambientParticlePS = assetManager->Load(root / "Tsukino.BuiltIn/Assets/Shaders/AmbientParticle.ps.hlsl");
 

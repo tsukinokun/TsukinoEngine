@@ -18,6 +18,7 @@
 #include <Tsukino/Renderer/AmbientParticlePass.hpp>
 #include <Tsukino/Renderer/FogPass.hpp>
 #include <Tsukino/Renderer/MotionBlurPass.hpp>
+#include <Tsukino/Renderer/BloomPass.hpp>
 #include <Tsukino/Renderer/DrawCommandQueue.hpp>
 #include <Tsukino/Renderer/DX11/Texture/DX11Texture2D.hpp>
 #include <Tsukino/Renderer/DX11/Texture/DX11TextureCube.hpp>
@@ -66,6 +67,9 @@ namespace Tsukino::Renderer {
         const Tsukino::Asset::ShaderAsset* lightingPS       = nullptr;    //!< ディファードLightingパス用PS（VSはtonemapVSを共用）
         const Tsukino::Asset::ShaderAsset* motionBlurPS     = nullptr;    //!< モーションブラーパス用PS（VSはtonemapVSを共用）
         const Tsukino::Asset::ShaderAsset* fogPS            = nullptr;    //!< フォグパス用PS（VSはtonemapVSを共用）
+        const Tsukino::Asset::ShaderAsset* bloomPrefilterPS  = nullptr;    //!< ブルームの明部抽出用PS（VSはtonemapVSを共用）
+        const Tsukino::Asset::ShaderAsset* bloomDownsamplePS = nullptr;    //!< ブルームの縮小用PS（同上）
+        const Tsukino::Asset::ShaderAsset* bloomUpsamplePS   = nullptr;    //!< ブルームの拡大・合成用PS（同上）
         const Tsukino::Asset::ShaderAsset* ambientParticleVS = nullptr;    //!< 環境パーティクル用VS（SV_VertexIDだけで板を生成する）
         const Tsukino::Asset::ShaderAsset* ambientParticlePS = nullptr;    //!< 環境パーティクル用PS
 
@@ -314,6 +318,15 @@ namespace Tsukino::Renderer {
             return m_motionBlurPass;
         }
 
+        //------------------------------------------------------------
+        //! @brief  ブルームパスを取得する
+        //! @return パラメータと有効フラグを受け付ける BloomPass
+        //------------------------------------------------------------
+        [[nodiscard]]
+        BloomPass& GetBloom() noexcept {
+            return m_bloomPass;
+        }
+
     private:
         // DirectX 11の主要なインターフェース
         //! @note 【この宣言順は破棄順序の設計であり、並べ替えてはならない】
@@ -334,6 +347,7 @@ namespace Tsukino::Renderer {
         AmbientParticlePass                  m_ambientParticlePass;    // 環境パーティクル
         FogPass                              m_fogPass;                // フォグ（m_fullscreenPass を借りる）
         MotionBlurPass                       m_motionBlurPass;         // モーションブラー（同上）
+        BloomPass                            m_bloomPass;              // ブルーム（同上）
 
         std::array<float, 4> m_clearColor = {0.5f, 0.5f, 0.5f, 1.0f};    // 描画領域のクリアカラー (デフォルトはグレー)
 

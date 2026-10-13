@@ -43,6 +43,9 @@ namespace Tsukino::BuiltIn {
         Tsukino::Asset::AssetHandle gbufferPS;         // ディファードGBufferパス用ピクセルシェーダーのハンドル（VSはmodelVS/staticModelVSを共用）
         Tsukino::Asset::AssetHandle lightingPS;        // ディファードLightingパス用ピクセルシェーダーのハンドル（VSはtonemapVSを共用）
         Tsukino::Asset::AssetHandle motionBlurPS;      // モーションブラーパス用ピクセルシェーダーのハンドル（VSはtonemapVSを共用）
+        Tsukino::Asset::AssetHandle bloomPrefilterPS;     // ブルームの明部抽出用ピクセルシェーダーのハンドル（VSはtonemapVSを共用）
+        Tsukino::Asset::AssetHandle bloomDownsamplePS;    // ブルームの縮小用ピクセルシェーダーのハンドル（同上）
+        Tsukino::Asset::AssetHandle bloomUpsamplePS;      // ブルームの拡大・合成用ピクセルシェーダーのハンドル（同上）
         Tsukino::Asset::AssetHandle fogPS;             // フォグパス用ピクセルシェーダーのハンドル（VSはtonemapVSを共用）
 
         Tsukino::Asset::AssetHandle ambientParticleVS;    // 環境パーティクル用頂点シェーダーのハンドル（SV_VertexIDだけで板を生成する）

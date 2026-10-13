@@ -84,7 +84,9 @@ namespace Tsukino::BuiltIn::ECS {
             return;
         }
 
-        m_renderer = EffekseerRendererDX11::Renderer::Create(device, dc, 20000);
+        // エンジンはリバースZ（手前ほど深度が大きい）なので、深度テストをGREATER_EQUALにする。
+        // 既定のLESS_EQUALのままだと、深度を張ったときに手前の物の後ろだけが描かれて逆になる
+        m_renderer = EffekseerRendererDX11::Renderer::Create(device, dc, 20000, D3D11_COMPARISON_GREATER_EQUAL);
         if(!m_renderer) {
             return;
         }

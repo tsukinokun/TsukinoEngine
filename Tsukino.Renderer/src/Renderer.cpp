@@ -135,6 +135,11 @@ namespace Tsukino::Renderer {
             Tsukino::Core::Log::Error("Renderer: Motion blur is disabled because its resources could not be created.");
         }
 
+        if(!m_bloomPass.Initialize(m_graphicsContext, m_resources, *m_fullscreenPass, shaders.bloomPrefilterPS, shaders.bloomDownsamplePS,
+                                   shaders.bloomUpsamplePS)) {
+            Tsukino::Core::Log::Error("Renderer: Bloom is disabled because its resources could not be created.");
+        }
+
         if(!m_fogPass.Initialize(m_graphicsContext, m_resources, m_frameConstants, *m_fullscreenPass, shaders.fogPS)) {
             Tsukino::Core::Log::Error("Renderer: Fog is disabled because its resources could not be created.");
         }
@@ -330,6 +335,15 @@ namespace Tsukino::Renderer {
         const bool motionBlurred = m_motionBlurPass.Execute();
 
         //------------------------------------------------------------
+        // ブルームパス（トーンマップの入力へ加算）
+        //
+        // モーションブラーの後に掛ける。先に掛けると、滲んだ光の裾まで
+        // 速度方向へ引き伸ばされて輪郭のない筋になる。
+        // 書き込み先はトーンマップへ渡すのと同じバッファなので、下の分岐は変わらない
+        //------------------------------------------------------------
+        m_bloomPass.Execute(motionBlurred);
+
+        //------------------------------------------------------------
         // Tonemapパス（HDR → LDR変換してバックバッファへ）
         //------------------------------------------------------------
         m_tonemapPass->Execute(motionBlurred ? m_graphicsContext.GetPostProcessSRV() : m_graphicsContext.GetHDRSRV());
@@ -340,14 +354,21 @@ namespace Tsukino::Renderer {
         // エフェクトは3D空間の演出なので、UIより奥に描く。Overlayの後に置くと
         // 画面を覆うモーダル（スキル選択の暗転板など）の上にヒットエフェクトだけが
         // 残ってしまう
+        //
+        // 3Dの絵を描いたときの深度をそのまま張って描く。エフェクトは3D空間にあるので、
+        // 手前の草やモデルに隠れるべき所は隠れる（張らないと、全部の上に乗って
+        // 画面に貼り付けたように見える）。深度テストの向きはEffekseer側を
+        // リバースZ（GREATER_EQUAL）で作ってあるので合っている（EffectSystem）
         //------------------------------------------------------------
         if(postWorldPass) {
             ID3D11DeviceContext* context = m_graphicsContext.GetContext();
+            m_graphicsContext.BindBackBufferWithSceneDepth();
             context->OMSetBlendState(m_resources.GetCommonStatesTK()->AlphaBlend(), nullptr, 0xFFFFFFFF);
             context->OMSetDepthStencilState(m_resources.GetCommonStatesTK()->DepthNone(), 0);
             postWorldPass->RenderPostWorld(context, m_frameConstants.GetWorldSceneData().view, m_frameConstants.GetWorldSceneData().projection);
             context->OMSetBlendState(m_resources.GetCommonStatesTK()->Opaque(), nullptr, 0xFFFFFFFF);
             context->OMSetDepthStencilState(m_resources.GetCommonStatesTK()->DepthDefault(), 0);
+            m_graphicsContext.BindBackBuffer();
         }
 
         //------------------------------------------------------------
@@ -428,11 +449,12 @@ namespace Tsukino::Renderer {
         m_frameConstants.EndFrame();
 
         //------------------------------------------------------------
-        // モーションブラー・フォグ・環境パーティクルの有効フラグはフレーム単位で消す。
+        // モーションブラー・ブルーム・フォグ・環境パーティクルの有効フラグはフレーム単位で消す。
         // 毎フレーム担当のSystemが再度trueにする前提にしておくと、そのSystemを
         // 持たないシーンへ切り替えたときにフラグが立ちっぱなしで残らない
         //------------------------------------------------------------
         m_motionBlurPass.EndFrame();
+        m_bloomPass.EndFrame();
         m_fogPass.EndFrame();
         m_ambientParticlePass.EndFrame();
 

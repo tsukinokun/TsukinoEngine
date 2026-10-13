@@ -419,6 +419,13 @@ namespace Tsukino::Renderer {
     //--------------------------------------------------------------
     //! @brief バックバッファのRTVと、消した深度バッファをバインドする
     //--------------------------------------------------------------
+    void GraphicsContext::BindBackBufferWithSceneDepth() {
+        m_context->OMSetRenderTargets(1, m_rtv.GetAddressOf(), m_dsv.Get());
+    }
+
+    //--------------------------------------------------------------
+    //! @brief バックバッファのRTVと、消した深度バッファをバインドする
+    //--------------------------------------------------------------
     void GraphicsContext::BindBackBufferWithClearedDepth() {
         m_context->OMSetRenderTargets(1, m_rtv.GetAddressOf(), m_dsv.Get());
 

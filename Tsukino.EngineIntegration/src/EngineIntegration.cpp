@@ -20,6 +20,7 @@
 #include <Tsukino/BuiltIn/ECS/Component/SpotLightComponent.hpp>
 #include <Tsukino/BuiltIn/ECS/Component/SkyAtmosphereComponent.hpp>
 #include <Tsukino/BuiltIn/ECS/Component/MotionBlurComponent.hpp>
+#include <Tsukino/BuiltIn/ECS/Component/BloomComponent.hpp>
 #include <Tsukino/BuiltIn/ECS/Component/DebugCameraComponent.hpp>
 #include <Tsukino/BuiltIn/ECS/Component/DebugCameraTag.hpp>
 #include <Tsukino/BuiltIn/ECS/Component/FontComponent.hpp>
@@ -48,6 +49,7 @@
 #include <Tsukino/BuiltIn/ECS/Serialization/FogComponentSerialization.hpp>
 #include <Tsukino/BuiltIn/ECS/Serialization/AmbientParticleComponentSerialization.hpp>
 #include <Tsukino/BuiltIn/ECS/Serialization/MotionBlurComponentSerialization.hpp>
+#include <Tsukino/BuiltIn/ECS/Serialization/BloomComponentSerialization.hpp>
 #include <Tsukino/BuiltIn/ECS/Serialization/DebugCameraComponentSerialization.hpp>
 #include <Tsukino/BuiltIn/ECS/Serialization/ModelComponentSerialization.hpp>
 #include <Tsukino/BuiltIn/ECS/Serialization/CollisionComponentSerialization.hpp>
@@ -293,6 +295,12 @@ namespace Tsukino::EngineIntegration {
         auto lightingPSAsset       = std::static_pointer_cast<Tsukino::Asset::ShaderAsset>(m_assetManager->Get(m_builtinAssets->shaders.lightingPS));
         auto motionBlurPSAsset     = std::static_pointer_cast<Tsukino::Asset::ShaderAsset>(m_assetManager->Get(m_builtinAssets->shaders.motionBlurPS));
         auto fogPSAsset            = std::static_pointer_cast<Tsukino::Asset::ShaderAsset>(m_assetManager->Get(m_builtinAssets->shaders.fogPS));
+        auto bloomPrefilterPSAsset =
+            std::static_pointer_cast<Tsukino::Asset::ShaderAsset>(m_assetManager->Get(m_builtinAssets->shaders.bloomPrefilterPS));
+        auto bloomDownsamplePSAsset =
+            std::static_pointer_cast<Tsukino::Asset::ShaderAsset>(m_assetManager->Get(m_builtinAssets->shaders.bloomDownsamplePS));
+        auto bloomUpsamplePSAsset =
+            std::static_pointer_cast<Tsukino::Asset::ShaderAsset>(m_assetManager->Get(m_builtinAssets->shaders.bloomUpsamplePS));
         auto ambientParticleVSAsset =
             std::static_pointer_cast<Tsukino::Asset::ShaderAsset>(m_assetManager->Get(m_builtinAssets->shaders.ambientParticleVS));
         auto ambientParticlePSAsset =
@@ -318,6 +326,9 @@ namespace Tsukino::EngineIntegration {
         shaderSet.lightingPS       = lightingPSAsset.get();
         shaderSet.motionBlurPS     = motionBlurPSAsset.get();
         shaderSet.fogPS            = fogPSAsset.get();
+        shaderSet.bloomPrefilterPS  = bloomPrefilterPSAsset.get();
+        shaderSet.bloomDownsamplePS = bloomDownsamplePSAsset.get();
+        shaderSet.bloomUpsamplePS   = bloomUpsamplePSAsset.get();
         shaderSet.ambientParticleVS = ambientParticleVSAsset.get();
         shaderSet.ambientParticlePS = ambientParticlePSAsset.get();
         shaderSet.iblIrradiancePS         = iblIrradiancePSAsset.get();
@@ -345,6 +356,7 @@ namespace Tsukino::EngineIntegration {
         m_prefabFactory->RegisterComponent<Tsukino::BuiltIn::ECS::SpotLightComponent>("SpotLightComponent");
         m_prefabFactory->RegisterComponent<Tsukino::BuiltIn::ECS::SkyAtmosphereComponent>("SkyAtmosphereComponent");
         m_prefabFactory->RegisterComponent<Tsukino::BuiltIn::ECS::MotionBlurComponent>("MotionBlurComponent");
+        m_prefabFactory->RegisterComponent<Tsukino::BuiltIn::ECS::BloomComponent>("BloomComponent");
         m_prefabFactory->RegisterComponent<Tsukino::BuiltIn::ECS::FogComponent>("FogComponent");
         m_prefabFactory->RegisterComponent<Tsukino::BuiltIn::ECS::AmbientParticleComponent>("AmbientParticleComponent");
         m_prefabFactory->RegisterComponent<Tsukino::BuiltIn::ECS::DebugCameraComponent>("DebugCameraComponent");

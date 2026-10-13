@@ -10,9 +10,9 @@
         "pathBase": "working directory (Debug: repository root / Release: next to the exe)"
     },
     "stats": {
-        "components": 44,
-        "registered": 27,
-        "serializable": 17
+        "components": 45,
+        "registered": 28,
+        "serializable": 18
     },
     "components": [
         {
@@ -185,6 +185,60 @@
             "serializationHeader": null,
             "registrationSite": null,
             "fields": []
+        },
+        {
+            "name": "BloomComponent",
+            "typeName": "Tsukino::BuiltIn::ECS::BloomComponent",
+            "registered": true,
+            "registeredName": "BloomComponent",
+            "serializable": true,
+            "header": "Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/BloomComponent.hpp",
+            "serializationHeader": "Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Serialization/BloomComponentSerialization.hpp",
+            "registrationSite": "Tsukino.EngineIntegration/src/EngineIntegration.cpp",
+            "fields": [
+                {
+                    "jsonKey": "enabled",
+                    "field": "enabled",
+                    "cppType": "bool",
+                    "jsonShape": "true / false",
+                    "default": "true"
+                },
+                {
+                    "jsonKey": "threshold",
+                    "field": "threshold",
+                    "cppType": "float",
+                    "jsonShape": "number",
+                    "default": "1.0f"
+                },
+                {
+                    "jsonKey": "softKnee",
+                    "field": "softKnee",
+                    "cppType": "float",
+                    "jsonShape": "number",
+                    "default": "0.5f"
+                },
+                {
+                    "jsonKey": "intensity",
+                    "field": "intensity",
+                    "cppType": "float",
+                    "jsonShape": "number",
+                    "default": "0.6f"
+                },
+                {
+                    "jsonKey": "radius",
+                    "field": "radius",
+                    "cppType": "float",
+                    "jsonShape": "number",
+                    "default": "1.0f"
+                },
+                {
+                    "jsonKey": "tint",
+                    "field": "tint",
+                    "cppType": "hlslpp::float3",
+                    "jsonShape": "{ \"x\", \"y\", \"z\" }",
+                    "default": "hlslpp::float3(1.0f, 1.0f, 1.0f)"
+                }
+            ]
         },
         {
             "name": "BoxCollider2DComponent",

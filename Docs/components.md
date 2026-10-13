@@ -4,7 +4,7 @@
 
 再生成: `vendor\premake5.exe gen-manifest`（または `generate-docs.bat`）
 
-コンポーネント 44 個（Prefab 登録済み 27 個 / シリアライズ定義あり 17 個）
+コンポーネント 45 個（Prefab 登録済み 28 個 / シリアライズ定義あり 18 個）
 
 ## 読み方
 
@@ -50,6 +50,22 @@
 | `maxSpeedScale` | `float` | number | `1.7f` |
 | `edgeFadeStart` | `float` | number | `0.65f` |
 | `nearFadeDistance` | `float` | number | `60.0f` |
+
+### BloomComponent
+
+- 型: `Tsukino::BuiltIn::ECS::BloomComponent`
+- Prefab 登録名: `BloomComponent`
+- 定義: `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/BloomComponent.hpp`
+- シリアライズ: `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Serialization/BloomComponentSerialization.hpp`
+
+| JSON キー | C++ 型 | JSON 表現 | 既定値 |
+|---|---|---|---|
+| `enabled` | `bool` | true / false | `true` |
+| `threshold` | `float` | number | `1.0f` |
+| `softKnee` | `float` | number | `0.5f` |
+| `intensity` | `float` | number | `0.6f` |
+| `radius` | `float` | number | `1.0f` |
+| `tint` | `hlslpp::float3` | { "x", "y", "z" } | `hlslpp::float3(1.0f, 1.0f, 1.0f)` |
 
 ### CameraComponent
 

@@ -154,6 +154,29 @@ namespace Tsukino::Renderer {
     static constexpr int kMotionBlurMaxSamples = 16;
 
     //--------------------------------------------------------------
+    //! @struct CBufferBloom
+    //! @brief  CBSlot::Bloom (b11) 用：ブルームの1描画ぶんのパラメータ
+    //! @note   縮小・拡大の段ごとに texelSize が変わるので、描くたびに書き換える。
+    //!         float3 を使わず float を並べているのは、Bloom.hlsli の cbuffer と
+    //!         バイト位置を確実に揃えるため（hlslpp::float3 は16バイトを食う）
+    //--------------------------------------------------------------
+    struct CBufferBloom {
+        float texelSizeX = 0.0f;    //!< 読むテクスチャの1テクセルのUV幅
+        float texelSizeY = 0.0f;    //!< 読むテクスチャの1テクセルのUV高さ
+        float threshold  = 1.0f;    //!< 明部抽出の閾値（Prefilter のみ使う）
+        float softKnee   = 0.5f;    //!< 閾値付近をなだらかにする幅（Prefilter のみ使う）
+        float tintR      = 1.0f;    //!< 出力に掛ける色（Upsample のみ使う）
+        float tintG      = 1.0f;
+        float tintB      = 1.0f;
+        float intensity  = 1.0f;    //!< 出力に掛ける強さ（Upsample のみ使う）
+        float radius     = 1.0f;    //!< 拡大時のぼかし半径の倍率（Upsample のみ使う）
+        float padding0   = 0.0f;
+        float padding1   = 0.0f;
+        float padding2   = 0.0f;
+    };
+    static_assert(sizeof(CBufferBloom) == 48, "CBufferBloom must stay 48 bytes to match Bloom.hlsli.");
+
+    //--------------------------------------------------------------
     //! @struct CBufferSky
     //! @brief  スロット4 (b4) 用：大気散乱パラメータ
     //--------------------------------------------------------------
