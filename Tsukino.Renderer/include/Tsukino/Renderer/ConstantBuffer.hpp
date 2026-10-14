@@ -49,6 +49,13 @@ namespace Tsukino::Renderer {
         hlslpp::float4 screenParams;    //!< xy: 描画領域の解像度(px), zw: その逆数(1/w, 1/h)
         hlslpp::float4 shadowParams;         //!< x: シャドウマップの一辺(px), y: その逆数(=texelSize), z: シャドウパスが描画中のカスケード番号, w: 1/奥行き（ワールド距離→深度値の換算）
         hlslpp::float4 cascadeTexelWorld;    //!< xyzw: 各カスケードの1テクセルのワールド幅（シャドウバイアスの単位。カスケード4枚ぶん）
+
+        //--------------------------------------------------------------
+        // 遮り抜き（FrameConstants::SetOcclusionCutout）。注目したい物の手前にある遮り物を、
+        // 画面上の円の中だけ網点で抜く。DrawCommand::occlusionCutoutが立っている物だけが対象
+        //--------------------------------------------------------------
+        hlslpp::float4 occlusionCutout0;    //!< xy: 円の中心（画面ピクセル）, z: 半径（ピクセル）, w: 1=有効 / 0=無効
+        hlslpp::float4 occlusionCutout1;    //!< x: 注目している物までのカメラからの距離, y: 手前とみなす余白, z: 円の中心で見えている割合（0で全部抜く）, w: 縁へ戻り始める位置（半径に対する割合）
     };
 
     // b0のレイアウトもMaterial.hlsli同様に手で合わせるしかないので、機械的に見張る。
@@ -56,7 +63,8 @@ namespace Tsukino::Renderer {
     // 実際にShadowMapStatic.vs.hlslがinvViewProjの宣言を落としており、
     // 以降が64バイトずれてスタティックメッシュの影が壊れていた（Scene.hlsli参照）。
     // 先頭の行列を1本増減させると全メンバが動くので、要所のオフセットを固定する
-    static_assert(sizeof(CBufferScene) == 688, "CBufferScene must stay 688 bytes to match Scene.hlsli (b0).");
+    static_assert(sizeof(CBufferScene) == 720, "CBufferScene must stay 720 bytes to match Scene.hlsli (b0).");
+    static_assert(offsetof(CBufferScene, occlusionCutout0) == 688, "occlusionCutout0 must sit at byte 688 (right after cascadeTexelWorld).");
     static_assert(offsetof(CBufferScene, cascadeViewProj) == 256, "cascadeViewProj must start at byte 256; a missing matrix before it shifts every cascade by 64 bytes.");
     static_assert(offsetof(CBufferScene, prevViewProj) == 560, "prevViewProj must sit at byte 560 (right after the cascade matrices).");
     static_assert(offsetof(CBufferScene, shadowParams) == 656, "shadowParams must sit at byte 656.");
@@ -71,7 +79,7 @@ namespace Tsukino::Renderer {
     struct CBufferTransform {
         Tsukino::Core::Math::matrix world;
         Tsukino::Core::Math::matrix prevWorld;      //!< 前フレームのワールド行列（速度バッファ生成用）
-        hlslpp::float4              motionFlags;    //!< x: 1=前フレーム有効 / 0=速度ゼロ, y: 網点フェードの見えている割合（DrawCommand::ditherFade）, zw: 予約
+        hlslpp::float4              motionFlags;    //!< x: 1=前フレーム有効 / 0=速度ゼロ, y: 網点フェードの見えている割合（DrawCommand::ditherFade）, z: 1=遮り抜きの対象（DrawCommand::occlusionCutout。シャドウパスでは常に0）, w: 予約
     };
 
     //--------------------------------------------------------------

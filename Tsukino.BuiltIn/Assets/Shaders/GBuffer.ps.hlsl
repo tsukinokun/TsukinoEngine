@@ -19,7 +19,7 @@ cbuffer CBufferTransform : register(b1)
 {
     matrix world;
     matrix prevWorld;
-    float4 motionFlags;    // x: 前フレーム有効, y: 網点フェードの見えている割合（1で普通に描く）
+    float4 motionFlags;    // x: 前フレーム有効, y: 網点フェードの見えている割合（1で普通に描く）, z: 1=遮り抜きの対象
 };
 
 //--------------------------------------------------------------
@@ -66,8 +66,23 @@ PSOutput PSMain(PSInput input)
     //----------------------------------------------------------
     // 網点フェード（DrawCommand::ditherFade）。描画距離の端で物を少しずつ出すときに、
     // 見えている割合に応じて画素を網点状に抜く。1 のときは何もしない
+    //
+    // 遮り抜き（FrameConstants::SetOcclusionCutout）も同じ網点で掛け合わせる。対象の物（motionFlags.z）の、
+    // 注目している物より手前にあって画面上の円に入る画素だけを、中心ほど強く・縁へ向かって滑らかに抜く。
+    // 奥にある物や円の外は抜かないので、遮っている所だけに穴が開く
     //----------------------------------------------------------
-    ClipDither(input.position.xy, motionFlags.y);
+    float visible = motionFlags.y;
+    if(motionFlags.z > 0.5f && occlusionCutout0.w > 0.5f)
+    {
+        const float distanceFromCamera = length(input.worldPos - cameraPos.xyz);
+        if(distanceFromCamera < occlusionCutout1.x - occlusionCutout1.y)
+        {
+            const float r = length(input.position.xy - occlusionCutout0.xy) / max(occlusionCutout0.z, 1.0f);
+            if(r < 1.0f)
+                visible *= lerp(occlusionCutout1.z, 1.0f, smoothstep(occlusionCutout1.w, 1.0f, r));
+        }
+    }
+    ClipDither(input.position.xy, visible);
 
     //----------------------------------------------------------
     // アルベド

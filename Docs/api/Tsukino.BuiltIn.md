@@ -64,6 +64,8 @@
   - matrices
 - **Tsukino::BuiltIn::ECS::NodeWorldPoseComponent** — `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/NodeWorldPoseComponent.hpp`
   - poses
+- **Tsukino::BuiltIn::ECS::OcclusionCutoutComponent** — `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/OcclusionCutoutComponent.hpp`
+  - enabled, ditherFade
 - **Tsukino::BuiltIn::ECS::PointLightComponent** — `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/PointLightComponent.hpp`
   - color, intensity, range, enabled
 - **Tsukino::BuiltIn::ECS::PointerTargetComponent** — `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/PointerTargetComponent.hpp`

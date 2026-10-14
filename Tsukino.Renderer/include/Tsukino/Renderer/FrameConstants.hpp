@@ -64,6 +64,23 @@ namespace Tsukino::Renderer {
         void SetDirectionalLight(const std::array<Tsukino::Core::Math::matrix, kShadowCascadeCount>& cascadeViewProj,
                                  const hlslpp::float4& cascadeTexelWorld, const hlslpp::float4& lightDir, const hlslpp::float4& lightColor);
 
+        //! 遮り抜き（注目したい物の手前の遮り物を、画面上の円の中だけ網点で抜く）を設定します。
+        //! @param  [in] centerX         円の中心X（画面ピクセル）
+        //! @param  [in] centerY         円の中心Y（画面ピクセル）
+        //! @param  [in] radius          円の半径（ピクセル）
+        //! @param  [in] targetDistance  注目している物までのカメラからの距離（これより手前の画素だけ抜く）
+        //! @param  [in] depthMargin     手前とみなす余白（targetDistance - depthMargin より手前を抜く）
+        //! @param  [in] centerVisibility 円の中心で見えている割合（0で全部抜く、1で抜かない）
+        //! @param  [in] edgeSoftStart   縁へ向かって元へ戻り始める位置（半径に対する割合。そこから縁まで滑らかに戻す）
+        //! @note   抜かれるのはDrawCommand::occlusionCutoutが立っている物だけ（GBuffer.ps.hlsl）。影は抜かない。
+        //!         毎フレームEndFrame()で無効へ戻るので、使うフレームでは毎回呼ぶこと
+        //!         （呼ばないシーンへ切り替えたときに抜きっぱなしで残らない）
+        void SetOcclusionCutout(float centerX, float centerY, float radius, float targetDistance, float depthMargin, float centerVisibility,
+                                float edgeSoftStart) noexcept {
+            m_worldSceneData.occlusionCutout0 = hlslpp::float4(centerX, centerY, radius, 1.0f);
+            m_worldSceneData.occlusionCutout1 = hlslpp::float4(targetDistance, depthMargin, centerVisibility, edgeSoftStart);
+        }
+
         //! シャドウパスが今どのカスケードを描いているかを設定します。
         //! @param  [in] cascade カスケード番号（0が最も近い）
         //! @note   シャドウ用の頂点シェーダーはこれを見て cascadeViewProj[] を引く。
@@ -99,6 +116,7 @@ namespace Tsukino::Renderer {
         //!         「送られてきたタイミング」ではなく「フレームの末尾」で退避するのが確実
         void EndFrame() noexcept {
             m_prevWorldViewProj = m_worldSceneData.viewProj;
+            m_worldSceneData.occlusionCutout0.w = 0.0f;    // 遮り抜きはフレーム単位（使うフレームで毎回SetOcclusionCutoutする）
         }
 
         //! b0 の定数バッファを取得します。

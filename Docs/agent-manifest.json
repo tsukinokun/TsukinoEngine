@@ -10,9 +10,9 @@
         "pathBase": "working directory (Debug: repository root / Release: next to the exe)"
     },
     "stats": {
-        "components": 45,
-        "registered": 28,
-        "serializable": 18
+        "components": 46,
+        "registered": 29,
+        "serializable": 19
     },
     "components": [
         {
@@ -866,6 +866,25 @@
             "serializationHeader": null,
             "registrationSite": null,
             "fields": []
+        },
+        {
+            "name": "OcclusionCutoutComponent",
+            "typeName": "Tsukino::BuiltIn::ECS::OcclusionCutoutComponent",
+            "registered": true,
+            "registeredName": "OcclusionCutoutComponent",
+            "serializable": true,
+            "header": "Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/OcclusionCutoutComponent.hpp",
+            "serializationHeader": "Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Serialization/OcclusionCutoutComponentSerialization.hpp",
+            "registrationSite": "Tsukino.EngineIntegration/src/EngineIntegration.cpp",
+            "fields": [
+                {
+                    "jsonKey": "enabled",
+                    "field": "enabled",
+                    "cppType": "bool",
+                    "jsonShape": "true / false",
+                    "default": "true"
+                }
+            ]
         },
         {
             "name": "PointLightComponent",

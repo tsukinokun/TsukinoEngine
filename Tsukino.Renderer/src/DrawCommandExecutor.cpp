@@ -114,7 +114,7 @@ namespace Tsukino::Renderer {
         CBufferTransform cb{};
         cb.world       = cmd.transform;
         cb.prevWorld   = writeVelocity ? cmd.prevTransform : cmd.transform;
-        cb.motionFlags = hlslpp::float4(writeVelocity ? 1.0f : 0.0f, cmd.ditherFade, 0.0f, 0.0f);
+        cb.motionFlags = hlslpp::float4(writeVelocity ? 1.0f : 0.0f, cmd.ditherFade, cmd.occlusionCutout ? 1.0f : 0.0f, 0.0f);
         context->UpdateSubresource(m_objectBuffer.Get(), 0, nullptr, &cb, 0, 0);
         context->VSSetConstantBuffers(static_cast<UINT>(CBSlot::Transform), 1, m_objectBuffer.GetAddressOf());
         // 網点フェード（motionFlags.y）はピクセルシェーダーが読むので、PS にも同じものを束ねる

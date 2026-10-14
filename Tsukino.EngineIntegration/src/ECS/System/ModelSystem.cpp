@@ -14,6 +14,7 @@
 #include <Tsukino/BuiltIn/ECS/Component/CollisionComponent.hpp>
 #include <Tsukino/BuiltIn/ECS/Component/RigidbodyComponent.hpp>
 #include <Tsukino/BuiltIn/ECS/Component/RimGlowComponent.hpp>
+#include <Tsukino/BuiltIn/ECS/Component/OcclusionCutoutComponent.hpp>
 #include <Tsukino/BuiltIn/ECS/Component/MaterialPropertyBlockComponent.hpp>
 #include <Tsukino/BuiltIn/ECS/Component/ScreenModelComponent.hpp>
 #include <Tsukino/BuiltIn/ECS/Transform/TransformUtility.hpp>
@@ -474,6 +475,12 @@ namespace Tsukino::BuiltIn::ECS {
                         if(hasPrev && isSkeletal)
                             cmd.prevBoneMatrices = motionVec->prevBones;
                         cmd.pass = pass;
+
+                        // 遮り抜きの対象（OcclusionCutoutComponentを持ちenabledなもの）と、物全体の網点フェード
+                        if(const auto* cutout = registry.try_get<OcclusionCutoutComponent>(entity)) {
+                            cmd.occlusionCutout = cutout->enabled;
+                            cmd.ditherFade      = cutout->ditherFade;
+                        }
 
                         ctx->renderer->GetDrawQueue().Push(cmd);
                     };

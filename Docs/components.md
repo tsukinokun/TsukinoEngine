@@ -4,7 +4,7 @@
 
 再生成: `vendor\premake5.exe gen-manifest`（または `generate-docs.bat`）
 
-コンポーネント 45 個（Prefab 登録済み 28 個 / シリアライズ定義あり 18 個）
+コンポーネント 46 個（Prefab 登録済み 29 個 / シリアライズ定義あり 19 個）
 
 ## 読み方
 
@@ -216,6 +216,17 @@
 | `maxBlurRadius` | `float` | number | `0.03f` |
 | `sampleCount` | `int` | number | `8` |
 | `targetFps` | `float` | number | `60.0f` |
+
+### OcclusionCutoutComponent
+
+- 型: `Tsukino::BuiltIn::ECS::OcclusionCutoutComponent`
+- Prefab 登録名: `OcclusionCutoutComponent`
+- 定義: `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/OcclusionCutoutComponent.hpp`
+- シリアライズ: `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Serialization/OcclusionCutoutComponentSerialization.hpp`
+
+| JSON キー | C++ 型 | JSON 表現 | 既定値 |
+|---|---|---|---|
+| `enabled` | `bool` | true / false | `true` |
 
 ### PointLightComponent
 
