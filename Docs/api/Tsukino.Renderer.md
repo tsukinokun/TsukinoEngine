@@ -143,9 +143,7 @@
 - **Tsukino::Renderer::ShaderLoader** — `Tsukino.Renderer/include/Tsukino/Renderer/ShaderLoader.hpp`
   - LoadFromFile()
 - **Tsukino::Renderer::ShadowPass** — `Tsukino.Renderer/src/ShadowPass.hpp`
-  - kMapSize, kCascadeCount, kShadowDistance, kSplitLambda, kSplitNear, kSkinnedBoundsInflate, kDepthTowardLight, kDepthAwayFromLight, kDepthRange, Initialize(), Execute(), BindForSampling(), SetCullingEnabled(), ComputeCascadeExtents(), ComputeLightViewProj()
-- **Tsukino::Renderer::ShadowPass::Cascade** — `Tsukino.Renderer/src/ShadowPass.hpp`
-  - viewProj, halfExtent, texelWorld
+  - kMapSize, kCascadeCount, kShadowDistance, kSplitLambda, kSplitNear, kSkinnedBoundsInflate, kDepthTowardLight, kDepthAwayFromLight, kDepthRange, Initialize(), Execute(), BindForSampling(), SetCullingEnabled(), ComputeCascadeHalfExtents(), ComputeTexelWorldSize(), ComputeLightViewProj()
 - **Tsukino::Renderer::SkyPass** — `Tsukino.Renderer/include/Tsukino/Renderer/SkyPass.hpp`
   - Initialize(), SetParameters(), SetPipeline(), IsReady(), Execute(), GetVertexShader(), GetPixelShader(), GetBufferAddress()
 - **Tsukino::Renderer::SpriteRenderer** — `Tsukino.Renderer/include/Tsukino/Renderer/SpriteRenderer.hpp`

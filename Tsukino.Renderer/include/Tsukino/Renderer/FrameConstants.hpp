@@ -58,7 +58,7 @@ namespace Tsukino::Renderer {
 
         //! ディレクショナルライトの情報をワールドのシーン定数へ書き込みます。
         //! @param  [in] cascadeViewProj   カスケードごとのライト空間 ViewProjection（近→遠）
-        //! @param  [in] cascadeTexelWorld カスケードごとの1テクセルのワールド幅（xyzが各カスケード）
+        //! @param  [in] cascadeTexelWorld カスケードごとの1テクセルのワールド幅（xyzwが各カスケード。近→遠）
         //! @param  [in] lightDir          ライトの方向（xyz。正規化済み）
         //! @param  [in] lightColor        ライトの色（xyz）と強度（w）
         void SetDirectionalLight(const std::array<Tsukino::Core::Math::matrix, kShadowCascadeCount>& cascadeViewProj,

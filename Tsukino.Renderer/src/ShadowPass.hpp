@@ -27,18 +27,20 @@ namespace Tsukino::Renderer {
         //! カスケードの枚数。b0のcascadeViewProjの要素数と同じでなければならない
         static constexpr u32 kCascadeCount = kShadowCascadeCount;
 
-        //! 影を出す最大距離（ワールド）。フォグに沈んで見えなくなるより手前で切る。
-        //! 画面に映っている間は影が要るので、敵が湧く距離（CombatAndroidは注視点から900〜1300）を
-        //! 覆える値にしてある。ここを伸ばすぶんはカスケードを増やして補う
+        //! 影を出す最大距離（ワールド。注視点からの距離）。最も外側のカスケードの半径になる。
+        //! フォグに沈んで見えなくなるより手前で切るが、画面に映っている物には影が要るので、
+        //! ゲームが物を置く・湧かせる範囲を覆える値にしてある。ここを伸ばすぶんはカスケードを増やして補う
         //! （枚数を据え置いて伸ばすと、近景1枚あたりの受け持ちが広がって足元の影が粗くなる）
         static constexpr float kShadowDistance = 1400.0f;
 
-        //! 分割の対数寄せ具合（practical split scheme）。1.0で完全な対数分割、0.0で等分割。
-        //! 大きいほど近景へ解像度が寄る
+        //! 半径の対数寄せ具合（practical split scheme の λ）。1.0で完全な対数、0.0で等間隔。
+        //! 大きいほど近景へ解像度が寄る。
+        //! 本来は視錐台を奥行きで分ける距離の式だが、ここでは注視点を中心とした
+        //! 同心の箱の半径として流用している（カメラの向きには依らない）
         static constexpr float kSplitLambda = 0.88f;
 
-        //! 分割を求めるときの近距離側の基準。カメラのnearZ(0.1)をそのまま使うと
-        //! 対数項が極端に小さくなり、第1カスケードが実用にならないほど狭くなる
+        //! 半径を求めるときの基準の最小値（式の near に当たる）。
+        //! 小さくすると対数項が極端に小さくなり、第1カスケードが実用にならないほど狭くなる
         static constexpr float kSplitNear = 50.0f;
 
         //! スキンメッシュのバウンドを膨らませる倍率。
@@ -85,21 +87,20 @@ namespace Tsukino::Renderer {
         //! @param  [in] context デバイスコンテキスト
         void BindForSampling(ID3D11DeviceContext* context) const;
 
-        //--------------------------------------------------------------
-        //! カスケード1枚分の情報
-        //--------------------------------------------------------------
-        struct Cascade {
-            Tsukino::Core::Math::matrix viewProj;             // ライト空間の ViewProjection 行列
-            float                       halfExtent = 0.0f;    // 平行投影の半径（注視点から左右・上下へのワールド距離）
-            float                       texelWorld = 0.0f;    // 1テクセルのワールド幅（= 2 * halfExtent / kMapSize）
-        };
-
         //! カスケードごとの平行投影の半径を求めます。
-        //! @return 近い順に kCascadeCount 個の半径（ワールド距離）
-        //! @note   practical split scheme（対数分割と等分割の重み付き平均）で求める。
-        //!         対数分割だけだと近景へ寄りすぎ、等分割だけだと近景が粗くなる
+        //! @return 近い順に kCascadeCount 個の半径（注視点から左右・上下へのワールド距離）
+        //! @note   practical split scheme（対数分割と等分割の重み付き平均）の式で求める。
+        //!         対数だけだと近景へ寄りすぎ、等間隔だけだと近景が粗くなる
         [[nodiscard]]
-        static std::array<float, kCascadeCount> ComputeCascadeExtents();
+        static std::array<float, kCascadeCount> ComputeCascadeHalfExtents();
+
+        //! カスケード1枚の、シャドウマップ1テクセルが覆うワールド幅を求めます。
+        //! @param  [in] halfExtent 平行投影の半径（ワールド距離）
+        //! @return 1テクセルのワールド幅（= 2 * halfExtent / kMapSize）
+        [[nodiscard]]
+        static constexpr float ComputeTexelWorldSize(float halfExtent) noexcept {
+            return 2.0f * halfExtent / static_cast<float>(kMapSize);
+        }
 
         //! ディレクショナルライトの ViewProjection 行列を、カスケード1枚分求めます。
         //! @param  [in] normalizedDir 光の向き（正規化済み）
@@ -119,11 +120,11 @@ namespace Tsukino::Renderer {
     private:
 
         //! 描画コマンドがカスケードの投影範囲に掛かっているかを判定します。
-        //!   [in] cmd              判定する描画コマンド
-        //!   [in] cascadeViewProj  そのカスケードのライト空間 ViewProjection
-        //!   [in] halfExtent       そのカスケードの平行投影の半径
-        //!  true: 描く必要がある（掛かっている、または判定できない）
-        //!    判定できないもの（バウンド不明・インスタンス描画）は必ず true を返す。
+        //! @param  [in] cmd              判定する描画コマンド
+        //! @param  [in] cascadeViewProj  そのカスケードのライト空間 ViewProjection
+        //! @param  [in] halfExtent       そのカスケードの平行投影の半径
+        //! @return true: 描く必要がある（掛かっている、または判定できない）, false: 確実に範囲外
+        //! @note   判定できないもの（バウンド不明・インスタンス描画）は必ず true を返す。
         //!         間引きは「確実に範囲外」と言えるときだけ行う
         [[nodiscard]]
         static bool OverlapsCascade(const DrawCommand& cmd, const Tsukino::Core::Math::matrix& cascadeViewProj, float halfExtent);

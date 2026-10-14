@@ -86,7 +86,7 @@ namespace Tsukino::Renderer {
         // シャドウパス側も同じ関数を呼んで同じ値を得られる。
         // 値を共有する状態を持たずに済ませるための作りになっている
         //------------------------------------------------------------
-        const std::array<float, ShadowPass::kCascadeCount> extents = ShadowPass::ComputeCascadeExtents();
+        const std::array<float, ShadowPass::kCascadeCount> halfExtents = ShadowPass::ComputeCascadeHalfExtents();
 
         // テクセル幅はfloat4 1本で運ぶので、カスケードは最大4枚まで
         static_assert(kShadowCascadeCount <= 4, "cascadeTexelWorld is a single float4; it holds at most 4 cascades.");
@@ -95,8 +95,8 @@ namespace Tsukino::Renderer {
         float                                                              texel[4]{};
 
         for(unsigned int i = 0; i < ShadowPass::kCascadeCount; ++i) {
-            cascadeViewProj[i] = ShadowPass::ComputeLightViewProj(normalizedDir, focusPoint, extents[i]);
-            texel[i]           = 2.0f * extents[i] / static_cast<float>(ShadowPass::kMapSize);
+            cascadeViewProj[i] = ShadowPass::ComputeLightViewProj(normalizedDir, focusPoint, halfExtents[i]);
+            texel[i]           = ShadowPass::ComputeTexelWorldSize(halfExtents[i]);
         }
 
         const hlslpp::float4 texelWorld(texel[0], texel[1], texel[2], texel[3]);

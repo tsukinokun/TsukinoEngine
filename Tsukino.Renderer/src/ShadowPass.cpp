@@ -60,10 +60,10 @@ namespace Tsukino::Renderer {
         // 「近景カスケードが想定どおりの細かさになっているか」を
         // 起動ログだけで判断できるようにしておく
         //--------------------------------------------------------------------
-        const std::array<float, kCascadeCount> extents = ComputeCascadeExtents();
+        const std::array<float, kCascadeCount> halfExtents = ComputeCascadeHalfExtents();
         for(u32 i = 0; i < kCascadeCount; ++i) {
-            Tsukino::Core::Log::Info("ShadowPass: cascade " + std::to_string(i) + " halfExtent=" + std::to_string(extents[i])
-                                     + " texelWorld=" + std::to_string(2.0f * extents[i] / static_cast<float>(kMapSize)));
+            Tsukino::Core::Log::Info("ShadowPass: cascade " + std::to_string(i) + " halfExtent=" + std::to_string(halfExtents[i])
+                                     + " texelWorld=" + std::to_string(ComputeTexelWorldSize(halfExtents[i])));
         }
 
         return CreateShadowMap(graphicsContext.GetDevice());
@@ -85,7 +85,7 @@ namespace Tsukino::Renderer {
         vp.MaxDepth = 1.0f;
         context->RSSetViewports(1, &vp);
 
-        const std::array<float, kCascadeCount> extents = ComputeCascadeExtents();
+        const std::array<float, kCascadeCount> halfExtents = ComputeCascadeHalfExtents();
 
         for(u32 cascade = 0; cascade < kCascadeCount; ++cascade) {
             //----------------------------------------------------------------
@@ -114,7 +114,7 @@ namespace Tsukino::Renderer {
                 if(!cmd.castsShadow)
                     continue;
 
-                if(m_cullingEnabled && !OverlapsCascade(cmd, cascadeViewProj, extents[cascade]))
+                if(m_cullingEnabled && !OverlapsCascade(cmd, cascadeViewProj, halfExtents[cascade]))
                     continue;
 
                 m_commandExecutor->ExecuteShadow(cmd, m_staticPipeline.get(), m_skeletalPipeline.get(), stats);
@@ -180,8 +180,8 @@ namespace Tsukino::Renderer {
     //------------------------------------------------------------------------
     //! カスケードごとの平行投影の半径を求めます。
     //------------------------------------------------------------------------
-    std::array<float, ShadowPass::kCascadeCount> ShadowPass::ComputeCascadeExtents() {
-        std::array<float, kCascadeCount> extents{};
+    std::array<float, ShadowPass::kCascadeCount> ShadowPass::ComputeCascadeHalfExtents() {
+        std::array<float, kCascadeCount> halfExtents{};
 
         for(u32 i = 0; i < kCascadeCount; ++i) {
             const float ratio = static_cast<float>(i + 1) / static_cast<float>(kCascadeCount);
@@ -190,15 +190,19 @@ namespace Tsukino::Renderer {
             // 対数分割は視野に対して一定の角分解能を保つ理想的な分け方だが、
             // そのままだと第1カスケードが極端に狭くなる。
             // 等分割はその逆で近景が粗い。両者の重み付き平均を取るのが
-            // practical split scheme（kSplitLambdaが対数側の重み）
+            // practical split scheme（kSplitLambdaが対数側の重み）。
+            //
+            // 元の式は視錐台を奥行きで切る距離を出すものだが、ここでは
+            // 注視点を中心とした同心の箱の半径として使う。カメラの向きに
+            // 依らないので、カメラを回しても範囲が揺れない
             //----------------------------------------------------------------
             const float logSplit     = kSplitNear * std::pow(kShadowDistance / kSplitNear, ratio);
             const float uniformSplit = kSplitNear + (kShadowDistance - kSplitNear) * ratio;
 
-            extents[i] = kSplitLambda * logSplit + (1.0f - kSplitLambda) * uniformSplit;
+            halfExtents[i] = kSplitLambda * logSplit + (1.0f - kSplitLambda) * uniformSplit;
         }
 
-        return extents;
+        return halfExtents;
     }
 
     //------------------------------------------------------------------------
@@ -249,7 +253,7 @@ namespace Tsukino::Renderer {
 
         const hlslpp::float4 focusInLight = hlslpp::mul(hlslpp::float4(focusPoint, 1.0f), lightView);
 
-        const float texelWorldSize = 2.0f * halfExtent / static_cast<float>(kMapSize);
+        const float texelWorldSize = ComputeTexelWorldSize(halfExtent);
         const float centerX        = std::floor(static_cast<float>(focusInLight.x) / texelWorldSize) * texelWorldSize;
         const float centerY        = std::floor(static_cast<float>(focusInLight.y) / texelWorldSize) * texelWorldSize;
         const float focusDepth     = static_cast<float>(focusInLight.z);
