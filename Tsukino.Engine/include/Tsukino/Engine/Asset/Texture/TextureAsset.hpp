@@ -41,6 +41,12 @@ namespace Tsukino::Asset {
         DXGI_FORMAT          format = DXGI_FORMAT_UNKNOWN;    // テクスチャのフォーマット
         std::vector<uint8_t> pixels;                          // テクスチャのピクセルデータ（RGBA8 形式など）
 
+        //! GPUへ送るときにミップマップ（1/2ずつ縮めた絵の段）を作るか。
+        //! pixelsは最上段だけを持つ形のまま、縮小はRendererが2x2平均で作る。
+        //! 非圧縮のRGBA8系フォーマットのときだけ効く（ブロック圧縮は1段のまま）。
+        //! プログラムで作った細かい模様のテクスチャを、遠くでちらつかせないために使う
+        bool generateMips = false;
+
     private:
         AssetHandle m_handle = AssetHandle::Invalid();    // アセットのハンドル
     };

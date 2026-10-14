@@ -68,7 +68,8 @@ namespace Tsukino::Renderer {
 
         // なければ新しく作成してキャッシュへ保存
         std::unique_ptr<DX11Texture2D> texture =
-            std::make_unique<DX11Texture2D>(textureAsset.width, textureAsset.height, textureAsset.format, textureAsset.pixels.data(), m_device);
+            std::make_unique<DX11Texture2D>(textureAsset.width, textureAsset.height, textureAsset.format, textureAsset.pixels.data(), m_device,
+                                            textureAsset.generateMips);
 
         ID3D11ShaderResourceView* srv = texture->GetSRV();
         m_textureCache.emplace(handleValue, std::move(texture));

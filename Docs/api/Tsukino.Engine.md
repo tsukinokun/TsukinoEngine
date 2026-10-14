@@ -185,7 +185,7 @@
 - **Tsukino::Asset::ShaderLoader** — `Tsukino.Engine/include/Tsukino/Engine/Asset/Shader/ShaderLoader.hpp`
   - ShaderLoader(), CanLoad(), Load(), DetectStage()
 - **Tsukino::Asset::TextureAsset** — `Tsukino.Engine/include/Tsukino/Engine/Asset/Texture/TextureAsset.hpp`
-  - width, height, format, pixels, GetHandle(), GetType(), SetHandle()
+  - width, height, format, pixels, generateMips, GetHandle(), GetType(), SetHandle()
 - **Tsukino::Asset::TextureImporter** — `Tsukino.Engine/include/Tsukino/Engine/Asset/Texture/TextureImporter.hpp`
   - Import()
 - **Tsukino::Asset::TextureLoader** — `Tsukino.Engine/include/Tsukino/Engine/Asset/Texture/TextureLoader.hpp`
