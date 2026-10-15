@@ -15,6 +15,7 @@
 #include <Tsukino/BuiltIn/ECS/UI/UICanvas.hpp>
 #include <Tsukino/BuiltIn/ECS/UI/UICanvasGroupUtility.hpp>
 #include <Tsukino/BuiltIn/ECS/UI/UIClipUtility.hpp>
+#include <Tsukino/BuiltIn/ECS/UI/UIRectUtility.hpp>
 #include <Tsukino/BuiltIn/ECS/UI/UIVisibilityUtility.hpp>
 
 #include <Tsukino/Renderer/Renderer.hpp>
@@ -154,6 +155,9 @@ namespace Tsukino::BuiltIn::ECS {
             float texW = static_cast<float>(textureAsset->width);
             float texH = static_cast<float>(textureAsset->height);
 
+            // 画面空間で描く四角（UIRectComponent があればその四角、無ければ画像のピクセルの大きさ）
+            const UIRectUtility::LocalRect screenRect = UIRectUtility::Resolve(registry, entity, hlslpp::float2(texW, texH));
+
             Tsukino::Renderer::DrawCommand cmd;
 
             // 自身と祖先の UICanvasGroupComponent の不透明度（画面空間のスプライトだけ）
@@ -175,9 +179,9 @@ namespace Tsukino::BuiltIn::ECS {
 
                 UIClipUtility::ClipBounds clip;
                 if(UIClipUtility::TryGetClipBounds(registry, entity, clip)) {
-                    const hlslpp::float3 center = TransformUtility::GetWorldPosition(transform);
-                    const hlslpp::float2 size   = hlslpp::float2(texW, texH) * TransformUtility::GetWorldScale2D(transform);
-                    if(!clip.Overlaps(hlslpp::float2(center.x, center.y), size))
+                    hlslpp::float2 boundsMin, boundsMax;
+                    UIRectUtility::WorldBounds(transform.worldMatrix, screenRect, boundsMin, boundsMax);
+                    if(!clip.Overlaps((boundsMin + boundsMax) * 0.5f, boundsMax - boundsMin))
                         return;
 
                     // 枠は UI の座標、シザーは画面のピクセルなので変換する
@@ -210,17 +214,15 @@ namespace Tsukino::BuiltIn::ECS {
                 //-------------------------------------------------------------
                 // Screen空間：ワールド行列（= Scale * Rotation * Translation を親まで
                 // 合成したもの）をそのまま使う。行ベクトル規約なので
-                // 「テクスチャサイズ倍 -> ワールド行列」の順に適用する。
+                // 「描く四角の大きさとずれ -> ワールド行列」の順に適用する。
                 //
+                // 四角は UIRectComponent があればその大きさと基準点、無ければ
+                // テクスチャの実ピクセルサイズで中心が Transform の位置。後者で
                 // 親なし・回転なしのときは従来の
                 //   mul(scale(texW * scale.x, texH * scale.y), translate(position))
-                // と完全に一致する。worldMatrix経由にしたことで、
-                // 親子関係（TransformComponent::parent）と回転が効くようになった
+                // と完全に一致する
                 //-------------------------------------------------------------
-                // 1x1のクアッドをテクスチャの実ピクセルサイズまで引き伸ばす行列
-                const auto texSizeMatrix = Tsukino::Core::Math::matrix::scale(texW, texH, 1.0f);
-
-                cmd.transform = hlslpp::mul(texSizeMatrix, transform.worldMatrix);
+                cmd.transform = UIRectUtility::ToMatrix(screenRect, transform.worldMatrix);
             }
 
             // メッシュの指定
@@ -272,7 +274,73 @@ namespace Tsukino::BuiltIn::ECS {
             cmd.pass      = isWorld ? Tsukino::Renderer::RenderPass::World : Tsukino::Renderer::RenderPass::Overlay;
             cmd.sortOrder = sprite.sortOrder;    // Overlayパス内でFontRendererSystemの文字と同じ軸で並ぶ
 
-            m_entries.push_back({sprite.sortOrder, cmd});
+            //-------------------------------------------------------------
+            // 9 スライス（画面空間のスプライトだけ。円形の塗りとは併用しない）。
+            // 全体の四角（cmd.transform が単位の四角を写す先）の中を 3×3 に分け、
+            // 1枚ずつ「全体の中のどの範囲か」と「画像のどの範囲か」を決めて積む。
+            // 単位の四角は中心が原点で、ローカルの +y が画面の下・画像の v が増える向き
+            //-------------------------------------------------------------
+            const bool hasSlice = !isWorld && !isRadialFill &&
+                                  (sprite.sliceBorder.x > 0.0f || sprite.sliceBorder.y > 0.0f || sprite.sliceBorder.z > 0.0f || sprite.sliceBorder.w > 0.0f);
+            if(!hasSlice) {
+                m_entries.push_back({sprite.sortOrder, cmd});
+                return;
+            }
+
+            // 描かれる全体の大きさ（UI の座標）。ワールド行列の基底の長さが拡大率
+            const float drawW = std::abs(float(screenRect.size.x)) * hlslpp::length(hlslpp::float3(transform.worldMatrix[0].xyz));
+            const float drawH = std::abs(float(screenRect.size.y)) * hlslpp::length(hlslpp::float3(transform.worldMatrix[1].xyz));
+            if(drawW <= 0.0f || drawH <= 0.0f)
+                return;
+
+            //-------------------------------------------------------------
+            // 帯の幅を「全体の何割か」にする。両側の帯が全体より太いときは、はみ出さないよう縮める
+            //-------------------------------------------------------------
+            const float sliceScale = std::max(sprite.sliceScale, 0.0f);
+            auto        bands      = [&](float startPx, float endPx, float drawSize, float* outStart, float* outEnd) {
+                float a     = startPx * sliceScale / drawSize;
+                float b     = endPx * sliceScale / drawSize;
+                const float total = a + b;
+                if(total > 1.0f) {
+                    a /= total;
+                    b /= total;
+                }
+                *outStart = a;
+                *outEnd   = b;
+            };
+            float left = 0.0f, right = 0.0f, top = 0.0f, bottom = 0.0f;
+            bands(float(sprite.sliceBorder.x), float(sprite.sliceBorder.z), drawW, &left, &right);
+            bands(float(sprite.sliceBorder.y), float(sprite.sliceBorder.w), drawH, &top, &bottom);
+
+            // 3つの列・行の、全体の中での範囲（0〜1）と画像の中での範囲（0〜1）
+            const float posX[4] = {0.0f, left, 1.0f - right, 1.0f};
+            const float posY[4] = {0.0f, top, 1.0f - bottom, 1.0f};
+            const float uvX[4]  = {0.0f, std::min(float(sprite.sliceBorder.x) / texW, 1.0f), std::max(1.0f - float(sprite.sliceBorder.z) / texW, 0.0f), 1.0f};
+            const float uvY[4]  = {0.0f, std::min(float(sprite.sliceBorder.y) / texH, 1.0f), std::max(1.0f - float(sprite.sliceBorder.w) / texH, 0.0f), 1.0f};
+
+            for(int row = 0; row < 3; ++row) {
+                for(int column = 0; column < 3; ++column) {
+                    const float w = posX[column + 1] - posX[column];
+                    const float h = posY[row + 1] - posY[row];
+                    if(w <= 0.0f || h <= 0.0f)
+                        continue;
+
+                    // 単位の四角を、全体の中のこの範囲へ縮めて動かしてから、全体の行列で写す
+                    const float centerX   = (posX[column] + posX[column + 1]) * 0.5f - 0.5f;
+                    const float centerY   = (posY[row] + posY[row + 1]) * 0.5f - 0.5f;
+                    const auto  pieceMatrix = hlslpp::mul(Tsukino::Core::Math::matrix::scale(w, h, 1.0f),
+                                                          Tsukino::Core::Math::matrix::translate(hlslpp::float3(centerX, centerY, 0.0f)));
+
+                    Tsukino::Renderer::CBufferMaterial& pieceData = ctx->renderer->GetDrawQueue().AllocMaterialData();
+                    pieceData                                     = materialData;
+                    pieceData.spriteUv = hlslpp::float4(uvX[column], uvY[row], uvX[column + 1] - uvX[column], uvY[row + 1] - uvY[row]);
+
+                    Tsukino::Renderer::DrawCommand piece = cmd;
+                    piece.transform                     = hlslpp::mul(pieceMatrix, cmd.transform);
+                    piece.materialData                  = &pieceData;
+                    m_entries.push_back({sprite.sortOrder, piece});
+                }
+            }
         });
 
         // sortOrderで昇順ソート

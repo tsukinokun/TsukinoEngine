@@ -13,6 +13,7 @@
 #include <Tsukino/BuiltIn/ECS/UI/UICanvas.hpp>
 #include <Tsukino/BuiltIn/ECS/UI/UICanvasGroupUtility.hpp>
 #include <Tsukino/BuiltIn/ECS/UI/UIClipUtility.hpp>
+#include <Tsukino/BuiltIn/ECS/UI/UIRectUtility.hpp>
 #include <Tsukino/BuiltIn/ECS/UI/UIVisibilityUtility.hpp>
 
 #include <Tsukino/EngineIntegration/EngineContext.hpp>
@@ -35,26 +36,21 @@ namespace Tsukino::BuiltIn::ECS {
         namespace TU = Tsukino::BuiltIn::ECS::TransformUtility;
 
         //-------------------------------------------------------------
-        //! @brief  スプライトの実サイズ（ワールドスケール考慮）を求め、指定座標が
-        //!         その矩形内にあるかを判定する
-        //! @note   位置・スケールをworldMatrixから取るため、親に付いた子スプライトでも
-        //!         正しく判定できる。回転は無視した軸並行矩形（AABB）判定
+        //! @brief  スプライトの描かれる四角に、指定座標が入っているかを判定する
+        //! @note   四角は描画と同じく、UIRectComponent があればその四角、無ければ画像のピクセルの大きさ。
+        //!         worldMatrix で写した四角と比べるので、親に付いた子スプライトや回転したスプライトでも正しく判定できる
         //! @return テクスチャアセットが取得できた場合は true
         //-------------------------------------------------------------
-        bool ComputeSpriteHit(Tsukino::EngineIntegration::EngineContext* ctx, const TransformComponent& transform, const SpriteComponent& sprite,
-                              const hlslpp::float2& point, bool* outInside) {
+        bool ComputeSpriteHit(Tsukino::ECS::Registry& registry, Tsukino::EngineIntegration::EngineContext* ctx, Tsukino::ECS::Entity entity,
+                              const TransformComponent& transform, const SpriteComponent& sprite, const hlslpp::float2& point, bool* outInside) {
             auto textureAsset = std::static_pointer_cast<Tsukino::Asset::TextureAsset>(ctx->assetManager->Get(sprite.textureHandle));
             if(!textureAsset)
                 return false;
 
-            const hlslpp::float3 worldPosition = TU::GetWorldPosition(transform);
-            const hlslpp::float2 worldScale    = TU::GetWorldScale2D(transform);
+            const hlslpp::float2            textureSize(static_cast<float>(textureAsset->width), static_cast<float>(textureAsset->height));
+            const UIRectUtility::LocalRect rect = UIRectUtility::Resolve(registry, entity, textureSize);
 
-            // スケールを考慮した実際の描画サイズを計算
-            hlslpp::float2 spriteSize = {static_cast<float>(textureAsset->width) * worldScale.x, static_cast<float>(textureAsset->height) * worldScale.y};
-            hlslpp::float2 spritePos  = {worldPosition.x, worldPosition.y};
-
-            *outInside = Tsukino::Core::Math::IsPointInRect(point, spritePos, spriteSize);
+            *outInside = UIRectUtility::Contains(transform.worldMatrix, rect, point);
             return true;
         }
 
@@ -76,6 +72,10 @@ namespace Tsukino::BuiltIn::ECS {
                 if(sprite.space != SpriteSpace::Screen)
                     return;
 
+                // 当たりを受けない飾りのスプライトは無いものとして、奥に通す
+                if(!sprite.raycastTarget)
+                    return;
+
                 // 自身か祖先の UIVisibilityComponent で隠されているものには当たらない（後ろの物に通す）
                 if(UIVisibilityUtility::IsHidden(registry, entity))
                     return;
@@ -85,7 +85,7 @@ namespace Tsukino::BuiltIn::ECS {
                     return;
 
                 bool isInside = false;
-                if(!ComputeSpriteHit(ctx, transform, sprite, point, &isInside) || !isInside)
+                if(!ComputeSpriteHit(registry, ctx, entity, transform, sprite, point, &isInside) || !isInside)
                     return;
 
                 // 祖先の UIClipComponent の枠の外にはみ出している部分（スクロールで隠れた行など）には当たらない

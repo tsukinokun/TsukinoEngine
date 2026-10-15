@@ -6,6 +6,7 @@
 #include <Tsukino/BuiltIn/ECS/Component/TransformComponent.hpp>
 #include <Tsukino/BuiltIn/ECS/Component/UIClipComponent.hpp>
 #include <Tsukino/BuiltIn/ECS/Transform/TransformUtility.hpp>
+#include <Tsukino/BuiltIn/ECS/UI/UIRectUtility.hpp>
 
 #include <Tsukino/Core/ECS/Registry/Registry.hpp>
 
@@ -46,20 +47,36 @@ namespace Tsukino::BuiltIn::ECS::UIClipUtility {
     };
 
     //--------------------------------------------------------------
+    //! @brief  枠のローカルの四角を求める
+    //! @param  clip [in] 枠のエンティティの UIClipComponent
+    //! @param  rect [in] 枠のエンティティの UIRectComponent（無ければ nullptr）
+    //! @return clip.size が 0 で rect があればその四角、それ以外は中心が Transform の位置で大きさ clip.size の四角
+    //--------------------------------------------------------------
+    [[nodiscard]] inline UIRectUtility::LocalRect ResolveLocalRect(const UIClipComponent& clip, const UIRectComponent* rect) noexcept {
+        if(rect && float(clip.size.x) <= 0.0f && float(clip.size.y) <= 0.0f)
+            return UIRectUtility::FromRect(*rect);
+
+        UIRectUtility::LocalRect local;
+        local.size = clip.size;
+        return local;
+    }
+
+    //--------------------------------------------------------------
     //! @brief  UIClipComponent を持つエンティティの枠の範囲を求める
     //! @param  transform [in] 枠のエンティティのトランスフォーム
     //! @param  clip      [in] 枠のエンティティの UIClipComponent
-    //! @return 枠の範囲
+    //! @param  rect      [in] 枠のエンティティの UIRectComponent（無ければ nullptr）
+    //! @return 枠の範囲（回転していれば、それを囲む軸に沿った範囲）
     //--------------------------------------------------------------
-    [[nodiscard]] inline ClipBounds ComputeBounds(const TransformComponent& transform, const UIClipComponent& clip) noexcept {
-        const hlslpp::float3 center = TransformUtility::GetWorldPosition(transform);
-        const hlslpp::float2 half   = clip.size * TransformUtility::GetWorldScale2D(transform) * 0.5f;
+    [[nodiscard]] inline ClipBounds ComputeBounds(const TransformComponent& transform, const UIClipComponent& clip, const UIRectComponent* rect = nullptr) {
+        hlslpp::float2 boundsMin, boundsMax;
+        UIRectUtility::WorldBounds(transform.worldMatrix, ResolveLocalRect(clip, rect), boundsMin, boundsMax);
 
         ClipBounds bounds;
-        bounds.left   = center.x - half.x;
-        bounds.top    = center.y - half.y;
-        bounds.right  = center.x + half.x;
-        bounds.bottom = center.y + half.y;
+        bounds.left   = boundsMin.x;
+        bounds.top    = boundsMin.y;
+        bounds.right  = boundsMax.x;
+        bounds.bottom = boundsMax.y;
         return bounds;
     }
 
@@ -75,7 +92,8 @@ namespace Tsukino::BuiltIn::ECS::UIClipUtility {
         if(clipEntity == entt::null)
             return false;
 
-        outBounds = ComputeBounds(registry.GetComponent<TransformComponent>(clipEntity), registry.GetComponent<UIClipComponent>(clipEntity));
+        outBounds = ComputeBounds(registry.GetComponent<TransformComponent>(clipEntity), registry.GetComponent<UIClipComponent>(clipEntity),
+                                  registry.try_get<UIRectComponent>(clipEntity));
         return true;
     }
 }    // namespace Tsukino::BuiltIn::ECS::UIClipUtility

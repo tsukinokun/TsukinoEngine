@@ -54,7 +54,10 @@ float RadialFillCoverage(float2 uv)
 //--------------------------------------------------------------
 float4 PSMain(PSInput input) : SV_TARGET
 {
-    float4 color = u_Texture.Sample(u_Sampler, input.uv) * baseColor;
+    // 描く四角の UV を画像の一部へ当てる（9 スライスの1枚ずつ。ふだんは画像全体＝そのまま）。
+    // 円形の塗りは描く四角そのものの中心で測るので、当てる前の UV を使う
+    float2 textureUv = spriteUv.xy + input.uv * spriteUv.zw;
+    float4 color     = u_Texture.Sample(u_Sampler, textureUv) * baseColor;
     color.a *= RadialFillCoverage(input.uv);
     return color;
 }

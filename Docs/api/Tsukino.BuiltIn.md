@@ -49,7 +49,7 @@
 - **Tsukino::BuiltIn::ECS::FogComponent** — `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/FogComponent.hpp`
   - enabled, color, density, startDistance, maxOpacity, heightFogEnabled, height, heightFalloff, heightDensity, sunColor, sunScatterPower, noiseEnabled, noiseScale, noiseIntensity, windDirection, windSpeed, useCustomDistanceOrigin, distanceOrigin
 - **Tsukino::BuiltIn::ECS::FontComponent** — `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/FontComponent.hpp`
-  - text, fontHandle, color, origin, horizontalAlign, verticalAlign, outlineColor, outlineWidth, maxWidth, sortOrder
+  - text, fontHandle, color, origin, horizontalAlign, verticalAlign, outlineColor, outlineWidth, maxWidth, scale, sortOrder
 - **Tsukino::BuiltIn::ECS::ImpulseRequestComponent** — `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/ImpulseRequestComponent.hpp`
   - impulse, angularImpulse
 - **Tsukino::BuiltIn::ECS::MaterialPropertyBlockComponent** — `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/MaterialPropertyBlockComponent.hpp`
@@ -97,7 +97,7 @@
 - **Tsukino::BuiltIn::ECS::SpringBoneComponent::ColliderDef** — `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/SpringBoneComponent.hpp`
   - attachNodeName, localOffset, radius
 - **Tsukino::BuiltIn::ECS::SpriteComponent** — `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/SpriteComponent.hpp`
-  - textureHandle, blendMode, space, tintColor, uvRect, sortOrder, fillMode, fillAmount, fillStartAngle, fillClockwise
+  - textureHandle, blendMode, space, tintColor, uvRect, sortOrder, fillMode, fillAmount, fillStartAngle, fillClockwise, sliceBorder, sliceScale, raycastTarget
 - **Tsukino::BuiltIn::ECS::TerrainGenerationRequestComponent** — `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/TerrainGenerationRequestComponent.hpp`
   - amplitude, noiseFrequency, seed, noiseType, collisionModelHandle
 - **Tsukino::BuiltIn::ECS::TransformComponent** — `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/TransformComponent.hpp`
@@ -114,6 +114,10 @@
   - left, top, right, bottom, Contains(), Overlaps(), Height()
 - **Tsukino::BuiltIn::ECS::UIMotionComponent** — `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/UIMotionComponent.hpp`
   - offset, scale, rotation, pivot, pivotIsSelf, source
+- **Tsukino::BuiltIn::ECS::UIRectComponent** — `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/UIRectComponent.hpp`
+  - size, pivot
+- **Tsukino::BuiltIn::ECS::UIRectUtility::LocalRect** — `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/UI/UIRectUtility.hpp`
+  - center, size
 - **Tsukino::BuiltIn::ECS::UITween** — `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/UITweenComponent.hpp`
   - property, from, to, duration, delay, repeatDelay, ease, loop, holdAtEnd, unscaledTime, tag, elapsed
 - **Tsukino::BuiltIn::ECS::UITweenComponent** — `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/UITweenComponent.hpp`

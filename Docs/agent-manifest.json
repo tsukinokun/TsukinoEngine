@@ -10,9 +10,9 @@
         "pathBase": "working directory (Debug: repository root / Release: next to the exe)"
     },
     "stats": {
-        "components": 47,
-        "registered": 30,
-        "serializable": 20
+        "components": 48,
+        "registered": 31,
+        "serializable": 21
     },
     "components": [
         {
@@ -715,6 +715,13 @@
                     "cppType": "Tsukino::Asset::AssetRef",
                     "jsonShape": "\"path/to/asset\"",
                     "default": null
+                },
+                {
+                    "jsonKey": "scale",
+                    "field": "scale",
+                    "cppType": "float",
+                    "jsonShape": "number",
+                    "default": "1.0f"
                 }
             ]
         },
@@ -1400,6 +1407,27 @@
                     "cppType": "bool",
                     "jsonShape": "true / false",
                     "default": "true"
+                },
+                {
+                    "jsonKey": "sliceBorder",
+                    "field": "sliceBorder",
+                    "cppType": "hlslpp::float4",
+                    "jsonShape": "{ \"x\", \"y\", \"z\", \"w\" }",
+                    "default": "hlslpp::float4(0.0f, 0.0f, 0.0f, 0.0f)"
+                },
+                {
+                    "jsonKey": "sliceScale",
+                    "field": "sliceScale",
+                    "cppType": "float",
+                    "jsonShape": "number",
+                    "default": "1.0f"
+                },
+                {
+                    "jsonKey": "raycastTarget",
+                    "field": "raycastTarget",
+                    "cppType": "bool",
+                    "jsonShape": "true / false",
+                    "default": "true"
                 }
             ]
         },
@@ -1533,6 +1561,32 @@
             "serializationHeader": null,
             "registrationSite": "Tsukino.EngineIntegration/src/EngineIntegration.cpp",
             "fields": []
+        },
+        {
+            "name": "UIRectComponent",
+            "typeName": "Tsukino::BuiltIn::ECS::UIRectComponent",
+            "registered": true,
+            "registeredName": "UIRectComponent",
+            "serializable": true,
+            "header": "Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/UIRectComponent.hpp",
+            "serializationHeader": "Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Serialization/UIRectComponentSerialization.hpp",
+            "registrationSite": "Tsukino.EngineIntegration/src/EngineIntegration.cpp",
+            "fields": [
+                {
+                    "jsonKey": "size",
+                    "field": "size",
+                    "cppType": "hlslpp::float2",
+                    "jsonShape": "{ \"x\", \"y\" }",
+                    "default": "hlslpp::float2(0.0f, 0.0f)"
+                },
+                {
+                    "jsonKey": "pivot",
+                    "field": "pivot",
+                    "cppType": "hlslpp::float2",
+                    "jsonShape": "{ \"x\", \"y\" }",
+                    "default": "hlslpp::float2(0.5f, 0.5f)"
+                }
+            ]
         },
         {
             "name": "UITweenComponent",

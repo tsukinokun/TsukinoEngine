@@ -12,6 +12,7 @@
 #include <Tsukino/BuiltIn/ECS/UI/UICanvas.hpp>
 #include <Tsukino/BuiltIn/ECS/UI/UICanvasGroupUtility.hpp>
 #include <Tsukino/BuiltIn/ECS/UI/UIClipUtility.hpp>
+#include <Tsukino/BuiltIn/ECS/UI/UIRectUtility.hpp>
 #include <Tsukino/BuiltIn/ECS/UI/UIVisibilityUtility.hpp>
 #include <Tsukino/BuiltIn/BuiltInAssets.hpp>
 
@@ -76,6 +77,16 @@ namespace Tsukino::BuiltIn::ECS {
                 return scale;
             const float width = measuredWidth * scale;
             return (width > maxWidth) ? scale * (maxWidth / width) : scale;
+        }
+
+        //-------------------------------------------------------------
+        //! 揃えの割合（左・上 0、中央 0.5、右・下 1）を返します。
+        //-------------------------------------------------------------
+        [[nodiscard]]
+        hlslpp::float2 AlignFactor(HorizontalAlign horizontal, VerticalAlign vertical) {
+            const float x = (horizontal == HorizontalAlign::Center) ? 0.5f : (horizontal == HorizontalAlign::Right) ? 1.0f : 0.0f;
+            const float y = (vertical == VerticalAlign::Middle) ? 0.5f : (vertical == VerticalAlign::Bottom) ? 1.0f : 0.0f;
+            return hlslpp::float2(x, y);
         }
     }    // namespace
 
@@ -161,7 +172,26 @@ namespace Tsukino::BuiltIn::ECS {
             // Transformから情報を抽出
             //-------------------------------------------------------------
             hlslpp::float3 worldPos   = transform.worldMatrix[3].xyz;
-            float          finalScale = hlslpp::length(transform.worldMatrix[0].xyz);
+            const float    worldScale = hlslpp::length(transform.worldMatrix[0].xyz);
+            float          finalScale = worldScale * font.scale;
+
+            //-------------------------------------------------------------
+            // UIRectComponent があれば、揃えの基準点を四角の中の点にする（左揃えなら左端、中央なら中心…）。
+            // 収める幅を指定していなければ四角の幅に収める
+            //-------------------------------------------------------------
+            float maxWidth = font.maxWidth;
+            if(const auto* rect = registry.try_get<UIRectComponent>(entity)) {
+                const UIRectUtility::LocalRect local = UIRectUtility::FromRect(*rect);
+                const hlslpp::float2           point = local.center + (AlignFactor(font.horizontalAlign, font.verticalAlign) - 0.5f) * local.size;
+                const hlslpp::float2           world = UIRectUtility::LocalToWorld(transform.worldMatrix, point);
+                worldPos.x                           = world.x;
+                worldPos.y                           = world.y;
+                if(maxWidth <= 0.0f)
+                    maxWidth = std::abs(float(rect->size.x)) * worldScale;
+            }
+
+            // 画面上の回転（Z 回転を親まで合成したもの）。行ベクトル規約なので1行目が回した X 軸の向き
+            const float rotation = std::atan2(float(transform.worldMatrix[0].y), float(transform.worldMatrix[0].x));
 
             if(asset->GetType() == Tsukino::Asset::AssetType::DynamicFont) {
                 //-------------------------------------------------------------
@@ -181,7 +211,7 @@ namespace Tsukino::BuiltIn::ECS {
                 Tsukino::Renderer::DynamicFontAtlas* nativeAtlas = atlas.get();
 
                 // 揃え位置と枠に収める計算のどちらかが要るときだけ測る
-                const bool     needsMeasure = NeedsMeasure(font.horizontalAlign, font.verticalAlign) || font.maxWidth > 0.0f;
+                const bool     needsMeasure = NeedsMeasure(font.horizontalAlign, font.verticalAlign) || maxWidth > 0.0f;
                 hlslpp::float2 measured(0.0f, 0.0f);
                 if(needsMeasure)
                     measured = nativeAtlas->MeasureString(font.text, immediateContext);
@@ -198,7 +228,8 @@ namespace Tsukino::BuiltIn::ECS {
                 entry.color.w *= groupAlpha;
                 entry.outlineColor.w *= groupAlpha;
                 entry.outlineWidth = font.outlineWidth * canvas.scale;
-                entry.scale        = FitScale(finalScale, float(measured.x), font.maxWidth) * canvas.scale;    // 収める幅は UI の単位で計算してからピクセルにする
+                entry.scale        = FitScale(finalScale, float(measured.x), maxWidth) * canvas.scale;    // 収める幅は UI の単位で計算してからピクセルにする
+                entry.rotation     = rotation;
                 entry.sortOrder    = font.sortOrder;
                 entry.hasClip      = hasClip;
                 entry.clipRect     = clipRect;
@@ -243,7 +274,7 @@ namespace Tsukino::BuiltIn::ECS {
 
                 hlslpp::float2    alignedOrigin = font.origin;
                 DirectX::XMFLOAT2 measured{};
-                if(NeedsMeasure(font.horizontalAlign, font.verticalAlign) || font.maxWidth > 0.0f)
+                if(NeedsMeasure(font.horizontalAlign, font.verticalAlign) || maxWidth > 0.0f)
                     DirectX::XMStoreFloat2(&measured, nativeFont->MeasureString(safeText.c_str()));
                 if(NeedsMeasure(font.horizontalAlign, font.verticalAlign)) {
                     alignedOrigin =
@@ -260,7 +291,8 @@ namespace Tsukino::BuiltIn::ECS {
                 entry.color.w *= groupAlpha;
                 entry.outlineColor.w *= groupAlpha;
                 entry.outlineWidth = font.outlineWidth * canvas.scale;
-                entry.scale        = FitScale(finalScale, measured.x, font.maxWidth) * canvas.scale;
+                entry.scale        = FitScale(finalScale, measured.x, maxWidth) * canvas.scale;
+                entry.rotation     = rotation;
                 entry.sortOrder    = font.sortOrder;
                 entry.hasClip      = hasClip;
                 entry.clipRect     = clipRect;
@@ -373,7 +405,7 @@ namespace Tsukino::BuiltIn::ECS {
 
             if(entry.atlas) {
                 entry.atlas->DrawString(m_spriteBatch.get(), context, entry.text, entry.position, entry.color, entry.origin, entry.scale,
-                                        entry.outlineColor, entry.outlineWidth);
+                                        entry.outlineColor, entry.outlineWidth, entry.rotation);
                 continue;
             }
 
@@ -399,7 +431,7 @@ namespace Tsukino::BuiltIn::ECS {
                         entry.text.c_str(),
                         DirectX::XMFLOAT2(entry.position.x + offset[0] * entry.outlineWidth, entry.position.y + offset[1] * entry.outlineWidth),
                         outlineColorVec,
-                        0.0f,
+                        entry.rotation,
                         origin,
                         entry.scale);
                 }
@@ -410,7 +442,7 @@ namespace Tsukino::BuiltIn::ECS {
                                          entry.text.c_str(),
                                          DirectX::XMFLOAT2(entry.position.x, entry.position.y),
                                          DirectX::XMLoadFloat4(&dxColor),
-                                         0.0f,
+                                         entry.rotation,
                                          origin,
                                          entry.scale);
         }

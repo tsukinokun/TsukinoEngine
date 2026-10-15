@@ -58,6 +58,7 @@
 #include <Tsukino/BuiltIn/ECS/Serialization/CollisionComponentSerialization.hpp>
 #include <Tsukino/BuiltIn/ECS/Serialization/TerrainGenerationRequestComponentSerialization.hpp>
 #include <Tsukino/BuiltIn/ECS/Serialization/SpriteComponentSerialization.hpp>
+#include <Tsukino/BuiltIn/ECS/Serialization/UIRectComponentSerialization.hpp>
 #include <Tsukino/BuiltIn/ECS/Serialization/FontComponentSerialization.hpp>
 
 #include <Tsukino/Core/Log.hpp>
@@ -380,6 +381,8 @@ namespace Tsukino::EngineIntegration {
         // isDragging/dragOffsetは実行時状態のみのため、シリアライズ対応不要（アタッチのみでよい）
         m_prefabFactory->RegisterComponent<Tsukino::BuiltIn::ECS::DraggableComponent>("DraggableComponent");
         // 画面UIの切り取り枠とスクロール。中身・スクロールバーをエンティティで指すため実行時専用（アタッチのみでよい）
+        // 画面UIの部品の四角（大きさと基準点）
+        m_prefabFactory->RegisterComponent<Tsukino::BuiltIn::ECS::UIRectComponent>("UIRectComponent");
         m_prefabFactory->RegisterComponent<Tsukino::BuiltIn::ECS::UIClipComponent>("UIClipComponent");
         m_prefabFactory->RegisterComponent<Tsukino::BuiltIn::ECS::ScrollViewComponent>("ScrollViewComponent");
         m_prefabFactory->RegisterComponent<Tsukino::BuiltIn::ECS::ScrollBarComponent>("ScrollBarComponent");

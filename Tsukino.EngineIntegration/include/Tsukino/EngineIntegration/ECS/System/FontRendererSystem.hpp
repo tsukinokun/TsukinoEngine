@@ -85,6 +85,7 @@ namespace Tsukino::BuiltIn::ECS {
             hlslpp::float4 outlineColor = {0, 0, 0, 1};     // 縁取りの色
             float          outlineWidth = 0.0f;             // 縁取りの太さ（ピクセル）
             float          scale        = 1.0f;             // 拡大率
+            float          rotation     = 0.0f;             // 回転（ラジアン。画面上で時計回りが正。Transform の Z 回転を親まで合成したもの）
             int            sortOrder    = 0;                // 描画順
 
             bool                        hasClip = false;    // 祖先の UIClipComponent で切り取るか

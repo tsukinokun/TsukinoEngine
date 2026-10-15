@@ -26,7 +26,10 @@ namespace Tsukino::BuiltIn::ECS {
                 cereal::make_nvp("fillMode", sprite.fillMode),
                 cereal::make_nvp("fillAmount", sprite.fillAmount),
                 cereal::make_nvp("fillStartAngle", sprite.fillStartAngle),
-                cereal::make_nvp("fillClockwise", sprite.fillClockwise));
+                cereal::make_nvp("fillClockwise", sprite.fillClockwise),
+                cereal::make_nvp("sliceBorder", sprite.sliceBorder),
+                cereal::make_nvp("sliceScale", sprite.sliceScale),
+                cereal::make_nvp("raycastTarget", sprite.raycastTarget));
     }
 
     //--------------------------------------------------------------
@@ -36,7 +39,7 @@ namespace Tsukino::BuiltIn::ECS {
     void load(Archive& archive, SpriteComponent& sprite) {
         archive(sprite.textureHandle, sprite.blendMode, sprite.space, sprite.tintColor, sprite.uvRect, sprite.sortOrder);
 
-        // fill* は後から足した項目。古いPrefab JSONには無いので、無ければ既定値（画像全体を描く）のまま
+        // fill*・slice*・raycastTarget は後から足した項目。古いPrefab JSONには無いので、無ければ既定値（画像全体を描く・当たりを受ける）のまま
         auto loadOptional = [&archive](const char* name, auto& value) {
             try {
                 archive(cereal::make_nvp(name, value));
@@ -47,6 +50,9 @@ namespace Tsukino::BuiltIn::ECS {
         loadOptional("fillAmount", sprite.fillAmount);
         loadOptional("fillStartAngle", sprite.fillStartAngle);
         loadOptional("fillClockwise", sprite.fillClockwise);
+        loadOptional("sliceBorder", sprite.sliceBorder);
+        loadOptional("sliceScale", sprite.sliceScale);
+        loadOptional("raycastTarget", sprite.raycastTarget);
     }
 
 }    // namespace Tsukino::BuiltIn::ECS

@@ -24,6 +24,7 @@ cbuffer CBufferMaterial : register(b2)
     float4 spriteFill;     // 80  スプライト専用の塗り。x: 塗り方(0=全体, 1=円形), y: 塗る割合, z: 開始角(ラジアン), w: 向き(+1=時計回り, -1=反時計回り)
     float4 shading;        // 96  x: ShadingModel の番号(0=PBR, 1=Unlit, 2=Toon), y: トゥーンの境目, z: トゥーンのぼかし幅, w: トゥーンのハイライトの大きさ
     float4 toonShadeColor; // 112 xyz: トゥーンの暗い側に掛ける色, w: 予約
+    float4 spriteUv;       // 128 スプライト専用。描く四角の UV(0〜1) を画像のどこに当てるか。xy: 始まり, zw: 幅と高さ
 };
 
 //--------------------------------------------------------------

@@ -116,7 +116,7 @@
 - **Tsukino::BuiltIn::ECS::FontRendererSystem** — `Tsukino.EngineIntegration/include/Tsukino/EngineIntegration/ECS/System/FontRendererSystem.hpp`
   - FontRendererSystem(), ~FontRendererSystem(), Update()
 - **Tsukino::BuiltIn::ECS::FontRendererSystem::DrawEntry** — `Tsukino.EngineIntegration/include/Tsukino/EngineIntegration/ECS/System/FontRendererSystem.hpp`
-  - atlas, spriteFont, text, position, origin, color, outlineColor, outlineWidth, scale, sortOrder, hasClip, clipRect
+  - atlas, spriteFont, text, position, origin, color, outlineColor, outlineWidth, scale, rotation, sortOrder, hasClip, clipRect
 - **Tsukino::BuiltIn::ECS::HeightmapGenerationSystem** — `Tsukino.EngineIntegration/include/Tsukino/EngineIntegration/ECS/System/HeightmapGenerationSystem.hpp`
   - Update()
 - **Tsukino::BuiltIn::ECS::InteractionSystem** — `Tsukino.EngineIntegration/include/Tsukino/EngineIntegration/ECS/System/InteractionSystem.hpp`

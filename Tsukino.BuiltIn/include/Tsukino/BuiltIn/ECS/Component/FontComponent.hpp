@@ -34,8 +34,11 @@ namespace Tsukino::BuiltIn::ECS {
     //-------------------------------------------------------------
     //! @struct FontComponent
     //! @brief  フォント描画に必要な情報を管理するコンポ
-    //! @note   文字サイズはこのコンポでは持たず、TransformComponent::scale.xが
-    //!         そのままフォントの拡大率になる（FontRendererSystemがworldMatrixから読む）
+    //! @note   文字の大きさは scale × ワールドの拡大率（TransformComponent::scale.x を親まで合成したもの。
+    //!         FontRendererSystemがworldMatrixから読む）。UI の部品の子にした文字は scale で大きさを決め、
+    //!         Transform の拡大率は部品の動き（押したときの縮みなど）を受け継ぐのに使う。
+    //!         同じエンティティに UIRectComponent があれば、揃えはその四角の中で行い、
+    //!         maxWidth が 0 なら四角の幅に収める
     //-------------------------------------------------------------
     struct FontComponent {
         std::wstring                text;                     // 描画するテキスト
@@ -55,7 +58,9 @@ namespace Tsukino::BuiltIn::ECS {
 
         // 枠に収める幅。文字列の幅（スケール適用後）がこれを超えるときは、収まるところまで
         // 文字全体を縮めて描く（高さも一緒に縮む）。揃え位置はそのまま保たれる
-        float maxWidth = 0.0f;    // 描画幅の上限（ピクセル単位。0で制限なし）
+        float maxWidth = 0.0f;    // 描画幅の上限（ピクセル単位。0で制限なし。UIRectComponent があれば四角の幅）
+        // 文字の大きさの倍率。ワールドの拡大率に掛ける（UIRectComponent の四角はこれでは変わらない）
+        float scale = 1.0f;
 
         // 描画順（小さいほど先に描かれる）。RenderPass::Overlayへ積まれる文字は
         // SpriteComponent::sortOrderと同じ1本の軸として比較されるため、

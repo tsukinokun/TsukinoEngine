@@ -15,9 +15,10 @@ namespace Tsukino::BuiltIn::ECS {
     //!         枠の外ではマウスの当たり判定（PointerTargetComponent）も効かない。
     //!         枠の中心はこのエンティティのワールド位置（スプライトと同じく中心基準）、
     //!         大きさは size にワールドの拡大率を掛けたもの。
+    //!         size が 0 で同じエンティティに UIRectComponent があれば、その四角を枠にする。
     //!         入れ子にした場合は、一番近い祖先の枠だけを使う
     //-------------------------------------------------------------
     struct UIClipComponent {
-        hlslpp::float2 size = hlslpp::float2(0.0f, 0.0f);    // 枠の大きさ（画面ピクセル）
+        hlslpp::float2 size = hlslpp::float2(0.0f, 0.0f);    // 枠の大きさ（画面ピクセル。0 なら UIRectComponent の四角）
     };
 }    // namespace Tsukino::BuiltIn::ECS

@@ -327,9 +327,14 @@ namespace Tsukino::Renderer {
     //------------------------------------------------------------
     void DynamicFontAtlas::DrawString(DirectX::SpriteBatch* spriteBatch, ID3D11DeviceContext* context, const std::wstring& text,
                                        hlslpp::float2 position, hlslpp::float4 color, hlslpp::float2 origin, float scale,
-                                       hlslpp::float4 outlineColor, float outlineWidth) {
+                                       hlslpp::float4 outlineColor, float outlineWidth, float rotation) {
         if(!m_fontFace || scale <= 0.0f)
             return;
+
+        // 回転。グリフの左上の位置を position を軸に回し、グリフ自体も同じ角度で（左上を軸に）回す
+        const bool  rotated = rotation != 0.0f;
+        const float cosR    = std::cos(rotation);
+        const float sinR    = std::sin(rotation);
 
         //------------------------------------------------------------
         // 実際に描く大きさでラスタライズしたグリフを使う。
@@ -369,11 +374,21 @@ namespace Tsukino::Renderer {
 
                 RECT sourceRect = glyph.atlasRect;
 
-                // グリフの左上を整数ピクセルにそろえる（半端な位置だとバイリニアサンプリングでにじむ）
-                DirectX::XMFLOAT2 destPos(std::round(startX + glyphPenX * scale + glyph.bearingX * rasterScale),
-                                          std::round(startY + glyphPenY * scale + glyph.bearingY * rasterScale));
+                const float glyphX = startX + glyphPenX * scale + glyph.bearingX * rasterScale;
+                const float glyphY = startY + glyphPenY * scale + glyph.bearingY * rasterScale;
 
-                spriteBatch->Draw(m_pages[glyph.page].srv.Get(), destPos, &sourceRect, colorVec, 0.0f, DirectX::XMFLOAT2(0.0f, 0.0f), rasterScale);
+                DirectX::XMFLOAT2 destPos;
+                if(rotated) {
+                    // 回したときは整数ピクセルにそろえない（そろえると文字がガタガタに並ぶ）
+                    const float dx = glyphX - position.x;
+                    const float dy = glyphY - position.y;
+                    destPos        = DirectX::XMFLOAT2(position.x + dx * cosR - dy * sinR, position.y + dx * sinR + dy * cosR);
+                } else {
+                    // グリフの左上を整数ピクセルにそろえる（半端な位置だとバイリニアサンプリングでにじむ）
+                    destPos = DirectX::XMFLOAT2(std::round(glyphX), std::round(glyphY));
+                }
+
+                spriteBatch->Draw(m_pages[glyph.page].srv.Get(), destPos, &sourceRect, colorVec, rotation, DirectX::XMFLOAT2(0.0f, 0.0f), rasterScale);
             }
         };
 

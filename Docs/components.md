@@ -4,7 +4,7 @@
 
 再生成: `vendor\premake5.exe gen-manifest`（または `generate-docs.bat`）
 
-コンポーネント 47 個（Prefab 登録済み 30 個 / シリアライズ定義あり 20 個）
+コンポーネント 48 個（Prefab 登録済み 31 個 / シリアライズ定義あり 21 個）
 
 ## 読み方
 
@@ -186,6 +186,7 @@
 | `sortOrder` | `int` | number | `0` |
 | `maxWidth` | `float` | number | `0.0f` |
 | `fontHandle` | `Tsukino::Asset::AssetRef` | "path/to/asset" | — |
+| `scale` | `float` | number | `1.0f` |
 
 ### ModelComponent
 
@@ -338,6 +339,9 @@
 | `fillAmount` | `float` | number | `1.0f` |
 | `fillStartAngle` | `float` | number | `0.0f` |
 | `fillClockwise` | `bool` | true / false | `true` |
+| `sliceBorder` | `hlslpp::float4` | { "x", "y", "z", "w" } | `hlslpp::float4(0.0f, 0.0f, 0.0f, 0.0f)` |
+| `sliceScale` | `float` | number | `1.0f` |
+| `raycastTarget` | `bool` | true / false | `true` |
 
 ### TerrainGenerationRequestComponent
 
@@ -367,6 +371,18 @@
 | `rotation` | `hlslpp::quaternion` | { "x", "y", "z", "w" } | `hlslpp::quaternion(0.0f, 0.0f, 0.0f, 1.0f)` |
 | `scale` | `hlslpp::float3` | { "x", "y", "z" } | `hlslpp::float3(1.0f, 1.0f, 1.0f)` |
 | `parent` | `Tsukino::ECS::EntityRef` | "#EntityName" | — |
+
+### UIRectComponent
+
+- 型: `Tsukino::BuiltIn::ECS::UIRectComponent`
+- Prefab 登録名: `UIRectComponent`
+- 定義: `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/UIRectComponent.hpp`
+- シリアライズ: `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Serialization/UIRectComponentSerialization.hpp`
+
+| JSON キー | C++ 型 | JSON 表現 | 既定値 |
+|---|---|---|---|
+| `size` | `hlslpp::float2` | { "x", "y" } | `hlslpp::float2(0.0f, 0.0f)` |
+| `pivot` | `hlslpp::float2` | { "x", "y" } | `hlslpp::float2(0.5f, 0.5f)` |
 
 ## Prefab から生成できないコンポーネント
 

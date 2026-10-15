@@ -58,10 +58,11 @@ namespace Tsukino::Renderer {
         //! @param  scale       [in] 追加スケール（Transformのワールドスケールなど）。この大きさに合わせてグリフをラスタライズする
         //! @param  outlineColor [in] 縁取りの色（outlineWidthが0より大きいときのみ使用）
         //! @param  outlineWidth [in] 縁取りの太さ（ピクセル単位、スケール適用後の値。0で無効）
+        //! @param  rotation    [in] 回転（ラジアン。画面上で時計回りが正）。position を軸に文字列全体を回す
         //------------------------------------------------------------
         void DrawString(DirectX::SpriteBatch* spriteBatch, ID3D11DeviceContext* context, const std::wstring& text, hlslpp::float2 position,
                          hlslpp::float4 color, hlslpp::float2 origin, float scale, hlslpp::float4 outlineColor = hlslpp::float4(0.0f, 0.0f, 0.0f, 0.0f),
-                         float outlineWidth = 0.0f);
+                         float outlineWidth = 0.0f, float rotation = 0.0f);
 
         //------------------------------------------------------------
         //! @brief  文字列の描画サイズを取得する関数

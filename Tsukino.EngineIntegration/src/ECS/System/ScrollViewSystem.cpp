@@ -10,6 +10,7 @@
 #include <Tsukino/BuiltIn/ECS/Component/SpriteComponent.hpp>
 #include <Tsukino/BuiltIn/ECS/Component/TransformComponent.hpp>
 #include <Tsukino/BuiltIn/ECS/Component/UIClipComponent.hpp>
+#include <Tsukino/BuiltIn/ECS/Component/UIRectComponent.hpp>
 #include <Tsukino/BuiltIn/ECS/Transform/TransformUtility.hpp>
 #include <Tsukino/BuiltIn/ECS/UI/UICanvas.hpp>
 #include <Tsukino/BuiltIn/ECS/UI/UIClipUtility.hpp>
@@ -88,15 +89,24 @@ namespace Tsukino::BuiltIn::ECS {
         }
 
         //-------------------------------------------------------------
-        //! @brief  画面スプライトを、指定の大きさ（ピクセル）になる拡大率にする
+        //! @brief  画面スプライトを、指定の大きさ（ピクセル）にする
+        //! @note   UIRectComponent があればその大きさを書き、拡大率は 1（隠すときは 0）にする。
+        //!         無ければ、画像がその大きさになる拡大率にする
         //! @param  ctx       [in] エンジンコンテキスト（テクスチャの大きさを引く）
         //! @param  transform [in] 拡大率を書くトランスフォーム
         //! @param  sprite    [in] 大きさを測るスプライト
+        //! @param  rect      [in] スプライトの UIRectComponent（無ければ nullptr）
         //! @param  size      [in] 表示する大きさ（0 なら隠す）
         //-------------------------------------------------------------
-        void SetSpriteSize(Tsukino::EngineIntegration::EngineContext* ctx, TransformComponent& transform, const SpriteComponent& sprite, const hlslpp::float2& size) {
+        void SetSpriteSize(Tsukino::EngineIntegration::EngineContext* ctx, TransformComponent& transform, const SpriteComponent& sprite, UIRectComponent* rect,
+                           const hlslpp::float2& size) {
             hlslpp::float3 scale(0.0f, 0.0f, 1.0f);
-            if(size.x > 0.0f && size.y > 0.0f) {
+            if(rect) {
+                if(size.x > 0.0f && size.y > 0.0f) {
+                    rect->size = size;
+                    scale      = hlslpp::float3(1.0f, 1.0f, 1.0f);
+                }
+            } else if(size.x > 0.0f && size.y > 0.0f) {
                 auto texture = std::static_pointer_cast<Tsukino::Asset::TextureAsset>(ctx->assetManager->Get(sprite.textureHandle));
                 if(texture && texture->width > 0 && texture->height > 0)
                     scale = hlslpp::float3(size.x / static_cast<float>(texture->width), size.y / static_cast<float>(texture->height), 1.0f);
@@ -121,7 +131,7 @@ namespace Tsukino::BuiltIn::ECS {
 
             if(auto* track = registry.try_get<TransformComponent>(scroll.scrollBar)) {
                 if(const auto* sprite = registry.try_get<SpriteComponent>(scroll.scrollBar))
-                    SetSpriteSize(ctx, *track, *sprite, geometry.valid ? bar.size : hlslpp::float2(0.0f, 0.0f));
+                    SetSpriteSize(ctx, *track, *sprite, registry.try_get<UIRectComponent>(scroll.scrollBar), geometry.valid ? bar.size : hlslpp::float2(0.0f, 0.0f));
             }
 
             if(bar.thumb == entt::null || !registry.HasComponent<TransformComponent>(bar.thumb))
@@ -129,7 +139,8 @@ namespace Tsukino::BuiltIn::ECS {
 
             TransformComponent& thumb = registry.GetComponent<TransformComponent>(bar.thumb);
             if(const auto* sprite = registry.try_get<SpriteComponent>(bar.thumb))
-                SetSpriteSize(ctx, thumb, *sprite, geometry.valid ? hlslpp::float2(bar.size.x, geometry.thumbSize) : hlslpp::float2(0.0f, 0.0f));
+                SetSpriteSize(ctx, thumb, *sprite, registry.try_get<UIRectComponent>(bar.thumb),
+                              geometry.valid ? hlslpp::float2(bar.size.x, geometry.thumbSize) : hlslpp::float2(0.0f, 0.0f));
 
             if(geometry.valid) {
                 const float z = TU::GetWorldPosition(thumb).z;
@@ -161,7 +172,8 @@ namespace Tsukino::BuiltIn::ECS {
 
         registry.View<TransformComponent, UIClipComponent, ScrollViewComponent>().each(
             [&](Tsukino::ECS::Entity entity, const TransformComponent& transform, const UIClipComponent& clip, ScrollViewComponent& scroll) {
-                const UIClipUtility::ClipBounds bounds    = UIClipUtility::ComputeBounds(transform, clip);
+                const UIRectComponent*          rect      = registry.try_get<UIRectComponent>(entity);
+                const UIClipUtility::ClipBounds bounds    = UIClipUtility::ComputeBounds(transform, clip, rect);
                 const float                     viewSize  = bounds.Height();
                 const float                     maxOffset = std::max(0.0f, scroll.contentHeight - viewSize);
 
@@ -257,7 +269,9 @@ namespace Tsukino::BuiltIn::ECS {
                 //-------------------------------------------------------------
                 if(scroll.content != entt::null && registry.HasComponent<TransformComponent>(scroll.content)) {
                     TransformComponent&  content  = registry.GetComponent<TransformComponent>(scroll.content);
-                    const hlslpp::float3 position = hlslpp::float3(-clip.size.x * 0.5f, -clip.size.y * 0.5f - scroll.offset, float(content.position.z));
+                    const UIRectUtility::LocalRect local    = UIClipUtility::ResolveLocalRect(clip, rect);
+                    const hlslpp::float2           topLeft  = local.center - local.size * 0.5f;
+                    const hlslpp::float3           position = hlslpp::float3(topLeft.x, float(topLeft.y) - scroll.offset, float(content.position.z));
                     if(float(content.position.x) != float(position.x) || float(content.position.y) != float(position.y)) {
                         content.position = position;
                         content.dirty    = true;
