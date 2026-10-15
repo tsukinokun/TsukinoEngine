@@ -17,6 +17,7 @@
 #include <Tsukino/Renderer/LightingPass.hpp>
 #include <Tsukino/Renderer/AmbientParticlePass.hpp>
 #include <Tsukino/Renderer/FogPass.hpp>
+#include <Tsukino/Renderer/SphereColorGradePass.hpp>
 #include <Tsukino/Renderer/MotionBlurPass.hpp>
 #include <Tsukino/Renderer/BloomPass.hpp>
 #include <Tsukino/Renderer/DrawCommandQueue.hpp>
@@ -67,6 +68,7 @@ namespace Tsukino::Renderer {
         const Tsukino::Asset::ShaderAsset* lightingPS       = nullptr;    //!< ディファードLightingパス用PS（VSはtonemapVSを共用）
         const Tsukino::Asset::ShaderAsset* motionBlurPS     = nullptr;    //!< モーションブラーパス用PS（VSはtonemapVSを共用）
         const Tsukino::Asset::ShaderAsset* fogPS            = nullptr;    //!< フォグパス用PS（VSはtonemapVSを共用）
+        const Tsukino::Asset::ShaderAsset* sphereColorGradePS = nullptr;    //!< 球形の色調補正パス用PS（VSはtonemapVSを共用）
         const Tsukino::Asset::ShaderAsset* bloomPrefilterPS  = nullptr;    //!< ブルームの明部抽出用PS（VSはtonemapVSを共用）
         const Tsukino::Asset::ShaderAsset* bloomDownsamplePS = nullptr;    //!< ブルームの縮小用PS（同上）
         const Tsukino::Asset::ShaderAsset* bloomUpsamplePS   = nullptr;    //!< ブルームの拡大・合成用PS（同上）
@@ -310,6 +312,15 @@ namespace Tsukino::Renderer {
         }
 
         //------------------------------------------------------------
+        //! @brief  球形の色調補正パスを取得する
+        //! @return パラメータと有効フラグを受け付ける SphereColorGradePass
+        //------------------------------------------------------------
+        [[nodiscard]]
+        SphereColorGradePass& GetSphereColorGrade() noexcept {
+            return m_sphereColorGradePass;
+        }
+
+        //------------------------------------------------------------
         //! @brief  モーションブラーパスを取得する
         //! @return パラメータと有効フラグを受け付ける MotionBlurPass
         //------------------------------------------------------------
@@ -346,6 +357,7 @@ namespace Tsukino::Renderer {
         LightingPass                         m_lightingPass;       // ディファードライティング（m_shadowPass と m_iblBaker を借りるので、その後に宣言する）
         AmbientParticlePass                  m_ambientParticlePass;    // 環境パーティクル
         FogPass                              m_fogPass;                // フォグ（m_fullscreenPass を借りる）
+        SphereColorGradePass                 m_sphereColorGradePass;   // 球形の色調補正（同上）
         MotionBlurPass                       m_motionBlurPass;         // モーションブラー（同上）
         BloomPass                            m_bloomPass;              // ブルーム（同上）
 

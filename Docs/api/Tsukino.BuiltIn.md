@@ -13,7 +13,7 @@
 - **Tsukino::BuiltIn::BuiltInFonts** — `Tsukino.BuiltIn/include/Tsukino/BuiltIn/BuiltInFonts.hpp`
   - defaultFont, Initialize()
 - **Tsukino::BuiltIn::BuiltInShaders** — `Tsukino.BuiltIn/include/Tsukino/BuiltIn/BuiltInShaders.hpp`
-  - spriteVS, spritePS, spriteWorldVS, modelVS, modelPS, screenModelPS, staticModelVS, debugVS, debugPS, shadowVS, shadowStaticVS, shadowPS, skyVS, skyPS, tonemapVS, tonemapPS, gbufferPS, lightingPS, motionBlurPS, bloomPrefilterPS, bloomDownsamplePS, bloomUpsamplePS, fogPS, ambientParticleVS, ambientParticlePS, iblIrradiancePS, iblSpecularPrefilterPS, iblBRDFLUTPS, Initialize()
+  - spriteVS, spritePS, spriteWorldVS, modelVS, modelPS, screenModelPS, staticModelVS, debugVS, debugPS, shadowVS, shadowStaticVS, shadowPS, skyVS, skyPS, tonemapVS, tonemapPS, gbufferPS, lightingPS, motionBlurPS, bloomPrefilterPS, bloomDownsamplePS, bloomUpsamplePS, fogPS, sphereColorGradePS, ambientParticleVS, ambientParticlePS, iblIrradiancePS, iblSpecularPrefilterPS, iblBRDFLUTPS, Initialize()
 - **Tsukino::BuiltIn::ECS::AmbientParticleComponent** — `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/AmbientParticleComponent.hpp`
   - enabled, count, volumeSize, seed, color, intensity, minSize, maxSize, minBrightness, maxBrightness, twinkle, driftVelocity, swayAmplitude, swayFrequency, minSpeedScale, maxSpeedScale, edgeFadeStart, nearFadeDistance
 - **Tsukino::BuiltIn::ECS::AnimationControllerComponent** — `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/AnimationControllerComponent.hpp`
@@ -86,6 +86,8 @@
   - MAX_BONES, local_matrices, bone_count
 - **Tsukino::BuiltIn::ECS::SkyAtmosphereComponent** — `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/SkyAtmosphereComponent.hpp`
   - rayleighScattering, mieScattering, mieAnisotropy, atmosphereHeight, planetRadius, sunIntensity, sunDiskSize, groundColor
+- **Tsukino::BuiltIn::ECS::SphereColorGradeComponent** — `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/SphereColorGradeComponent.hpp`
+  - enabled, center, radius, edgeSoftness, tint, strength, fogColor, fogDensity, edgeColor, edgeWidth
 - **Tsukino::BuiltIn::ECS::SpotLightComponent** — `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/SpotLightComponent.hpp`
   - color, intensity, range, innerConeDeg, outerConeDeg, enabled
 - **Tsukino::BuiltIn::ECS::SpringBoneComponent** — `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/SpringBoneComponent.hpp`

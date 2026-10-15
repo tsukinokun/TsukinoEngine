@@ -37,6 +37,7 @@
 | `IBLBaker & GetIBL() noexcept` | スカイ由来の環境光（IBL）のベイクを取得する |
 | `AmbientParticlePass & GetAmbientParticles() noexcept` | 環境パーティクル（火の粉・灰）パスを取得する |
 | `FogPass & GetFog() noexcept` | フォグパスを取得する |
+| `SphereColorGradePass & GetSphereColorGrade() noexcept` | 球形の色調補正パスを取得する |
 | `MotionBlurPass & GetMotionBlur() noexcept` | モーションブラーパスを取得する |
 | `BloomPass & GetBloom() noexcept` | ブルームパスを取得する |
 
@@ -76,6 +77,8 @@
   - bones
 - **Tsukino::Renderer::CBufferSky** — `Tsukino.Renderer/include/Tsukino/Renderer/ConstantBuffer.hpp`
   - rayleighScattering, mieScattering, mieAnisotropy, sunIntensity, atmosphereHeight, planetRadius, sunDiskSize, padding0, groundColor, sunDirection
+- **Tsukino::Renderer::CBufferSphereColorGrade** — `Tsukino.Renderer/include/Tsukino/Renderer/ConstantBuffer.hpp`
+  - sphere, tint, fogColor, edgeColor, edgeParams
 - **Tsukino::Renderer::CBufferTransform** — `Tsukino.Renderer/include/Tsukino/Renderer/ConstantBuffer.hpp`
   - world, prevWorld, motionFlags
 - **Tsukino::Renderer::ClipRect** — `Tsukino.Renderer/include/Tsukino/Renderer/DrawCommand.hpp`
@@ -133,11 +136,11 @@
 - **Tsukino::Renderer::RenderResources** — `Tsukino.Renderer/include/Tsukino/Renderer/RenderResources.hpp`
   - Initialize(), GetPipelineFactory(), GetCommonStatesTK(), GetScissorRasterizerState(), GetSampler(), GetPrimitiveMesh(), GetTextureSRV(), GetWhiteTextureSRV(), GetFlatNormalTextureSRV(), CreateSpriteFont(), CreateSpriteBatch()
 - **Tsukino::Renderer::Renderer** — `Tsukino.Renderer/include/Tsukino/Renderer/Renderer.hpp`
-  - Renderer(), ~Renderer(), Initialize(), Render(), Resize(), SetClearColor(), GetDrawQueue(), SetShadowCullingEnabled(), GetFrameStats(), SetVSyncEnabled(), IsVSyncEnabled(), GetDebugDraw(), GetResources(), GetFrameConstants(), GetDevice(), GetContext(), GetLighting(), GetSky(), GetIBL(), GetAmbientParticles(), GetFog(), GetMotionBlur(), GetBloom()
+  - Renderer(), ~Renderer(), Initialize(), Render(), Resize(), SetClearColor(), GetDrawQueue(), SetShadowCullingEnabled(), GetFrameStats(), SetVSyncEnabled(), IsVSyncEnabled(), GetDebugDraw(), GetResources(), GetFrameConstants(), GetDevice(), GetContext(), GetLighting(), GetSky(), GetIBL(), GetAmbientParticles(), GetFog(), GetSphereColorGrade(), GetMotionBlur(), GetBloom()
 - **Tsukino::Renderer::Renderer::FrameStats** — `Tsukino.Renderer/include/Tsukino/Renderer/Renderer.hpp`
   - commandCount, shadowDrawCalls, gbufferDrawCalls, worldDrawCalls, transparentDrawCalls, overlayDrawCalls, skinnedDrawCalls, triangleCount, boneBytesUploaded, TotalDrawCalls()
 - **Tsukino::Renderer::RendererShaderSet** — `Tsukino.Renderer/include/Tsukino/Renderer/Renderer.hpp`
-  - debugVS, debugPS, tonemapVS, tonemapPS, shadowStaticVS, shadowSkeletalVS, shadowPS, lightingPS, motionBlurPS, fogPS, bloomPrefilterPS, bloomDownsamplePS, bloomUpsamplePS, ambientParticleVS, ambientParticlePS, iblIrradiancePS, iblSpecularPrefilterPS, iblBRDFLUTPS
+  - debugVS, debugPS, tonemapVS, tonemapPS, shadowStaticVS, shadowSkeletalVS, shadowPS, lightingPS, motionBlurPS, fogPS, sphereColorGradePS, bloomPrefilterPS, bloomDownsamplePS, bloomUpsamplePS, ambientParticleVS, ambientParticlePS, iblIrradiancePS, iblSpecularPrefilterPS, iblBRDFLUTPS
 - **Tsukino::Renderer::Shader** — `Tsukino.Renderer/include/Tsukino/Renderer/Shader.hpp`
   - Shader(), ~Shader(), Bind()
 - **Tsukino::Renderer::ShaderLoader** — `Tsukino.Renderer/include/Tsukino/Renderer/ShaderLoader.hpp`
@@ -146,6 +149,8 @@
   - kMapSize, kCascadeCount, kShadowDistance, kSplitLambda, kSplitNear, kSkinnedBoundsInflate, kDepthTowardLight, kDepthAwayFromLight, kDepthRange, Initialize(), Execute(), BindForSampling(), SetCullingEnabled(), ComputeCascadeHalfExtents(), ComputeTexelWorldSize(), ComputeLightViewProj()
 - **Tsukino::Renderer::SkyPass** — `Tsukino.Renderer/include/Tsukino/Renderer/SkyPass.hpp`
   - Initialize(), SetParameters(), SetPipeline(), IsReady(), Execute(), GetVertexShader(), GetPixelShader(), GetBufferAddress()
+- **Tsukino::Renderer::SphereColorGradePass** — `Tsukino.Renderer/include/Tsukino/Renderer/SphereColorGradePass.hpp`
+  - Initialize(), SetParameters(), SetEnabled(), Execute(), EndFrame()
 - **Tsukino::Renderer::SpriteRenderer** — `Tsukino.Renderer/include/Tsukino/Renderer/SpriteRenderer.hpp`
   - SpriteRenderer(), Draw()
 - **Tsukino::Renderer::TonemapPass** — `Tsukino.Renderer/src/TonemapPass.hpp`

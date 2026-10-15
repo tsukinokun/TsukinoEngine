@@ -39,6 +39,7 @@ namespace Tsukino::BuiltIn {
         lightingPS     = assetManager->Load(root / "Tsukino.BuiltIn/Assets/Shaders/Lighting.ps.hlsl");
         motionBlurPS   = assetManager->Load(root / "Tsukino.BuiltIn/Assets/Shaders/MotionBlur.ps.hlsl");
         fogPS          = assetManager->Load(root / "Tsukino.BuiltIn/Assets/Shaders/Fog.ps.hlsl");
+        sphereColorGradePS = assetManager->Load(root / "Tsukino.BuiltIn/Assets/Shaders/SphereColorGrade.ps.hlsl");
 
         bloomPrefilterPS  = assetManager->Load(root / "Tsukino.BuiltIn/Assets/Shaders/BloomPrefilter.ps.hlsl");
         bloomDownsamplePS = assetManager->Load(root / "Tsukino.BuiltIn/Assets/Shaders/BloomDownsample.ps.hlsl");

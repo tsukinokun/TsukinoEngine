@@ -47,6 +47,7 @@ namespace Tsukino::BuiltIn {
         Tsukino::Asset::AssetHandle bloomDownsamplePS;    // ブルームの縮小用ピクセルシェーダーのハンドル（同上）
         Tsukino::Asset::AssetHandle bloomUpsamplePS;      // ブルームの拡大・合成用ピクセルシェーダーのハンドル（同上）
         Tsukino::Asset::AssetHandle fogPS;             // フォグパス用ピクセルシェーダーのハンドル（VSはtonemapVSを共用）
+        Tsukino::Asset::AssetHandle sphereColorGradePS;    // 球形の色調補正パス用ピクセルシェーダーのハンドル（同上）
 
         Tsukino::Asset::AssetHandle ambientParticleVS;    // 環境パーティクル用頂点シェーダーのハンドル（SV_VertexIDだけで板を生成する）
         Tsukino::Asset::AssetHandle ambientParticlePS;    // 環境パーティクル用ピクセルシェーダーのハンドル

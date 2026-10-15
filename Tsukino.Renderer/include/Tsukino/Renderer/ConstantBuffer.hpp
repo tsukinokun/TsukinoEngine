@@ -256,6 +256,20 @@ namespace Tsukino::Renderer {
     };
 
     //--------------------------------------------------------------
+    //! @struct CBufferSphereColorGrade
+    //! @brief  スロット8 (b8) 用：球形の色調補正ボリュームのパラメータ
+    //! @note   SphereColorGrade.ps.hlsl の CBufferSphereColorGrade と1バイト単位で一致させること。
+    //!         b8 はフォグパスと相乗りする（フォグパスが終わってから半透明パスで張り直すまでの間だけ使う）
+    //--------------------------------------------------------------
+    struct CBufferSphereColorGrade {
+        hlslpp::float4 sphere;         //!< xyz: 球の中心（ワールド）, w: 半径
+        hlslpp::float4 tint;           //!< xyz: 内側で掛ける色（乗算。暗くするなら1未満）, w: 全体の効き（0〜1）
+        hlslpp::float4 fogColor;       //!< xyz: 内側で寄せる霧の色(linear), w: 霧の濃さ（1/距離）
+        hlslpp::float4 edgeColor;      //!< xyz: 境界に足す光の色(linear, HDR), w: 光の帯の幅
+        hlslpp::float4 edgeParams;     //!< x: 境界のぼかし幅, yzw: 予約
+    };
+
+    //--------------------------------------------------------------
     //! 環境パーティクルの粒子数の上限
     //! @note AmbientParticleSystem がこの値でクランプする。
     //!       1粒 = 6頂点なので、上限では 393,216 頂点の単一Drawになる。

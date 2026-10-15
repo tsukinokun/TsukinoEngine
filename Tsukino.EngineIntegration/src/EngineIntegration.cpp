@@ -48,6 +48,7 @@
 #include <Tsukino/BuiltIn/ECS/Serialization/SpotLightComponentSerialization.hpp>
 #include <Tsukino/BuiltIn/ECS/Serialization/SkyAtmosphereComponentSerialization.hpp>
 #include <Tsukino/BuiltIn/ECS/Serialization/FogComponentSerialization.hpp>
+#include <Tsukino/BuiltIn/ECS/Serialization/SphereColorGradeComponentSerialization.hpp>
 #include <Tsukino/BuiltIn/ECS/Serialization/AmbientParticleComponentSerialization.hpp>
 #include <Tsukino/BuiltIn/ECS/Serialization/MotionBlurComponentSerialization.hpp>
 #include <Tsukino/BuiltIn/ECS/Serialization/BloomComponentSerialization.hpp>
@@ -297,6 +298,8 @@ namespace Tsukino::EngineIntegration {
         auto lightingPSAsset       = std::static_pointer_cast<Tsukino::Asset::ShaderAsset>(m_assetManager->Get(m_builtinAssets->shaders.lightingPS));
         auto motionBlurPSAsset     = std::static_pointer_cast<Tsukino::Asset::ShaderAsset>(m_assetManager->Get(m_builtinAssets->shaders.motionBlurPS));
         auto fogPSAsset            = std::static_pointer_cast<Tsukino::Asset::ShaderAsset>(m_assetManager->Get(m_builtinAssets->shaders.fogPS));
+        auto sphereColorGradePSAsset =
+            std::static_pointer_cast<Tsukino::Asset::ShaderAsset>(m_assetManager->Get(m_builtinAssets->shaders.sphereColorGradePS));
         auto bloomPrefilterPSAsset =
             std::static_pointer_cast<Tsukino::Asset::ShaderAsset>(m_assetManager->Get(m_builtinAssets->shaders.bloomPrefilterPS));
         auto bloomDownsamplePSAsset =
@@ -328,6 +331,7 @@ namespace Tsukino::EngineIntegration {
         shaderSet.lightingPS       = lightingPSAsset.get();
         shaderSet.motionBlurPS     = motionBlurPSAsset.get();
         shaderSet.fogPS            = fogPSAsset.get();
+        shaderSet.sphereColorGradePS = sphereColorGradePSAsset.get();
         shaderSet.bloomPrefilterPS  = bloomPrefilterPSAsset.get();
         shaderSet.bloomDownsamplePS = bloomDownsamplePSAsset.get();
         shaderSet.bloomUpsamplePS   = bloomUpsamplePSAsset.get();
@@ -361,6 +365,7 @@ namespace Tsukino::EngineIntegration {
         m_prefabFactory->RegisterComponent<Tsukino::BuiltIn::ECS::BloomComponent>("BloomComponent");
         m_prefabFactory->RegisterComponent<Tsukino::BuiltIn::ECS::OcclusionCutoutComponent>("OcclusionCutoutComponent");
         m_prefabFactory->RegisterComponent<Tsukino::BuiltIn::ECS::FogComponent>("FogComponent");
+        m_prefabFactory->RegisterComponent<Tsukino::BuiltIn::ECS::SphereColorGradeComponent>("SphereColorGradeComponent");
         m_prefabFactory->RegisterComponent<Tsukino::BuiltIn::ECS::AmbientParticleComponent>("AmbientParticleComponent");
         m_prefabFactory->RegisterComponent<Tsukino::BuiltIn::ECS::DebugCameraComponent>("DebugCameraComponent");
         // タグのみのコンポーネントはシリアライズ対応不要（アタッチのみでよい）

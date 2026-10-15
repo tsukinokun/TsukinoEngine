@@ -144,6 +144,10 @@ namespace Tsukino::Renderer {
             Tsukino::Core::Log::Error("Renderer: Fog is disabled because its resources could not be created.");
         }
 
+        if(!m_sphereColorGradePass.Initialize(m_graphicsContext, m_resources, m_frameConstants, *m_fullscreenPass, shaders.sphereColorGradePS)) {
+            Tsukino::Core::Log::Error("Renderer: Sphere color grade is disabled because its resources could not be created.");
+        }
+
         if(!m_ambientParticlePass.Initialize(m_graphicsContext, m_resources, m_frameConstants, shaders.ambientParticleVS, shaders.ambientParticlePS)) {
             Tsukino::Core::Log::Error("Renderer: Ambient particles are disabled because their resources could not be created.");
         }
@@ -277,6 +281,14 @@ namespace Tsukino::Renderer {
         // HDR＋DSVを張り直して半透明のパスへ進む
         //------------------------------------------------------------
         m_fogPass.Execute();
+
+        //------------------------------------------------------------
+        // 球形の色調補正パス（フォグの上から掛ける）
+        //
+        // フォグと同じく深度から画素の位置を求めるので、半透明の深度事前パスより前に置く。
+        // 霧に包まれた遠景まで同じ色合いに揃えるため、フォグの後に掛ける
+        //------------------------------------------------------------
+        m_sphereColorGradePass.Execute();
         m_graphicsContext.BindHDRRenderTarget();
 
         //------------------------------------------------------------
@@ -456,6 +468,7 @@ namespace Tsukino::Renderer {
         m_motionBlurPass.EndFrame();
         m_bloomPass.EndFrame();
         m_fogPass.EndFrame();
+        m_sphereColorGradePass.EndFrame();
         m_ambientParticlePass.EndFrame();
 
         m_graphicsContext.EndFrame();

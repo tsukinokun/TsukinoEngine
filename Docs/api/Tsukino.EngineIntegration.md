@@ -135,6 +135,8 @@
   - Update()
 - **Tsukino::BuiltIn::ECS::SkyAtmosphereSystem** — `Tsukino.EngineIntegration/include/Tsukino/EngineIntegration/ECS/System/SkyAtmosphereSystem.hpp`
   - Update()
+- **Tsukino::BuiltIn::ECS::SphereColorGradeSystem** — `Tsukino.EngineIntegration/include/Tsukino/EngineIntegration/ECS/System/SphereColorGradeSystem.hpp`
+  - Update()
 - **Tsukino::BuiltIn::ECS::SpriteRenderSystem** — `Tsukino.EngineIntegration/include/Tsukino/EngineIntegration/ECS/System/SpriteRendererSystem.hpp`
   - SpriteRenderSystem(), ~SpriteRenderSystem(), Update()
 - **Tsukino::BuiltIn::ECS::SpriteRenderSystem::SpriteEntry** — `Tsukino.EngineIntegration/include/Tsukino/EngineIntegration/ECS/System/SpriteRendererSystem.hpp`

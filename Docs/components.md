@@ -4,7 +4,7 @@
 
 再生成: `vendor\premake5.exe gen-manifest`（または `generate-docs.bat`）
 
-コンポーネント 46 個（Prefab 登録済み 29 個 / シリアライズ定義あり 19 個）
+コンポーネント 47 個（Prefab 登録済み 30 個 / シリアライズ定義あり 20 個）
 
 ## 読み方
 
@@ -282,6 +282,26 @@
 | `sunIntensity` | `float` | number | `20.0f` |
 | `sunDiskSize` | `float` | number | `0.02f` |
 | `groundColor` | `hlslpp::float3` | { "x", "y", "z" } | `hlslpp::float3(0.1f, 0.08f, 0.05f)` |
+
+### SphereColorGradeComponent
+
+- 型: `Tsukino::BuiltIn::ECS::SphereColorGradeComponent`
+- Prefab 登録名: `SphereColorGradeComponent`
+- 定義: `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/SphereColorGradeComponent.hpp`
+- シリアライズ: `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Serialization/SphereColorGradeComponentSerialization.hpp`
+
+| JSON キー | C++ 型 | JSON 表現 | 既定値 |
+|---|---|---|---|
+| `enabled` | `bool` | true / false | `true` |
+| `center` | `hlslpp::float3` | { "x", "y", "z" } | `hlslpp::float3(0.0f, 0.0f, 0.0f)` |
+| `radius` | `float` | number | `0.0f` |
+| `edgeSoftness` | `float` | number | `1.0f` |
+| `tint` | `hlslpp::float3` | { "x", "y", "z" } | `hlslpp::float3(1.0f, 1.0f, 1.0f)` |
+| `strength` | `float` | number | `1.0f` |
+| `fogColor` | `hlslpp::float3` | { "x", "y", "z" } | `hlslpp::float3(0.0f, 0.0f, 0.0f)` |
+| `fogDensity` | `float` | number | `0.0f` |
+| `edgeColor` | `hlslpp::float3` | { "x", "y", "z" } | `hlslpp::float3(0.0f, 0.0f, 0.0f)` |
+| `edgeWidth` | `float` | number | `1.0f` |
 
 ### SpotLightComponent
 

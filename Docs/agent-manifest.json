@@ -10,9 +10,9 @@
         "pathBase": "working directory (Debug: repository root / Release: next to the exe)"
     },
     "stats": {
-        "components": 46,
-        "registered": 29,
-        "serializable": 19
+        "components": 47,
+        "registered": 30,
+        "serializable": 20
     },
     "components": [
         {
@@ -1171,6 +1171,88 @@
                     "cppType": "hlslpp::float3",
                     "jsonShape": "{ \"x\", \"y\", \"z\" }",
                     "default": "hlslpp::float3(0.1f, 0.08f, 0.05f)"
+                }
+            ]
+        },
+        {
+            "name": "SphereColorGradeComponent",
+            "typeName": "Tsukino::BuiltIn::ECS::SphereColorGradeComponent",
+            "registered": true,
+            "registeredName": "SphereColorGradeComponent",
+            "serializable": true,
+            "header": "Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/SphereColorGradeComponent.hpp",
+            "serializationHeader": "Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Serialization/SphereColorGradeComponentSerialization.hpp",
+            "registrationSite": "Tsukino.EngineIntegration/src/EngineIntegration.cpp",
+            "fields": [
+                {
+                    "jsonKey": "enabled",
+                    "field": "enabled",
+                    "cppType": "bool",
+                    "jsonShape": "true / false",
+                    "default": "true"
+                },
+                {
+                    "jsonKey": "center",
+                    "field": "center",
+                    "cppType": "hlslpp::float3",
+                    "jsonShape": "{ \"x\", \"y\", \"z\" }",
+                    "default": "hlslpp::float3(0.0f, 0.0f, 0.0f)"
+                },
+                {
+                    "jsonKey": "radius",
+                    "field": "radius",
+                    "cppType": "float",
+                    "jsonShape": "number",
+                    "default": "0.0f"
+                },
+                {
+                    "jsonKey": "edgeSoftness",
+                    "field": "edgeSoftness",
+                    "cppType": "float",
+                    "jsonShape": "number",
+                    "default": "1.0f"
+                },
+                {
+                    "jsonKey": "tint",
+                    "field": "tint",
+                    "cppType": "hlslpp::float3",
+                    "jsonShape": "{ \"x\", \"y\", \"z\" }",
+                    "default": "hlslpp::float3(1.0f, 1.0f, 1.0f)"
+                },
+                {
+                    "jsonKey": "strength",
+                    "field": "strength",
+                    "cppType": "float",
+                    "jsonShape": "number",
+                    "default": "1.0f"
+                },
+                {
+                    "jsonKey": "fogColor",
+                    "field": "fogColor",
+                    "cppType": "hlslpp::float3",
+                    "jsonShape": "{ \"x\", \"y\", \"z\" }",
+                    "default": "hlslpp::float3(0.0f, 0.0f, 0.0f)"
+                },
+                {
+                    "jsonKey": "fogDensity",
+                    "field": "fogDensity",
+                    "cppType": "float",
+                    "jsonShape": "number",
+                    "default": "0.0f"
+                },
+                {
+                    "jsonKey": "edgeColor",
+                    "field": "edgeColor",
+                    "cppType": "hlslpp::float3",
+                    "jsonShape": "{ \"x\", \"y\", \"z\" }",
+                    "default": "hlslpp::float3(0.0f, 0.0f, 0.0f)"
+                },
+                {
+                    "jsonKey": "edgeWidth",
+                    "field": "edgeWidth",
+                    "cppType": "float",
+                    "jsonShape": "number",
+                    "default": "1.0f"
                 }
             ]
         },
