@@ -219,5 +219,9 @@
   - ScopedConnection(), ScopedConnection(), ScopedConnection(), operator=(), ScopedConnection(), operator=(), ~ScopedConnection(), Disconnect(), IsConnected()
 - **Tsukino::IO::FileSystem** — `Tsukino.Core/include/Tsukino/Core/IO/FileSystem.hpp`
   - ReadBinary(), ReadText(), Exists(), CreateDirectories(), GetLastWriteTime(), GetAssetRootPath(), GetEngineAssetRootPath(), ToEngineRelativePath()
+- **Tsukino::IO::FileWatcher** — `Tsukino.Core/include/Tsukino/Core/IO/FileWatcher.hpp`
+  - Watch(), Poll(), SetInterval(), GetInterval()
+- **Tsukino::IO::FileWatcher::Entry** — `Tsukino.Core/include/Tsukino/Core/IO/FileWatcher.hpp`
+  - path, onChanged, knownTime, pendingTime, pending
 - **Tsukino::Input::InputSystem** — `Tsukino.Core/include/Tsukino/Core/Input/InputSystem.hpp`
   - InputSystem(), ~InputSystem(), InputSystem(), operator=(), Update(), IsKeyDown(), IsKeyPressed(), AnyKeyPressed(), IsKeyReleased(), GetMousePosition(), GetMouseDelta(), GetWheelDelta(), SetKeyState(), SetMousePosition(), AddWheelDelta(), ClearAllKeys()
