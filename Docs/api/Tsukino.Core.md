@@ -223,5 +223,7 @@
   - Watch(), Poll(), SetInterval(), GetInterval()
 - **Tsukino::IO::FileWatcher::Entry** — `Tsukino.Core/include/Tsukino/Core/IO/FileWatcher.hpp`
   - path, onChanged, knownTime, pendingTime, pending
+- **Tsukino::IO::HotReloadable** — `Tsukino.Core/include/Tsukino/Core/IO/HotReloadable.hpp`
+  - HotReloadable(), HotReloadable(), operator=(), Get()
 - **Tsukino::Input::InputSystem** — `Tsukino.Core/include/Tsukino/Core/Input/InputSystem.hpp`
   - InputSystem(), ~InputSystem(), InputSystem(), operator=(), Update(), IsKeyDown(), IsKeyPressed(), AnyKeyPressed(), IsKeyReleased(), GetMousePosition(), GetMouseDelta(), GetWheelDelta(), SetKeyState(), SetMousePosition(), AddWheelDelta(), ClearAllKeys()

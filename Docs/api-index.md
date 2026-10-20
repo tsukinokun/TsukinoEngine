@@ -97,6 +97,7 @@
 - `Tsukino::IO::FileSystem` — `Tsukino.Core/include/Tsukino/Core/IO/FileSystem.hpp`
 - `Tsukino::IO::FileWatcher` — `Tsukino.Core/include/Tsukino/Core/IO/FileWatcher.hpp`
 - `Tsukino::IO::FileWatcher::Entry` — `Tsukino.Core/include/Tsukino/Core/IO/FileWatcher.hpp`
+- `Tsukino::IO::HotReloadable` — `Tsukino.Core/include/Tsukino/Core/IO/HotReloadable.hpp`
 - `Tsukino::Input::InputSystem` — `Tsukino.Core/include/Tsukino/Core/Input/InputSystem.hpp`
 
 ## Tsukino.Engine — [`api/Tsukino.Engine.md`](api/Tsukino.Engine.md)

@@ -13,6 +13,7 @@
 #include <Tsukino/Engine/ECS/SystemManager.hpp>
 
 #include <Tsukino/Core/Window.hpp>
+#include <Tsukino/Core/IO/HotReload.hpp>
 #include <Tsukino/Core/Input/InputSystem.hpp>
 #include <Tsukino/Audio/AudioManager.hpp>
 
@@ -50,6 +51,9 @@ namespace Tsukino::EngineIntegration {
     // 更新関数
     //------------------------------------------------------------
     void EngineAPI::Update(float deltaTime) {
+        // 保存し直された調整用ファイルを読み直す（TSUKINO_ENABLE_HOT_RELOAD のときだけ。無ければ何もしない）。
+        // システムの途中で値が変わらないよう、シーンの更新より前のここでだけ行う
+        Tsukino::IO::HotReload::Poll();
         // シェーダーへ配る経過時間を進める。
         // 演出ごとに自前の時間を持たずに済むよう、ここで1回だけ数える
         if(m_context.renderer) {

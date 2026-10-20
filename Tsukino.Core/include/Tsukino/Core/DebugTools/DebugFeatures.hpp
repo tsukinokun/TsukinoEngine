@@ -23,6 +23,14 @@
 // ONの状態にしておく（F5キーで押さなくても常に表示される。F5でOFFへの切り替えは引き続き可能）
 //#define TSUKINO_DEBUG_COLLISION_DRAW_ALWAYS_ON
 
+// 調整用ファイルのホットリロード（Tsukino::IO::HotReload）。
+// 実行中に保存し直したファイルを、メインループの Update の前で読み直す
+#ifndef TSUKINO_DISABLE_HOT_RELOAD
+#    ifndef TSUKINO_ENABLE_HOT_RELOAD
+#        define TSUKINO_ENABLE_HOT_RELOAD
+#    endif
+#endif
+
 #endif    // _DEBUG
 
 //-------------------------------------------------------------
