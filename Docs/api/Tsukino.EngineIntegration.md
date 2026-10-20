@@ -105,6 +105,8 @@
   - operator()()
 - **Tsukino::BuiltIn::ECS::BloomSystem** — `Tsukino.EngineIntegration/include/Tsukino/EngineIntegration/ECS/System/BloomSystem.hpp`
   - Update()
+- **Tsukino::BuiltIn::ECS::BoneFollowColliderSystem** — `Tsukino.EngineIntegration/include/Tsukino/EngineIntegration/ECS/System/BoneFollowColliderSystem.hpp`
+  - Update()
 - **Tsukino::BuiltIn::ECS::CameraSystem** — `Tsukino.EngineIntegration/include/Tsukino/EngineIntegration/ECS/System/CameraSystem.hpp`
   - Update()
 - **Tsukino::BuiltIn::ECS::ClipRangeTicks** — `Tsukino.EngineIntegration/src/ECS/System/AnimationSystem.cpp`

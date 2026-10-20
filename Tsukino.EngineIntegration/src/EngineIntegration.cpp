@@ -22,6 +22,7 @@
 #include <Tsukino/BuiltIn/ECS/Component/MotionBlurComponent.hpp>
 #include <Tsukino/BuiltIn/ECS/Component/BloomComponent.hpp>
 #include <Tsukino/BuiltIn/ECS/Component/OcclusionCutoutComponent.hpp>
+#include <Tsukino/BuiltIn/ECS/Component/BoneFollowColliderComponent.hpp>
 #include <Tsukino/BuiltIn/ECS/Component/DebugCameraComponent.hpp>
 #include <Tsukino/BuiltIn/ECS/Component/DebugCameraTag.hpp>
 #include <Tsukino/BuiltIn/ECS/Component/FontComponent.hpp>
@@ -53,6 +54,7 @@
 #include <Tsukino/BuiltIn/ECS/Serialization/MotionBlurComponentSerialization.hpp>
 #include <Tsukino/BuiltIn/ECS/Serialization/BloomComponentSerialization.hpp>
 #include <Tsukino/BuiltIn/ECS/Serialization/OcclusionCutoutComponentSerialization.hpp>
+#include <Tsukino/BuiltIn/ECS/Serialization/BoneFollowColliderComponentSerialization.hpp>
 #include <Tsukino/BuiltIn/ECS/Serialization/DebugCameraComponentSerialization.hpp>
 #include <Tsukino/BuiltIn/ECS/Serialization/ModelComponentSerialization.hpp>
 #include <Tsukino/BuiltIn/ECS/Serialization/CollisionComponentSerialization.hpp>
@@ -365,6 +367,7 @@ namespace Tsukino::EngineIntegration {
         m_prefabFactory->RegisterComponent<Tsukino::BuiltIn::ECS::MotionBlurComponent>("MotionBlurComponent");
         m_prefabFactory->RegisterComponent<Tsukino::BuiltIn::ECS::BloomComponent>("BloomComponent");
         m_prefabFactory->RegisterComponent<Tsukino::BuiltIn::ECS::OcclusionCutoutComponent>("OcclusionCutoutComponent");
+        m_prefabFactory->RegisterComponent<Tsukino::BuiltIn::ECS::BoneFollowColliderComponent>("BoneFollowColliderComponent");
         m_prefabFactory->RegisterComponent<Tsukino::BuiltIn::ECS::FogComponent>("FogComponent");
         m_prefabFactory->RegisterComponent<Tsukino::BuiltIn::ECS::SphereColorGradeComponent>("SphereColorGradeComponent");
         m_prefabFactory->RegisterComponent<Tsukino::BuiltIn::ECS::AmbientParticleComponent>("AmbientParticleComponent");

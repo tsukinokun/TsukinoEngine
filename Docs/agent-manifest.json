@@ -10,9 +10,9 @@
         "pathBase": "working directory (Debug: repository root / Release: next to the exe)"
     },
     "stats": {
-        "components": 48,
-        "registered": 31,
-        "serializable": 21
+        "components": 49,
+        "registered": 32,
+        "serializable": 22
     },
     "components": [
         {
@@ -237,6 +237,39 @@
                     "cppType": "hlslpp::float3",
                     "jsonShape": "{ \"x\", \"y\", \"z\" }",
                     "default": "hlslpp::float3(1.0f, 1.0f, 1.0f)"
+                }
+            ]
+        },
+        {
+            "name": "BoneFollowColliderComponent",
+            "typeName": "Tsukino::BuiltIn::ECS::BoneFollowColliderComponent",
+            "registered": true,
+            "registeredName": "BoneFollowColliderComponent",
+            "serializable": true,
+            "header": "Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/BoneFollowColliderComponent.hpp",
+            "serializationHeader": "Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Serialization/BoneFollowColliderComponentSerialization.hpp",
+            "registrationSite": "Tsukino.EngineIntegration/src/EngineIntegration.cpp",
+            "fields": [
+                {
+                    "jsonKey": "boneName",
+                    "field": "boneName",
+                    "cppType": "std::string",
+                    "jsonShape": "string",
+                    "default": null
+                },
+                {
+                    "jsonKey": "followHeight",
+                    "field": "followHeight",
+                    "cppType": "bool",
+                    "jsonShape": "true / false",
+                    "default": "false"
+                },
+                {
+                    "jsonKey": "followSpeed",
+                    "field": "followSpeed",
+                    "cppType": "float",
+                    "jsonShape": "number",
+                    "default": "12.0f"
                 }
             ]
         },

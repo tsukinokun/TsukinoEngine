@@ -26,6 +26,8 @@
   - current_clip_id, animation_index, elapsed_time, playback_speed, is_looping, is_playing, is_finished, clip_start_time, clip_end_time, in_place, root_motion_node_name, root_motion_node_index, root_motion_resolved, root_motion_lock_active, root_motion_lock_x, root_motion_lock_z
 - **Tsukino::BuiltIn::ECS::BloomComponent** — `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/BloomComponent.hpp`
   - enabled, threshold, softKnee, intensity, radius, tint
+- **Tsukino::BuiltIn::ECS::BoneFollowColliderComponent** — `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/BoneFollowColliderComponent.hpp`
+  - boneName, followHeight, followSpeed, baseOffset, restBonePosition, currentShift, hasRest, boneNodeIndex, resolvedAgainstModel
 - **Tsukino::BuiltIn::ECS::BoxCollider2DComponent** — `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/BoxCollider2DComponent.hpp`
   - offset, size
 - **Tsukino::BuiltIn::ECS::CameraComponent** — `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/CameraComponent.hpp`

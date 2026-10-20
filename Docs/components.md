@@ -4,7 +4,7 @@
 
 再生成: `vendor\premake5.exe gen-manifest`（または `generate-docs.bat`）
 
-コンポーネント 48 個（Prefab 登録済み 31 個 / シリアライズ定義あり 21 個）
+コンポーネント 49 個（Prefab 登録済み 32 個 / シリアライズ定義あり 22 個）
 
 ## 読み方
 
@@ -66,6 +66,19 @@
 | `intensity` | `float` | number | `0.6f` |
 | `radius` | `float` | number | `1.0f` |
 | `tint` | `hlslpp::float3` | { "x", "y", "z" } | `hlslpp::float3(1.0f, 1.0f, 1.0f)` |
+
+### BoneFollowColliderComponent
+
+- 型: `Tsukino::BuiltIn::ECS::BoneFollowColliderComponent`
+- Prefab 登録名: `BoneFollowColliderComponent`
+- 定義: `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/BoneFollowColliderComponent.hpp`
+- シリアライズ: `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Serialization/BoneFollowColliderComponentSerialization.hpp`
+
+| JSON キー | C++ 型 | JSON 表現 | 既定値 |
+|---|---|---|---|
+| `boneName` | `std::string` | string | — |
+| `followHeight` | `bool` | true / false | `false` |
+| `followSpeed` | `float` | number | `12.0f` |
 
 ### CameraComponent
 
