@@ -211,6 +211,34 @@ namespace Tsukino::EngineIntegration {
         // メッセージコールバックの設定
         //--------------------------------------------------------------
         m_window->SetMessageCallback([this](UINT msg, WPARAM wp, LPARAM lp) {
+            //--------------------------------------------------------------
+            // 最後に操作された機器をキーボード・マウスへ切り替える（操作表示の切り替えに使う）。
+            // マウス移動は、今の座標から一定以上離れたときだけ数える。ゲームがカーソルを中央へ戻すときは
+            // 先に SetMousePosition で中央を書いておくので、戻したときに届く WM_MOUSEMOVE はここで弾かれる
+            //--------------------------------------------------------------
+            constexpr i32 kMouseActivityPixels = 4;
+            switch(msg) {
+            case WM_LBUTTONDOWN:
+            case WM_RBUTTONDOWN:
+            case WM_MBUTTONDOWN:
+            case WM_KEYDOWN:
+            case WM_SYSKEYDOWN:
+            case WM_MOUSEWHEEL:
+                m_inputSystem->NotifyKeyboardMouseActivity();
+                break;
+            case WM_MOUSEMOVE: {
+                i32 currentX = 0, currentY = 0;
+                m_inputSystem->GetMousePosition(&currentX, &currentY);
+                const i32 movedX = std::abs(static_cast<i32>(LOWORD(lp)) - currentX);
+                const i32 movedY = std::abs(static_cast<i32>(HIWORD(lp)) - currentY);
+                if(movedX >= kMouseActivityPixels || movedY >= kMouseActivityPixels)
+                    m_inputSystem->NotifyKeyboardMouseActivity();
+                break;
+            }
+            default:
+                break;
+            }
+
             switch(msg) {
                 // --- マウスボタン ---
             case WM_LBUTTONDOWN:

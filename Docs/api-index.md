@@ -99,6 +99,10 @@
 - `Tsukino::IO::FileWatcher` — `Tsukino.Core/include/Tsukino/Core/IO/FileWatcher.hpp`
 - `Tsukino::IO::FileWatcher::Entry` — `Tsukino.Core/include/Tsukino/Core/IO/FileWatcher.hpp`
 - `Tsukino::IO::HotReloadable` — `Tsukino.Core/include/Tsukino/Core/IO/HotReloadable.hpp`
+- `Tsukino::Input::Gamepad` — `Tsukino.Core/include/Tsukino/Core/Input/Gamepad.hpp`
+- `Tsukino::Input::InputActionMap` — `Tsukino.Core/include/Tsukino/Core/Input/InputActionMap.hpp`
+- `Tsukino::Input::InputAxisBinding` — `Tsukino.Core/include/Tsukino/Core/Input/InputActionMap.hpp`
+- `Tsukino::Input::InputBinding` — `Tsukino.Core/include/Tsukino/Core/Input/InputActionMap.hpp`
 - `Tsukino::Input::InputSystem` — `Tsukino.Core/include/Tsukino/Core/Input/InputSystem.hpp`
 
 ## Tsukino.Engine — [`api/Tsukino.Engine.md`](api/Tsukino.Engine.md)

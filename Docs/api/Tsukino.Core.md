@@ -178,9 +178,24 @@
 | `void GetMousePosition(i32 *x, i32 *y) const` | マウスのスクリーン座標を取得 |
 | `void GetMouseDelta(i32 *dx, i32 *dy) const` | 前フレームからのマウス移動量を取得 |
 | `float GetWheelDelta() const` |  |
+| `void PollGamepads(float deltaTime, bool windowFocused)` | 全スロットのゲームパッドの状態を読み直します。 |
+| `const Gamepad & GetGamepad(u32 index) const` | スロットを指定してゲームパッドを得ます。 |
+| `bool IsButtonDown(GamepadButton button) const` | いずれかのゲームパッドでボタンが押されているかを返します。 |
+| `bool IsButtonPressed(GamepadButton button) const` | いずれかのゲームパッドでボタンが押された瞬間かを返します。 |
+| `bool IsButtonReleased(GamepadButton button) const` | いずれかのゲームパッドでボタンが離された瞬間かを返します。 |
+| `hlslpp::float2 GetLeftStick() const` | 左スティックの傾きを返します。 |
+| `hlslpp::float2 GetRightStick() const` | 右スティックの傾きを返します。 |
+| `hlslpp::float2 GetStick(GamepadStick stick) const` | 指定したスティックの傾きを返します。 |
+| `void SetGamepadVibration(float lowFrequency, float highFrequency, float durationSeconds)` | 接続されている全てのゲームパッドを振動させます。 |
+| `void StopGamepadVibration()` | 全てのゲームパッドの振動を止めます。 |
+| `void SetGamepadStickDeadZone(float deadZone)` | 全てのゲームパッドのスティックのデッドゾーンを設定します。 |
+| `void SetGamepadTriggerThreshold(float threshold)` | 全てのゲームパッドのトリガーのしきい値を設定します。 |
+| `bool IsAnyGamepadConnected() const` | いずれかのゲームパッドが接続されているかを返します。 |
+| `InputDevice GetLastInputDevice() const` |  |
 | `void SetKeyState(KeyCode code, bool isDown)` | キー状態を直接書き換える |
 | `void SetMousePosition(i32 x, i32 y)` | マウスの座標を直接書き換える |
 | `void AddWheelDelta(float delta)` | ホイールの回転量を加算する |
+| `void NotifyKeyboardMouseActivity()` | キーボードかマウスが操作されたことを知らせます。 |
 | `void ClearAllKeys()` | 全てのキー・ボタンの押下状態をクリアする |
 
 ## 全公開型の索引
@@ -225,5 +240,13 @@
   - path, onChanged, knownTime, pendingTime, pending
 - **Tsukino::IO::HotReloadable** — `Tsukino.Core/include/Tsukino/Core/IO/HotReloadable.hpp`
   - HotReloadable(), HotReloadable(), operator=(), Get()
+- **Tsukino::Input::Gamepad** — `Tsukino.Core/include/Tsukino/Core/Input/Gamepad.hpp`
+  - kDefaultStickDeadZone, kDefaultTriggerThreshold, kStickButtonPressThreshold, kStickButtonReleaseThreshold, Gamepad(), Poll(), IsConnected(), IsButtonDown(), IsButtonPressed(), IsButtonReleased(), AnyButtonPressed(), GetLeftStick(), GetRightStick(), GetLeftTrigger(), GetRightTrigger(), SetVibration(), StopVibration(), SetStickDeadZone(), SetTriggerThreshold()
+- **Tsukino::Input::InputActionMap** — `Tsukino.Core/include/Tsukino/Core/Input/InputActionMap.hpp`
+  - SetBinding(), GetBinding(), IsDown(), IsPressed(), IsReleased()
+- **Tsukino::Input::InputAxisBinding** — `Tsukino.Core/include/Tsukino/Core/Input/InputActionMap.hpp`
+  - up, down, left, right, stick
+- **Tsukino::Input::InputBinding** — `Tsukino.Core/include/Tsukino/Core/Input/InputActionMap.hpp`
+  - keys, buttons, wheelDirection
 - **Tsukino::Input::InputSystem** — `Tsukino.Core/include/Tsukino/Core/Input/InputSystem.hpp`
-  - InputSystem(), ~InputSystem(), InputSystem(), operator=(), Update(), IsKeyDown(), IsKeyPressed(), AnyKeyPressed(), IsKeyReleased(), GetMousePosition(), GetMouseDelta(), GetWheelDelta(), SetKeyState(), SetMousePosition(), AddWheelDelta(), ClearAllKeys()
+  - InputSystem(), ~InputSystem(), InputSystem(), operator=(), Update(), IsKeyDown(), IsKeyPressed(), AnyKeyPressed(), IsKeyReleased(), GetMousePosition(), GetMouseDelta(), GetWheelDelta(), PollGamepads(), GetGamepad(), IsButtonDown(), IsButtonPressed(), IsButtonReleased(), GetLeftStick(), GetRightStick(), GetStick(), SetGamepadVibration(), StopGamepadVibration(), SetGamepadStickDeadZone(), SetGamepadTriggerThreshold(), IsAnyGamepadConnected(), GetLastInputDevice(), SetKeyState(), SetMousePosition(), AddWheelDelta(), NotifyKeyboardMouseActivity(), ClearAllKeys()

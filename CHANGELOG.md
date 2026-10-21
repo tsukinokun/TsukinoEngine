@@ -9,6 +9,19 @@ carve-out for `Tsukino.Renderer` described under **API stability** in the README
 
 ### Added
 
+- **Gamepad input (XInput) and an action-mapping layer.** `Tsukino::Input::Gamepad` polls one
+  XInput slot per frame (radial dead zone, 0–1 triggers, auto-stopping vibration, reconnect checks
+  once a second for empty slots). `InputSystem` owns four of them and adds `PollGamepads`,
+  `IsButtonDown/Pressed/Released(GamepadButton)` (any pad), `GetLeftStick/GetRightStick/GetStick`,
+  `SetGamepadVibration`/`StopGamepadVibration` and `GetLastInputDevice()`, which follows whichever
+  device was touched last so games can switch on-screen prompts. `EngineAPI::Update` polls pads before
+  the scene update and treats them as neutral while the window is unfocused; `ClearAllKeys` also stops
+  vibration. `GamepadButton` includes `LeftTrigger`/`RightTrigger` and hysteresis-based
+  `LeftStickUp/Down/Left/Right` for menu navigation. `InputActionMap` / `InputBinding` /
+  `InputAxisBinding` bind keys, buttons and the wheel to game-defined action ids, and `InputNames.hpp`
+  converts between names, codes and display labels for data-driven bindings. `xinput.lib` is linked
+  from `Gamepad.cpp`.
+
 - **`DrawCommand::shadowPipeline` (per-draw shadow pipeline override).** Objects whose
   vertex shader moves vertices (wind-swayed foliage, procedurally placed grass) used to cast
   shadows from the fixed `ShadowMapStatic.vs.hlsl`, so the shadow stayed still, or they had

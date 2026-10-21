@@ -19,6 +19,10 @@ namespace Tsukino::Input {
         // 配列を初期化
         m_currentKeys.fill(false);
         m_previousKeys.fill(false);
+
+        // ゲームパッドへ XInput のスロット番号を割り振る
+        for(u32 i = 0; i < kMaxGamepads; ++i)
+            m_gamepads[i] = Gamepad(i);
     }
 
     //--------------------------------------------------------------
@@ -142,6 +146,162 @@ namespace Tsukino::Input {
         m_previousKeys.fill(false);
 
         m_wheelDelta = 0.0f;
+
+        // 震えたまま別のウィンドウへ移ると止める機会が無くなるので、ここで止める
+        StopGamepadVibration();
+    }
+
+    //--------------------------------------------------------------
+    //! キーボードかマウスが操作されたことを知らせます。
+    //--------------------------------------------------------------
+    void InputSystem::NotifyKeyboardMouseActivity() {
+        m_lastInputDevice = InputDevice::KeyboardMouse;
+    }
+
+    //--------------------------------------------------------------
+    //! 全スロットのゲームパッドの状態を読み直します。
+    //--------------------------------------------------------------
+    void InputSystem::PollGamepads(float deltaTime, bool windowFocused) {
+        // スティックをこれ以上倒したら「ゲームパッドを操作した」とみなす。
+        // デッドゾーンより大きくしておき、置いてあるだけのパッドの揺れで表示が切り替わらないようにする
+        constexpr float kActivityStickThreshold   = 0.5f;
+        constexpr float kActivityTriggerThreshold = 0.5f;
+
+        for(Gamepad& gamepad : m_gamepads) {
+            gamepad.Poll(deltaTime, windowFocused);
+            if(!gamepad.IsConnected())
+                continue;
+
+            const float leftLength  = hlslpp::length(gamepad.GetLeftStick());
+            const float rightLength = hlslpp::length(gamepad.GetRightStick());
+            const bool  stickMoved  = leftLength >= kActivityStickThreshold || rightLength >= kActivityStickThreshold;
+            const bool triggerPulled =
+                gamepad.GetLeftTrigger() >= kActivityTriggerThreshold || gamepad.GetRightTrigger() >= kActivityTriggerThreshold;
+
+            if(gamepad.AnyButtonPressed() || stickMoved || triggerPulled)
+                m_lastInputDevice = InputDevice::Gamepad;
+        }
+    }
+
+    //--------------------------------------------------------------
+    //! スロットを指定してゲームパッドを得ます。
+    //--------------------------------------------------------------
+    const Gamepad& InputSystem::GetGamepad(u32 index) const {
+        // 範囲外は先頭のスロットを返す（未接続なら何も押していない状態が読める）
+        if(index >= kMaxGamepads)
+            index = 0;
+        return m_gamepads[index];
+    }
+
+    //--------------------------------------------------------------
+    //! いずれかのゲームパッドでボタンが押されているかを返します。
+    //--------------------------------------------------------------
+    bool InputSystem::IsButtonDown(GamepadButton button) const {
+        for(const Gamepad& gamepad : m_gamepads) {
+            if(gamepad.IsButtonDown(button))
+                return true;
+        }
+        return false;
+    }
+
+    //--------------------------------------------------------------
+    //! いずれかのゲームパッドでボタンが押された瞬間かを返します。
+    //--------------------------------------------------------------
+    bool InputSystem::IsButtonPressed(GamepadButton button) const {
+        for(const Gamepad& gamepad : m_gamepads) {
+            if(gamepad.IsButtonPressed(button))
+                return true;
+        }
+        return false;
+    }
+
+    //--------------------------------------------------------------
+    //! いずれかのゲームパッドでボタンが離された瞬間かを返します。
+    //--------------------------------------------------------------
+    bool InputSystem::IsButtonReleased(GamepadButton button) const {
+        for(const Gamepad& gamepad : m_gamepads) {
+            if(gamepad.IsButtonReleased(button))
+                return true;
+        }
+        return false;
+    }
+
+    //--------------------------------------------------------------
+    //! 左スティックの傾きを返します。
+    //--------------------------------------------------------------
+    hlslpp::float2 InputSystem::GetLeftStick() const {
+        return GetStick(GamepadStick::Left);
+    }
+
+    //--------------------------------------------------------------
+    //! 右スティックの傾きを返します。
+    //--------------------------------------------------------------
+    hlslpp::float2 InputSystem::GetRightStick() const {
+        return GetStick(GamepadStick::Right);
+    }
+
+    //--------------------------------------------------------------
+    //! 指定したスティックの傾きを返します。
+    //--------------------------------------------------------------
+    hlslpp::float2 InputSystem::GetStick(GamepadStick stick) const {
+        hlslpp::float2 result(0.0f, 0.0f);
+        if(stick == GamepadStick::None)
+            return result;
+
+        // 複数台の値を足すと 1 を超えるので、最も大きく倒している1台の値を採る
+        float bestLength = 0.0f;
+        for(const Gamepad& gamepad : m_gamepads) {
+            const hlslpp::float2 value  = (stick == GamepadStick::Left) ? gamepad.GetLeftStick() : gamepad.GetRightStick();
+            const float          length = hlslpp::length(value);
+            if(length > bestLength) {
+                bestLength = length;
+                result     = value;
+            }
+        }
+        return result;
+    }
+
+    //--------------------------------------------------------------
+    //! 接続されている全てのゲームパッドを振動させます。
+    //--------------------------------------------------------------
+    void InputSystem::SetGamepadVibration(float lowFrequency, float highFrequency, float durationSeconds) {
+        for(Gamepad& gamepad : m_gamepads)
+            gamepad.SetVibration(lowFrequency, highFrequency, durationSeconds);
+    }
+
+    //--------------------------------------------------------------
+    //! 全てのゲームパッドの振動を止めます。
+    //--------------------------------------------------------------
+    void InputSystem::StopGamepadVibration() {
+        for(Gamepad& gamepad : m_gamepads)
+            gamepad.StopVibration();
+    }
+
+    //--------------------------------------------------------------
+    //! 全てのゲームパッドのスティックのデッドゾーンを設定します。
+    //--------------------------------------------------------------
+    void InputSystem::SetGamepadStickDeadZone(float deadZone) {
+        for(Gamepad& gamepad : m_gamepads)
+            gamepad.SetStickDeadZone(deadZone);
+    }
+
+    //--------------------------------------------------------------
+    //! 全てのゲームパッドのトリガーのしきい値を設定します。
+    //--------------------------------------------------------------
+    void InputSystem::SetGamepadTriggerThreshold(float threshold) {
+        for(Gamepad& gamepad : m_gamepads)
+            gamepad.SetTriggerThreshold(threshold);
+    }
+
+    //--------------------------------------------------------------
+    //! いずれかのゲームパッドが接続されているかを返します。
+    //--------------------------------------------------------------
+    bool InputSystem::IsAnyGamepadConnected() const {
+        for(const Gamepad& gamepad : m_gamepads) {
+            if(gamepad.IsConnected())
+                return true;
+        }
+        return false;
     }
 
 }    // namespace Tsukino::Input

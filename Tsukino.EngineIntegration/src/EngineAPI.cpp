@@ -59,6 +59,9 @@ namespace Tsukino::EngineIntegration {
         if(m_context.renderer) {
             m_context.renderer->GetFrameConstants().AdvanceTime(deltaTime);
         }
+        // ゲームパッドの状態を読む。キーボード・マウスはメッセージで届くが、パッドは読みに行かないと分からないので、
+        // システムが入力を読むシーンの更新より前のここで1回だけ読む
+        m_context.inputSystem->PollGamepads(deltaTime, m_context.window && m_context.window->IsFocused());
         // ゲームシーンの更新
         m_context.gameSceneManager->Update(*this, deltaTime);
         // 入力システムの更新
