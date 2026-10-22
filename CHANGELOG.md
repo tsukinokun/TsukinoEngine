@@ -9,6 +9,13 @@ carve-out for `Tsukino.Renderer` described under **API stability** in the README
 
 ### Added
 
+- **`CameraUtility` (screen ↔ world conversion for picking).** `ScreenPointToRay` builds a world-space
+  ray through a pixel from `CameraComponent::invViewProjMatrix` (reverse-Z aware, perspective or
+  orthographic), `WorldToScreenPoint` projects back to viewport pixels, and `IntersectPlane` /
+  `IntersectRect` hit-test a plane or a rectangle placed by a world matrix (returning the hit UV, which
+  is handy for tilting a hovered card toward the cursor). Header-only, in
+  `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Camera/CameraUtility.hpp`.
+
 - **Gamepad input (XInput) and an action-mapping layer.** `Tsukino::Input::Gamepad` polls one
   XInput slot per frame (radial dead zone, 0–1 triggers, auto-stopping vibration, reconnect checks
   once a second for empty slots). `InputSystem` owns four of them and adds `PollGamepads`,
@@ -169,6 +176,14 @@ carve-out for `Tsukino.Renderer` described under **API stability** in the README
   `GetFrameStats` and the VSync accessors are unchanged.
 
 ### Fixed
+
+- **Textures were displayed too bright (sRGB lost in the DDS cache).** `TextureImporter` forced sRGB
+  on load but saved the cache with the legacy DDS header, which cannot store sRGB, so every PNG/JPG
+  came back as UNORM. Colors were then gamma-encoded twice on the way to the sRGB back buffer
+  (a 172 red showed as 215). The cache is now written with the DX10 header so the sRGB format
+  survives. Data textures whose file name ends in `_n`, `_normal`, `_nrm`, `_mr`, `_orm`, `_ao`,
+  `_metallic`, `_roughness`, `_height`, `_disp` or `_mask` are kept linear. Delete `Cache/` once
+  so existing textures are re-imported.
 
 - **Kinematic bodies push instead of teleporting.** `PhysicsSystem` moved every Kinematic
   body with `SetPositionAndRotation` and then also set a velocity derived from last frame's

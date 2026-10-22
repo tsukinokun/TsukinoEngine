@@ -32,6 +32,8 @@
   - offset, size
 - **Tsukino::BuiltIn::ECS::CameraComponent** — `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/CameraComponent.hpp`
   - projectionType, orthoSize, referenceResolution, fov, aspectRatio, nearZ, farZ, useLookAt, lookAtTarget, viewMatrix, projectionMatrix, viewProjMatrix, invViewProjMatrix, isPrimary, dirty
+- **Tsukino::BuiltIn::ECS::CameraUtility::Ray** — `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Camera/CameraUtility.hpp`
+  - origin, direction, GetPoint()
 - **Tsukino::BuiltIn::ECS::CharacterControllerComponent** — `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/CharacterControllerComponent.hpp`
   - radius, halfHeight, maxSlopeDeg, mass, gravityFactor, centerOffset, isInitialized, moveInput, jumpRequested, jumpSpeed, verticalVelocity, isGrounded
 - **Tsukino::BuiltIn::ECS::CollisionComponent** — `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/CollisionComponent.hpp`

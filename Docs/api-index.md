@@ -28,6 +28,7 @@
 - `Tsukino::BuiltIn::ECS::BoneFollowColliderComponent` — `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/BoneFollowColliderComponent.hpp`
 - `Tsukino::BuiltIn::ECS::BoxCollider2DComponent` — `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/BoxCollider2DComponent.hpp`
 - `Tsukino::BuiltIn::ECS::CameraComponent` — `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/CameraComponent.hpp`
+- `Tsukino::BuiltIn::ECS::CameraUtility::Ray` — `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Camera/CameraUtility.hpp`
 - `Tsukino::BuiltIn::ECS::CharacterControllerComponent` — `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/CharacterControllerComponent.hpp`
 - `Tsukino::BuiltIn::ECS::CollisionComponent` — `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/CollisionComponent.hpp`
 - `Tsukino::BuiltIn::ECS::CollisionEnterEvent` — `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Event/CollisionEnterEvent.hpp`
