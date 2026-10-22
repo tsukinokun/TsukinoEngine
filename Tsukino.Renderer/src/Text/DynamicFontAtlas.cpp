@@ -185,6 +185,19 @@ namespace Tsukino::Renderer {
     }
 
     //------------------------------------------------------------
+    //! 描く大きさから、ラスタライズする大きさ（段に切り上げた値）を求めます。
+    //------------------------------------------------------------
+    int DynamicFontAtlas::ToRasterSize(float drawSize) {
+        if(drawSize <= static_cast<float>(kMinRasterSize)) {
+            return kMinRasterSize;
+        }
+        // 浮動小数の誤差で、ちょうど段の大きさが1つ上の段へ繰り上がらないよう僅かに引く
+        const float steps = std::ceil(std::log(drawSize / kRasterSizeBase) / std::log(kRasterSizeStep) - 1e-4f);
+        const float size  = std::ceil(kRasterSizeBase * std::pow(kRasterSizeStep, steps) - 1e-3f);
+        return std::clamp(static_cast<int>(size), kMinRasterSize, kMaxRasterSize);
+    }
+
+    //------------------------------------------------------------
     //! グリフを指定の大きさでキャッシュから取得し、無ければラスタライズしてキャッシュします。
     //------------------------------------------------------------
     const DynamicFontAtlas::GlyphImage& DynamicFontAtlas::GetOrRasterizeGlyph(wchar_t codepoint, int rasterSize, ID3D11DeviceContext* context) {
@@ -337,11 +350,11 @@ namespace Tsukino::Renderer {
         const float sinR    = std::sin(rotation);
 
         //------------------------------------------------------------
-        // 実際に描く大きさでラスタライズしたグリフを使う。
-        // 描く大きさを整数に丸めた分の差だけを描画時の拡大率（ほぼ 1）で埋める
+        // 描く大きさ以上で最も近い段でラスタライズしたグリフを使い、
+        // 段との差だけを描画時の縮小率で埋める（段の理由はヘッダの kRasterSizeStep 参照）
         //------------------------------------------------------------
         const float drawSize    = m_pixelSize * scale;
-        const int   rasterSize  = std::clamp(static_cast<int>(std::lround(drawSize)), kMinRasterSize, kMaxRasterSize);
+        const int   rasterSize  = ToRasterSize(drawSize);
         const float rasterScale = drawSize / static_cast<float>(rasterSize);
 
         //------------------------------------------------------------

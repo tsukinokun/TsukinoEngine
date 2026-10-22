@@ -110,6 +110,7 @@
 
 - `Tsukino::Asset::AssetHandle` — `Tsukino.Engine/include/Tsukino/Engine/Asset/AssetHandle.hpp`
 - `Tsukino::Asset::AssetHandleGenerator` — `Tsukino.Engine/include/Tsukino/Engine/Asset/Util/AssetHandleGenerator.hpp`
+- `Tsukino::Asset::AssetLoadQueue` — `Tsukino.Engine/include/Tsukino/Engine/Asset/AssetLoadQueue.hpp`
 - `Tsukino::Asset::AssetManager` — `Tsukino.Engine/include/Tsukino/Engine/Asset/AssetManager.hpp`
 - `Tsukino::Asset::AssetRef` — `Tsukino.Engine/include/Tsukino/Engine/Asset/AssetRef.hpp`
 - `Tsukino::Asset::AssetRefResolverArchive` — `Tsukino.Engine/include/Tsukino/Engine/Asset/AssetRefResolverArchive.hpp`

@@ -118,6 +118,8 @@
   - AssetHandle(), AssetHandle(), Value(), IsValid(), operator==(), operator!=(), Invalid()
 - **Tsukino::Asset::AssetHandleGenerator** — `Tsukino.Engine/include/Tsukino/Engine/Asset/Util/AssetHandleGenerator.hpp`
   - NormalizeKey(), GenerateFromKey()
+- **Tsukino::Asset::AssetLoadQueue** — `Tsukino.Engine/include/Tsukino/Engine/Asset/AssetLoadQueue.hpp`
+  - AssetLoadQueue(), ~AssetLoadQueue(), AssetLoadQueue(), operator=(), Enqueue(), Start(), Cancel(), Progress(), IsFinished(), TakeLoaded()
 - **Tsukino::Asset::AssetManager** — `Tsukino.Engine/include/Tsukino/Engine/Asset/AssetManager.hpp`
   - AssetManager(), ~AssetManager(), Initialize(), Load(), Get(), Exists(), RegisterImporter(), RegisterAsset()
 - **Tsukino::Asset::AssetRef** — `Tsukino.Engine/include/Tsukino/Engine/Asset/AssetRef.hpp`

@@ -9,6 +9,13 @@ carve-out for `Tsukino.Renderer` described under **API stability** in the README
 
 ### Added
 
+- **`AssetLoadQueue` (load assets on a worker thread).** Enqueue paths, `Start()`, then poll
+  `Progress()` / `IsFinished()` from the main thread to drive a loading screen. One worker thread
+  calls `AssetManager::Load` for each path (initializing COM for WIC first) and keeps going past
+  failures; `.tmat` loads pull their textures in too. `TakeLoaded()` hands the finished handles back
+  so the main thread can pre-upload textures with `RenderResources::GetTextureSRV` under a time
+  budget. The destructor cancels and joins.
+
 - **`CameraUtility` (screen ↔ world conversion for picking).** `ScreenPointToRay` builds a world-space
   ray through a pixel from `CameraComponent::invViewProjMatrix` (reverse-Z aware, perspective or
   orthographic), `WorldToScreenPoint` projects back to viewport pixels, and `IntersectPlane` /
@@ -139,6 +146,12 @@ carve-out for `Tsukino.Renderer` described under **API stability** in the README
   unchanged.
 
 ### Changed
+
+- **`DynamicFontAtlas` rasterizes glyphs at stepped sizes.** Text whose scale animates (button hover,
+  popping numbers) used to hit a new integer pixel size almost every frame, re-rasterizing every
+  glyph with DirectWrite and uploading it to the atlas, which showed up as hitches. Sizes are now
+  rounded up to a geometric ladder (`kRasterSizeBase` = 32 px, `kRasterSizeStep` = 2^(1/4)) and
+  drawn scaled down by at most ~16%, so an animation touches only a few sizes and reuses the cache.
 
 - **`CBufferMaterial` (b2) now lives in one place.** The struct was hand-written in
   `GBuffer.ps.hlsl`, `Model.ps.hlsl` and `Sprite.ps.hlsl`; all three now
