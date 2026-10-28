@@ -9,6 +9,16 @@ carve-out for `Tsukino.Renderer` described under **API stability** in the README
 
 ### Added
 
+- **Slider and toggle controls (`UISliderComponent` + `UISliderSystem`, `UIToggleComponent` /
+  `UIToggleGroupComponent` + `UIToggleSystem`, `UIToggleUtility`).** They hold only the value and the
+  input; the look stays with the game. A slider is grabbed by a click on its pointer target and, until
+  the left button is released, takes its value from the mouse position measured along the local X axis
+  of its `track` entity (so a tilted or swaying track still works), with `dragStarted` / `dragEnded` /
+  `changed` flags and an optional `changeThreshold`. A toggle flips on each click, or, when its `group`
+  points at an entity with `UIToggleGroupComponent`, becomes the only one on in that group (radio
+  buttons); `changed` marks the toggles and group that changed this frame. `UIToggleUtility::GetSelected`
+  and `Select` read and set a group from code. Place both systems after `InteractionSystem`.
+
 - **Horizontal and vertical sprite fill (`SpriteFillMode::Horizontal` / `Vertical`,
   `SpriteComponent::fillReverse`).** Draws only `fillAmount` of the sprite from one edge (left or bottom,
   or right / top with `fillReverse`) without stretching the image, for bars and loading lines that used
