@@ -9,6 +9,13 @@ carve-out for `Tsukino.Renderer` described under **API stability** in the README
 
 ### Added
 
+- **Deferred events (`EventBus::Enqueue` / `FlushQueued` / `ClearQueued`).** `Enqueue` keeps a copy of
+  the event and publishes it later; `Scene::Update` calls `FlushQueued` after all systems have run
+  and before the destroy queue is flushed, so handlers can still read the entities. Events enqueued
+  while flushing wait for the next flush. Useful for publishing the same event type from inside its
+  own handler (which `Publish` asserts on) and for keeping UI reactions out of the middle of a system
+  update. `Scene::Shutdown` drops anything still queued.
+
 - **Tween presets in `UITweenUtility` (`SlideIn`, `SlideOut`, `FadeIn`, `FadeOut`, `Punch`).** One call
   slides an element in from an offset while fading it in (OutBack by default), slides it out while
   fading it out, fades it alone, or punches its scale. They use tags from `UITweenUtility::Tag`

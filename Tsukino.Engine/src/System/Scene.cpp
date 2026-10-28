@@ -34,6 +34,12 @@ namespace Tsukino::ECS {
         m_systemManager.Update(m_registry, deltaTime);
 
         //-------------------------------------------------------------
+        // System が Enqueue で積んだイベントを発火する。
+        // 破棄予約の消化より前に行い、ハンドラがまだエンティティを読めるようにする
+        //-------------------------------------------------------------
+        m_eventBus.FlushQueued();
+
+        //-------------------------------------------------------------
         // System が QueueDestroy() で積んだ破棄予約をここでまとめて処理する。
         // View の反復中に破棄するとイテレータが壊れるため、
         // 実際の破棄は必ず全 System の更新が終わってから行う。
@@ -58,6 +64,7 @@ namespace Tsukino::ECS {
         // 明示的にここで畳めば、生きている System の OnDestroy が正規に呼ばれ、
         // RemoveBody/DestroyBody とエフェクト停止が済んだ状態で先へ進める。
         //-------------------------------------------------------------
+        m_eventBus.ClearQueued();    // 終わるシーンへ宛てたイベントは発火しない
         m_registry.FlushDestroyQueue();
         m_registry.Clear();
 

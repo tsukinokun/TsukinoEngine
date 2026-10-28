@@ -25,6 +25,8 @@ namespace Tsukino::ECS {
     //! - Subscribe の戻り値（ScopedConnection）をメンバで持つことで
     //!   ライフタイムを管理する
     //! - Publish は即時同期発火。ハンドラはその場で全て呼ばれる
+    //! - Enqueue は発火を後回しにする。積んだイベントは FlushQueued で発火する
+    //!   （Scene::Update が全 System の更新の後に呼ぶ）
     //!
     //! @attention
     //! - ハンドラ内で View の対象コンポーネントを追加・削除すると
@@ -151,6 +153,40 @@ namespace Tsukino::ECS {
         }
 
         //-------------------------------------------------------------
+        //! @brief  イベントの発火を後回しにする（キューに積む）
+        //! @tparam TEvent 発火するイベントの型
+        //! @param  event  発火するイベントのインスタンス（写しを持つ）
+        //! @details
+        //! 積んだ順に FlushQueued で発火する。同じ型のハンドラの中から同じ型を発火したいときや、
+        //! 受け取る側（UI など）を System の更新の途中で動かしたくないときに使う。
+        //-------------------------------------------------------------
+        template <typename TEvent>
+        void Enqueue(const TEvent& event) {
+            m_queued.push_back([this, event] { Publish(event); });
+        }
+
+        //-------------------------------------------------------------
+        //! @brief  Enqueue で積んだイベントを、積んだ順に発火する
+        //! @details
+        //! 発火中に Enqueue されたイベントは、次の FlushQueued まで持ち越す
+        //! （ハンドラが積み続けても、1回の呼び出しが終わらなくならないように）。
+        //-------------------------------------------------------------
+        void FlushQueued() {
+            if(m_queued.empty())
+                return;
+            std::vector<std::function<void()>> pending;
+            pending.swap(m_queued);
+            for(const auto& publish : pending) {
+                publish();
+            }
+        }
+
+        //-------------------------------------------------------------
+        //! @brief  Enqueue で積んだまま発火していないイベントを捨てる
+        //-------------------------------------------------------------
+        void ClearQueued() { m_queued.clear(); }
+
+        //-------------------------------------------------------------
         //! @brief  特定イベント型のハンドラを全解除
         //! @tparam TEvent 解除するイベントの型
         //-------------------------------------------------------------
@@ -193,6 +229,9 @@ namespace Tsukino::ECS {
 
         // typeId → ハンドラリスト のマップ
         std::unordered_map<std::type_index, std::vector<HandlerEntry>> m_handlers;
+
+        // Enqueue で積んだ、まだ発火していないイベント
+        std::vector<std::function<void()>> m_queued;
 
         // 次に払い出す購読ID（単調増加）
         HandlerId m_nextId = 0;
