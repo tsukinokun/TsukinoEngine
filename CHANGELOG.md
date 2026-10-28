@@ -9,6 +9,12 @@ carve-out for `Tsukino.Renderer` described under **API stability** in the README
 
 ### Added
 
+- **`Tsukino::Core::Sequencer` (call functions after a delay).** `Schedule(delay, fn)` books a callback,
+  `Update(deltaTime)` advances its clock and calls everything that is due in time order (booking order
+  for ties; callbacks may book more), `Clear` cancels all and `IsBusy` tells whether any are left.
+  The caller chooses which clock drives it by what it passes to `Update`. Header-only, in
+  `Core/Time/Sequencer.hpp`.
+
 - **Deferred events (`EventBus::Enqueue` / `FlushQueued` / `ClearQueued`).** `Enqueue` keeps a copy of
   the event and publishes it later; `Scene::Update` calls `FlushQueued` after all systems have run
   and before the destroy queue is flushed, so handlers can still read the entities. Events enqueued
