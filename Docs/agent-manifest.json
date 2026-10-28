@@ -10,9 +10,9 @@
         "pathBase": "working directory (Debug: repository root / Release: next to the exe)"
     },
     "stats": {
-        "components": 49,
-        "registered": 32,
-        "serializable": 22
+        "components": 54,
+        "registered": 36,
+        "serializable": 23
     },
     "components": [
         {
@@ -280,6 +280,17 @@
             "registeredName": null,
             "serializable": false,
             "header": "Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/BoxCollider2DComponent.hpp",
+            "serializationHeader": null,
+            "registrationSite": null,
+            "fields": []
+        },
+        {
+            "name": "BurstParticleComponent",
+            "typeName": "Tsukino::BuiltIn::ECS::BurstParticleComponent",
+            "registered": false,
+            "registeredName": null,
+            "serializable": false,
+            "header": "Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/BurstParticleComponent.hpp",
             "serializationHeader": null,
             "registrationSite": null,
             "fields": []
@@ -767,6 +778,17 @@
             "header": "Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/ImpulseRequestComponent.hpp",
             "serializationHeader": null,
             "registrationSite": null,
+            "fields": []
+        },
+        {
+            "name": "LifetimeComponent",
+            "typeName": "Tsukino::BuiltIn::ECS::LifetimeComponent",
+            "registered": true,
+            "registeredName": "LifetimeComponent",
+            "serializable": false,
+            "header": "Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/LifetimeComponent.hpp",
+            "serializationHeader": null,
+            "registrationSite": "Tsukino.EngineIntegration/src/EngineIntegration.cpp",
             "fields": []
         },
         {
@@ -1442,6 +1464,13 @@
                     "default": "true"
                 },
                 {
+                    "jsonKey": "fillReverse",
+                    "field": "fillReverse",
+                    "cppType": "bool",
+                    "jsonShape": "true / false",
+                    "default": "false"
+                },
+                {
                     "jsonKey": "sliceBorder",
                     "field": "sliceBorder",
                     "cppType": "hlslpp::float4",
@@ -1563,6 +1592,53 @@
             "fields": []
         },
         {
+            "name": "UIButtonSoundComponent",
+            "typeName": "Tsukino::BuiltIn::ECS::UIButtonSoundComponent",
+            "registered": true,
+            "registeredName": "UIButtonSoundComponent",
+            "serializable": true,
+            "header": "Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/UIButtonSoundComponent.hpp",
+            "serializationHeader": "Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Serialization/UIButtonSoundComponentSerialization.hpp",
+            "registrationSite": "Tsukino.EngineIntegration/src/EngineIntegration.cpp",
+            "fields": [
+                {
+                    "jsonKey": "hoverSound",
+                    "field": "hoverSound",
+                    "cppType": "Tsukino::Asset::AssetRef",
+                    "jsonShape": "\"path/to/asset\"",
+                    "default": null
+                },
+                {
+                    "jsonKey": "clickSound",
+                    "field": "clickSound",
+                    "cppType": "Tsukino::Asset::AssetRef",
+                    "jsonShape": "\"path/to/asset\"",
+                    "default": null
+                },
+                {
+                    "jsonKey": "hoverVolume",
+                    "field": "hoverVolume",
+                    "cppType": "float",
+                    "jsonShape": "number",
+                    "default": "1.0f"
+                },
+                {
+                    "jsonKey": "clickVolume",
+                    "field": "clickVolume",
+                    "cppType": "float",
+                    "jsonShape": "number",
+                    "default": "1.0f"
+                },
+                {
+                    "jsonKey": "bus",
+                    "field": "bus",
+                    "cppType": "u8",
+                    "jsonShape": "number",
+                    "default": "0"
+                }
+            ]
+        },
+        {
             "name": "UICanvasGroupComponent",
             "typeName": "Tsukino::BuiltIn::ECS::UICanvasGroupComponent",
             "registered": true,
@@ -1622,6 +1698,28 @@
             ]
         },
         {
+            "name": "UISliderComponent",
+            "typeName": "Tsukino::BuiltIn::ECS::UISliderComponent",
+            "registered": true,
+            "registeredName": "UISliderComponent",
+            "serializable": false,
+            "header": "Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/UISliderComponent.hpp",
+            "serializationHeader": null,
+            "registrationSite": "Tsukino.EngineIntegration/src/EngineIntegration.cpp",
+            "fields": []
+        },
+        {
+            "name": "UIToggleComponent",
+            "typeName": "Tsukino::BuiltIn::ECS::UIToggleComponent",
+            "registered": true,
+            "registeredName": "UIToggleComponent",
+            "serializable": false,
+            "header": "Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/UIToggleComponent.hpp",
+            "serializationHeader": null,
+            "registrationSite": "Tsukino.EngineIntegration/src/EngineIntegration.cpp",
+            "fields": []
+        },
+        {
             "name": "UITweenComponent",
             "typeName": "Tsukino::BuiltIn::ECS::UITweenComponent",
             "registered": true,
@@ -1655,5 +1753,11 @@
             "fields": []
         }
     ],
-    "unresolvedRegistrations": []
+    "unresolvedRegistrations": [
+        {
+            "typeName": "Tsukino::BuiltIn::ECS::UIToggleGroupComponent",
+            "registeredName": "UIToggleGroupComponent",
+            "registrationSite": "Tsukino.EngineIntegration/src/EngineIntegration.cpp"
+        }
+    ]
 }

@@ -24,13 +24,15 @@
 | `AudioManager & operator=(AudioManager &&)=delete` |  |
 | `bool Initialize()` | 初期化 |
 | `void Update(float deltaTime)` | 更新関数 |
-| `void Play(const Tsukino::Asset::AudioAsset &audioAsset, bool isLoop=false, float volume=1.0f)` | 音声を再生する |
+| `void Play(const Tsukino::Asset::AudioAsset &audioAsset, bool isLoop=false, float volume=1.0f, AudioBus bus=0)` | 音声を再生する |
 | `void Stop(const Tsukino::Asset::AudioAsset &audioAsset)` | 特定の音声を停止する |
 | `void StopAll()` | 全ての音声を停止する |
 | `bool IsPlaying(const Tsukino::Asset::AudioAsset &audioAsset) const` | 特定の音声が再生中か確認する |
 | `void SetVolume(const Tsukino::Asset::AudioAsset &audioAsset, float volume)` | 鳴っている音声の音量を変える |
 | `void SetMasterVolume(float volume)` | マスター音量を設定する |
 | `float GetMasterVolume() const` | マスター音量を取得する |
+| `void SetBusVolume(AudioBus bus, float volume)` | バスの音量を設定する |
+| `float GetBusVolume(AudioBus bus) const` | バスの音量を取得する |
 
 ## 全公開型の索引
 
@@ -39,6 +41,6 @@
 - **Tsukino::Audio::AudioContext** — `Tsukino.Audio/src/Audio/AudioManager.cpp`
   - engine, waveBanks, playing, Initialize(), Update(), GetOrLoadWaveBank()
 - **Tsukino::Audio::AudioContext::PlayingSound** — `Tsukino.Audio/src/Audio/AudioManager.cpp`
-  - waveBankPath, waveIndex, instance
+  - waveBankPath, waveIndex, instance, volume, bus
 - **Tsukino::Audio::AudioManager** — `Tsukino.Audio/include/Tsukino/Audio/AudioManager.hpp`
-  - AudioManager(), ~AudioManager(), AudioManager(), operator=(), AudioManager(), operator=(), Initialize(), Update(), Play(), Stop(), StopAll(), IsPlaying(), SetVolume(), SetMasterVolume(), GetMasterVolume()
+  - AudioManager(), ~AudioManager(), AudioManager(), operator=(), AudioManager(), operator=(), Initialize(), Update(), Play(), Stop(), StopAll(), IsPlaying(), SetVolume(), SetMasterVolume(), GetMasterVolume(), SetBusVolume(), GetBusVolume()

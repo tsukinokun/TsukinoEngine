@@ -18,6 +18,8 @@
 |---|---|
 | `EngineAPI(EngineContext &context)` | コンストラクタ |
 | `void ChangeScene(std::unique_ptr< GameSceneBase > newScene)` | シーン遷移関数 |
+| `void RegisterScene(const std::string &name, std::function< std::unique_ptr< GameSceneBase >()> factory)` | 名前で切り替えられるシーンを登録する |
+| `bool ChangeScene(const std::string &name)` | 登録した名前のシーンへ遷移する |
 | `bool ProcessMessages()` | メッセージ処理関数 |
 | `void Update(float deltaTime)` |  |
 | `void Render()` | 描画関数 |
@@ -88,6 +90,8 @@
 | `GameSceneManager & operator=(GameSceneManager &&)=delete` |  |
 | `void Initialize(EngineContext *context)` | 初期化 |
 | `void ChangeScene(std::unique_ptr< GameSceneBase > newScene)` | 次のシーンへの遷移を予約する |
+| `void RegisterScene(const std::string &name, SceneFactory factory)` | 名前で切り替えられるシーンを登録する |
+| `bool ChangeScene(const std::string &name)` | 登録した名前のシーンへの遷移を予約する |
 | `void Update(Tsukino::EngineIntegration::EngineAPI &api, float deltaTime)` | シーンの更新 |
 | `GameSceneBase * GetCurrentScene() const` | 現在アクティブなシーンを取得する |
 
@@ -107,6 +111,8 @@
   - Update()
 - **Tsukino::BuiltIn::ECS::BoneFollowColliderSystem** — `Tsukino.EngineIntegration/include/Tsukino/EngineIntegration/ECS/System/BoneFollowColliderSystem.hpp`
   - Update()
+- **Tsukino::BuiltIn::ECS::BurstParticleSystem** — `Tsukino.EngineIntegration/include/Tsukino/EngineIntegration/ECS/System/BurstParticleSystem.hpp`
+  - Update()
 - **Tsukino::BuiltIn::ECS::CameraSystem** — `Tsukino.EngineIntegration/include/Tsukino/EngineIntegration/ECS/System/CameraSystem.hpp`
   - Update()
 - **Tsukino::BuiltIn::ECS::ClipRangeTicks** — `Tsukino.EngineIntegration/src/ECS/System/AnimationSystem.cpp`
@@ -123,6 +129,8 @@
   - Update()
 - **Tsukino::BuiltIn::ECS::InteractionSystem** — `Tsukino.EngineIntegration/include/Tsukino/EngineIntegration/ECS/System/InteractionSystem.hpp`
   - Update(), HitTest()
+- **Tsukino::BuiltIn::ECS::LifetimeSystem** — `Tsukino.EngineIntegration/include/Tsukino/EngineIntegration/ECS/System/LifetimeSystem.hpp`
+  - Update()
 - **Tsukino::BuiltIn::ECS::LightSystem** — `Tsukino.EngineIntegration/include/Tsukino/EngineIntegration/ECS/System/LightSystem.hpp`
   - Update()
 - **Tsukino::BuiltIn::ECS::ModelSystem** — `Tsukino.EngineIntegration/include/Tsukino/EngineIntegration/ECS/System/ModelSystem.hpp`
@@ -145,6 +153,12 @@
   - sortOrder, cmd
 - **Tsukino::BuiltIn::ECS::TransformSystem** — `Tsukino.EngineIntegration/include/Tsukino/EngineIntegration/ECS/System/TransformSystem.hpp`
   - Update()
+- **Tsukino::BuiltIn::ECS::UIButtonSoundSystem** — `Tsukino.EngineIntegration/include/Tsukino/EngineIntegration/ECS/System/UIButtonSoundSystem.hpp`
+  - Update()
+- **Tsukino::BuiltIn::ECS::UISliderSystem** — `Tsukino.EngineIntegration/include/Tsukino/EngineIntegration/ECS/System/UISliderSystem.hpp`
+  - Update()
+- **Tsukino::BuiltIn::ECS::UIToggleSystem** — `Tsukino.EngineIntegration/include/Tsukino/EngineIntegration/ECS/System/UIToggleSystem.hpp`
+  - Update()
 - **Tsukino::BuiltIn::ECS::UITweenSystem** — `Tsukino.EngineIntegration/include/Tsukino/EngineIntegration/ECS/System/UITweenSystem.hpp`
   - Update()
 - **Tsukino::BuiltIn::ECS::WorldAnchorSystem** — `Tsukino.EngineIntegration/include/Tsukino/EngineIntegration/ECS/System/WorldAnchorSystem.hpp`
@@ -154,7 +168,7 @@
 - **Tsukino::EngineIntegration::EffectFileReader** — `Tsukino.EngineIntegration/include/Tsukino/EngineIntegration/IO/EffectFileInterface.hpp`
   - EffectFileReader(), Read(), Seek(), GetPosition(), GetLength(), GetData()
 - **Tsukino::EngineIntegration::EngineAPI** — `Tsukino.EngineIntegration/include/Tsukino/EngineIntegration/EngineAPI.hpp`
-  - EngineAPI(), ChangeScene(), ProcessMessages(), Update(), Render()
+  - EngineAPI(), ChangeScene(), RegisterScene(), ChangeScene(), ProcessMessages(), Update(), Render()
 - **Tsukino::EngineIntegration::EngineContext** — `Tsukino.EngineIntegration/include/Tsukino/EngineIntegration/EngineContext.hpp`
   - renderer, window, inputSystem, assetManager, builtinAssets, gameSceneManager, audioManager, prefabFactory, effectSystem, physicsSystem
 - **Tsukino::EngineIntegration::EngineIntegration** — `Tsukino.EngineIntegration/include/Tsukino/EngineIntegration/EngineIntegration.hpp`
@@ -162,6 +176,6 @@
 - **Tsukino::EngineIntegration::GameSceneBase** — `Tsukino.EngineIntegration/include/Tsukino/EngineIntegration/Scene/GameSceneBase.hpp`
   - ~GameSceneBase(), Initialize(), OnUpdate(), OnExit(), GetScene()
 - **Tsukino::EngineIntegration::GameSceneManager** — `Tsukino.EngineIntegration/include/Tsukino/EngineIntegration/Scene/GameSceneManager.hpp`
-  - GameSceneManager(), ~GameSceneManager(), GameSceneManager(), operator=(), GameSceneManager(), operator=(), Initialize(), ChangeScene(), Update(), GetCurrentScene()
+  - GameSceneManager(), ~GameSceneManager(), GameSceneManager(), operator=(), GameSceneManager(), operator=(), Initialize(), ChangeScene(), RegisterScene(), ChangeScene(), Update(), GetCurrentScene()
 - **Tsukino::EngineIntegration::RendererPhysicsDebugDraw** — `Tsukino.EngineIntegration/include/Tsukino/EngineIntegration/Physics/RendererPhysicsDebugDraw.hpp`
   - RendererPhysicsDebugDraw(), DrawLine(), DrawTriangle()

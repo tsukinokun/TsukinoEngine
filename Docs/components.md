@@ -4,7 +4,7 @@
 
 再生成: `vendor\premake5.exe gen-manifest`（または `generate-docs.bat`）
 
-コンポーネント 49 個（Prefab 登録済み 32 個 / シリアライズ定義あり 22 個）
+コンポーネント 54 個（Prefab 登録済み 36 個 / シリアライズ定義あり 23 個）
 
 ## 読み方
 
@@ -352,6 +352,7 @@
 | `fillAmount` | `float` | number | `1.0f` |
 | `fillStartAngle` | `float` | number | `0.0f` |
 | `fillClockwise` | `bool` | true / false | `true` |
+| `fillReverse` | `bool` | true / false | `false` |
 | `sliceBorder` | `hlslpp::float4` | { "x", "y", "z", "w" } | `hlslpp::float4(0.0f, 0.0f, 0.0f, 0.0f)` |
 | `sliceScale` | `float` | number | `1.0f` |
 | `raycastTarget` | `bool` | true / false | `true` |
@@ -385,6 +386,21 @@
 | `scale` | `hlslpp::float3` | { "x", "y", "z" } | `hlslpp::float3(1.0f, 1.0f, 1.0f)` |
 | `parent` | `Tsukino::ECS::EntityRef` | "#EntityName" | — |
 
+### UIButtonSoundComponent
+
+- 型: `Tsukino::BuiltIn::ECS::UIButtonSoundComponent`
+- Prefab 登録名: `UIButtonSoundComponent`
+- 定義: `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/UIButtonSoundComponent.hpp`
+- シリアライズ: `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Serialization/UIButtonSoundComponentSerialization.hpp`
+
+| JSON キー | C++ 型 | JSON 表現 | 既定値 |
+|---|---|---|---|
+| `hoverSound` | `Tsukino::Asset::AssetRef` | "path/to/asset" | — |
+| `clickSound` | `Tsukino::Asset::AssetRef` | "path/to/asset" | — |
+| `hoverVolume` | `float` | number | `1.0f` |
+| `clickVolume` | `float` | number | `1.0f` |
+| `bus` | `u8` | number | `0` |
+
 ### UIRectComponent
 
 - 型: `Tsukino::BuiltIn::ECS::UIRectComponent`
@@ -407,10 +423,12 @@
 | `AnimationPlayerComponent` | — | — | `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/AnimationPlayerComponent.hpp` |
 | `AudioComponent` | — | — | `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/AudioComponent.hpp` |
 | `BoxCollider2DComponent` | — | — | `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/BoxCollider2DComponent.hpp` |
+| `BurstParticleComponent` | — | — | `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/BurstParticleComponent.hpp` |
 | `CharacterControllerComponent` | — | — | `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/CharacterControllerComponent.hpp` |
 | `DebugCameraTag` | `DebugCameraTag` | — | `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/DebugCameraTag.hpp` |
 | `DraggableComponent` | `DraggableComponent` | — | `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/DraggableComponent.hpp` |
 | `ImpulseRequestComponent` | — | — | `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/ImpulseRequestComponent.hpp` |
+| `LifetimeComponent` | `LifetimeComponent` | — | `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/LifetimeComponent.hpp` |
 | `MaterialPropertyBlockComponent` | — | — | `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/MaterialPropertyBlockComponent.hpp` |
 | `MotionVectorComponent` | — | — | `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/MotionVectorComponent.hpp` |
 | `NodeWorldMatrixComponent` | — | — | `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/NodeWorldMatrixComponent.hpp` |
@@ -427,6 +445,8 @@
 | `UICanvasGroupComponent` | `UICanvasGroupComponent` | — | `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/UICanvasGroupComponent.hpp` |
 | `UIClipComponent` | `UIClipComponent` | — | `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/UIClipComponent.hpp` |
 | `UIMotionComponent` | `UIMotionComponent` | — | `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/UIMotionComponent.hpp` |
+| `UISliderComponent` | `UISliderComponent` | — | `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/UISliderComponent.hpp` |
+| `UIToggleComponent` | `UIToggleComponent` | — | `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/UIToggleComponent.hpp` |
 | `UITweenComponent` | `UITweenComponent` | — | `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/UITweenComponent.hpp` |
 | `UIVisibilityComponent` | `UIVisibilityComponent` | — | `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/UIVisibilityComponent.hpp` |
 | `WorldAnchorComponent` | — | — | `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/WorldAnchorComponent.hpp` |

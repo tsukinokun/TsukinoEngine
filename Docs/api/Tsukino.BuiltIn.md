@@ -30,6 +30,10 @@
   - boneName, followHeight, followSpeed, baseOffset, restBonePosition, currentShift, hasRest, boneNodeIndex, resolvedAgainstModel
 - **Tsukino::BuiltIn::ECS::BoxCollider2DComponent** — `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/BoxCollider2DComponent.hpp`
   - offset, size
+- **Tsukino::BuiltIn::ECS::BurstParams** — `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Particle/BurstEmitter.hpp`
+  - count, speedMin, speedMax, upwardBias, spread, lifeMin, lifeMax, sizeMin, sizeMax, endSizeScale, gravity, drag, radius, delayMax, colorA, colorB, endAlpha, additive, texturePixels
+- **Tsukino::BuiltIn::ECS::BurstParticleComponent** — `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/BurstParticleComponent.hpp`
+  - velocity, gravity, drag, age, life, startSize, endSize, startColor, endColor, texturePixels
 - **Tsukino::BuiltIn::ECS::CameraComponent** — `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/CameraComponent.hpp`
   - projectionType, orthoSize, referenceResolution, fov, aspectRatio, nearZ, farZ, useLookAt, lookAtTarget, viewMatrix, projectionMatrix, viewProjMatrix, invViewProjMatrix, isPrimary, dirty
 - **Tsukino::BuiltIn::ECS::CameraUtility::Ray** — `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Camera/CameraUtility.hpp`
@@ -56,6 +60,8 @@
   - text, fontHandle, color, origin, horizontalAlign, verticalAlign, outlineColor, outlineWidth, maxWidth, scale, sortOrder
 - **Tsukino::BuiltIn::ECS::ImpulseRequestComponent** — `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/ImpulseRequestComponent.hpp`
   - impulse, angularImpulse
+- **Tsukino::BuiltIn::ECS::LifetimeComponent** — `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/LifetimeComponent.hpp`
+  - remaining
 - **Tsukino::BuiltIn::ECS::MaterialPropertyBlockComponent** — `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/MaterialPropertyBlockComponent.hpp`
   - baseColor, emissive, metallic, roughness, shadingModel, toonThreshold, toonSmoothness, toonShadeColor, toonSpecularSize
 - **Tsukino::BuiltIn::ECS::ModelComponent** — `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/ModelComponent.hpp`
@@ -73,7 +79,7 @@
 - **Tsukino::BuiltIn::ECS::PointLightComponent** — `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/PointLightComponent.hpp`
   - color, intensity, range, enabled
 - **Tsukino::BuiltIn::ECS::PointerTargetComponent** — `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/PointerTargetComponent.hpp`
-  - hovered, clicked, pressed
+  - hovered, clicked, pressed, hoverEntered, hoverExited
 - **Tsukino::BuiltIn::ECS::RigidbodyComponent** — `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/RigidbodyComponent.hpp`
   - type, isTypeDirty, mass, friction, restitution, gravityFactor, linearVelocity, angularVelocity, force, torque, isInitialized, isGrounded, groundCheckDistance, groundCheckRadius, freezePositionX, freezePositionY, freezePositionZ, freezeRotationX, freezeRotationY, freezeRotationZ, isFreezeDirty
 - **Tsukino::BuiltIn::ECS::RimGlowComponent** — `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/RimGlowComponent.hpp`
@@ -101,13 +107,15 @@
 - **Tsukino::BuiltIn::ECS::SpringBoneComponent::ColliderDef** — `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/SpringBoneComponent.hpp`
   - attachNodeName, localOffset, radius
 - **Tsukino::BuiltIn::ECS::SpriteComponent** — `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/SpriteComponent.hpp`
-  - textureHandle, blendMode, space, tintColor, uvRect, sortOrder, fillMode, fillAmount, fillStartAngle, fillClockwise, sliceBorder, sliceScale, raycastTarget
+  - textureHandle, blendMode, space, tintColor, uvRect, sortOrder, fillMode, fillAmount, fillStartAngle, fillClockwise, fillReverse, sliceBorder, sliceScale, raycastTarget
 - **Tsukino::BuiltIn::ECS::TerrainGenerationRequestComponent** — `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/TerrainGenerationRequestComponent.hpp`
   - amplitude, noiseFrequency, seed, noiseType, collisionModelHandle
 - **Tsukino::BuiltIn::ECS::TransformComponent** — `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/TransformComponent.hpp`
   - position, rotation, scale, localMatrix, worldMatrix, parent, dirty
 - **Tsukino::BuiltIn::ECS::UIButtonFeedbackComponent** — `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/UIButtonFeedbackComponent.hpp`
   - hoverScale, pressScale, clickPunch, punchSeconds, speed, interactable, currentScale, punchElapsed
+- **Tsukino::BuiltIn::ECS::UIButtonSoundComponent** — `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/UIButtonSoundComponent.hpp`
+  - hoverSound, clickSound, hoverVolume, clickVolume, bus
 - **Tsukino::BuiltIn::ECS::UICanvas** — `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/UI/UICanvas.hpp`
   - scale, offset, size, ToPixel(), ToUI(), ToPixel(), Fit()
 - **Tsukino::BuiltIn::ECS::UICanvasGroupComponent** — `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/UICanvasGroupComponent.hpp`
@@ -122,6 +130,12 @@
   - size, pivot
 - **Tsukino::BuiltIn::ECS::UIRectUtility::LocalRect** — `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/UI/UIRectUtility.hpp`
   - center, size
+- **Tsukino::BuiltIn::ECS::UISliderComponent** — `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/UISliderComponent.hpp`
+  - track, trackLength, minValue, maxValue, changeThreshold, interactable, value, dragging, dragStarted, dragEnded, changed
+- **Tsukino::BuiltIn::ECS::UIToggleComponent** — `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/UIToggleComponent.hpp`
+  - group, interactable, isOn, changed
+- **Tsukino::BuiltIn::ECS::UIToggleGroupComponent** — `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/UIToggleComponent.hpp`
+  - changed
 - **Tsukino::BuiltIn::ECS::UITween** — `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/UITweenComponent.hpp`
   - property, from, to, duration, delay, repeatDelay, ease, loop, holdAtEnd, unscaledTime, tag, elapsed
 - **Tsukino::BuiltIn::ECS::UITweenComponent** — `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/UITweenComponent.hpp`

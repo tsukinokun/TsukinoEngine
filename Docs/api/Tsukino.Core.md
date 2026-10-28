@@ -117,6 +117,9 @@
 | `EventBus & operator=(EventBus &&)=delete` |  |
 | `template <typename TEvent> ScopedConnection Subscribe(std::function< void(const TEvent &)> handler)` | イベントの購読 |
 | `template <typename TEvent> void Publish(const TEvent &event)` | イベントの発火（即時・同期） |
+| `template <typename TEvent> void Enqueue(const TEvent &event)` | イベントの発火を後回しにする（キューに積む） |
+| `void FlushQueued()` | Enqueue で積んだイベントを、積んだ順に発火する |
+| `void ClearQueued()` | Enqueue で積んだまま発火していないイベントを捨てる |
 | `template <typename TEvent> void Clear()` | 特定イベント型のハンドラを全解除 |
 | `void ClearAll()` | 全ハンドラを解除 |
 
@@ -214,6 +217,10 @@
   - identity(), translate(), translate(), scale(), scale(), scale(), rotateX(), rotateY(), rotateZ(), rotateXYZ(), rotateAxis(), lookAtLH(), perspectiveFovLH(), perspectiveFovInfiniteFarPlaneLH(), orthographicOffCenterLH(), fromQuaternion(), rotate(), decomposePositionRotation(), matrix()
 - **Tsukino::Core::Path** — `Tsukino.Core/include/Tsukino/Core/Path.hpp`
   - Path(), Path(), string(), parent(), filename(), extension(), stem(), parent_path(), ToWString(), operator/(), operator/(), replace_extension(), SplitPathAndFragment(), ToLower()
+- **Tsukino::Core::Sequencer** — `Tsukino.Core/include/Tsukino/Core/Time/Sequencer.hpp`
+  - Schedule(), Update(), Clear(), IsBusy()
+- **Tsukino::Core::Sequencer::Entry** — `Tsukino.Core/include/Tsukino/Core/Time/Sequencer.hpp`
+  - time, order, callback
 - **Tsukino::Core::Window** — `Tsukino.Core/include/Tsukino/Core/Window.hpp`
   - Window(), ~Window(), Create(), ProcessMessages(), SetMessageCallback(), SetResizeCallback(), SetFocusLostCallback(), SetHitTestCallback(), GetHWND(), GetWidth(), GetHeight(), SetTopmost(), IsTopmost(), SetUpdateMode(), InvokeCallback(), SetClickThroughEnabled(), UpdateClickThroughFromHitTest(), EnqueueInput(), SetFullscreen(), SetCursorVisible(), IsFocused(), CenterCursor()
 - **Tsukino::Core::Window::QueuedInputEvent** — `Tsukino.Core/include/Tsukino/Core/Window.hpp`
@@ -223,7 +230,7 @@
 - **Tsukino::ECS::EntityRefResolverArchive** — `Tsukino.Core/include/Tsukino/Core/ECS/EntityRef/EntityRefResolverArchive.hpp`
   - EntityRefResolverArchive(), operator()()
 - **Tsukino::ECS::EventBus** — `Tsukino.Core/include/Tsukino/Core/ECS/Event/EventBus.hpp`
-  - EventBus(), ~EventBus(), EventBus(), operator=(), EventBus(), operator=(), Subscribe(), Publish(), Clear(), ClearAll()
+  - EventBus(), ~EventBus(), EventBus(), operator=(), EventBus(), operator=(), Subscribe(), Publish(), Enqueue(), FlushQueued(), ClearQueued(), Clear(), ClearAll()
 - **Tsukino::ECS::EventBus::HandlerEntry** — `Tsukino.Core/include/Tsukino/Core/ECS/Event/EventBus.hpp`
   - id, invoke
 - **Tsukino::ECS::ISystem** — `Tsukino.Core/include/Tsukino/Core/ECS/System/ISystem.hpp`
