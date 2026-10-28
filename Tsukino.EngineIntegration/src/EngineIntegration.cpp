@@ -40,6 +40,8 @@
 #include <Tsukino/BuiltIn/ECS/Component/UIButtonFeedbackComponent.hpp>
 #include <Tsukino/BuiltIn/ECS/Component/UIButtonSoundComponent.hpp>
 #include <Tsukino/BuiltIn/ECS/Component/LifetimeComponent.hpp>
+#include <Tsukino/BuiltIn/ECS/Component/UISliderComponent.hpp>
+#include <Tsukino/BuiltIn/ECS/Component/UIToggleComponent.hpp>
 #include <Tsukino/BuiltIn/ECS/Component/ScrollBarComponent.hpp>
 
 #include <Tsukino/BuiltIn/ECS/Serialization/CameraComponentSerialization.hpp>
@@ -432,5 +434,9 @@ namespace Tsukino::EngineIntegration {
         m_prefabFactory->RegisterComponent<Tsukino::BuiltIn::ECS::UIButtonSoundComponent>("UIButtonSoundComponent");
         // 時間が来たら子ごと片付ける印。残り時間は作る側が実行時に書くのでアタッチのみでよい
         m_prefabFactory->RegisterComponent<Tsukino::BuiltIn::ECS::LifetimeComponent>("LifetimeComponent");
+        // スライダーと切り替え。線や組をエンティティで指すため実行時専用（アタッチのみでよい）
+        m_prefabFactory->RegisterComponent<Tsukino::BuiltIn::ECS::UISliderComponent>("UISliderComponent");
+        m_prefabFactory->RegisterComponent<Tsukino::BuiltIn::ECS::UIToggleComponent>("UIToggleComponent");
+        m_prefabFactory->RegisterComponent<Tsukino::BuiltIn::ECS::UIToggleGroupComponent>("UIToggleGroupComponent");
     }
 }    // namespace Tsukino::EngineIntegration
