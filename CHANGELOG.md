@@ -9,6 +9,11 @@ carve-out for `Tsukino.Renderer` described under **API stability** in the README
 
 ### Added
 
+- **`AudioManager::SetVolume` (change the volume of a sound that is already playing).** Applies the
+  new 0–1 volume to every instance of that asset currently playing (all overlaps), and does nothing
+  when it isn't playing. Lets a settings screen turn the looping BGM up or down live instead of
+  restarting it. The master volume still applies on top.
+
 - **`AssetLoadQueue` (load assets on a worker thread).** Enqueue paths, `Start()`, then poll
   `Progress()` / `IsFinished()` from the main thread to drive a loading screen. One worker thread
   calls `AssetManager::Load` for each path (initializing COM for WIC first) and keeps going past

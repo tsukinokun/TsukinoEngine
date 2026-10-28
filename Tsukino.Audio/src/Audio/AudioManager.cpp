@@ -216,6 +216,21 @@ namespace Tsukino::Audio {
     }
 
     //--------------------------------------------------------------
+    //! @brief 鳴っている音声の音量を変える
+    //--------------------------------------------------------------
+    void AudioManager::SetVolume(const Tsukino::Asset::AudioAsset& audioAsset, float volume) {
+        if (!m_audioContext) return;
+
+        // 同じ音を重ねて鳴らしている場合は、そのすべてに掛ける
+        const float clamped = std::clamp(volume, 0.0f, 1.0f);
+        for (AudioContext::PlayingSound& sound : m_audioContext->playing) {
+            if (sound.instance && sound.waveIndex == audioAsset.waveIndex && sound.waveBankPath == audioAsset.waveBankPath) {
+                sound.instance->SetVolume(clamped);
+            }
+        }
+    }
+
+    //--------------------------------------------------------------
     //! @brief マスター音量を設定する
     //--------------------------------------------------------------
     void AudioManager::SetMasterVolume(float volume) {
