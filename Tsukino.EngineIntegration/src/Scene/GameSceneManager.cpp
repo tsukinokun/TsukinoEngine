@@ -7,6 +7,9 @@
 #include "Tsukino/EngineIntegration/Scene/GameSceneBase.hpp"
 #include "Tsukino/EngineIntegration/EngineContext.hpp"
 
+#include <Tsukino/Core/Log.hpp>
+#include <Tsukino/Engine/ECS/EngineEvent/SceneEvent.hpp>
+
 // 名前空間 : Tsukino::EngineIntegration
 namespace Tsukino::EngineIntegration {
     namespace {
@@ -37,6 +40,9 @@ namespace Tsukino::EngineIntegration {
     //! @brief  デストラクタ
     //-------------------------------------------------------------
     GameSceneManager::~GameSceneManager() {
+        // 購読はシーンの EventBus を指しているので、シーンより先に外す
+        m_changeRequest = {};
+
         // 現在のシーンが存在する場合は終了処理を呼び出す
         if(m_currentScene) {
             m_currentScene->OnExit();
@@ -69,12 +75,33 @@ namespace Tsukino::EngineIntegration {
     }
 
     //-------------------------------------------------------------
+    //! @brief  名前で切り替えられるシーンを登録する
+    //-------------------------------------------------------------
+    void GameSceneManager::RegisterScene(const std::string& name, SceneFactory factory) {
+        m_factories[name] = std::move(factory);
+    }
+
+    //-------------------------------------------------------------
+    //! @brief  登録した名前のシーンへの遷移を予約する
+    //-------------------------------------------------------------
+    bool GameSceneManager::ChangeScene(const std::string& name) {
+        const auto it = m_factories.find(name);
+        if(it == m_factories.end() || !it->second) {
+            Tsukino::Core::Log::Warn("GameSceneManager::ChangeScene - Scene is not registered: " + name);
+            return false;
+        }
+        m_nextScene = it->second();
+        return m_nextScene != nullptr;
+    }
+
+    //-------------------------------------------------------------
     //! @brief  シーンの更新
     //-------------------------------------------------------------
     void GameSceneManager::Update(Tsukino::EngineIntegration::EngineAPI& api, float deltaTime) {
         // 遷移予約がある場合はシーンを切り替える
         if(m_nextScene) {
-            // 現在のシーンの終了処理
+            // 現在のシーンの終了処理。購読はシーンの EventBus を指しているので先に外す
+            m_changeRequest = {};
             if(m_currentScene) {
                 m_currentScene->OnExit();
 
@@ -94,6 +121,10 @@ namespace Tsukino::EngineIntegration {
             m_currentScene = std::move(m_nextScene);
             if(m_currentScene) {
                 m_currentScene->Initialize(api, m_context);
+
+                // System など EngineAPI を持たない所からも、イベントで名前の付いたシーンへ切り替えられるようにする
+                m_changeRequest = m_currentScene->GetScene().GetEventBus().Subscribe<Tsukino::ECS::EngineEvent::SceneChangeRequestedEvent>(
+                    [this](const Tsukino::ECS::EngineEvent::SceneChangeRequestedEvent& e) { ChangeScene(e.nextSceneName); });
             }
         }
 

@@ -9,6 +9,12 @@ carve-out for `Tsukino.Renderer` described under **API stability** in the README
 
 ### Added
 
+- **Scenes switched by name (`EngineAPI::RegisterScene` / `ChangeScene(name)`).** Register a factory
+  per name; `ChangeScene(name)` builds a fresh scene from it and books the switch (an unknown name logs
+  a warning and returns false). `GameSceneManager` also subscribes to the current scene's
+  `SceneChangeRequestedEvent`, so a system without access to `EngineAPI` can switch scenes by
+  publishing that event with the scene name. The event was declared before but nothing handled it.
+
 - **Burst particles (`BurstEmitter::Emit`, `BurstParams`, `BurstParticleComponent` +
   `BurstParticleSystem`).** `Emit` creates a number of world-space sprite particles at once around a
   point, randomizing speed, direction, life, size, color and start delay within the ranges in

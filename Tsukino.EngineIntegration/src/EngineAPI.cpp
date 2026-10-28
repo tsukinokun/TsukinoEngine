@@ -41,6 +41,22 @@ namespace Tsukino::EngineIntegration {
     }
 
     //------------------------------------------------------------
+    //! @brief 名前で切り替えられるシーンを登録する
+    //------------------------------------------------------------
+    void EngineAPI::RegisterScene(const std::string& name, std::function<std::unique_ptr<GameSceneBase>()> factory) {
+        if(m_context.gameSceneManager) {
+            m_context.gameSceneManager->RegisterScene(name, std::move(factory));
+        }
+    }
+
+    //------------------------------------------------------------
+    //! @brief 登録した名前のシーンへ遷移する
+    //------------------------------------------------------------
+    bool EngineAPI::ChangeScene(const std::string& name) {
+        return m_context.gameSceneManager != nullptr && m_context.gameSceneManager->ChangeScene(name);
+    }
+
+    //------------------------------------------------------------
     //! @brief メッセージ処理関数
     //------------------------------------------------------------
     bool EngineAPI::ProcessMessages() {

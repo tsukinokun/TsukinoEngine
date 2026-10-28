@@ -7,7 +7,9 @@
 #include <Tsukino/Core/ECS/Registry/Registry.hpp>
 #include <Tsukino/EngineIntegration/Scene/GameSceneBase.hpp>
 
-#include <memory>    
+#include <functional>
+#include <memory>
+#include <string>
 
 // 前方宣言
 namespace Tsukino {
@@ -37,6 +39,20 @@ namespace Tsukino::EngineIntegration {
         //! @param  newScene [in] 次に遷移するシーンのインスタンス
         //------------------------------------------------------------
         void ChangeScene(std::unique_ptr<GameSceneBase> newScene);
+
+        //------------------------------------------------------------
+        // 名前で切り替えられるシーンを登録する
+        //! @param  name    [in] シーンの名前（同じ名前なら置き換える）
+        //! @param  factory [in] シーンを作る関数（切り替えのたびに新しく作る）
+        //------------------------------------------------------------
+        void RegisterScene(const std::string& name, std::function<std::unique_ptr<GameSceneBase>()> factory);
+
+        //------------------------------------------------------------
+        // 登録した名前のシーンへ遷移する
+        //! @param  name [in] シーンの名前
+        //! @return 登録されていて予約できたら true
+        //------------------------------------------------------------
+        bool ChangeScene(const std::string& name);
 
         //------------------------------------------------------------
         // メッセージ処理関数
