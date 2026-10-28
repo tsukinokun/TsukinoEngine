@@ -9,6 +9,11 @@ carve-out for `Tsukino.Renderer` described under **API stability** in the README
 
 ### Added
 
+- **Tween presets in `UITweenUtility` (`SlideIn`, `SlideOut`, `FadeIn`, `FadeOut`, `Punch`).** One call
+  slides an element in from an offset while fading it in (OutBack by default), slides it out while
+  fading it out, fades it alone, or punches its scale. They use tags from `UITweenUtility::Tag`
+  (`0xFFFFFF00` and up), so a game should keep its own tween tags below that range.
+
 - **Button sounds (`UIButtonSoundComponent` + `UIButtonSoundSystem`) and hover edges on
   `PointerTargetComponent`.** `PointerTargetComponent` gains `hoverEntered` / `hoverExited`, set by
   `InteractionSystem` on the frame the pointer starts or stops hovering. `UIButtonSoundComponent`
