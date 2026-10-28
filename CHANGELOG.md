@@ -9,6 +9,13 @@ carve-out for `Tsukino.Renderer` described under **API stability** in the README
 
 ### Added
 
+- **`HotReload` / `HotReloadable<T>` (reload tuning files while the game runs).** `HotReload::Watch`
+  registers a file and a reload function; `EngineAPI::Update` calls `HotReload::Poll` before the scene
+  update, so values never change in the middle of a frame. `HotReloadable<T>(path, loader)` keeps a
+  value loaded from a file and replaces it only when a reload succeeds (a broken save keeps the old
+  value). JSON reloads log the changed fields. Active only when `TSUKINO_ENABLE_HOT_RELOAD` is defined
+  (Debug by default). (Added earlier without a changelog entry.)
+
 - **`LifetimeComponent` + `LifetimeSystem` and `TransformUtility::DestroyHierarchy`.**
   `DestroyHierarchy(registry, root)` queues the entity and every Transform descendant for destruction,
   building the parent → children table with one pass over the transforms (children only point at
@@ -199,6 +206,9 @@ carve-out for `Tsukino.Renderer` described under **API stability** in the README
   unchanged.
 
 ### Changed
+
+- **`Tsukino.EngineIntegration` compiles with `/bigobj`.** `EngineIntegration.cpp` pulls in every
+  built-in component's serializer for Prefab registration and passed the default section limit.
 
 - **`DynamicFontAtlas` rasterizes glyphs at stepped sizes.** Text whose scale animates (button hover,
   popping numbers) used to hit a new integer pixel size almost every frame, re-rasterizing every

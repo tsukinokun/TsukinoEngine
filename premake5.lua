@@ -611,7 +611,8 @@ project "Tsukino.EngineIntegration"
     forceincludes { "pch.h" }               -- 強制インクルード
 
     filter "action:vs*"
-        buildoptions { "/permissive-" }
+        -- EngineIntegration.cpp は組み込みコンポーネントのシリアライズを全部取り込むため、既定のセクション数を超える
+        buildoptions { "/permissive-", "/bigobj" }
     filter {}
 
     pchheader "pch.h" 

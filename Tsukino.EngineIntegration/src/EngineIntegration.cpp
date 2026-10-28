@@ -38,6 +38,8 @@
 #include <Tsukino/BuiltIn/ECS/Component/UICanvasGroupComponent.hpp>
 #include <Tsukino/BuiltIn/ECS/Component/UITweenComponent.hpp>
 #include <Tsukino/BuiltIn/ECS/Component/UIButtonFeedbackComponent.hpp>
+#include <Tsukino/BuiltIn/ECS/Component/UIButtonSoundComponent.hpp>
+#include <Tsukino/BuiltIn/ECS/Component/LifetimeComponent.hpp>
 #include <Tsukino/BuiltIn/ECS/Component/ScrollBarComponent.hpp>
 
 #include <Tsukino/BuiltIn/ECS/Serialization/CameraComponentSerialization.hpp>
@@ -62,6 +64,7 @@
 #include <Tsukino/BuiltIn/ECS/Serialization/SpriteComponentSerialization.hpp>
 #include <Tsukino/BuiltIn/ECS/Serialization/UIRectComponentSerialization.hpp>
 #include <Tsukino/BuiltIn/ECS/Serialization/FontComponentSerialization.hpp>
+#include <Tsukino/BuiltIn/ECS/Serialization/UIButtonSoundComponentSerialization.hpp>
 
 #include <Tsukino/Core/Log.hpp>
 
@@ -425,5 +428,9 @@ namespace Tsukino::EngineIntegration {
         m_prefabFactory->RegisterComponent<Tsukino::BuiltIn::ECS::UICanvasGroupComponent>("UICanvasGroupComponent");
         m_prefabFactory->RegisterComponent<Tsukino::BuiltIn::ECS::UITweenComponent>("UITweenComponent");
         m_prefabFactory->RegisterComponent<Tsukino::BuiltIn::ECS::UIButtonFeedbackComponent>("UIButtonFeedbackComponent");
+        // ボタンの音（音のパスと音量）。Prefab JSON で設定できる
+        m_prefabFactory->RegisterComponent<Tsukino::BuiltIn::ECS::UIButtonSoundComponent>("UIButtonSoundComponent");
+        // 時間が来たら子ごと片付ける印。残り時間は作る側が実行時に書くのでアタッチのみでよい
+        m_prefabFactory->RegisterComponent<Tsukino::BuiltIn::ECS::LifetimeComponent>("LifetimeComponent");
     }
 }    // namespace Tsukino::EngineIntegration
