@@ -5,6 +5,7 @@
 #pragma once
 #include <Tsukino/BuiltIn/ECS/Component/SpriteComponent.hpp>
 
+#include <Tsukino/Core/IO/CerealOptional.hpp>
 #include <Tsukino/Core/Math/Serialization/HlslppSerialization.hpp>
 
 #include <cereal/cereal.hpp>
@@ -40,19 +41,13 @@ namespace Tsukino::BuiltIn::ECS {
         archive(sprite.textureHandle, sprite.blendMode, sprite.space, sprite.tintColor, sprite.uvRect, sprite.sortOrder);
 
         // fill*・slice*・raycastTarget は後から足した項目。古いPrefab JSONには無いので、無ければ既定値（画像全体を描く・当たりを受ける）のまま
-        auto loadOptional = [&archive](const char* name, auto& value) {
-            try {
-                archive(cereal::make_nvp(name, value));
-            } catch(const cereal::Exception&) {
-            }
-        };
-        loadOptional("fillMode", sprite.fillMode);
-        loadOptional("fillAmount", sprite.fillAmount);
-        loadOptional("fillStartAngle", sprite.fillStartAngle);
-        loadOptional("fillClockwise", sprite.fillClockwise);
-        loadOptional("sliceBorder", sprite.sliceBorder);
-        loadOptional("sliceScale", sprite.sliceScale);
-        loadOptional("raycastTarget", sprite.raycastTarget);
+        Tsukino::IO::LoadOptional(archive, "fillMode", sprite.fillMode);
+        Tsukino::IO::LoadOptional(archive, "fillAmount", sprite.fillAmount);
+        Tsukino::IO::LoadOptional(archive, "fillStartAngle", sprite.fillStartAngle);
+        Tsukino::IO::LoadOptional(archive, "fillClockwise", sprite.fillClockwise);
+        Tsukino::IO::LoadOptional(archive, "sliceBorder", sprite.sliceBorder);
+        Tsukino::IO::LoadOptional(archive, "sliceScale", sprite.sliceScale);
+        Tsukino::IO::LoadOptional(archive, "raycastTarget", sprite.raycastTarget);
     }
 
 }    // namespace Tsukino::BuiltIn::ECS

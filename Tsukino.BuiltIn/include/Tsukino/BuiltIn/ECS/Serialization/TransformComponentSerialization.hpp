@@ -6,6 +6,7 @@
 #pragma once
 #include <Tsukino/BuiltIn/ECS/Component/TransformComponent.hpp>
 
+#include <Tsukino/Core/IO/CerealOptional.hpp>
 #include <Tsukino/Core/Math/Serialization/HlslppSerialization.hpp>
 
 #include <cereal/cereal.hpp>
@@ -52,11 +53,7 @@ namespace Tsukino::BuiltIn::ECS {
         // ここでcatchしてもアーカイブの読み取り位置は壊れない
         // （cereal/archives/json.hpp の search() 実装のコメント参照）
         //--------------------------------------------------------------
-        try {
-            archive(cereal::make_nvp("parent", transform.parent));
-        } catch(const cereal::Exception&) {
-            // parentキーなし = 親なし。初期値のまま何もしない
-        }
+        Tsukino::IO::LoadOptional(archive, "parent", transform.parent);
         //--------------------------------------------------------------
         // 初期パラメータが変わったので、行列（local/world）を
         // 次フレームで強制再計算させるために dirty フラグを true にする

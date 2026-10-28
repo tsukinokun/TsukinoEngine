@@ -9,6 +9,15 @@ carve-out for `Tsukino.Renderer` described under **API stability** in the README
 
 ### Added
 
+- **`Tsukino::IO::LoadOptional` / `TryLoadJson` / `TrySaveJson` (JSON files whose fields may be left out).**
+  `LoadOptional(archive, name, value)` (`Core/IO/CerealOptional.hpp`) reads one named field and leaves
+  `value` untouched when the field is missing, so a `load` written with it accepts older or partial
+  files. `TryLoadJson<T>(path, key, out)` (`Core/IO/JsonFile.hpp`) reads into a copy of `out` and only
+  assigns it back when the whole read succeeds; a missing or broken file logs a warning and keeps the
+  defaults instead of throwing. `TrySaveJson` writes the same layout and creates missing folders. The
+  built-in component serializers (Camera, Font, Model, Sprite, Transform, UIRect) now use
+  `LoadOptional` instead of their own try/catch copies.
+
 - **`AudioManager::SetVolume` (change the volume of a sound that is already playing).** Applies the
   new 0–1 volume to every instance of that asset currently playing (all overlaps), and does nothing
   when it isn't playing. Lets a settings screen turn the looping BGM up or down live instead of

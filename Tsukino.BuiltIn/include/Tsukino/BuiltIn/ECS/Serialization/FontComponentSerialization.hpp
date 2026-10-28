@@ -9,6 +9,7 @@
 #pragma once
 #include <Tsukino/BuiltIn/ECS/Component/FontComponent.hpp>
 
+#include <Tsukino/Core/IO/CerealOptional.hpp>
 #include <Tsukino/Core/Math/Serialization/HlslppSerialization.hpp>
 
 #include <cereal/cereal.hpp>
@@ -42,15 +43,9 @@ namespace Tsukino::BuiltIn::ECS {
 
         // maxWidth・fontHandle・scale は後から足した項目。古いPrefab JSONには無いので、無ければ既定値のまま
         // （maxWidth＝制限なし、fontHandle＝未設定で既定フォント、scale＝1）
-        auto loadOptional = [&archive](const char* name, auto& value) {
-            try {
-                archive(cereal::make_nvp(name, value));
-            } catch(const cereal::Exception&) {
-            }
-        };
-        loadOptional("maxWidth", font.maxWidth);
-        loadOptional("fontHandle", font.fontHandle);
-        loadOptional("scale", font.scale);
+        Tsukino::IO::LoadOptional(archive, "maxWidth", font.maxWidth);
+        Tsukino::IO::LoadOptional(archive, "fontHandle", font.fontHandle);
+        Tsukino::IO::LoadOptional(archive, "scale", font.scale);
     }
 
 }    // namespace Tsukino::BuiltIn::ECS

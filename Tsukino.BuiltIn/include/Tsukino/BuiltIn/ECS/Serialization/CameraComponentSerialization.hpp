@@ -6,6 +6,7 @@
 #pragma once
 #include <Tsukino/BuiltIn/ECS/Component/CameraComponent.hpp>
 
+#include <Tsukino/Core/IO/CerealOptional.hpp>
 #include <Tsukino/Core/Math/Serialization/HlslppSerialization.hpp>   
 
 #include <cereal/cereal.hpp>
@@ -48,10 +49,7 @@ namespace Tsukino::BuiltIn::ECS {
                 camera.isPrimary);
 
         // referenceResolution は後から足した項目。古いPrefab JSONには無いので、無ければ既定値（UI の座標 ＝ ピクセル）のまま
-        try {
-            archive(cereal::make_nvp("referenceResolution", camera.referenceResolution));
-        } catch(const cereal::Exception&) {
-        }
+        Tsukino::IO::LoadOptional(archive, "referenceResolution", camera.referenceResolution);
         // ロード直後は行列の再計算が必要なので、dirtyフラグを強制的に立てる！
         camera.dirty = true;
     }

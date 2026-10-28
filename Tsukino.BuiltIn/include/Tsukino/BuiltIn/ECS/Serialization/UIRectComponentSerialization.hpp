@@ -5,6 +5,7 @@
 #pragma once
 #include <Tsukino/BuiltIn/ECS/Component/UIRectComponent.hpp>
 
+#include <Tsukino/Core/IO/CerealOptional.hpp>
 #include <Tsukino/Core/Math/Serialization/HlslppSerialization.hpp>
 
 #include <cereal/cereal.hpp>
@@ -28,10 +29,7 @@ namespace Tsukino::BuiltIn::ECS {
         archive(cereal::make_nvp("size", rect.size));
 
         // pivot は省略できる（無ければ中心）
-        try {
-            archive(cereal::make_nvp("pivot", rect.pivot));
-        } catch(const cereal::Exception&) {
-        }
+        Tsukino::IO::LoadOptional(archive, "pivot", rect.pivot);
     }
 
 }    // namespace Tsukino::BuiltIn::ECS
