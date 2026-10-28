@@ -5,6 +5,9 @@
 //--------------------------------------------------------------
 #pragma once
 
+#include <Tsukino/Core/typedef.hpp>
+
+#include <array>
 #include <memory>
 #include <string>
 
@@ -18,6 +21,13 @@ namespace Tsukino::Audio {
 
     // 前方宣言
     class AudioContext;    // バックエンド(XAudio2等)の隠蔽
+
+    //! 音をまとめて音量を変えるためのバスの番号（0 〜 kAudioBusCount-1）。
+    //! 何番を何に使うか（BGM・効果音・声など）はゲームが決める。0 は既定のバス
+    using AudioBus = u8;
+
+    //! バスの数
+    inline constexpr AudioBus kAudioBusCount = 8;
 
     //--------------------------------------------------------------
     //! @class  AudioManager
@@ -60,10 +70,11 @@ namespace Tsukino::Audio {
         // 音声を再生する
         //! @param audioAsset       [in] 再生対象のオーディオアセット（AssetManagerでロード済みのもの）
         //! @param isLoop           [in] ループ再生するかどうか。trueならStopを呼ぶまで鳴り続ける
-        //! @param volume           [in] 再生音量（0.0f ~ 1.0f）。マスター音量はこれとは別に全体へ掛かる
+        //! @param volume           [in] 再生音量（0.0f ~ 1.0f）。バスの音量とマスター音量は、これとは別に掛かる
+        //! @param bus              [in] 属するバス（SetBusVolume でまとめて音量を変えられる）
         //! @note  呼ぶたびに新しく鳴らす（同じ音を重ねて鳴らせる）。鳴り終わった音はUpdateが片付ける
         //--------------------------------------------------------------
-        void Play(const Tsukino::Asset::AudioAsset& audioAsset, bool isLoop = false, float volume = 1.0f);
+        void Play(const Tsukino::Asset::AudioAsset& audioAsset, bool isLoop = false, float volume = 1.0f, AudioBus bus = 0);
 
         //--------------------------------------------------------------
         // 特定の音声を停止する
@@ -88,7 +99,7 @@ namespace Tsukino::Audio {
         //--------------------------------------------------------------
         // 鳴っている音声の音量を変える
         //! @param audioAsset [in] 対象のオーディオアセット
-        //! @param volume     [in] 新しい音量（0.0f ~ 1.0f）。マスター音量はこれとは別に全体へ掛かる
+        //! @param volume     [in] 新しい音量（0.0f ~ 1.0f）。バスの音量とマスター音量は、これとは別に掛かる
         //! @note  そのアセットを重ねて鳴らしている場合は、すべてに掛ける。鳴っていなければ何もしない。
         //!        流れている BGM の音量を設定画面などから変えるときに使う
         //--------------------------------------------------------------
@@ -107,9 +118,26 @@ namespace Tsukino::Audio {
         [[nodiscard]]
         float GetMasterVolume() const;
 
+        //--------------------------------------------------------------
+        // バスの音量を設定する
+        //! @param bus    [in] バスの番号
+        //! @param volume [in] そのバスの音量（0.0f ~ 1.0f）
+        //! @note  そのバスで鳴っている音にもすぐ掛かる。設定画面の「BGM」「効果音」の音量などに使う
+        //--------------------------------------------------------------
+        void SetBusVolume(AudioBus bus, float volume);
+
+        //--------------------------------------------------------------
+        // バスの音量を取得する
+        //! @param bus [in] バスの番号
+        //! @return そのバスの音量（範囲外の番号なら 1.0f）
+        //--------------------------------------------------------------
+        [[nodiscard]]
+        float GetBusVolume(AudioBus bus) const;
+
     private:
         std::unique_ptr<AudioContext> m_audioContext;    //!< バックエンド（XAudio2等）を隠蔽するコンテキスト
         float                         m_masterVolume;    //!< 全体の音量
+        std::array<float, kAudioBusCount> m_busVolumes;  //!< バスごとの音量
     };
 
 }    // namespace Tsukino::Audio

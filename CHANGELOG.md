@@ -9,6 +9,12 @@ carve-out for `Tsukino.Renderer` described under **API stability** in the README
 
 ### Added
 
+- **Audio buses (`AudioManager::SetBusVolume` / `GetBusVolume`).** `Play` takes an optional bus
+  (`AudioBus`, 0–7; the game decides what each bus means, such as music or effects). A sound's
+  volume is its own volume × its bus volume, with the master volume on top. Changing a bus volume
+  applies at once to the sounds already playing on it, so a settings screen can turn all effects or
+  the looping BGM up or down live. `AudioComponent::bus` picks the bus for component-driven sounds.
+
 - **`Tsukino::IO::LoadOptional` / `TryLoadJson` / `TrySaveJson` (JSON files whose fields may be left out).**
   `LoadOptional(archive, name, value)` (`Core/IO/CerealOptional.hpp`) reads one named field and leaves
   `value` untouched when the field is missing, so a `load` written with it accepts older or partial

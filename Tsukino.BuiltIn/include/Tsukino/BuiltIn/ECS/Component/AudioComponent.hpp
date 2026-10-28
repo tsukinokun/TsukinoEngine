@@ -21,6 +21,7 @@ namespace Tsukino::BuiltIn::ECS {
         float volume = 1.0f;      //!< 音量 (0.0f ~ 1.0f)
         float pitch = 0.0f;       //!< ピッチ (再生速度・音程)
         float pan = 0.0f;         //!< パン (左右の定位)
+        u8    bus = 0;            //!< 属するバス（AudioManager::SetBusVolume でまとめて音量を変える）
 
         bool isPlaying = false;   //!< 現在再生中かどうか
         bool playTrigger = false; //!< 再生トリガー (trueにすると再生される)

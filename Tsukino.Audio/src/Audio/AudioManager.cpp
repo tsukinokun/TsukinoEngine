@@ -31,6 +31,8 @@ namespace Tsukino::Audio {
             std::string                                   waveBankPath;    //!< 属しているWaveBank（AudioAsset::waveBankPath）
             u32                                           waveIndex = 0;   //!< WaveBank内のインデックス（AudioAsset::waveIndex）
             std::unique_ptr<DirectX::SoundEffectInstance> instance;        //!< 再生を止める・状態を問うためのハンドル
+            float                                         volume = 1.0f;   //!< Play・SetVolume で指定された音量（バスの音量を掛ける前）
+            AudioBus                                      bus    = 0;      //!< 属するバス
         };
 
         std::unique_ptr<DirectX::AudioEngine> engine;
@@ -105,6 +107,7 @@ namespace Tsukino::Audio {
     AudioManager::AudioManager() 
         : m_audioContext(nullptr)
         , m_masterVolume(1.0f) {
+        m_busVolumes.fill(1.0f);
     }
 
     //--------------------------------------------------------------
@@ -142,7 +145,7 @@ namespace Tsukino::Audio {
     //--------------------------------------------------------------
     //! @brief 音声を再生する
     //--------------------------------------------------------------
-    void AudioManager::Play(const Tsukino::Asset::AudioAsset& audioAsset, bool isLoop, float volume) {
+    void AudioManager::Play(const Tsukino::Asset::AudioAsset& audioAsset, bool isLoop, float volume, AudioBus bus) {
         if (!m_audioContext || !m_audioContext->engine) return;
 
         DirectX::WaveBank* waveBank = m_audioContext->GetOrLoadWaveBank(audioAsset.waveBankPath);
@@ -164,11 +167,12 @@ namespace Tsukino::Audio {
             return;
         }
 
-        // マスター音量は SetMasterVolume が AudioEngine 側へ設定済みなので、ここでは掛けない
-        instance->SetVolume(std::clamp(volume, 0.0f, 1.0f));
+        // マスター音量は SetMasterVolume が AudioEngine 側へ設定済みなので、ここではバスの音量だけを掛ける
+        const float clamped = std::clamp(volume, 0.0f, 1.0f);
+        instance->SetVolume(clamped * GetBusVolume(bus));
         instance->Play(isLoop);
 
-        m_audioContext->playing.push_back({audioAsset.waveBankPath, audioAsset.waveIndex, std::move(instance)});
+        m_audioContext->playing.push_back({audioAsset.waveBankPath, audioAsset.waveIndex, std::move(instance), clamped, bus});
     }
 
     //--------------------------------------------------------------
@@ -225,7 +229,8 @@ namespace Tsukino::Audio {
         const float clamped = std::clamp(volume, 0.0f, 1.0f);
         for (AudioContext::PlayingSound& sound : m_audioContext->playing) {
             if (sound.instance && sound.waveIndex == audioAsset.waveIndex && sound.waveBankPath == audioAsset.waveBankPath) {
-                sound.instance->SetVolume(clamped);
+                sound.volume = clamped;
+                sound.instance->SetVolume(clamped * GetBusVolume(sound.bus));
             }
         }
     }
@@ -245,6 +250,32 @@ namespace Tsukino::Audio {
     //--------------------------------------------------------------
     float AudioManager::GetMasterVolume() const {
         return m_masterVolume;
+    }
+
+    //--------------------------------------------------------------
+    //! @brief バスの音量を設定する
+    //--------------------------------------------------------------
+    void AudioManager::SetBusVolume(AudioBus bus, float volume) {
+        if (bus >= kAudioBusCount) {
+            Tsukino::Core::Log::Warn("AudioManager::SetBusVolume - Bus index out of range: " + std::to_string(bus));
+            return;
+        }
+        m_busVolumes[bus] = std::clamp(volume, 0.0f, 1.0f);
+        if (!m_audioContext) return;
+
+        // そのバスで鳴っている音（流れている BGM など）にもすぐ掛ける
+        for (AudioContext::PlayingSound& sound : m_audioContext->playing) {
+            if (sound.instance && sound.bus == bus) {
+                sound.instance->SetVolume(sound.volume * m_busVolumes[bus]);
+            }
+        }
+    }
+
+    //--------------------------------------------------------------
+    //! @brief バスの音量を取得する
+    //--------------------------------------------------------------
+    float AudioManager::GetBusVolume(AudioBus bus) const {
+        return (bus < kAudioBusCount) ? m_busVolumes[bus] : 1.0f;
     }
 
 } // namespace Tsukino::Audio
