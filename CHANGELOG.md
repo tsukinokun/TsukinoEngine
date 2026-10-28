@@ -9,6 +9,14 @@ carve-out for `Tsukino.Renderer` described under **API stability** in the README
 
 ### Added
 
+- **Button sounds (`UIButtonSoundComponent` + `UIButtonSoundSystem`) and hover edges on
+  `PointerTargetComponent`.** `PointerTargetComponent` gains `hoverEntered` / `hoverExited`, set by
+  `InteractionSystem` on the frame the pointer starts or stops hovering. `UIButtonSoundComponent`
+  holds a hover sound and a click sound (`AssetRef`, so Prefab JSON can give paths), their volumes
+  and the audio bus; `UIButtonSoundSystem` plays them (click wins when both happen in one frame) and
+  stays silent while a `UIButtonFeedbackComponent` on the same entity is not `interactable`. Place the
+  system after `InteractionSystem`.
+
 - **Audio buses (`AudioManager::SetBusVolume` / `GetBusVolume`).** `Play` takes an optional bus
   (`AudioBus`, 0–7; the game decides what each bus means, such as music or effects). A sound's
   volume is its own volume × its bus volume, with the master volume on top. Changing a bus volume

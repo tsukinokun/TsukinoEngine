@@ -123,8 +123,12 @@ namespace Tsukino::BuiltIn::ECS {
                 return;    // 使っていないシーンでは、スプライトを総なめする判定も省く
             }
 
-            // 前フレームの結果は持ち越さない。重なっていたものが外れたらそのまま false になる
+            // 前フレームの結果は持ち越さない。重なっていたものが外れたらそのまま false になる。
+            // 外れた瞬間を知らせるため、いったん「前に重なっていたもの」を hoverExited に写しておき、
+            // このフレームも重なっていたら下で取り消す
             targetView.each([](PointerTargetComponent& target) {
+                target.hoverExited  = target.hovered;
+                target.hoverEntered = false;
                 target.hovered = false;
                 target.clicked = false;
                 target.pressed = false;
@@ -138,6 +142,8 @@ namespace Tsukino::BuiltIn::ECS {
 
             if(targetEntity != entt::null) {
                 PointerTargetComponent& target = registry.GetComponent<PointerTargetComponent>(targetEntity);
+                target.hoverEntered            = !target.hoverExited;    // 前のフレームは重なっていなかった
+                target.hoverExited             = false;
                 target.hovered                 = true;
                 target.pressed                 = buttonDown && pressedTarget == targetEntity;
 

@@ -26,5 +26,7 @@ namespace Tsukino::BuiltIn::ECS {
         bool hovered = false;    // マウスカーソルが重なっている（最前面のスプライトがこれ、またはこれを親に持つ子）
         bool clicked = false;    // hoveredの状態で、このフレームに左ボタンが押された（ScrollViewComponent の枠の中では、離された）
         bool pressed = false;    // これの上で左ボタンを押し、押したまま重なっている（押し込みの見た目用）
+        bool hoverEntered = false;    // このフレームに重なり始めた（ホバーの音など、入った瞬間だけ反応したいとき用）
+        bool hoverExited  = false;    // このフレームに重なりが外れた
     };
 }    // namespace Tsukino::BuiltIn::ECS
