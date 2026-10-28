@@ -103,7 +103,7 @@ namespace Tsukino::Renderer {
         float          alphaCutoff;    //!< アルファテストのしきい値（0=無効）
         hlslpp::float4 rimColor;       //!< xyz: ふちの色, w: ふちの強さ
         hlslpp::float4 rimParams;      //!< x: ふちの鋭さ(pow指数), y: 全体の白発光量, zw: 予約
-        hlslpp::float4 spriteFill = hlslpp::float4(0.0f, 0.0f, 0.0f, 0.0f);    //!< スプライト専用の塗り。x: 塗り方(0=全体, 1=円形), y: 塗る割合, z: 開始角(ラジアン), w: 向き(+1=時計回り, -1=反時計回り)
+        hlslpp::float4 spriteFill = hlslpp::float4(0.0f, 0.0f, 0.0f, 0.0f);    //!< スプライト専用の塗り。x: 塗り方(0=全体, 1=円形, 2=左右, 3=上下), y: 塗る割合, z: 円形は開始角(ラジアン)・左右上下は逆の端からなら1, w: 円形の向き(+1=時計回り, -1=反時計回り)
         hlslpp::float4 shading    = hlslpp::float4(0.0f, 0.5f, 0.05f, 0.0f);    //!< x: ShadingModel の番号(0=PBR, 1=Unlit, 2=Toon), y: トゥーンの境目, z: トゥーンのぼかし幅, w: トゥーンのハイライトの大きさ
         hlslpp::float4 toonShadeColor = hlslpp::float4(0.5f, 0.5f, 0.5f, 0.0f);    //!< xyz: トゥーンの暗い側に掛ける色, w: 予約
         hlslpp::float4 spriteUv   = hlslpp::float4(0.0f, 0.0f, 1.0f, 1.0f);    //!< スプライト専用。描く四角の UV(0〜1) を画像のどこに当てるか。xy: 始まり, zw: 幅と高さ（9 スライスの1枚ずつに使う）

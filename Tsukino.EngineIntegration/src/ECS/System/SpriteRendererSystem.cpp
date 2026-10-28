@@ -142,9 +142,9 @@ namespace Tsukino::BuiltIn::ECS {
             if(sprite.space == Tsukino::BuiltIn::ECS::SpriteSpace::World && !hasCamera)
                 return;
 
-            // 円形の塗りで割合が 0 なら1ピクセルも塗られないので、拡大率 0 と同じく積まない
-            const bool isRadialFill = sprite.fillMode == Tsukino::BuiltIn::ECS::SpriteFillMode::Radial;
-            if(isRadialFill && sprite.fillAmount <= 0.0f)
+            // 塗りで割合が 0 なら1ピクセルも塗られないので、拡大率 0 と同じく積まない
+            const bool isFill = sprite.fillMode != Tsukino::BuiltIn::ECS::SpriteFillMode::None;
+            if(isFill && sprite.fillAmount <= 0.0f)
                 return;
 
             std::shared_ptr<Tsukino::Asset::TextureAsset> textureAsset =
@@ -261,11 +261,27 @@ namespace Tsukino::BuiltIn::ECS {
             materialData.baseColor                            = sprite.tintColor;
             materialData.baseColor.w                          = sprite.tintColor.w * groupAlpha;
 
-            // 円形の塗り（Sprite.ps.hlsl が塗らない角度の不透明度を 0 にする）。開始角は度で持っているのでラジアンへ
+            //-------------------------------------------------------------
+            // 塗り（Sprite.ps.hlsl が塗らない部分の不透明度を 0 にする）。
+            // x: 塗り方（0=全体, 1=円形, 2=左右, 3=上下）、y: 割合。
+            // 円形は z: 開始角（度で持っているのでラジアンへ）、w: 向き。左右・上下は z: 逆の端から塗るか
+            //-------------------------------------------------------------
             constexpr float kDegToRad = 3.14159265358979323846f / 180.0f;
-            materialData.spriteFill   = isRadialFill ? hlslpp::float4(1.0f, std::clamp(sprite.fillAmount, 0.0f, 1.0f), sprite.fillStartAngle * kDegToRad,
-                                                                      sprite.fillClockwise ? 1.0f : -1.0f)
-                                                     : hlslpp::float4(0.0f, 1.0f, 0.0f, 1.0f);
+            const float     amount    = std::clamp(sprite.fillAmount, 0.0f, 1.0f);
+            switch(sprite.fillMode) {
+            case Tsukino::BuiltIn::ECS::SpriteFillMode::Radial:
+                materialData.spriteFill = hlslpp::float4(1.0f, amount, sprite.fillStartAngle * kDegToRad, sprite.fillClockwise ? 1.0f : -1.0f);
+                break;
+            case Tsukino::BuiltIn::ECS::SpriteFillMode::Horizontal:
+                materialData.spriteFill = hlslpp::float4(2.0f, amount, sprite.fillReverse ? 1.0f : 0.0f, 0.0f);
+                break;
+            case Tsukino::BuiltIn::ECS::SpriteFillMode::Vertical:
+                materialData.spriteFill = hlslpp::float4(3.0f, amount, sprite.fillReverse ? 1.0f : 0.0f, 0.0f);
+                break;
+            default:
+                materialData.spriteFill = hlslpp::float4(0.0f, 1.0f, 0.0f, 1.0f);
+                break;
+            }
 
             cmd.material     = &material;
             cmd.materialData = &materialData;
@@ -275,12 +291,12 @@ namespace Tsukino::BuiltIn::ECS {
             cmd.sortOrder = sprite.sortOrder;    // Overlayパス内でFontRendererSystemの文字と同じ軸で並ぶ
 
             //-------------------------------------------------------------
-            // 9 スライス（画面空間のスプライトだけ。円形の塗りとは併用しない）。
+            // 9 スライス（画面空間のスプライトだけ。塗りとは併用しない）。
             // 全体の四角（cmd.transform が単位の四角を写す先）の中を 3×3 に分け、
             // 1枚ずつ「全体の中のどの範囲か」と「画像のどの範囲か」を決めて積む。
             // 単位の四角は中心が原点で、ローカルの +y が画面の下・画像の v が増える向き
             //-------------------------------------------------------------
-            const bool hasSlice = !isWorld && !isRadialFill &&
+            const bool hasSlice = !isWorld && !isFill &&
                                   (sprite.sliceBorder.x > 0.0f || sprite.sliceBorder.y > 0.0f || sprite.sliceBorder.z > 0.0f || sprite.sliceBorder.w > 0.0f);
             if(!hasSlice) {
                 m_entries.push_back({sprite.sortOrder, cmd});

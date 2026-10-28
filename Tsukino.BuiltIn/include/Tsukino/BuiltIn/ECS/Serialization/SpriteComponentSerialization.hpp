@@ -28,6 +28,7 @@ namespace Tsukino::BuiltIn::ECS {
                 cereal::make_nvp("fillAmount", sprite.fillAmount),
                 cereal::make_nvp("fillStartAngle", sprite.fillStartAngle),
                 cereal::make_nvp("fillClockwise", sprite.fillClockwise),
+                cereal::make_nvp("fillReverse", sprite.fillReverse),
                 cereal::make_nvp("sliceBorder", sprite.sliceBorder),
                 cereal::make_nvp("sliceScale", sprite.sliceScale),
                 cereal::make_nvp("raycastTarget", sprite.raycastTarget));
@@ -45,6 +46,7 @@ namespace Tsukino::BuiltIn::ECS {
         Tsukino::IO::LoadOptional(archive, "fillAmount", sprite.fillAmount);
         Tsukino::IO::LoadOptional(archive, "fillStartAngle", sprite.fillStartAngle);
         Tsukino::IO::LoadOptional(archive, "fillClockwise", sprite.fillClockwise);
+        Tsukino::IO::LoadOptional(archive, "fillReverse", sprite.fillReverse);
         Tsukino::IO::LoadOptional(archive, "sliceBorder", sprite.sliceBorder);
         Tsukino::IO::LoadOptional(archive, "sliceScale", sprite.sliceScale);
         Tsukino::IO::LoadOptional(archive, "raycastTarget", sprite.raycastTarget);

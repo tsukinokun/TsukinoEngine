@@ -40,11 +40,15 @@ namespace Tsukino::BuiltIn::ECS {
     //! @enum   SpriteFillMode
     //! @brief  スプライトの一部だけを塗る方法
     //! @note   Radial は画像の中心から見た角度で塗る範囲を決める（リング状のゲージ・
-    //!         クールダウン表示向け）。塗らない部分は不透明度 0 になる
+    //!         クールダウン表示向け）。Horizontal・Vertical は端から fillAmount の割合だけ描く
+    //!         （横長・縦長のゲージや読み込みの進み具合向け。画像は伸び縮みせず、はみ出た分が切れて見える）。
+    //!         塗らない部分は不透明度 0 になる
     //-------------------------------------------------------------
     enum class SpriteFillMode {
-        None = 0,    // 画像全体を描く（既定）
-        Radial,      // 中心を軸に、開始角から fillAmount の割合だけ扇形に描く
+        None = 0,      // 画像全体を描く（既定）
+        Radial,        // 中心を軸に、開始角から fillAmount の割合だけ扇形に描く
+        Horizontal,    // 左端から右へ fillAmount の割合だけ描く（fillReverse なら右端から左へ）
+        Vertical,      // 下端から上へ fillAmount の割合だけ描く（fillReverse なら上端から下へ）
     };
 
     //-------------------------------------------------------------
@@ -76,7 +80,8 @@ namespace Tsukino::BuiltIn::ECS {
         // 画面固定UIの重なりはスプライトと文字の種類を問わずここの値だけで決まる
         int sortOrder = 0;
 
-        // 塗り方（既定はNoneで画像全体を描く）。Radialにすると fillAmount の割合だけ扇形に描く
+        // 塗り方（既定はNoneで画像全体を描く）。Radialにすると fillAmount の割合だけ扇形に、
+        // Horizontal・Vertical にすると端から fillAmount の割合だけ描く
         SpriteFillMode fillMode = SpriteFillMode::None;
 
         // 塗る割合（0〜1）。fillModeがNoneのときは使わない
@@ -85,15 +90,18 @@ namespace Tsukino::BuiltIn::ECS {
         // 塗り始めの角度（度）。0 が真上で、fillClockwise の向きに増える
         float fillStartAngle = 0.0f;
 
-        // 時計回りに塗るか（falseなら反時計回り）
+        // 時計回りに塗るか（falseなら反時計回り）。Radial のときだけ使う
         bool fillClockwise = true;
+
+        // 逆の端から塗るか。Horizontal なら右端から、Vertical なら上端から塗る
+        bool fillReverse = false;
 
         //-------------------------------------------------------------
         // 9 スライス。画像の四辺の sliceBorder（画像のピクセル。x: 左, y: 上, z: 右, w: 下）の帯は伸ばさず、
         // 四隅はそのままの大きさ（× sliceScale）で、辺は1方向だけ、中央は両方向に伸ばして描く。
         // 角丸や縁取りの付いた板を、角を歪めずにいろいろな大きさで使える。
         // 大きさは今まで通り Transform の scale（画像の何倍か）で決める。すべて 0 なら画像全体を1枚で描く（既定）。
-        // 円形の塗り（fillMode が Radial）とは一緒に使えない（Radial のときは1枚で描く）
+        // 塗り（fillMode が None 以外）とは一緒に使えない（塗りのときは1枚で描く）
         //-------------------------------------------------------------
         hlslpp::float4 sliceBorder = hlslpp::float4(0.0f, 0.0f, 0.0f, 0.0f);
 

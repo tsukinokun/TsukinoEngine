@@ -9,6 +9,12 @@ carve-out for `Tsukino.Renderer` described under **API stability** in the README
 
 ### Added
 
+- **Horizontal and vertical sprite fill (`SpriteFillMode::Horizontal` / `Vertical`,
+  `SpriteComponent::fillReverse`).** Draws only `fillAmount` of the sprite from one edge (left or bottom,
+  or right / top with `fillReverse`) without stretching the image, for bars and loading lines that used
+  to resize the rect and `uvRect` by hand. `Sprite.ps.hlsl` cuts the rest with a one-pixel soft edge;
+  any fill mode now skips nine-slicing, as Radial already did.
+
 - **`HotReload` / `HotReloadable<T>` (reload tuning files while the game runs).** `HotReload::Watch`
   registers a file and a reload function; `EngineAPI::Update` calls `HotReload::Poll` before the scene
   update, so values never change in the middle of a frame. `HotReloadable<T>(path, loader)` keeps a
