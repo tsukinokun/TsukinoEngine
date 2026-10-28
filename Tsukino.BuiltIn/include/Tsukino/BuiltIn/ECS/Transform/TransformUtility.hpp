@@ -12,6 +12,9 @@
 #include <hlsl++.h>
 #include <entt/entt.hpp>
 
+#include <unordered_map>
+#include <vector>
+
 // 名前空間 : Tsukino::BuiltIn::ECS::TransformUtility
 namespace Tsukino::BuiltIn::ECS::TransformUtility {
 
@@ -173,6 +176,38 @@ namespace Tsukino::BuiltIn::ECS::TransformUtility {
         }
 
         return true;
+    }
+
+    //--------------------------------------------------------------
+    //! エンティティと、Transform の親子で下にいるものをすべて破棄予約します（フレームの終わりに消える）。
+    //! @param  registry [in] ECS レジストリ
+    //! @param  root     [in] 破棄するエンティティ（entt::null や破棄済みなら何もしない）
+    //! @note   子は親を指しているだけで、親から子へは辿れない。そのため Transform を1回だけ総なめして
+    //!         親 → 子の表を作り、そこから子孫を集める（深さに関わらず総なめは1回）
+    //--------------------------------------------------------------
+    inline void DestroyHierarchy(Tsukino::ECS::Registry& registry, Tsukino::ECS::Entity root) {
+        if(root == entt::null || !registry.IsValid(root)) {
+            return;
+        }
+
+        std::unordered_multimap<Tsukino::ECS::Entity, Tsukino::ECS::Entity> children;
+        registry.View<TransformComponent>().each([&](Tsukino::ECS::Entity entity, const TransformComponent& transform) {
+            const Tsukino::ECS::Entity parent = transform.parent;
+            if(parent != entt::null) {
+                children.emplace(parent, entity);
+            }
+        });
+
+        std::vector<Tsukino::ECS::Entity> pending = {root};
+        for(size_t i = 0; i < pending.size(); ++i) {
+            const auto [first, last] = children.equal_range(pending[i]);
+            for(auto it = first; it != last; ++it) {
+                pending.push_back(it->second);
+            }
+        }
+        for(const Tsukino::ECS::Entity entity : pending) {
+            registry.QueueDestroy(entity);
+        }
     }
 
 }    // namespace Tsukino::BuiltIn::ECS::TransformUtility

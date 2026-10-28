@@ -9,6 +9,13 @@ carve-out for `Tsukino.Renderer` described under **API stability** in the README
 
 ### Added
 
+- **`LifetimeComponent` + `LifetimeSystem` and `TransformUtility::DestroyHierarchy`.**
+  `DestroyHierarchy(registry, root)` queues the entity and every Transform descendant for destruction,
+  building the parent → children table with one pass over the transforms (children only point at
+  their parent). `LifetimeComponent::remaining` counts down in `LifetimeSystem`, which destroys the
+  entity and its descendants when it reaches zero, for notices and popups that should disappear on
+  their own.
+
 - **`Tsukino::Core::Sequencer` (call functions after a delay).** `Schedule(delay, fn)` books a callback,
   `Update(deltaTime)` advances its clock and calls everything that is due in time order (booking order
   for ties; callbacks may book more), `Clear` cancels all and `IsBusy` tells whether any are left.
