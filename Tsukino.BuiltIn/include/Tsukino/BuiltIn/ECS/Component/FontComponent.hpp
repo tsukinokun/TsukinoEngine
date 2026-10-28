@@ -43,7 +43,7 @@ namespace Tsukino::BuiltIn::ECS {
     struct FontComponent {
         std::wstring                text;                     // 描画するテキスト
         Tsukino::Asset::AssetRef    fontHandle;               // フォントアセット（未設定なら既定フォント）。Prefab JSONではパス文字列で書ける
-        hlslpp::float4              color  = {1, 1, 1, 1};    // フォントの色
+        hlslpp::float4              color  = {1, 1, 1, 1};    // フォントの色（linear）。見た目の色は Core::Math::Color::SrgbToLinear で変換して渡す
         hlslpp::float2              origin = {0, 0};          // 回転の中心点などの微調整用
 
         // 揃え位置。既定値(Left/Top)は従来どおり「描画位置＝文字列の左上」になる。
@@ -53,7 +53,7 @@ namespace Tsukino::BuiltIn::ECS {
 
         // 縁取り。明るい背景の上でも文字が読めるようにするためのもの。
         // outlineWidthが0より大きいときだけ、本体の下に周りへずらした文字が描かれる
-        hlslpp::float4 outlineColor = {0, 0, 0, 1};    // 縁取りの色
+        hlslpp::float4 outlineColor = {0, 0, 0, 1};    // 縁取りの色（linear）
         float          outlineWidth = 0.0f;            // 縁取りの太さ（ピクセル単位。0で無効）
 
         // 枠に収める幅。文字列の幅（スケール適用後）がこれを超えるときは、収まるところまで

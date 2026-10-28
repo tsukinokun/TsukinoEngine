@@ -61,8 +61,9 @@ namespace Tsukino::BuiltIn::ECS {
         // 座標空間（既定はScreen）
         SpriteSpace space = SpriteSpace::Screen;
 
-        // 色（Tint）: 各ピクセルに掛け合わせる色 (R, G, B, A)
-        // デフォルトは白 (1.0, 1.0, 1.0, 1.0) で、元の画像の色をそのまま表示します
+        // 色（Tint）: 各ピクセルに掛け合わせる色 (R, G, B, A)。linear の値で、1 を超える HDR も可
+        // デフォルトは白 (1.0, 1.0, 1.0, 1.0) で、元の画像の色をそのまま表示します。
+        // 見た目の色（sRGB）で指定したいときは Core::Math::Color::SrgbToLinear で変換して渡す
         hlslpp::float4 tintColor = hlslpp::float4(1.0f, 1.0f, 1.0f, 1.0f);
 
         // UV座標（画像のどの部分を切り取るか）
