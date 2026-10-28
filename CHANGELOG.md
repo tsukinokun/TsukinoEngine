@@ -9,6 +9,13 @@ carve-out for `Tsukino.Renderer` described under **API stability** in the README
 
 ### Added
 
+- **Burst particles (`BurstEmitter::Emit`, `BurstParams`, `BurstParticleComponent` +
+  `BurstParticleSystem`).** `Emit` creates a number of world-space sprite particles at once around a
+  point, randomizing speed, direction, life, size, color and start delay within the ranges in
+  `BurstParams`; `BurstParticleSystem` moves them with gravity and drag, shrinks and fades them over
+  their life and destroys them at the end. `BurstParamsSerialization.hpp` reads `BurstParams` with every
+  field optional, so effect presets can live in JSON. Place the system before `TransformSystem`.
+
 - **Slider and toggle controls (`UISliderComponent` + `UISliderSystem`, `UIToggleComponent` /
   `UIToggleGroupComponent` + `UIToggleSystem`, `UIToggleUtility`).** They hold only the value and the
   input; the look stays with the game. A slider is grabbed by a click on its pointer target and, until
