@@ -236,6 +236,11 @@ carve-out for `Tsukino.Renderer` described under **API stability** in the README
 
 ### Changed
 
+- **`Registry::SetContext` replaces an existing value by destroying and re-creating it.** It used to
+  assign a temporary over the old value, which required `T` to be assignable, so types with reference
+  members or non-copyable, non-movable types (scene-owned helper objects) could not be kept in the
+  registry context. References to the old value are invalid after a replacement, as before.
+
 - **`Tsukino.EngineIntegration` compiles with `/bigobj`.** `EngineIntegration.cpp` pulls in every
   built-in component's serializer for Prefab registration and passed the default section limit.
 
