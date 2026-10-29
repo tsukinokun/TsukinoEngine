@@ -42,9 +42,9 @@ namespace Tsukino::Asset {
         std::vector<uint8_t> pixels;                          // テクスチャのピクセルデータ（RGBA8 形式など）
 
         //! GPUへ送るときにミップマップ（1/2ずつ縮めた絵の段）を作るか。
-        //! pixelsは最上段だけを持つ形のまま、縮小はRendererが2x2平均で作る。
-        //! 非圧縮のRGBA8系フォーマットのときだけ効く（ブロック圧縮は1段のまま）。
-        //! プログラムで作った細かい模様のテクスチャを、遠くでちらつかせないために使う
+        //! pixelsは最上段だけを持つ形のまま、縮小はRendererがGPUで作る。
+        //! GPUが縮められるフォーマット（非圧縮のRGBA8系など）のときだけ効く（ブロック圧縮は1段のまま）。
+        //! 細かい線や模様を、縮めて描いたときにちらつかせないために使う（TextureLoaderは1段だけのDDSで立てる）
         bool generateMips = false;
 
     private:

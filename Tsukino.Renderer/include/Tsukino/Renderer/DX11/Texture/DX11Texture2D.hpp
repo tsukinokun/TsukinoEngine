@@ -26,8 +26,8 @@ namespace Tsukino::Renderer {
         //! @param format [in] テクスチャのフォーマット（DXGI_FORMAT 列挙体）
         //! @param data   [in] テクスチャの初期データ
         //! @param device [in] DirectX11のデバイスオブジェクト（テクスチャの作成に必要）
-        //! @param generateMips [in] trueならdataを最上段として、2x2平均でミップマップを1x1まで作る。
-        //!                          非圧縮のRGBA8系フォーマット以外では無視して1段で作る
+        //! @param generateMips [in] trueならdataを最上段として、GPUでミップマップを1x1まで作る。
+        //!                          GPUが作れないフォーマット（ブロック圧縮など）では無視して1段で作る
         //--------------------------------------------------------------
         DX11Texture2D(u32 width, u32 height, DXGI_FORMAT format, const void* data, ID3D11Device* device, bool generateMips = false);
 

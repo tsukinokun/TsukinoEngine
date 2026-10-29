@@ -46,6 +46,10 @@ namespace Tsukino::Asset {
         asset->pixels.resize(size);
         memcpy(asset->pixels.data(), img->pixels, size);
 
+        // 1段だけの絵は、縮めて描くと細い線が欠けてちらつくので、GPUへ送るときにミップマップを作らせる。
+        // 作れるかどうか（非圧縮のRGBA8系か）はRenderer側が見る
+        asset->generateMips = image.GetMetadata().mipLevels <= 1;
+
         // 成功した場合はassetを返す
         return asset;
     }
