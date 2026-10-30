@@ -250,6 +250,21 @@ carve-out for `Tsukino.Renderer` described under **API stability** in the README
   rounded up to a geometric ladder (`kRasterSizeBase` = 32 px, `kRasterSizeStep` = 2^(1/4)) and
   drawn scaled down by at most ~16%, so an animation touches only a few sizes and reuses the cache.
 
+- **Cascaded shadow maps now split the camera frustum by depth.** Cascades used to be
+  concentric squares around the camera's look-at point, sized by the practical split scheme
+  formula but blind to where the camera was looking. `ShadowPass::UpdateCascades` now runs at the
+  start of `Renderer::Render`, unprojects the main camera's frustum from `invViewProj`, splits it
+  along view-space depth (practical split scheme, `kSplitLambda`), wraps each slice in a bounding
+  sphere and fits a texel-snapped orthographic projection around it, so shadows stay stable while
+  the camera moves or turns. Shaders pick the cascade by view depth against the new
+  `CBufferScene::cascadeSplitFar` (b0 grows from 720 to 736 bytes; `occlusionCutout0/1` move by 16).
+  **Breaking:** `LightingPass::SetDirectionalLight` loses its `focusPoint` parameter, and
+  `FrameConstants::SetDirectionalLight` is split into `SetDirectionalLight(lightDir, lightColor)` and
+  `SetShadowCascades(...)`. `kShadowDistance` is now a view depth from the camera instead of a radius
+  around the look-at point, and `ComputeCascadeHalfExtents` / `kSplitNear` are gone. Computing the
+  cascades at render time also removes a one-frame lag in scenes that run `LightSystem` before
+  `CameraSystem`.
+
 - **`CBufferMaterial` (b2) now lives in one place.** The struct was hand-written in
   `GBuffer.ps.hlsl`, `Model.ps.hlsl` and `Sprite.ps.hlsl`; all three now
   `#include "Material.hlsli"`, which also holds `EvaluateRimGlow`. The rim-glow formula

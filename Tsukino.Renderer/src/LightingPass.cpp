@@ -72,38 +72,17 @@ namespace Tsukino::Renderer {
     //------------------------------------------------------------------------
     //! ディレクショナルライトを設定します。
     //------------------------------------------------------------------------
-    void LightingPass::SetDirectionalLight(const hlslpp::float3& direction, const hlslpp::float3& color, float intensity, const hlslpp::float3& focusPoint) {
+    void LightingPass::SetDirectionalLight(const hlslpp::float3& direction, const hlslpp::float3& color, float intensity) {
         //------------------------------------------------------------
-        // ライト方向を正規化
+        // 向きと色だけを書く。
+        // 影のカスケードはカメラの視錐台から作るので、カメラが確定した
+        // 描画の直前に ShadowPass::UpdateCascades() が作る（ここで作ると、
+        // LightSystem が CameraSystem より先に走るシーンで1フレーム古いカメラを使ってしまう）
         //------------------------------------------------------------
-        hlslpp::float3 normalizedDir = hlslpp::normalize(direction);
+        const hlslpp::float3 normalizedDir = hlslpp::normalize(direction);
 
-        //------------------------------------------------------------
-        // カスケードごとのライト空間 ViewProjection を求めて、
-        // ワールドのシーン定数へ書き込む。
-        //
-        // 半径は定数だけから決まる（カメラにもライトにも依らない）ので、
-        // シャドウパス側も同じ関数を呼んで同じ値を得られる。
-        // 値を共有する状態を持たずに済ませるための作りになっている
-        //------------------------------------------------------------
-        const std::array<float, ShadowPass::kCascadeCount> halfExtents = ShadowPass::ComputeCascadeHalfExtents();
-
-        // テクセル幅はfloat4 1本で運ぶので、カスケードは最大4枚まで
-        static_assert(kShadowCascadeCount <= 4, "cascadeTexelWorld is a single float4; it holds at most 4 cascades.");
-
-        std::array<Tsukino::Core::Math::matrix, ShadowPass::kCascadeCount> cascadeViewProj{};
-        float                                                              texel[4]{};
-
-        for(unsigned int i = 0; i < ShadowPass::kCascadeCount; ++i) {
-            cascadeViewProj[i] = ShadowPass::ComputeLightViewProj(normalizedDir, focusPoint, halfExtents[i]);
-            texel[i]           = ShadowPass::ComputeTexelWorldSize(halfExtents[i]);
-        }
-
-        const hlslpp::float4 texelWorld(texel[0], texel[1], texel[2], texel[3]);
-
-        m_frameConstants->SetDirectionalLight(cascadeViewProj, texelWorld,
-                                             hlslpp::float4(normalizedDir.x, normalizedDir.y, normalizedDir.z, 0.0f),
-                                             hlslpp::float4(color.x, color.y, color.z, intensity));
+        m_frameConstants->SetDirectionalLight(hlslpp::float4(normalizedDir.x, normalizedDir.y, normalizedDir.z, 0.0f),
+                                              hlslpp::float4(color.x, color.y, color.z, intensity));
     }
 
     //------------------------------------------------------------------------

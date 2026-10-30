@@ -84,18 +84,16 @@ namespace Tsukino::Renderer {
     }
 
     //------------------------------------------------------------------------
-    //! ディレクショナルライトの情報をワールドのシーン定数へ書き込みます。
+    //! 影のカスケードをワールドのシーン定数へ書き込みます。
     //------------------------------------------------------------------------
-    void FrameConstants::SetDirectionalLight(const std::array<Tsukino::Core::Math::matrix, kShadowCascadeCount>& cascadeViewProj,
-                                             const hlslpp::float4&                                             cascadeTexelWorld,
-                                             const hlslpp::float4&                                             lightDir,
-                                             const hlslpp::float4&                                             lightColor) {
+    void FrameConstants::SetShadowCascades(const std::array<Tsukino::Core::Math::matrix, kShadowCascadeCount>& cascadeViewProj,
+                                           const hlslpp::float4&                                             cascadeTexelWorld,
+                                           const hlslpp::float4&                                             cascadeSplitFar) {
         for(unsigned int i = 0; i < kShadowCascadeCount; ++i)
             m_worldSceneData.cascadeViewProj[i] = cascadeViewProj[i];
 
         m_worldSceneData.cascadeTexelWorld = cascadeTexelWorld;
-        m_worldSceneData.lightDir          = lightDir;
-        m_worldSceneData.lightColor        = lightColor;
+        m_worldSceneData.cascadeSplitFar   = cascadeSplitFar;
     }
 
     //------------------------------------------------------------------------

@@ -56,13 +56,21 @@ namespace Tsukino::Renderer {
         //!         （UnityのTime / UEのView.GameTimeと同じ考え方）。毎フレーム1回だけ呼ぶこと
         void AdvanceTime(float deltaTime);
 
-        //! ディレクショナルライトの情報をワールドのシーン定数へ書き込みます。
+        //! ディレクショナルライトの向きと色をワールドのシーン定数へ書き込みます。
+        //! @param  [in] lightDir   ライトの方向（xyz。正規化済み）
+        //! @param  [in] lightColor ライトの色（xyz）と強度（w）
+        //! @note   影のカスケードはここでは作らない。描画の直前に ShadowPass がカメラとこの向きから作る
+        void SetDirectionalLight(const hlslpp::float4& lightDir, const hlslpp::float4& lightColor) noexcept {
+            m_worldSceneData.lightDir   = lightDir;
+            m_worldSceneData.lightColor = lightColor;
+        }
+
+        //! 影のカスケードをワールドのシーン定数へ書き込みます。
         //! @param  [in] cascadeViewProj   カスケードごとのライト空間 ViewProjection（近→遠）
         //! @param  [in] cascadeTexelWorld カスケードごとの1テクセルのワールド幅（xyzwが各カスケード。近→遠）
-        //! @param  [in] lightDir          ライトの方向（xyz。正規化済み）
-        //! @param  [in] lightColor        ライトの色（xyz）と強度（w）
-        void SetDirectionalLight(const std::array<Tsukino::Core::Math::matrix, kShadowCascadeCount>& cascadeViewProj,
-                                 const hlslpp::float4& cascadeTexelWorld, const hlslpp::float4& lightDir, const hlslpp::float4& lightColor);
+        //! @param  [in] cascadeSplitFar   カスケードごとの受け持つ奥行きの奥側（カメラのビュー空間 z。xyzwが各カスケード。近→遠）
+        void SetShadowCascades(const std::array<Tsukino::Core::Math::matrix, kShadowCascadeCount>& cascadeViewProj,
+                               const hlslpp::float4& cascadeTexelWorld, const hlslpp::float4& cascadeSplitFar);
 
         //! 遮り抜き（注目したい物の手前の遮り物を、画面上の円の中だけ網点で抜く）を設定します。
         //! @param  [in] centerX         円の中心X（画面ピクセル）

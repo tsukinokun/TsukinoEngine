@@ -10,7 +10,6 @@
 #include <Tsukino/BuiltIn/ECS/Component/PointLightComponent.hpp>
 #include <Tsukino/BuiltIn/ECS/Component/SpotLightComponent.hpp>
 #include <Tsukino/BuiltIn/ECS/Component/TransformComponent.hpp>
-#include <Tsukino/BuiltIn/ECS/Component/CameraComponent.hpp>
 #include <Tsukino/Engine/Asset/AssetManager.hpp>
 #include <Tsukino/Engine/Asset/Shader/ShaderAsset.hpp>
 #include <Tsukino/Renderer/Renderer.hpp>
@@ -41,30 +40,15 @@ namespace Tsukino::BuiltIn::ECS {
             return;
 
         //--------------------------------------------------------------
-        // ディレクショナルライト（影付き、複数あれば最後の1つで上書き）
+        // ディレクショナルライト（影付き、複数あれば最後の1つで上書き）。
+        // 影の範囲はメインカメラの視錐台からレンダラーが作るので、ここでは向きと色だけを渡す
         //--------------------------------------------------------------
-
-        // シャドウ範囲の中心にする点を、メインカメラの注視点から求める。
-        // カメラ位置そのものを使うと、TPSカメラのように注視点から離れた位置に
-        // カメラを置く構成で、画面に映る注視点付近（プレイヤーの近く）が
-        // シャドウ範囲の端に寄ってしまい、キャラクターのすぐ近くで影が
-        // 途切れて見える。useLookAtがfalseのカメラ（デバッグカメラ等）は
-        // isPrimaryにならない前提だが、保険として位置そのものへフォールバックする
-        hlslpp::float3 shadowFocusPoint(0.0f, 0.0f, 0.0f);
-        auto           primaryCamView = registry.View<TransformComponent, CameraComponent>();
-        primaryCamView.each([&](entt::entity entity, const TransformComponent& transform, const CameraComponent& camera) {
-            if(!camera.isPrimary)
-                return;
-
-            shadowFocusPoint = camera.useLookAt ? camera.lookAtTarget : transform.position;
-        });
-
         auto dirView = registry.View<DirectionalLightComponent>();
         dirView.each([&](entt::entity entity, const DirectionalLightComponent& light) {
             if(!light.castShadow)
                 return;
 
-            ctx->renderer->GetLighting().SetDirectionalLight(light.direction, light.color, light.intensity, shadowFocusPoint);
+            ctx->renderer->GetLighting().SetDirectionalLight(light.direction, light.color, light.intensity);
         });
 
         //--------------------------------------------------------------

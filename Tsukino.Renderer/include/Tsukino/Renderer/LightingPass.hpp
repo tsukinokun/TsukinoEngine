@@ -55,18 +55,12 @@ namespace Tsukino::Renderer {
                         const Tsukino::Asset::ShaderAsset* ps);
 
         //! ディレクショナルライトを設定します。
-        //! @param  [in] direction  ライトの方向（正規化推奨）
-        //! @param  [in] color      ライトの色
-        //! @param  [in] intensity  ライトの強度
-        //! @param  [in] focusPoint シャドウマップの投影範囲（平行投影、±500ユニット）の中心。
-        //!                         カメラの注視点（プレイヤー頭上など）を渡すこと
-        //! @note   カメラ位置そのものを中心にすると、注視点から離れた位置に
-        //!         カメラを置くTPSカメラ等では、実際に画面に映る注視点付近が
-        //!         シャドウ範囲の端に寄ってしまい、キャラクターのすぐ近くで
-        //!         影が途切れて見える。呼び出し側（通常はLightSystem）で
-        //!         メインカメラのlookAtTarget（useLookAtがfalseならカメラ位置）
-        //!         を求めてfocusPointに渡すこと
-        void SetDirectionalLight(const hlslpp::float3& direction, const hlslpp::float3& color, float intensity, const hlslpp::float3& focusPoint);
+        //! @param  [in] direction ライトの方向（正規化推奨）
+        //! @param  [in] color     ライトの色
+        //! @param  [in] intensity ライトの強度
+        //! @note   影の範囲は渡さなくてよい。描画の直前に、メインカメラの視錐台を
+        //!         奥行きで切り分けたカスケードをレンダラーが作る
+        void SetDirectionalLight(const hlslpp::float3& direction, const hlslpp::float3& color, float intensity);
 
         //! 点光源・スポットライトの配列を設定します。
         //! @param  [in] lights GPULight の配列

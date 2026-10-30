@@ -216,17 +216,29 @@ float SampleShadowPCF(Texture2DArray map, SamplerComparisonState samp, float3 wo
     //----------------------------------------------------------
     // カスケードの選択。
     //
-    // カスケードは注視点を中心とした同心の箱なので、「UVが0〜1に収まる
-    // 最小のカスケード」が、その点を最も高い解像度で覆っているものになる。
-    // 距離で比較する方式より行列積のぶん重いが、判定と投影範囲が定義上
-    // 一致するため、境界の決め方を別途合わせ込む必要がない。
+    // カスケードはカメラの視錐台を奥行きで切った1切れずつなので、
+    // 画素のビュー空間の奥行きを分割距離（cascadeSplitFar）と比べ、
+    // 「奥側の分割距離がその奥行きより奥にある最初のカスケード」を選ぶ。
+    // 最後の分割距離より奥の画素は影を出す範囲の外
+    //----------------------------------------------------------
+    const float viewDepth = mul(float4(worldPos, 1.0f), view).z;
+
+    uint firstCascade = 0;
+    [unroll]
+    for(uint split = 0; split < TSUKINO_SHADOW_CASCADE_COUNT; ++split)
+        firstCascade += (cascadeSplitFar[split] < viewDepth) ? 1 : 0;
+
+    //----------------------------------------------------------
+    // 選んだカスケードは切れ端を球で包んでいるので、通常はそのまま UV が収まる。
+    // 法線オフセットで押し出した点や、別のカメラで描く Overlay の3Dモデル
+    // （UploadWorldWithCamera）では外れることがあるので、そのときだけ1つ外側へ回す。
     //
-    // breakで抜けるのは、ここの分岐がピクセルごとに結果の変わる
+    // continueで回すのは、ここの分岐がピクセルごとに結果の変わる
     // 動的分岐だからである（rimParamsのような定数バッファ由来の分岐と違い、
-    // fxcは平坦化せず本物の制御フローを出す）。近景の画素ほど早く抜ける
+    // fxcは平坦化せず本物の制御フローを出す）。ほとんどの画素は1周目で抜ける
     //----------------------------------------------------------
     [loop]
-    for(uint cascade = 0; cascade < TSUKINO_SHADOW_CASCADE_COUNT; ++cascade) {
+    for(uint cascade = firstCascade; cascade < TSUKINO_SHADOW_CASCADE_COUNT; ++cascade) {
         const float texelWorld = cascadeTexelWorld[cascade];
 
         // 法線オフセット。光に正対する面は押し出さない。
@@ -265,7 +277,7 @@ float SampleShadowPCF(Texture2DArray map, SamplerComparisonState samp, float3 wo
         return shadow / 9.0f;
     }
 
-    // どのカスケードにも入らなかった（＝影を出す距離の外）
+    // どのカスケードにも入らなかった（＝影を出す奥行きの外）
     return 1.0f;
 }
 

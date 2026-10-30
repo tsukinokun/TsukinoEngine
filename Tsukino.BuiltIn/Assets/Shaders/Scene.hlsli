@@ -61,8 +61,9 @@ cbuffer CBufferScene : register(b0)
     float4 screenParams;                                    // 640  xy: 描画領域の解像度(px), zw: その逆数
     float4 shadowParams;                                    // 656  x: シャドウマップの一辺(px), y: その逆数, z: シャドウパスが描画中のカスケード番号, w: 1/奥行き
     float4 cascadeTexelWorld;                               // 672  xyzw: 各カスケードの1テクセルのワールド幅（シャドウバイアスの単位。カスケード4枚ぶん）
-    float4 occlusionCutout0;                                // 688  遮り抜き xy: 円の中心(px), z: 半径(px), w: 1=有効
-    float4 occlusionCutout1;                                // 704  遮り抜き x: 注目している物までの距離, y: 手前とみなす余白, z: 中心で見えている割合, w: 縁へ戻り始める位置（半径比）
+    float4 cascadeSplitFar;                                 // 688  xyzw: 各カスケードが受け持つ奥行きの奥側（カメラのビュー空間 z。カスケードの選択に使う）
+    float4 occlusionCutout0;                                // 704  遮り抜き xy: 円の中心(px), z: 半径(px), w: 1=有効
+    float4 occlusionCutout1;                                // 720  遮り抜き x: 注目している物までの距離, y: 手前とみなす余白, z: 中心で見えている割合, w: 縁へ戻り始める位置（半径比）
 };
 
 #endif    // TSUKINO_SCENE_HLSLI
