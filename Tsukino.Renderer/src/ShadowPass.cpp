@@ -222,7 +222,11 @@ namespace Tsukino::Renderer {
             // 手順2: 切れ端の8頂点を求め、それを包む球を作る
             const std::array<hlslpp::float3, 8> sliceCorners = ComputeSliceCorners(frustum, cascade.splitNear, cascade.splitFar);
             cascade.bounds                                   = ComputeBoundingSphere(sliceCorners);
-            cascade.texelWorldSize                           = ComputeTexelWorldSize(cascade.bounds.radius);
+
+            // 手順3で中心をテクセル幅へ丸めると、投影範囲が最大1テクセルずれて球の端がはみ出す。
+            // 1テクセル分の余白を足しておく（半径は切り上げ済みの整数から決まるので、揺れない）
+            cascade.bounds.radius += ComputeTexelWorldSize(cascade.bounds.radius);
+            cascade.texelWorldSize = ComputeTexelWorldSize(cascade.bounds.radius);
 
             // 手順3: 球を覆う平行投影をライト空間で作る
             cascade.lightViewProj = ComputeLightViewProj(lightDir, cascade.bounds);
@@ -285,8 +289,16 @@ namespace Tsukino::Renderer {
         // 影を出すのはカメラの far 面と kShadowDistance の近いほうまで
         const float shadowFar = std::min(kShadowDistance, farDepth);
 
-        // 対数分割は near が0だと計算できない（正射影のカメラで起こりうる）ので、下限を設ける
-        const float logNear = std::max(nearDepth, 1.0e-3f);
+        //--------------------------------------------------------------------
+        // 式の起点。カメラの near から始めると、TPSカメラでは何も写っていない
+        // 手前の空間にカスケードを使い切ってしまう（kShadowNear参照）。
+        // 起点より手前はカスケード0がまとめて受け持つ（下の splitDepths.front()）
+        //--------------------------------------------------------------------
+        // clampにしないのは、near が kShadowDistance より奥のカメラで lo > hi になるため
+        const float splitStart = std::min(std::max(kShadowNear, nearDepth), shadowFar);
+
+        // 対数分割は起点が0だと計算できない（正射影のカメラで起こりうる）ので、下限を設ける
+        const float logNear = std::max(splitStart, 1.0e-3f);
 
         for(u32 i = 0; i <= kCascadeCount; ++i) {
             const float ratio = static_cast<float>(i) / static_cast<float>(kCascadeCount);
@@ -298,12 +310,13 @@ namespace Tsukino::Renderer {
             // practical split scheme（kSplitLambdaが対数側の重み）
             //----------------------------------------------------------------
             const float logSplit     = logNear * std::pow(shadowFar / logNear, ratio);
-            const float uniformSplit = nearDepth + (shadowFar - nearDepth) * ratio;
+            const float uniformSplit = splitStart + (shadowFar - splitStart) * ratio;
 
             splitDepths[i] = kSplitLambda * logSplit + (1.0f - kSplitLambda) * uniformSplit;
         }
 
-        // 両端は式の丸め誤差を残さず、ちょうど near と shadowFar にする
+        // 両端は式の丸め誤差を残さず、ちょうど near と shadowFar にする。
+        // 先頭を splitStart ではなく near にするので、カスケード0は起点より手前も受け持つ
         splitDepths.front() = nearDepth;
         splitDepths.back()  = shadowFar;
 
@@ -350,7 +363,10 @@ namespace Tsukino::Renderer {
         hlslpp::float3 center = hlslpp::float3(0.0f, 0.0f, 0.0f);
         for(const hlslpp::float3& corner : corners)
             center += corner;
-        center /= hlslpp::float1(static_cast<float>(corners.size()));
+        // 複合代入（center /= float1）にしない。float1 が3成分へ広がらずxだけを割り、
+        // yzを0で割って中心がinfになる（半径もinfになり、影が1つも描かれなかった）。
+        // 二項の演算子なら広がるので、こちらで書く
+        center = center / hlslpp::float1(static_cast<float>(corners.size()));
 
         float radius = 0.0f;
         for(const hlslpp::float3& corner : corners)

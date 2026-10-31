@@ -69,6 +69,13 @@ namespace Tsukino::Renderer {
         //! 大きいほど近景へ解像度が寄る
         static constexpr float kSplitLambda = 0.88f;
 
+        //! 分割の式を始める奥行き（カメラのビュー空間 z）。
+        //! カメラの near（0.3）から式を始めると、TPSカメラでは注視点までの間（約400）に
+        //! 写る物が無いのに、カスケード0〜2がそこへ割り当てられ、画面に写る物は
+        //! すべて最も粗いカスケードで影を引くことになる。
+        //! 式はここから始め、カスケード0だけは手前（near〜最初の分割距離）も全部受け持つ
+        static constexpr float kShadowNear = 400.0f;
+
         //! スキンメッシュのバウンドを膨らませる倍率。
         //! MeshDataのAABBはバインドポーズのものなので、アニメで手足がはみ出す
         static constexpr float kSkinnedBoundsInflate = 1.6f;
@@ -146,7 +153,8 @@ namespace Tsukino::Renderer {
         //! @param  [in] farDepth  カメラの far 面の奥行き
         //! @return 近い順に kCascadeCount + 1 個の奥行き。i 番目と i+1 番目の間がカスケード i の受け持ち。
         //!         先頭は nearDepth、末尾は kShadowDistance と farDepth の近いほう
-        //! @note   practical split scheme（対数分割と等分割の重み付き平均。kSplitLambda が対数側の重み）で求める
+        //! @note   practical split scheme（対数分割と等分割の重み付き平均。kSplitLambda が対数側の重み）で求める。
+        //!         式の起点は nearDepth ではなく kShadowNear（カメラの near より奥ならそちら）
         [[nodiscard]]
         static std::array<float, kCascadeCount + 1> ComputeSplitDepths(float nearDepth, float farDepth);
 

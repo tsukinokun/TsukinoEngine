@@ -193,7 +193,98 @@ static const float kShadowMaxSlope       = 4.0f;    // tanの上限（約76度�
 static const float kShadowMinLit = 0.25f;
 
 //--------------------------------------------------------------
-//! @brief  ディレクショナルライトの影をPCF（3x3）で引く
+// カスケードの境目で隣のカスケードと混ぜる幅（受け持つ奥行きの幅に対する割合）。
+// 混ぜないと境目で影の細かさが段になって見える。
+// 最後のカスケードはこの幅で影を消していく（影を出す奥行きの端で影が急に切れないように）
+//--------------------------------------------------------------
+static const float kCascadeBlendBand = 0.1f;
+
+//--------------------------------------------------------------
+//! @brief  点のカメラのビュー空間の奥行き（カスケードの分割距離と比べる値）
+//--------------------------------------------------------------
+float ShadowViewDepth(float3 worldPos)
+{
+    return mul(float4(worldPos, 1.0f), view).z;
+}
+
+//--------------------------------------------------------------
+//! @brief  画素が使う影のカスケードを選ぶ
+//! @param  worldPos 画素のワールド座標
+//! @return カスケード番号（0が最も近い）。TSUKINO_SHADOW_CASCADE_COUNT なら影を出す奥行きの外
+//! @note   カスケードはカメラの視錐台を奥行きで切った1切れずつなので、
+//!         画素のビュー空間の奥行きを分割距離（cascadeSplitFar）と比べる。
+//!         奥行きより手前で終わっているカスケードの数が、そのまま選ぶ番号になる。
+//!         ifで分けず足し算で数えるので、画素ごとに分岐が分かれない
+//--------------------------------------------------------------
+uint SelectShadowCascade(float3 worldPos)
+{
+    const float viewDepth = ShadowViewDepth(worldPos);
+
+    uint cascade = 0;
+    [unroll]
+    for(uint split = 0; split < TSUKINO_SHADOW_CASCADE_COUNT; ++split)
+        cascade += (cascadeSplitFar[split] < viewDepth) ? 1 : 0;
+
+    return cascade;
+}
+
+//--------------------------------------------------------------
+//! @brief  1枚のカスケードから影をPCF（3x3）で引く
+//! @param  map      カスケードシャドウマップ（t8。スライス=カスケード）
+//! @param  samp     比較サンプラー（s8。リバースZなのでGREATER_EQUALで比較する）
+//! @param  worldPos 影を調べる点のワールド座標
+//! @param  N        その点の法線（正規化済み）
+//! @param  NdotL    saturate(dot(N, L))
+//! @param  tanTheta 光に対する面の傾き（tan。上限付き）
+//! @param  cascade  引くカスケード
+//! @param  shadow   [out] 遮蔽されていない割合 0.0f(影) - 1.0f(明)
+//! @return true: 引けた, false: 点がこのカスケードの範囲の外
+//--------------------------------------------------------------
+bool SampleCascadePCF(Texture2DArray map, SamplerComparisonState samp, float3 worldPos, float3 N, float NdotL, float tanTheta, uint cascade,
+                      out float shadow)
+{
+    shadow = 1.0f;
+
+    const float texelWorld = cascadeTexelWorld[cascade];
+
+    // 法線オフセット。光に正対する面は押し出さない。
+    // 押し出し量はテクセル幅が単位なので、カスケードごとに自動で追従する
+    const float3 samplePos = worldPos + N * (texelWorld * kShadowNormalOffset * (1.0f - NdotL));
+
+    const float4 lightSpace = mul(float4(samplePos, 1.0f), cascadeViewProj[cascade]);
+
+    // クリップ座標をUV座標に変換（DirectXはY反転）。
+    // 平行投影なのでwは常に1で、透視除算は要らない
+    const float2 uv = lightSpace.xy * float2(0.5f, -0.5f) + 0.5f;
+
+    if(any(uv < 0.0f) || any(1.0f < uv))
+        return false;
+
+    //----------------------------------------------------------
+    // 傾き比例の深度バイアス。ワールド距離で求めてから深度値へ換算する
+    // （shadowParams.w = 1/奥行き。奥行きは全カスケード共通）。
+    // リバースZなので、光へ近づける向き＝深度値を足す向き
+    //----------------------------------------------------------
+    const float biasWorld = texelWorld * (kShadowConstantBias + kShadowSlopeBias * tanTheta);
+    const float depth     = lightSpace.z + biasWorld * shadowParams.w;
+
+    float sum = 0.0f;
+
+    [unroll]
+    for(int x = -1; x <= 1; x++) {
+        [unroll]
+        for(int y = -1; y <= 1; y++) {
+            const float2 offset = float2(x, y) * shadowParams.y;
+            sum += map.SampleCmpLevelZero(samp, float3(uv + offset, cascade), depth);
+        }
+    }
+
+    shadow = sum / 9.0f;
+    return true;
+}
+
+//--------------------------------------------------------------
+//! @brief  ディレクショナルライトの影をカスケードシャドウマップから引く
 //! @param  map      カスケードシャドウマップ（t8。スライス=カスケード）
 //! @param  samp     比較サンプラー（s8。リバースZなのでGREATER_EQUALで比較する）
 //! @param  worldPos 影を調べる点のワールド座標
@@ -213,20 +304,7 @@ float SampleShadowPCF(Texture2DArray map, SamplerComparisonState samp, float3 wo
     //----------------------------------------------------------
     const float tanTheta = min(sqrt(saturate(1.0f - NdotL * NdotL)) / max(NdotL, 1.0e-3f), kShadowMaxSlope);
 
-    //----------------------------------------------------------
-    // カスケードの選択。
-    //
-    // カスケードはカメラの視錐台を奥行きで切った1切れずつなので、
-    // 画素のビュー空間の奥行きを分割距離（cascadeSplitFar）と比べ、
-    // 「奥側の分割距離がその奥行きより奥にある最初のカスケード」を選ぶ。
-    // 最後の分割距離より奥の画素は影を出す範囲の外
-    //----------------------------------------------------------
-    const float viewDepth = mul(float4(worldPos, 1.0f), view).z;
-
-    uint firstCascade = 0;
-    [unroll]
-    for(uint split = 0; split < TSUKINO_SHADOW_CASCADE_COUNT; ++split)
-        firstCascade += (cascadeSplitFar[split] < viewDepth) ? 1 : 0;
+    const float viewDepth = ShadowViewDepth(worldPos);
 
     //----------------------------------------------------------
     // 選んだカスケードは切れ端を球で包んでいるので、通常はそのまま UV が収まる。
@@ -238,43 +316,35 @@ float SampleShadowPCF(Texture2DArray map, SamplerComparisonState samp, float3 wo
     // fxcは平坦化せず本物の制御フローを出す）。ほとんどの画素は1周目で抜ける
     //----------------------------------------------------------
     [loop]
-    for(uint cascade = firstCascade; cascade < TSUKINO_SHADOW_CASCADE_COUNT; ++cascade) {
-        const float texelWorld = cascadeTexelWorld[cascade];
-
-        // 法線オフセット。光に正対する面は押し出さない。
-        // 押し出し量はテクセル幅が単位なので、カスケードごとに自動で追従する
-        const float3 samplePos = worldPos + N * (texelWorld * kShadowNormalOffset * (1.0f - NdotL));
-
-        const float4 lightSpace = mul(float4(samplePos, 1.0f), cascadeViewProj[cascade]);
-
-        // クリップ座標をUV座標に変換（DirectXはY反転）。
-        // 平行投影なのでwは常に1で、透視除算は要らない
-        const float2 uv = lightSpace.xy * float2(0.5f, -0.5f) + 0.5f;
-
-        // このカスケードの外なら、1つ外側のカスケードへ回す
-        if(any(uv < 0.0f) || any(1.0f < uv))
+    for(uint cascade = SelectShadowCascade(worldPos); cascade < TSUKINO_SHADOW_CASCADE_COUNT; ++cascade) {
+        float shadow;
+        if(!SampleCascadePCF(map, samp, worldPos, N, NdotL, tanTheta, cascade, shadow))
             continue;
 
         //------------------------------------------------------
-        // 傾き比例の深度バイアス。ワールド距離で求めてから深度値へ換算する
-        // （shadowParams.w = 1/奥行き。奥行きは全カスケード共通）。
-        // リバースZなので、光へ近づける向き＝深度値を足す向き
+        // 境目の手前（受け持つ奥行きの奥側 kCascadeBlendBand 分）では、
+        // 1つ外側のカスケードと混ぜて、影の細かさが段にならないようにする。
+        // 最後のカスケードは外側が無いので、明るい側（影なし）へ消していく。
+        // 帯の外の画素は t=0 なので、もう1枚は引かない
         //------------------------------------------------------
-        const float biasWorld = texelWorld * (kShadowConstantBias + kShadowSlopeBias * tanTheta);
-        const float depth     = lightSpace.z + biasWorld * shadowParams.w;
+        const float splitFar  = cascadeSplitFar[cascade];
+        // 三項演算子は両辺とも評価されるので、cascade=0 でも添字が範囲外にならないようにしておく（uintの0-1は最大値へ回り込む）
+        const float splitNear = (cascade == 0) ? 0.0f : cascadeSplitFar[max(cascade, 1u) - 1];
+        const float band      = max((splitFar - splitNear) * kCascadeBlendBand, 1.0e-4f);
+        const float t         = saturate((viewDepth - (splitFar - band)) / band);
 
-        float shadow = 0.0f;
-
-        [unroll]
-        for(int x = -1; x <= 1; x++) {
-            [unroll]
-            for(int y = -1; y <= 1; y++) {
-                const float2 offset = float2(x, y) * shadowParams.y;
-                shadow += map.SampleCmpLevelZero(samp, float3(uv + offset, cascade), depth);
+        if(t > 0.0f) {
+            // HLSLの && は短絡しない（右辺も評価されnextが書き換わる）ので、ifを入れ子にする
+            float next = 1.0f;
+            if(cascade + 1 < TSUKINO_SHADOW_CASCADE_COUNT) {
+                if(!SampleCascadePCF(map, samp, worldPos, N, NdotL, tanTheta, cascade + 1, next))
+                    next = shadow;    // 外側でも範囲外なら混ぜない
             }
+
+            shadow = lerp(shadow, next, t);
         }
 
-        return shadow / 9.0f;
+        return shadow;
     }
 
     // どのカスケードにも入らなかった（＝影を出す奥行きの外）
