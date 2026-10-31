@@ -302,6 +302,13 @@ carve-out for `Tsukino.Renderer` described under **API stability** in the README
 
 ### Fixed
 
+- **Flat ground no longer sinks into its own shadow.** The slope-scaled depth bias in
+  `PBR.hlsli` covered only the ±1 texel of the 3x3 PCF taps, but the linear comparison sampler also
+  reads the neighboring texel, so the footprint reaches ±1.5 texels per axis (about 2.1 diagonally).
+  On a surface tilted against the light the depth across that reach could exceed the bias, and
+  depending on where the cascade landed a whole tabletop fell into shadow, flickering as the camera
+  moved. `kShadowSlopeBias` goes from 1.0 to 2.5 texels per tan so the bias covers the full footprint.
+
 - **Textures were displayed too bright (sRGB lost in the DDS cache).** `TextureImporter` forced sRGB
   on load but saved the cache with the legacy DDS header, which cannot store sRGB, so every PNG/JPG
   came back as UNORM. Colors were then gamma-encoded twice on the way to the sRGB back buffer
