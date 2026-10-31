@@ -109,6 +109,7 @@ namespace Tsukino::Renderer {
         hlslpp::float4 shading    = hlslpp::float4(0.0f, 0.5f, 0.05f, 0.0f);    //!< x: ShadingModel の番号(0=PBR, 1=Unlit, 2=Toon), y: トゥーンの境目, z: トゥーンのぼかし幅, w: トゥーンのハイライトの大きさ
         hlslpp::float4 toonShadeColor = hlslpp::float4(0.5f, 0.5f, 0.5f, 0.0f);    //!< xyz: トゥーンの暗い側に掛ける色, w: 予約
         hlslpp::float4 spriteUv   = hlslpp::float4(0.0f, 0.0f, 1.0f, 1.0f);    //!< スプライト専用。描く四角の UV(0〜1) を画像のどこに当てるか。xy: 始まり, zw: 幅と高さ（9 スライスの1枚ずつに使う）
+        hlslpp::float4 spriteFog  = hlslpp::float4(0.0f, 0.0f, 0.0f, 0.0f);    //!< スプライト専用。Transparentパスでの霧の掛け方。x: 0=霧の色へ寄せる（半透明）, 1=光を弱める（加算。霧の色を足すと白く浮くため）, yzw: 予約
     };
 
     // b2のレイアウトはMaterial.hlsli側と手で合わせるしかないので、機械的に見張る。
@@ -118,8 +119,9 @@ namespace Tsukino::Renderer {
     //
     // ただし守れるのはこちら側だけ。Material.hlsli の emissivePad を消しても
     // 以下のアサートは全て通り、描画結果が静かに壊れる。片方を触ったら必ず両方見る
-    static_assert(sizeof(CBufferMaterial) == 144, "CBufferMaterial must stay 144 bytes to match Material.hlsli (b2).");
+    static_assert(sizeof(CBufferMaterial) == 160, "CBufferMaterial must stay 160 bytes to match Material.hlsli (b2).");
     static_assert(offsetof(CBufferMaterial, spriteUv) == 128, "spriteUv must start on the 16-byte boundary at 128.");
+    static_assert(offsetof(CBufferMaterial, spriteFog) == 144, "spriteFog must start on the 16-byte boundary at 144.");
     static_assert(offsetof(CBufferMaterial, metallic) == 32, "metallic must sit at byte 32; emissivePad in Material.hlsli covers 28..31.");
     static_assert(offsetof(CBufferMaterial, alphaCutoff) == 44, "alphaCutoff must fill the last slot before rimColor.");
     static_assert(offsetof(CBufferMaterial, rimColor) == 48, "rimColor must start on the 16-byte boundary at 48.");

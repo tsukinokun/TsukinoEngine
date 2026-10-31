@@ -16,12 +16,19 @@ SamplerState u_Sampler : register(s0); // サンプラー
 #include "Material.hlsli"
 
 //--------------------------------------------------------------
+// ワールド空間のスプライトへ自分の距離ぶんの霧を掛けるのに使う（カメラ位置はb0、霧の定数はb8）
+//--------------------------------------------------------------
+#include "Scene.hlsli"
+#include "Fog.hlsli"
+
+//--------------------------------------------------------------
 // 頂点シェーダーから受け取った情報の構造体
 //--------------------------------------------------------------
 struct PSInput
 {
     float4 position : SV_POSITION;
     float2 uv : TEXCOORD0;
+    float3 worldPos : TEXCOORD1;    // ワールド座標（画面のスプライトでは使わない）
 };
 
 //--------------------------------------------------------------
@@ -75,5 +82,21 @@ float4 PSMain(PSInput input) : SV_TARGET
     float2 textureUv = spriteUv.xy + input.uv * spriteUv.zw;
     float4 color     = u_Texture.Sample(u_Sampler, textureUv) * baseColor;
     color.a *= FillCoverage(input.uv);
+
+    //----------------------------------------------------------
+    // 霧。ワールド空間のスプライトはTransparentパス（フォグの後）で描かれ、その間だけ
+    // フォワード用のフォグ定数（distanceParams.w=1）がb8に張られている（FogPass::BindForwardFog）。
+    // 深度を書かないので、フォグパスに任せると奥の景色の距離で霧が掛かってしまう。ここで自分の距離ぶんだけ掛ける。
+    // 半透明は霧の色へ寄せ、加算は光そのものを弱める（加算で霧の色を足すと白く浮くため）。
+    // 画面のスプライト（Overlay）ではb8が空で0が読まれ、何もしない
+    //----------------------------------------------------------
+    if(distanceParams.w > 0.5f)
+    {
+        float4 fog = ComputeFog(input.worldPos, normalize(input.worldPos - cameraPos.xyz), false);
+        if(spriteFog.x > 0.5f)
+            color.rgb *= 1.0f - fog.a;
+        else
+            color.rgb = lerp(color.rgb, fog.rgb, fog.a);
+    }
     return color;
 }

@@ -25,6 +25,7 @@ cbuffer CBufferMaterial : register(b2)
     float4 shading;        // 96  x: ShadingModel の番号(0=PBR, 1=Unlit, 2=Toon), y: トゥーンの境目, z: トゥーンのぼかし幅, w: トゥーンのハイライトの大きさ
     float4 toonShadeColor; // 112 xyz: トゥーンの暗い側に掛ける色, w: 予約
     float4 spriteUv;       // 128 スプライト専用。描く四角の UV(0〜1) を画像のどこに当てるか。xy: 始まり, zw: 幅と高さ
+    float4 spriteFog;      // 144 スプライト専用。Transparentパスでの霧の掛け方。x: 0=霧の色へ寄せる（半透明）, 1=光を弱める（加算）, yzw: 予約
 };
 
 //--------------------------------------------------------------

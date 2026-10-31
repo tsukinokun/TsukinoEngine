@@ -68,7 +68,7 @@
 - **Tsukino::Renderer::CBufferLights** — `Tsukino.Renderer/include/Tsukino/Renderer/ConstantBuffer.hpp`
   - lightCount, pad, lights
 - **Tsukino::Renderer::CBufferMaterial** — `Tsukino.Renderer/include/Tsukino/Renderer/ConstantBuffer.hpp`
-  - baseColor, emissive, metallic, roughness, specular, alphaCutoff, rimColor, rimParams, spriteFill, shading, toonShadeColor, spriteUv
+  - baseColor, emissive, metallic, roughness, specular, alphaCutoff, rimColor, rimParams, spriteFill, shading, toonShadeColor, spriteUv, spriteFog
 - **Tsukino::Renderer::CBufferMotionBlur** — `Tsukino.Renderer/include/Tsukino/Renderer/ConstantBuffer.hpp`
   - strength, maxBlurRadius, shutterScale, sampleCount
 - **Tsukino::Renderer::CBufferScene** — `Tsukino.Renderer/include/Tsukino/Renderer/ConstantBuffer.hpp`

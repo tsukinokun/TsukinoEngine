@@ -260,6 +260,8 @@ namespace Tsukino::BuiltIn::ECS {
             Tsukino::Renderer::CBufferMaterial& materialData = ctx->renderer->GetDrawQueue().AllocMaterialData();
             materialData.baseColor                            = sprite.tintColor;
             materialData.baseColor.w                          = sprite.tintColor.w * groupAlpha;
+            // 霧の掛け方（ワールド空間のときだけ効く）。加算は霧の色へ寄せず、光を弱める
+            materialData.spriteFog = hlslpp::float4(isAdditive ? 1.0f : 0.0f, 0.0f, 0.0f, 0.0f);
 
             //-------------------------------------------------------------
             // 塗り（Sprite.ps.hlsl が塗らない部分の不透明度を 0 にする）。
@@ -285,9 +287,10 @@ namespace Tsukino::BuiltIn::ECS {
 
             cmd.material     = &material;
             cmd.materialData = &materialData;
-            // World空間はG-Bufferが書いた深度と前後判定させたいのでRenderPass::World、
+            // World空間は深度を書かない3Dなので、フォグの後のRenderPass::Transparent（G-Bufferが書いた深度と前後判定はする。
+            // フォグより前のWorldに置くと、奥の景色の距離ぶんの霧が上から掛かって背景によって消える。RenderPassの注記参照）、
             // Screen空間（HUD）は従来どおり深度無視で最前面に出すOverlay
-            cmd.pass      = isWorld ? Tsukino::Renderer::RenderPass::World : Tsukino::Renderer::RenderPass::Overlay;
+            cmd.pass      = isWorld ? Tsukino::Renderer::RenderPass::Transparent : Tsukino::Renderer::RenderPass::Overlay;
             cmd.sortOrder = sprite.sortOrder;    // Overlayパス内でFontRendererSystemの文字と同じ軸で並ぶ
 
             //-------------------------------------------------------------
@@ -364,7 +367,7 @@ namespace Tsukino::BuiltIn::ECS {
         //   一時バッファを使うstable_sortはaligned_storageの拡張アライメント検査に引っかかる）
         //
         // RendererがsortOrderで並べ替えるのはOverlayパスだけで、World空間スプライト
-        // （SpriteSpace::World → RenderPass::World）は積んだ順にそのまま実行される。
+        // （SpriteSpace::World → RenderPass::Transparent）は積んだ順にそのまま実行される。
         // つまりここのソートはWorld空間スプライト同士の前後を決める唯一の手段であり、
         // Overlay側で二重になっても消してはならない
         std::sort(m_entries.begin(), m_entries.end(), [](const SpriteEntry& a, const SpriteEntry& b) { return a.sortOrder < b.sortOrder; });

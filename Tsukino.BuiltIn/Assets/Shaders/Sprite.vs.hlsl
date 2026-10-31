@@ -38,6 +38,7 @@ struct VSOutput
 {
     float4 position : SV_POSITION;
     float2 uv : TEXCOORD0;
+    float3 worldPos : TEXCOORD1;    // Sprite.ps.hlslの入力と揃えるためだけに出す（画面のスプライトには霧を掛けないので使われない）
 };
 
 //--------------------------------------------------------------
@@ -55,6 +56,7 @@ VSOutput VSMain(VSInput input)
     output.position.y = -output.position.y;
     
     output.uv = float2(input.uv.x, 1.0f - input.uv.y);
-     
+    output.worldPos = float3(0.0f, 0.0f, 0.0f);
+
     return output;
 }

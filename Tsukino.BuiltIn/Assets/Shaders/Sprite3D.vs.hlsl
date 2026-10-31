@@ -41,6 +41,7 @@ struct VSOutput
 {
     float4 position : SV_POSITION;
     float2 uv : TEXCOORD0;
+    float3 worldPos : TEXCOORD1;    // ワールド座標（Sprite.ps.hlslが自分の距離ぶんの霧を掛けるのに使う）
 };
 
 //--------------------------------------------------------------
@@ -52,7 +53,9 @@ VSOutput VSMain(VSInput input)
 {
     VSOutput output; // 出力構造体の宣言
     // 頂点 * ワールド行列 * ビュープロジェクション行列
-    output.position = mul(float4(input.position, 1.0f), mul(World, ViewProj));
+    const float4 worldPos = mul(float4(input.position, 1.0f), World);
+    output.position = mul(worldPos, ViewProj);
+    output.worldPos = worldPos.xyz;
 
     output.uv = float2(input.uv.x, 1.0f - input.uv.y);
 
