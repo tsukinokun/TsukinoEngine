@@ -7,8 +7,6 @@
 #include <Tsukino/EngineIntegration/EngineIntegration.hpp>
 #include <Tsukino/Core/Log.hpp>
 #include <Tsukino/Sandbox/Scene/SampleScene1.hpp>
-#include <Tsukino/Sandbox/Scene/JumpGameSampleScene.hpp>
-#include <Tsukino/Sandbox/Scene/WaterGameSampleScene.hpp>
 #include <Tsukino/Sandbox/Scene/DeferredLightSampleScene.hpp>
 
 #include <Windows.h>
@@ -30,20 +28,14 @@ namespace {
     std::unique_ptr<Tsukino::EngineIntegration::GameSceneBase> CreateSceneFromCommandLine(const char* commandLine) {
         const std::string argument = (commandLine != nullptr) ? commandLine : "";
 
-        if(argument.find("water") != std::string::npos) {
-            return std::make_unique<Tsukino::Sandbox::WaterGameSampleScene>();
-        }
-        // ディファードレンダリングの多光源ショーケース（F1でライト数を 0/1/16/64 に切り替え）
-        if(argument.find("lights") != std::string::npos) {
-            return std::make_unique<Tsukino::Sandbox::DeferredLightSampleScene>();
-        }
         // エンジンAPIの動作確認シーン。PrefabFactory のテストを実行してログへ結果を出す
         if(argument.find("api") != std::string::npos) {
             return std::make_unique<Tsukino::Sandbox::SampleScene1>();
         }
 
-        // 既定は「起動してすぐ遊べる」ものにする
-        return std::make_unique<Tsukino::Sandbox::JumpGameSampleScene>();
+        // 既定（"lights" 指定時も）はディファードレンダリングの多光源ショーケース
+        // （F1でライト数を 0/1/16/64 に切り替え）
+        return std::make_unique<Tsukino::Sandbox::DeferredLightSampleScene>();
     }
 }    // namespace
 
@@ -81,9 +73,7 @@ int WINAPI WinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ LPSTR lpCmdLine, _In
     //--------------------------------------------------------------
     // 最初のシーンを登録・開始
     //
-    //   Tsukino.Sandbox.exe            ジャンプゲーム（既定）
-    //   Tsukino.Sandbox.exe water      水面のミニゲーム
-    //   Tsukino.Sandbox.exe lights     多光源ショーケース
+    //   Tsukino.Sandbox.exe            多光源ショーケース（既定。lights でも可）
     //   Tsukino.Sandbox.exe api        エンジンAPIの動作確認シーン
     //--------------------------------------------------------------
     engineAPI.ChangeScene(CreateSceneFromCommandLine(lpCmdLine));

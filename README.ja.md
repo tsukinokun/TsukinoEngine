@@ -79,12 +79,10 @@ open.bat
 内部で`vendor\premake5.exe vs2022`が実行され、`.build/TsukinoEngine.sln`が生成された後、自動的に開かれます。NuGetパッケージ（`AssimpCpp`, `directxtk_desktop_win10`）は、初回ビルド時にVisual Studioが自動的に復元します。
 
 ソリューションを開いたら、**Tsukino.Sandbox**をスタートアッププロジェクトに設定して実行してください。
-起動するとジャンプゲームが始まります。他のサンプルシーンはコマンドライン引数で選びます。
+起動すると多光源ショーケースが始まります。もう1つのサンプルシーンはコマンドライン引数で選びます。
 
 ```
-Tsukino.Sandbox.exe            ジャンプゲーム（既定）
-Tsukino.Sandbox.exe water      水面のミニゲーム
-Tsukino.Sandbox.exe lights     多光源ショーケース（F1でライト数を 0/1/16/64 に切り替え）
+Tsukino.Sandbox.exe            多光源ショーケース（既定。F1でライト数を 0/1/16/64 に切り替え）
 Tsukino.Sandbox.exe api        エンジンAPIの動作確認（PrefabFactoryの検査を含む）
 ```
 

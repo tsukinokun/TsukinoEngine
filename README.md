@@ -83,13 +83,11 @@ open.bat
 This runs `vendor\premake5.exe vs2022` to generate `.build/TsukinoEngine.sln` and opens it automatically. NuGet packages (`AssimpCpp`, `directxtk_desktop_win10`) are restored automatically by Visual Studio on the first build.
 
 Once the solution is open, set **Tsukino.Sandbox** as the startup project and run it.
-It starts a small jump game. The other sample scenes are selected with a command-line
+It starts a many-light showcase. The other sample scene is selected with a command-line
 argument:
 
 ```
-Tsukino.Sandbox.exe            a jump game (default)
-Tsukino.Sandbox.exe water      a water-surface minigame
-Tsukino.Sandbox.exe lights     many-light showcase (F1 cycles 0/1/16/64 point lights)
+Tsukino.Sandbox.exe            many-light showcase (default; F1 cycles 0/1/16/64 point lights)
 Tsukino.Sandbox.exe api        exercises the engine API and checks PrefabFactory
 ```
 

@@ -413,6 +413,10 @@ carve-out for `Tsukino.Renderer` described under **API stability** in the README
 
 - `Renderer::UpdateSceneBuffer`, `SetShadowPipeline` and `SetMotionBlurPipeline`. They
   had no callers outside the renderer.
+- The Sandbox's jump game (`JumpGameSampleScene`) and water minigame (`WaterGameSampleScene`),
+  with their systems, components and assets, plus Sandbox assets no remaining scene used.
+  `Tsukino.Sandbox.exe` now starts the many-light showcase by default; `api` still selects
+  `SampleScene1`.
 
 ## [1.0.0] — 2026-09-05
 
