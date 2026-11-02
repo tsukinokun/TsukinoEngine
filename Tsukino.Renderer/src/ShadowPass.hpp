@@ -49,48 +49,29 @@ namespace Tsukino::Renderer {
     };
 
     //------------------------------------------------------------------------
+    //! 1フレームぶんのカスケード一式です。
+    //------------------------------------------------------------------------
+    struct ShadowCascadeSet {
+        std::array<ShadowCascade, kShadowCascadeCount> cascades{};    // 近い順のカスケード
+
+        //! 平行投影の奥行き。カスケードを包む球の中心から、光の来る側へ depthTowardLight、
+        //! 向こう側へ depthAwayFromLight までを収める。全カスケードで同じ値を使い、
+        //! シェーダーはこの合計で深度バイアスをワールド距離から深度値へ換算する
+        float depthTowardLight   = 0.0f;
+        float depthAwayFromLight = 0.0f;
+    };
+
+    //------------------------------------------------------------------------
     //! シャドウマップパスのクラスです。
     //------------------------------------------------------------------------
     class ShadowPass {
     public:
-        //! シャドウマップ1枚の一辺（ピクセル）。画面サイズに依存しないのでリサイズでは作り直さない
-        static constexpr u32 kMapSize = 2048;
-
         //! カスケードの枚数。b0のcascadeViewProjの要素数と同じでなければならない
         static constexpr u32 kCascadeCount = kShadowCascadeCount;
-
-        //! 影を出す最大の奥行き（カメラのビュー空間 z）。最も外側のカスケードの奥側の分割距離になる。
-        //! カメラの farZ がこれより手前なら farZ で切る。
-        //! フォグに沈んで見えなくなるより手前で切るが、画面に映っている物には影が要るので、
-        //! ゲームが物を置く・湧かせる範囲を覆える値にしてある
-        static constexpr float kShadowDistance = 1400.0f;
-
-        //! 分割距離の対数寄せ具合（practical split scheme の λ）。1.0で完全な対数、0.0で等間隔。
-        //! 大きいほど近景へ解像度が寄る
-        static constexpr float kSplitLambda = 0.88f;
-
-        //! 分割の式を始める奥行き（カメラのビュー空間 z）。
-        //! カメラの near（0.3）から式を始めると、TPSカメラでは注視点までの間（約400）に
-        //! 写る物が無いのに、カスケード0〜2がそこへ割り当てられ、画面に写る物は
-        //! すべて最も粗いカスケードで影を引くことになる。
-        //! 式はここから始め、カスケード0だけは手前（near〜最初の分割距離）も全部受け持つ
-        static constexpr float kShadowNear = 400.0f;
 
         //! スキンメッシュのバウンドを膨らませる倍率。
         //! MeshDataのAABBはバインドポーズのものなので、アニメで手足がはみ出す
         static constexpr float kSkinnedBoundsInflate = 1.6f;
-
-        //! 平行投影の奥行き。カスケードを包む球の中心から、光の来る側へkDepthTowardLight、
-        //! 向こう側へkDepthAwayFromLightまでを収める。
-        //! シェーダーはこの合計（kDepthRange）で深度バイアスをワールド距離から深度値へ換算する。
-        //!
-        //! 全カスケードで同じ値を使うので、一番大きい球（最も外側のカスケード）の半径より
-        //! 十分に長くする。向こう側は球が収まれば足りるが、光の来る側は球の外にある
-        //! 投影者（高い木や崖）も収める必要がある。ここが足りないと、それらが near 面の
-        //! 手前へ出てしまい、影マップに描かれない
-        static constexpr float kDepthTowardLight   = 3000.0f;
-        static constexpr float kDepthAwayFromLight = 3000.0f;
-        static constexpr float kDepthRange         = kDepthTowardLight + kDepthAwayFromLight;
 
         //! シャドウマップと影用パイプラインを作成します。
         //! @param  [in] graphicsContext  デバイスとデバイスコンテキストの取得元
@@ -109,6 +90,18 @@ namespace Tsukino::Renderer {
                         const Tsukino::Asset::ShaderAsset* staticVS,
                         const Tsukino::Asset::ShaderAsset* skeletalVS,
                         const Tsukino::Asset::ShaderAsset* ps);
+
+        //! 影の調整値を設定します。
+        //! @param  [in] settings 影の調整値。範囲外の値は使える範囲へ丸める
+        //! @note   mapSize が変わったときだけシャドウマップを作り直す。作り直しに失敗したら前の解像度のまま残す
+        void SetSettings(const ShadowSettings& settings);
+
+        //! 今の影の調整値（丸めた後）を取得します。
+        //! @return 影の調整値
+        [[nodiscard]]
+        const ShadowSettings& GetSettings() const noexcept {
+            return m_settings;
+        }
 
         //! このフレームのカスケードを求めて、ワールドのシーン定数（b0）へ書き込みます。
         //! @param  [in] worldScene ワールドのシーン定数。view / invViewProj（メインカメラ）と lightDir を使う
@@ -132,13 +125,15 @@ namespace Tsukino::Renderer {
         //! @param  [in] cameraView        カメラの View 行列
         //! @param  [in] cameraInvViewProj カメラの ViewProjection の逆行列
         //! @param  [in] lightDir          光の向き（正規化済み）
-        //! @return 近い順に kCascadeCount 枚のカスケード
+        //! @param  [in] settings          影の調整値（丸め済み）
+        //! @return 近い順に kCascadeCount 枚のカスケードと、全カスケード共通の平行投影の奥行き
         //! @note   次の関数を順に呼ぶだけの関数。手順ごとの中身はそれぞれの関数を見る
         //!         ComputeFrustumCorners → ComputeSplitDepths → ComputeSliceCorners → ComputeBoundingSphere → ComputeLightViewProj
         [[nodiscard]]
-        static std::array<ShadowCascade, kCascadeCount> ComputeCascades(const Tsukino::Core::Math::matrix& cameraView,
-                                                                        const Tsukino::Core::Math::matrix& cameraInvViewProj,
-                                                                        const hlslpp::float3&              lightDir);
+        static ShadowCascadeSet ComputeCascades(const Tsukino::Core::Math::matrix& cameraView,
+                                                const Tsukino::Core::Math::matrix& cameraInvViewProj,
+                                                const hlslpp::float3&              lightDir,
+                                                const ShadowSettings&              settings);
 
         //! カメラの視錐台の8頂点を、NDC の立方体の頂点を逆射影して求めます。
         //! @param  [in] cameraView        カメラの View 行列（頂点の奥行きを求めるのに使う）
@@ -151,12 +146,13 @@ namespace Tsukino::Renderer {
         //! 視錐台を奥行き方向に切る距離を求めます。
         //! @param  [in] nearDepth カメラの near 面の奥行き
         //! @param  [in] farDepth  カメラの far 面の奥行き
+        //! @param  [in] settings  影の調整値（distance / splitStart / splitLambda を使う）
         //! @return 近い順に kCascadeCount + 1 個の奥行き。i 番目と i+1 番目の間がカスケード i の受け持ち。
-        //!         先頭は nearDepth、末尾は kShadowDistance と farDepth の近いほう
-        //! @note   practical split scheme（対数分割と等分割の重み付き平均。kSplitLambda が対数側の重み）で求める。
-        //!         式の起点は nearDepth ではなく kShadowNear（カメラの near より奥ならそちら）
+        //!         先頭は nearDepth、末尾は settings.distance と farDepth の近いほう
+        //! @note   practical split scheme（対数分割と等分割の重み付き平均。splitLambda が対数側の重み）で求める。
+        //!         式の起点は nearDepth ではなく splitStart（カメラの near より奥ならそちら）
         [[nodiscard]]
-        static std::array<float, kCascadeCount + 1> ComputeSplitDepths(float nearDepth, float farDepth);
+        static std::array<float, kCascadeCount + 1> ComputeSplitDepths(float nearDepth, float farDepth, const ShadowSettings& settings);
 
         //! 視錐台を2つの奥行きで切った切れ端の8頂点を求めます。
         //! @param  [in] frustum   カメラの視錐台
@@ -175,19 +171,30 @@ namespace Tsukino::Renderer {
 
         //! カスケード1枚の、シャドウマップ1テクセルが覆うワールド幅を求めます。
         //! @param  [in] boundsRadius 平行投影の半径（ワールド距離）
-        //! @return 1テクセルのワールド幅（= 2 * boundsRadius / kMapSize）
+        //! @param  [in] mapSize      シャドウマップの一辺（ピクセル）
+        //! @return 1テクセルのワールド幅（= 2 * boundsRadius / mapSize）
         [[nodiscard]]
-        static constexpr float ComputeTexelWorldSize(float boundsRadius) noexcept {
-            return 2.0f * boundsRadius / static_cast<float>(kMapSize);
+        static constexpr float ComputeTexelWorldSize(float boundsRadius, u32 mapSize) noexcept {
+            return 2.0f * boundsRadius / static_cast<float>(mapSize);
         }
 
         //! 球を覆うディレクショナルライトの ViewProjection 行列を、カスケード1枚分求めます。
-        //! @param  [in] lightDir 光の向き（正規化済み）
-        //! @param  [in] bounds   投影で覆う球（視錐台の切れ端を包む球）。
-        //!                       範囲はテクセル単位に丸めて置くので、厳密な中心からは最大1テクセルずれる
+        //! @param  [in] lightDir           光の向き（正規化済み）
+        //! @param  [in] bounds             投影で覆う球（視錐台の切れ端を包む球）。
+        //!                                 範囲はテクセル単位に丸めて置くので、厳密な中心からは最大1テクセルずれる
+        //! @param  [in] mapSize            シャドウマップの一辺（ピクセル）
+        //! @param  [in] depthTowardLight   球の中心から光の来る側へ収める奥行き
+        //! @param  [in] depthAwayFromLight 球の中心から向こう側へ収める奥行き
         //! @return ライト空間の ViewProjection 行列
         [[nodiscard]]
-        static Tsukino::Core::Math::matrix ComputeLightViewProj(const hlslpp::float3& lightDir, const BoundingSphere& bounds);
+        static Tsukino::Core::Math::matrix ComputeLightViewProj(const hlslpp::float3& lightDir, const BoundingSphere& bounds, u32 mapSize,
+                                                                float depthTowardLight, float depthAwayFromLight);
+
+        //! 影の調整値を使える範囲へ丸めます。
+        //! @param  [in] settings 丸める前の調整値
+        //! @return 丸めた調整値（mapSize は2のべき乗、長さは0以上、splitLambda は0〜1）
+        [[nodiscard]]
+        static ShadowSettings SanitizeSettings(const ShadowSettings& settings);
 
         //! シャドウパスでカスケードの範囲外にあるオブジェクトを間引くかを切り替えます。
         //! @note 既定は有効。同じビルドで有効・無効の両方を計測できるようにするための口で、
@@ -206,10 +213,11 @@ namespace Tsukino::Renderer {
         static bool OverlapsCascade(const DrawCommand& cmd, const ShadowCascade& cascade);
 
         //! シャドウマップ（テクスチャ・DSV・SRV・比較サンプラー）を作成します。
-        //! @param  [in] device 描画デバイス
+        //! @param  [in] device  描画デバイス
+        //! @param  [in] mapSize シャドウマップの一辺（ピクセル）
         //! @return true: 作成成功, false: 作成失敗
         [[nodiscard]]
-        bool CreateShadowMap(ID3D11Device* device);
+        bool CreateShadowMap(ID3D11Device* device, u32 mapSize);
 
     private:
         GraphicsContext*     m_graphicsContext = nullptr;    // デバイスコンテキストの取得元（借りている）
@@ -225,6 +233,8 @@ namespace Tsukino::Renderer {
 
         // このフレームのカスケード（UpdateCascades() が埋め、Execute() が使う）
         std::array<ShadowCascade, kCascadeCount> m_cascades{};
+
+        ShadowSettings m_settings{};    // 影の調整値（SanitizeSettings() で丸め済み）
 
         bool m_cullingEnabled = true;    // カスケードの範囲外を間引くか（計測用に切り替えられる）
 

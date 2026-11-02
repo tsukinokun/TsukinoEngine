@@ -516,6 +516,13 @@
                     "cppType": "bool",
                     "jsonShape": "true / false",
                     "default": "true"
+                },
+                {
+                    "jsonKey": "shadow",
+                    "field": "shadow",
+                    "cppType": "Tsukino::Renderer::ShadowSettings",
+                    "jsonShape": "?",
+                    "default": null
                 }
             ]
         },

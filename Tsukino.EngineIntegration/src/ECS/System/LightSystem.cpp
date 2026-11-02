@@ -41,7 +41,8 @@ namespace Tsukino::BuiltIn::ECS {
 
         //--------------------------------------------------------------
         // ディレクショナルライト（影付き、複数あれば最後の1つで上書き）。
-        // 影の範囲はメインカメラの視錐台からレンダラーが作るので、ここでは向きと色だけを渡す
+        // カスケードはメインカメラの視錐台からレンダラーが作るので、ここでは向きと色、
+        // それに影の範囲・分割・解像度の調整値だけを渡す
         //--------------------------------------------------------------
         auto dirView = registry.View<DirectionalLightComponent>();
         dirView.each([&](entt::entity entity, const DirectionalLightComponent& light) {
@@ -49,6 +50,7 @@ namespace Tsukino::BuiltIn::ECS {
                 return;
 
             ctx->renderer->GetLighting().SetDirectionalLight(light.direction, light.color, light.intensity);
+            ctx->renderer->SetShadowSettings(light.shadow);
         });
 
         //--------------------------------------------------------------

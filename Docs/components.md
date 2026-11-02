@@ -141,6 +141,7 @@
 | `color` | `hlslpp::float3` | { "x", "y", "z" } | `{1.0f, 1.0f, 1.0f}` |
 | `intensity` | `float` | number | `1.0f` |
 | `castShadow` | `bool` | true / false | `true` |
+| `shadow` | `Tsukino::Renderer::ShadowSettings` | ? | — |
 
 ### EffectComponent
 

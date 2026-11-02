@@ -4,6 +4,8 @@
 //! @author 山﨑愛
 //--------------------------------------------------------------
 #pragma once
+#include <Tsukino/Renderer/ShadowSettings.hpp>
+
 #include <hlsl++.h>
 // 名前空間 : Tsukino::BuiltIn::ECS
 namespace Tsukino::BuiltIn::ECS {
@@ -12,11 +14,17 @@ namespace Tsukino::BuiltIn::ECS {
     //! @brief  平行光源の設定を持つコンポーネント
     //! @note   エンティティにアタッチして使用する
     //!         シーン内に複数存在する場合は最初に見つかったものを使用する
+    //!
+    //!         shadow はカスケードシャドウの範囲・分割・解像度。Prefab では
+    //!         "shadow": { "distance": ..., "splitStart": ... } と書き、ブロックごと・項目ごとに
+    //!         省略できる（省いた項目は ShadowSettings の既定値＝1ユニット = 1m の一般的な値）
     //--------------------------------------------------------------
     struct DirectionalLightComponent {
         hlslpp::float3 direction  = {0.0f, -1.0f, 0.0f};    //!< ライトの方向（正規化推奨）
         hlslpp::float3 color      = {1.0f, 1.0f, 1.0f};     //!< ライトの色
         float          intensity  = 1.0f;                   //!< ライトの強度
         bool           castShadow = true;                   //!< シャドウを落とすか
+
+        Tsukino::Renderer::ShadowSettings shadow;           //!< カスケードシャドウの調整値（castShadow が true のときだけ使う）
     };
 }    // namespace Tsukino::BuiltIn::ECS

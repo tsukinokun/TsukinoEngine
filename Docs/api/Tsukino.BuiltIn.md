@@ -49,7 +49,7 @@
 - **Tsukino::BuiltIn::ECS::DebugCameraTag** — `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/DebugCameraTag.hpp`
   - dummy
 - **Tsukino::BuiltIn::ECS::DirectionalLightComponent** — `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/DirectionalLightComponent.hpp`
-  - direction, color, intensity, castShadow
+  - direction, color, intensity, castShadow, shadow
 - **Tsukino::BuiltIn::ECS::DraggableComponent** — `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/DraggableComponent.hpp`
   - isDragging, dragOffset
 - **Tsukino::BuiltIn::ECS::EffectComponent** — `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/EffectComponent.hpp`

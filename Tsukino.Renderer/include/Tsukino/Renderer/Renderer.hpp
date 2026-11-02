@@ -11,6 +11,7 @@
 #include <Tsukino/Renderer/DX11/PipelineFactory.hpp>
 #include <Tsukino/Renderer/RenderResources.hpp>
 #include <Tsukino/Renderer/FrameConstants.hpp>
+#include <Tsukino/Renderer/ShadowSettings.hpp>
 #include <Tsukino/Renderer/DebugDraw.hpp>
 #include <Tsukino/Renderer/SkyPass.hpp>
 #include <Tsukino/Renderer/IBLBaker.hpp>
@@ -193,6 +194,22 @@ namespace Tsukino::Renderer {
         //!         見た目が変わるなら間引きすぎている
         //------------------------------------------------------------
         void SetShadowCullingEnabled(bool enabled);
+
+        //------------------------------------------------------------
+        //! @brief  カスケードシャドウの調整値（範囲・分割・解像度）を設定する関数
+        //! @param  [in] settings 影の調整値。範囲外の値は使える範囲へ丸める
+        //! @note   通常は DirectionalLightComponent::shadow を LightSystem が毎フレーム渡すので、
+        //!         ゲームから直接呼ぶ必要は無い。設定は次に呼ばれるまで残る。
+        //!         mapSize が変わったときだけシャドウマップを作り直す
+        //------------------------------------------------------------
+        void SetShadowSettings(const ShadowSettings& settings);
+
+        //------------------------------------------------------------
+        //! @brief  今のカスケードシャドウの調整値（丸めた後）を取得する関数
+        //! @return 影の調整値
+        //------------------------------------------------------------
+        [[nodiscard]]
+        const ShadowSettings& GetShadowSettings() const;
 
         //------------------------------------------------------------
         //! @brief  直前のフレームの描画統計を取得する関数

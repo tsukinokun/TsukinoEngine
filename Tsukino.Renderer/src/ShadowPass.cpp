@@ -15,6 +15,7 @@
 
 #include <algorithm>
 #include <array>
+#include <bit>
 #include <cmath>
 
 // 名前空間 : Tsukino::Renderer
@@ -55,7 +56,68 @@ namespace Tsukino::Renderer {
             }
         }
 
-        return CreateShadowMap(graphicsContext.GetDevice());
+        //--------------------------------------------------------------------
+        // b0 の shadowParams へ配る値の仮置き。
+        // 奥行きは最初の UpdateCascades() でカスケードの大きさから決め直すので、
+        // ここでは0除算にならない値を入れておくだけ
+        //--------------------------------------------------------------------
+        m_frameConstants->SetShadowMapParams(m_settings.mapSize, m_settings.distance * 2.0f + m_settings.casterMargin);
+
+        return CreateShadowMap(graphicsContext.GetDevice(), m_settings.mapSize);
+    }
+
+    //------------------------------------------------------------------------
+    //! 影の調整値を設定します。
+    //------------------------------------------------------------------------
+    void ShadowPass::SetSettings(const ShadowSettings& settings) {
+        const u32 previousMapSize = m_settings.mapSize;
+        m_settings                = SanitizeSettings(settings);
+
+        // Initialize() の前ならシャドウマップはまだ無く、Initialize() が新しい解像度で作る
+        if(!m_mapTex || m_settings.mapSize == previousMapSize)
+            return;
+
+        //--------------------------------------------------------------------
+        // 解像度が変わったのでシャドウマップを作り直す。
+        // 失敗したときに影が丸ごと消えないよう、前の資源を握っておいて戻せるようにする
+        //--------------------------------------------------------------------
+        const ComPtr<ID3D11Texture2D>                                   oldTex     = m_mapTex;
+        const ComPtr<ID3D11ShaderResourceView>                          oldSRV     = m_mapSRV;
+        const ComPtr<ID3D11SamplerState>                                oldSampler = m_sampler;
+        const std::array<ComPtr<ID3D11DepthStencilView>, kCascadeCount> oldDSV     = m_mapDSV;
+
+        if(!CreateShadowMap(m_graphicsContext->GetDevice(), m_settings.mapSize)) {
+            Tsukino::Core::Log::Error("Failed to recreate the shadow map at " + std::to_string(m_settings.mapSize)
+                                      + " px; keeping the previous " + std::to_string(previousMapSize) + " px shadow map.");
+            m_mapTex           = oldTex;
+            m_mapSRV           = oldSRV;
+            m_sampler          = oldSampler;
+            m_mapDSV           = oldDSV;
+            m_settings.mapSize = previousMapSize;
+        }
+    }
+
+    //------------------------------------------------------------------------
+    //! 影の調整値を使える範囲へ丸めます。
+    //------------------------------------------------------------------------
+    ShadowSettings ShadowPass::SanitizeSettings(const ShadowSettings& settings) {
+        ShadowSettings sanitized = settings;
+
+        // 2のべき乗に揃える（半端な解像度はテクセル幅の丸めと相性が悪く、GPU にも素直でない）
+        const u32 clampedSize = std::clamp(settings.mapSize, ShadowSettings::kMinMapSize, ShadowSettings::kMaxMapSize);
+        sanitized.mapSize     = std::bit_floor(clampedSize);
+
+        //--------------------------------------------------------------------
+        // 長さの下限。distance が0だとカスケードの球の半径も0になり、
+        // テクセル幅（半径 / 解像度）で割る所が0除算になるので、ごく小さな正の値で止める
+        //--------------------------------------------------------------------
+        constexpr float kMinDistance = 0.01f;
+        sanitized.distance     = std::max(settings.distance, kMinDistance);
+        sanitized.splitStart   = std::max(settings.splitStart, 0.0f);
+        sanitized.splitLambda  = std::clamp(settings.splitLambda, 0.0f, 1.0f);
+        sanitized.casterMargin = std::max(settings.casterMargin, 0.0f);
+
+        return sanitized;
     }
 
     //------------------------------------------------------------------------
@@ -67,7 +129,13 @@ namespace Tsukino::Renderer {
         if(static_cast<float>(hlslpp::dot(lightDir, lightDir)) <= 0.0f)
             return;
 
-        m_cascades = ComputeCascades(worldScene.view, worldScene.invViewProj, hlslpp::normalize(lightDir));
+        const ShadowCascadeSet cascadeSet = ComputeCascades(worldScene.view, worldScene.invViewProj, hlslpp::normalize(lightDir), m_settings);
+        m_cascades                        = cascadeSet.cascades;
+
+        // 奥行きはカスケードの大きさから毎フレーム決まる。カメラ行列が未設定で求まらなかったフレームは前の値を残す
+        const float depthRange = cascadeSet.depthTowardLight + cascadeSet.depthAwayFromLight;
+        if(depthRange > 0.0f)
+            m_frameConstants->SetShadowMapParams(m_settings.mapSize, depthRange);
 
         //--------------------------------------------------------------------
         // シェーダーへ渡す形に並べ替える。
@@ -100,8 +168,8 @@ namespace Tsukino::Renderer {
 
         // ビューポートは全カスケード共通（スライスの大きさは同じ）
         D3D11_VIEWPORT vp{};
-        vp.Width    = static_cast<float>(kMapSize);
-        vp.Height   = static_cast<float>(kMapSize);
+        vp.Width    = static_cast<float>(m_settings.mapSize);
+        vp.Height   = static_cast<float>(m_settings.mapSize);
         vp.MaxDepth = 1.0f;
         context->RSSetViewports(1, &vp);
 
@@ -198,10 +266,12 @@ namespace Tsukino::Renderer {
     //------------------------------------------------------------------------
     //! カメラの視錐台をカスケードに切り分け、1枚ずつのライト空間の投影を求めます。
     //------------------------------------------------------------------------
-    std::array<ShadowCascade, ShadowPass::kCascadeCount> ShadowPass::ComputeCascades(const Tsukino::Core::Math::matrix& cameraView,
-                                                                                     const Tsukino::Core::Math::matrix& cameraInvViewProj,
-                                                                                     const hlslpp::float3&              lightDir) {
-        std::array<ShadowCascade, kCascadeCount> cascades{};
+    ShadowCascadeSet ShadowPass::ComputeCascades(const Tsukino::Core::Math::matrix& cameraView,
+                                                 const Tsukino::Core::Math::matrix& cameraInvViewProj,
+                                                 const hlslpp::float3&              lightDir,
+                                                 const ShadowSettings&              settings) {
+        ShadowCascadeSet result{};
+        std::array<ShadowCascade, kCascadeCount>& cascades = result.cascades;
 
         // 手順0: カメラの視錐台をワールド空間の8頂点として取り出す
         const FrustumCorners frustum = ComputeFrustumCorners(cameraView, cameraInvViewProj);
@@ -209,11 +279,12 @@ namespace Tsukino::Renderer {
         // カメラ行列がまだ設定されていない（最初のフレームなど）と奥行きが求まらない。
         // NaN でもここで弾けるよう、否定の形で比べる
         if(!(frustum.farDepth > frustum.nearDepth))
-            return cascades;
+            return result;
 
         // 手順1: 視錐台を奥行き方向に切る距離を決める
-        const std::array<float, kCascadeCount + 1> splitDepths = ComputeSplitDepths(frustum.nearDepth, frustum.farDepth);
+        const std::array<float, kCascadeCount + 1> splitDepths = ComputeSplitDepths(frustum.nearDepth, frustum.farDepth, settings);
 
+        float maxRadius = 0.0f;
         for(u32 i = 0; i < kCascadeCount; ++i) {
             ShadowCascade& cascade = cascades[i];
             cascade.splitNear      = splitDepths[i];
@@ -223,16 +294,29 @@ namespace Tsukino::Renderer {
             const std::array<hlslpp::float3, 8> sliceCorners = ComputeSliceCorners(frustum, cascade.splitNear, cascade.splitFar);
             cascade.bounds                                   = ComputeBoundingSphere(sliceCorners);
 
-            // 手順3で中心をテクセル幅へ丸めると、投影範囲が最大1テクセルずれて球の端がはみ出す。
+            // 手順4で中心をテクセル幅へ丸めると、投影範囲が最大1テクセルずれて球の端がはみ出す。
             // 1テクセル分の余白を足しておく（半径は切り上げ済みの整数から決まるので、揺れない）
-            cascade.bounds.radius += ComputeTexelWorldSize(cascade.bounds.radius);
-            cascade.texelWorldSize = ComputeTexelWorldSize(cascade.bounds.radius);
+            cascade.bounds.radius += ComputeTexelWorldSize(cascade.bounds.radius, settings.mapSize);
+            cascade.texelWorldSize = ComputeTexelWorldSize(cascade.bounds.radius, settings.mapSize);
 
-            // 手順3: 球を覆う平行投影をライト空間で作る
-            cascade.lightViewProj = ComputeLightViewProj(lightDir, cascade.bounds);
+            maxRadius = std::max(maxRadius, cascade.bounds.radius);
         }
 
-        return cascades;
+        //--------------------------------------------------------------------
+        // 手順3: 平行投影の奥行きを決める。
+        // 全カスケードで同じ値を使うので、一番大きい球が収まる長さにする。
+        // 向こう側は球が収まれば足りるが、光の来る側は球の外にある投影者（高い木や崖）も
+        // 収める必要があるので casterMargin を足す。ここが足りないと、それらが near 面の
+        // 手前へ出てしまい、影マップに描かれない
+        //--------------------------------------------------------------------
+        result.depthAwayFromLight = maxRadius;
+        result.depthTowardLight   = maxRadius + settings.casterMargin;
+
+        // 手順4: 球を覆う平行投影をライト空間で作る
+        for(ShadowCascade& cascade : cascades)
+            cascade.lightViewProj = ComputeLightViewProj(lightDir, cascade.bounds, settings.mapSize, result.depthTowardLight, result.depthAwayFromLight);
+
+        return result;
     }
 
     //------------------------------------------------------------------------
@@ -283,19 +367,19 @@ namespace Tsukino::Renderer {
     //------------------------------------------------------------------------
     //! 視錐台を奥行き方向に切る距離を求めます。
     //------------------------------------------------------------------------
-    std::array<float, ShadowPass::kCascadeCount + 1> ShadowPass::ComputeSplitDepths(float nearDepth, float farDepth) {
+    std::array<float, ShadowPass::kCascadeCount + 1> ShadowPass::ComputeSplitDepths(float nearDepth, float farDepth, const ShadowSettings& settings) {
         std::array<float, kCascadeCount + 1> splitDepths{};
 
-        // 影を出すのはカメラの far 面と kShadowDistance の近いほうまで
-        const float shadowFar = std::min(kShadowDistance, farDepth);
+        // 影を出すのはカメラの far 面と settings.distance の近いほうまで
+        const float shadowFar = std::min(settings.distance, farDepth);
 
         //--------------------------------------------------------------------
         // 式の起点。カメラの near から始めると、TPSカメラでは何も写っていない
-        // 手前の空間にカスケードを使い切ってしまう（kShadowNear参照）。
+        // 手前の空間にカスケードを使い切ってしまう（ShadowSettings::splitStart参照）。
         // 起点より手前はカスケード0がまとめて受け持つ（下の splitDepths.front()）
         //--------------------------------------------------------------------
-        // clampにしないのは、near が kShadowDistance より奥のカメラで lo > hi になるため
-        const float splitStart = std::min(std::max(kShadowNear, nearDepth), shadowFar);
+        // clampにしないのは、near が settings.distance より奥のカメラで lo > hi になるため
+        const float splitStart = std::min(std::max(settings.splitStart, nearDepth), shadowFar);
 
         // 対数分割は起点が0だと計算できない（正射影のカメラで起こりうる）ので、下限を設ける
         const float logNear = std::max(splitStart, 1.0e-3f);
@@ -307,12 +391,12 @@ namespace Tsukino::Renderer {
             // 対数分割は、カメラから見た1テクセルの大きさがどの奥行きでも同じに
             // なる理想的な分け方だが、そのままだと第1カスケードが極端に薄くなる。
             // 等分割はその逆で近景が粗い。両者の重み付き平均を取るのが
-            // practical split scheme（kSplitLambdaが対数側の重み）
+            // practical split scheme（splitLambdaが対数側の重み）
             //----------------------------------------------------------------
             const float logSplit     = logNear * std::pow(shadowFar / logNear, ratio);
             const float uniformSplit = splitStart + (shadowFar - splitStart) * ratio;
 
-            splitDepths[i] = kSplitLambda * logSplit + (1.0f - kSplitLambda) * uniformSplit;
+            splitDepths[i] = settings.splitLambda * logSplit + (1.0f - settings.splitLambda) * uniformSplit;
         }
 
         // 両端は式の丸め誤差を残さず、ちょうど near と shadowFar にする。
@@ -392,7 +476,8 @@ namespace Tsukino::Renderer {
     //------------------------------------------------------------------------
     //! 球を覆うディレクショナルライトの ViewProjection 行列を、カスケード1枚分求めます。
     //------------------------------------------------------------------------
-    Tsukino::Core::Math::matrix ShadowPass::ComputeLightViewProj(const hlslpp::float3& lightDir, const BoundingSphere& bounds) {
+    Tsukino::Core::Math::matrix ShadowPass::ComputeLightViewProj(const hlslpp::float3& lightDir, const BoundingSphere& bounds, u32 mapSize,
+                                                                 float depthTowardLight, float depthAwayFromLight) {
         //--------------------------------------------------------------------
         // ディレクショナルライトは平行投影を使う。
         // 投影範囲は、視錐台の切れ端を包む球を、光の向きから見てちょうど覆う正方形
@@ -421,7 +506,7 @@ namespace Tsukino::Renderer {
         const hlslpp::float4 centerInLight = hlslpp::mul(hlslpp::float4(bounds.center, 1.0f), lightView);
 
         const float radius         = bounds.radius;
-        const float texelWorldSize = ComputeTexelWorldSize(radius);
+        const float texelWorldSize = ComputeTexelWorldSize(radius, mapSize);
         const float centerX        = std::floor(static_cast<float>(centerInLight.x) / texelWorldSize) * texelWorldSize;
         const float centerY        = std::floor(static_cast<float>(centerInLight.y) / texelWorldSize) * texelWorldSize;
         const float centerDepth    = static_cast<float>(centerInLight.z);
@@ -431,8 +516,8 @@ namespace Tsukino::Renderer {
                                                                                                      centerX + radius,                     // right
                                                                                                      centerY - radius,                     // bottom
                                                                                                      centerY + radius,                     // top
-                                                                                                     centerDepth + kDepthAwayFromLight,    // far
-                                                                                                     centerDepth - kDepthTowardLight       // near
+                                                                                                     centerDepth + depthAwayFromLight,    // far
+                                                                                                     centerDepth - depthTowardLight       // near
         );
 
         return hlslpp::mul(lightView, lightProj);
@@ -441,14 +526,15 @@ namespace Tsukino::Renderer {
     //------------------------------------------------------------------------
     //! シャドウマップ（テクスチャ・DSV・SRV・比較サンプラー）を作成します。
     //------------------------------------------------------------------------
-    bool ShadowPass::CreateShadowMap(ID3D11Device* device) {
+    bool ShadowPass::CreateShadowMap(ID3D11Device* device, u32 mapSize) {
         //--------------------------------------------------------------------
         // シャドウマップテクスチャの作成
-        // R32_TYPELESS : DSV(D32_FLOAT)とSRV(R32_FLOAT)で共有するため
+        // R32_TYPELESS : DSV(D32_FLOAT)とSRV(R32_FLOAT)で共有するため。
+        // 解像度を変えて作り直すときにも呼ばれるので、ビューは ReleaseAndGetAddressOf() で前のものを手放して受け取る
         //--------------------------------------------------------------------
         D3D11_TEXTURE2D_DESC texDesc{};
-        texDesc.Width            = kMapSize;
-        texDesc.Height           = kMapSize;
+        texDesc.Width            = mapSize;
+        texDesc.Height           = mapSize;
         texDesc.MipLevels        = 1;
         texDesc.ArraySize        = kCascadeCount;    // カスケード1枚＝配列の1スライス
         texDesc.Format           = DXGI_FORMAT_R32_TYPELESS;
@@ -456,7 +542,7 @@ namespace Tsukino::Renderer {
         texDesc.Usage            = D3D11_USAGE_DEFAULT;
         texDesc.BindFlags        = D3D11_BIND_DEPTH_STENCIL | D3D11_BIND_SHADER_RESOURCE;
 
-        if(FAILED(device->CreateTexture2D(&texDesc, nullptr, m_mapTex.GetAddressOf()))) {
+        if(FAILED(device->CreateTexture2D(&texDesc, nullptr, m_mapTex.ReleaseAndGetAddressOf()))) {
             Tsukino::Core::Log::Error("Failed to create shadow map texture.");
             return false;
         }
@@ -473,7 +559,7 @@ namespace Tsukino::Renderer {
             dsvDesc.Texture2DArray.FirstArraySlice = i;
             dsvDesc.Texture2DArray.ArraySize       = 1;
 
-            if(FAILED(device->CreateDepthStencilView(m_mapTex.Get(), &dsvDesc, m_mapDSV[i].GetAddressOf()))) {
+            if(FAILED(device->CreateDepthStencilView(m_mapTex.Get(), &dsvDesc, m_mapDSV[i].ReleaseAndGetAddressOf()))) {
                 Tsukino::Core::Log::Error("Failed to create shadow map DSV for cascade " + std::to_string(i) + ".");
                 return false;
             }
@@ -491,7 +577,7 @@ namespace Tsukino::Renderer {
         srvDesc.Texture2DArray.FirstArraySlice = 0;
         srvDesc.Texture2DArray.ArraySize       = kCascadeCount;
 
-        if(FAILED(device->CreateShaderResourceView(m_mapTex.Get(), &srvDesc, m_mapSRV.GetAddressOf()))) {
+        if(FAILED(device->CreateShaderResourceView(m_mapTex.Get(), &srvDesc, m_mapSRV.ReleaseAndGetAddressOf()))) {
             Tsukino::Core::Log::Error("Failed to create shadow map SRV.");
             return false;
         }
@@ -513,7 +599,7 @@ namespace Tsukino::Renderer {
         samplerDesc.MinLOD         = 0;
         samplerDesc.MaxLOD         = D3D11_FLOAT32_MAX;
 
-        if(FAILED(device->CreateSamplerState(&samplerDesc, m_sampler.GetAddressOf()))) {
+        if(FAILED(device->CreateSamplerState(&samplerDesc, m_sampler.ReleaseAndGetAddressOf()))) {
             Tsukino::Core::Log::Error("Failed to create shadow sampler.");
             return false;
         }

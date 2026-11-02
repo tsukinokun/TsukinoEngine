@@ -66,7 +66,7 @@ namespace Tsukino::Renderer {
         //------------------------------------------------------------
         // フレーム単位のシーン定数（b0）の作成
         //------------------------------------------------------------
-        if(!m_frameConstants.Initialize(m_graphicsContext, ShadowPass::kMapSize, ShadowPass::kDepthRange))
+        if(!m_frameConstants.Initialize(m_graphicsContext))
             return false;
 
         //------------------------------------------------------------
@@ -513,6 +513,23 @@ namespace Tsukino::Renderer {
     void Renderer::SetShadowCullingEnabled(bool enabled) {
         if(m_shadowPass)
             m_shadowPass->SetCullingEnabled(enabled);
+    }
+
+    //------------------------------------------------------------
+    //! @brief カスケードシャドウの調整値を設定
+    //------------------------------------------------------------
+    void Renderer::SetShadowSettings(const ShadowSettings& settings) {
+        if(m_shadowPass)
+            m_shadowPass->SetSettings(settings);
+    }
+
+    //------------------------------------------------------------
+    //! @brief カスケードシャドウの調整値を取得
+    //------------------------------------------------------------
+    const ShadowSettings& Renderer::GetShadowSettings() const {
+        // Initialize() の前はシャドウパスが無いので、既定値を返す
+        static const ShadowSettings kDefaultSettings{};
+        return m_shadowPass ? m_shadowPass->GetSettings() : kDefaultSettings;
     }
 
 }    // namespace Tsukino::Renderer

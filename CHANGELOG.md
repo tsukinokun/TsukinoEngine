@@ -9,6 +9,17 @@ carve-out for `Tsukino.Renderer` described under **API stability** in the README
 
 ### Added
 
+- **Cascade shadow settings per scene (`ShadowSettings`, `DirectionalLightComponent::shadow`,
+  `Renderer::SetShadowSettings`).** The shadow distance, where the split formula starts, the split
+  lambda, the shadow map resolution and how far beyond a cascade toward the light casters are caught
+  used to be constants in `ShadowPass`. They now live in `ShadowSettings`, which
+  `DirectionalLightComponent` carries as `shadow` and `LightSystem` hands to the renderer every frame.
+  In a Prefab it is written as `"shadow": { "distance": ..., "splitStart": ..., "splitLambda": ...,
+  "mapSize": ..., "casterMargin": ... }`; the block and every field in it are optional. Values are
+  clamped to a usable range (`mapSize` to a power of two between 512 and 8192), and the shadow map is
+  recreated only when `mapSize` changes (on failure the previous map is kept). The cascade count stays
+  fixed at `kShadowCascadeCount` because it is tied to the b0 layout.
+
 - **Scenes switched by name (`EngineAPI::RegisterScene` / `ChangeScene(name)`).** Register a factory
   per name; `ChangeScene(name)` builds a fresh scene from it and books the switch (an unknown name logs
   a warning and returns false). `GameSceneManager` also subscribes to the current scene's
@@ -235,6 +246,15 @@ carve-out for `Tsukino.Renderer` described under **API stability** in the README
   unchanged.
 
 ### Changed
+
+- **Default cascade shadow values are now generic (1 unit = 1 m), not tuned for one game.** A scene
+  that does not write `shadow` gets `distance` 150, `splitStart` 0 (split from the camera near plane),
+  `splitLambda` 0.75, `mapSize` 2048 and `casterMargin` 100. The previous built-in values (1400 / 400 /
+  0.88) were tuned for one game's distant TPS camera; a project that relied on them must now write them
+  in its directional light's Prefab. The orthographic depth of the light projection is no longer a
+  fixed 3000 + 3000: it is derived each frame from the largest cascade's radius, plus `casterMargin`
+  on the light side. `FrameConstants::Initialize` no longer takes the shadow map size and depth range;
+  `ShadowPass` sets them through `SetShadowMapParams`.
 
 - **`Registry::SetContext` replaces an existing value by destroying and re-creating it.** It used to
   assign a temporary over the old value, which required `T` to be assignable, so types with reference

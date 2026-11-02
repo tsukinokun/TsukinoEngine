@@ -16,10 +16,8 @@ namespace Tsukino::Renderer {
     //------------------------------------------------------------------------
     //! 定数バッファを作成します。
     //------------------------------------------------------------------------
-    bool FrameConstants::Initialize(const GraphicsContext& graphicsContext, u32 shadowMapSize, float shadowDepthRange) {
-        m_graphicsContext  = &graphicsContext;
-        m_shadowMapSize    = static_cast<float>(shadowMapSize);
-        m_shadowDepthRange = shadowDepthRange;
+    bool FrameConstants::Initialize(const GraphicsContext& graphicsContext) {
+        m_graphicsContext = &graphicsContext;
 
         D3D11_BUFFER_DESC desc = {};
         desc.Usage             = D3D11_USAGE_DEFAULT;
