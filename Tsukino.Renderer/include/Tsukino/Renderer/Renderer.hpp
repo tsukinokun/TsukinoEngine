@@ -25,6 +25,7 @@
 #include <Tsukino/Renderer/DX11/Texture/DX11Texture2D.hpp>
 #include <Tsukino/Renderer/DX11/Texture/DX11TextureCube.hpp>
 #include <Tsukino/Renderer/ConstantBuffer.hpp>
+#include <Tsukino/Renderer/GpuTiming.hpp>
 
 #include <Tsukino/GraphicsCommon/Mesh/PrimitiveType.hpp>
 #include <Tsukino/GraphicsCommon/Mesh/MeshData.hpp>
@@ -51,6 +52,7 @@ namespace Tsukino::Renderer {
     class FullscreenPass;         // 前方宣言（フルスクリーン三角形の描画。同上）
     class TonemapPass;            // 前方宣言（トーンマップパス。同上）
     class ShadowPass;             // 前方宣言（シャドウマップパス。同上）
+    class GpuProfiler;            // 前方宣言（パス単位のGPUタイマー。同上）
 
     //------------------------------------------------------------
     //! @struct RendererShaderSet
@@ -176,6 +178,11 @@ namespace Tsukino::Renderer {
             //! 1スキンドローあたり sizeof(CBufferSkinning) = 8KB を実ボーン数に関係なく
             //! 転送しているため、ここが跳ね上がるならその改善が効くという判断材料になる
             u64 boneBytesUploaded = 0;
+
+            //! パスごとのGPU時間（パス名とミリ秒の固定配列）。
+            //! GPU の結果を待たないため、2フレーム以上前のフレームの値が入る。
+            //! 上のドロー数とは別のフレームの数字なので、厳密に突き合わせない
+            GpuFrameTimings gpu;
 
             //------------------------------------------------------------
             //! @brief 全パスのドローコール数の合計を返す関数
@@ -369,6 +376,7 @@ namespace Tsukino::Renderer {
         std::unique_ptr<FullscreenPass>      m_fullscreenPass;     // フルスクリーン三角形の描画（ライティング・フォグ・モーションブラー・トーンマップ・IBLで共用）
         std::unique_ptr<TonemapPass>         m_tonemapPass;        // トーンマップパス（m_fullscreenPass を借りるので、その後に宣言する）
         std::unique_ptr<ShadowPass>          m_shadowPass;         // シャドウマップパス（m_commandExecutor を借りる）
+        std::unique_ptr<GpuProfiler>         m_gpuProfiler;        // パス単位のGPUタイマー（デバイスのクエリを持つ）
         SkyPass                              m_skyPass;            // スカイ（大気散乱）パス
         IBLBaker                             m_iblBaker;           // スカイ由来の環境光（m_fullscreenPass と m_skyPass を借りるので、その後に宣言する）
         LightingPass                         m_lightingPass;       // ディファードライティング（m_shadowPass と m_iblBaker を借りるので、その後に宣言する）

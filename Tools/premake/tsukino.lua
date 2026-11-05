@@ -44,19 +44,32 @@ function tsukino_workspace_defaults()
     exceptionhandling "On"
 
     filter "configurations:*"
-        defines { "JPH_DEBUG_RENDERER" }    -- 値は1でなくても定義されていることが重要
         linkoptions { "/IGNORE:4006" }
     filter {}
 
     filter "configurations:Debug"
         optimize "Off"
         symbols "On"
+        -- Jolt のデバッグ描画（PhysicsWorld::DebugDraw*）。Release では消えて no-op になる。
+        -- Jolt の型の中身が変わるため、Jolt プロジェクト側の定義（エンジンの premake5.lua）と
+        -- 必ず同じ構成に揃えること。値は1でなくても定義されていることが重要
+        defines { "JPH_DEBUG_RENDERER" }
     filter {}
 
     filter "configurations:Release"
         optimize "Full"
-        symbols "On"
+        symbols "On"                        -- .pdb は残す（exe には入らない）
         defines { "NDEBUG" }                -- premakeは自動では付けない
+
+        -- exe を小さくする。/GL + /LTCG で翻訳単位をまたいだインライン化と不要コードの除去
+        linktimeoptimization "On"
+        -- /Gy（関数単位）/Gw（グローバル変数単位）でセクションを分け、/OPT がそれを捨てられるようにする
+        functionlevellinking "On"
+        buildoptions { "/Gw" }
+        -- symbols "On" だと /DEBUG が付き、/OPT:REF・/OPT:ICF が既定で無効になるため明示する
+        linkoptions { "/OPT:REF", "/OPT:ICF" }
+        -- /INCREMENTAL は /OPT・/LTCG と両立しない（付いたままだと警告を出して無視される）
+        incrementallink "Off"
     filter {}
 
     filter "action:vs*"
@@ -147,11 +160,65 @@ function tsukino_release_payload()
         debugdir "%{cfg.targetdir}"
         postbuildcommands {
             "{COPYDIR} "  .. root .. "/Tsukino.BuiltIn/Assets %{cfg.targetdir}/Tsukino.BuiltIn/Assets",
-            "{COPYDIR} "  .. root .. "/Tools %{cfg.targetdir}/Tools",
             "{COPYFILE} " .. root .. "/LICENSE %{cfg.targetdir}/LICENSE",
             "{COPYFILE} " .. root .. "/THIRD_PARTY_NOTICES.md %{cfg.targetdir}/THIRD_PARTY_NOTICES.md",
         }
+        -- Tools/ のうち実行時に要るのは外部ツールの exe だけ。premake/ はビルド用のスクリプト
+        postbuildcommands(tsukino_mirror_commands(path.join(rel, "Tools"), "Tools", {
+            excludeDirs = { "premake" },
+        }))
     filter {}
+end
+
+----------------------------------------
+-- Release の postbuildcommands に渡す、フォルダを exe の隣へ同期するコマンド列を返す。
+--
+--   srcFromRoot : ワークスペースルート（ゲーム側 premake5.lua のある場所）からの相対パス
+--   dstFromTarget: exe の出力先（targetdir）からの相対パス
+--   opts.excludeFiles: コピーしないファイルのパターン（例 { "*.efkproj" }）
+--   opts.excludeDirs : コピーしないフォルダ名（例 { "premake" }）
+--
+-- robocopy /MIR を使う。xcopy と違い、変わっていないファイルは書き直さず、元から消えた
+-- ファイルは出力先からも消える。終了コード 0〜7 は成功（1 = コピーした、2 = 余分を消した…）
+-- で、8 以上だけが失敗。VS の postbuild は最後のコマンドの終了コードで成否を決めるため、
+-- 8 以上なら止め、最後に 0 へ戻す。
+--
+-- /XF・/XD に当たるファイルは、出力先に前のビルドの分が残っていても /MIR では消えない。
+-- 除外を足したときに古い分が配布物に残らないよう、後から明示的に消す。
+--
+-- パスは VS のマクロ（$(SolutionDir) = wks.location、$(TargetDir) = cfg.targetdir）で書く。
+-- {COPYDIR} と違い premake がパスを変換しないので、区切りも \ に揃える。
+----------------------------------------
+function tsukino_mirror_commands(srcFromRoot, dstFromTarget, opts)
+    opts = opts or {}
+    local excludeFiles = opts.excludeFiles or {}
+    local excludeDirs  = opts.excludeDirs or {}
+
+    local src = '"$(SolutionDir)..\\' .. path.translate(srcFromRoot, "\\") .. '"'
+    local dstDir = "$(TargetDir)" .. path.translate(dstFromTarget, "\\")
+    local dst = '"' .. dstDir .. '"'
+
+    local copy = "robocopy " .. src .. " " .. dst .. " /MIR /R:2 /W:1 /NFL /NDL /NJH /NJS /NP"
+    if #excludeFiles > 0 then copy = copy .. " /XF " .. table.concat(excludeFiles, " ") end
+    if #excludeDirs  > 0 then copy = copy .. " /XD " .. table.concat(excludeDirs, " ") end
+
+    local commands = { copy .. " & if errorlevel 8 exit /b 1" }
+
+    if #excludeFiles > 0 then
+        local patterns = {}
+        for _, pattern in ipairs(excludeFiles) do
+            table.insert(patterns, '"' .. dstDir .. "\\" .. pattern .. '"')
+        end
+        table.insert(commands, "del /s /q " .. table.concat(patterns, " ") .. " >nul 2>&1")
+    end
+    for _, dir in ipairs(excludeDirs) do
+        local target = '"' .. dstDir .. "\\" .. dir .. '"'
+        table.insert(commands, "if exist " .. target .. " rmdir /s /q " .. target)
+    end
+
+    -- robocopy の 1〜7 や del の失敗が postbuild 全体の失敗にならないよう 0 に戻す
+    table.insert(commands, "cmd /c exit 0")
+    return commands
 end
 
 ----------------------------------------

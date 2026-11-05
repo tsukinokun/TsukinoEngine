@@ -67,9 +67,21 @@ namespace Tsukino::Renderer {
         }
 
         // なければ新しく作成してキャッシュへ保存
-        std::unique_ptr<DX11Texture2D> texture =
-            std::make_unique<DX11Texture2D>(textureAsset.width, textureAsset.height, textureAsset.format, textureAsset.pixels.data(), m_device,
-                                            textureAsset.generateMips);
+        std::unique_ptr<DX11Texture2D> texture;
+        if(textureAsset.mips.size() > 1) {
+            // ファイルが持っている段をそのまま全部送る（圧縮済みの絵はGPUで縮められないため）
+            std::vector<D3D11_SUBRESOURCE_DATA> mips(textureAsset.mips.size());
+            for(size_t i = 0; i < mips.size(); ++i) {
+                mips[i].pSysMem     = textureAsset.pixels.data() + textureAsset.mips[i].offset;
+                mips[i].SysMemPitch = textureAsset.mips[i].rowPitch;
+            }
+            texture = std::make_unique<DX11Texture2D>(textureAsset.width, textureAsset.height, textureAsset.format, mips.data(),
+                                                      static_cast<u32>(mips.size()), m_device);
+        }
+        else {
+            texture = std::make_unique<DX11Texture2D>(textureAsset.width, textureAsset.height, textureAsset.format,
+                                                      textureAsset.pixels.data(), m_device, textureAsset.generateMips);
+        }
 
         ID3D11ShaderResourceView* srv = texture->GetSRV();
         m_textureCache.emplace(handleValue, std::move(texture));

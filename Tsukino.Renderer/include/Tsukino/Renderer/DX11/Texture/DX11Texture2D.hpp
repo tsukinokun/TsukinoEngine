@@ -32,6 +32,17 @@ namespace Tsukino::Renderer {
         DX11Texture2D(u32 width, u32 height, DXGI_FORMAT format, const void* data, ID3D11Device* device, bool generateMips = false);
 
         //--------------------------------------------------------------
+        //! @brief コンストラクタ（ミップマップの全段を初期データとして渡す）
+        //! @param width     [in] 最上段の幅（ピクセル単位）
+        //! @param height    [in] 最上段の高さ（ピクセル単位）
+        //! @param format    [in] テクスチャのフォーマット（DXGI_FORMAT 列挙体）
+        //! @param mips      [in] 最上段から順に並んだ各段の初期データ
+        //! @param mipLevels [in] mipsの要素数
+        //! @param device    [in] DirectX11のデバイスオブジェクト
+        //--------------------------------------------------------------
+        DX11Texture2D(u32 width, u32 height, DXGI_FORMAT format, const D3D11_SUBRESOURCE_DATA* mips, u32 mipLevels, ID3D11Device* device);
+
+        //--------------------------------------------------------------
         //! @brief バインドを行う関数
         //! @param slot [in] バインドスロット（0～15）
         //--------------------------------------------------------------

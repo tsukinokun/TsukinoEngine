@@ -14,6 +14,7 @@
 #include "FullscreenPass.hpp"
 #include "TonemapPass.hpp"
 #include "ShadowPass.hpp"
+#include "GpuProfiler.hpp"
 
 #include <Tsukino/Engine/Asset/Shader/ShaderAsset.hpp>
 
@@ -62,6 +63,15 @@ namespace Tsukino::Renderer {
         //------------------------------------------------------------
         if(!m_resources.Initialize(device, context))
             return false;
+
+        //------------------------------------------------------------
+        // パス単位のGPUタイマーの作成。
+        // 負荷調査用の任意機能なので、失敗しても描画自体は続行する（計測値が0のままになるだけ）
+        //------------------------------------------------------------
+        m_gpuProfiler = std::make_unique<GpuProfiler>();
+        if(!m_gpuProfiler->Initialize(device, context)) {
+            Tsukino::Core::Log::Error("Renderer: GPU pass timings are disabled because their queries could not be created.");
+        }
 
         //------------------------------------------------------------
         // フレーム単位のシーン定数（b0）の作成
@@ -183,6 +193,13 @@ namespace Tsukino::Renderer {
         m_frameStats.commandCount = static_cast<u32>(commands.size());
 
         //------------------------------------------------------------
+        // GPUタイマー：2フレーム以上前の結果を待たずに読み出し、このフレームの計測を始める。
+        // 届いていなければ前回の値を持ち越すので、リセットした統計へはここで写す
+        //------------------------------------------------------------
+        m_gpuProfiler->BeginFrame();
+        m_frameStats.gpu = m_gpuProfiler->GetLatest();
+
+        //------------------------------------------------------------
         // 影のカスケード（メインカメラの視錐台を奥行きで切った1切れごとの投影）を作る。
         // カメラとライトがどちらも確定しているこの時点で作り、
         // 以降のシャドウパス・ライティング・フォワードが同じ値を使う
@@ -192,16 +209,20 @@ namespace Tsukino::Renderer {
         //------------------------------------------------------------
         // Shadow パス（ディファードGBufferの対象＝不透明3Dモデルのみ影を落とす）
         //------------------------------------------------------------
+        m_gpuProfiler->BeginPass(GpuPass::Shadow);
         if(m_shadowPass->Execute(commands, m_frameStats)) {
             // RTとビューポートをBeginFrame時の状態に戻す
             m_graphicsContext.BeginFrame(m_clearColor[0], m_clearColor[1], m_clearColor[2], m_clearColor[3]);
         }
+        m_gpuProfiler->EndPass(GpuPass::Shadow);
 
         //------------------------------------------------------------
         // Sky パス（GBufferパスの前、深度書き込みなし）
         //------------------------------------------------------------
+        m_gpuProfiler->BeginPass(GpuPass::Sky);
         m_frameConstants.UploadWorld();
         m_skyPass.Execute();
+        m_gpuProfiler->EndPass(GpuPass::Sky);
 
         //------------------------------------------------------------
         // IBLベイク（スカイのキャプチャ→irradiance畳み込み→スペキュラプレフィルタ）
@@ -224,6 +245,7 @@ namespace Tsukino::Renderer {
         //------------------------------------------------------------
         // GBuffer パス（不透明3Dモデル。ライティングは計算せずG-Bufferへ書き込むだけ）
         //------------------------------------------------------------
+        m_gpuProfiler->BeginPass(GpuPass::GBuffer);
         m_frameConstants.UploadWorld();
         m_graphicsContext.BeginGBufferPass();
         for(const auto& cmd : commands) {
@@ -231,17 +253,21 @@ namespace Tsukino::Renderer {
                 continue;
             m_commandExecutor->Execute(cmd, m_motionBlurPass.IsEnabled(), m_frameStats);
         }
+        m_gpuProfiler->EndPass(GpuPass::GBuffer);
 
         //------------------------------------------------------------
         // Lighting パス（G-Bufferと深度から全ライトを1回でHDRへ加算する）
         //------------------------------------------------------------
+        m_gpuProfiler->BeginPass(GpuPass::Lighting);
         m_lightingPass.Execute();
+        m_gpuProfiler->EndPass(GpuPass::Lighting);
 
         //------------------------------------------------------------
         // HDRバッファへ復帰（Lightingの結果を保持したままDSVも再度有効化）
         // 以降のWorld/TransparentはG-Bufferパスで書いた深度に対して
         // 正しく前後関係が出る（デバッグ線や半透明が不透明オブジェクトの後ろに隠れる）
         //------------------------------------------------------------
+        m_gpuProfiler->BeginPass(GpuPass::World);
         m_graphicsContext.BindHDRRenderTarget();
 
         //------------------------------------------------------------
@@ -272,6 +298,7 @@ namespace Tsukino::Renderer {
         // 粒子にもフォグが乗る（粒子だけがフォグの掛かっていない浮いた点に見えるのを防ぐ）。
         //------------------------------------------------------------
         m_ambientParticlePass.Execute();
+        m_gpuProfiler->EndPass(GpuPass::World);
 
         //------------------------------------------------------------
         // フォグパス（HDRバッファへ直接over合成）
@@ -287,7 +314,9 @@ namespace Tsukino::Renderer {
         // フォグパスは深度をSRVとして読むためDSVを外すので、終わったら
         // HDR＋DSVを張り直して半透明のパスへ進む
         //------------------------------------------------------------
+        m_gpuProfiler->BeginPass(GpuPass::Fog);
         m_fogPass.Execute();
+        m_gpuProfiler->EndPass(GpuPass::Fog);
 
         //------------------------------------------------------------
         // 球形の色調補正パス（フォグの上から掛ける）
@@ -295,8 +324,10 @@ namespace Tsukino::Renderer {
         // フォグと同じく深度から画素の位置を求めるので、半透明の深度事前パスより前に置く。
         // 霧に包まれた遠景まで同じ色合いに揃えるため、フォグの後に掛ける
         //------------------------------------------------------------
+        m_gpuProfiler->BeginPass(GpuPass::ColorGrade);
         m_sphereColorGradePass.Execute();
         m_graphicsContext.BindHDRRenderTarget();
+        m_gpuProfiler->EndPass(GpuPass::ColorGrade);
 
         //------------------------------------------------------------
         // TransparentDepth パス（Transparentの直前。色を書かず深度だけ埋める）
@@ -306,6 +337,7 @@ namespace Tsukino::Renderer {
         // 深度だけを確定させておく。Transparent側はEqualReadOnlyでこの深度と
         // 一致する画素だけを1回シェーディングする
         //------------------------------------------------------------
+        m_gpuProfiler->BeginPass(GpuPass::Transparent);
         m_frameConstants.UploadWorld();
         for(const auto& cmd : commands) {
             if(cmd.pass != RenderPass::TransparentDepth)
@@ -333,6 +365,7 @@ namespace Tsukino::Renderer {
             m_commandExecutor->Execute(cmd, m_motionBlurPass.IsEnabled(), m_frameStats);
         }
         m_fogPass.UnbindForwardFog();
+        m_gpuProfiler->EndPass(GpuPass::Transparent);
 
         //------------------------------------------------------------
         // シャドウマップ・IBLのバインドを解除（DSVとSRVの同時バインド防止）
@@ -352,7 +385,9 @@ namespace Tsukino::Renderer {
         // 無効なら何もせず false を返すので、その場合はHDRをそのまま
         // トーンマップへ渡す。
         //------------------------------------------------------------
+        m_gpuProfiler->BeginPass(GpuPass::MotionBlur);
         const bool motionBlurred = m_motionBlurPass.Execute();
+        m_gpuProfiler->EndPass(GpuPass::MotionBlur);
 
         //------------------------------------------------------------
         // ブルームパス（トーンマップの入力へ加算）
@@ -361,12 +396,16 @@ namespace Tsukino::Renderer {
         // 速度方向へ引き伸ばされて輪郭のない筋になる。
         // 書き込み先はトーンマップへ渡すのと同じバッファなので、下の分岐は変わらない
         //------------------------------------------------------------
+        m_gpuProfiler->BeginPass(GpuPass::Bloom);
         m_bloomPass.Execute(motionBlurred);
+        m_gpuProfiler->EndPass(GpuPass::Bloom);
 
         //------------------------------------------------------------
         // Tonemapパス（HDR → LDR変換してバックバッファへ）
         //------------------------------------------------------------
+        m_gpuProfiler->BeginPass(GpuPass::Tonemap);
         m_tonemapPass->Execute(motionBlurred ? m_graphicsContext.GetPostProcessSRV() : m_graphicsContext.GetHDRSRV());
+        m_gpuProfiler->EndPass(GpuPass::Tonemap);
 
         //------------------------------------------------------------
         // エフェクト描画パス（Overlayより前）
@@ -381,6 +420,7 @@ namespace Tsukino::Renderer {
         // リバースZ（GREATER_EQUAL）で作ってあるので合っている（EffectSystem）
         //------------------------------------------------------------
         if(postWorldPass) {
+            m_gpuProfiler->BeginPass(GpuPass::Effects);
             ID3D11DeviceContext* context = m_graphicsContext.GetContext();
             m_graphicsContext.BindBackBufferWithSceneDepth();
             context->OMSetBlendState(m_resources.GetCommonStatesTK()->AlphaBlend(), nullptr, 0xFFFFFFFF);
@@ -389,6 +429,7 @@ namespace Tsukino::Renderer {
             context->OMSetBlendState(m_resources.GetCommonStatesTK()->Opaque(), nullptr, 0xFFFFFFFF);
             context->OMSetDepthStencilState(m_resources.GetCommonStatesTK()->DepthDefault(), 0);
             m_graphicsContext.BindBackBuffer();
+            m_gpuProfiler->EndPass(GpuPass::Effects);
         }
 
         //------------------------------------------------------------
@@ -405,6 +446,7 @@ namespace Tsukino::Renderer {
         // 昇順＝積んだ順に落ちるためで、一時バッファを取るstd::stable_sortを
         // 使わずに安定ソートと同じ結果が得られる
         //------------------------------------------------------------
+        m_gpuProfiler->BeginPass(GpuPass::Overlay);
         m_frameConstants.UploadOverlay();
 
         m_overlayOrder.clear();
@@ -456,6 +498,7 @@ namespace Tsukino::Renderer {
             m_iblBaker.Unbind();
             m_graphicsContext.BindBackBuffer();
         }
+        m_gpuProfiler->EndPass(GpuPass::Overlay);
 
         m_drawQueue.Clear();
 
@@ -479,6 +522,8 @@ namespace Tsukino::Renderer {
         m_sphereColorGradePass.EndFrame();
         m_ambientParticlePass.EndFrame();
 
+        // GPUタイマーはPresentの前に閉じる（Presentの待ちをフレーム時間に含めない）
+        m_gpuProfiler->EndFrame();
         m_graphicsContext.EndFrame();
     }
 

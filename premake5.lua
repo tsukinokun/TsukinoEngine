@@ -117,9 +117,13 @@ project "JoltPhysics"
 	}
 
 	-- プリプロセッサ #define
-   	defines {
-   		"JPH_DEBUG_RENDERER=1",
-	}
+	-- JPH_DEBUG_RENDERER は Jolt の型の中身を変えるため、Jolt を include する側
+	-- （tsukino_workspace_defaults() の Debug）と必ず同じ構成でだけ定義すること
+	filter "configurations:Debug"
+		defines {
+			"JPH_DEBUG_RENDERER=1",
+		}
+	filter {}
 
 	-- フォルダ分け
 	vpaths {
@@ -347,19 +351,9 @@ project "Tsukino.Engine"
     targetdir ("bin/%{cfg.buildcfg}")
     objdir ("bin-int/%{cfg.buildcfg}")
 
-    local ENGINE_ROOT = path.getdirectory(_SCRIPT)  -- このプロジェクトが実際に置かれているディレクトリ（Engineルート）
-
-    -- Debug時：Tools/の実体解決はGetEngineAssetRootPath()(コンパイル時に注入したTSUKINO_ENGINE_ROOT)が
-    -- 直接エンジンのソースツリーを参照するため、取り込み側リポジトリへのコピー・リンクは不要。
-
-    -- リリース時：exeの場所(GetAssetRootPath())基準になるため、
-    -- FontImporter(MakeSpriteFont.exe)・AudioImporter(XWBTool.exe)が使う
-    -- 外部ツール(Tools/)もexeの隣へコピーする
-    filter "configurations:Release"
-        postbuildcommands {
-            "{COPYDIR} " .. ENGINE_ROOT .. "/Tools %{cfg.targetdir}/Tools"
-        }
-    filter {}
+    -- FontImporter(MakeSpriteFont.exe)・AudioImporter(XWBTool.exe)が使う外部ツール(Tools/)は、
+    -- Release では exe の隣に要る。コピーは exe 側の tsukino_release_payload() が行う
+    -- （ライブラリの targetdir へ置いても exe からは見えない）
 
     files {
         "Tsukino.Engine/src/**.cpp",
@@ -543,23 +537,9 @@ project "Tsukino.BuiltIn"
     targetdir ("bin/%{cfg.buildcfg}")
     objdir ("bin-int/%{cfg.buildcfg}")
 
-    local BUILTIN_ROOT = path.getdirectory(_SCRIPT)  -- このプロジェクトが実際に置かれているディレクトリ（Engineルート）
-
-    -- デバッグ時：Engineがworkspaceルート直下にある（単体ビルド）ならコピーせず直接参照
-    filter "configurations:Debug"
-        debugdir "%{wks.location}/.."
-    filter {}
-
     -- Debug時：Assets/の実体解決はGetEngineAssetRootPath()(コンパイル時に注入したTSUKINO_ENGINE_ROOT)が
     -- 直接エンジンのソースツリーを参照するため、取り込み側リポジトリへのコピー・リンクは不要。
-
-    -- リリース（配布）時：exeの場所を参照し、Engine自身のAssetsをそこへコピーする
-    filter "configurations:Release"
-        debugdir "%{cfg.targetdir}"
-        postbuildcommands {
-            "{COPYDIR} " .. BUILTIN_ROOT .. "/Tsukino.BuiltIn/Assets %{cfg.targetdir}/Tsukino.BuiltIn/Assets"
-        }
-    filter {}
+    -- Release時：exeの隣が基準になる。組み込みAssetsのコピーは exe 側の tsukino_release_payload() が行う
 
     files {
         "Tsukino.BuiltIn/src/**.cpp",

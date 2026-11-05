@@ -10,7 +10,9 @@
 
 #include "JoltContactListener.hpp"
 #include "JoltConversion.hpp"
+#ifdef JPH_DEBUG_RENDERER    // Debug 構成でだけ定義される（Tools/premake/tsukino.lua）
 #include "JoltDebugRenderer.hpp"
+#endif
 #include "JoltLayers.hpp"
 
 #include <Tsukino/Core/Log.hpp>
@@ -176,7 +178,9 @@ namespace Tsukino::Physics {
 
         JPH::PhysicsSystem*  physicsSystem   = nullptr;    //!< Jolt 物理システム本体
         ContactListenerImpl* contactListener = nullptr;    //!< 衝突イベントリスナー
+#ifdef JPH_DEBUG_RENDERER
         JoltDebugRenderer*   debugRenderer   = nullptr;    //!< デバッグ描画インターフェース
+#endif
 
         //! ハイトフィールド用キャッシュ（Shape を直接保持して使い回す）
         std::unordered_map<uint64_t, JPH::Ref<JPH::HeightFieldShape>> heightfieldCache;
@@ -293,7 +297,9 @@ namespace Tsukino::Physics {
         m_impl->physicsSystem->SetContactListener(m_impl->contactListener);
         m_impl->characterContactListener.physicsSystem = m_impl->physicsSystem;
 
+#ifdef JPH_DEBUG_RENDERER
         m_impl->debugRenderer = new JoltDebugRenderer();
+#endif
     }
 
     //------------------------------------------------------------------------
@@ -309,7 +315,9 @@ namespace Tsukino::Physics {
         m_impl->characters.clear();
         m_impl->heightfieldCache.clear();
 
+#ifdef JPH_DEBUG_RENDERER
         delete m_impl->debugRenderer;
+#endif
         delete m_impl->contactListener;
         delete m_impl->physicsSystem;
         delete m_impl->jobSystem;
@@ -789,8 +797,13 @@ namespace Tsukino::Physics {
 
     //------------------------------------------------------------------------
     //! ボディの形状をワイヤーフレームで描画します。
+    //! JPH_DEBUG_RENDERER が無い構成（Release）では何もしません。
     //------------------------------------------------------------------------
     void PhysicsWorld::DebugDrawBody(IPhysicsDebugDraw& sink, BodyHandle handle) const {
+#ifndef JPH_DEBUG_RENDERER
+        (void)sink;
+        (void)handle;
+#else
         if(!m_impl || !m_impl->physicsSystem || !m_impl->debugRenderer || !handle.IsValid())
             return;
 
@@ -803,12 +816,17 @@ namespace Tsukino::Physics {
         m_impl->debugRenderer->SetSink(&sink);
         body.GetShape()->Draw(m_impl->debugRenderer, body.GetCenterOfMassTransform(), JPH::Vec3::sReplicate(1.0f), JPH::Color::sGreen, false, false);
         m_impl->debugRenderer->SetSink(nullptr);
+#endif
     }
 
     //------------------------------------------------------------------------
     //! 生存している全キャラクターの形状をワイヤーフレームで描画します。
+    //! JPH_DEBUG_RENDERER が無い構成（Release）では何もしません。
     //------------------------------------------------------------------------
     void PhysicsWorld::DebugDrawCharacters(IPhysicsDebugDraw& sink) const {
+#ifndef JPH_DEBUG_RENDERER
+        (void)sink;
+#else
         if(!m_impl || !m_impl->debugRenderer)
             return;
 
@@ -830,6 +848,7 @@ namespace Tsukino::Physics {
         }
 
         m_impl->debugRenderer->SetSink(nullptr);
+#endif
     }
 
 }    // namespace Tsukino::Physics

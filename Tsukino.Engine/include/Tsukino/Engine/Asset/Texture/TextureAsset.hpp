@@ -39,7 +39,17 @@ namespace Tsukino::Asset {
         uint32_t             width  = 0;                      // テクスチャの幅
         uint32_t             height = 0;                      // テクスチャの高さ
         DXGI_FORMAT          format = DXGI_FORMAT_UNKNOWN;    // テクスチャのフォーマット
-        std::vector<uint8_t> pixels;                          // テクスチャのピクセルデータ（RGBA8 形式など）
+        std::vector<uint8_t> pixels;                          // テクスチャのピクセルデータ。最上段から順に全段を詰めて持つ
+
+        //! ミップマップ1段ぶんの、pixels内の位置と1行のバイト数
+        struct MipLevel {
+            size_t   offset   = 0;    // pixelsの先頭からのバイト位置
+            uint32_t rowPitch = 0;    // 1行のバイト数（ブロック圧縮はブロック1行ぶん）
+        };
+
+        //! ファイルが持っていたミップマップの段。最上段だけのときは1要素。
+        //! 2段以上あるときはそのままGPUへ送り、generateMipsは使わない
+        std::vector<MipLevel> mips;
 
         //! GPUへ送るときにミップマップ（1/2ずつ縮めた絵の段）を作るか。
         //! pixelsは最上段だけを持つ形のまま、縮小はRendererがGPUで作る。

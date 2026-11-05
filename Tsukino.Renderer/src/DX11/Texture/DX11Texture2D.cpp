@@ -90,6 +90,41 @@ namespace Tsukino::Renderer {
     }
 
     //------------------------------------------------------------
+    //! @brief コンストラクタ（ミップマップの全段を初期データとして渡す）
+    //------------------------------------------------------------
+    DX11Texture2D::DX11Texture2D(u32 width, u32 height, DXGI_FORMAT format, const D3D11_SUBRESOURCE_DATA* mips, u32 mipLevels,
+                                 ID3D11Device* device)
+        : m_width(width)
+        , m_height(height) {
+        if(!mips || mipLevels == 0)
+            return;
+
+        // テクスチャ設定
+        D3D11_TEXTURE2D_DESC desc = {};
+        desc.Width                = width;
+        desc.Height               = height;
+        desc.MipLevels            = mipLevels;
+        desc.ArraySize            = 1;
+        desc.Format               = format;
+        desc.SampleDesc.Count     = 1;
+        desc.Usage                = D3D11_USAGE_IMMUTABLE;    // 作ったあとは書き換えない
+        desc.BindFlags            = D3D11_BIND_SHADER_RESOURCE;
+
+        // テクスチャ作成
+        if(FAILED(device->CreateTexture2D(&desc, mips, m_texture.GetAddressOf())))
+            return;
+
+        // SRV設定
+        D3D11_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
+        srvDesc.Format                          = format;
+        srvDesc.ViewDimension                   = D3D11_SRV_DIMENSION_TEXTURE2D;
+        srvDesc.Texture2D.MipLevels             = mipLevels;
+
+        // SRV作成
+        device->CreateShaderResourceView(m_texture.Get(), &srvDesc, m_srv.GetAddressOf());
+    }
+
+    //------------------------------------------------------------
     //! @brief バインド
     //------------------------------------------------------------
     void DX11Texture2D::Bind(ID3D11DeviceContext* context, u32 slot) const {
