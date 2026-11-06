@@ -58,6 +58,7 @@
 | `bool Create(const std::string &title, int width, int height, WindowStyle style=WindowStyle::Default)` | ウィンドウ生成 |
 | `bool ProcessMessages()` | メッセージ処理 |
 | `void SetMessageCallback(MessageCallback callback)` |  |
+| `void SetMessageFilter(MessageFilter filter)` |  |
 | `void SetResizeCallback(ResizeCallback callback)` |  |
 | `void SetFocusLostCallback(FocusLostCallback callback)` |  |
 | `void SetHitTestCallback(HitTestCallback callback)` |  |
@@ -222,7 +223,7 @@
 - **Tsukino::Core::Sequencer::Entry** — `Tsukino.Core/include/Tsukino/Core/Time/Sequencer.hpp`
   - time, order, callback
 - **Tsukino::Core::Window** — `Tsukino.Core/include/Tsukino/Core/Window.hpp`
-  - Window(), ~Window(), Create(), ProcessMessages(), SetMessageCallback(), SetResizeCallback(), SetFocusLostCallback(), SetHitTestCallback(), GetHWND(), GetWidth(), GetHeight(), SetTopmost(), IsTopmost(), SetUpdateMode(), InvokeCallback(), SetClickThroughEnabled(), UpdateClickThroughFromHitTest(), EnqueueInput(), SetFullscreen(), SetCursorVisible(), IsFocused(), CenterCursor()
+  - Window(), ~Window(), Create(), ProcessMessages(), SetMessageCallback(), SetMessageFilter(), SetResizeCallback(), SetFocusLostCallback(), SetHitTestCallback(), GetHWND(), GetWidth(), GetHeight(), SetTopmost(), IsTopmost(), SetUpdateMode(), InvokeCallback(), SetClickThroughEnabled(), UpdateClickThroughFromHitTest(), EnqueueInput(), SetFullscreen(), SetCursorVisible(), IsFocused(), CenterCursor()
 - **Tsukino::Core::Window::QueuedInputEvent** — `Tsukino.Core/include/Tsukino/Core/Window.hpp`
   - msg, wParam, lParam
 - **Tsukino::ECS::EntityRef** — `Tsukino.Core/include/Tsukino/Core/ECS/EntityRef/EntityRef.hpp`
@@ -257,3 +258,5 @@
   - keys, buttons, wheelDirection
 - **Tsukino::Input::InputSystem** — `Tsukino.Core/include/Tsukino/Core/Input/InputSystem.hpp`
   - InputSystem(), ~InputSystem(), InputSystem(), operator=(), Update(), IsKeyDown(), IsKeyPressed(), AnyKeyPressed(), IsKeyReleased(), GetMousePosition(), GetMouseDelta(), GetWheelDelta(), PollGamepads(), GetGamepad(), IsButtonDown(), IsButtonPressed(), IsButtonReleased(), GetLeftStick(), GetRightStick(), GetStick(), SetGamepadVibration(), StopGamepadVibration(), SetGamepadStickDeadZone(), SetGamepadTriggerThreshold(), IsAnyGamepadConnected(), GetLastInputDevice(), SetKeyState(), SetMousePosition(), AddWheelDelta(), NotifyKeyboardMouseActivity(), ClearAllKeys()
+- **Tsukino::Input::TextInputSystem** — `Tsukino.Core/include/Tsukino/Core/Input/TextInputSystem.hpp`
+  - Attach(), Begin(), End(), IsActive(), HandleMessage(), GetText(), SetText(), GetComposition(), SetCandidatePosition()

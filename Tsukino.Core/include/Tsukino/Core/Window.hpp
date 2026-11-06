@@ -39,6 +39,7 @@ namespace Tsukino::Core {
         // メッセージコールバックの型エイリアス
         //--------------------------------------------------------------
         using MessageCallback = std::function<void(UINT, WPARAM, LPARAM)>;
+        using MessageFilter   = std::function<bool(UINT, WPARAM, LPARAM)>;
 
         //--------------------------------------------------------------
         // リサイズ通知コールバックの型エイリアス
@@ -89,6 +90,14 @@ namespace Tsukino::Core {
         //! @param callback [in] メッセージコールバック関数
         //--------------------------------------------------------------
         void SetMessageCallback(MessageCallback callback) { m_callback = callback; }
+
+        //--------------------------------------------------------------
+        // メッセージフィルタを設定する関数
+        //! @param filter [in] 全メッセージを最初に受け取る関数。true を返すと既定の処理へ渡さない
+        //! @note  MessageCallback はキーとマウスしか届かないため、IME のように
+        //!        既定の処理を止める必要があるメッセージはこちらで受ける
+        //--------------------------------------------------------------
+        void SetMessageFilter(MessageFilter filter) { m_messageFilter = filter; }
 
         //--------------------------------------------------------------
         // リサイズ通知コールバックを設定する関数
@@ -292,6 +301,7 @@ namespace Tsukino::Core {
         UpdateMode m_updateMode = UpdateMode::ActiveOnly;    // デフォルトは通常
 
         MessageCallback   m_callback;             // 連絡先を保存しておく変数
+        MessageFilter     m_messageFilter;        // 全メッセージの横取り先
         ResizeCallback    m_resizeCallback;       // クライアント領域のサイズ変更通知先
         FocusLostCallback m_focusLostCallback;    // フォーカス喪失通知先
         HitTestCallback   m_hitTestCallback;       // クリック透過の判定先

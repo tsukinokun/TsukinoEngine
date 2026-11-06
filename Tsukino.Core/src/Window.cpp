@@ -108,6 +108,7 @@ namespace Tsukino::Core {
         // WM_KILLFOCUS が飛ぶため、再現が非決定的になっていた。
         //--------------------------------------------------------------
         m_callback          = nullptr;
+        m_messageFilter     = nullptr;
         m_resizeCallback    = nullptr;
         m_focusLostCallback = nullptr;
 
@@ -320,6 +321,13 @@ namespace Tsukino::Core {
             if(msg == WM_ACTIVATEAPP) {
                 pWindow->UpdateHookState(wParam != 0);    // アクティブならインストール、そうでなければアンインストール
             }
+        }
+
+        //--------------------------------------------------------------
+        // メッセージフィルタが処理したメッセージは、ここで打ち切る
+        //--------------------------------------------------------------
+        if(pWindow && pWindow->m_messageFilter && pWindow->m_messageFilter(msg, wParam, lParam)) {
+            return 0;
         }
 
         //--------------------------------------------------------------

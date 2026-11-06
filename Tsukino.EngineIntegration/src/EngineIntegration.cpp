@@ -83,6 +83,7 @@ namespace Tsukino::EngineIntegration {
         //------------------------------------------------------------
         m_window           = std::make_unique<Tsukino::Core::Window>();
         m_inputSystem      = std::make_unique<Tsukino::Input::InputSystem>();
+        m_textInputSystem  = std::make_unique<Tsukino::Input::TextInputSystem>();
         m_renderer         = std::make_unique<Tsukino::Renderer::Renderer>();
         m_assetManager     = std::make_unique<Tsukino::Asset::AssetManager>();
         m_builtinAssets    = std::make_unique<Tsukino::BuiltIn::BuiltInAssets>();
@@ -99,6 +100,7 @@ namespace Tsukino::EngineIntegration {
         m_ctx.builtinAssets    = m_builtinAssets.get();
         m_ctx.gameSceneManager = m_gameSceneManager.get();
         m_ctx.inputSystem      = m_inputSystem.get();
+        m_ctx.textInputSystem  = m_textInputSystem.get();
         m_ctx.audioManager     = m_audioManager.get();
         m_ctx.prefabFactory    = m_prefabFactory.get();
 
@@ -138,6 +140,7 @@ namespace Tsukino::EngineIntegration {
         //------------------------------------------------------------
         if(m_window) {
             m_window->SetMessageCallback(nullptr);
+            m_window->SetMessageFilter(nullptr);
             m_window->SetResizeCallback(nullptr);
             m_window->SetFocusLostCallback(nullptr);
         }
@@ -149,6 +152,7 @@ namespace Tsukino::EngineIntegration {
         m_gameSceneManager.reset();
         m_prefabFactory.reset();
         m_audioManager.reset();
+        m_textInputSystem.reset();
         m_inputSystem.reset();
         m_builtinAssets.reset();
         m_assetManager.reset();
@@ -211,6 +215,12 @@ namespace Tsukino::EngineIntegration {
             Tsukino::Core::Log::Error("Failed to initialize AudioManager.");
             return false;
         }
+
+        //--------------------------------------------------------------
+        // 文字入力の設定（IME のメッセージはキー入力の通知より先に受ける）
+        //--------------------------------------------------------------
+        m_textInputSystem->Attach(m_window->GetHWND());
+        m_window->SetMessageFilter([this](UINT msg, WPARAM wp, LPARAM lp) { return m_textInputSystem->HandleMessage(msg, wp, lp); });
 
         //--------------------------------------------------------------
         // メッセージコールバックの設定

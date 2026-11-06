@@ -9,6 +9,14 @@ carve-out for `Tsukino.Renderer` described under **API stability** in the README
 
 ### Added
 
+- **Text input and IME (`TextInputSystem`, `EngineContext::textInputSystem`, `Window::SetMessageFilter`).**
+  `Begin(maxLength)` / `End()` switch text input on and off; while it is on, `GetText()` returns the
+  committed string and `GetComposition()` the string being converted, so a game draws the composition
+  itself (the default IME composition window is suppressed). The IME is detached outside text input,
+  so game keys are no longer turned into `VK_PROCESSKEY`. `Window::SetMessageFilter` receives every
+  window message and can stop the default handling; `MessageCallback` only sees keyboard and mouse
+  messages, so it could not carry IME messages. `tsukino_link()` now links `imm32`.
+
 - **Cascade shadow settings per scene (`ShadowSettings`, `DirectionalLightComponent::shadow`,
   `Renderer::SetShadowSettings`).** The shadow distance, where the split formula starts, the split
   lambda, the shadow map resolution and how far beyond a cascade toward the light casters are caught
