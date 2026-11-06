@@ -20,6 +20,7 @@ namespace Tsukino {
 
     namespace Input {
         class InputSystem;
+        class TextInputSystem;
     }
 
     namespace Asset {
@@ -50,6 +51,7 @@ namespace Tsukino::EngineIntegration {
         Tsukino::Renderer::Renderer*                 renderer         = nullptr;
         Tsukino::Core::Window*                       window           = nullptr;
         Tsukino::Input::InputSystem*                 inputSystem      = nullptr;
+        Tsukino::Input::TextInputSystem*             textInputSystem  = nullptr;
         Tsukino::Asset::AssetManager*                assetManager     = nullptr;
         Tsukino::BuiltIn::BuiltInAssets*             builtinAssets    = nullptr;
         GameSceneManager*                            gameSceneManager = nullptr;

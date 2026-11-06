@@ -123,6 +123,7 @@ function tsukino_link()
         "dxgi",
         "d3dcompiler",
         "dwrite",
+        "imm32",
     }
 
     nuget {

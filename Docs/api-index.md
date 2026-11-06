@@ -114,6 +114,7 @@
 - `Tsukino::Input::InputAxisBinding` — `Tsukino.Core/include/Tsukino/Core/Input/InputActionMap.hpp`
 - `Tsukino::Input::InputBinding` — `Tsukino.Core/include/Tsukino/Core/Input/InputActionMap.hpp`
 - `Tsukino::Input::InputSystem` — `Tsukino.Core/include/Tsukino/Core/Input/InputSystem.hpp`
+- `Tsukino::Input::TextInputSystem` — `Tsukino.Core/include/Tsukino/Core/Input/TextInputSystem.hpp`
 
 ## Tsukino.Engine — [`api/Tsukino.Engine.md`](api/Tsukino.Engine.md)
 

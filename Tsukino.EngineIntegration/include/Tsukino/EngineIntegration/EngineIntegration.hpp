@@ -17,6 +17,7 @@
 #include <Tsukino/Core/ECS/Registry/Registry.hpp>
 
 #include <Tsukino/Core/Input/InputSystem.hpp>
+#include <Tsukino/Core/Input/TextInputSystem.hpp>
 #include <Tsukino/Core/Window.hpp>
 #include <Tsukino/Audio/AudioManager.hpp>
 
@@ -100,6 +101,7 @@ namespace Tsukino::EngineIntegration {
         std::unique_ptr<Tsukino::Asset::AssetManager>                m_assetManager;
         std::unique_ptr<Tsukino::BuiltIn::BuiltInAssets>             m_builtinAssets;
         std::unique_ptr<Tsukino::Input::InputSystem>                 m_inputSystem;
+        std::unique_ptr<Tsukino::Input::TextInputSystem>             m_textInputSystem;
         std::unique_ptr<Tsukino::Audio::AudioManager>                m_audioManager;
         std::unique_ptr<Tsukino::Engine::ECS::Prefab::PrefabFactory> m_prefabFactory;
         std::unique_ptr<GameSceneManager>                            m_gameSceneManager;    // 最初に破棄する

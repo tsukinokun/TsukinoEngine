@@ -9,6 +9,13 @@ carve-out for `Tsukino.Renderer` described under **API stability** in the README
 
 ### Added
 
+- **Text input and IME (`TextInputSystem`, `EngineContext::textInputSystem`, `Window::SetMessageFilter`).**
+  `Begin(maxLength)` / `End()` switch text input on and off; while it is on, `GetText()` returns the
+  committed string and `GetComposition()` the string being converted, so a game draws the composition
+  itself (the default IME composition window is suppressed). The IME is detached outside text input,
+  so game keys are no longer turned into `VK_PROCESSKEY`. `Window::SetMessageFilter` receives every
+  window message and can stop the default handling; `MessageCallback` only sees keyboard and mouse
+  messages, so it could not carry IME messages. `tsukino_link()` now links `imm32`.
 - **Running without a dedicated GPU (`RenderQuality.hpp`, `Renderer::SetQuality`, `RenderQualityGovernor`).**
   `RenderQualityLevel` (`High` / `Medium` / `Low` / `Minimum`) maps to a `RenderQualitySettings` preset through
   `GetRenderQualityPreset`: internal render scale (3D only, the UI stays at native resolution), a shadow map size cap,
@@ -24,15 +31,6 @@ carve-out for `Tsukino.Renderer` described under **API stability** in the README
   without a rule are imported as before. A cache that no longer matches its rule is re-imported
   (`IAssetImporter::IsCacheOutdated`). BC7 uses the quick mode and is still slow on the CPU, so ship the `Cache` folder
   rather than having players import many textures on first launch.
-
-### Changed
-
-- `GraphicsContext::GetWidth` / `GetHeight` are replaced by `GetSceneWidth` / `GetSceneHeight` and
-  `GetBackBufferWidth` / `GetBackBufferHeight`. `CBufferScene` gained `qualityParams` (752 bytes; keep `Scene.hlsli` in sync).
-- While the render scale is below 1, Effekseer effects are drawn without scene depth, so they are no longer hidden by
-  nearer geometry (the scene depth buffer is not the same size as the back buffer).
-- `RenderResources::GetTextureSRV` takes a non-const `TextureAsset`, and releases its CPU pixels after the GPU upload.
-- `AssetLoadQueue` loads on one worker per CPU core minus one instead of a single thread, so paths may finish out of order.
 
 - **Cascade shadow settings per scene (`ShadowSettings`, `DirectionalLightComponent::shadow`,
   `Renderer::SetShadowSettings`).** The shadow distance, where the split formula starts, the split
@@ -272,6 +270,12 @@ carve-out for `Tsukino.Renderer` described under **API stability** in the README
 
 ### Changed
 
+- `GraphicsContext::GetWidth` / `GetHeight` are replaced by `GetSceneWidth` / `GetSceneHeight` and
+  `GetBackBufferWidth` / `GetBackBufferHeight`. `CBufferScene` gained `qualityParams` (752 bytes; keep `Scene.hlsli` in sync).
+- While the render scale is below 1, Effekseer effects are drawn without scene depth, so they are no longer hidden by
+  nearer geometry (the scene depth buffer is not the same size as the back buffer).
+- `RenderResources::GetTextureSRV` takes a non-const `TextureAsset`, and releases its CPU pixels after the GPU upload.
+- `AssetLoadQueue` loads on one worker per CPU core minus one instead of a single thread, so paths may finish out of order.
 - **Default cascade shadow values are now generic (1 unit = 1 m), not tuned for one game.** A scene
   that does not write `shadow` gets `distance` 150, `splitStart` 0 (split from the camera near plane),
   `splitLambda` 0.75, `mapSize` 2048 and `casterMargin` 100. The previous built-in values (1400 / 400 /

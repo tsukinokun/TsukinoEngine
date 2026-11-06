@@ -35,6 +35,7 @@
 | `Tsukino::Renderer::Renderer * renderer` |  |
 | `Tsukino::Core::Window * window` |  |
 | `Tsukino::Input::InputSystem * inputSystem` |  |
+| `Tsukino::Input::TextInputSystem * textInputSystem` |  |
 | `Tsukino::Asset::AssetManager * assetManager` |  |
 | `Tsukino::BuiltIn::BuiltInAssets * builtinAssets` |  |
 | `GameSceneManager * gameSceneManager` |  |
@@ -170,7 +171,7 @@
 - **Tsukino::EngineIntegration::EngineAPI** — `Tsukino.EngineIntegration/include/Tsukino/EngineIntegration/EngineAPI.hpp`
   - EngineAPI(), ChangeScene(), RegisterScene(), ChangeScene(), ProcessMessages(), Update(), Render()
 - **Tsukino::EngineIntegration::EngineContext** — `Tsukino.EngineIntegration/include/Tsukino/EngineIntegration/EngineContext.hpp`
-  - renderer, window, inputSystem, assetManager, builtinAssets, gameSceneManager, audioManager, prefabFactory, effectSystem, physicsSystem
+  - renderer, window, inputSystem, textInputSystem, assetManager, builtinAssets, gameSceneManager, audioManager, prefabFactory, effectSystem, physicsSystem
 - **Tsukino::EngineIntegration::EngineIntegration** — `Tsukino.EngineIntegration/include/Tsukino/EngineIntegration/EngineIntegration.hpp`
   - EngineIntegration(), ~EngineIntegration(), EngineIntegration(), operator=(), EngineIntegration(), operator=(), Initialize(), GetContext()
 - **Tsukino::EngineIntegration::GameSceneBase** — `Tsukino.EngineIntegration/include/Tsukino/EngineIntegration/Scene/GameSceneBase.hpp`
