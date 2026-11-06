@@ -13,9 +13,12 @@
 #include <Tsukino/Core/Memory.hpp>
 
 #include <condition_variable>
+#include <deque>
+#include <future>
 #include <memory>
 #include <mutex>
 #include <string>
+#include <thread>
 #include <unordered_map>
 #include <unordered_set>
 #include <vector>
@@ -61,6 +64,18 @@ namespace Tsukino::Asset {
         AssetHandle Load(const Tsukino::Core::Path& path);
 
         //--------------------------------------------------------------
+        // アセットを裏のスレッドでロードする関数
+        //! @param  path [in] ロードするアセットのパス
+        //! @return 読み終えるとハンドルが入る future。失敗や終了時の取り消しでは Invalid が入る
+        //! @note   呼んだスレッドを止めない。毎フレーム wait_for(0) で確かめて、読み終えてから get する。
+        //!         依頼した順に読み始める。同じパスの依頼が重なっても読み込みは1回だけになる。
+        //!         別スレッドで読めるのは GPU を使わない種類だけ（今は音声を想定）。
+        //!         テクスチャ・モデル・シェーダーは Load を使う
+        //--------------------------------------------------------------
+        [[nodiscard]]
+        std::shared_future<AssetHandle> LoadAsync(const Tsukino::Core::Path& path);
+
+        //--------------------------------------------------------------
         // ハンドルからアセットを取得する関数
         //! @param  handle [in] 取得するアセットのハンドル
         //! @return 取得したアセットのshared_ptr
@@ -100,6 +115,17 @@ namespace Tsukino::Asset {
         //--------------------------------------------------------------
         [[nodiscard]]
         AssetHandle LoadUncached(const Tsukino::Core::Path& path, const std::string& pathKey);
+
+        //--------------------------------------------------------------
+        // 裏のスレッドの本体。依頼を順に読み続ける関数
+        //--------------------------------------------------------------
+        void RunAsyncWorker();
+
+        //--------------------------------------------------------------
+        // 裏のスレッドを止める関数
+        //! @note  待っている依頼は Invalid で終わらせ、読んでいる途中の1件は終わるまで待つ
+        //--------------------------------------------------------------
+        void StopAsyncWorkers();
 
         //--------------------------------------------------------------
         // ローダーを登録する関数
@@ -171,6 +197,20 @@ namespace Tsukino::Asset {
         std::mutex                      m_mutex;
         std::condition_variable         m_loadFinished;
         std::unordered_set<std::string> m_loadingPaths;
+
+        //--------------------------------------------------------------
+        // LoadAsync の依頼。裏のスレッドは最初の依頼で作る
+        //--------------------------------------------------------------
+        struct AsyncRequest {
+            Tsukino::Core::Path        path;       // 読むアセットのパス
+            std::promise<AssetHandle>  promise;    // 読み終えたハンドルの渡し先
+        };
+
+        std::mutex               m_asyncMutex;             // m_asyncRequests / m_asyncStopping を守る
+        std::condition_variable  m_asyncWake;              // 依頼が来たか、止めるときに裏のスレッドを起こす
+        std::deque<AsyncRequest> m_asyncRequests;          // 読み始めていない依頼
+        std::vector<std::thread> m_asyncWorkers;           // 裏のスレッド
+        bool                     m_asyncStopping = false;  // 止めている途中か
     };
 
 }    // namespace Tsukino::Asset

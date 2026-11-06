@@ -193,7 +193,7 @@ namespace Tsukino::Asset {
         startupInfo.cb = sizeof(STARTUPINFOW);
 
         const BOOL created = ::CreateProcessW(
-            nullptr, mutableCommandLine.data(), nullptr, nullptr, FALSE, 0, nullptr, workingDir.ToWString().c_str(), &startupInfo, &processInfo);
+            nullptr, mutableCommandLine.data(), nullptr, nullptr, FALSE, CREATE_NO_WINDOW, nullptr, workingDir.ToWString().c_str(), &startupInfo, &processInfo);
 
         if(!created) {
             Tsukino::Core::Log::Error("Failed to launch XWBTool.exe. error=" + std::to_string(::GetLastError()));

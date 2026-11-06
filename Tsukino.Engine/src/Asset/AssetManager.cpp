@@ -38,6 +38,7 @@ namespace Tsukino::Asset {
     //! @brief デストラクタ
     //--------------------------------------------------------------
     AssetManager::~AssetManager() {
+        StopAsyncWorkers();    // 裏のスレッドが m_assets を触らなくなってから片付ける
         m_assets.clear();     // AssetMapをクリア
         m_loaders.clear();    // ローダーリストをクリア
     }
@@ -129,6 +130,79 @@ namespace Tsukino::Asset {
     //--------------------------------------------------------------
     //! @brief キャッシュに無いアセットを実際に読み込む関数
     //--------------------------------------------------------------
+    //--------------------------------------------------------------
+    //! @brief アセットを裏のスレッドでロードする関数
+    //--------------------------------------------------------------
+    std::shared_future<AssetHandle> AssetManager::LoadAsync(const Tsukino::Core::Path& path) {
+        AsyncRequest                    request{path, {}};
+        std::shared_future<AssetHandle> result = request.promise.get_future().share();
+
+        {
+            std::lock_guard lock(m_asyncMutex);
+            if(m_asyncStopping) {
+                request.promise.set_value(AssetHandle{});
+                return result;
+            }
+
+            m_asyncRequests.push_back(std::move(request));
+
+            // 音声の変換は別プロセスの完了待ちが長いので、2本あれば1本が塞がっていても次を読める
+            constexpr int kAsyncWorkerCount = 2;
+            while(static_cast<int>(m_asyncWorkers.size()) < kAsyncWorkerCount) {
+                m_asyncWorkers.emplace_back([this]() { RunAsyncWorker(); });
+            }
+        }
+        m_asyncWake.notify_one();
+        return result;
+    }
+
+    //--------------------------------------------------------------
+    //! @brief 裏のスレッドの本体。依頼を順に読み続ける関数
+    //--------------------------------------------------------------
+    void AssetManager::RunAsyncWorker() {
+        while(true) {
+            AsyncRequest request;
+            {
+                std::unique_lock lock(m_asyncMutex);
+                m_asyncWake.wait(lock, [this]() { return m_asyncStopping || !m_asyncRequests.empty(); });
+                if(m_asyncStopping)
+                    return;
+                request = std::move(m_asyncRequests.front());
+                m_asyncRequests.pop_front();
+            }
+
+            // 例外をスレッドの外へ逃がすとプロセスごと落ちるので、失敗として渡す
+            AssetHandle handle;
+            try {
+                handle = Load(request.path);
+            } catch(const std::exception& e) {
+                Tsukino::Core::Log::Error("AssetManager: Async load failed: " + request.path.string() + " (" + e.what() + ")");
+            }
+            request.promise.set_value(handle);
+        }
+    }
+
+    //--------------------------------------------------------------
+    //! @brief 裏のスレッドを止める関数
+    //--------------------------------------------------------------
+    void AssetManager::StopAsyncWorkers() {
+        std::deque<AsyncRequest> cancelled;
+        {
+            std::lock_guard lock(m_asyncMutex);
+            m_asyncStopping = true;
+            cancelled.swap(m_asyncRequests);
+        }
+        m_asyncWake.notify_all();
+
+        for(AsyncRequest& request : cancelled) {
+            request.promise.set_value(AssetHandle{});
+        }
+        for(std::thread& worker : m_asyncWorkers) {
+            worker.join();
+        }
+        m_asyncWorkers.clear();
+    }
+
     AssetHandle AssetManager::LoadUncached(const Tsukino::Core::Path& path, const std::string& pathKey) {
         //--------------------------------------------------------------
         // 入力パスを basePath と fragment に分解

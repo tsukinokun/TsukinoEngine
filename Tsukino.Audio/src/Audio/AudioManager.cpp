@@ -176,6 +176,26 @@ namespace Tsukino::Audio {
     }
 
     //--------------------------------------------------------------
+    //! @brief 音声のデータの読み込みを始める
+    //--------------------------------------------------------------
+    void AudioManager::Prepare(const Tsukino::Asset::AudioAsset& audioAsset) {
+        if (!m_audioContext || !m_audioContext->engine) return;
+
+        // WaveBank は作った時点から裏で読み込みを進める
+        m_audioContext->GetOrLoadWaveBank(audioAsset.waveBankPath);
+    }
+
+    //--------------------------------------------------------------
+    //! @brief 音声のデータを読み終えたか確認する
+    //--------------------------------------------------------------
+    bool AudioManager::IsPrepared(const Tsukino::Asset::AudioAsset& audioAsset) const {
+        if (!m_audioContext) return false;
+
+        const auto it = m_audioContext->waveBanks.find(audioAsset.waveBankPath);
+        return it != m_audioContext->waveBanks.end() && it->second->IsPrepared();
+    }
+
+    //--------------------------------------------------------------
     //! @brief 特定の音声を停止する
     //--------------------------------------------------------------
     void AudioManager::Stop(const Tsukino::Asset::AudioAsset& audioAsset) {

@@ -88,7 +88,7 @@
 - **Tsukino::Renderer::ClipRect** — `Tsukino.Renderer/include/Tsukino/Renderer/DrawCommand.hpp`
   - left, top, right, bottom
 - **Tsukino::Renderer::DX11Texture2D** — `Tsukino.Renderer/include/Tsukino/Renderer/DX11/Texture/DX11Texture2D.hpp`
-  - DX11Texture2D(), Bind(), GetWidth(), GetHeight(), GetSRV()
+  - DX11Texture2D(), DX11Texture2D(), Bind(), GetWidth(), GetHeight(), GetSRV()
 - **Tsukino::Renderer::DX11TextureCube** — `Tsukino.Renderer/include/Tsukino/Renderer/DX11/Texture/DX11TextureCube.hpp`
   - DX11TextureCube(), GetSRV(), GetFaceRTV(), GetBaseSize(), GetMipLevels(), GetMipSize(), IsValid()
 - **Tsukino::Renderer::DebugDraw** — `Tsukino.Renderer/include/Tsukino/Renderer/DebugDraw.hpp`
@@ -117,6 +117,14 @@
   - Initialize(), IsValid(), GetVertexShader(), BindGeometry(), Draw()
 - **Tsukino::Renderer::GPULight** — `Tsukino.Renderer/include/Tsukino/Renderer/ConstantBuffer.hpp`
   - positionRange, colorIntensity, directionType, spotParams
+- **Tsukino::Renderer::GpuFrameTimings** — `Tsukino.Renderer/include/Tsukino/Renderer/GpuTiming.hpp`
+  - passes, frameMs, valid
+- **Tsukino::Renderer::GpuPassTiming** — `Tsukino.Renderer/include/Tsukino/Renderer/GpuTiming.hpp`
+  - name, ms
+- **Tsukino::Renderer::GpuProfiler** — `Tsukino.Renderer/src/GpuProfiler.hpp`
+  - Initialize(), BeginFrame(), BeginPass(), EndPass(), EndFrame(), GetLatest()
+- **Tsukino::Renderer::GpuProfiler::FrameQueries** — `Tsukino.Renderer/src/GpuProfiler.hpp`
+  - disjoint, frameBegin, frameEnd, passBegin, passEnd, passIssued, pending
 - **Tsukino::Renderer::GraphicsContext** — `Tsukino.Renderer/include/Tsukino/Renderer/DX11/GraphicsContext.hpp`
   - GBufferCount, Initialize(), BeginFrame(), EndFrame(), GetDevice(), GetContext(), SetPipelineState(), SetMaterial(), GetHDRSRV(), BindBackBuffer(), BindBackBufferWithClearedDepth(), BindBackBufferWithSceneDepth(), BeginGBufferPass(), GetPostProcessSRV(), BindPostProcessTarget(), BindHDRRenderTarget(), BindHDRTargetOnly(), GetGBufferSRV(), GetDepthSRV(), Resize(), GetWidth(), GetHeight(), SetVSyncEnabled(), IsVSyncEnabled()
 - **Tsukino::Renderer::IBLBaker** — `Tsukino.Renderer/include/Tsukino/Renderer/IBLBaker.hpp`
@@ -144,7 +152,7 @@
 - **Tsukino::Renderer::Renderer** — `Tsukino.Renderer/include/Tsukino/Renderer/Renderer.hpp`
   - Renderer(), ~Renderer(), Initialize(), Render(), Resize(), SetClearColor(), GetDrawQueue(), SetShadowCullingEnabled(), SetShadowSettings(), GetShadowSettings(), GetFrameStats(), SetVSyncEnabled(), IsVSyncEnabled(), GetDebugDraw(), GetResources(), GetFrameConstants(), GetDevice(), GetContext(), GetLighting(), GetSky(), GetIBL(), GetAmbientParticles(), GetFog(), GetSphereColorGrade(), GetMotionBlur(), GetBloom()
 - **Tsukino::Renderer::Renderer::FrameStats** — `Tsukino.Renderer/include/Tsukino/Renderer/Renderer.hpp`
-  - commandCount, shadowDrawCalls, gbufferDrawCalls, worldDrawCalls, transparentDrawCalls, overlayDrawCalls, skinnedDrawCalls, triangleCount, boneBytesUploaded, TotalDrawCalls()
+  - commandCount, shadowDrawCalls, gbufferDrawCalls, worldDrawCalls, transparentDrawCalls, overlayDrawCalls, skinnedDrawCalls, triangleCount, boneBytesUploaded, gpu, TotalDrawCalls()
 - **Tsukino::Renderer::RendererShaderSet** — `Tsukino.Renderer/include/Tsukino/Renderer/Renderer.hpp`
   - debugVS, debugPS, tonemapVS, tonemapPS, shadowStaticVS, shadowSkeletalVS, shadowPS, lightingPS, motionBlurPS, fogPS, sphereColorGradePS, bloomPrefilterPS, bloomDownsamplePS, bloomUpsamplePS, ambientParticleVS, ambientParticlePS, iblIrradiancePS, iblSpecularPrefilterPS, iblBRDFLUTPS
 - **Tsukino::Renderer::Shader** — `Tsukino.Renderer/include/Tsukino/Renderer/Shader.hpp`

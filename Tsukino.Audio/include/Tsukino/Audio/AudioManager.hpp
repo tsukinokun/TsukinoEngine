@@ -77,6 +77,22 @@ namespace Tsukino::Audio {
         void Play(const Tsukino::Asset::AudioAsset& audioAsset, bool isLoop = false, float volume = 1.0f, AudioBus bus = 0);
 
         //--------------------------------------------------------------
+        // 音声のデータの読み込みを始める
+        //! @param audioAsset [in] 対象のオーディオアセット（AssetManagerでロード済みのもの）
+        //! @note  読み込みは裏で進むので、呼んだスレッドを止めない。呼ばなくても Play は鳴るが、
+        //!        読み終えるまでその場で待つ。長い音は先にこれを呼び、IsPrepared を見てから鳴らす
+        //--------------------------------------------------------------
+        void Prepare(const Tsukino::Asset::AudioAsset& audioAsset);
+
+        //--------------------------------------------------------------
+        // 音声のデータを読み終えたか確認する
+        //! @param audioAsset [in] 確認対象のオーディオアセット
+        //! @return true: 待たずに鳴らせる, false: 読み込み中、または Prepare も Play もしていない
+        //--------------------------------------------------------------
+        [[nodiscard]]
+        bool IsPrepared(const Tsukino::Asset::AudioAsset& audioAsset) const;
+
+        //--------------------------------------------------------------
         // 特定の音声を停止する
         //! @param audioAsset [in] 停止対象のオーディオアセット
         //! @note  そのアセットを重ねて鳴らしている場合は、すべてを即座に止める

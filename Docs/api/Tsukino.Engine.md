@@ -36,6 +36,7 @@
 | `~AssetManager()` | デストラクタ |
 | `void Initialize()` | AssetManagerを初期化する関数 |
 | `AssetHandle Load(const Tsukino::Core::Path &path)` | アセットをロードする関数 |
+| `std::shared_future< AssetHandle > LoadAsync(const Tsukino::Core::Path &path)` | キャッシュに無いアセットを実際に読み込む関数 |
 | `Tsukino::Core::Ref< IAsset > Get(AssetHandle handle)` | 任意のアセットハンドルからアセットを取得する関数 |
 | `bool Exists(AssetHandle handle)` | アセットハンドルが存在するか確認する関数 |
 | `void RegisterImporter(AssetType type, Tsukino::Core::Ref< IAssetImporter > importer)` | インポーターを登録する関数 |
@@ -121,7 +122,9 @@
 - **Tsukino::Asset::AssetLoadQueue** — `Tsukino.Engine/include/Tsukino/Engine/Asset/AssetLoadQueue.hpp`
   - AssetLoadQueue(), ~AssetLoadQueue(), AssetLoadQueue(), operator=(), Enqueue(), Start(), Cancel(), Progress(), IsFinished(), TakeLoaded()
 - **Tsukino::Asset::AssetManager** — `Tsukino.Engine/include/Tsukino/Engine/Asset/AssetManager.hpp`
-  - AssetManager(), ~AssetManager(), Initialize(), Load(), Get(), Exists(), RegisterImporter(), RegisterAsset()
+  - AssetManager(), ~AssetManager(), Initialize(), Load(), LoadAsync(), Get(), Exists(), RegisterImporter(), RegisterAsset()
+- **Tsukino::Asset::AssetManager::AsyncRequest** — `Tsukino.Engine/include/Tsukino/Engine/Asset/AssetManager.hpp`
+  - path, promise
 - **Tsukino::Asset::AssetRef** — `Tsukino.Engine/include/Tsukino/Engine/Asset/AssetRef.hpp`
   - handle, path, AssetRef(), AssetRef(), operator=(), operator AssetHandle(), IsValid(), Value(), operator==(), operator!=(), operator==(), operator!=()
 - **Tsukino::Asset::AssetRefResolverArchive** — `Tsukino.Engine/include/Tsukino/Engine/Asset/AssetRefResolverArchive.hpp`
@@ -187,7 +190,9 @@
 - **Tsukino::Asset::ShaderLoader** — `Tsukino.Engine/include/Tsukino/Engine/Asset/Shader/ShaderLoader.hpp`
   - ShaderLoader(), CanLoad(), Load(), DetectStage()
 - **Tsukino::Asset::TextureAsset** — `Tsukino.Engine/include/Tsukino/Engine/Asset/Texture/TextureAsset.hpp`
-  - width, height, format, pixels, generateMips, GetHandle(), GetType(), SetHandle()
+  - width, height, format, pixels, mips, generateMips, GetHandle(), GetType(), SetHandle()
+- **Tsukino::Asset::TextureAsset::MipLevel** — `Tsukino.Engine/include/Tsukino/Engine/Asset/Texture/TextureAsset.hpp`
+  - offset, rowPitch
 - **Tsukino::Asset::TextureImporter** — `Tsukino.Engine/include/Tsukino/Engine/Asset/Texture/TextureImporter.hpp`
   - Import()
 - **Tsukino::Asset::TextureLoader** — `Tsukino.Engine/include/Tsukino/Engine/Asset/Texture/TextureLoader.hpp`
