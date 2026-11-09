@@ -57,7 +57,7 @@
 | `EngineIntegration & operator=(const EngineIntegration &)=delete` |  |
 | `EngineIntegration(EngineIntegration &&)=delete` |  |
 | `EngineIntegration & operator=(EngineIntegration &&)=delete` |  |
-| `bool Initialize(int width, int height, const std::string &title="TsukinoEngine", Tsukino::Core::Window::WindowStyle style=Tsukino::Core::Window::WindowStyle::Default)` | エンジンの初期化関数 |
+| `bool Initialize(int width, int height, const std::string &title="TsukinoEngine", Tsukino::Core::Window::WindowStyle style=Tsukino::Core::Window::WindowStyle::Default, const Tsukino::Renderer::GraphicsDeviceOptions &deviceOptions={})` | エンジンの初期化関数 |
 | `EngineContext & GetContext()` | エンジン全体で共有されるクラスを取得する関数 |
 
 ### Tsukino::EngineIntegration::GameSceneBase

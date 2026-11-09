@@ -51,7 +51,7 @@ namespace Tsukino::Asset {
         // ローダー登録
         //--------------------------------------------------------------
         RegisterLoader(Tsukino::Core::CreateRef<ShaderLoader>());       // シェーダローダーを登録
-        RegisterLoader(Tsukino::Core::CreateRef<TextureLoader>());      // テクスチャローダーを登録
+        RegisterLoader(Tsukino::Core::CreateRef<TextureLoader>(m_textureRules));    // テクスチャローダーを登録
         RegisterLoader(Tsukino::Core::CreateRef<FontLoader>());         // フォントローダーを登録
         RegisterLoader(Tsukino::Core::CreateRef<DynamicFontLoader>());  // 動的フォントローダーを登録
         RegisterLoader(Tsukino::Core::CreateRef<AudioLoader>());        // オーディオローダーを登録
@@ -64,7 +64,7 @@ namespace Tsukino::Asset {
         // インポーター登録
         //--------------------------------------------------------------
         RegisterImporter(AssetType::Shader, Tsukino::Core::CreateRef<ShaderImporter>());      // シェーダーインポーターの登録
-        RegisterImporter(AssetType::Texture, Tsukino::Core::CreateRef<TextureImporter>());    // テクスチャインポーターを登録
+        RegisterImporter(AssetType::Texture, Tsukino::Core::CreateRef<TextureImporter>(m_textureRules));    // テクスチャインポーターを登録
         RegisterImporter(AssetType::Font, Tsukino::Core::CreateRef<FontImporter>());          // フォントインポーターの登録
         RegisterImporter(AssetType::DynamicFont, Tsukino::Core::CreateRef<DynamicFontImporter>());    // 動的フォントインポーターの登録
         RegisterImporter(AssetType::Audio, Tsukino::Core::CreateRef<AudioImporter>());        // オーディオインポーターの登録
@@ -266,6 +266,10 @@ namespace Tsukino::Asset {
                         // ソースまたは依存ファイルが更新されているので再インポートが必要
                         Tsukino::Core::Log::Info("Asset updated. Re-importing: " + path.string());
                         shouldImport = true;
+                    } else if(importerIt->second->IsCacheOutdated(sourceBasePath, cacheBasePath)) {
+                        // インポートの設定が変わった（日時では気付けない）
+                        Tsukino::Core::Log::Info("Import settings changed. Re-importing: " + path.string());
+                        shouldImport = true;
                     }
                 }
             }
@@ -340,6 +344,20 @@ namespace Tsukino::Asset {
     bool AssetManager::Exists(AssetHandle handle) {
         std::lock_guard lock(m_mutex);
         return m_assets.contains(handle.Value());
+    }
+
+    //--------------------------------------------------------------
+    //! @brief テクスチャのインポートの規則を追加する関数
+    //--------------------------------------------------------------
+    void AssetManager::SetTextureImportRule(const std::string& pathPrefix, const TextureImportRule& rule) {
+        m_textureRules->Add(pathPrefix, rule);
+    }
+
+    //--------------------------------------------------------------
+    //! @brief 読み込み時に捨てるテクスチャの上位ミップの段数を設定する関数
+    //--------------------------------------------------------------
+    void AssetManager::SetTextureMipSkip(u32 mipSkip) {
+        m_textureRules->SetMipSkip(mipSkip);
     }
 
     //--------------------------------------------------------------

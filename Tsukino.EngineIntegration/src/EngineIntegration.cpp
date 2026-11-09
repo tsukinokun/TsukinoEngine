@@ -164,7 +164,8 @@ namespace Tsukino::EngineIntegration {
     //------------------------------------------------------------
     //! @brief  エンジンの初期化関数
     //------------------------------------------------------------
-    bool EngineIntegration::Initialize(int width, int height, const std::string& title, Tsukino::Core::Window::WindowStyle style) {
+    bool EngineIntegration::Initialize(int width, int height, const std::string& title, Tsukino::Core::Window::WindowStyle style,
+                                       const Tsukino::Renderer::GraphicsDeviceOptions& deviceOptions) {
         //--------------------------------------------------------------
         // COM初期化
         //--------------------------------------------------------------
@@ -377,7 +378,7 @@ namespace Tsukino::EngineIntegration {
         shaderSet.iblSpecularPrefilterPS  = iblSpecularPrefilterPSAsset.get();
         shaderSet.iblBRDFLUTPS            = iblBRDFLUTPSAsset.get();
 
-        if(!m_renderer->Initialize(m_window->GetHWND(), m_window->GetWidth(), m_window->GetHeight(), shaderSet)) {
+        if(!m_renderer->Initialize(m_window->GetHWND(), m_window->GetWidth(), m_window->GetHeight(), shaderSet, deviceOptions)) {
             return false;
         }
 

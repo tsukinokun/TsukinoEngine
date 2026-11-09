@@ -72,20 +72,21 @@ namespace Tsukino::Renderer {
     //! 縮小段のテクスチャを画面サイズに合わせて作り直します。
     //------------------------------------------------------------------------
     bool BloomPass::EnsureMipTargets(UINT width, UINT height) {
-        if(width == m_sourceWidth && height == m_sourceHeight && m_mipCount > 0)
+        if(width == m_sourceWidth && height == m_sourceHeight && m_builtMipLimit == m_mipLimit && m_mipCount > 0)
             return true;
 
         for(MipTarget& mip : m_mips)
             mip = MipTarget{};
-        m_mipCount     = 0;
-        m_sourceWidth  = width;
-        m_sourceHeight = height;
+        m_mipCount      = 0;
+        m_sourceWidth   = width;
+        m_sourceHeight  = height;
+        m_builtMipLimit = m_mipLimit;
 
         ID3D11Device* device = m_graphicsContext->GetDevice();
 
         UINT mipWidth  = width / 2;
         UINT mipHeight = height / 2;
-        for(u32 i = 0; i < kMaxMipCount; ++i) {
+        for(u32 i = 0; i < m_mipLimit; ++i) {
             if(mipWidth < kMinMipSize || mipHeight < kMinMipSize)
                 break;
 
@@ -151,11 +152,11 @@ namespace Tsukino::Renderer {
     //! ブルームを掛けて、トーンマップの入力になるバッファへ加算します。
     //------------------------------------------------------------------------
     void BloomPass::Execute(bool sourceIsPostProcess) {
-        if(!m_enabled || !m_buffer || !m_prefilterPS || !m_downsamplePS || !m_upsamplePS || !m_fullscreenPass->IsValid())
+        if(!m_enabled || m_mipLimit == 0 || !m_buffer || !m_prefilterPS || !m_downsamplePS || !m_upsamplePS || !m_fullscreenPass->IsValid())
             return;
 
-        const UINT width  = m_graphicsContext->GetWidth();
-        const UINT height = m_graphicsContext->GetHeight();
+        const UINT width  = m_graphicsContext->GetSceneWidth();
+        const UINT height = m_graphicsContext->GetSceneHeight();
         if(!EnsureMipTargets(width, height))
             return;
 

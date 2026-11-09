@@ -61,7 +61,7 @@ namespace Tsukino::Renderer {
         sceneData.viewProj     = camera.viewProj;
         sceneData.invViewProj  = camera.invViewProj;
         sceneData.cameraPos    = camera.cameraPos;
-        Upload(sceneData);
+        Upload(sceneData, true);    // Overlay パスの 3D モデル用なので、描き先はバックバッファ
     }
 
     //------------------------------------------------------------------------
@@ -97,7 +97,7 @@ namespace Tsukino::Renderer {
     //------------------------------------------------------------------------
     //! シーン定数へフレーム共通の値を差し込んで b0 へ転送し、VS と PS にバインドします。
     //------------------------------------------------------------------------
-    void FrameConstants::Upload(const CBufferScene& sceneData) {
+    void FrameConstants::Upload(const CBufferScene& sceneData, bool targetBackBuffer) {
         ID3D11DeviceContext* context = m_graphicsContext->GetContext();
 
         //--------------------------------------------------------------------
@@ -120,10 +120,26 @@ namespace Tsukino::Renderer {
         //--------------------------------------------------------------------
         uploadData.timeParams = hlslpp::float4(m_elapsedTime, m_frameDeltaTime, std::sin(m_elapsedTime), std::cos(m_elapsedTime));
 
-        const float screenWidth  = static_cast<float>(m_graphicsContext->GetWidth());
-        const float screenHeight = static_cast<float>(m_graphicsContext->GetHeight());
-        uploadData.screenParams  = hlslpp::float4(screenWidth, screenHeight, screenWidth > 0.0f ? 1.0f / screenWidth : 0.0f,
-                                                  screenHeight > 0.0f ? 1.0f / screenHeight : 0.0f);
+        const float backBufferWidth = static_cast<float>(m_graphicsContext->GetBackBufferWidth());
+        const float sceneWidth      = static_cast<float>(m_graphicsContext->GetSceneWidth());
+        const float screenWidth     = targetBackBuffer ? backBufferWidth : sceneWidth;
+        const float screenHeight    = static_cast<float>(targetBackBuffer ? m_graphicsContext->GetBackBufferHeight() : m_graphicsContext->GetSceneHeight());
+        uploadData.screenParams     = hlslpp::float4(screenWidth, screenHeight, screenWidth > 0.0f ? 1.0f / screenWidth : 0.0f,
+                                                     screenHeight > 0.0f ? 1.0f / screenHeight : 0.0f);
+
+        //--------------------------------------------------------------------
+        // 遮り抜きの円はウィンドウのピクセルで渡される。シェーダーは描いている
+        // バッファのピクセルと比べるので、内部解像度を下げているときは同じ割合で縮める
+        //--------------------------------------------------------------------
+        if(!targetBackBuffer && backBufferWidth > 0.0f && sceneWidth != backBufferWidth) {
+            const float scale           = sceneWidth / backBufferWidth;
+            uploadData.occlusionCutout0 = hlslpp::float4(static_cast<float>(sceneData.occlusionCutout0.x) * scale,
+                                                         static_cast<float>(sceneData.occlusionCutout0.y) * scale,
+                                                         static_cast<float>(sceneData.occlusionCutout0.z) * scale,
+                                                         static_cast<float>(sceneData.occlusionCutout0.w));
+        }
+
+        uploadData.qualityParams = hlslpp::float4(m_shadowSoftFilter, 0.0f, 0.0f, 0.0f);
 
         //--------------------------------------------------------------------
         // zはシャドウパスが描画中のカスケード番号。ここでは触らない。

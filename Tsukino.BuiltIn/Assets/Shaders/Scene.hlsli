@@ -64,6 +64,7 @@ cbuffer CBufferScene : register(b0)
     float4 cascadeSplitFar;                                 // 688  xyzw: 各カスケードが受け持つ奥行きの奥側（カメラのビュー空間 z。カスケードの選択に使う）
     float4 occlusionCutout0;                                // 704  遮り抜き xy: 円の中心(px), z: 半径(px), w: 1=有効
     float4 occlusionCutout1;                                // 720  遮り抜き x: 注目している物までの距離, y: 手前とみなす余白, z: 中心で見えている割合, w: 縁へ戻り始める位置（半径比）
+    float4 qualityParams;                                   // 736  描画品質 x: 1=影を3x3で滑らかにする / 0=1タップ, yzw: 未使用
 };
 
 #endif    // TSUKINO_SCENE_HLSLI

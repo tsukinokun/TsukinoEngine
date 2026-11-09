@@ -56,11 +56,14 @@ namespace Tsukino::EngineIntegration {
         //! @param width  [in] ウィンドウ幅
         //! @param height [in] ウィンドウ高さ
         //! @param title  [in] ウィンドウタイトル
+        //! @param style  [in] ウィンドウの種類
+        //! @param deviceOptions [in] グラフィックスデバイスの作り方
         //! @return true: 初期化成功, false: 初期化失敗
         //------------------------------------------------------------
         [[nodiscard]]
         bool Initialize(int width, int height, const std::string& title = "TsukinoEngine",
-                         Tsukino::Core::Window::WindowStyle style = Tsukino::Core::Window::WindowStyle::Default);
+                         Tsukino::Core::Window::WindowStyle style = Tsukino::Core::Window::WindowStyle::Default,
+                         const Tsukino::Renderer::GraphicsDeviceOptions& deviceOptions = {});
 
         //------------------------------------------------------------
         //! @brief  エンジン全体で共有されるクラスを取得する関数

@@ -57,7 +57,7 @@ namespace Tsukino::Renderer {
     //! モーションブラーを掛けてポストプロセス用の中間バッファへ書きます（HDR(t0) と速度バッファ(t15) を読みます）。
     //------------------------------------------------------------------------
     bool MotionBlurPass::Execute() {
-        if(!m_enabled || !m_ps || !m_buffer || !m_fullscreenPass->IsValid())
+        if(!IsEnabled() || !m_ps || !m_buffer || !m_fullscreenPass->IsValid())
             return false;
 
         ID3D11DeviceContext* context = m_graphicsContext->GetContext();

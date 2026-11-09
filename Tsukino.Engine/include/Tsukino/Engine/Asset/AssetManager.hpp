@@ -8,6 +8,7 @@
 #include <Tsukino/Engine/Asset/AssetHandle.hpp>
 #include <Tsukino/Engine/Asset/AssetMap.hpp>
 #include <Tsukino/Engine/Asset/IAssetImporter.hpp>
+#include <Tsukino/Engine/Asset/Texture/TextureImportRules.hpp>
 
 #include <Tsukino/Core/Path.hpp>
 #include <Tsukino/Core/Memory.hpp>
@@ -105,6 +106,22 @@ namespace Tsukino::Asset {
         //--------------------------------------------------------------
         void RegisterAsset(AssetHandle handle, Tsukino::Core::Ref<IAsset> asset);
 
+        //--------------------------------------------------------------
+        // テクスチャのインポートの規則を追加する関数
+        //! @param  pathPrefix [in] 対象のフォルダ（パスの中にこの文字列を含むテクスチャに効く）
+        //! @param  rule       [in] 規則
+        //! @note   最初のテクスチャを読む前（起動時、裏のスレッドを立てる前）に呼ぶこと。
+        //!         既にあるキャッシュは、規則と違えば次に読むときに作り直される
+        //--------------------------------------------------------------
+        void SetTextureImportRule(const std::string& pathPrefix, const TextureImportRule& rule);
+
+        //--------------------------------------------------------------
+        // 読み込み時に捨てるテクスチャの上位ミップの段数を設定する関数
+        //! @param  mipSkip [in] 段数（allowMipSkip の規則に当てはまるテクスチャにだけ効く）
+        //! @note   最初のテクスチャを読む前に呼ぶこと（読み込み済みのテクスチャは変わらない）
+        //--------------------------------------------------------------
+        void SetTextureMipSkip(u32 mipSkip);
+
     private:
         //--------------------------------------------------------------
         // キャッシュに無いアセットを実際に読み込む関数（Load の本体）
@@ -180,6 +197,9 @@ namespace Tsukino::Asset {
 
         // ImporterもAssetManagerが共有所有
         ImporterMap m_importers;
+
+        // テクスチャのインポートと読み込みの規則（TextureImporter / TextureLoader と共有する）
+        Tsukino::Core::Ref<TextureImportRules> m_textureRules = Tsukino::Core::CreateRef<TextureImportRules>();
 
         //--------------------------------------------------------------
         // スレッド間の排他。

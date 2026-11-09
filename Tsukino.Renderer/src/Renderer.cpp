@@ -44,9 +44,9 @@ namespace Tsukino::Renderer {
     //------------------------------------------------------------
     //! @brief レンダラーの初期化
     //------------------------------------------------------------
-    bool Renderer::Initialize(HWND hwnd, uint32_t width, uint32_t height, const RendererShaderSet& shaders) {
+    bool Renderer::Initialize(HWND hwnd, uint32_t width, uint32_t height, const RendererShaderSet& shaders, const GraphicsDeviceOptions& deviceOptions) {
         // グラフィックスコンテキストの初期化
-        if(!m_graphicsContext.Initialize(hwnd, width, height)) {
+        if(!m_graphicsContext.Initialize(hwnd, width, height, deviceOptions)) {
             return false;
         }
 
@@ -180,6 +180,11 @@ namespace Tsukino::Renderer {
     //! @brief 描画処理
     //------------------------------------------------------------
     void Renderer::Render(IPostWorldPass* postWorldPass) {
+        // 描画先を作り直すことがあるので、このフレームのどの描画よりも先に行う
+        if(m_qualityDirty) {
+            ApplyQuality();
+        }
+
         m_graphicsContext.BeginFrame(m_clearColor[0], m_clearColor[1], m_clearColor[2], m_clearColor[3]);
 
         const auto& commands = m_drawQueue.GetCommands();
@@ -550,6 +555,34 @@ namespace Tsukino::Renderer {
     //------------------------------------------------------------
     void Renderer::SetClearColor(float r, float g, float b, float a) {
         m_clearColor = {r, g, b, a};
+    }
+
+    //------------------------------------------------------------
+    //! @brief 描画品質を設定する関数
+    //------------------------------------------------------------
+    void Renderer::SetQuality(const RenderQualitySettings& settings) {
+        m_quality             = settings;
+        m_quality.renderScale = std::clamp(settings.renderScale, RenderQualitySettings::kMinRenderScale, 1.0f);
+        m_qualityDirty        = true;
+    }
+
+    //------------------------------------------------------------
+    //! @brief 保留している描画品質を各パスへ適用する関数
+    //------------------------------------------------------------
+    void Renderer::ApplyQuality() {
+        m_qualityDirty = false;
+
+        if(!m_graphicsContext.SetRenderScale(m_quality.renderScale)) {
+            Tsukino::Core::Log::Error("Renderer::ApplyQuality - failed to recreate the scene targets at the requested render scale.");
+        }
+
+        if(m_shadowPass)
+            m_shadowPass->SetQuality(m_quality.shadowMapSizeLimit, m_quality.shadowCascadeCount);
+
+        m_frameConstants.SetShadowSoftFilter(m_quality.shadowSoftFilter);
+        m_bloomPass.SetMipLimit(m_quality.bloomMipCount);
+        m_motionBlurPass.SetAllowed(m_quality.motionBlur);
+        m_skyPass.SetDrawAllowed(m_quality.drawSky);
     }
 
     //------------------------------------------------------------

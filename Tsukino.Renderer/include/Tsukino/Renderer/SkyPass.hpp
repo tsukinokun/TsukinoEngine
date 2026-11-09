@@ -60,6 +60,13 @@ namespace Tsukino::Renderer {
         //! スカイを描きます（パラメータを b4 へ転送してから描きます）。
         void Execute();
 
+        //! 描画品質として空を描くかを設定します。
+        //! @param  [in] allowed true: 描く, false: 描かない（背景はクリアカラーになる）
+        //! @note   描かないときも定数バッファは更新するので、環境光（IBL）のベイクには影響しない
+        void SetDrawAllowed(bool allowed) noexcept {
+            m_drawAllowed = allowed;
+        }
+
         //! 頂点シェーダーを取得します（IBL ベイクのキャプチャで同じシェーダーを使うため）。
         //! @return スカイ用の頂点シェーダー
         [[nodiscard]]
@@ -91,6 +98,7 @@ namespace Tsukino::Renderer {
         Microsoft::WRL::ComPtr<ID3D11PixelShader>  m_ps;        // スカイ用ピクセルシェーダー
         Microsoft::WRL::ComPtr<ID3D11Buffer>       m_buffer;    // スカイ定数バッファ (b4)
         CBufferSky                                 m_data{};    // スカイパラメータ
+        bool                                       m_drawAllowed = true;     // 描画品質として空を描くか
         bool                                       m_hasPipeline = false;    // SetPipeline() でシェーダーを作れたか
     };
 }    // namespace Tsukino::Renderer

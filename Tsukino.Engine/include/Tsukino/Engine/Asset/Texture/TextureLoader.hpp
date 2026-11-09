@@ -5,6 +5,7 @@
 //--------------------------------------------------------------
 #pragma once
 #include <Tsukino/Engine/Asset/IAssetLoader.hpp>
+#include <Tsukino/Engine/Asset/Texture/TextureImportRules.hpp>
 // 名前空間 Tsukino::Asset
 namespace Tsukino::Asset {
     //--------------------------------------------------------------
@@ -14,9 +15,12 @@ namespace Tsukino::Asset {
     class TextureLoader : public IAssetLoader {
     public:
         //--------------------------------------------------------------
-        //! @brief デフォルトコンストラクタ
+        //! 規則を受け取ります。
+        //! @param  [in] rules インポートの規則（nullptr なら規則なし）
         //--------------------------------------------------------------
-        TextureLoader() = default;
+        explicit TextureLoader(Tsukino::Core::Ref<const TextureImportRules> rules = nullptr)
+            : m_rules(std::move(rules)) {
+        }
 
         //--------------------------------------------------------------
         // 対応する拡張子か判定する
@@ -33,6 +37,9 @@ namespace Tsukino::Asset {
         //--------------------------------------------------------------
         [[nodiscard]]
         Tsukino::Core::Ref<IAsset> Load(const Tsukino::Core::Path& path) override;
+
+    private:
+        Tsukino::Core::Ref<const TextureImportRules> m_rules;    // 読み込みの規則（AssetManager と共有する）
     };
 
 }    // namespace Tsukino::Asset

@@ -70,8 +70,29 @@ namespace Tsukino::Renderer {
     //! 影の調整値を設定します。
     //------------------------------------------------------------------------
     void ShadowPass::SetSettings(const ShadowSettings& settings) {
+        m_requestedSettings = settings;
+        ApplySettings();
+    }
+
+    //------------------------------------------------------------------------
+    //! 描画品質による影の上限を設定します。
+    //------------------------------------------------------------------------
+    void ShadowPass::SetQuality(u32 mapSizeLimit, u32 cascadeCount) {
+        m_mapSizeLimit       = mapSizeLimit;
+        m_activeCascadeCount = std::clamp(cascadeCount, 1u, kCascadeCount);
+        ApplySettings();
+    }
+
+    //------------------------------------------------------------------------
+    //! シーンの調整値へ描画品質の上限を掛けて適用します。
+    //------------------------------------------------------------------------
+    void ShadowPass::ApplySettings() {
+        ShadowSettings limited = m_requestedSettings;
+        if(m_mapSizeLimit > 0)
+            limited.mapSize = std::min(limited.mapSize, m_mapSizeLimit);
+
         const u32 previousMapSize = m_settings.mapSize;
-        m_settings                = SanitizeSettings(settings);
+        m_settings                = SanitizeSettings(limited);
 
         // Initialize() の前ならシャドウマップはまだ無く、Initialize() が新しい解像度で作る
         if(!m_mapTex || m_settings.mapSize == previousMapSize)
@@ -129,7 +150,7 @@ namespace Tsukino::Renderer {
         if(static_cast<float>(hlslpp::dot(lightDir, lightDir)) <= 0.0f)
             return;
 
-        const ShadowCascadeSet cascadeSet = ComputeCascades(worldScene.view, worldScene.invViewProj, hlslpp::normalize(lightDir), m_settings);
+        const ShadowCascadeSet cascadeSet = ComputeCascades(worldScene.view, worldScene.invViewProj, hlslpp::normalize(lightDir), m_settings, m_activeCascadeCount);
         m_cascades                        = cascadeSet.cascades;
 
         // 奥行きはカスケードの大きさから毎フレーム決まる。カメラ行列が未設定で求まらなかったフレームは前の値を残す
@@ -174,6 +195,17 @@ namespace Tsukino::Renderer {
         context->RSSetViewports(1, &vp);
 
         for(u32 cascade = 0; cascade < kCascadeCount; ++cascade) {
+            // このスライスだけをクリアする
+            context->ClearDepthStencilView(m_mapDSV[cascade].Get(), D3D11_CLEAR_DEPTH, 0.0f, 0);
+
+            //----------------------------------------------------------------
+            // 使わないカスケードは消すだけで描かない。
+            // シェーダーが最後の有効なカスケードの境目で次のスライスを読むと
+            // 「影なし」が返るので、影を出す奥行きの端で影が自然に消える
+            //----------------------------------------------------------------
+            if(cascade >= m_activeCascadeCount)
+                continue;
+
             //----------------------------------------------------------------
             // 描画中のカスケード番号を b0 へ流す。
             // 頂点シェーダーはこれを見て cascadeViewProj[] のどれを使うかを決めるので、
@@ -182,9 +214,7 @@ namespace Tsukino::Renderer {
             m_frameConstants->SetShadowCascadeIndex(cascade);
             m_frameConstants->UploadWorld();
 
-            // このスライスだけをクリアしてバインドする（カラーRTはnull）
-            context->ClearDepthStencilView(m_mapDSV[cascade].Get(), D3D11_CLEAR_DEPTH, 0.0f, 0);
-
+            // このスライスをバインドする（カラーRTはnull）
             ID3D11RenderTargetView* nullRTV = nullptr;
             context->OMSetRenderTargets(1, &nullRTV, m_mapDSV[cascade].Get());
 
@@ -269,7 +299,8 @@ namespace Tsukino::Renderer {
     ShadowCascadeSet ShadowPass::ComputeCascades(const Tsukino::Core::Math::matrix& cameraView,
                                                  const Tsukino::Core::Math::matrix& cameraInvViewProj,
                                                  const hlslpp::float3&              lightDir,
-                                                 const ShadowSettings&              settings) {
+                                                 const ShadowSettings&              settings,
+                                                 u32                                activeCount) {
         ShadowCascadeSet result{};
         std::array<ShadowCascade, kCascadeCount>& cascades = result.cascades;
 
@@ -282,10 +313,10 @@ namespace Tsukino::Renderer {
             return result;
 
         // 手順1: 視錐台を奥行き方向に切る距離を決める
-        const std::array<float, kCascadeCount + 1> splitDepths = ComputeSplitDepths(frustum.nearDepth, frustum.farDepth, settings);
+        const std::array<float, kCascadeCount + 1> splitDepths = ComputeSplitDepths(frustum.nearDepth, frustum.farDepth, settings, activeCount);
 
         float maxRadius = 0.0f;
-        for(u32 i = 0; i < kCascadeCount; ++i) {
+        for(u32 i = 0; i < activeCount; ++i) {
             ShadowCascade& cascade = cascades[i];
             cascade.splitNear      = splitDepths[i];
             cascade.splitFar       = splitDepths[i + 1];
@@ -301,6 +332,14 @@ namespace Tsukino::Renderer {
 
             maxRadius = std::max(maxRadius, cascade.bounds.radius);
         }
+
+        //--------------------------------------------------------------------
+        // 使わないカスケードは最後の有効なカスケードの複製にする。
+        // b0 のレイアウトとシェーダーは常に kCascadeCount 枚ぶんを読むが、
+        // 分割距離が揃うので有効な枚数より奥の番号は選ばれない
+        //--------------------------------------------------------------------
+        for(u32 i = activeCount; i < kCascadeCount; ++i)
+            cascades[i] = cascades[activeCount - 1];
 
         //--------------------------------------------------------------------
         // 手順3: 平行投影の奥行きを決める。
@@ -367,7 +406,7 @@ namespace Tsukino::Renderer {
     //------------------------------------------------------------------------
     //! 視錐台を奥行き方向に切る距離を求めます。
     //------------------------------------------------------------------------
-    std::array<float, ShadowPass::kCascadeCount + 1> ShadowPass::ComputeSplitDepths(float nearDepth, float farDepth, const ShadowSettings& settings) {
+    std::array<float, ShadowPass::kCascadeCount + 1> ShadowPass::ComputeSplitDepths(float nearDepth, float farDepth, const ShadowSettings& settings, u32 activeCount) {
         std::array<float, kCascadeCount + 1> splitDepths{};
 
         // 影を出すのはカメラの far 面と settings.distance の近いほうまで
@@ -384,8 +423,8 @@ namespace Tsukino::Renderer {
         // 対数分割は起点が0だと計算できない（正射影のカメラで起こりうる）ので、下限を設ける
         const float logNear = std::max(splitStart, 1.0e-3f);
 
-        for(u32 i = 0; i <= kCascadeCount; ++i) {
-            const float ratio = static_cast<float>(i) / static_cast<float>(kCascadeCount);
+        for(u32 i = 0; i <= activeCount; ++i) {
+            const float ratio = static_cast<float>(i) / static_cast<float>(activeCount);
 
             //----------------------------------------------------------------
             // 対数分割は、カメラから見た1テクセルの大きさがどの奥行きでも同じに
@@ -401,8 +440,10 @@ namespace Tsukino::Renderer {
 
         // 両端は式の丸め誤差を残さず、ちょうど near と shadowFar にする。
         // 先頭を splitStart ではなく near にするので、カスケード0は起点より手前も受け持つ
+        // 使わないカスケードの分も shadowFar で埋める（シェーダーは常に kCascadeCount 個の境目を読む）
         splitDepths.front() = nearDepth;
-        splitDepths.back()  = shadowFar;
+        for(u32 i = activeCount; i <= kCascadeCount; ++i)
+            splitDepths[i] = shadowFar;
 
         return splitDepths;
     }

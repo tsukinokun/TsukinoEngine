@@ -47,5 +47,20 @@ namespace Tsukino::Asset {
             (void)inputPath;
             return {};
         }
+
+        //--------------------------------------------------------------
+        //! 既にあるキャッシュが今の設定に合っていないかを調べます。
+        //! @param  [in] inputPath ソースファイルのパス
+        //! @param  [in] cachePath キャッシュファイルのパス
+        //! @return true: 更新日時に関わらず作り直す, false: 作り直さない（既定）
+        //! @note   インポートの設定を変えてもソースの日時は変わらないので、
+        //!         設定で中身が変わるアセットはここで気付けるようにする
+        //--------------------------------------------------------------
+        [[nodiscard]]
+        virtual bool IsCacheOutdated(const Tsukino::Core::Path& inputPath, const Tsukino::Core::Path& cachePath) const {
+            (void)inputPath;
+            (void)cachePath;
+            return false;
+        }
     };
 }    // namespace Tsukino::Asset

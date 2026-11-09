@@ -96,6 +96,12 @@ namespace Tsukino::Renderer {
         //! @note   mapSize が変わったときだけシャドウマップを作り直す。作り直しに失敗したら前の解像度のまま残す
         void SetSettings(const ShadowSettings& settings);
 
+        //! 描画品質による影の上限を設定します。
+        //! @param  [in] mapSizeLimit シャドウマップの一辺の上限（0 で上限なし）
+        //! @param  [in] cascadeCount 実際に描くカスケードの枚数（1〜kCascadeCount に丸める）
+        //! @note   シーン側（LightSystem）が毎フレーム渡す調整値とは別に持ち、そちらの値に上限を掛ける
+        void SetQuality(u32 mapSizeLimit, u32 cascadeCount);
+
         //! 今の影の調整値（丸めた後）を取得します。
         //! @return 影の調整値
         [[nodiscard]]
@@ -126,14 +132,17 @@ namespace Tsukino::Renderer {
         //! @param  [in] cameraInvViewProj カメラの ViewProjection の逆行列
         //! @param  [in] lightDir          光の向き（正規化済み）
         //! @param  [in] settings          影の調整値（丸め済み）
-        //! @return 近い順に kCascadeCount 枚のカスケードと、全カスケード共通の平行投影の奥行き
+        //! @param  [in] activeCount       実際に使うカスケードの枚数（1〜kCascadeCount）
+        //! @return 近い順に kCascadeCount 枚のカスケードと、全カスケード共通の平行投影の奥行き。
+        //!         activeCount 枚目より後ろは最後の有効なカスケードの複製になる
         //! @note   次の関数を順に呼ぶだけの関数。手順ごとの中身はそれぞれの関数を見る
         //!         ComputeFrustumCorners → ComputeSplitDepths → ComputeSliceCorners → ComputeBoundingSphere → ComputeLightViewProj
         [[nodiscard]]
         static ShadowCascadeSet ComputeCascades(const Tsukino::Core::Math::matrix& cameraView,
                                                 const Tsukino::Core::Math::matrix& cameraInvViewProj,
                                                 const hlslpp::float3&              lightDir,
-                                                const ShadowSettings&              settings);
+                                                const ShadowSettings&              settings,
+                                                u32                                activeCount);
 
         //! カメラの視錐台の8頂点を、NDC の立方体の頂点を逆射影して求めます。
         //! @param  [in] cameraView        カメラの View 行列（頂点の奥行きを求めるのに使う）
@@ -147,12 +156,13 @@ namespace Tsukino::Renderer {
         //! @param  [in] nearDepth カメラの near 面の奥行き
         //! @param  [in] farDepth  カメラの far 面の奥行き
         //! @param  [in] settings  影の調整値（distance / splitStart / splitLambda を使う）
+        //! @param  [in] activeCount 実際に使うカスケードの枚数（1〜kCascadeCount）
         //! @return 近い順に kCascadeCount + 1 個の奥行き。i 番目と i+1 番目の間がカスケード i の受け持ち。
-        //!         先頭は nearDepth、末尾は settings.distance と farDepth の近いほう
+        //!         先頭は nearDepth、activeCount 番目から後ろは settings.distance と farDepth の近いほう
         //! @note   practical split scheme（対数分割と等分割の重み付き平均。splitLambda が対数側の重み）で求める。
         //!         式の起点は nearDepth ではなく splitStart（カメラの near より奥ならそちら）
         [[nodiscard]]
-        static std::array<float, kCascadeCount + 1> ComputeSplitDepths(float nearDepth, float farDepth, const ShadowSettings& settings);
+        static std::array<float, kCascadeCount + 1> ComputeSplitDepths(float nearDepth, float farDepth, const ShadowSettings& settings, u32 activeCount);
 
         //! 視錐台を2つの奥行きで切った切れ端の8頂点を求めます。
         //! @param  [in] frustum   カメラの視錐台
@@ -203,6 +213,10 @@ namespace Tsukino::Renderer {
 
     private:
 
+        //! シーンの調整値へ描画品質の上限を掛けて適用します。
+        //! @note   mapSize が変わったときだけシャドウマップを作り直す
+        void ApplySettings();
+
         //! 描画コマンドがカスケードの投影範囲に掛かっているかを判定します。
         //! @param  [in] cmd              判定する描画コマンド
         //! @param  [in] cascade          判定するカスケード
@@ -234,7 +248,10 @@ namespace Tsukino::Renderer {
         // このフレームのカスケード（UpdateCascades() が埋め、Execute() が使う）
         std::array<ShadowCascade, kCascadeCount> m_cascades{};
 
-        ShadowSettings m_settings{};    // 影の調整値（SanitizeSettings() で丸め済み）
+        ShadowSettings m_requestedSettings{};               // シーンから渡された調整値（品質の上限を掛ける前）
+        ShadowSettings m_settings{};                        // 影の調整値（SanitizeSettings() で丸め、品質の上限を掛けた後）
+        u32            m_mapSizeLimit       = 0;            // 描画品質によるシャドウマップの一辺の上限（0 で上限なし）
+        u32            m_activeCascadeCount = kCascadeCount;    // 実際に描くカスケードの枚数
 
         bool m_cullingEnabled = true;    // カスケードの範囲外を間引くか（計測用に切り替えられる）
 

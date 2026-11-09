@@ -271,6 +271,17 @@ bool SampleCascadePCF(Texture2DArray map, SamplerComparisonState samp, float3 wo
     const float biasWorld = texelWorld * (kShadowConstantBias + kShadowSlopeBias * tanTheta);
     const float depth     = lightSpace.z + biasWorld * shadowParams.w;
 
+    //----------------------------------------------------------
+    // 描画品質を下げているときは1タップで済ませる（比較サンプラーの線形補間だけは効く）。
+    // 定数バッファ由来の分岐は fxc が両方実行する形へ平坦化しやすいので、
+    // 実際に飛ぶよう [branch] を付ける
+    //----------------------------------------------------------
+    [branch]
+    if(qualityParams.x < 0.5f) {
+        shadow = map.SampleCmpLevelZero(samp, float3(uv, cascade), depth);
+        return true;
+    }
+
     float sum = 0.0f;
 
     [unroll]

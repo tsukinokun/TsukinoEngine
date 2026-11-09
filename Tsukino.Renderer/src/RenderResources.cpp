@@ -57,7 +57,7 @@ namespace Tsukino::Renderer {
     //------------------------------------------------------------------------
     //! テクスチャの SRV を取得します（初回はGPUへ転送してキャッシュします）。
     //------------------------------------------------------------------------
-    ID3D11ShaderResourceView* RenderResources::GetTextureSRV(const Tsukino::Asset::TextureAsset& textureAsset) {
+    ID3D11ShaderResourceView* RenderResources::GetTextureSRV(Tsukino::Asset::TextureAsset& textureAsset) {
         u64 handleValue = textureAsset.GetHandle().Value();
 
         // すでにキャッシュにあればそれを返す
@@ -85,6 +85,9 @@ namespace Tsukino::Renderer {
 
         ID3D11ShaderResourceView* srv = texture->GetSRV();
         m_textureCache.emplace(handleValue, std::move(texture));
+
+        // GPU へ送り終えたので、CPU 側の画素は手放す（以降はキャッシュの SRV だけを使う）
+        textureAsset.ReleasePixels();
 
         return srv;
     }

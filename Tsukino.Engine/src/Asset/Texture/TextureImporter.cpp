@@ -48,6 +48,25 @@ namespace Tsukino::Asset {
         }
     }    // namespace
     //--------------------------------------------------------------
+    //! 既にあるキャッシュが規則のフォーマットと違うかを調べます。
+    //--------------------------------------------------------------
+    bool TextureImporter::IsCacheOutdated(const Tsukino::Core::Path& inputPath, const Tsukino::Core::Path& cachePath) const {
+        const TextureImportRule* rule = m_rules ? m_rules->Find(inputPath) : nullptr;
+        if(!rule)
+            return false;
+
+        // ヘッダだけ読むので、枚数が多くても起動はほとんど遅くならない
+        DirectX::TexMetadata metadata;
+        if(FAILED(DirectX::GetMetadataFromDDSFile(cachePath.ToWString().c_str(), DirectX::DDS_FLAGS_NONE, metadata)))
+            return true;
+
+        if(rule->generateMips && metadata.mipLevels <= 1)
+            return true;
+
+        return rule->compressedFormat != DXGI_FORMAT_UNKNOWN && DirectX::MakeLinear(metadata.format) != DirectX::MakeLinear(rule->compressedFormat);
+    }
+
+    //--------------------------------------------------------------
     //! @brief  テクスチャのインポート関数
     //--------------------------------------------------------------
     bool TextureImporter::Import(const Tsukino::Core::Path& inputPath, const Tsukino::Core::Path& outputDirectory) {
@@ -113,6 +132,43 @@ namespace Tsukino::Asset {
         const DXGI_FORMAT storedFormat = isLinear ? DirectX::MakeLinear(metadata.format) : DirectX::MakeSRGB(metadata.format);
         image.OverrideFormat(storedFormat);
         metadata.format = storedFormat;
+
+        //--------------------------------------------------------------
+        // 規則があるテクスチャは、ミップマップを作ってブロック圧縮してから保存する
+        //--------------------------------------------------------------
+        const TextureImportRule* rule = m_rules ? m_rules->Find(inputPath) : nullptr;
+        if(rule && rule->generateMips) {
+            // sRGB の色は線形にしてから平均する（そのまま平均すると縮んだ段が暗くなる）。
+            // ボックスフィルタは一辺が2のべき乗の絵でしか使えないので、線形フィルタにする
+            const DirectX::TEX_FILTER_FLAGS filter = DirectX::TEX_FILTER_LINEAR | (isLinear ? DirectX::TEX_FILTER_DEFAULT : DirectX::TEX_FILTER_SRGB);
+
+            DirectX::ScratchImage mipChain;
+            hr = DirectX::GenerateMipMaps(*image.GetImage(0, 0, 0), filter, 0, mipChain);
+            if(FAILED(hr)) {
+                Tsukino::Core::Log::Error("TextureImporter: Failed to generate mipmaps: " + outputPath.string());
+                return false;
+            }
+            image    = std::move(mipChain);
+            metadata = image.GetMetadata();
+        }
+
+        if(rule && rule->compressedFormat != DXGI_FORMAT_UNKNOWN) {
+            //----------------------------------------------------------
+            // BC7 の既定の探索はとても遅い（初回起動の待ちになる）ので、早い探索で済ませる。
+            // 1枚の中を並列にはしない（AssetLoadQueue が枚数単位で手分けしている）
+            //----------------------------------------------------------
+            const DirectX::TEX_COMPRESS_FLAGS flags = DirectX::TEX_COMPRESS_BC7_QUICK;
+            const DXGI_FORMAT compressedFormat = isLinear ? DirectX::MakeLinear(rule->compressedFormat) : DirectX::MakeSRGB(rule->compressedFormat);
+
+            DirectX::ScratchImage compressed;
+            hr = DirectX::Compress(image.GetImages(), image.GetImageCount(), metadata, compressedFormat, flags, DirectX::TEX_THRESHOLD_DEFAULT, compressed);
+            if(FAILED(hr)) {
+                Tsukino::Core::Log::Error("TextureImporter: Failed to compress: " + outputPath.string());
+                return false;
+            }
+            image    = std::move(compressed);
+            metadata = image.GetMetadata();
+        }
 
         hr = DirectX::SaveToDDSFile(image.GetImages(), image.GetImageCount(), metadata, DirectX::DDS_FLAGS_FORCE_DX10_EXT, outputPath.ToWString().c_str());
 

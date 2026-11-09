@@ -10,13 +10,64 @@
 #include <Tsukino/Renderer/ShaderSlots.hpp>
 
 #include <Tsukino/Core/Log.hpp>
+
+#include <d3d11_3.h>
+#include <dxgi1_6.h>
+
+#include <algorithm>
+#include <cmath>
 #include <string>
+
+#pragma comment(lib, "dxgi.lib")
+
 // 名前空間 : Tsukino::Renderer
 namespace Tsukino::Renderer {
+    namespace {
+        //! Microsoft Basic Render Driver（ドライバが無いときに使われるソフトウェア描画）の ID
+        constexpr UINT kBasicRenderVendorId = 0x1414;
+        constexpr UINT kBasicRenderDeviceId = 0x008C;
+
+        //--------------------------------------------------------------
+        //! 最も高性能なハードウェアアダプタを探します。
+        //! @return アダプタ。探せないとき（古い OS など）は nullptr
+        //! @note   既定のアダプタ（nullptr）のままだと、dGPU のあるノート PC でも
+        //!         画面をつないでいる内蔵 GPU で動いてしまう
+        //--------------------------------------------------------------
+        Microsoft::WRL::ComPtr<IDXGIAdapter1> FindHighPerformanceAdapter() {
+            Microsoft::WRL::ComPtr<IDXGIFactory6> factory;
+            if(FAILED(CreateDXGIFactory1(IID_PPV_ARGS(factory.GetAddressOf()))))
+                return nullptr;
+
+            Microsoft::WRL::ComPtr<IDXGIAdapter1> adapter;
+            for(UINT index = 0; SUCCEEDED(factory->EnumAdapterByGpuPreference(index, DXGI_GPU_PREFERENCE_HIGH_PERFORMANCE,
+                                                                              IID_PPV_ARGS(adapter.ReleaseAndGetAddressOf())));
+                ++index) {
+                DXGI_ADAPTER_DESC1 desc{};
+                if(SUCCEEDED(adapter->GetDesc1(&desc)) && !(desc.Flags & DXGI_ADAPTER_FLAG_SOFTWARE))
+                    return adapter;
+            }
+            return nullptr;
+        }
+
+        //--------------------------------------------------------------
+        //! ワイド文字列を UTF-8 に変換します。
+        //! @param  [in] text 変換する文字列（ヌル終端）
+        //! @return UTF-8 の文字列
+        //--------------------------------------------------------------
+        std::string ToUtf8(const wchar_t* text) {
+            const int size = WideCharToMultiByte(CP_UTF8, 0, text, -1, nullptr, 0, nullptr, nullptr);
+            if(size <= 1)
+                return {};
+            std::string result(static_cast<size_t>(size - 1), '\0');
+            WideCharToMultiByte(CP_UTF8, 0, text, -1, result.data(), size, nullptr, nullptr);
+            return result;
+        }
+    }    // namespace
+
     //--------------------------------------------------------------
     //! @brief 初期化関数
     //--------------------------------------------------------------
-    bool GraphicsContext::Initialize(HWND hwnd, UINT width, UINT height) {
+    bool GraphicsContext::Initialize(HWND hwnd, UINT width, UINT height, const GraphicsDeviceOptions& options) {
         // スワップチェイン設定
         DXGI_SWAP_CHAIN_DESC scDesc{};
         scDesc.BufferCount       = 1;
@@ -34,34 +85,98 @@ namespace Tsukino::Renderer {
         flags |= D3D11_CREATE_DEVICE_DEBUG;
 #endif
 
-        D3D_FEATURE_LEVEL featureLevels[] = {
+        //--------------------------------------------------------------
+        // シェーダーはすべてシェーダーモデル5（vs_5_0 / ps_5_0）なので、
+        // 11_0 未満のデバイスは作れてもパイプラインの生成で失敗する。
+        // そういう GPU は作成の時点で弾いて WARP へ落とす
+        //--------------------------------------------------------------
+        const D3D_FEATURE_LEVEL featureLevels[] = {
             D3D_FEATURE_LEVEL_11_0,
-            D3D_FEATURE_LEVEL_10_0,
         };
         D3D_FEATURE_LEVEL createdLevel{};
 
-        // デバイス・コンテキスト・スワップチェイン作成
-        HRESULT hr = D3D11CreateDeviceAndSwapChain(nullptr,
-                                                   D3D_DRIVER_TYPE_HARDWARE,
-                                                   nullptr,
-                                                   flags,
-                                                   featureLevels,
-                                                   _countof(featureLevels),
-                                                   D3D11_SDK_VERSION,
-                                                   &scDesc,
-                                                   m_swapChain.GetAddressOf(),
-                                                   m_device.GetAddressOf(),
-                                                   &createdLevel,
-                                                   m_context.GetAddressOf());
+        //--------------------------------------------------------------
+        // デバイス・コンテキスト・スワップチェインを作る。
+        // デバッグレイヤーは Windows の追加機能なので、入っていない PC では
+        // Debug ビルドでも外して作り直す
+        //--------------------------------------------------------------
+        const auto tryCreate = [&](IDXGIAdapter* adapter, D3D_DRIVER_TYPE driverType) {
+            const auto create = [&](UINT creationFlags) {
+                return D3D11CreateDeviceAndSwapChain(adapter, driverType, nullptr, creationFlags, featureLevels, _countof(featureLevels),
+                                                     D3D11_SDK_VERSION, &scDesc, m_swapChain.ReleaseAndGetAddressOf(),
+                                                     m_device.ReleaseAndGetAddressOf(), &createdLevel, m_context.ReleaseAndGetAddressOf());
+            };
 
-        if(FAILED(hr)) {
+            HRESULT result = create(flags);
+            if(result == DXGI_ERROR_SDK_COMPONENT_MISSING && (flags & D3D11_CREATE_DEVICE_DEBUG)) {
+                Tsukino::Core::Log::Warn("GraphicsContext: The D3D11 debug layer is not installed. Creating the device without it.");
+                result = create(flags & ~static_cast<UINT>(D3D11_CREATE_DEVICE_DEBUG));
+            }
+            return SUCCEEDED(result);
+        };
+
+        bool created = false;
+        if(options.preference != GraphicsDevicePreference::ForceSoftware) {
+            //----------------------------------------------------------
+            // アダプタを指定するときはドライバの種類を UNKNOWN にする決まり。
+            // 探せなければ従来どおり既定のハードウェアで作る
+            //----------------------------------------------------------
+            const Microsoft::WRL::ComPtr<IDXGIAdapter1> adapter = FindHighPerformanceAdapter();
+            created = adapter ? tryCreate(adapter.Get(), D3D_DRIVER_TYPE_UNKNOWN) : tryCreate(nullptr, D3D_DRIVER_TYPE_HARDWARE);
+            if(!created) {
+                Tsukino::Core::Log::Warn("GraphicsContext: No usable hardware device (feature level 11_0 or later). Falling back to WARP.");
+            }
+        }
+
+        if(!created) {
+            created = tryCreate(nullptr, D3D_DRIVER_TYPE_WARP);
+        }
+
+        if(!created) {
+            Tsukino::Core::Log::Error("GraphicsContext: Failed to create a D3D11 device, including the WARP software device.");
             return false;
         }
+
+        QueryAdapterInfo();
 
         //--------------------------------------------------------------
         // 画面サイズに依存するリソース（RTV / DSV / HDRバッファ）を作成する
         //--------------------------------------------------------------
         return CreateSizeDependentResources(width, height);
+    }
+
+    //--------------------------------------------------------------
+    //! @brief 作成したデバイスのアダプタ情報を調べて保持し、ログへ出す
+    //--------------------------------------------------------------
+    void GraphicsContext::QueryAdapterInfo() {
+        m_adapterInfo = GraphicsAdapterInfo{};
+
+        Microsoft::WRL::ComPtr<IDXGIDevice>   dxgiDevice;
+        Microsoft::WRL::ComPtr<IDXGIAdapter>  adapter;
+        Microsoft::WRL::ComPtr<IDXGIAdapter1> adapter1;
+        DXGI_ADAPTER_DESC1                    desc{};
+        if(SUCCEEDED(m_device.As(&dxgiDevice)) && SUCCEEDED(dxgiDevice->GetAdapter(adapter.GetAddressOf())) && SUCCEEDED(adapter.As(&adapter1))
+           && SUCCEEDED(adapter1->GetDesc1(&desc))) {
+            m_adapterInfo.name            = ToUtf8(desc.Description);
+            m_adapterInfo.vendorId        = desc.VendorId;
+            m_adapterInfo.deviceId        = desc.DeviceId;
+            m_adapterInfo.dedicatedMemory = desc.DedicatedVideoMemory;
+            m_adapterInfo.sharedMemory    = desc.SharedSystemMemory;
+            m_adapterInfo.isSoftware      = (desc.Flags & DXGI_ADAPTER_FLAG_SOFTWARE) != 0
+                                       || (desc.VendorId == kBasicRenderVendorId && desc.DeviceId == kBasicRenderDeviceId);
+        }
+
+        // CPU とメモリを共有するかどうか（内蔵 GPU の判定）。古いランタイムで取れなければ専用メモリの量で判断する
+        D3D11_FEATURE_DATA_D3D11_OPTIONS2 options2{};
+        if(SUCCEEDED(m_device->CheckFeatureSupport(D3D11_FEATURE_D3D11_OPTIONS2, &options2, sizeof(options2)))) {
+            m_adapterInfo.isUnifiedMemory = options2.UnifiedMemoryArchitecture != FALSE;
+        }
+
+        constexpr u64 kMiB = 1024ull * 1024ull;
+        Tsukino::Core::Log::Info("GraphicsContext: Adapter '" + m_adapterInfo.name + "' (software: " + (m_adapterInfo.isSoftware ? "yes" : "no")
+                                 + ", unified memory: " + (m_adapterInfo.isUnifiedMemory ? "yes" : "no")
+                                 + ", dedicated: " + std::to_string(m_adapterInfo.dedicatedMemory / kMiB)
+                                 + " MiB, shared: " + std::to_string(m_adapterInfo.sharedMemory / kMiB) + " MiB)");
     }
 
     //--------------------------------------------------------------
@@ -89,6 +204,7 @@ namespace Tsukino::Renderer {
         m_postProcessTex.Reset();
         m_depthSRV.Reset();
         m_dsv.Reset();
+        m_backBufferDSV.Reset();
         m_rtv.Reset();
 
         for(UINT i = 0; i < GBufferCount; ++i) {
@@ -134,6 +250,35 @@ namespace Tsukino::Renderer {
         m_context->RSSetViewports(1, &vp);
 
         //--------------------------------------------------------------
+        // 3Dを描く解像度（G-Buffer・深度・HDR・ポストプロセスの大きさ）。
+        // 等倍のときはバックバッファとぴったり同じにする
+        //--------------------------------------------------------------
+        const UINT sceneWidth  = std::max(1u, static_cast<UINT>(std::lround(static_cast<float>(width) * m_renderScale)));
+        const UINT sceneHeight = std::max(1u, static_cast<UINT>(std::lround(static_cast<float>(height) * m_renderScale)));
+
+        //--------------------------------------------------------------
+        // 縮小するときは、Overlay の 3D モデル用にバックバッファと同じ大きさの深度が別に要る
+        // （RTV と DSV は大きさが揃っていないとバインドできない）
+        //--------------------------------------------------------------
+        if(sceneWidth != width || sceneHeight != height) {
+            D3D11_TEXTURE2D_DESC backDepthDesc{};
+            backDepthDesc.Width            = width;
+            backDepthDesc.Height           = height;
+            backDepthDesc.MipLevels        = 1;
+            backDepthDesc.ArraySize        = 1;
+            backDepthDesc.Format           = DXGI_FORMAT_D24_UNORM_S8_UINT;
+            backDepthDesc.SampleDesc.Count = 1;
+            backDepthDesc.BindFlags        = D3D11_BIND_DEPTH_STENCIL;
+
+            Microsoft::WRL::ComPtr<ID3D11Texture2D> backDepthTex;
+            if(FAILED(m_device->CreateTexture2D(&backDepthDesc, nullptr, backDepthTex.GetAddressOf()))
+               || FAILED(m_device->CreateDepthStencilView(backDepthTex.Get(), nullptr, m_backBufferDSV.GetAddressOf()))) {
+                Tsukino::Core::Log::Error("GraphicsContext: Failed to create the back buffer depth for screen-space 3D models.");
+                return false;
+            }
+        }
+
+        //--------------------------------------------------------------
         // Depth buffer texture
         // TYPELESS で確保し、DSV(D24_UNORM_S8_UINT) と SRV(R24_UNORM_X8_TYPELESS)
         // の両方を同じテクスチャから作る。ディファードLightingパスが
@@ -142,8 +287,8 @@ namespace Tsukino::Renderer {
         Microsoft::WRL::ComPtr<ID3D11Texture2D> depthTex;
 
         D3D11_TEXTURE2D_DESC depthDesc = {};
-        depthDesc.Width                = width;
-        depthDesc.Height               = height;
+        depthDesc.Width                = sceneWidth;
+        depthDesc.Height               = sceneHeight;
         depthDesc.MipLevels            = 1;
         depthDesc.ArraySize            = 1;
         depthDesc.Format               = DXGI_FORMAT_R24G8_TYPELESS;
@@ -184,8 +329,8 @@ namespace Tsukino::Renderer {
         // HDRレンダーターゲットの作成
         //--------------------------------------------------------------
         D3D11_TEXTURE2D_DESC hdrDesc{};
-        hdrDesc.Width            = width;
-        hdrDesc.Height           = height;
+        hdrDesc.Width            = sceneWidth;
+        hdrDesc.Height           = sceneHeight;
         hdrDesc.MipLevels        = 1;
         hdrDesc.ArraySize        = 1;
         hdrDesc.Format           = DXGI_FORMAT_R16G16B16A16_FLOAT;
@@ -264,8 +409,8 @@ namespace Tsukino::Renderer {
 
         for(UINT i = 0; i < GBufferCount; ++i) {
             D3D11_TEXTURE2D_DESC gbDesc{};
-            gbDesc.Width            = width;
-            gbDesc.Height           = height;
+            gbDesc.Width            = sceneWidth;
+            gbDesc.Height           = sceneHeight;
             gbDesc.MipLevels        = 1;
             gbDesc.ArraySize        = 1;
             gbDesc.Format           = kGBufferFormats[i];
@@ -293,10 +438,42 @@ namespace Tsukino::Renderer {
         }
 
         // 画面サイズを保存
-        m_width  = width;
-        m_height = height;
+        m_width       = width;
+        m_height      = height;
+        m_sceneWidth  = sceneWidth;
+        m_sceneHeight = sceneHeight;
 
         return true;
+    }
+
+    //--------------------------------------------------------------
+    //! @brief 3Dを描く内部解像度の倍率を変える
+    //--------------------------------------------------------------
+    bool GraphicsContext::SetRenderScale(float scale) {
+        const float clamped = std::clamp(scale, RenderQualitySettings::kMinRenderScale, 1.0f);
+        if(clamped == m_renderScale)
+            return true;
+
+        m_renderScale = clamped;
+
+        // Initialize の前なら、Initialize がこの倍率で作る
+        if(!m_swapChain || !m_device || !m_context)
+            return true;
+
+        // バックバッファの大きさは変わらないので ResizeBuffers は要らない。作り直しの手順だけ共用する
+        ReleaseSizeDependentResources();
+        return CreateSizeDependentResources(m_width, m_height);
+    }
+
+    //--------------------------------------------------------------
+    //! @brief バックバッファ全体をビューポートにする
+    //--------------------------------------------------------------
+    void GraphicsContext::SetBackBufferViewport() {
+        D3D11_VIEWPORT vp{};
+        vp.Width    = static_cast<float>(m_width);
+        vp.Height   = static_cast<float>(m_height);
+        vp.MaxDepth = 1.0f;
+        m_context->RSSetViewports(1, &vp);
     }
 
     //--------------------------------------------------------------
@@ -348,8 +525,8 @@ namespace Tsukino::Renderer {
         D3D11_VIEWPORT vp{};
         vp.TopLeftX = 0.0f;
         vp.TopLeftY = 0.0f;
-        vp.Width    = static_cast<float>(m_width);
-        vp.Height   = static_cast<float>(m_height);
+        vp.Width    = static_cast<float>(m_sceneWidth);
+        vp.Height   = static_cast<float>(m_sceneHeight);
         vp.MinDepth = 0.0f;
         vp.MaxDepth = 1.0f;
         m_context->RSSetViewports(1, &vp);
@@ -420,17 +597,19 @@ namespace Tsukino::Renderer {
     //! @brief バックバッファのRTVと、消した深度バッファをバインドする
     //--------------------------------------------------------------
     void GraphicsContext::BindBackBufferWithSceneDepth() {
-        m_context->OMSetRenderTargets(1, m_rtv.GetAddressOf(), m_dsv.Get());
+        // 縮小中はシーンの深度とバックバッファの大きさが違い、同時に張れない
+        m_context->OMSetRenderTargets(1, m_rtv.GetAddressOf(), m_backBufferDSV ? nullptr : m_dsv.Get());
     }
 
     //--------------------------------------------------------------
     //! @brief バックバッファのRTVと、消した深度バッファをバインドする
     //--------------------------------------------------------------
     void GraphicsContext::BindBackBufferWithClearedDepth() {
-        m_context->OMSetRenderTargets(1, m_rtv.GetAddressOf(), m_dsv.Get());
+        ID3D11DepthStencilView* dsv = m_backBufferDSV ? m_backBufferDSV.Get() : m_dsv.Get();
+        m_context->OMSetRenderTargets(1, m_rtv.GetAddressOf(), dsv);
 
         // リバースZなので、一番奥は 0
-        m_context->ClearDepthStencilView(m_dsv.Get(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 0.0f, 0);
+        m_context->ClearDepthStencilView(dsv, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 0.0f, 0);
     }
 
     //--------------------------------------------------------------

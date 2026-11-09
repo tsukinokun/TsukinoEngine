@@ -113,12 +113,18 @@ namespace Tsukino::Renderer {
 
         //! ワールドのシーン定数を b0 へ転送してバインドします。
         void UploadWorld() {
-            Upload(m_worldSceneData);
+            Upload(m_worldSceneData, false);
+        }
+
+        //! 影を 3x3 で滑らかにするかを設定します（描画品質。b0 の qualityParams へ配る）。
+        //! @param  [in] enabled true: 3x3, false: 1タップ
+        void SetShadowSoftFilter(bool enabled) noexcept {
+            m_shadowSoftFilter = enabled ? 1.0f : 0.0f;
         }
 
         //! オーバーレイのシーン定数を b0 へ転送してバインドします。
         void UploadOverlay() {
-            Upload(m_overlaySceneData);
+            Upload(m_overlaySceneData, true);
         }
 
         //! ワールドのシーン定数のカメラだけを差し替えて b0 へ転送してバインドします。
@@ -153,14 +159,16 @@ namespace Tsukino::Renderer {
     private:
 
         //! シーン定数へフレーム共通の値を差し込んで b0 へ転送し、VS と PS にバインドします。
-        //! @param  [in] sceneData 転送するシーン定数
-        void Upload(const CBufferScene& sceneData);
+        //! @param  [in] sceneData        転送するシーン定数
+        //! @param  [in] targetBackBuffer true: バックバッファへ描くパス（UI）, false: 内部解像度で描くパス
+        void Upload(const CBufferScene& sceneData, bool targetBackBuffer);
 
     private:
         const GraphicsContext*               m_graphicsContext = nullptr;    // デバイスと画面サイズの取得元（借りている）
         Microsoft::WRL::ComPtr<ID3D11Buffer> m_sceneBuffer;                  // b0 の定数バッファ
         float                                m_shadowMapSize = 0.0f;         // シャドウマップの一辺（b0 の shadowParams へ配る）
         float                                m_shadowDepthRange     = 1.0f;  // シャドウの平行投影の奥行き（shadowParams.wはその逆数）
+        float                                m_shadowSoftFilter     = 1.0f;  // 影を3x3で滑らかにするか（qualityParams.x）
 
         CBufferScene m_worldSceneData{};      // 3D（メインカメラ）用
         CBufferScene m_overlaySceneData{};    // 2D（UIカメラ）用

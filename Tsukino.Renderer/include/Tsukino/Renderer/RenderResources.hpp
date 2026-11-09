@@ -87,10 +87,10 @@ namespace Tsukino::Renderer {
         }
 
         //! テクスチャの SRV を取得します（初回はGPUへ転送してキャッシュします）。
-        //! @param  [in] textureAsset 取得元のテクスチャアセット
+        //! @param  [in,out] textureAsset 取得元のテクスチャアセット（GPU へ送ったあとピクセルデータを手放す）
         //! @return ID3D11ShaderResourceView へのポインタ
         [[nodiscard]]
-        ID3D11ShaderResourceView* GetTextureSRV(const Tsukino::Asset::TextureAsset& textureAsset);
+        ID3D11ShaderResourceView* GetTextureSRV(Tsukino::Asset::TextureAsset& textureAsset);
 
         //! 白テクスチャの SRV を取得します。
         //! @return ID3D11ShaderResourceView へのポインタ

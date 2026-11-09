@@ -57,6 +57,8 @@ namespace Tsukino::Renderer {
         //--------------------------------------------------------------
         hlslpp::float4 occlusionCutout0;    //!< xy: 円の中心（画面ピクセル）, z: 半径（ピクセル）, w: 1=有効 / 0=無効
         hlslpp::float4 occlusionCutout1;    //!< x: 注目している物までのカメラからの距離, y: 手前とみなす余白, z: 円の中心で見えている割合（0で全部抜く）, w: 縁へ戻り始める位置（半径に対する割合）
+
+        hlslpp::float4 qualityParams;       //!< 描画品質 x: 1=影を3x3で滑らかにする / 0=1タップ, yzw: 未使用
     };
 
     // b0のレイアウトもMaterial.hlsli同様に手で合わせるしかないので、機械的に見張る。
@@ -64,7 +66,8 @@ namespace Tsukino::Renderer {
     // 実際にShadowMapStatic.vs.hlslがinvViewProjの宣言を落としており、
     // 以降が64バイトずれてスタティックメッシュの影が壊れていた（Scene.hlsli参照）。
     // 先頭の行列を1本増減させると全メンバが動くので、要所のオフセットを固定する
-    static_assert(sizeof(CBufferScene) == 736, "CBufferScene must stay 736 bytes to match Scene.hlsli (b0).");
+    static_assert(sizeof(CBufferScene) == 752, "CBufferScene must stay 752 bytes to match Scene.hlsli (b0).");
+    static_assert(offsetof(CBufferScene, qualityParams) == 736, "qualityParams must sit at byte 736 (right after occlusionCutout1).");
     static_assert(offsetof(CBufferScene, cascadeSplitFar) == 688, "cascadeSplitFar must sit at byte 688 (right after cascadeTexelWorld).");
     static_assert(offsetof(CBufferScene, occlusionCutout0) == 704, "occlusionCutout0 must sit at byte 704 (right after cascadeSplitFar).");
     static_assert(offsetof(CBufferScene, cascadeViewProj) == 256, "cascadeViewProj must start at byte 256; a missing matrix before it shifts every cascade by 64 bytes.");

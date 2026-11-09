@@ -36,6 +36,15 @@ namespace Tsukino::Asset {
         //--------------------------------------------------------------
         void SetHandle(const AssetHandle& h) { m_handle = h; }
 
+        //--------------------------------------------------------------
+        //! ピクセルデータを手放します。
+        //! @note  GPU へ送ったあとは読まないので、Renderer が転送の直後に呼ぶ。
+        //!        CPU 側に残し続けると、GPU と同じ量のメモリを二重に使うことになる
+        //--------------------------------------------------------------
+        void ReleasePixels() {
+            std::vector<uint8_t>().swap(pixels);
+        }
+
         uint32_t             width  = 0;                      // テクスチャの幅
         uint32_t             height = 0;                      // テクスチャの高さ
         DXGI_FORMAT          format = DXGI_FORMAT_UNKNOWN;    // テクスチャのフォーマット

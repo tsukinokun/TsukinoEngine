@@ -88,6 +88,13 @@ namespace Tsukino::Renderer {
             return m_enabled;
         }
 
+        //! 縮小段の数の上限を設定します（描画品質）。
+        //! @param  [in] mipLimit 上限（0 でブルームを掛けない。kMaxMipCount を超える値は丸める）
+        //! @note   段数を変えると次の Execute で縮小段を作り直す。段を減らすと光の裾が短くなる
+        void SetMipLimit(u32 mipLimit) noexcept {
+            m_mipLimit = (mipLimit < kMaxMipCount) ? mipLimit : kMaxMipCount;
+        }
+
         //! ブルームを掛けて、トーンマップの入力になるバッファへ加算します。
         //! @param  [in] sourceIsPostProcess true: モーションブラーが中間バッファへ書いた後,
         //!                                  false: HDR バッファがそのまま最新
@@ -138,6 +145,8 @@ namespace Tsukino::Renderer {
         u32                                 m_mipCount     = 0;    // 実際に使う縮小段の数
         UINT                                m_sourceWidth  = 0;    // 縮小段を作ったときの画面幅
         UINT                                m_sourceHeight = 0;    // 縮小段を作ったときの画面高さ
+        u32                                 m_mipLimit      = kMaxMipCount;    // 縮小段の数の上限（描画品質）
+        u32                                 m_builtMipLimit = 0;               // 縮小段を作ったときの上限
 
         BloomParameters m_params{};          // ブルームの効き方
         bool            m_enabled = false;    // このフレームで有効か

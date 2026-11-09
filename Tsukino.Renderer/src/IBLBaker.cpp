@@ -174,8 +174,8 @@ namespace Tsukino::Renderer {
         // IBLベイク最後の面（32px/4px等）のままの極小ビューポートで描かれてしまう
         //--------------------------------------------------------------------
         D3D11_VIEWPORT vp{};
-        vp.Width    = static_cast<float>(m_graphicsContext->GetWidth());
-        vp.Height   = static_cast<float>(m_graphicsContext->GetHeight());
+        vp.Width    = static_cast<float>(m_graphicsContext->GetSceneWidth());
+        vp.Height   = static_cast<float>(m_graphicsContext->GetSceneHeight());
         vp.MaxDepth = 1.0f;
         m_graphicsContext->GetContext()->RSSetViewports(1, &vp);
 

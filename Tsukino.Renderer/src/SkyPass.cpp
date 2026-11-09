@@ -91,7 +91,10 @@ namespace Tsukino::Renderer {
         context->PSSetConstantBuffers(static_cast<UINT>(CBSlot::Sky), 1, m_buffer.GetAddressOf());
 
         // 頂点バッファなしでフルスクリーントライアングルを描画（VSでSV_VertexIDから3頂点を生成する）
-        FullscreenPass::Draw(context);
+        // （描画品質で省くときも、b4 の更新は IBL のベイクが使うので上で済ませてある）
+        if(m_drawAllowed) {
+            FullscreenPass::Draw(context);
+        }
 
         // ステートをリセット
         context->OMSetDepthStencilState(states->DepthDefault(), 0);

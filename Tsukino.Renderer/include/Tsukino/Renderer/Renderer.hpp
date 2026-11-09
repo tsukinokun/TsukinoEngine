@@ -112,10 +112,11 @@ namespace Tsukino::Renderer {
         //! @param width   [in] 描画領域の幅
         //! @param height  [in] 描画領域の高さ
         //! @param shaders [in] ビルトインシェーダー一式
+        //! @param deviceOptions [in] グラフィックスデバイスの作り方
         //! @return true: [in] 初期化成功, false: 初期化失敗
         //------------------------------------------------------------
         [[nodiscard]]
-        bool Initialize(HWND hwnd, uint32_t width, uint32_t height, const RendererShaderSet& shaders);
+        bool Initialize(HWND hwnd, uint32_t width, uint32_t height, const RendererShaderSet& shaders, const GraphicsDeviceOptions& deviceOptions = {});
 
         //------------------------------------------------------------
         // 描画処理
@@ -245,6 +246,33 @@ namespace Tsukino::Renderer {
         }
 
         //------------------------------------------------------------
+        //! @brief  描画品質を設定する関数
+        //! @param  [in] settings 描画品質（範囲外の値は使える範囲へ丸める）
+        //! @note   どのタイミングで呼んでもよい。積まれている描画コマンドを捨てないよう、
+        //!         実際の適用（描画先の作り直しなど）は次の Render() の先頭で行う。
+        //!         textureMipSkip はここでは効かない（読み込み時に AssetManager へ渡す値）
+        //------------------------------------------------------------
+        void SetQuality(const RenderQualitySettings& settings);
+
+        //------------------------------------------------------------
+        //! @brief  今の描画品質を取得する関数
+        //! @return 描画品質（丸めた後）
+        //------------------------------------------------------------
+        [[nodiscard]]
+        const RenderQualitySettings& GetQuality() const noexcept {
+            return m_quality;
+        }
+
+        //------------------------------------------------------------
+        //! @brief  作成したデバイスのアダプタ情報を取得する関数
+        //! @return アダプタ情報。品質の自動判定は RecommendRenderQuality に渡す
+        //------------------------------------------------------------
+        [[nodiscard]]
+        const GraphicsAdapterInfo& GetAdapterInfo() const noexcept {
+            return m_graphicsContext.GetAdapterInfo();
+        }
+
+        //------------------------------------------------------------
         //! @brief  デバッグ用の線と三角形の描画を取得する
         //! @return 線・三角形を積んでまとめて描く DebugDraw
         //------------------------------------------------------------
@@ -363,6 +391,11 @@ namespace Tsukino::Renderer {
         }
 
     private:
+        //------------------------------------------------------------
+        //! @brief  保留している描画品質を各パスへ適用する関数
+        //------------------------------------------------------------
+        void ApplyQuality();
+
         // DirectX 11の主要なインターフェース
         //! @note 【この宣言順は破棄順序の設計であり、並べ替えてはならない】
         //!       以降の部品はすべて m_graphicsContext が持つデバイスを借りて資源を作るため、
@@ -389,6 +422,9 @@ namespace Tsukino::Renderer {
         std::array<float, 4> m_clearColor = {0.5f, 0.5f, 0.5f, 1.0f};    // 描画領域のクリアカラー (デフォルトはグレー)
 
         FrameStats m_frameStats;    // 1フレーム分の描画統計（Render()の先頭でリセットする）
+
+        RenderQualitySettings m_quality{};              // 描画品質
+        bool                  m_qualityDirty = false;   // 次の Render() の先頭で適用するか
 
         DrawCommandQueue m_drawQueue;    // 描画コマンドキュー
 

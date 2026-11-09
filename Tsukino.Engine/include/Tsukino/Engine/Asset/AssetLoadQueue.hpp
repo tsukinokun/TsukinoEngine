@@ -2,8 +2,8 @@
 //! @file   AssetLoadQueue.hpp
 //! @brief  アセットを裏スレッドで順に読み込むキュー
 //! @detail ロード画面などで、本体スレッドを止めずに多数のアセットを読み込むために使います。
-//!         AssetManager::Load は任意のスレッドから呼べるので、このキューは専用のスレッドを1本立てて
-//!         積まれたパスを順に Load するだけです。読み込んだアセットは AssetManager に入るため、
+//!         AssetManager::Load は任意のスレッドから呼べるので、このキューは CPU のコア数に合わせて専用のスレッドを立て
+//!         積まれたパスを先頭から手分けして Load するだけです。読み込んだアセットは AssetManager に入るため、
 //!         以降の Load は表を引くだけで即座に返ります。
 //!
 //!         GPU リソースの生成（テクスチャのアップロードなど）は描画側が本体スレッドで行うため、
@@ -67,12 +67,14 @@ namespace Tsukino::Asset {
 
     private:
 
-        //! 裏スレッドの本体です。積まれたパスを順に読み込みます。
+        //! 裏スレッドの本体です。積まれたパスを先頭から手分けして読み込みます。
         void Run();
 
         AssetManager&                   m_assetManager;           // 読み込み先
         std::vector<Tsukino::Core::Path> m_paths;                 // 読み込むパス（Start 後は読み取りのみ）
-        std::thread                     m_thread;                 // 読み込みのスレッド
+        std::vector<std::thread>        m_threads;                // 読み込みのスレッド
+        std::atomic<size_t>             m_nextIndex = 0;          // 次に読むパスの番号
+        std::atomic<unsigned int>       m_running   = 0;          // まだ動いているスレッドの数
         std::atomic<size_t>             m_completed = 0;          // 読み終えた件数（失敗を含む）
         std::atomic<bool>               m_cancel    = false;      // 打ち切りの指示
         std::atomic<bool>               m_finished  = false;      // 終わったか

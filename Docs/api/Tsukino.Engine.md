@@ -41,6 +41,8 @@
 | `bool Exists(AssetHandle handle)` | アセットハンドルが存在するか確認する関数 |
 | `void RegisterImporter(AssetType type, Tsukino::Core::Ref< IAssetImporter > importer)` | インポーターを登録する関数 |
 | `void RegisterAsset(AssetHandle handle, Tsukino::Core::Ref< IAsset > asset)` | アセットを登録する関数 |
+| `void SetTextureImportRule(const std::string &pathPrefix, const TextureImportRule &rule)` | テクスチャのインポートの規則を追加する関数 |
+| `void SetTextureMipSkip(u32 mipSkip)` | 読み込み時に捨てるテクスチャの上位ミップの段数を設定する関数 |
 
 ### Tsukino::Asset::AssetRef
 
@@ -122,7 +124,7 @@
 - **Tsukino::Asset::AssetLoadQueue** — `Tsukino.Engine/include/Tsukino/Engine/Asset/AssetLoadQueue.hpp`
   - AssetLoadQueue(), ~AssetLoadQueue(), AssetLoadQueue(), operator=(), Enqueue(), Start(), Cancel(), Progress(), IsFinished(), TakeLoaded()
 - **Tsukino::Asset::AssetManager** — `Tsukino.Engine/include/Tsukino/Engine/Asset/AssetManager.hpp`
-  - AssetManager(), ~AssetManager(), Initialize(), Load(), LoadAsync(), Get(), Exists(), RegisterImporter(), RegisterAsset()
+  - AssetManager(), ~AssetManager(), Initialize(), Load(), LoadAsync(), Get(), Exists(), RegisterImporter(), RegisterAsset(), SetTextureImportRule(), SetTextureMipSkip()
 - **Tsukino::Asset::AssetManager::AsyncRequest** — `Tsukino.Engine/include/Tsukino/Engine/Asset/AssetManager.hpp`
   - path, promise
 - **Tsukino::Asset::AssetRef** — `Tsukino.Engine/include/Tsukino/Engine/Asset/AssetRef.hpp`
@@ -164,7 +166,7 @@
 - **Tsukino::Asset::IAsset** — `Tsukino.Engine/include/Tsukino/Engine/Asset/IAsset.hpp`
   - ~IAsset(), GetHandle(), SetHandle(), GetType()
 - **Tsukino::Asset::IAssetImporter** — `Tsukino.Engine/include/Tsukino/Engine/Asset/IAssetImporter.hpp`
-  - ~IAssetImporter(), Import(), CollectDependencies()
+  - ~IAssetImporter(), Import(), CollectDependencies(), IsCacheOutdated()
 - **Tsukino::Asset::IAssetLoader** — `Tsukino.Engine/include/Tsukino/Engine/Asset/IAssetLoader.hpp`
   - ~IAssetLoader(), CanLoad(), Load()
 - **Tsukino::Asset::MaterialAsset** — `Tsukino.Engine/include/Tsukino/Engine/Asset/Material/MaterialAsset.hpp`
@@ -190,11 +192,15 @@
 - **Tsukino::Asset::ShaderLoader** — `Tsukino.Engine/include/Tsukino/Engine/Asset/Shader/ShaderLoader.hpp`
   - ShaderLoader(), CanLoad(), Load(), DetectStage()
 - **Tsukino::Asset::TextureAsset** — `Tsukino.Engine/include/Tsukino/Engine/Asset/Texture/TextureAsset.hpp`
-  - width, height, format, pixels, mips, generateMips, GetHandle(), GetType(), SetHandle()
+  - width, height, format, pixels, mips, generateMips, GetHandle(), GetType(), SetHandle(), ReleasePixels()
 - **Tsukino::Asset::TextureAsset::MipLevel** — `Tsukino.Engine/include/Tsukino/Engine/Asset/Texture/TextureAsset.hpp`
   - offset, rowPitch
+- **Tsukino::Asset::TextureImportRule** — `Tsukino.Engine/include/Tsukino/Engine/Asset/Texture/TextureImportRules.hpp`
+  - compressedFormat, generateMips, allowMipSkip
+- **Tsukino::Asset::TextureImportRules** — `Tsukino.Engine/include/Tsukino/Engine/Asset/Texture/TextureImportRules.hpp`
+  - Add(), Find(), SetMipSkip(), GetMipSkip()
 - **Tsukino::Asset::TextureImporter** — `Tsukino.Engine/include/Tsukino/Engine/Asset/Texture/TextureImporter.hpp`
-  - Import()
+  - TextureImporter(), IsCacheOutdated(), Import()
 - **Tsukino::Asset::TextureLoader** — `Tsukino.Engine/include/Tsukino/Engine/Asset/Texture/TextureLoader.hpp`
   - TextureLoader(), CanLoad(), Load()
 - **Tsukino::Asset::Vertex** — `Tsukino.Engine/src/Asset/Model/ModelImporter.cpp`

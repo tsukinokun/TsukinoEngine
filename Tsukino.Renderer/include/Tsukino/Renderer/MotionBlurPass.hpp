@@ -62,7 +62,13 @@ namespace Tsukino::Renderer {
         //! @return true: 有効（描画コマンドが速度を書き出す）, false: 無効
         [[nodiscard]]
         bool IsEnabled() const noexcept {
-            return m_enabled;
+            return m_enabled && m_allowed;
+        }
+
+        //! 描画品質としてモーションブラーを許すかを設定します。
+        //! @param  [in] allowed true: 許す（SetEnabled のとおりに掛かる）, false: 許さない（SetEnabled(true) でも掛からない）
+        void SetAllowed(bool allowed) noexcept {
+            m_allowed = allowed;
         }
 
         //! モーションブラーを掛けてポストプロセス用の中間バッファへ書きます。
@@ -88,5 +94,6 @@ namespace Tsukino::Renderer {
         Microsoft::WRL::ComPtr<ID3D11Buffer>      m_buffer;             // モーションブラーパラメータ用バッファ (b8)
         CBufferMotionBlur                         m_data{};             // CPU側のモーションブラーパラメータ
         bool                                      m_enabled = false;    // このフレームで有効か
+        bool                                      m_allowed = true;     // 描画品質として許しているか
     };
 }    // namespace Tsukino::Renderer

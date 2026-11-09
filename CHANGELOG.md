@@ -9,6 +9,31 @@ carve-out for `Tsukino.Renderer` described under **API stability** in the README
 
 ### Added
 
+- **Running without a dedicated GPU (`RenderQuality.hpp`, `Renderer::SetQuality`, `RenderQualityGovernor`).**
+  `RenderQualityLevel` (`High` / `Medium` / `Low` / `Minimum`) maps to a `RenderQualitySettings` preset through
+  `GetRenderQualityPreset`: internal render scale (3D only, the UI stays at native resolution), a shadow map size cap,
+  the number of cascades actually drawn, 3x3 or single-tap PCF, the bloom mip count, motion blur, whether the sky is
+  drawn every frame, and how many top texture mips to drop. `High` matches the previous rendering.
+  `RecommendRenderQuality` picks a starting level from `Renderer::GetAdapterInfo()`, and `RenderQualityGovernor` reports
+  when the frame interval has stayed over budget so a game can step the level down.
+- **WARP fallback (`GraphicsDeviceOptions`).** The device is created on the high-performance hardware adapter at
+  feature level 11_0 (all built-in shaders are shader model 5), then falls back to WARP. Debug builds retry without the
+  debug layer when it is not installed. `GraphicsDevicePreference::ForceSoftware` starts directly on WARP.
+- **Texture import rules (`AssetManager::SetTextureImportRule`, `SetTextureMipSkip`).** Textures under a path can be
+  imported with a pre-generated mip chain and block compression, and can drop their top mips at load time. Textures
+  without a rule are imported as before. A cache that no longer matches its rule is re-imported
+  (`IAssetImporter::IsCacheOutdated`). BC7 uses the quick mode and is still slow on the CPU, so ship the `Cache` folder
+  rather than having players import many textures on first launch.
+
+### Changed
+
+- `GraphicsContext::GetWidth` / `GetHeight` are replaced by `GetSceneWidth` / `GetSceneHeight` and
+  `GetBackBufferWidth` / `GetBackBufferHeight`. `CBufferScene` gained `qualityParams` (752 bytes; keep `Scene.hlsli` in sync).
+- While the render scale is below 1, Effekseer effects are drawn without scene depth, so they are no longer hidden by
+  nearer geometry (the scene depth buffer is not the same size as the back buffer).
+- `RenderResources::GetTextureSRV` takes a non-const `TextureAsset`, and releases its CPU pixels after the GPU upload.
+- `AssetLoadQueue` loads on one worker per CPU core minus one instead of a single thread, so paths may finish out of order.
+
 - **Cascade shadow settings per scene (`ShadowSettings`, `DirectionalLightComponent::shadow`,
   `Renderer::SetShadowSettings`).** The shadow distance, where the split formula starts, the split
   lambda, the shadow map resolution and how far beyond a cascade toward the light casters are caught

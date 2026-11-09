@@ -7,6 +7,8 @@
 // windows.h の min/max マクロを避けるため、DX11 / Effekseer より先に通す
 #include <Tsukino/Core/WindowsLean.hpp>
 
+#include <Tsukino/Renderer/RenderQuality.hpp>
+
 #include <d3d11.h>
 #include <dxgi.h>
 #include <wrl/client.h>
@@ -26,9 +28,13 @@ namespace Tsukino::Renderer {
         // 初期化関数
         //! @param hwnd   [in] ウィンドウハンドル
         //! @param width  [in] 描画領域の幅（ピクセル)
+        //! @param height [in] 描画領域の高さ（ピクセル）
+        //! @param options [in] デバイスの作り方
+        //! @note  高性能なハードウェア（フィーチャーレベル 11_0 以上）を優先し、
+        //!        作れないときは WARP（ソフトウェア描画）へ落とす
         //--------------------------------------------------------------
         [[nodiscard]]
-        bool Initialize(HWND hwnd, UINT width, UINT height);
+        bool Initialize(HWND hwnd, UINT width, UINT height, const GraphicsDeviceOptions& options = {});
 
         //--------------------------------------------------------------
         // フレームの開始処理
@@ -94,14 +100,16 @@ namespace Tsukino::Renderer {
         //--------------------------------------------------------------
         //! @brief バックバッファのRTVと、消した深度バッファをバインドする
         //! @note  Overlay パスで 3D モデル（DrawCommand::cameraOverride）を描く前に1回だけ呼ぶ。
-        //!        トーンマップの後なのでワールドの深度はもう使わず、消して使い回す
+        //!        トーンマップの後なのでワールドの深度はもう使わず、消して使い回す。
+        //!        内部解像度を下げているときは、バックバッファと同じ大きさの別の深度を使う
         //--------------------------------------------------------------
         void BindBackBufferWithClearedDepth();
 
         //--------------------------------------------------------------
         //! @brief  バックバッファのRTVと、3Dの絵を描いたときの深度バッファをそのままバインドする
         //! @note   エフェクト（Effekseer）用。深度を消さずに張るので、エフェクトが
-        //!         手前の物（草・モデル）の後ろに正しく隠れる。深度は書き換えない前提で使う
+        //!         手前の物（草・モデル）の後ろに正しく隠れる。深度は書き換えない前提で使う。
+        //!         内部解像度を下げているときは大きさが合わないので、深度なしでバインドする
         //--------------------------------------------------------------
         void BindBackBufferWithSceneDepth();
 
@@ -180,19 +188,58 @@ namespace Tsukino::Renderer {
         bool Resize(UINT width, UINT height);
 
         //--------------------------------------------------------------
-        //! @brief  現在の描画領域の幅を取得する
+        //! @brief  3Dを描く内部解像度の倍率を変える
+        //! @param  scale [in] 倍率（RenderQualitySettings::kMinRenderScale〜1）
+        //! @return true: 成功, false: 失敗
+        //! @note   G-Buffer・深度・HDRバッファを作り直す。フレームの途中で呼ばないこと
         //--------------------------------------------------------------
         [[nodiscard]]
-        UINT GetWidth() const noexcept {
+        bool SetRenderScale(float scale);
+
+        //--------------------------------------------------------------
+        //! @brief  3Dを描く解像度の幅を取得する
+        //--------------------------------------------------------------
+        [[nodiscard]]
+        UINT GetSceneWidth() const noexcept {
+            return m_sceneWidth;
+        }
+
+        //--------------------------------------------------------------
+        //! @brief  3Dを描く解像度の高さを取得する
+        //--------------------------------------------------------------
+        [[nodiscard]]
+        UINT GetSceneHeight() const noexcept {
+            return m_sceneHeight;
+        }
+
+        //--------------------------------------------------------------
+        //! @brief  バックバッファの幅を取得する
+        //--------------------------------------------------------------
+        [[nodiscard]]
+        UINT GetBackBufferWidth() const noexcept {
             return m_width;
         }
 
         //--------------------------------------------------------------
-        //! @brief  現在の描画領域の高さを取得する
+        //! @brief  バックバッファの高さを取得する
         //--------------------------------------------------------------
         [[nodiscard]]
-        UINT GetHeight() const noexcept {
+        UINT GetBackBufferHeight() const noexcept {
             return m_height;
+        }
+
+        //--------------------------------------------------------------
+        //! @brief  バックバッファ全体をビューポートにする
+        //! @note   シーンの描画（内部解像度）が終わり、トーンマップと UI へ進むときに呼ぶ
+        //--------------------------------------------------------------
+        void SetBackBufferViewport();
+
+        //--------------------------------------------------------------
+        //! @brief  作成したデバイスのアダプタ情報を取得する
+        //--------------------------------------------------------------
+        [[nodiscard]]
+        const GraphicsAdapterInfo& GetAdapterInfo() const noexcept {
+            return m_adapterInfo;
         }
 
         //--------------------------------------------------------------
@@ -234,6 +281,11 @@ namespace Tsukino::Renderer {
         //--------------------------------------------------------------
         void ReleaseSizeDependentResources();
 
+        //--------------------------------------------------------------
+        //! @brief  作成したデバイスのアダプタ情報を調べて保持し、ログへ出す
+        //--------------------------------------------------------------
+        void QueryAdapterInfo();
+
         Microsoft::WRL::ComPtr<ID3D11Device> m_device;
 
         // DirectX DeviceContext
@@ -252,6 +304,9 @@ namespace Tsukino::Renderer {
         Microsoft::WRL::ComPtr<ID3D11DepthStencilView>   m_dsv;
         Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> m_depthSRV;    //!< 深度のSRVビュー（ディファードLightingパス用）
 
+        //! バックバッファと同じ大きさの深度（Overlay の 3D モデル用）。内部解像度が等倍のときは作らず m_dsv を使う
+        Microsoft::WRL::ComPtr<ID3D11DepthStencilView> m_backBufferDSV;
+
         // HDRレンダーターゲット（通常描画の出力先）
         Microsoft::WRL::ComPtr<ID3D11Texture2D>          m_hdrTex;    //!< HDRカラーバッファ
         Microsoft::WRL::ComPtr<ID3D11RenderTargetView>   m_hdrRTV;    //!< HDR用RTV
@@ -269,8 +324,14 @@ namespace Tsukino::Renderer {
 
         bool m_vsyncEnabled = true;    //!< 垂直同期の有無（EndFrameのPresentが参照する）
 
-        UINT m_width  = 0;    //!< 描画領域の幅
-        UINT m_height = 0;    //!< 描画領域の高さ
+        UINT m_width  = 0;    //!< バックバッファの幅
+        UINT m_height = 0;    //!< バックバッファの高さ
+
+        UINT  m_sceneWidth  = 0;       //!< 3Dを描く解像度の幅
+        UINT  m_sceneHeight = 0;       //!< 3Dを描く解像度の高さ
+        float m_renderScale = 1.0f;    //!< 内部解像度の倍率
+
+        GraphicsAdapterInfo m_adapterInfo{};    //!< 作成したデバイスのアダプタ情報
 
     };
 
