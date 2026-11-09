@@ -9,6 +9,9 @@ carve-out for `Tsukino.Renderer` described under **API stability** in the README
 
 ### Added
 
+- **VC++ runtime in the Release payload (`tsukino_release_payload()`).** `vcruntime140.dll`, `vcruntime140_1.dll` and
+  `msvcp140.dll` are copied next to the exe from the toolset's Redist folder, so a build runs on a PC without the
+  Visual C++ Redistributable. The build fails if one of them is missing.
 - **Text input and IME (`TextInputSystem`, `EngineContext::textInputSystem`, `Window::SetMessageFilter`).**
   `Begin(maxLength)` / `End()` switch text input on and off; while it is on, `GetText()` returns the
   committed string and `GetComposition()` the string being converted, so a game draws the composition

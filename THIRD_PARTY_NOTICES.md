@@ -34,6 +34,9 @@ NuGet がビルド時に `.build/packages/` へ復元します。
 | `AssimpCpp` | [Assimp](https://github.com/assimp/assimp) | FBX などのモデル読み込み | 5.0.1.6 | BSD 3-Clause |
 | `directxtk_desktop_win10` | [DirectXTK](https://github.com/microsoft/DirectXTK) | オーディオ、スプライト、フォント描画 | 2026.4.1.1 | MIT |
 
+Release の出力には、Visual Studio に付属する Microsoft Visual C++ ランタイム（`vcruntime140.dll`・`vcruntime140_1.dll`・`msvcp140.dll`）を
+exe の隣へコピーします。これらは Visual Studio のライセンス条項に基づく再頒布可能コードで、上記のオープンソースライセンスの対象ではありません。
+
 ---
 
 ## ライセンス条文

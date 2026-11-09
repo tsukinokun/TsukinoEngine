@@ -164,11 +164,33 @@ function tsukino_release_payload()
             "{COPYFILE} " .. root .. "/LICENSE %{cfg.targetdir}/LICENSE",
             "{COPYFILE} " .. root .. "/THIRD_PARTY_NOTICES.md %{cfg.targetdir}/THIRD_PARTY_NOTICES.md",
         }
+        postbuildcommands(tsukino_crt_commands())
         -- Tools/ のうち実行時に要るのは外部ツールの exe だけ。premake/ はビルド用のスクリプト
         postbuildcommands(tsukino_mirror_commands(path.join(rel, "Tools"), "Tools", {
             excludeDirs = { "premake" },
         }))
     filter {}
+end
+
+----------------------------------------
+-- Release の postbuildcommands に渡す、VC++ ランタイムの DLL を exe の隣へ置くコマンド列を返す。
+--
+-- exe は動的 CRT（/MD）でリンクされ、VC++ 再頒布可能パッケージが入っていない PC では
+-- 「vcruntime140.dll が見つかりません」で起動できない。ビルド済みの assimp の DLL と
+-- directxtk の lib も /MD なので、/MT に切り替えても解決しない。
+-- UCRT（api-ms-win-crt-*）は Windows 10 以降に標準で入っているので含めない。
+--
+-- 足りないまま配布物ができないよう、見つからなければビルドを失敗させる。
+-- コピーするのはビルドに使ったツールセットの Redist フォルダの DLL で、
+-- exe が必要とするバージョンと揃う。
+----------------------------------------
+function tsukino_crt_commands()
+    local crt = "$(VCToolsRedistInstallDir)x64\\Microsoft.VC$(PlatformToolsetVersion).CRT\\"
+    local commands = {}
+    for _, dll in ipairs({ "vcruntime140.dll", "vcruntime140_1.dll", "msvcp140.dll" }) do
+        table.insert(commands, 'copy /Y "' .. crt .. dll .. '" "$(TargetDir)" >nul || exit /b 1')
+    end
+    return commands
 end
 
 ----------------------------------------
