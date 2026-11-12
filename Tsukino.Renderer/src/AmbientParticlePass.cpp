@@ -3,6 +3,9 @@
 //! @brief  環境パーティクル（火の粉・灰）パスの実装
 //----------------------------------------------------------------------------
 #include <Tsukino/Renderer/AmbientParticlePass.hpp>
+#include <Tsukino/Renderer/DX11/FrameConstantsGpu.hpp>
+#include <Tsukino/Renderer/DX11/AmbientParticlePassGpu.hpp>
+#include <Tsukino/Renderer/DX11/RenderResourcesGpu.hpp>
 
 #include <Tsukino/Renderer/DX11/GraphicsContext.hpp>
 #include <Tsukino/Renderer/RenderResources.hpp>
@@ -30,9 +33,9 @@ namespace Tsukino::Renderer {
         desc.Usage             = D3D11_USAGE_DEFAULT;
         desc.BindFlags         = D3D11_BIND_CONSTANT_BUFFER;
         desc.ByteWidth         = sizeof(CBufferAmbientParticle);
-        if(FAILED(device->CreateBuffer(&desc, nullptr, m_buffer.GetAddressOf()))) {
+        if(FAILED(device->CreateBuffer(&desc, nullptr, m_gpu->buffer.GetAddressOf()))) {
             Tsukino::Core::Log::Error("Failed to create ambient particle constant buffer.");
-            m_buffer.Reset();
+            m_gpu->buffer.Reset();
             return false;
         }
 
@@ -41,15 +44,15 @@ namespace Tsukino::Renderer {
             return false;
         }
 
-        if(FAILED(device->CreateVertexShader(vs->binary.data(), vs->binary.size(), nullptr, m_vs.GetAddressOf()))) {
+        if(FAILED(device->CreateVertexShader(vs->binary.data(), vs->binary.size(), nullptr, m_gpu->vs.GetAddressOf()))) {
             Tsukino::Core::Log::Error("Failed to create ambient particle vertex shader.");
-            m_vs.Reset();
+            m_gpu->vs.Reset();
             return false;
         }
 
-        if(FAILED(device->CreatePixelShader(ps->binary.data(), ps->binary.size(), nullptr, m_ps.GetAddressOf()))) {
+        if(FAILED(device->CreatePixelShader(ps->binary.data(), ps->binary.size(), nullptr, m_gpu->ps.GetAddressOf()))) {
             Tsukino::Core::Log::Error("Failed to create ambient particle pixel shader.");
-            m_ps.Reset();
+            m_gpu->ps.Reset();
             return false;
         }
 
@@ -60,7 +63,7 @@ namespace Tsukino::Renderer {
     //! 環境パーティクルを HDR バッファへ加算合成で描きます。
     //------------------------------------------------------------------------
     void AmbientParticlePass::Execute() {
-        if(!m_enabled || !m_vs || !m_ps || !m_buffer || m_count == 0)
+        if(!m_enabled || !m_gpu->vs || !m_gpu->ps || !m_gpu->buffer || m_count == 0)
             return;
 
         ID3D11DeviceContext* context = m_graphicsContext->GetContext();
@@ -76,20 +79,20 @@ namespace Tsukino::Renderer {
         // Scene (b0) をバインド（view・viewProj・cameraPosを頂点シェーダーで使う）
         //----------------------------------------------------------
         constexpr UINT sceneCBSlot = static_cast<UINT>(CBSlot::Scene);
-        context->VSSetConstantBuffers(sceneCBSlot, 1, m_frameConstants->GetSceneBufferAddress());
+        context->VSSetConstantBuffers(sceneCBSlot, 1, m_frameConstants->GetGpu().GetSceneBufferAddress());
 
         //----------------------------------------------------------
         // パラメータ (b10) を更新してバインド（頂点シェーダー専用）
         //----------------------------------------------------------
-        context->UpdateSubresource(m_buffer.Get(), 0, nullptr, &m_data, 0, 0);
+        context->UpdateSubresource(m_gpu->buffer.Get(), 0, nullptr, &m_data, 0, 0);
         constexpr UINT particleCBSlot = static_cast<UINT>(CBSlot::AmbientParticle);
-        context->VSSetConstantBuffers(particleCBSlot, 1, m_buffer.GetAddressOf());
+        context->VSSetConstantBuffers(particleCBSlot, 1, m_gpu->buffer.GetAddressOf());
 
         //----------------------------------------------------------
         // シェーダーをセット（頂点バッファが無いので入力レイアウトも不要）
         //----------------------------------------------------------
-        context->VSSetShader(m_vs.Get(), nullptr, 0);
-        context->PSSetShader(m_ps.Get(), nullptr, 0);
+        context->VSSetShader(m_gpu->vs.Get(), nullptr, 0);
+        context->PSSetShader(m_gpu->ps.Get(), nullptr, 0);
         context->IASetInputLayout(nullptr);
 
         //----------------------------------------------------------
@@ -100,9 +103,9 @@ namespace Tsukino::Renderer {
         // 深度を書かないことで粒子どうしの前後関係を気にせずに済み、
         // 加算合成なので描画順のソートも不要になる
         //----------------------------------------------------------
-        context->OMSetDepthStencilState(m_resources->GetCommonStatesTK()->DepthReadReverseZ(), 0);
-        context->OMSetBlendState(m_resources->GetCommonStatesTK()->Additive(), nullptr, 0xFFFFFFFF);
-        context->RSSetState(m_resources->GetCommonStatesTK()->CullNone());
+        context->OMSetDepthStencilState(m_resources->GetGpu().GetCommonStatesTK()->DepthReadReverseZ(), 0);
+        context->OMSetBlendState(m_resources->GetGpu().GetCommonStatesTK()->Additive(), nullptr, 0xFFFFFFFF);
+        context->RSSetState(m_resources->GetGpu().GetCommonStatesTK()->CullNone());
 
         //----------------------------------------------------------
         // 頂点バッファなしで「1粒 = 三角形2枚」を一括描画
@@ -115,7 +118,18 @@ namespace Tsukino::Renderer {
         //----------------------------------------------------------
         // ステートを戻す（Sky / Fogと同じ流儀）
         //----------------------------------------------------------
-        context->OMSetDepthStencilState(m_resources->GetCommonStatesTK()->DepthDefault(), 0);
-        context->OMSetBlendState(m_resources->GetCommonStatesTK()->Opaque(), nullptr, 0xFFFFFFFF);
+        context->OMSetDepthStencilState(m_resources->GetGpu().GetCommonStatesTK()->DepthDefault(), 0);
+        context->OMSetBlendState(m_resources->GetGpu().GetCommonStatesTK()->Opaque(), nullptr, 0xFFFFFFFF);
     }
+
+    //------------------------------------------------------------------------
+    //! 資源を持たない状態で作ります。
+    //------------------------------------------------------------------------
+    AmbientParticlePass::AmbientParticlePass()
+        : m_gpu(std::make_unique<Gpu>()) {}
+
+    //------------------------------------------------------------------------
+    //! 資源を破棄します。
+    //------------------------------------------------------------------------
+    AmbientParticlePass::~AmbientParticlePass() = default;
 }    // namespace Tsukino::Renderer

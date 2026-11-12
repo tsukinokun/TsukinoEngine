@@ -582,9 +582,8 @@ namespace Tsukino::BuiltIn::ECS {
                     DrawWireBox(sink, center, halfExtent, color);
                 }
 
-                Tsukino::Renderer::DrawCommand cmd{};
-                cmd.customDraw = [renderer = ctx->renderer](ID3D11DeviceContext* context) { renderer->GetDebugDraw().Flush(); };
-                ctx->renderer->GetDrawQueue().Push(cmd);
+                // 積んだ線を World パスの線の描画コマンドとして渡す
+                ctx->renderer->GetDebugDraw().Submit(ctx->renderer->GetDrawQueue());
             }
         }
 #endif    // TSUKINO_DEBUG_COLLISION_DRAW

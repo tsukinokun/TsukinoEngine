@@ -6,14 +6,10 @@
 //!         初期化時に一度だけ作ります。結果はライティングとフォワードのモデル描画が読みます。
 //----------------------------------------------------------------------------
 #pragma once
-#include <Tsukino/Core/WindowsLean.hpp>
 #include <Tsukino/Core/typedef.hpp>
 
 #include <Tsukino/Renderer/ConstantBuffer.hpp>
-#include <Tsukino/Renderer/DX11/Texture/DX11TextureCube.hpp>
 
-#include <wrl/client.h>
-#include <d3d11.h>
 
 #include <memory>
 
@@ -36,6 +32,30 @@ namespace Tsukino::Renderer {
     //------------------------------------------------------------------------
     class IBLBaker {
     public:
+        struct Gpu;    //!< 描画 API の資源（Renderer の内部で定義）
+
+        //! 資源を持たない状態で作ります（Initialize() で作成します）。
+        IBLBaker();
+
+        //! 資源を破棄します。
+        ~IBLBaker();
+
+        IBLBaker(const IBLBaker&)            = delete;
+        IBLBaker& operator=(const IBLBaker&) = delete;
+
+        //! 描画 API の資源を取得します（Renderer の中で使う。中身の定義は公開しない）。
+        //! @return 資源への参照
+        [[nodiscard]]
+        Gpu& GetGpu() noexcept {
+            return *m_gpu;
+        }
+
+        //! 描画 API の資源を取得します（Renderer の中で使う。中身の定義は公開しない）。
+        //! @return 資源への参照
+        [[nodiscard]]
+        const Gpu& GetGpu() const noexcept {
+            return *m_gpu;
+        }
 
         //! 再ベイクを要求します。
         //! @note  太陽が動く演出（day-night等）が将来追加されたときは、そのシステムが
@@ -47,11 +67,11 @@ namespace Tsukino::Renderer {
         }
 
         //! 定数バッファ（b10 と、ベイク中だけ使う b11）を作成します。
-        //! @param  [in] device 描画デバイス
+        //! @param  [in] graphicsContext 描画デバイスの持ち主
         //! @return true: 作成成功, false: 作成失敗
         //! @note   IBL を使わないときもライティングが b10 を読むため、Initialize() の成否に関わらず必要
         [[nodiscard]]
-        bool CreateConstantBuffers(ID3D11Device* device);
+        bool CreateConstantBuffers(const GraphicsContext& graphicsContext);
 
         //! キューブマップ・BRDF LUT・ベイク用シェーダーを作成し、BRDF LUT を焼きます。
         //! @param  [in] graphicsContext        デバイスとデバイスコンテキストの取得元
@@ -123,22 +143,12 @@ namespace Tsukino::Renderer {
         const FullscreenPass* m_fullscreenPass  = nullptr;    // フルスクリーン三角形の描画（借りている）
         const SkyPass*        m_skyPass         = nullptr;    // スカイのシェーダーと定数（借りている）
 
-        std::unique_ptr<DX11TextureCube> m_captureCube;                // スカイを焼いたキャプチャキューブ（一発ベイクの中間結果）
-        std::unique_ptr<DX11TextureCube> m_irradianceCube;             // 拡散IBL用 irradiance キューブ（t17 で読む）
-        std::unique_ptr<DX11TextureCube> m_prefilteredSpecularCube;    // 鏡面IBL用プレフィルタ済みキューブ（t18 で読む）
+        std::unique_ptr<Gpu> m_gpu;    // 描画 API の資源（中身は Renderer の内部で定義）
 
-        Microsoft::WRL::ComPtr<ID3D11Texture2D>          m_brdfLUTTex;    // split-sum 用 BRDF 積分 LUT 本体
-        Microsoft::WRL::ComPtr<ID3D11RenderTargetView>   m_brdfLUTRTV;    // 生成時（起動時1回だけ）に使う RTV
-        Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> m_brdfLUTSRV;    // シェーダー読み取り用 SRV（t19）
 
-        Microsoft::WRL::ComPtr<ID3D11PixelShader> m_irradiancePS;           // irradiance 畳み込み用 PS（VS はフルスクリーン三角形用を共用）
-        Microsoft::WRL::ComPtr<ID3D11PixelShader> m_specularPrefilterPS;    // スペキュラプレフィルタ用 PS（同上）
-        Microsoft::WRL::ComPtr<ID3D11PixelShader> m_brdfLUTPS;              // BRDF LUT 生成用 PS（同上）
         bool                                      m_hasBakeShaders = false; // 上記3PSと3キューブ/LUTの生成がすべて成功したか
 
-        Microsoft::WRL::ComPtr<ID3D11Buffer> m_buffer;        // CBufferIBL 用バッファ (b10)
         CBufferIBL                           m_data{};        // CPU側の IBL パラメータ（ベイク完了時に1度だけ更新する）
-        Microsoft::WRL::ComPtr<ID3D11Buffer> m_bakeBuffer;    // CBufferIBLBake 用バッファ (b11, ベイク中だけ使う一時バッファ)
 
         bool m_baked = false;    // スカイ由来の IBL（キャプチャ/irradiance/プレフィルタ）を焼き終えたか
     };

@@ -393,7 +393,7 @@ namespace Tsukino::EngineIntegration {
         shaderSet.iblSpecularPrefilterPS  = iblSpecularPrefilterPSAsset.get();
         shaderSet.iblBRDFLUTPS            = iblBRDFLUTPSAsset.get();
 
-        if(!m_renderer->Initialize(static_cast<HWND>(m_window->GetNativeHandle()), m_window->GetWidth(), m_window->GetHeight(), shaderSet,
+        if(!m_renderer->Initialize(Tsukino::Renderer::NativeWindow{m_window->GetNativeHandle()}, m_window->GetWidth(), m_window->GetHeight(), shaderSet,
                                    deviceOptions)) {
             return false;
         }

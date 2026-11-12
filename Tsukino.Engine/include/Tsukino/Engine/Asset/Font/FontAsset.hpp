@@ -1,21 +1,19 @@
 ﻿//--------------------------------------------------------------
 //! @file       FontAsset.hpp
-//! @brief      DirectXTKのSpriteFontを管理するアセットクラス
+//! @brief      ベイク済みフォント（.spritefont）のバイナリを持つアセットクラス
 //! @author     山﨑愛
 //--------------------------------------------------------------
 #pragma once
-// windows.h の min/max マクロを避けるため、DX11 / Effekseer より先に通す
-#include <Tsukino/Core/WindowsLean.hpp>
 #include <Tsukino/Engine/Asset/IAsset.hpp>
 
-#include <memory>
-#include <string>
-#include <d3d11.h>
+#include <cstdint>
+#include <vector>
+
 // Tsukino::Asset 名前空間
 namespace Tsukino::Asset {
     //--------------------------------------------------------------
     //! @class FontAsset
-    //! @brief DirectXTKのSpriteFontを管理するアセットクラス
+    //! @brief ベイク済みフォントのバイナリを持つアセットクラス（GPU の資源は Renderer 側が作る）
     //--------------------------------------------------------------
     class FontAsset : public IAsset {
     public:

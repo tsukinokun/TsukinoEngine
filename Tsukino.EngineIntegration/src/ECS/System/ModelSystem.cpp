@@ -31,7 +31,7 @@
 #include <Tsukino/Core/Window.hpp>
 #include <Tsukino/Renderer/ConstantBuffer.hpp>
 #include <Tsukino/Renderer/Renderer.hpp>
-#include <Tsukino/Renderer/DX11/MeshBuffer.hpp>
+#include <Tsukino/Renderer/MeshBuffer.hpp>
 #include <Tsukino/Renderer/ShaderSlots.hpp>
 #include <Tsukino/GraphicsCommon/Model/ModelData.hpp>
 #include <Tsukino/GraphicsCommon/Vertex/VertexFormat.hpp>
@@ -114,7 +114,7 @@ namespace Tsukino::BuiltIn::ECS {
             if(meshCacheIt == m_modelMeshCache.end()) {
                 std::vector<Tsukino::Renderer::MeshBuffer> buffers;
                 for(const auto& mesh : modelAsset->modelData.meshes) {
-                    buffers.push_back(Tsukino::Renderer::CreateMeshBuffer(ctx->renderer->GetDevice(), mesh));
+                    buffers.push_back(ctx->renderer->GetResources().CreateMesh(mesh));
                 }
                 auto result = m_modelMeshCache.emplace(handleVal, std::move(buffers));
                 meshCacheIt = result.first;
@@ -267,14 +267,14 @@ namespace Tsukino::BuiltIn::ECS {
                     // マテリアルテクスチャ（t0〜t4）の解決
                     // 未設定のスロットはここでは nullptr のままにしておき、
                     // Material構築時にデフォルトテクスチャへフォールバックさせる。
-                    // null SRV をそのままバインドするとサンプル結果が0になり、
+                    // 空のテクスチャをそのままバインドするとサンプル結果が0になり、
                     // 特に法線マップは DecodeNormal が normalize(-1,-1,-1) になって破綻する。
                     //--------------------------------------------------------------
-                    ID3D11ShaderResourceView* albedoSRV   = nullptr;
-                    ID3D11ShaderResourceView* normalSRV   = nullptr;
-                    ID3D11ShaderResourceView* mrSRV       = nullptr;
-                    ID3D11ShaderResourceView* emissiveSRV = nullptr;
-                    ID3D11ShaderResourceView* aoSRV       = nullptr;
+                    Tsukino::Renderer::TextureHandle albedoTexture;
+                    Tsukino::Renderer::TextureHandle normalTexture;
+                    Tsukino::Renderer::TextureHandle mrTexture;
+                    Tsukino::Renderer::TextureHandle emissiveTexture;
+                    Tsukino::Renderer::TextureHandle aoTexture;
 
                     // 照らし方とトゥーンの値（既定は MaterialData の既定値）
                     Tsukino::GraphicsCommon::MaterialData defaultMaterial;
@@ -316,24 +316,24 @@ namespace Tsukino::BuiltIn::ECS {
                             toonSpecularSize = matAsset->data.toonSpecularSize;
                             alphaCutoff      = matAsset->data.alphaCutoff;
 
-                            // AssetHandle から SRV を引く（無効ハンドル・未ロードは nullptr）
-                            auto resolveSRV = [&](const Tsukino::Asset::AssetHandle& handle) -> ID3D11ShaderResourceView* {
+                            // AssetHandle からテクスチャのハンドルを引く（無効ハンドル・未ロードは無効なハンドル）
+                            auto resolveTexture = [&](const Tsukino::Asset::AssetHandle& handle) -> Tsukino::Renderer::TextureHandle {
                                 if(!handle.IsValid())
-                                    return nullptr;
+                                    return {};
 
                                 auto texAssetBase = ctx->assetManager->Get(handle);
                                 if(!texAssetBase)
-                                    return nullptr;
+                                    return {};
 
                                 auto texAsset = std::static_pointer_cast<Tsukino::Asset::TextureAsset>(texAssetBase);
-                                return ctx->renderer->GetResources().GetTextureSRV(*texAsset);
+                                return ctx->renderer->GetResources().GetTexture(*texAsset);
                             };
 
-                            albedoSRV   = resolveSRV(matAsset->albedoHandle);
-                            normalSRV   = resolveSRV(matAsset->normalHandle);
-                            mrSRV       = resolveSRV(matAsset->metallicRoughnessHandle);
-                            emissiveSRV = resolveSRV(matAsset->emissiveHandle);
-                            aoSRV       = resolveSRV(matAsset->aoHandle);
+                            albedoTexture   = resolveTexture(matAsset->albedoHandle);
+                            normalTexture   = resolveTexture(matAsset->normalHandle);
+                            mrTexture       = resolveTexture(matAsset->metallicRoughnessHandle);
+                            emissiveTexture = resolveTexture(matAsset->emissiveHandle);
+                            aoTexture       = resolveTexture(matAsset->aoHandle);
                         }
                     }
 
@@ -432,8 +432,8 @@ namespace Tsukino::BuiltIn::ECS {
                     //   白        : シェーダー側で cbuffer 定数との乗算になるため恒等元
                     //   フラット法線: 適用しても頂点法線がそのまま保たれる
                     //--------------------------------------------------------------
-                    ID3D11ShaderResourceView* whiteSRV      = ctx->renderer->GetResources().GetWhiteTextureSRV();
-                    ID3D11ShaderResourceView* flatNormalSRV = ctx->renderer->GetResources().GetFlatNormalTextureSRV();
+                    const Tsukino::Renderer::TextureHandle whiteTexture      = ctx->renderer->GetResources().GetWhiteTexture();
+                    const Tsukino::Renderer::TextureHandle flatNormalTexture = ctx->renderer->GetResources().GetFlatNormalTexture();
 
                     // 指定パイプラインでMaterialを1つ組み立てて、安定した参照を返す
                     // （複数DrawCommandから同じテクスチャ設定を使い回すためのヘルパー）
@@ -443,12 +443,12 @@ namespace Tsukino::BuiltIn::ECS {
 
                         Tsukino::Renderer::Material& mat = ctx->renderer->GetDrawQueue().AllocMaterial();
                         mat.SetPipeline(pipeline.get());
-                        mat.SetSampler(ctx->renderer->GetResources().GetSampler(Tsukino::GraphicsCommon::SamplerType::AnisotropicWrap));
-                        mat.SetTexture(Tsukino::Renderer::SRVSlot::Albedo, albedoSRV ? albedoSRV : whiteSRV);
-                        mat.SetTexture(Tsukino::Renderer::SRVSlot::Normal, normalSRV ? normalSRV : flatNormalSRV);
-                        mat.SetTexture(Tsukino::Renderer::SRVSlot::MetallicRoughness, mrSRV ? mrSRV : whiteSRV);
-                        mat.SetTexture(Tsukino::Renderer::SRVSlot::Emissive, emissiveSRV ? emissiveSRV : whiteSRV);
-                        mat.SetTexture(Tsukino::Renderer::SRVSlot::AO, aoSRV ? aoSRV : whiteSRV);
+                        mat.SetSampler(Tsukino::GraphicsCommon::SamplerType::AnisotropicWrap);
+                        mat.SetTexture(Tsukino::Renderer::SRVSlot::Albedo, albedoTexture.IsValid() ? albedoTexture : whiteTexture);
+                        mat.SetTexture(Tsukino::Renderer::SRVSlot::Normal, normalTexture.IsValid() ? normalTexture : flatNormalTexture);
+                        mat.SetTexture(Tsukino::Renderer::SRVSlot::MetallicRoughness, mrTexture.IsValid() ? mrTexture : whiteTexture);
+                        mat.SetTexture(Tsukino::Renderer::SRVSlot::Emissive, emissiveTexture.IsValid() ? emissiveTexture : whiteTexture);
+                        mat.SetTexture(Tsukino::Renderer::SRVSlot::AO, aoTexture.IsValid() ? aoTexture : whiteTexture);
 
                         return &mat;
                     };

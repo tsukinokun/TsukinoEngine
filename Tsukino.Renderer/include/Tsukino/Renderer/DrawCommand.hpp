@@ -4,14 +4,11 @@
 //! @author 山﨑愛
 //------------------------------------------------------------
 #pragma once
-// windows.h の min/max マクロを避けるため、DX11 / Effekseer より先に通す
-#include <Tsukino/Core/WindowsLean.hpp>
 #include <Tsukino/Core/Math/Matrix.hpp>
 #include <Tsukino/Core/typedef.hpp>
+#include <Tsukino/Renderer/GpuHandles.hpp>
 #include <Tsukino/Renderer/ShaderSlots.hpp>
 
-#include <d3d11.h>
-#include <functional>
 // 名前空間 Tsukino::Renderer
 namespace Tsukino::Renderer {
     // 前方宣言
@@ -32,7 +29,7 @@ namespace Tsukino::Renderer {
     //------------------------------------------------------------
     enum class RenderPass : u8 {
         GBuffer,            // 不透明3Dモデル（ディファード）。G-Bufferへ書き込む
-        World,              // 深度を書くフォワードの3D（デバッグ線などcustomDraw経由の不透明）。フォグより前
+        World,              // 深度を書くフォワードの3D（デバッグ線など不透明）。フォグより前
         TransparentDepth,   // 半透明モデルの深度事前パス（Transparentの直前。色は書かず深度だけ埋める）
         Transparent,        // 深度を書かない3D（半透明モデル・ワールド空間スプライト・加算の光など）。フォグより後。
                             // 並べ替えはせず、積んだ順に描く（同じ場所に重ねる物は、下に敷く物から先に積めばよい）
@@ -51,16 +48,67 @@ namespace Tsukino::Renderer {
     };
 
     //------------------------------------------------------------
+    //! @enum  DrawKind
+    //! @brief 描画コマンドが何を描くか
+    //------------------------------------------------------------
+    enum class DrawKind : u8 {
+        Mesh,       // material と mesh で描く（既定）
+        Sprites,    // DrawCommandQueue::PushSprites で積んだスプライトの並び（文字など。画面のピクセルで描く）
+        Lines,      // DrawCommandQueue::PushLines で積んだ線の頂点の列（2頂点で1本。デバッグ線など）
+    };
+
+    //------------------------------------------------------------
+    //! @struct TexelRect
+    //! @brief  テクスチャから切り出す矩形（テクセル。左上原点、右・下は含まない）
+    //------------------------------------------------------------
+    struct TexelRect {
+        i32 left   = 0;
+        i32 top    = 0;
+        i32 right  = 0;
+        i32 bottom = 0;
+    };
+
+    //------------------------------------------------------------
+    //! @struct SpriteQuad
+    //! @brief  スプライト1枚（テクスチャの一部を画面のピクセルへ貼る四角）
+    //! @note   DrawKind::Sprites のコマンドが描く単位。並べた順に描かれ、
+    //!         ブレンドは straight alpha（色にアルファを掛けていない）、深度は読むだけで書かない。
+    //!         画面上の位置は、切り出した矩形の origin の点が (x, y) に来るように置き、
+    //!         origin を軸に scale で拡大し、rotation で回す
+    //------------------------------------------------------------
+    struct SpriteQuad {
+        TextureHandle             texture;                                // 貼るテクスチャ
+        float                     x        = 0.0f;                        // 描く位置 X（ピクセル。左上原点）
+        float                     y        = 0.0f;                        // 描く位置 Y（ピクセル。左上原点）
+        TexelRect                 source;                                 // テクスチャから切り出す矩形
+        float                     color[4] = {1.0f, 1.0f, 1.0f, 1.0f};    // テクスチャに掛ける色（RGBA）
+        float                     rotation = 0.0f;                        // 回転（ラジアン。画面上で時計回りが正）
+        float                     originX  = 0.0f;                        // 回転と拡大の軸 X（切り出した矩形の左上からのテクセル）
+        float                     originY  = 0.0f;                        // 回転と拡大の軸 Y（切り出した矩形の左上からのテクセル）
+        float                     scaleX   = 1.0f;                        // 横の拡大率
+        float                     scaleY   = 1.0f;                        // 縦の拡大率
+    };
+
+    //------------------------------------------------------------
     //! @struct DrawCommand
     //! @brief  描画コマンドを表す構造体
     //------------------------------------------------------------
     struct DrawCommand {
         Material*                                 material;                            // どう描くか（シェーダー、テクスチャ、ステート）
         MeshBuffer*                               mesh;                                // 何を描くか（Quad, Cube, Model Mesh など）
-        std::function<void(ID3D11DeviceContext*)> customDraw;                          // カスタム描画関数（nullptr なら通常描画）
         Tsukino::Core::Math::matrix               transform;                           // どこに描くか（モデル行列）
         RenderPass                                pass         = RenderPass::World;    // 描画パス
         CBufferMaterial*                          materialData = nullptr;              // マテリアルの定数データ（存在すれば）
+
+        //--------------------------------------------------------
+        // 描くものの種類。Sprites / Lines のコマンドは material と mesh を使わず、
+        // DrawCommandQueue が持つスプライト・線の頂点の並びのうち
+        // [batchFirst, batchFirst + batchCount) を描く。
+        // この3つは DrawCommandQueue::PushSprites / PushLines が設定するので、手で書かない
+        //--------------------------------------------------------
+        DrawKind kind       = DrawKind::Mesh;    // 描くものの種類
+        u32      batchFirst = 0;                 // キューの並びの中の先頭
+        u32      batchCount = 0;                 // 描く数（スプライトの枚数、または線の頂点数）
 
         //! 同一パス内の描画順（小さいほど先に描く＝奥）。
         //! 現状これを見て並べ替えるのは Overlay パスだけで、他のパスは
@@ -83,10 +131,11 @@ namespace Tsukino::Renderer {
         // パイプラインのキャッシュが倍々に膨らむため。
         //
         // instanceData は必須ではない。インスタンスごとの値を SV_InstanceID の
-        // ハッシュから毎フレーム計算する使い方（草など）では nullptr のままでよい。
+        // ハッシュから毎フレーム計算する使い方（草など）では無効なハンドルのままでよい。
+        // 作成・更新は RenderResources::CreateInstanceBuffer / UpdateInstanceBuffer を使う
         //--------------------------------------------------------
-        u32                       instanceCount = 1;          // 描画するインスタンス数（1 なら非インスタンス描画）
-        ID3D11ShaderResourceView* instanceData  = nullptr;    // 1インスタンスあたりのデータ（頂点シェーダーの t スロットへバインドされる）
+        u32          instanceCount = 1;    // 描画するインスタンス数（1 なら非インスタンス描画）
+        BufferHandle instanceData;         // 1インスタンスあたりのデータ（頂点シェーダーの t スロットへバインドされる）
 
         //--------------------------------------------------------
         // 影を落とすか。
@@ -135,10 +184,10 @@ namespace Tsukino::Renderer {
         // 時間や解像度は b0（CBufferScene）から取れるので、それだけで
         // 足りる演出はこの枠を使う必要すら無い。
         //
-        // 作成・更新は DX11/UserConstantBuffer.hpp のヘルパを使う
+        // 作成・更新は RenderResources::CreateUserConstantBuffer / UpdateUserConstantBuffer を使う
         //--------------------------------------------------------
-        ID3D11Buffer* userConstantBuffer = nullptr;             // ゲーム定義の定数バッファ（不要なら nullptr）
-        CBSlot        userConstantSlot   = CBSlot::User0;       // バインド先（User0 / User1）
+        BufferHandle userConstantBuffer;                      // ゲーム定義の定数バッファ（不要なら無効なハンドル）
+        CBSlot       userConstantSlot   = CBSlot::User0;      // バインド先（User0 / User1）
 
         //--------------------------------------------------------
         // モーションブラー用の前フレームデータ
@@ -154,8 +203,7 @@ namespace Tsukino::Renderer {
         // 切り取り（シザー）。
         // hasClipRect が true のコマンドは clipRect の外に描かれない（スクロールする UI の枠など）。
         // 既定は false なので、既存の描画コマンドは今までどおり全体に描かれる。
-        // customDraw のコマンドには効かないので、customDraw の中で自分で
-        // RSSetScissorRects とシザー有効のラスタライザを設定すること（FontRendererSystem 参照）
+        // DrawKind によらず、どの種類のコマンドにも効く
         //--------------------------------------------------------
         bool     hasClipRect = false;    // clipRect で切り取るか
         ClipRect clipRect;               // 切り取る矩形

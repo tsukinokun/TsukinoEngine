@@ -4,11 +4,9 @@
 //! @author 山﨑愛
 //------------------------------------------------------------
 #pragma once
-#include <Tsukino/Core/WindowsLean.hpp>
-
-#include <Tsukino/Renderer/DX11/GraphicsContext.hpp>
-#include <Tsukino/Renderer/DX11/MeshBuffer.hpp>
-#include <Tsukino/Renderer/DX11/PipelineFactory.hpp>
+#include <Tsukino/Renderer/MeshBuffer.hpp>
+#include <Tsukino/Renderer/NativeHandles.hpp>
+#include <Tsukino/Renderer/PipelineFactory.hpp>
 #include <Tsukino/Renderer/RenderResources.hpp>
 #include <Tsukino/Renderer/FrameConstants.hpp>
 #include <Tsukino/Renderer/ShadowSettings.hpp>
@@ -22,21 +20,14 @@
 #include <Tsukino/Renderer/MotionBlurPass.hpp>
 #include <Tsukino/Renderer/BloomPass.hpp>
 #include <Tsukino/Renderer/DrawCommandQueue.hpp>
-#include <Tsukino/Renderer/DX11/Texture/DX11Texture2D.hpp>
-#include <Tsukino/Renderer/DX11/Texture/DX11TextureCube.hpp>
 #include <Tsukino/Renderer/ConstantBuffer.hpp>
 #include <Tsukino/Renderer/GpuTiming.hpp>
+#include <Tsukino/Renderer/RenderQuality.hpp>
 
 #include <Tsukino/GraphicsCommon/Mesh/PrimitiveType.hpp>
 #include <Tsukino/GraphicsCommon/Mesh/MeshData.hpp>
 #include <Tsukino/GraphicsCommon/State/SamplerType.hpp>
 #include <Tsukino/GraphicsCommon/Vertex/DebugVertex.hpp>
-
-#include <wrl/client.h>    // ComPtrの依存関係を明示
-#include <d3d11.h>         // 依存関係を明示
-#include <dxgi.h>          // 依存関係を明示
-#include <SpriteFont.h>
-#include <CommonStates.h>
 
 #include <array>
 #include <memory>
@@ -44,9 +35,7 @@
 
 // 名前空間 : Tsukino::Renderer
 namespace Tsukino::Renderer {
-    // ComPtr の using 宣言。公開ヘッダなのでグローバルではなく名前空間の内側に置く
-    using Microsoft::WRL::ComPtr;
-
+    class GraphicsContext;        // 前方宣言（Device, DeviceContext, SwapChain の持ち主。Tsukino.Renderer の内部専用）
     class IPostWorldPass;         // 前方宣言（Worldパスの後に差し込む描画。実体は上位層が持つ）
     class DrawCommandExecutor;    // 前方宣言（描画コマンドの実行。Tsukino.Renderer の内部専用）
     class FullscreenPass;         // 前方宣言（フルスクリーン三角形の描画。同上）
@@ -108,7 +97,7 @@ namespace Tsukino::Renderer {
 
         //------------------------------------------------------------
         // レンダラーの初期化
-        //! @param hwnd    [in] 描画先のウィンドウハンドル
+        //! @param window  [in] 描画先のウィンドウ
         //! @param width   [in] 描画領域の幅
         //! @param height  [in] 描画領域の高さ
         //! @param shaders [in] ビルトインシェーダー一式
@@ -116,7 +105,7 @@ namespace Tsukino::Renderer {
         //! @return true: [in] 初期化成功, false: 初期化失敗
         //------------------------------------------------------------
         [[nodiscard]]
-        bool Initialize(HWND hwnd, uint32_t width, uint32_t height, const RendererShaderSet& shaders, const GraphicsDeviceOptions& deviceOptions = {});
+        bool Initialize(const NativeWindow& window, uint32_t width, uint32_t height, const RendererShaderSet& shaders, const GraphicsDeviceOptions& deviceOptions = {});
 
         //------------------------------------------------------------
         // 描画処理
@@ -233,17 +222,13 @@ namespace Tsukino::Renderer {
         //! @param enabled [in] true でVSync有効、false で無効
         //! @note  性能計測時に false にする。詳細は GraphicsContext::SetVSyncEnabled を参照
         //------------------------------------------------------------
-        void SetVSyncEnabled(bool enabled) {
-            m_graphicsContext.SetVSyncEnabled(enabled);
-        }
+        void SetVSyncEnabled(bool enabled);
 
         //------------------------------------------------------------
         //! @brief  垂直同期が有効かを取得する関数
         //------------------------------------------------------------
         [[nodiscard]]
-        bool IsVSyncEnabled() const {
-            return m_graphicsContext.IsVSyncEnabled();
-        }
+        bool IsVSyncEnabled() const;
 
         //------------------------------------------------------------
         //! @brief  描画品質を設定する関数
@@ -268,9 +253,7 @@ namespace Tsukino::Renderer {
         //! @return アダプタ情報。品質の自動判定は RecommendRenderQuality に渡す
         //------------------------------------------------------------
         [[nodiscard]]
-        const GraphicsAdapterInfo& GetAdapterInfo() const noexcept {
-            return m_graphicsContext.GetAdapterInfo();
-        }
+        const GraphicsAdapterInfo& GetAdapterInfo() const noexcept;
 
         //------------------------------------------------------------
         //! @brief  デバッグ用の線と三角形の描画を取得する
@@ -301,22 +284,13 @@ namespace Tsukino::Renderer {
         }
 
         //------------------------------------------------------------
-        // デバイスの取得を公開
-        //! @return ID3D11Deviceのポインタ
+        //! 描画 API の生のデバイスを取得します。
+        //! @return デバイスとデバイスコンテキスト（型は描画 API による。NativeHandles.hpp を参照）
+        //! @note   Renderer の外で描画 API を直接使う部品（Effekseer など）のためのもの。
+        //!         ふつうの描画は DrawCommand と RenderResources で行うこと
         //------------------------------------------------------------
         [[nodiscard]]
-        ID3D11Device* GetDevice() const {
-            return m_graphicsContext.GetDevice();
-        }
-
-        //------------------------------------------------------------
-        // デバイスコンテキストの取得を公開
-        //! @return ID3D11DeviceContextのポインタ
-        //------------------------------------------------------------
-        [[nodiscard]]
-        ID3D11DeviceContext* GetContext() const {
-            return m_graphicsContext.GetContext();
-        }
+        NativeGraphicsContext GetNativeGraphicsContext() const noexcept;
 
         //------------------------------------------------------------
         //! @brief  ディファードライティングパスを取得する
@@ -400,7 +374,7 @@ namespace Tsukino::Renderer {
         //! @note 【この宣言順は破棄順序の設計であり、並べ替えてはならない】
         //!       以降の部品はすべて m_graphicsContext が持つデバイスを借りて資源を作るため、
         //!       デバイスを最後まで生かすよう先頭に置く
-        GraphicsContext m_graphicsContext;    // グラフィックスコンテキスト（Device, DeviceContext, SwapChainを管理）
+        std::unique_ptr<GraphicsContext> m_graphicsContext;    // グラフィックスコンテキスト（Device, DeviceContext, SwapChainを管理）
         RenderResources m_resources;          // 描画で共有する資源（ステート・サンプラー・既定テクスチャ・テクスチャキャッシュ等）
         FrameConstants  m_frameConstants;     // フレーム単位のシーン定数（b0）
 

@@ -4,10 +4,8 @@
 //! @author 山﨑愛
 //--------------------------------------------------------------
 #pragma once
-// windows.h の min/max マクロを避けるため、DX11 / Effekseer より先に通す
-#include <Tsukino/Core/WindowsLean.hpp>
-#include <d3d11.h> 
-#include <DirectXMath.h>
+#include <Tsukino/GraphicsCommon/Vertex/PackedFloat.hpp>
+
 // 名前空間 : Tsukino::GraphicsCommon
 namespace Tsukino::GraphicsCommon {
     //--------------------------------------------------------------
@@ -15,8 +13,8 @@ namespace Tsukino::GraphicsCommon {
     //! @brief  頂点構造体（位置 + 法線 + UV）
     //--------------------------------------------------------------
     struct VertexPNUV {
-        DirectX::XMFLOAT3 position;    // 頂点の位置（x, y, z）
-        DirectX::XMFLOAT3 normal;      // 頂点の法線ベクトル（x, y, z）
-        DirectX::XMFLOAT2 uv;          // 頂点のUV座標（u, v）
+        Float3 position;    // 頂点の位置（x, y, z）
+        Float3 normal;      // 頂点の法線ベクトル（x, y, z）
+        Float2 uv;          // 頂点のUV座標（u, v）
     };
 }    // namespace Tsukino::GraphicsCommon

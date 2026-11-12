@@ -3,6 +3,11 @@
 //! @brief  スカイ由来の環境光（IBL）のベイクの実装
 //----------------------------------------------------------------------------
 #include <Tsukino/Renderer/IBLBaker.hpp>
+#include <Tsukino/Renderer/DX11/Texture/DX11TextureCube.hpp>
+#include <Tsukino/Renderer/DX11/SkyPassGpu.hpp>
+#include <Tsukino/Renderer/DX11/FrameConstantsGpu.hpp>
+#include <Tsukino/Renderer/DX11/IBLBakerGpu.hpp>
+#include <Tsukino/Renderer/DX11/RenderResourcesGpu.hpp>
 
 #include "FullscreenPass.hpp"
 
@@ -22,21 +27,23 @@ namespace Tsukino::Renderer {
     //------------------------------------------------------------------------
     //! 定数バッファ（b10 と、ベイク中だけ使う b11）を作成します。
     //------------------------------------------------------------------------
-    bool IBLBaker::CreateConstantBuffers(ID3D11Device* device) {
+    bool IBLBaker::CreateConstantBuffers(const GraphicsContext& graphicsContext) {
+        ID3D11Device* device = graphicsContext.GetDevice();
+
         D3D11_BUFFER_DESC desc = {};
         desc.Usage             = D3D11_USAGE_DEFAULT;
         desc.BindFlags         = D3D11_BIND_CONSTANT_BUFFER;
 
         // CBufferIBL (b10)
         desc.ByteWidth = sizeof(CBufferIBL);
-        if(FAILED(device->CreateBuffer(&desc, nullptr, m_buffer.GetAddressOf()))) {
+        if(FAILED(device->CreateBuffer(&desc, nullptr, m_gpu->buffer.GetAddressOf()))) {
             Tsukino::Core::Log::Error("Failed to create IBL constant buffer.");
             return false;
         }
 
         // CBufferIBLBake (b11)：IBLベイク（キャプチャ/irradiance畳み込み/スペキュラプレフィルタ）実行中だけ使う一時バッファ
         desc.ByteWidth = sizeof(CBufferIBLBake);
-        if(FAILED(device->CreateBuffer(&desc, nullptr, m_bakeBuffer.GetAddressOf()))) {
+        if(FAILED(device->CreateBuffer(&desc, nullptr, m_gpu->bakeBuffer.GetAddressOf()))) {
             Tsukino::Core::Log::Error("Failed to create IBL bake constant buffer.");
             return false;
         }
@@ -68,11 +75,11 @@ namespace Tsukino::Renderer {
         //------------------------------------------------------------
         // キューブマップ本体3枚
         //------------------------------------------------------------
-        m_captureCube             = std::make_unique<DX11TextureCube>(kCaptureSize, 1, kCubeFormat, device);
-        m_irradianceCube          = std::make_unique<DX11TextureCube>(kIrradianceSize, 1, kCubeFormat, device);
-        m_prefilteredSpecularCube = std::make_unique<DX11TextureCube>(kSpecularBaseSize, kSpecularMipCount, kCubeFormat, device);
+        m_gpu->captureCube             = std::make_unique<DX11TextureCube>(kCaptureSize, 1, kCubeFormat, device);
+        m_gpu->irradianceCube          = std::make_unique<DX11TextureCube>(kIrradianceSize, 1, kCubeFormat, device);
+        m_gpu->prefilteredSpecularCube = std::make_unique<DX11TextureCube>(kSpecularBaseSize, kSpecularMipCount, kCubeFormat, device);
 
-        if(!m_captureCube->IsValid() || !m_irradianceCube->IsValid() || !m_prefilteredSpecularCube->IsValid()) {
+        if(!m_gpu->captureCube->IsValid() || !m_gpu->irradianceCube->IsValid() || !m_gpu->prefilteredSpecularCube->IsValid()) {
             Tsukino::Core::Log::Error("Renderer: Failed to create one or more IBL cube maps.");
             return false;
         }
@@ -90,19 +97,19 @@ namespace Tsukino::Renderer {
         lutDesc.Usage                = D3D11_USAGE_DEFAULT;
         lutDesc.BindFlags            = D3D11_BIND_RENDER_TARGET | D3D11_BIND_SHADER_RESOURCE;
 
-        HRESULT hr = device->CreateTexture2D(&lutDesc, nullptr, m_brdfLUTTex.GetAddressOf());
+        HRESULT hr = device->CreateTexture2D(&lutDesc, nullptr, m_gpu->brdfLUTTex.GetAddressOf());
         if(FAILED(hr)) {
             Tsukino::Core::Log::Error("Renderer: Failed to create IBL BRDF LUT texture.");
             return false;
         }
 
-        hr = device->CreateRenderTargetView(m_brdfLUTTex.Get(), nullptr, m_brdfLUTRTV.GetAddressOf());
+        hr = device->CreateRenderTargetView(m_gpu->brdfLUTTex.Get(), nullptr, m_gpu->brdfLUTRTV.GetAddressOf());
         if(FAILED(hr)) {
             Tsukino::Core::Log::Error("Renderer: Failed to create IBL BRDF LUT RTV.");
             return false;
         }
 
-        hr = device->CreateShaderResourceView(m_brdfLUTTex.Get(), nullptr, m_brdfLUTSRV.GetAddressOf());
+        hr = device->CreateShaderResourceView(m_gpu->brdfLUTTex.Get(), nullptr, m_gpu->brdfLUTSRV.GetAddressOf());
         if(FAILED(hr)) {
             Tsukino::Core::Log::Error("Renderer: Failed to create IBL BRDF LUT SRV.");
             return false;
@@ -117,21 +124,21 @@ namespace Tsukino::Renderer {
         }
 
         hr = device->CreatePixelShader(irradiancePS->binary.data(), irradiancePS->binary.size(), nullptr,
-                                       m_irradiancePS.GetAddressOf());
+                                       m_gpu->irradiancePS.GetAddressOf());
         if(FAILED(hr)) {
             Tsukino::Core::Log::Error("Renderer: Failed to create IBL irradiance pixel shader.");
             return false;
         }
 
         hr = device->CreatePixelShader(specularPrefilterPS->binary.data(), specularPrefilterPS->binary.size(),
-                                       nullptr, m_specularPrefilterPS.GetAddressOf());
+                                       nullptr, m_gpu->specularPrefilterPS.GetAddressOf());
         if(FAILED(hr)) {
             Tsukino::Core::Log::Error("Renderer: Failed to create IBL specular prefilter pixel shader.");
             return false;
         }
 
         hr = device->CreatePixelShader(brdfLutPS->binary.data(), brdfLutPS->binary.size(), nullptr,
-                                       m_brdfLUTPS.GetAddressOf());
+                                       m_gpu->brdfLUTPS.GetAddressOf());
         if(FAILED(hr)) {
             Tsukino::Core::Log::Error("Renderer: Failed to create IBL BRDF LUT pixel shader.");
             return false;
@@ -142,9 +149,9 @@ namespace Tsukino::Renderer {
         //------------------------------------------------------------
         // 定数バッファの初期値（プレフィルタ済みスペキュラのミップ数はここで確定する）
         //------------------------------------------------------------
-        m_data.specularMipCount = static_cast<float>(m_prefilteredSpecularCube->GetMipLevels());
+        m_data.specularMipCount = static_cast<float>(m_gpu->prefilteredSpecularCube->GetMipLevels());
         m_data.iblIntensity     = 1.0f;
-        m_graphicsContext->GetContext()->UpdateSubresource(m_buffer.Get(), 0, nullptr, &m_data, 0, 0);
+        m_graphicsContext->GetContext()->UpdateSubresource(m_gpu->buffer.Get(), 0, nullptr, &m_data, 0, 0);
 
         //------------------------------------------------------------
         // BRDF LUTはスカイに依存しないため、ここで即座に一度だけベイクする
@@ -188,17 +195,17 @@ namespace Tsukino::Renderer {
     void IBLBaker::Bind() {
         ID3D11DeviceContext* context = m_graphicsContext->GetContext();
 
-        context->PSSetConstantBuffers(static_cast<UINT>(CBSlot::IBL), 1, m_buffer.GetAddressOf());
+        context->PSSetConstantBuffers(static_cast<UINT>(CBSlot::IBL), 1, m_gpu->buffer.GetAddressOf());
 
         ID3D11ShaderResourceView* iblSRVs[3] = {
-            m_irradianceCube ? m_irradianceCube->GetSRV() : nullptr,
-            m_prefilteredSpecularCube ? m_prefilteredSpecularCube->GetSRV() : nullptr,
-            m_brdfLUTSRV.Get(),
+            m_gpu->irradianceCube ? m_gpu->irradianceCube->GetSRV() : nullptr,
+            m_gpu->prefilteredSpecularCube ? m_gpu->prefilteredSpecularCube->GetSRV() : nullptr,
+            m_gpu->brdfLUTSRV.Get(),
         };
         constexpr UINT iblSRVSlot = static_cast<UINT>(SRVSlot::IBLIrradiance);
         context->PSSetShaderResources(iblSRVSlot, 3, iblSRVs);
 
-        ID3D11SamplerState* linearClamp = m_resources->GetSampler(Tsukino::GraphicsCommon::SamplerType::LinearClamp);
+        ID3D11SamplerState* linearClamp = m_resources->GetGpu().GetSampler(Tsukino::GraphicsCommon::SamplerType::LinearClamp);
         context->PSSetSamplers(static_cast<UINT>(SamplerSlot::IBL), 1, &linearClamp);
     }
 
@@ -258,19 +265,19 @@ namespace Tsukino::Renderer {
     //! スカイを6面のキューブマップへ焼きます（Sky.ps.hlsl を面ごとに視点だけ差し替えて使います）。
     //------------------------------------------------------------------------
     void IBLBaker::ExecuteCapturePass() {
-        if(!m_captureCube || !m_captureCube->IsValid() || !m_skyPass->GetVertexShader() || !m_skyPass->GetPixelShader())
+        if(!m_gpu->captureCube || !m_gpu->captureCube->IsValid() || !m_skyPass->GetGpu().GetVertexShader() || !m_skyPass->GetGpu().GetPixelShader())
             return;
 
         ID3D11DeviceContext* context = m_graphicsContext->GetContext();
 
-        context->VSSetShader(m_skyPass->GetVertexShader(), nullptr, 0);
-        context->PSSetShader(m_skyPass->GetPixelShader(), nullptr, 0);
+        context->VSSetShader(m_skyPass->GetGpu().GetVertexShader(), nullptr, 0);
+        context->PSSetShader(m_skyPass->GetGpu().GetPixelShader(), nullptr, 0);
         context->IASetInputLayout(nullptr);
 
         // 深度バッファを持たないオフスクリーンキャプチャなので深度テストなし
-        context->OMSetDepthStencilState(m_resources->GetCommonStatesTK()->DepthNone(), 0);
-        context->OMSetBlendState(m_resources->GetCommonStatesTK()->Opaque(), nullptr, 0xFFFFFFFF);
-        context->RSSetState(m_resources->GetCommonStatesTK()->CullNone());
+        context->OMSetDepthStencilState(m_resources->GetGpu().GetCommonStatesTK()->DepthNone(), 0);
+        context->OMSetBlendState(m_resources->GetGpu().GetCommonStatesTK()->Opaque(), nullptr, 0xFFFFFFFF);
+        context->RSSetState(m_resources->GetGpu().GetCommonStatesTK()->CullNone());
 
         D3D11_VIEWPORT vp{};
         vp.Width    = static_cast<float>(kCaptureSize);
@@ -279,7 +286,7 @@ namespace Tsukino::Renderer {
         context->RSSetViewports(1, &vp);
 
         // Sky (b4) は直前のExecuteSkyPass()で今フレーム分がGPUへ転送済みなのでそのままバインドする
-        context->PSSetConstantBuffers(static_cast<UINT>(CBSlot::Sky), 1, m_skyPass->GetBufferAddress());
+        context->PSSetConstantBuffers(static_cast<UINT>(CBSlot::Sky), 1, m_skyPass->GetGpu().GetBufferAddress());
 
         context->IASetVertexBuffers(0, 0, nullptr, nullptr, nullptr);
         context->IASetIndexBuffer(nullptr, DXGI_FORMAT_UNKNOWN, 0);
@@ -287,10 +294,10 @@ namespace Tsukino::Renderer {
 
         for(u32 face = 0; face < 6; ++face) {
             CBufferScene faceScene = BuildCubeFaceSceneData(face);
-            context->UpdateSubresource(m_frameConstants->GetSceneBuffer(), 0, nullptr, &faceScene, 0, 0);
-            context->PSSetConstantBuffers(static_cast<UINT>(CBSlot::Scene), 1, m_frameConstants->GetSceneBufferAddress());
+            context->UpdateSubresource(m_frameConstants->GetGpu().GetSceneBuffer(), 0, nullptr, &faceScene, 0, 0);
+            context->PSSetConstantBuffers(static_cast<UINT>(CBSlot::Scene), 1, m_frameConstants->GetGpu().GetSceneBufferAddress());
 
-            ID3D11RenderTargetView* rtv = m_captureCube->GetFaceRTV(face, 0);
+            ID3D11RenderTargetView* rtv = m_gpu->captureCube->GetFaceRTV(face, 0);
             context->OMSetRenderTargets(1, &rtv, nullptr);
 
             context->Draw(3, 0);
@@ -304,25 +311,25 @@ namespace Tsukino::Renderer {
         ID3D11RenderTargetView* nullRTV = nullptr;
         context->OMSetRenderTargets(1, &nullRTV, nullptr);
 
-        context->OMSetDepthStencilState(m_resources->GetCommonStatesTK()->DepthDefault(), 0);
+        context->OMSetDepthStencilState(m_resources->GetGpu().GetCommonStatesTK()->DepthDefault(), 0);
     }
 
     //------------------------------------------------------------------------
     //! 拡散IBL用の irradiance を畳み込みます（面ごとに1回）。
     //------------------------------------------------------------------------
     void IBLBaker::ExecuteIrradiancePass() {
-        if(!m_irradianceCube || !m_irradianceCube->IsValid() || !m_captureCube || !m_fullscreenPass->IsValid() || !m_irradiancePS)
+        if(!m_gpu->irradianceCube || !m_gpu->irradianceCube->IsValid() || !m_gpu->captureCube || !m_fullscreenPass->IsValid() || !m_gpu->irradiancePS)
             return;
 
         ID3D11DeviceContext* context = m_graphicsContext->GetContext();
 
         context->VSSetShader(m_fullscreenPass->GetVertexShader(), nullptr, 0);
-        context->PSSetShader(m_irradiancePS.Get(), nullptr, 0);
+        context->PSSetShader(m_gpu->irradiancePS.Get(), nullptr, 0);
         context->IASetInputLayout(nullptr);
 
-        context->OMSetDepthStencilState(m_resources->GetCommonStatesTK()->DepthNone(), 0);
-        context->OMSetBlendState(m_resources->GetCommonStatesTK()->Opaque(), nullptr, 0xFFFFFFFF);
-        context->RSSetState(m_resources->GetCommonStatesTK()->CullNone());
+        context->OMSetDepthStencilState(m_resources->GetGpu().GetCommonStatesTK()->DepthNone(), 0);
+        context->OMSetBlendState(m_resources->GetGpu().GetCommonStatesTK()->Opaque(), nullptr, 0xFFFFFFFF);
+        context->RSSetState(m_resources->GetGpu().GetCommonStatesTK()->CullNone());
 
         D3D11_VIEWPORT vp{};
         vp.Width    = static_cast<float>(kIrradianceSize);
@@ -333,8 +340,8 @@ namespace Tsukino::Renderer {
         // キャプチャキューブ (t20) とサンプラー (s10)
         constexpr UINT captureSRVSlot = static_cast<UINT>(SRVSlot::IBLCaptureSource);
         constexpr UINT bakeSamplerSlot = static_cast<UINT>(SamplerSlot::IBL);
-        ID3D11ShaderResourceView* captureSRV = m_captureCube->GetSRV();
-        ID3D11SamplerState*       linearClamp = m_resources->GetSampler(Tsukino::GraphicsCommon::SamplerType::LinearClamp);
+        ID3D11ShaderResourceView* captureSRV = m_gpu->captureCube->GetSRV();
+        ID3D11SamplerState*       linearClamp = m_resources->GetGpu().GetSampler(Tsukino::GraphicsCommon::SamplerType::LinearClamp);
         context->PSSetShaderResources(captureSRVSlot, 1, &captureSRV);
         context->PSSetSamplers(bakeSamplerSlot, 1, &linearClamp);
 
@@ -344,10 +351,10 @@ namespace Tsukino::Renderer {
 
         for(u32 face = 0; face < 6; ++face) {
             CBufferScene faceScene = BuildCubeFaceSceneData(face);
-            context->UpdateSubresource(m_frameConstants->GetSceneBuffer(), 0, nullptr, &faceScene, 0, 0);
-            context->PSSetConstantBuffers(static_cast<UINT>(CBSlot::Scene), 1, m_frameConstants->GetSceneBufferAddress());
+            context->UpdateSubresource(m_frameConstants->GetGpu().GetSceneBuffer(), 0, nullptr, &faceScene, 0, 0);
+            context->PSSetConstantBuffers(static_cast<UINT>(CBSlot::Scene), 1, m_frameConstants->GetGpu().GetSceneBufferAddress());
 
-            ID3D11RenderTargetView* rtv = m_irradianceCube->GetFaceRTV(face, 0);
+            ID3D11RenderTargetView* rtv = m_gpu->irradianceCube->GetFaceRTV(face, 0);
             context->OMSetRenderTargets(1, &rtv, nullptr);
 
             context->Draw(3, 0);
@@ -368,24 +375,24 @@ namespace Tsukino::Renderer {
     //! 鏡面IBL用のスペキュラをプレフィルタします（面×mipごとに1回）。
     //------------------------------------------------------------------------
     void IBLBaker::ExecuteSpecularPrefilterPass() {
-        if(!m_prefilteredSpecularCube || !m_prefilteredSpecularCube->IsValid() || !m_captureCube || !m_fullscreenPass->IsValid()
-           || !m_specularPrefilterPS)
+        if(!m_gpu->prefilteredSpecularCube || !m_gpu->prefilteredSpecularCube->IsValid() || !m_gpu->captureCube || !m_fullscreenPass->IsValid()
+           || !m_gpu->specularPrefilterPS)
             return;
 
         ID3D11DeviceContext* context = m_graphicsContext->GetContext();
 
         context->VSSetShader(m_fullscreenPass->GetVertexShader(), nullptr, 0);
-        context->PSSetShader(m_specularPrefilterPS.Get(), nullptr, 0);
+        context->PSSetShader(m_gpu->specularPrefilterPS.Get(), nullptr, 0);
         context->IASetInputLayout(nullptr);
 
-        context->OMSetDepthStencilState(m_resources->GetCommonStatesTK()->DepthNone(), 0);
-        context->OMSetBlendState(m_resources->GetCommonStatesTK()->Opaque(), nullptr, 0xFFFFFFFF);
-        context->RSSetState(m_resources->GetCommonStatesTK()->CullNone());
+        context->OMSetDepthStencilState(m_resources->GetGpu().GetCommonStatesTK()->DepthNone(), 0);
+        context->OMSetBlendState(m_resources->GetGpu().GetCommonStatesTK()->Opaque(), nullptr, 0xFFFFFFFF);
+        context->RSSetState(m_resources->GetGpu().GetCommonStatesTK()->CullNone());
 
         constexpr UINT captureSRVSlot   = static_cast<UINT>(SRVSlot::IBLCaptureSource);
         constexpr UINT bakeSamplerSlot  = static_cast<UINT>(SamplerSlot::IBL);
-        ID3D11ShaderResourceView* captureSRV  = m_captureCube->GetSRV();
-        ID3D11SamplerState*       linearClamp = m_resources->GetSampler(Tsukino::GraphicsCommon::SamplerType::LinearClamp);
+        ID3D11ShaderResourceView* captureSRV  = m_gpu->captureCube->GetSRV();
+        ID3D11SamplerState*       linearClamp = m_resources->GetGpu().GetSampler(Tsukino::GraphicsCommon::SamplerType::LinearClamp);
         context->PSSetShaderResources(captureSRVSlot, 1, &captureSRV);
         context->PSSetSamplers(bakeSamplerSlot, 1, &linearClamp);
 
@@ -393,7 +400,7 @@ namespace Tsukino::Renderer {
         context->IASetIndexBuffer(nullptr, DXGI_FORMAT_UNKNOWN, 0);
         context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
-        const u32 mipCount = m_prefilteredSpecularCube->GetMipLevels();
+        const u32 mipCount = m_gpu->prefilteredSpecularCube->GetMipLevels();
 
         // 一発ベイクなのでサンプル数はケチらない。mipが荒い（ラフネスが高い）ほど
         // GGXローブが広がりノイズが出やすいため、mipに応じて増やす
@@ -404,10 +411,10 @@ namespace Tsukino::Renderer {
             bakeData.roughness   = (mipCount > 1) ? (static_cast<float>(mip) / static_cast<float>(mipCount - 1)) : 0.0f;
             bakeData.sampleCount = kSampleCountPerMip[(mip < 6) ? mip : 5];
 
-            context->UpdateSubresource(m_bakeBuffer.Get(), 0, nullptr, &bakeData, 0, 0);
-            context->PSSetConstantBuffers(static_cast<UINT>(CBSlot::IBLBake), 1, m_bakeBuffer.GetAddressOf());
+            context->UpdateSubresource(m_gpu->bakeBuffer.Get(), 0, nullptr, &bakeData, 0, 0);
+            context->PSSetConstantBuffers(static_cast<UINT>(CBSlot::IBLBake), 1, m_gpu->bakeBuffer.GetAddressOf());
 
-            const u32 mipSize = m_prefilteredSpecularCube->GetMipSize(mip);
+            const u32 mipSize = m_gpu->prefilteredSpecularCube->GetMipSize(mip);
             D3D11_VIEWPORT vp{};
             vp.Width    = static_cast<float>(mipSize);
             vp.Height   = static_cast<float>(mipSize);
@@ -416,10 +423,10 @@ namespace Tsukino::Renderer {
 
             for(u32 face = 0; face < 6; ++face) {
                 CBufferScene faceScene = BuildCubeFaceSceneData(face);
-                context->UpdateSubresource(m_frameConstants->GetSceneBuffer(), 0, nullptr, &faceScene, 0, 0);
-                context->PSSetConstantBuffers(static_cast<UINT>(CBSlot::Scene), 1, m_frameConstants->GetSceneBufferAddress());
+                context->UpdateSubresource(m_frameConstants->GetGpu().GetSceneBuffer(), 0, nullptr, &faceScene, 0, 0);
+                context->PSSetConstantBuffers(static_cast<UINT>(CBSlot::Scene), 1, m_frameConstants->GetGpu().GetSceneBufferAddress());
 
-                ID3D11RenderTargetView* rtv = m_prefilteredSpecularCube->GetFaceRTV(face, mip);
+                ID3D11RenderTargetView* rtv = m_gpu->prefilteredSpecularCube->GetFaceRTV(face, mip);
                 context->OMSetRenderTargets(1, &rtv, nullptr);
 
                 context->Draw(3, 0);
@@ -442,18 +449,18 @@ namespace Tsukino::Renderer {
     //! BRDF LUT を生成します（スカイに依存しないため起動時に1回だけ呼ぶ）。
     //------------------------------------------------------------------------
     void IBLBaker::ExecuteBRDFLUTPass() {
-        if(!m_brdfLUTRTV || !m_fullscreenPass->IsValid() || !m_brdfLUTPS)
+        if(!m_gpu->brdfLUTRTV || !m_fullscreenPass->IsValid() || !m_gpu->brdfLUTPS)
             return;
 
         ID3D11DeviceContext* context = m_graphicsContext->GetContext();
 
         context->VSSetShader(m_fullscreenPass->GetVertexShader(), nullptr, 0);
-        context->PSSetShader(m_brdfLUTPS.Get(), nullptr, 0);
+        context->PSSetShader(m_gpu->brdfLUTPS.Get(), nullptr, 0);
         context->IASetInputLayout(nullptr);
 
-        context->OMSetDepthStencilState(m_resources->GetCommonStatesTK()->DepthNone(), 0);
-        context->OMSetBlendState(m_resources->GetCommonStatesTK()->Opaque(), nullptr, 0xFFFFFFFF);
-        context->RSSetState(m_resources->GetCommonStatesTK()->CullNone());
+        context->OMSetDepthStencilState(m_resources->GetGpu().GetCommonStatesTK()->DepthNone(), 0);
+        context->OMSetBlendState(m_resources->GetGpu().GetCommonStatesTK()->Opaque(), nullptr, 0xFFFFFFFF);
+        context->RSSetState(m_resources->GetGpu().GetCommonStatesTK()->CullNone());
 
         D3D11_VIEWPORT vp{};
         vp.Width    = static_cast<float>(kBRDFLUTSize);
@@ -461,7 +468,7 @@ namespace Tsukino::Renderer {
         vp.MaxDepth = 1.0f;
         context->RSSetViewports(1, &vp);
 
-        ID3D11RenderTargetView* rtv = m_brdfLUTRTV.Get();
+        ID3D11RenderTargetView* rtv = m_gpu->brdfLUTRTV.Get();
         context->OMSetRenderTargets(1, &rtv, nullptr);
 
         FullscreenPass::Draw(context);
@@ -470,6 +477,17 @@ namespace Tsukino::Renderer {
         ID3D11RenderTargetView* nullRTV = nullptr;
         context->OMSetRenderTargets(1, &nullRTV, nullptr);
 
-        context->OMSetDepthStencilState(m_resources->GetCommonStatesTK()->DepthDefault(), 0);
+        context->OMSetDepthStencilState(m_resources->GetGpu().GetCommonStatesTK()->DepthDefault(), 0);
     }
+
+    //------------------------------------------------------------------------
+    //! 資源を持たない状態で作ります。
+    //------------------------------------------------------------------------
+    IBLBaker::IBLBaker()
+        : m_gpu(std::make_unique<Gpu>()) {}
+
+    //------------------------------------------------------------------------
+    //! 資源を破棄します。
+    //------------------------------------------------------------------------
+    IBLBaker::~IBLBaker() = default;
 }    // namespace Tsukino::Renderer

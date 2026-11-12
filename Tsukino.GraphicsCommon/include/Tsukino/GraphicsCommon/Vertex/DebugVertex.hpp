@@ -4,7 +4,7 @@
 //! @author 山﨑愛
 //--------------------------------------------------------------
 #pragma once
-#include <DirectXMath.h>
+#include <Tsukino/GraphicsCommon/Vertex/PackedFloat.hpp>
 
 // 名前空間 : Tsukino::GraphicsCommon
 namespace Tsukino::GraphicsCommon {
@@ -13,7 +13,7 @@ namespace Tsukino::GraphicsCommon {
     //! @brief  デバッグ描画用（位置 + カラー）
     //--------------------------------------------------------------
     struct DebugVertex {
-        DirectX::XMFLOAT3 position;    // 頂点の位置（x, y, z）
-        DirectX::XMFLOAT4 color;       // 頂点カラー（r, g, b, a）
+        Float3 position;    // 頂点の位置（x, y, z）
+        Float4 color;       // 頂点カラー（r, g, b, a）
     };
 }    // namespace Tsukino::GraphicsCommon

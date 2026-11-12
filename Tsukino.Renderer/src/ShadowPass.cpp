@@ -3,6 +3,7 @@
 //! @brief  シャドウマップパスの実装
 //----------------------------------------------------------------------------
 #include "ShadowPass.hpp"
+#include <Tsukino/Renderer/DX11/GraphicsContext.hpp>
 #include "DrawCommandExecutor.hpp"
 
 #include <Tsukino/Renderer/ShaderSlots.hpp>

@@ -5,13 +5,11 @@
 //!         over 合成で書き込みます。HDR を SRV として読まないので中間バッファを消費しません。
 //----------------------------------------------------------------------------
 #pragma once
-#include <Tsukino/Core/WindowsLean.hpp>
+#include <memory>
 #include <Tsukino/Core/typedef.hpp>
 
 #include <Tsukino/Renderer/ConstantBuffer.hpp>
 
-#include <wrl/client.h>
-#include <d3d11.h>
 
 namespace Tsukino::Asset {
     class ShaderAsset;    // 前方宣言
@@ -32,6 +30,30 @@ namespace Tsukino::Renderer {
     //------------------------------------------------------------------------
     class FogPass {
     public:
+        struct Gpu;    //!< 描画 API の資源（Renderer の内部で定義）
+
+        //! 資源を持たない状態で作ります（Initialize() で作成します）。
+        FogPass();
+
+        //! 資源を破棄します。
+        ~FogPass();
+
+        FogPass(const FogPass&)            = delete;
+        FogPass& operator=(const FogPass&) = delete;
+
+        //! 描画 API の資源を取得します（Renderer の中で使う。中身の定義は公開しない）。
+        //! @return 資源への参照
+        [[nodiscard]]
+        Gpu& GetGpu() noexcept {
+            return *m_gpu;
+        }
+
+        //! 描画 API の資源を取得します（Renderer の中で使う。中身の定義は公開しない）。
+        //! @return 資源への参照
+        [[nodiscard]]
+        const Gpu& GetGpu() const noexcept {
+            return *m_gpu;
+        }
 
         //! 定数バッファ（b8。フォグパス用と半透明モデル用の2つ）とピクセルシェーダーを作成します。
         //! @param  [in] graphicsContext デバイスと深度バッファの取得元
@@ -86,9 +108,7 @@ namespace Tsukino::Renderer {
         FrameConstants*       m_frameConstants  = nullptr;    // b0 の取得元（借りている）
         const FullscreenPass* m_fullscreenPass  = nullptr;    // フルスクリーン三角形の描画（借りている）
 
-        Microsoft::WRL::ComPtr<ID3D11PixelShader> m_ps;                 // フォグ用ピクセルシェーダー
-        Microsoft::WRL::ComPtr<ID3D11Buffer>      m_buffer;             // フォグパラメータ用バッファ (b8)
-        Microsoft::WRL::ComPtr<ID3D11Buffer>      m_forwardBuffer;      // 半透明モデル用（distanceParams.w=1）のバッファ (b8)
+        std::unique_ptr<Gpu> m_gpu;    // 描画 API の資源（中身は Renderer の内部で定義）
         CBufferFog                                m_data{};             // CPU側のフォグパラメータ
         bool                                      m_enabled = false;    // このフレームで有効か
     };

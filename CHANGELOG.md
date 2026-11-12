@@ -273,6 +273,84 @@ carve-out for `Tsukino.Renderer` described under **API stability** in the README
 
 ### Changed
 
+- **The public headers of `Tsukino.Renderer` no longer contain D3D11, DXGI, DirectXTK or DirectWrite types** (so a second
+  backend can sit behind the same API). Headers that only the renderer uses (`GraphicsContext`, `PipelineState`,
+  `DX11Texture2D` / `DX11TextureCube`, `InstanceBuffer`, `UserConstantBuffer`, `Shader`, `ShaderLoader`) moved to
+  `Tsukino.Renderer/internal/`, which other modules cannot include. The passes, `FrameConstants`, `RenderResources` and
+  `MeshBuffer` keep their D3D objects in a nested `Gpu` struct that only the renderer defines; their settings API
+  (`SetEnabled`, `SetParameters`, `SetWorldCamera` and so on) is unchanged. Every public header now compiles without
+  `<windows.h>` or `<d3d11.h>`.
+
+  Migration:
+  - `Renderer::Initialize(HWND, ...)` becomes `Initialize(NativeWindow{window.GetNativeHandle()}, ...)`
+    (`Renderer/NativeHandles.hpp`).
+  - `Renderer::GetDevice()` / `GetContext()` are removed. Code that has to talk to D3D11 directly (the Effekseer
+    integration) calls `GetNativeGraphicsContext()` and casts `device` / `context` back to `ID3D11Device*` /
+    `ID3D11DeviceContext*`. `IPostWorldPass::RenderPostWorld` receives the same `NativeGraphicsContext` instead of an
+    `ID3D11DeviceContext*`.
+  - `CreateMeshBuffer(device, meshData)` becomes `renderer.GetResources().CreateMesh(meshData)`. `MeshBuffer` keeps its
+    counts and bounds; its vertex and index buffers are no longer visible.
+  - `Material.hpp`, `PipelineFactory.hpp`, `MeshBuffer.hpp`, `DepthMode.hpp` and `CullMode.hpp` moved from
+    `Tsukino/Renderer/DX11/` to `Tsukino/Renderer/`. `PipelineState` is only forward-declared in public headers; keep it
+    behind the `std::shared_ptr<PipelineState>` that `PipelineFactory::Create` returns.
+  - Baked `.spritefont` fonts are loaded with `Tsukino::Renderer::BakedFont::Create(resources, data, size)`
+    (`Renderer/Text/BakedFont.hpp`) instead of `RenderResources::CreateSpriteFont`, which is gone from the public API
+    together with `CreateSpriteBatch`, `GetCommonStatesTK`, the D3D sampler getter and `RegisterExternalTexture`.
+
+- **Textures and buffers are passed around as handles instead of D3D11 pointers** (so the renderer can move off
+  D3D11). `TextureHandle` and `BufferHandle` (`Renderer/GpuHandles.hpp`) are 16-bit indices into tables owned by
+  `RenderResources`. `Material`, `DrawCommand::instanceData` / `userConstantBuffer` and `SpriteQuad::texture` take
+  handles, and `Material::SetSampler` takes a `SamplerType`. `RenderResources` can now create and update textures
+  (`CreateTexture` / `UpdateTexture` / `DestroyTexture`) and instance / user constant buffers
+  (`CreateInstanceBuffer` / `UpdateInstanceBuffer` / `CreateUserConstantBuffer` / `UpdateUserConstantBuffer` /
+  `DestroyBuffer`). `DynamicFontAtlas` keeps its pages there, so it no longer needs a device context.
+
+  Migration:
+  - `resources.GetTextureSRV(asset)` becomes `resources.GetTexture(asset)` (returns a `TextureHandle`). To upload a
+    texture ahead of drawing, call `resources.UploadTexture(asset)`. `GetWhiteTextureSRV()` / `GetFlatNormalTextureSRV()`
+    become `GetWhiteTexture()` / `GetFlatNormalTexture()`.
+  - `material.SetSampler(resources.GetSampler(SamplerType::X))` becomes `material.SetSampler(SamplerType::X)`.
+    `Material::GetTextures()` returns the handle array and `GetSampler()` an `std::optional<SamplerType>`.
+  - `CreateInstanceBuffer(device, ...)` / `CreateUserConstantBuffer(device, ...)` with their `Update*` helpers become the
+    `RenderResources` methods of the same names, which return and take a `BufferHandle`. Put that handle in
+    `DrawCommand::instanceData` / `userConstantBuffer`.
+  - `DynamicFontAtlas(device, ...)` becomes `DynamicFontAtlas(renderer.GetResources(), ...)`, and `AppendStringSprites` /
+    `MeasureString` lose their `ID3D11DeviceContext*` parameter.
+  - `GraphicsContext::SetMaterial` and `SpriteRenderer::Draw` take the `RenderResources` to look the handles up in.
+
+- **Texture formats and vertex types no longer use DXGI / DirectXMath** (so the asset and mesh data can move off
+  D3D11). `TextureAsset::format` and `TextureImportRule::compressedFormat` are now
+  `Tsukino::GraphicsCommon::TextureFormat` (`GraphicsCommon/Texture/TextureFormat.hpp`). The vertex structs
+  (`DebugVertex`, `VertexPUV`, `VertexPNUV`) use `Float2` / `Float3` / `Float4` (`GraphicsCommon/Vertex/PackedFloat.hpp`)
+  with the same memory layout. `FontAsset.hpp` no longer includes `<d3d11.h>`. Cached DDS files keep their content and
+  are not re-imported. A DDS in a pixel format the engine does not list is converted to RGBA8 on load (with a warning).
+
+  Migration:
+  - `rule.compressedFormat = DXGI_FORMAT_BC1_UNORM;` becomes `rule.compressedFormat = TextureFormat::BC1;`
+    (`DXGI_FORMAT_UNKNOWN` becomes `TextureFormat::Unknown`). sRGB is still chosen by the importer from the file name.
+  - Code that read `TextureAsset::format` as a `DXGI_FORMAT` compares against `TextureFormat` values instead.
+  - Brace initialisation of vertices (`{{x, y, z}, {u, v}}`) is unchanged. Code that passed the members to DirectXMath
+    (`XMLoadFloat3(&v.position)`) copies them into an `XMFLOAT3` first. Code that relied on these headers to pull in
+    `<DirectXMath.h>` or `<d3d11.h>` includes them itself.
+
+- **`DrawCommand::customDraw` is removed; text and debug lines are regular draw kinds** (so the renderer can move off
+  D3D11). A draw command now has a `kind`: `DrawKind::Mesh` (the default, unchanged), `DrawKind::Sprites` (a list of
+  `SpriteQuad`: texture, source rect, position, colour, rotation, origin and scale, drawn in order in screen pixels with
+  straight alpha) or `DrawKind::Lines` (a line list of `DebugVertex`, depth-tested and opaque). Push them with
+  `DrawCommandQueue::PushSprites` / `PushLines`, which copy the data into the queue. `hasClipRect` / `clipRect` now
+  apply to every kind, so text inside a scrolling `UIClipComponent` no longer needs its own scissor handling.
+  `FontRendererSystem` and the physics debug draw use these; text and collision wireframes look the same as before.
+
+  Migration:
+  - A `customDraw` lambda has no replacement that hands out the `ID3D11DeviceContext`. Build `SpriteQuad`s or line
+    vertices and push them with `PushSprites` / `PushLines` instead, or draw a mesh with a `Material`.
+  - `DebugDraw::Flush()` is replaced by `DebugDraw::Submit(renderer.GetDrawQueue())`, called during `Update` (it pushes
+    one `DrawKind::Lines` command into the `World` pass by default). Lines left unsubmitted are dropped at the end of
+    `Renderer::Render()`. `DebugDraw::Initialize` is gone (it no longer owns GPU resources), and triangles are submitted
+    as their three edges.
+  - `DynamicFontAtlas::DrawString(SpriteBatch*, ...)` is replaced by `AppendStringSprites(std::vector<SpriteQuad>&, ...)`
+    with the same remaining parameters.
+
 - **The window, input, IME and gamepads run on SDL3** (first step toward macOS, iOS, Android and the web).
   SDL 3.4.18 is a submodule (`External/SDL`). The engine's premake script builds it with the CMake that ships with
   Visual Studio (falling back to `cmake` on PATH) through a `SDL3` utility project, and `tsukino_link()` links

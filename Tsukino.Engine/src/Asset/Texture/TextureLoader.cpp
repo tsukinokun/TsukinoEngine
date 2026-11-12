@@ -6,10 +6,15 @@
 #include <Tsukino/Engine/Asset/Texture/TextureLoader.hpp>
 #include <Tsukino/Engine/Asset/Texture/TextureAsset.hpp>
 
+#include "TextureFormatDxgi.hpp"
+
+#include <Tsukino/Core/Log.hpp>
+
 #include <DirectXTex/DirectXTex.h>
 
 #include <algorithm>
 #include <cstring>
+#include <string>
 
 // 名前空間 Tsukino::Asset
 namespace Tsukino::Asset {
@@ -32,6 +37,26 @@ namespace Tsukino::Asset {
         // 読み込みに失敗した場合は nullptr を返す
         if(FAILED(hr)) {
             return nullptr;
+        }
+
+        //--------------------------------------------------------------
+        // エンジンが扱わないフォーマット（B5G6R5 などの珍しい並び）は、RGBA8 に直してから持つ。
+        // 色空間（sRGB / 線形）はそのまま引き継ぐ
+        //--------------------------------------------------------------
+        if(Detail::FromDxgiFormat(image.GetMetadata().format) == Tsukino::GraphicsCommon::TextureFormat::Unknown) {
+            const DXGI_FORMAT     srcFormat = image.GetMetadata().format;
+            const DXGI_FORMAT     dstFormat = DirectX::IsSRGB(srcFormat) ? DXGI_FORMAT_R8G8B8A8_UNORM_SRGB : DXGI_FORMAT_R8G8B8A8_UNORM;
+            DirectX::ScratchImage converted;
+            const HRESULT         hrConv    = DirectX::IsCompressed(srcFormat)
+                                                  ? DirectX::Decompress(image.GetImages(), image.GetImageCount(), image.GetMetadata(), dstFormat, converted)
+                                                  : DirectX::Convert(image.GetImages(), image.GetImageCount(), image.GetMetadata(), dstFormat,
+                                                                     DirectX::TEX_FILTER_DEFAULT, DirectX::TEX_THRESHOLD_DEFAULT, converted);
+            if(FAILED(hrConv)) {
+                Tsukino::Core::Log::Error("TextureLoader: Unsupported pixel format " + std::to_string(static_cast<int>(srcFormat)) + ": " + path.string());
+                return nullptr;
+            }
+            Tsukino::Core::Log::Warn("TextureLoader: Converted pixel format " + std::to_string(static_cast<int>(srcFormat)) + " to RGBA8: " + path.string());
+            image = std::move(converted);
         }
 
         const size_t mipLevels = (std::max)(size_t{ 1 }, image.GetMetadata().mipLevels);
@@ -60,7 +85,7 @@ namespace Tsukino::Asset {
         auto asset    = Tsukino::Core::CreateRef<TextureAsset>();
         asset->width  = static_cast<uint32_t>(img->width);
         asset->height = static_cast<uint32_t>(img->height);
-        asset->format = img->format;
+        asset->format = Detail::FromDxgiFormat(img->format);
 
         // 配列・キューブの先頭1枚について、ファイルが持つ全段を最上段から順に詰めて写す。
         // 最上段だけ写すと、圧縮済みの絵（モデル埋め込みのBC3など）はGPUで縮められないので、

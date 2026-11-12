@@ -26,9 +26,6 @@
 #include <vector>
 #include <memory>
 
-// 前方宣言
-struct ID3D11DeviceContext;
-
 // 名前空間 : Tsukino::BuiltIn::ECS
 namespace Tsukino::BuiltIn::ECS {
     //-------------------------------------------------------------
@@ -55,14 +52,14 @@ namespace Tsukino::BuiltIn::ECS {
         void Update(Tsukino::ECS::Registry& registry, float deltaTime) override;
 
         //-------------------------------------------------------------
-        //! @brief  エフェクトの描画（D3D11デバイスコンテキストでEffekseerを実行）
-        //! @param  dc          [in] D3D11 デバイスコンテキスト
+        //! @brief  エフェクトの描画（描画 API の生のデバイスでEffekseerを実行）
+        //! @param  graphics    [in] 描画 API の生のデバイス（DX11 では ID3D11Device* と ID3D11DeviceContext*）
         //! @param  view        [in] ビュー行列（カメラ）
         //! @param  projection  [in] 射影行列
         //! @note   Renderer が World パスの直後に呼ぶ IPostWorldPass の実装。
         //!         Renderer 側は EffectSystem という型を知らない
         //--------------------------------------------------------------
-        void RenderPostWorld(ID3D11DeviceContext* dc,
+        void RenderPostWorld(const Tsukino::Renderer::NativeGraphicsContext& graphics,
                              const Tsukino::Core::Math::matrix& view,
                              const Tsukino::Core::Math::matrix& projection) override;
 

@@ -20,8 +20,7 @@
 
 #include <Tsukino/Renderer/Renderer.hpp>
 #include <Tsukino/Renderer/DrawCommand.hpp>
-#include <Tsukino/Renderer/DX11/Material.hpp>
-#include <Tsukino/Renderer/DX11/Texture/DX11Texture2D.hpp>
+#include <Tsukino/Renderer/Material.hpp>
 
 #include <Tsukino/Engine/Asset/AssetManager.hpp>
 #include <Tsukino/Engine/Asset/Texture/TextureAsset.hpp>
@@ -232,7 +231,7 @@ namespace Tsukino::BuiltIn::ECS {
             Tsukino::Renderer::Material& material = ctx->renderer->GetDrawQueue().AllocMaterial();
 
             // サンプラー設定
-            material.SetSampler(ctx->renderer->GetResources().GetSampler(Tsukino::GraphicsCommon::SamplerType::LinearClamp));
+            material.SetSampler(Tsukino::GraphicsCommon::SamplerType::LinearClamp);
 
             // テクスチャ設定
             Tsukino::Asset::AssetHandle handleId = sprite.textureHandle;
@@ -241,9 +240,9 @@ namespace Tsukino::BuiltIn::ECS {
                 Tsukino::Core::Ref<Tsukino::Asset::IAsset> asset = ctx->assetManager->Get(sprite.textureHandle);
                 if(asset && asset->GetType() == Tsukino::Asset::AssetType::Texture) {
                     Tsukino::Core::Ref<Tsukino::Asset::TextureAsset> texAsset = std::static_pointer_cast<Tsukino::Asset::TextureAsset>(asset);
-                    m_textureCache[handleId]                                  = ctx->renderer->GetResources().GetTextureSRV(*texAsset);
+                    m_textureCache[handleId]                                  = ctx->renderer->GetResources().GetTexture(*texAsset);
                 } else {
-                    m_textureCache[handleId] = nullptr;
+                    m_textureCache[handleId] = {};
                 }
             }
             material.SetTexture(m_textureCache[handleId]);

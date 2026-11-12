@@ -4,9 +4,8 @@
 //! @author 山﨑愛
 //--------------------------------------------------------------
 #pragma once
-#include <Tsukino/Renderer/DX11/PipelineState.hpp>
-#include <Tsukino/Renderer/DX11/DepthMode.hpp>
-#include <Tsukino/Renderer/DX11/CullMode.hpp>
+#include <Tsukino/Renderer/DepthMode.hpp>
+#include <Tsukino/Renderer/CullMode.hpp>
 
 #include <Tsukino/Renderer/BlendMode.hpp>
 
@@ -24,6 +23,9 @@ namespace Tsukino::Asset {
 
 // 名前空間 : Tsukino::Renderer
 namespace Tsukino::Renderer {
+    class GraphicsContext;    // 前方宣言（描画デバイスの持ち主。Renderer の内部専用）
+    struct PipelineState;     // 前方宣言（描画 API ごとの中身。Renderer の内部で定義）
+
     // パイプラインステートのキャッシュ用キー
     using PipelineKey = std::tuple<u64, u64, Tsukino::GraphicsCommon::VertexFormat, DepthMode, BlendMode, CullMode>;
 
@@ -53,8 +55,8 @@ namespace Tsukino::Renderer {
         //! @brief 引数付きコンストラクタ
         //! @param device [in] DirectXのデバイス
         //--------------------------------------------------------------
-        PipelineFactory(ID3D11Device* device)
-            : m_device(device) {}
+        explicit PipelineFactory(const GraphicsContext& graphicsContext)
+            : m_graphicsContext(&graphicsContext) {}
 
         //--------------------------------------------------------------
         // パイプラインステートを作成する関数
@@ -77,7 +79,7 @@ namespace Tsukino::Renderer {
 
     private:
         // DirectXのデバイス
-        ID3D11Device* m_device = nullptr;
+        const GraphicsContext* m_graphicsContext = nullptr;    // パイプラインを作る描画デバイスの持ち主（借りている）
 
         // キャッシュ用コンテナ (Key: <VSハンドル, PSハンドル>, Value: PipelineState)
         std::unordered_map<PipelineKey, std::shared_ptr<PipelineState>, PipelineHash> m_cache;

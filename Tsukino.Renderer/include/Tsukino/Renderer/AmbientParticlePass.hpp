@@ -7,13 +7,11 @@
 //!         フォグとトーンマップの両方が乗ります。
 //----------------------------------------------------------------------------
 #pragma once
-#include <Tsukino/Core/WindowsLean.hpp>
+#include <memory>
 #include <Tsukino/Core/typedef.hpp>
 
 #include <Tsukino/Renderer/ConstantBuffer.hpp>
 
-#include <wrl/client.h>
-#include <d3d11.h>
 
 namespace Tsukino::Asset {
     class ShaderAsset;    // 前方宣言
@@ -33,6 +31,30 @@ namespace Tsukino::Renderer {
     //------------------------------------------------------------------------
     class AmbientParticlePass {
     public:
+        struct Gpu;    //!< 描画 API の資源（Renderer の内部で定義）
+
+        //! 資源を持たない状態で作ります（Initialize() で作成します）。
+        AmbientParticlePass();
+
+        //! 資源を破棄します。
+        ~AmbientParticlePass();
+
+        AmbientParticlePass(const AmbientParticlePass&)            = delete;
+        AmbientParticlePass& operator=(const AmbientParticlePass&) = delete;
+
+        //! 描画 API の資源を取得します（Renderer の中で使う。中身の定義は公開しない）。
+        //! @return 資源への参照
+        [[nodiscard]]
+        Gpu& GetGpu() noexcept {
+            return *m_gpu;
+        }
+
+        //! 描画 API の資源を取得します（Renderer の中で使う。中身の定義は公開しない）。
+        //! @return 資源への参照
+        [[nodiscard]]
+        const Gpu& GetGpu() const noexcept {
+            return *m_gpu;
+        }
 
         //! 定数バッファ（b10）とシェーダーを作成します。
         //! @param  [in] graphicsContext デバイスの取得元
@@ -73,9 +95,7 @@ namespace Tsukino::Renderer {
         RenderResources* m_resources       = nullptr;    // 共通ステートの取得元（借りている）
         FrameConstants*  m_frameConstants  = nullptr;    // b0 の取得元（借りている）
 
-        Microsoft::WRL::ComPtr<ID3D11VertexShader> m_vs;                 // 環境パーティクル用頂点シェーダー
-        Microsoft::WRL::ComPtr<ID3D11PixelShader>  m_ps;                 // 環境パーティクル用ピクセルシェーダー
-        Microsoft::WRL::ComPtr<ID3D11Buffer>       m_buffer;             // 環境パーティクルパラメータ用バッファ (b10)
+        std::unique_ptr<Gpu> m_gpu;    // 描画 API の資源（中身は Renderer の内部で定義）
         CBufferAmbientParticle                     m_data{};             // CPU側の環境パーティクルパラメータ
         u32                                        m_count   = 0;        // 今フレームの粒子数
         bool                                       m_enabled = false;    // このフレームで有効か

@@ -5,13 +5,11 @@
 //!         スカイ由来の環境光（IBL）を1回のフルスクリーン描画で HDR バッファへ加算します。
 //----------------------------------------------------------------------------
 #pragma once
-#include <Tsukino/Core/WindowsLean.hpp>
+#include <memory>
 #include <Tsukino/Core/typedef.hpp>
 
 #include <Tsukino/Renderer/ConstantBuffer.hpp>
 
-#include <wrl/client.h>
-#include <d3d11.h>
 
 #include <hlsl++.h>
 
@@ -35,6 +33,30 @@ namespace Tsukino::Renderer {
     //------------------------------------------------------------------------
     class LightingPass {
     public:
+        struct Gpu;    //!< 描画 API の資源（Renderer の内部で定義）
+
+        //! 資源を持たない状態で作ります（Initialize() で作成します）。
+        LightingPass();
+
+        //! 資源を破棄します。
+        ~LightingPass();
+
+        LightingPass(const LightingPass&)            = delete;
+        LightingPass& operator=(const LightingPass&) = delete;
+
+        //! 描画 API の資源を取得します（Renderer の中で使う。中身の定義は公開しない）。
+        //! @return 資源への参照
+        [[nodiscard]]
+        Gpu& GetGpu() noexcept {
+            return *m_gpu;
+        }
+
+        //! 描画 API の資源を取得します（Renderer の中で使う。中身の定義は公開しない）。
+        //! @return 資源への参照
+        [[nodiscard]]
+        const Gpu& GetGpu() const noexcept {
+            return *m_gpu;
+        }
 
         //! ライト配列の定数バッファ（b6）とピクセルシェーダーを作成します。
         //! @param  [in] graphicsContext デバイスと G-Buffer の取得元
@@ -79,8 +101,7 @@ namespace Tsukino::Renderer {
         const ShadowPass*     m_shadowPass      = nullptr;    // シャドウマップ（借りている）
         IBLBaker*             m_iblBaker        = nullptr;    // スカイ由来の環境光（借りている）
 
-        Microsoft::WRL::ComPtr<ID3D11PixelShader> m_ps;                        // ライティング用ピクセルシェーダー
-        Microsoft::WRL::ComPtr<ID3D11Buffer>      m_lightsBuffer;              // 点光源・スポットライト配列用定数バッファ (b6)
+        std::unique_ptr<Gpu> m_gpu;    // 描画 API の資源（中身は Renderer の内部で定義）
         CBufferLights                             m_lightsData{};              // CPU側のライト配列（毎フレームGPUへ転送）
         bool                                      m_lightOverflowWarned = false;    // MAX_LIGHTS 超過の警告を1回だけ出すためのフラグ
     };

@@ -3,6 +3,8 @@
 //! @brief  モーションブラーパスの実装
 //----------------------------------------------------------------------------
 #include <Tsukino/Renderer/MotionBlurPass.hpp>
+#include <Tsukino/Renderer/DX11/MotionBlurPassGpu.hpp>
+#include <Tsukino/Renderer/DX11/RenderResourcesGpu.hpp>
 
 #include "FullscreenPass.hpp"
 
@@ -33,9 +35,9 @@ namespace Tsukino::Renderer {
         desc.Usage             = D3D11_USAGE_DEFAULT;
         desc.BindFlags         = D3D11_BIND_CONSTANT_BUFFER;
         desc.ByteWidth         = sizeof(CBufferMotionBlur);
-        if(FAILED(device->CreateBuffer(&desc, nullptr, m_buffer.GetAddressOf()))) {
+        if(FAILED(device->CreateBuffer(&desc, nullptr, m_gpu->buffer.GetAddressOf()))) {
             Tsukino::Core::Log::Error("Failed to create motion blur constant buffer.");
-            m_buffer.Reset();
+            m_gpu->buffer.Reset();
             return false;
         }
 
@@ -44,9 +46,9 @@ namespace Tsukino::Renderer {
             return false;
         }
 
-        if(FAILED(device->CreatePixelShader(ps->binary.data(), ps->binary.size(), nullptr, m_ps.GetAddressOf()))) {
+        if(FAILED(device->CreatePixelShader(ps->binary.data(), ps->binary.size(), nullptr, m_gpu->ps.GetAddressOf()))) {
             Tsukino::Core::Log::Error("Failed to create motion blur pixel shader.");
-            m_ps.Reset();
+            m_gpu->ps.Reset();
             return false;
         }
 
@@ -57,7 +59,7 @@ namespace Tsukino::Renderer {
     //! モーションブラーを掛けてポストプロセス用の中間バッファへ書きます（HDR(t0) と速度バッファ(t15) を読みます）。
     //------------------------------------------------------------------------
     bool MotionBlurPass::Execute() {
-        if(!IsEnabled() || !m_ps || !m_buffer || !m_fullscreenPass->IsValid())
+        if(!IsEnabled() || !m_gpu->ps || !m_gpu->buffer || !m_fullscreenPass->IsValid())
             return false;
 
         ID3D11DeviceContext* context = m_graphicsContext->GetContext();
@@ -74,37 +76,37 @@ namespace Tsukino::Renderer {
         ID3D11ShaderResourceView* hdrSRV = m_graphicsContext->GetHDRSRV();
         context->PSSetShaderResources(0, 1, &hdrSRV);
 
-        ID3D11SamplerState* linearClamp = m_resources->GetSampler(Tsukino::GraphicsCommon::SamplerType::LinearClamp);
+        ID3D11SamplerState* linearClamp = m_resources->GetGpu().GetSampler(Tsukino::GraphicsCommon::SamplerType::LinearClamp);
         context->PSSetSamplers(0, 1, &linearClamp);
 
         constexpr UINT            velocitySRVSlot = static_cast<UINT>(SRVSlot::GBufferVelocity);
         ID3D11ShaderResourceView* velocitySRV     = m_graphicsContext->GetGBufferSRV(5);
         context->PSSetShaderResources(velocitySRVSlot, 1, &velocitySRV);
 
-        ID3D11SamplerState* pointClamp = m_resources->GetSampler(Tsukino::GraphicsCommon::SamplerType::PointClamp);
+        ID3D11SamplerState* pointClamp = m_resources->GetGpu().GetSampler(Tsukino::GraphicsCommon::SamplerType::PointClamp);
         constexpr UINT      gbufferSamplerSlot = static_cast<UINT>(SamplerSlot::GBuffer);
         context->PSSetSamplers(gbufferSamplerSlot, 1, &pointClamp);
 
         //----------------------------------------------------------
         // パラメータ (b8) を更新してバインド
         //----------------------------------------------------------
-        context->UpdateSubresource(m_buffer.Get(), 0, nullptr, &m_data, 0, 0);
+        context->UpdateSubresource(m_gpu->buffer.Get(), 0, nullptr, &m_data, 0, 0);
         constexpr UINT motionBlurCBSlot = static_cast<UINT>(CBSlot::MotionBlur);
-        context->PSSetConstantBuffers(motionBlurCBSlot, 1, m_buffer.GetAddressOf());
+        context->PSSetConstantBuffers(motionBlurCBSlot, 1, m_gpu->buffer.GetAddressOf());
 
         //----------------------------------------------------------
         // シェーダーをセット（VSはフルスクリーン三角形用を共用）
         //----------------------------------------------------------
         context->VSSetShader(m_fullscreenPass->GetVertexShader(), nullptr, 0);
-        context->PSSetShader(m_ps.Get(), nullptr, 0);
+        context->PSSetShader(m_gpu->ps.Get(), nullptr, 0);
         context->IASetInputLayout(nullptr);
 
         //----------------------------------------------------------
         // 深度なし・ブレンドなし
         //----------------------------------------------------------
-        context->OMSetDepthStencilState(m_resources->GetCommonStatesTK()->DepthNone(), 0);
-        context->OMSetBlendState(m_resources->GetCommonStatesTK()->Opaque(), nullptr, 0xFFFFFFFF);
-        context->RSSetState(m_resources->GetCommonStatesTK()->CullNone());
+        context->OMSetDepthStencilState(m_resources->GetGpu().GetCommonStatesTK()->DepthNone(), 0);
+        context->OMSetBlendState(m_resources->GetGpu().GetCommonStatesTK()->Opaque(), nullptr, 0xFFFFFFFF);
+        context->RSSetState(m_resources->GetGpu().GetCommonStatesTK()->CullNone());
 
         //----------------------------------------------------------
         // フルスクリーントライアングル描画
@@ -121,4 +123,15 @@ namespace Tsukino::Renderer {
 
         return true;
     }
+
+    //------------------------------------------------------------------------
+    //! 資源を持たない状態で作ります。
+    //------------------------------------------------------------------------
+    MotionBlurPass::MotionBlurPass()
+        : m_gpu(std::make_unique<Gpu>()) {}
+
+    //------------------------------------------------------------------------
+    //! 資源を破棄します。
+    //------------------------------------------------------------------------
+    MotionBlurPass::~MotionBlurPass() = default;
 }    // namespace Tsukino::Renderer

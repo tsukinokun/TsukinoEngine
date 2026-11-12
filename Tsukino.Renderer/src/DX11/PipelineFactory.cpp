@@ -3,7 +3,9 @@
 //! @brief  パイプラインファクトリークラスの実装
 //! @author 山﨑愛
 //--------------------------------------------------------------
-#include <Tsukino/Renderer/DX11/PipelineFactory.hpp>
+#include <Tsukino/Renderer/PipelineFactory.hpp>
+#include <Tsukino/Renderer/DX11/GraphicsContext.hpp>
+#include <Tsukino/Renderer/DX11/PipelineState.hpp>
 #include <Tsukino/Engine/Asset/Shader/ShaderAsset.hpp>
 #include <Tsukino/GraphicsCommon/Mesh/MeshData.hpp>
 // 名前空間 : Tsukino::Renderer
@@ -35,10 +37,10 @@ namespace Tsukino::Renderer {
         std::shared_ptr<PipelineState> p = std::make_shared<PipelineState>();
 
         // VS
-        m_device->CreateVertexShader(vs.binary.data(), vs.binary.size(), nullptr, p->vs.GetAddressOf());
+        m_graphicsContext->GetDevice()->CreateVertexShader(vs.binary.data(), vs.binary.size(), nullptr, p->vs.GetAddressOf());
 
         // PS
-        m_device->CreatePixelShader(ps.binary.data(), ps.binary.size(), nullptr, p->ps.GetAddressOf());
+        m_graphicsContext->GetDevice()->CreatePixelShader(ps.binary.data(), ps.binary.size(), nullptr, p->ps.GetAddressOf());
 
         //--------------------------------------------------------------
         // 頂点フォーマットに応じてインプットレイアウトを内部で切り替える
@@ -89,7 +91,7 @@ namespace Tsukino::Renderer {
         }
 
         // InputLayout 生成
-        m_device->CreateInputLayout(finalLayout, finalLayoutCount, vs.binary.data(), vs.binary.size(), p->inputLayout.GetAddressOf());
+        m_graphicsContext->GetDevice()->CreateInputLayout(finalLayout, finalLayoutCount, vs.binary.data(), vs.binary.size(), p->inputLayout.GetAddressOf());
 
         //--------------------------------------------------------------
         // デプスステンシルステートの設定
@@ -124,7 +126,7 @@ namespace Tsukino::Renderer {
             break;
         }
         // デプスステンシルステートの作成
-        m_device->CreateDepthStencilState(&desc, p->depth.GetAddressOf());
+        m_graphicsContext->GetDevice()->CreateDepthStencilState(&desc, p->depth.GetAddressOf());
 
         //--------------------------------------------------------------
         // ラスタライザーステートの設定
@@ -146,7 +148,7 @@ namespace Tsukino::Renderer {
         }
         rasterDesc.FrontCounterClockwise = FALSE;
         rasterDesc.DepthClipEnable       = TRUE;
-        m_device->CreateRasterizerState(&rasterDesc, p->rasterizer.GetAddressOf());
+        m_graphicsContext->GetDevice()->CreateRasterizerState(&rasterDesc, p->rasterizer.GetAddressOf());
 
         //--------------------------------------------------------------
         // ブレンドステートの設定
@@ -191,7 +193,7 @@ namespace Tsukino::Renderer {
             blendDesc.RenderTarget[0].BlendOpAlpha   = D3D11_BLEND_OP_ADD;
             break;
         }
-        m_device->CreateBlendState(&blendDesc, p->blend.GetAddressOf());
+        m_graphicsContext->GetDevice()->CreateBlendState(&blendDesc, p->blend.GetAddressOf());
 
         p->topology = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
 

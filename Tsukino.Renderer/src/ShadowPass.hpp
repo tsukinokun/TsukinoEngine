@@ -7,6 +7,7 @@
 //!         ライト空間 ViewProjection 行列の計算もここで行います。
 //----------------------------------------------------------------------------
 #pragma once
+#include <wrl/client.h>
 #include <Tsukino/Renderer/Renderer.hpp>
 
 #include <array>
@@ -15,6 +16,8 @@
 
 // 名前空間 : Tsukino::Renderer
 namespace Tsukino::Renderer {
+    using Microsoft::WRL::ComPtr;    // Renderer の内部用ヘッダなので、名前空間の中で使えるようにしておく
+
     class DrawCommandExecutor;    // 前方宣言
 
     //------------------------------------------------------------------------

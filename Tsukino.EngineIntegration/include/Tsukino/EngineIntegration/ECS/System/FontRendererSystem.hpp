@@ -8,14 +8,12 @@
 
 #include <Tsukino/Renderer/Renderer.hpp>
 #include <Tsukino/Renderer/DrawCommand.hpp>
+#include <Tsukino/Renderer/Text/BakedFont.hpp>
 #include <Tsukino/Renderer/Text/DynamicFontAtlas.hpp>
 
 #include <Tsukino/Engine/Asset/AssetHandle.hpp>
 
 #include <hlsl++.h>
-
-#include <SpriteBatch.h>
-#include <SpriteFont.h>
 
 #include <cstdint>
 #include <memory>
@@ -28,8 +26,8 @@ namespace Tsukino::BuiltIn::ECS {
     //! @class  FontRendererSystem
     //! @brief  フォント描画を行うシステム
     //! @note   1フレーム分の描画情報をまとめてsortOrder順に並べ、
-    //!         同じsortOrderの連なり（＝同じUIの層）ごとに
-    //!         SpriteBatchのBegin/End 1組・DrawCommand 1個で描画する。
+    //!         同じsortOrderの連なり（＝同じUIの層）ごとに、グリフを並べた
+    //!         スプライトの並び（DrawKind::Sprites の DrawCommand 1個）にして描画する。
     //!         層ごとに分けるのは、Rendererが Overlay パスを
     //!         DrawCommand::sortOrder で並べ替えるようになったため。
     //!         全文字を1コマンドにまとめると、文字とスプライトの前後を
@@ -56,18 +54,11 @@ namespace Tsukino::BuiltIn::ECS {
 
     private:
         //-------------------------------------------------------------
-        //! @brief  m_drawOrderの一部区間をSpriteBatchで描画する関数
-        //! @param  context    [in] デバイスコンテキスト
-        //! @param  states       [in] TK製CommonStates（ブレンド／深度ステート取得用）
-        //! @param  scissorState [in] シザー有効のラスタライザ（区間の文字に切り取り枠があるときに使う）
-        //! @param  beginIndex   [in] m_drawOrderの開始位置
-        //! @param  endIndex     [in] m_drawOrderの終端位置（この位置は含まない）
-        //! @note   customDrawから呼ばれる。呼び出し時点はRenderer::Render()の中で、
-        //!         同フレームのUpdateが全て終わった後なのでメンバは今フレームの内容。
-        //!         区間の文字は全て同じ切り取り枠を持つ（Update がそう区切る）
+        //! @brief  m_drawOrderの一部区間の文字をスプライトにしてm_spritesへ並べる関数
+        //! @param  beginIndex [in] m_drawOrderの開始位置
+        //! @param  endIndex   [in] m_drawOrderの終端位置（この位置は含まない）
         //-------------------------------------------------------------
-        void DrawRange(ID3D11DeviceContext* context, DirectX::CommonStates* states, ID3D11RasterizerState* scissorState, std::uint32_t beginIndex,
-                       std::uint32_t endIndex);
+        void BuildSprites(std::uint32_t beginIndex, std::uint32_t endIndex);
 
         //-------------------------------------------------------------
         //! @struct DrawEntry
@@ -76,7 +67,7 @@ namespace Tsukino::BuiltIn::ECS {
         //-------------------------------------------------------------
         struct DrawEntry {
             Tsukino::Renderer::DynamicFontAtlas* atlas      = nullptr;    // 動的フォントアトラス経路
-            DirectX::SpriteFont*                 spriteFont = nullptr;    // ベイク済みSpriteFont経路
+            const Tsukino::Renderer::BakedFont*  spriteFont = nullptr;    // ベイク済みSpriteFont経路
 
             std::wstring   text;                            // 描画する文字列
             hlslpp::float2 position     = {0, 0};           // スクリーン座標（左上原点、ピクセル）
@@ -92,11 +83,10 @@ namespace Tsukino::BuiltIn::ECS {
             Tsukino::Renderer::ClipRect clipRect;           // 切り取る矩形（hasClip のときだけ有効）
         };
 
-        // スプライトバッチのキャッシュ
-        std::unordered_map<Tsukino::Asset::AssetHandle, std::unique_ptr<DirectX::SpriteFont>>              m_fontCache;
+        // ベイク済みSpriteFontのキャッシュ
+        std::unordered_map<Tsukino::Asset::AssetHandle, std::unique_ptr<Tsukino::Renderer::BakedFont>>     m_fontCache;
         // 動的フォントアトラスのキャッシュ（オンデマンドグリフラスタライズ用）
         std::unordered_map<Tsukino::Asset::AssetHandle, std::unique_ptr<Tsukino::Renderer::DynamicFontAtlas>> m_dynamicFontCache;
-        std::unique_ptr<DirectX::SpriteBatch>                                                               m_spriteBatch;
 
         // 1フレーム分の描画情報。毎フレーム冒頭でclearして集め直す
         std::vector<DrawEntry> m_drawEntries;
@@ -104,6 +94,8 @@ namespace Tsukino::BuiltIn::ECS {
         // 16バイトアラインメント型を含み、std::stable_sortの一時バッファが
         // 拡張アラインメントで弾かれるため、並べ替えは添字側で行う
         std::vector<std::uint32_t> m_drawOrder;
+        // 1つの層の文字を並べたスプライト。DrawCommandQueue::PushSprites へ写したら次の層で使い回す
+        std::vector<Tsukino::Renderer::SpriteQuad> m_sprites;
     };
 
 }    // namespace Tsukino::BuiltIn::ECS

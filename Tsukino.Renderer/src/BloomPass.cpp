@@ -3,6 +3,8 @@
 //! @brief  ブルームパスの実装
 //----------------------------------------------------------------------------
 #include <Tsukino/Renderer/BloomPass.hpp>
+#include <Tsukino/Renderer/DX11/BloomPassGpu.hpp>
+#include <Tsukino/Renderer/DX11/RenderResourcesGpu.hpp>
 
 #include "FullscreenPass.hpp"
 
@@ -56,27 +58,27 @@ namespace Tsukino::Renderer {
         desc.Usage             = D3D11_USAGE_DEFAULT;
         desc.BindFlags         = D3D11_BIND_CONSTANT_BUFFER;
         desc.ByteWidth         = sizeof(CBufferBloom);
-        if(FAILED(device->CreateBuffer(&desc, nullptr, m_buffer.GetAddressOf()))) {
+        if(FAILED(device->CreateBuffer(&desc, nullptr, m_gpu->buffer.GetAddressOf()))) {
             Tsukino::Core::Log::Error("Failed to create bloom constant buffer.");
-            m_buffer.Reset();
+            m_gpu->buffer.Reset();
             return false;
         }
 
-        bool ok = CreatePS(device, prefilterPS, m_prefilterPS, "prefilter");
-        ok      = CreatePS(device, downsamplePS, m_downsamplePS, "downsample") && ok;
-        ok      = CreatePS(device, upsamplePS, m_upsamplePS, "upsample") && ok;
+        bool ok = CreatePS(device, prefilterPS, m_gpu->prefilterPS, "prefilter");
+        ok      = CreatePS(device, downsamplePS, m_gpu->downsamplePS, "downsample") && ok;
+        ok      = CreatePS(device, upsamplePS, m_gpu->upsamplePS, "upsample") && ok;
         return ok;
     }
 
     //------------------------------------------------------------------------
     //! 縮小段のテクスチャを画面サイズに合わせて作り直します。
     //------------------------------------------------------------------------
-    bool BloomPass::EnsureMipTargets(UINT width, UINT height) {
+    bool BloomPass::EnsureMipTargets(u32 width, u32 height) {
         if(width == m_sourceWidth && height == m_sourceHeight && m_builtMipLimit == m_mipLimit && m_mipCount > 0)
             return true;
 
-        for(MipTarget& mip : m_mips)
-            mip = MipTarget{};
+        for(Gpu::MipTarget& mip : m_gpu->mips)
+            mip = Gpu::MipTarget{};
         m_mipCount      = 0;
         m_sourceWidth   = width;
         m_sourceHeight  = height;
@@ -104,12 +106,12 @@ namespace Tsukino::Renderer {
             texDesc.Usage            = D3D11_USAGE_DEFAULT;
             texDesc.BindFlags        = D3D11_BIND_RENDER_TARGET | D3D11_BIND_SHADER_RESOURCE;
 
-            MipTarget& mip = m_mips[i];
+            Gpu::MipTarget& mip = m_gpu->mips[i];
             if(FAILED(device->CreateTexture2D(&texDesc, nullptr, mip.texture.GetAddressOf())) ||
                FAILED(device->CreateRenderTargetView(mip.texture.Get(), nullptr, mip.rtv.GetAddressOf())) ||
                FAILED(device->CreateShaderResourceView(mip.texture.Get(), nullptr, mip.srv.GetAddressOf()))) {
                 Tsukino::Core::Log::Error("BloomPass: Failed to create bloom mip " + std::to_string(i) + ".");
-                mip = MipTarget{};
+                mip = Gpu::MipTarget{};
                 break;
             }
             mip.width  = mipWidth;
@@ -126,13 +128,12 @@ namespace Tsukino::Renderer {
     //------------------------------------------------------------------------
     //! 定数バッファを書き換えてフルスクリーン三角形を1枚描きます。
     //------------------------------------------------------------------------
-    void BloomPass::DrawFullscreen(ID3D11ShaderResourceView* source, UINT sourceWidth, UINT sourceHeight, UINT targetWidth,
-                                   UINT targetHeight, CBufferBloom data) {
-        ID3D11DeviceContext* context = m_graphicsContext->GetContext();
+    static void DrawBloomFullscreen(ID3D11DeviceContext* context, ID3D11Buffer* buffer, ID3D11ShaderResourceView* source, UINT sourceWidth,
+                             UINT sourceHeight, UINT targetWidth, UINT targetHeight, CBufferBloom data) {
 
         data.texelSizeX = 1.0f / static_cast<float>(sourceWidth);
         data.texelSizeY = 1.0f / static_cast<float>(sourceHeight);
-        context->UpdateSubresource(m_buffer.Get(), 0, nullptr, &data, 0, 0);
+        context->UpdateSubresource(buffer, 0, nullptr, &data, 0, 0);
 
         D3D11_VIEWPORT vp{};
         vp.Width    = static_cast<float>(targetWidth);
@@ -152,7 +153,7 @@ namespace Tsukino::Renderer {
     //! ブルームを掛けて、トーンマップの入力になるバッファへ加算します。
     //------------------------------------------------------------------------
     void BloomPass::Execute(bool sourceIsPostProcess) {
-        if(!m_enabled || m_mipLimit == 0 || !m_buffer || !m_prefilterPS || !m_downsamplePS || !m_upsamplePS || !m_fullscreenPass->IsValid())
+        if(!m_enabled || m_mipLimit == 0 || !m_gpu->buffer || !m_gpu->prefilterPS || !m_gpu->downsamplePS || !m_gpu->upsamplePS || !m_fullscreenPass->IsValid())
             return;
 
         const UINT width  = m_graphicsContext->GetSceneWidth();
@@ -161,7 +162,7 @@ namespace Tsukino::Renderer {
             return;
 
         ID3D11DeviceContext*    context = m_graphicsContext->GetContext();
-        DirectX::CommonStates* states  = m_resources->GetCommonStatesTK();
+        DirectX::CommonStates* states  = m_resources->GetGpu().GetCommonStatesTK();
 
         ID3D11ShaderResourceView* sceneSRV = sourceIsPostProcess ? m_graphicsContext->GetPostProcessSRV() : m_graphicsContext->GetHDRSRV();
 
@@ -173,11 +174,11 @@ namespace Tsukino::Renderer {
         context->OMSetDepthStencilState(states->DepthNone(), 0);
         context->RSSetState(states->CullNone());
 
-        ID3D11SamplerState* linearClamp = m_resources->GetSampler(Tsukino::GraphicsCommon::SamplerType::LinearClamp);
+        ID3D11SamplerState* linearClamp = m_resources->GetGpu().GetSampler(Tsukino::GraphicsCommon::SamplerType::LinearClamp);
         context->PSSetSamplers(0, 1, &linearClamp);
 
         constexpr UINT bloomCBSlot = static_cast<UINT>(CBSlot::Bloom);
-        context->PSSetConstantBuffers(bloomCBSlot, 1, m_buffer.GetAddressOf());
+        context->PSSetConstantBuffers(bloomCBSlot, 1, m_gpu->buffer.GetAddressOf());
 
         CBufferBloom data{};
         data.threshold = m_params.threshold;
@@ -188,17 +189,17 @@ namespace Tsukino::Renderer {
         // 1) 明部抽出 + 1/2 へ縮小（シーン → mip0）
         //----------------------------------------------------------
         context->OMSetBlendState(states->Opaque(), nullptr, 0xFFFFFFFF);
-        context->PSSetShader(m_prefilterPS.Get(), nullptr, 0);
-        context->OMSetRenderTargets(1, m_mips[0].rtv.GetAddressOf(), nullptr);
-        DrawFullscreen(sceneSRV, width, height, m_mips[0].width, m_mips[0].height, data);
+        context->PSSetShader(m_gpu->prefilterPS.Get(), nullptr, 0);
+        context->OMSetRenderTargets(1, m_gpu->mips[0].rtv.GetAddressOf(), nullptr);
+        DrawBloomFullscreen(m_graphicsContext->GetContext(), m_gpu->buffer.Get(), sceneSRV, width, height, m_gpu->mips[0].width, m_gpu->mips[0].height, data);
 
         //----------------------------------------------------------
         // 2) 縮小（mip[i-1] → mip[i]）
         //----------------------------------------------------------
-        context->PSSetShader(m_downsamplePS.Get(), nullptr, 0);
+        context->PSSetShader(m_gpu->downsamplePS.Get(), nullptr, 0);
         for(u32 i = 1; i < m_mipCount; ++i) {
-            context->OMSetRenderTargets(1, m_mips[i].rtv.GetAddressOf(), nullptr);
-            DrawFullscreen(m_mips[i - 1].srv.Get(), m_mips[i - 1].width, m_mips[i - 1].height, m_mips[i].width, m_mips[i].height, data);
+            context->OMSetRenderTargets(1, m_gpu->mips[i].rtv.GetAddressOf(), nullptr);
+            DrawBloomFullscreen(m_graphicsContext->GetContext(), m_gpu->buffer.Get(), m_gpu->mips[i - 1].srv.Get(), m_gpu->mips[i - 1].width, m_gpu->mips[i - 1].height, m_gpu->mips[i].width, m_gpu->mips[i].height, data);
         }
 
         //----------------------------------------------------------
@@ -206,10 +207,10 @@ namespace Tsukino::Renderer {
         //    小さい段ほど広く滲んでいるので、全段を足すと「芯は強く、裾は広い」光になる
         //----------------------------------------------------------
         context->OMSetBlendState(states->Additive(), nullptr, 0xFFFFFFFF);
-        context->PSSetShader(m_upsamplePS.Get(), nullptr, 0);
+        context->PSSetShader(m_gpu->upsamplePS.Get(), nullptr, 0);
         for(u32 i = m_mipCount - 1; i > 0; --i) {
-            context->OMSetRenderTargets(1, m_mips[i - 1].rtv.GetAddressOf(), nullptr);
-            DrawFullscreen(m_mips[i].srv.Get(), m_mips[i].width, m_mips[i].height, m_mips[i - 1].width, m_mips[i - 1].height, data);
+            context->OMSetRenderTargets(1, m_gpu->mips[i - 1].rtv.GetAddressOf(), nullptr);
+            DrawBloomFullscreen(m_graphicsContext->GetContext(), m_gpu->buffer.Get(), m_gpu->mips[i].srv.Get(), m_gpu->mips[i].width, m_gpu->mips[i].height, m_gpu->mips[i - 1].width, m_gpu->mips[i - 1].height, data);
         }
 
         //----------------------------------------------------------
@@ -225,7 +226,7 @@ namespace Tsukino::Renderer {
             m_graphicsContext->BindPostProcessTarget();
         else
             m_graphicsContext->BindHDRTargetOnly();
-        DrawFullscreen(m_mips[0].srv.Get(), m_mips[0].width, m_mips[0].height, width, height, data);
+        DrawBloomFullscreen(m_graphicsContext->GetContext(), m_gpu->buffer.Get(), m_gpu->mips[0].srv.Get(), m_gpu->mips[0].width, m_gpu->mips[0].height, width, height, data);
 
         //----------------------------------------------------------
         // 後片付け：ビューポートを画面全体へ戻し、ブレンドを不透明へ戻す
@@ -237,4 +238,15 @@ namespace Tsukino::Renderer {
         context->RSSetViewports(1, &vp);
         context->OMSetBlendState(states->Opaque(), nullptr, 0xFFFFFFFF);
     }
+
+    //------------------------------------------------------------------------
+    //! 資源を持たない状態で作ります。
+    //------------------------------------------------------------------------
+    BloomPass::BloomPass()
+        : m_gpu(std::make_unique<Gpu>()) {}
+
+    //------------------------------------------------------------------------
+    //! 資源を破棄します。
+    //------------------------------------------------------------------------
+    BloomPass::~BloomPass() = default;
 }    // namespace Tsukino::Renderer

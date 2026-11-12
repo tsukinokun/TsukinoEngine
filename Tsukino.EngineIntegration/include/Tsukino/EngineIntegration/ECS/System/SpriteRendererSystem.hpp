@@ -6,7 +6,7 @@
 #pragma once
 #include <Tsukino/Core/ECS/System/ISystem.hpp>
 
-#include <Tsukino/Renderer/DX11/Material.hpp>
+#include <Tsukino/Renderer/Material.hpp>
 #include <Tsukino/Renderer/ConstantBuffer.hpp>
 
 #include <Tsukino/Engine/Asset/AssetHandle.hpp>
@@ -55,8 +55,8 @@ namespace Tsukino::BuiltIn::ECS {
         // マテリアル実体と定数データの置き場は DrawCommandQueue へ移した。
         // Renderer::GetDrawQueue().AllocMaterial() / AllocMaterialData() で確保する
         //-------------------------------------------------------------
-        std::unordered_map<Tsukino::Asset::AssetHandle, ID3D11ShaderResourceView*>
-            m_textureCache;    // ハンドルをキーにしてテクスチャのSRVをキャッシュ（毎フレームのアセット検索を回避）
+        std::unordered_map<Tsukino::Asset::AssetHandle, Tsukino::Renderer::TextureHandle>
+            m_textureCache;    // アセットのハンドルをキーにしてテクスチャのハンドルをキャッシュ（毎フレームのアセット検索を回避）
 
         //-------------------------------------------------------------
         //! @struct SpriteEntry

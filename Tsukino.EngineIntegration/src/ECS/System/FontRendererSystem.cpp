@@ -21,14 +21,17 @@
 #include <Tsukino/Engine/Asset/Font/DynamicFontAsset.hpp>
 
 #include <Tsukino/Renderer/DrawCommand.hpp>
+#include <Tsukino/Renderer/DrawCommandQueue.hpp>
+#include <Tsukino/Renderer/Text/BakedFont.hpp>
 
 #include <Tsukino/Core/ECS/Registry/Registry.hpp>
 #include <Tsukino/Core/Math/Matrix.hpp>
 
-#include <SpriteFont.h>
+
 
 #include <algorithm>
 #include <cmath>
+#include <cwctype>
 // 名前空間 : Tsukino::BuiltIn::ECS
 namespace Tsukino::BuiltIn::ECS {
     namespace {
@@ -100,21 +103,12 @@ namespace Tsukino::BuiltIn::ECS {
             return;
 
         //-------------------------------------------------------------
-        // スプライトバッチがない場合は作成(キャッシュ)
-        //-------------------------------------------------------------
-        if(!m_spriteBatch) {
-            m_spriteBatch = ctx->renderer->GetResources().CreateSpriteBatch();
-        }
-
-        ID3D11DeviceContext* immediateContext = ctx->renderer->GetContext();
-
-        //-------------------------------------------------------------
         // 1フレーム分の描画情報を集め直す。
         // clear()は確保済みの容量を維持するため、ウォームアップ後は追加確保が起きない
         //-------------------------------------------------------------
         m_drawEntries.clear();
 
-        // UI の座標と画面のピクセルの対応。文字は UI のカメラを通らず SpriteBatch がピクセルで描くので、
+        // UI の座標と画面のピクセルの対応。文字は UI のカメラを通らずスプライトとしてピクセルで描くので、
         // 位置・大きさ・縁の太さ・切り取り枠をここでピクセルにする（大きさを掛けてから文字の画像を作るので、拡大してもぼやけない）
         const UICanvas& canvas = GetUICanvas(registry);
 
@@ -204,17 +198,17 @@ namespace Tsukino::BuiltIn::ECS {
                         std::static_pointer_cast<Tsukino::Asset::DynamicFontAsset>(asset);
 
                     atlas = std::make_unique<Tsukino::Renderer::DynamicFontAtlas>(
-                        ctx->renderer->GetDevice(), dynamicAsset->m_fontFileData.data(), dynamicAsset->m_fontFileData.size(), dynamicAsset->m_pixelSize);
+                        ctx->renderer->GetResources(), dynamicAsset->m_fontFileData.data(), dynamicAsset->m_fontFileData.size(), dynamicAsset->m_pixelSize);
                 }
 
-                // キャプチャ：DynamicFontAtlas の生ポインタを渡す
+                // 描画情報には DynamicFontAtlas の生ポインタを持たせる（キャッシュが所有する）
                 Tsukino::Renderer::DynamicFontAtlas* nativeAtlas = atlas.get();
 
                 // 揃え位置と枠に収める計算のどちらかが要るときだけ測る
                 const bool     needsMeasure = NeedsMeasure(font.horizontalAlign, font.verticalAlign) || maxWidth > 0.0f;
                 hlslpp::float2 measured(0.0f, 0.0f);
                 if(needsMeasure)
-                    measured = nativeAtlas->MeasureString(font.text, immediateContext);
+                    measured = nativeAtlas->MeasureString(font.text);
 
                 DrawEntry& entry  = m_drawEntries.emplace_back();
                 entry.atlas       = nativeAtlas;
@@ -248,11 +242,14 @@ namespace Tsukino::BuiltIn::ECS {
                     //-------------------------------------------------------------
                     // フォントを生成してキャッシュに保存
                     //-------------------------------------------------------------
-                    spriteFont = ctx->renderer->GetResources().CreateSpriteFont(fontAsset->m_binaryData.data(), fontAsset->m_binaryData.size());
+                    spriteFont = Tsukino::Renderer::BakedFont::Create(ctx->renderer->GetResources(), fontAsset->m_binaryData.data(),
+                                                                      fontAsset->m_binaryData.size());
+                    if(!spriteFont)
+                        return;
                 }
 
-                // キャプチャ：SpriteFont の生ポインタを渡す
-                DirectX::SpriteFont* nativeFont = spriteFont.get();
+                // 描画情報にはフォントの生ポインタを持たせる（キャッシュが所有する）
+                const Tsukino::Renderer::BakedFont* nativeFont = spriteFont.get();
 
                 //-------------------------------------------------------------
                 // フォントに存在しない文字をそのままDrawStringへ渡すと例外で落ちるため、
@@ -273,12 +270,12 @@ namespace Tsukino::BuiltIn::ECS {
                     return;
 
                 hlslpp::float2    alignedOrigin = font.origin;
-                DirectX::XMFLOAT2 measured{};
+                hlslpp::float2    measured(0.0f, 0.0f);
                 if(NeedsMeasure(font.horizontalAlign, font.verticalAlign) || maxWidth > 0.0f)
-                    DirectX::XMStoreFloat2(&measured, nativeFont->MeasureString(safeText.c_str()));
+                    measured = nativeFont->MeasureString(safeText);
                 if(NeedsMeasure(font.horizontalAlign, font.verticalAlign)) {
                     alignedOrigin =
-                        ResolveAlignedOrigin(font.origin, hlslpp::float2(measured.x, measured.y), font.horizontalAlign, font.verticalAlign);
+                        ResolveAlignedOrigin(font.origin, measured, font.horizontalAlign, font.verticalAlign);
                 }
 
                 DrawEntry& entry   = m_drawEntries.emplace_back();
@@ -291,7 +288,7 @@ namespace Tsukino::BuiltIn::ECS {
                 entry.color.w *= groupAlpha;
                 entry.outlineColor.w *= groupAlpha;
                 entry.outlineWidth = font.outlineWidth * canvas.scale;
-                entry.scale        = FitScale(finalScale, measured.x, maxWidth) * canvas.scale;
+                entry.scale        = FitScale(finalScale, float(measured.x), maxWidth) * canvas.scale;
                 entry.rotation     = rotation;
                 entry.sortOrder    = font.sortOrder;
                 entry.hasClip      = hasClip;
@@ -319,20 +316,15 @@ namespace Tsukino::BuiltIn::ECS {
             return m_drawEntries[lhs].sortOrder < m_drawEntries[rhs].sortOrder;
         });
 
-        DirectX::CommonStates* states = ctx->renderer->GetResources().GetCommonStatesTK();
-
         //-------------------------------------------------------------
         // 描画コマンドの作成。sortOrderが同じ連なり（＝同じUIの層）ごとに1個ずつ発行する。
         //
         // 全文字を1個にまとめてしまうと、その1個がOverlay内で1つの層としてしか
         // 扱えず、「HPバーの上・スキルカードの下」のような層をまたぐ配置ができない。
-        // 層ごとに分けても、同じ層の文字はまとめて1回のBegin/Endで描かれるため
+        // 層ごとに分けても、同じ層の文字は1つのスプライトの並びとしてまとめて描かれるため
         // バッチングは保たれる（コマンド数は文字数ではなく層の数で決まる）。
         //
-        // ラムダはthisとm_drawOrderの区間だけを捉える。customDrawが呼ばれるのは
-        // Renderer::Render()の中で、これは同フレームのUpdateが全て終わった後
-        // （EngineAPI::Update → EngineAPI::Render）なので、メンバの内容は
-        // 今フレーム収集したものと一致する
+        // スプライトはここで作ってキューへ写すので、描画時にこのシステムの状態は読まれない
         //-------------------------------------------------------------
         auto sameClip = [](const DrawEntry& lhs, const DrawEntry& rhs) {
             if(lhs.hasClip != rhs.hasClip)
@@ -341,12 +333,14 @@ namespace Tsukino::BuiltIn::ECS {
                                     && lhs.clipRect.bottom == rhs.clipRect.bottom);
         };
 
+        Tsukino::Renderer::DrawCommandQueue& queue = ctx->renderer->GetDrawQueue();
+
         std::uint32_t runBegin = 0;
         while(runBegin < static_cast<std::uint32_t>(m_drawOrder.size())) {
             const DrawEntry& first = m_drawEntries[m_drawOrder[runBegin]];
             const int        layer = first.sortOrder;
 
-            // 同じ層でも切り取り枠が違う文字は同じ Begin/End にまとめられない（シザーは1回の描画に1つ）ので、そこでも区切る
+            // 同じ層でも切り取り枠が違う文字は同じコマンドにまとめられない（切り取り枠は1コマンドに1つ）ので、そこでも区切る
             std::uint32_t runEnd = runBegin + 1;
             while(runEnd < static_cast<std::uint32_t>(m_drawOrder.size()) && m_drawEntries[m_drawOrder[runEnd]].sortOrder == layer
                   && sameClip(m_drawEntries[m_drawOrder[runEnd]], first))
@@ -357,64 +351,36 @@ namespace Tsukino::BuiltIn::ECS {
             // UIはトーンマップ後のバックバッファへ描く（SpriteRendererSystemと揃える）。
             // これを設定しないと既定のRenderPass::Worldに積まれ、3Dモデル(Render)より先に描かれて
             // 後から上書きされてしまう上、トーンマップ前のHDRターゲットに描画されて発色もずれる
-            cmd.pass      = Tsukino::Renderer::RenderPass::Overlay;
-            cmd.sortOrder = layer;
+            cmd.pass        = Tsukino::Renderer::RenderPass::Overlay;
+            cmd.sortOrder   = layer;
+            cmd.hasClipRect = first.hasClip;
+            cmd.clipRect    = first.clipRect;
 
-            // m_drawEntries/m_drawOrderはthis経由で参照する。customDrawが呼ばれるのは
-            // Renderer::Render()の中で、これは同フレームのUpdateが全て終わった後
-            // （EngineAPI::Update → EngineAPI::Render）なので、描画時点の内容は
-            // 今フレーム収集したものと一致する
-            ID3D11RasterizerState* scissorState = ctx->renderer->GetResources().GetScissorRasterizerState();
-            cmd.customDraw = [this, states, scissorState, runBegin, runEnd](ID3D11DeviceContext* context) {
-                DrawRange(context, states, scissorState, runBegin, runEnd);
-            };
-
-            ctx->renderer->GetDrawQueue().Push(cmd);
+            m_sprites.clear();
+            BuildSprites(runBegin, runEnd);
+            queue.PushSprites(cmd, m_sprites);
 
             runBegin = runEnd;
         }
     }
 
     //-------------------------------------------------------------
-    //! @brief m_drawOrderの一部区間をSpriteBatchで描画する関数
+    //! @brief m_drawOrderの一部区間の文字をスプライトにしてm_spritesへ並べる関数
     //-------------------------------------------------------------
-    void FontRendererSystem::DrawRange(ID3D11DeviceContext* context, DirectX::CommonStates* states, ID3D11RasterizerState* scissorState,
-                                       std::uint32_t beginIndex, std::uint32_t endIndex) {
-        //-------------------------------------------------------------
-        // 切り取り枠のあるまとまりは、シザー有効のラスタライザで描く。
-        // シザー矩形は SpriteBatch が触らないので Begin の前に設定しておけば End の描画に効く。
-        // 描き終えた後のラスタライザは DrawCommandExecutor が customDraw の後で戻す
-        //-------------------------------------------------------------
-        const DrawEntry&       first      = m_drawEntries[m_drawOrder[beginIndex]];
-        ID3D11RasterizerState* rasterizer = nullptr;
-        if(first.hasClip && scissorState) {
-            const D3D11_RECT scissor = {first.clipRect.left, first.clipRect.top, first.clipRect.right, first.clipRect.bottom};
-            context->RSSetScissorRects(1, &scissor);
-            rasterizer = scissorState;
-        }
-
-        m_spriteBatch->Begin(DirectX::SpriteSortMode_Deferred,    // 積んだ順に描く
-                             states->NonPremultiplied(),          // 一般的なアルファブレンドを強制
-                             nullptr,                             // サンプラーステート（デフォルトでOK）
-                             states->DepthRead(),                 // 奥行きを読み取るけど書き込まない
-                             rasterizer                           // ラスタライザステート（nullptr なら SpriteBatch の既定）
-        );
-
+    void FontRendererSystem::BuildSprites(std::uint32_t beginIndex, std::uint32_t endIndex) {
         for(std::uint32_t order = beginIndex; order < endIndex; ++order) {
             const DrawEntry& entry = m_drawEntries[m_drawOrder[order]];
 
             if(entry.atlas) {
-                entry.atlas->DrawString(m_spriteBatch.get(), context, entry.text, entry.position, entry.color, entry.origin, entry.scale,
-                                        entry.outlineColor, entry.outlineWidth, entry.rotation);
+                entry.atlas->AppendStringSprites(m_sprites, entry.text, entry.position, entry.color, entry.origin, entry.scale,
+                                                 entry.outlineColor, entry.outlineWidth, entry.rotation);
                 continue;
             }
 
             //-------------------------------------------------------------
             // ベイク済みSpriteFont経路。縁取りはDynamicFontAtlasと揃えて
-            // 8方向へずらしたものを先に描き、最後に本体を描く
+            // 8方向へずらしたものを先に並べ、最後に本体を並べる
             //-------------------------------------------------------------
-            DirectX::XMFLOAT2 origin(entry.origin.x, entry.origin.y);
-
             if(entry.outlineWidth > 0.0f && entry.outlineColor.w > 0.0f) {
                 constexpr float kOutlineOffsets[8][2] = {
                     {-1.0f, -1.0f}, {0.0f, -1.0f}, {1.0f, -1.0f},
@@ -422,32 +388,14 @@ namespace Tsukino::BuiltIn::ECS {
                     {-1.0f,  1.0f}, {0.0f,  1.0f}, {1.0f,  1.0f},
                 };
 
-                DirectX::XMFLOAT4 dxOutlineColor(entry.outlineColor.x, entry.outlineColor.y, entry.outlineColor.z, entry.outlineColor.w);
-                DirectX::XMVECTOR outlineColorVec = DirectX::XMLoadFloat4(&dxOutlineColor);
-
                 for(const auto& offset : kOutlineOffsets) {
-                    entry.spriteFont->DrawString(
-                        m_spriteBatch.get(),
-                        entry.text.c_str(),
-                        DirectX::XMFLOAT2(entry.position.x + offset[0] * entry.outlineWidth, entry.position.y + offset[1] * entry.outlineWidth),
-                        outlineColorVec,
-                        entry.rotation,
-                        origin,
-                        entry.scale);
+                    const hlslpp::float2 shifted(entry.position.x + offset[0] * entry.outlineWidth, entry.position.y + offset[1] * entry.outlineWidth);
+                    entry.spriteFont->AppendStringSprites(m_sprites, entry.text, shifted, entry.outlineColor, entry.rotation, entry.origin, entry.scale);
                 }
             }
 
-            DirectX::XMFLOAT4 dxColor(entry.color.x, entry.color.y, entry.color.z, entry.color.w);
-            entry.spriteFont->DrawString(m_spriteBatch.get(),
-                                         entry.text.c_str(),
-                                         DirectX::XMFLOAT2(entry.position.x, entry.position.y),
-                                         DirectX::XMLoadFloat4(&dxColor),
-                                         entry.rotation,
-                                         origin,
-                                         entry.scale);
+            entry.spriteFont->AppendStringSprites(m_sprites, entry.text, entry.position, entry.color, entry.rotation, entry.origin, entry.scale);
         }
-
-        m_spriteBatch->End();
     }
 
 }    // namespace Tsukino::BuiltIn::ECS

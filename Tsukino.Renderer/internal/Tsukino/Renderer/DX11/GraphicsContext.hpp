@@ -17,6 +17,7 @@
 namespace Tsukino::Renderer {
     struct PipelineState;    // 前方宣言
     class Material;          // 前方宣言
+    class RenderResources;   // 前方宣言
 
     //--------------------------------------------------------------
     //! @class  GraphicsContext
@@ -78,9 +79,10 @@ namespace Tsukino::Renderer {
 
         //--------------------------------------------------------------
         // マテリアルをセット
-        //! @param mat [in] セットするマテリアル
+        //! @param mat       [in] セットするマテリアル
+        //! @param resources [in] テクスチャのハンドルを引く先
         //--------------------------------------------------------------
-        void SetMaterial(const Material& mat);
+        void SetMaterial(const Material& mat, const RenderResources& resources);
 
          //--------------------------------------------------------------
         //! @brief HDRレンダーターゲットのSRVを取得（トーンマッピングで使用）

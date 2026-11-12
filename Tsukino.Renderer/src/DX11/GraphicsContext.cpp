@@ -4,9 +4,11 @@
 //! @author 山﨑愛
 //--------------------------------------------------------------
 #include <Tsukino/Renderer/DX11/GraphicsContext.hpp>
+#include <Tsukino/Renderer/DX11/RenderResourcesGpu.hpp>
 
 #include <Tsukino/Renderer/DX11/PipelineState.hpp>
-#include <Tsukino/Renderer/DX11/Material.hpp>
+#include <Tsukino/Renderer/Material.hpp>
+#include <Tsukino/Renderer/RenderResources.hpp>
 #include <Tsukino/Renderer/ShaderSlots.hpp>
 
 #include <Tsukino/Core/Log.hpp>
@@ -572,16 +574,23 @@ namespace Tsukino::Renderer {
     //!         まとめてバインドする。未設定のスロットは nullptr のまま
     //!         渡し、シェーダー側で未使用なら無害（DX11はnull SRVサンプリングで0を返す）。
     //--------------------------------------------------------------
-    void GraphicsContext::SetMaterial(const Material& mat) {
+    void GraphicsContext::SetMaterial(const Material& mat, const RenderResources& resources) {
         SetPipelineState(*mat.GetPipeline());    // マテリアルからパイプラインステートを取得してセット
 
         ID3D11DeviceContext* ctx = m_context.Get();    // コンテキストの生ポインタを取得
 
-        constexpr UINT albedoSlot = static_cast<UINT>(SRVSlot::Albedo);
-        ctx->PSSetShaderResources(albedoSlot, static_cast<UINT>(Material::TextureSlotCount),
-                                  const_cast<ID3D11ShaderResourceView**>(mat.GetTextures()));
+        // ハンドルからビューを引いて t0〜t4 へ並べる（未設定は nullptr）
+        std::array<ID3D11ShaderResourceView*, Material::TextureSlotCount> views{};
+        for(size_t i = 0; i < views.size(); ++i) {
+            views[i] = resources.GetGpu().ResolveTexture(mat.GetTextures()[i]);
+        }
 
-        ID3D11SamplerState* sampler = mat.GetSampler();    // マテリアルからサンプラーを取得
+        constexpr UINT albedoSlot = static_cast<UINT>(SRVSlot::Albedo);
+        ctx->PSSetShaderResources(albedoSlot, static_cast<UINT>(views.size()), views.data());
+
+        // マテリアルのサンプラー。未設定なら nullptr を張り、D3D11 の既定のサンプラーにする
+        const std::optional<Tsukino::GraphicsCommon::SamplerType> samplerType = mat.GetSampler();
+        ID3D11SamplerState* sampler = samplerType ? resources.GetGpu().GetSampler(*samplerType) : nullptr;
         ctx->PSSetSamplers(static_cast<UINT>(SamplerSlot::Material), 1, &sampler);
     }
 

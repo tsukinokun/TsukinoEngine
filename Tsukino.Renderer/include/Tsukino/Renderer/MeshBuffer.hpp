@@ -1,35 +1,32 @@
 ﻿//--------------------------------------------------------------
 //! @file   MeshBuffer.hpp
 //! @brief  メッシュバッファ構造体の宣言
+//! @detail GPU へ送ったメッシュを表します。頂点・インデックスのバッファの実体は
+//!         描画 API ごとの中身（MeshBuffer::Gpu）が持ち、Renderer の中でだけ読みます。
+//!         作成は RenderResources::CreateMesh() で行います。
 //! @author 山﨑愛
 //--------------------------------------------------------------
 #pragma once
-// windows.h の min/max マクロを避けるため、DX11 / Effekseer より先に通す
-#include <Tsukino/Core/WindowsLean.hpp>
 #include <Tsukino/Core/typedef.hpp>
 
-#include <d3d11.h>
 #include <hlsl++.h>
-#include <wrl/client.h>
 
-// 名前空間 : Tsukino::GraphicsCommon
-namespace Tsukino::GraphicsCommon {
-    struct MeshData;    // 前方宣言
-}    //namespace Tsukino::GraphicsCommon
+#include <memory>
 
 // 名前空間 : Tsukino::Renderer
 namespace Tsukino::Renderer {
     //--------------------------------------------------------------
     //! @struct MeshBuffer
     //! @brief  メッシュバッファ構造体
+    //! @note   コピーすると GPU の資源を共有する（中身は参照カウントで持つ）
     //--------------------------------------------------------------
     struct MeshBuffer {
-        Microsoft::WRL::ComPtr<ID3D11Buffer> vertexBuffer;       // 頂点バッファ
-        Microsoft::WRL::ComPtr<ID3D11Buffer> indexBuffer;        // インデックスバッファ
-        Microsoft::WRL::ComPtr<ID3D11Buffer> boneWeightBuffer;   // ボーンウェイトバッファ
-        u32                                  vertexCount = 0;    // 頂点数
-        u32                                  indexCount  = 0;    // インデックス数
-        u32                                  stride      = 0;    // 頂点のストライド（バイト単位）
+        struct Gpu;    //!< 描画 API の資源（Renderer の内部で定義）
+
+        std::shared_ptr<Gpu> gpu;                 // 頂点・インデックス・ボーンウェイトのバッファ
+        u32                  vertexCount = 0;     // 頂点数
+        u32                  indexCount  = 0;     // インデックス数
+        u32                  stride      = 0;     // 頂点のストライド（バイト単位）
 
         //----------------------------------------------------------
         // バウンディング球（ローカル空間）。MeshData の AABB から作る。
@@ -45,13 +42,4 @@ namespace Tsukino::Renderer {
         hlslpp::float3 boundsCenter = hlslpp::float3(0.0f, 0.0f, 0.0f);
         float          boundsRadius = 0.0f;
     };
-
-    //--------------------------------------------------------------
-    //! @brief  メッシュデータを作成する関数
-    //! @param  device [in] DirectXのデバイス
-    //! @param  meshData [in] メッシュデータ
-    //! @return メッシュバッファ構造体
-    //--------------------------------------------------------------
-    [[nodiscard]]
-    MeshBuffer CreateMeshBuffer(ID3D11Device* device, const Tsukino::GraphicsCommon::MeshData& meshData);
 }    // namespace Tsukino::Renderer

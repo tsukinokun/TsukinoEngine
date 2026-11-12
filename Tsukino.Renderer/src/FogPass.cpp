@@ -3,6 +3,9 @@
 //! @brief  フォグパスの実装
 //----------------------------------------------------------------------------
 #include <Tsukino/Renderer/FogPass.hpp>
+#include <Tsukino/Renderer/DX11/FrameConstantsGpu.hpp>
+#include <Tsukino/Renderer/DX11/FogPassGpu.hpp>
+#include <Tsukino/Renderer/DX11/RenderResourcesGpu.hpp>
 
 #include "FullscreenPass.hpp"
 
@@ -33,11 +36,11 @@ namespace Tsukino::Renderer {
         desc.Usage             = D3D11_USAGE_DEFAULT;
         desc.BindFlags         = D3D11_BIND_CONSTANT_BUFFER;
         desc.ByteWidth         = sizeof(CBufferFog);
-        if(FAILED(device->CreateBuffer(&desc, nullptr, m_buffer.GetAddressOf()))
-           || FAILED(device->CreateBuffer(&desc, nullptr, m_forwardBuffer.GetAddressOf()))) {
+        if(FAILED(device->CreateBuffer(&desc, nullptr, m_gpu->buffer.GetAddressOf()))
+           || FAILED(device->CreateBuffer(&desc, nullptr, m_gpu->forwardBuffer.GetAddressOf()))) {
             Tsukino::Core::Log::Error("Failed to create fog constant buffer.");
-            m_buffer.Reset();
-            m_forwardBuffer.Reset();
+            m_gpu->buffer.Reset();
+            m_gpu->forwardBuffer.Reset();
             return false;
         }
 
@@ -46,9 +49,9 @@ namespace Tsukino::Renderer {
             return false;
         }
 
-        if(FAILED(device->CreatePixelShader(ps->binary.data(), ps->binary.size(), nullptr, m_ps.GetAddressOf()))) {
+        if(FAILED(device->CreatePixelShader(ps->binary.data(), ps->binary.size(), nullptr, m_gpu->ps.GetAddressOf()))) {
             Tsukino::Core::Log::Error("Failed to create fog pixel shader.");
-            m_ps.Reset();
+            m_gpu->ps.Reset();
             return false;
         }
 
@@ -59,7 +62,7 @@ namespace Tsukino::Renderer {
     //! フォグを HDR バッファへ合成します（深度(t13)だけを読むので、HDR を RTV に張ったままでよい）。
     //------------------------------------------------------------------------
     void FogPass::Execute() {
-        if(!m_enabled || !m_ps || !m_buffer || !m_fullscreenPass->IsValid())
+        if(!m_enabled || !m_gpu->ps || !m_gpu->buffer || !m_fullscreenPass->IsValid())
             return;
 
         ID3D11DeviceContext* context = m_graphicsContext->GetContext();
@@ -76,7 +79,7 @@ namespace Tsukino::Renderer {
         ID3D11ShaderResourceView* depthSRV     = m_graphicsContext->GetDepthSRV();
         context->PSSetShaderResources(depthSRVSlot, 1, &depthSRV);
 
-        ID3D11SamplerState* pointClamp         = m_resources->GetSampler(Tsukino::GraphicsCommon::SamplerType::PointClamp);
+        ID3D11SamplerState* pointClamp         = m_resources->GetGpu().GetSampler(Tsukino::GraphicsCommon::SamplerType::PointClamp);
         constexpr UINT      gbufferSamplerSlot = static_cast<UINT>(SamplerSlot::GBuffer);
         context->PSSetSamplers(gbufferSamplerSlot, 1, &pointClamp);
 
@@ -84,20 +87,20 @@ namespace Tsukino::Renderer {
         // Scene (b0) をバインド（invViewProj・cameraPos・lightDirを使う）
         //----------------------------------------------------------
         constexpr UINT sceneCBSlot = static_cast<UINT>(CBSlot::Scene);
-        context->PSSetConstantBuffers(sceneCBSlot, 1, m_frameConstants->GetSceneBufferAddress());
+        context->PSSetConstantBuffers(sceneCBSlot, 1, m_frameConstants->GetGpu().GetSceneBufferAddress());
 
         //----------------------------------------------------------
         // パラメータ (b9) を更新してバインド
         //----------------------------------------------------------
-        context->UpdateSubresource(m_buffer.Get(), 0, nullptr, &m_data, 0, 0);
+        context->UpdateSubresource(m_gpu->buffer.Get(), 0, nullptr, &m_data, 0, 0);
         constexpr UINT fogCBSlot = static_cast<UINT>(CBSlot::Fog);
-        context->PSSetConstantBuffers(fogCBSlot, 1, m_buffer.GetAddressOf());
+        context->PSSetConstantBuffers(fogCBSlot, 1, m_gpu->buffer.GetAddressOf());
 
         //----------------------------------------------------------
         // シェーダーをセット（VSはフルスクリーン三角形用を共用）
         //----------------------------------------------------------
         context->VSSetShader(m_fullscreenPass->GetVertexShader(), nullptr, 0);
-        context->PSSetShader(m_ps.Get(), nullptr, 0);
+        context->PSSetShader(m_gpu->ps.Get(), nullptr, 0);
         context->IASetInputLayout(nullptr);
 
         //----------------------------------------------------------
@@ -105,9 +108,9 @@ namespace Tsukino::Renderer {
         // （DirectXTKのAlphaBlendは ONE / INV_SRC_ALPHA なので、
         //   PSがfloat4(color * f, f)を返せばそのまま正しいoverになる）
         //----------------------------------------------------------
-        context->OMSetDepthStencilState(m_resources->GetCommonStatesTK()->DepthNone(), 0);
-        context->OMSetBlendState(m_resources->GetCommonStatesTK()->AlphaBlend(), nullptr, 0xFFFFFFFF);
-        context->RSSetState(m_resources->GetCommonStatesTK()->CullNone());
+        context->OMSetDepthStencilState(m_resources->GetGpu().GetCommonStatesTK()->DepthNone(), 0);
+        context->OMSetBlendState(m_resources->GetGpu().GetCommonStatesTK()->AlphaBlend(), nullptr, 0xFFFFFFFF);
+        context->RSSetState(m_resources->GetGpu().GetCommonStatesTK()->CullNone());
 
         //----------------------------------------------------------
         // フルスクリーントライアングル描画
@@ -122,11 +125,11 @@ namespace Tsukino::Renderer {
         ID3D11ShaderResourceView* nullSRV = nullptr;
         context->PSSetShaderResources(depthSRVSlot, 1, &nullSRV);
 
-        context->OMSetBlendState(m_resources->GetCommonStatesTK()->Opaque(), nullptr, 0xFFFFFFFF);
+        context->OMSetBlendState(m_resources->GetGpu().GetCommonStatesTK()->Opaque(), nullptr, 0xFFFFFFFF);
     }
 
     void FogPass::BindForwardFog() {
-        if(!m_enabled || !m_forwardBuffer)
+        if(!m_enabled || !m_gpu->forwardBuffer)
             return;
 
         // フォグパスと同じ値に「シェーダーの中で掛ける」印（distanceParams.w=1）だけを立てる
@@ -134,10 +137,10 @@ namespace Tsukino::Renderer {
         forwardData.distanceParams.w = 1.0f;
 
         ID3D11DeviceContext* context = m_graphicsContext->GetContext();
-        context->UpdateSubresource(m_forwardBuffer.Get(), 0, nullptr, &forwardData, 0, 0);
+        context->UpdateSubresource(m_gpu->forwardBuffer.Get(), 0, nullptr, &forwardData, 0, 0);
 
         constexpr UINT fogCBSlot = static_cast<UINT>(CBSlot::Fog);
-        context->PSSetConstantBuffers(fogCBSlot, 1, m_forwardBuffer.GetAddressOf());
+        context->PSSetConstantBuffers(fogCBSlot, 1, m_gpu->forwardBuffer.GetAddressOf());
     }
 
     void FogPass::UnbindForwardFog() {
@@ -145,4 +148,15 @@ namespace Tsukino::Renderer {
         constexpr UINT fogCBSlot  = static_cast<UINT>(CBSlot::Fog);
         m_graphicsContext->GetContext()->PSSetConstantBuffers(fogCBSlot, 1, &nullBuffer);
     }
+
+    //------------------------------------------------------------------------
+    //! 資源を持たない状態で作ります。
+    //------------------------------------------------------------------------
+    FogPass::FogPass()
+        : m_gpu(std::make_unique<Gpu>()) {}
+
+    //------------------------------------------------------------------------
+    //! 資源を破棄します。
+    //------------------------------------------------------------------------
+    FogPass::~FogPass() = default;
 }    // namespace Tsukino::Renderer

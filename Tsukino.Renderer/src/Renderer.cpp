@@ -4,6 +4,8 @@
 //! @author 山﨑愛
 //------------------------------------------------------------
 #include <Tsukino/Renderer/Renderer.hpp>
+#include <Tsukino/Renderer/DX11/RenderResourcesGpu.hpp>
+#include <Tsukino/Renderer/DX11/GraphicsContext.hpp>
 #include <Tsukino/Renderer/ShaderLoader.hpp>
 #include <Tsukino/Renderer/ConstantBuffer.hpp>
 #include <Tsukino/Renderer/ShaderSlots.hpp>
@@ -34,7 +36,8 @@ namespace Tsukino::Renderer {
     //! @note  内部専用の部品を前方宣言だけで持っているため、
     //!        その完全型が見える Renderer.cpp で定義する
     //------------------------------------------------------------
-    Renderer::Renderer() = default;
+    Renderer::Renderer()
+        : m_graphicsContext(std::make_unique<GraphicsContext>()) {}
 
     //------------------------------------------------------------
     //! @brief デストラクタ
@@ -44,24 +47,24 @@ namespace Tsukino::Renderer {
     //------------------------------------------------------------
     //! @brief レンダラーの初期化
     //------------------------------------------------------------
-    bool Renderer::Initialize(HWND hwnd, uint32_t width, uint32_t height, const RendererShaderSet& shaders, const GraphicsDeviceOptions& deviceOptions) {
+    bool Renderer::Initialize(const NativeWindow& window, uint32_t width, uint32_t height, const RendererShaderSet& shaders, const GraphicsDeviceOptions& deviceOptions) {
         // グラフィックスコンテキストの初期化
-        if(!m_graphicsContext.Initialize(hwnd, width, height, deviceOptions)) {
+        if(!m_graphicsContext->Initialize(static_cast<HWND>(window.handle), width, height, deviceOptions)) {
             return false;
         }
 
         Tsukino::Core::Log::Info("sizeof(hlslpp::float4x4) = " + std::to_string(sizeof(hlslpp::float4x4)));
         Tsukino::Core::Log::Info("sizeof(CBufferSkinning) = " + std::to_string(sizeof(CBufferSkinning)));
 
-        ID3D11Device*        device  = m_graphicsContext.GetDevice();     // DirectXのDevice
-        ID3D11DeviceContext* context = m_graphicsContext.GetContext();    // DirectXのDeviceContext
+        ID3D11Device*        device  = m_graphicsContext->GetDevice();     // DirectXのDevice
+        ID3D11DeviceContext* context = m_graphicsContext->GetContext();    // DirectXのDeviceContext
 
         //------------------------------------------------------------
         // 描画で共有する資源（PipelineFactory・共通ステート・サンプラー・
         // プリミティブメッシュ・既定テクスチャ）の作成。
         // 以降のパイプライン生成が PipelineFactory を使うため最初に行う
         //------------------------------------------------------------
-        if(!m_resources.Initialize(device, context))
+        if(!m_resources.Initialize(*m_graphicsContext))
             return false;
 
         //------------------------------------------------------------
@@ -76,21 +79,22 @@ namespace Tsukino::Renderer {
         //------------------------------------------------------------
         // フレーム単位のシーン定数（b0）の作成
         //------------------------------------------------------------
-        if(!m_frameConstants.Initialize(m_graphicsContext))
+        if(!m_frameConstants.Initialize(*m_graphicsContext))
             return false;
 
         //------------------------------------------------------------
-        // 描画コマンドの実行器（Transform・マテリアル・ボーン行列の定数バッファ）の作成
+        // 描画コマンドの実行器（Transform・マテリアル・ボーン行列の定数バッファと、
+        // スプライト・線を描く資源）の作成
         //------------------------------------------------------------
         m_commandExecutor = std::make_unique<DrawCommandExecutor>();
-        if(!m_commandExecutor->Initialize(m_graphicsContext, m_resources, m_frameConstants))
+        if(!m_commandExecutor->Initialize(*m_graphicsContext, m_resources, m_frameConstants, m_drawQueue, shaders.debugVS, shaders.debugPS))
             return false;
 
         //------------------------------------------------------------
         // シャドウマップパス（影用パイプラインとシャドウマップ）の作成
         //------------------------------------------------------------
         m_shadowPass = std::make_unique<ShadowPass>();
-        if(!m_shadowPass->Initialize(m_graphicsContext, m_resources, m_frameConstants, *m_commandExecutor, shaders.shadowStaticVS,
+        if(!m_shadowPass->Initialize(*m_graphicsContext, m_resources, m_frameConstants, *m_commandExecutor, shaders.shadowStaticVS,
                                      shaders.shadowSkeletalVS, shaders.shadowPS)) {
             Tsukino::Core::Log::Error("Failed to create shadow pipelines.");
             return false;
@@ -100,16 +104,10 @@ namespace Tsukino::Renderer {
         // スカイの定数バッファ（b4）と IBL の定数バッファ（b10 / b11）の作成。
         // IBL を使わないときもライティングが b10 を読むので、ここは失敗を許さない
         //------------------------------------------------------------
-        if(!m_skyPass.Initialize(m_graphicsContext, m_resources, m_frameConstants))
+        if(!m_skyPass.Initialize(*m_graphicsContext, m_resources, m_frameConstants))
             return false;
 
-        if(!m_iblBaker.CreateConstantBuffers(device))
-            return false;
-
-        //------------------------------------------------------------
-        // デバッグ描画（線・三角形）の作成
-        //------------------------------------------------------------
-        if(!m_debugDraw.Initialize(m_graphicsContext, m_resources, m_frameConstants, shaders.debugVS, shaders.debugPS))
+        if(!m_iblBaker.CreateConstantBuffers(*m_graphicsContext))
             return false;
 
         //------------------------------------------------------------
@@ -123,7 +121,7 @@ namespace Tsukino::Renderer {
         }
 
         m_tonemapPass = std::make_unique<TonemapPass>();
-        if(!m_tonemapPass->Initialize(m_graphicsContext, m_resources, *m_fullscreenPass, shaders.tonemapPS)) {
+        if(!m_tonemapPass->Initialize(*m_graphicsContext, m_resources, *m_fullscreenPass, shaders.tonemapPS)) {
             Tsukino::Core::Log::Error("Renderer: Tonemapping is disabled because its pixel shader could not be created.");
         }
 
@@ -132,7 +130,7 @@ namespace Tsukino::Renderer {
         // GBufferパスのPS(gbufferPS)はModelSystem側でPipelineFactory経由の
         // 通常のDrawCommandとして扱うため、ここでは不要。
         //------------------------------------------------------------
-        if(!m_lightingPass.Initialize(m_graphicsContext, m_resources, m_frameConstants, *m_fullscreenPass, *m_shadowPass, m_iblBaker,
+        if(!m_lightingPass.Initialize(*m_graphicsContext, m_resources, m_frameConstants, *m_fullscreenPass, *m_shadowPass, m_iblBaker,
                                       shaders.lightingPS))
             return false;
 
@@ -141,24 +139,24 @@ namespace Tsukino::Renderer {
         // 演出用の任意機能なので、失敗しても描画自体は続行する
         // （そのパスが何もしなくなるだけで済む）
         //------------------------------------------------------------
-        if(!m_motionBlurPass.Initialize(m_graphicsContext, m_resources, m_frameConstants, *m_fullscreenPass, shaders.motionBlurPS)) {
+        if(!m_motionBlurPass.Initialize(*m_graphicsContext, m_resources, m_frameConstants, *m_fullscreenPass, shaders.motionBlurPS)) {
             Tsukino::Core::Log::Error("Renderer: Motion blur is disabled because its resources could not be created.");
         }
 
-        if(!m_bloomPass.Initialize(m_graphicsContext, m_resources, *m_fullscreenPass, shaders.bloomPrefilterPS, shaders.bloomDownsamplePS,
+        if(!m_bloomPass.Initialize(*m_graphicsContext, m_resources, *m_fullscreenPass, shaders.bloomPrefilterPS, shaders.bloomDownsamplePS,
                                    shaders.bloomUpsamplePS)) {
             Tsukino::Core::Log::Error("Renderer: Bloom is disabled because its resources could not be created.");
         }
 
-        if(!m_fogPass.Initialize(m_graphicsContext, m_resources, m_frameConstants, *m_fullscreenPass, shaders.fogPS)) {
+        if(!m_fogPass.Initialize(*m_graphicsContext, m_resources, m_frameConstants, *m_fullscreenPass, shaders.fogPS)) {
             Tsukino::Core::Log::Error("Renderer: Fog is disabled because its resources could not be created.");
         }
 
-        if(!m_sphereColorGradePass.Initialize(m_graphicsContext, m_resources, m_frameConstants, *m_fullscreenPass, shaders.sphereColorGradePS)) {
+        if(!m_sphereColorGradePass.Initialize(*m_graphicsContext, m_resources, m_frameConstants, *m_fullscreenPass, shaders.sphereColorGradePS)) {
             Tsukino::Core::Log::Error("Renderer: Sphere color grade is disabled because its resources could not be created.");
         }
 
-        if(!m_ambientParticlePass.Initialize(m_graphicsContext, m_resources, m_frameConstants, shaders.ambientParticleVS, shaders.ambientParticlePS)) {
+        if(!m_ambientParticlePass.Initialize(*m_graphicsContext, m_resources, m_frameConstants, shaders.ambientParticleVS, shaders.ambientParticlePS)) {
             Tsukino::Core::Log::Error("Renderer: Ambient particles are disabled because their resources could not be created.");
         }
 
@@ -168,7 +166,7 @@ namespace Tsukino::Renderer {
         // （ベイクが走らず、アンビエントが
         //   常に0扱いになるだけで済む）。
         //------------------------------------------------------------
-        if(!m_iblBaker.Initialize(m_graphicsContext, m_resources, m_frameConstants, *m_fullscreenPass, m_skyPass, shaders.iblIrradiancePS,
+        if(!m_iblBaker.Initialize(*m_graphicsContext, m_resources, m_frameConstants, *m_fullscreenPass, m_skyPass, shaders.iblIrradiancePS,
                                   shaders.iblSpecularPrefilterPS, shaders.iblBRDFLUTPS)) {
             Tsukino::Core::Log::Error("Renderer: IBL is disabled because its resources could not be created.");
         }
@@ -185,7 +183,7 @@ namespace Tsukino::Renderer {
             ApplyQuality();
         }
 
-        m_graphicsContext.BeginFrame(m_clearColor[0], m_clearColor[1], m_clearColor[2], m_clearColor[3]);
+        m_graphicsContext->BeginFrame(m_clearColor[0], m_clearColor[1], m_clearColor[2], m_clearColor[3]);
 
         const auto& commands = m_drawQueue.GetCommands();
 
@@ -217,7 +215,7 @@ namespace Tsukino::Renderer {
         m_gpuProfiler->BeginPass(GpuPass::Shadow);
         if(m_shadowPass->Execute(commands, m_frameStats)) {
             // RTとビューポートをBeginFrame時の状態に戻す
-            m_graphicsContext.BeginFrame(m_clearColor[0], m_clearColor[1], m_clearColor[2], m_clearColor[3]);
+            m_graphicsContext->BeginFrame(m_clearColor[0], m_clearColor[1], m_clearColor[2], m_clearColor[3]);
         }
         m_gpuProfiler->EndPass(GpuPass::Shadow);
 
@@ -252,7 +250,7 @@ namespace Tsukino::Renderer {
         //------------------------------------------------------------
         m_gpuProfiler->BeginPass(GpuPass::GBuffer);
         m_frameConstants.UploadWorld();
-        m_graphicsContext.BeginGBufferPass();
+        m_graphicsContext->BeginGBufferPass();
         for(const auto& cmd : commands) {
             if(cmd.pass != RenderPass::GBuffer)
                 continue;
@@ -273,13 +271,13 @@ namespace Tsukino::Renderer {
         // 正しく前後関係が出る（デバッグ線や半透明が不透明オブジェクトの後ろに隠れる）
         //------------------------------------------------------------
         m_gpuProfiler->BeginPass(GpuPass::World);
-        m_graphicsContext.BindHDRRenderTarget();
+        m_graphicsContext->BindHDRRenderTarget();
 
         //------------------------------------------------------------
-        // World パス（デバッグ線などcustomDraw経由のフォワード不透明）
+        // World パス（デバッグ線など、深度を書くフォワードの不透明）
         //------------------------------------------------------------
         {
-            ID3D11DeviceContext* context = m_graphicsContext.GetContext();
+            ID3D11DeviceContext* context = m_graphicsContext->GetContext();
             // シャドウマップをt8・s8にバインド（フォワードでライティングするシェーダー向け）
             m_shadowPass->BindForSampling(context);
 
@@ -331,7 +329,7 @@ namespace Tsukino::Renderer {
         //------------------------------------------------------------
         m_gpuProfiler->BeginPass(GpuPass::ColorGrade);
         m_sphereColorGradePass.Execute();
-        m_graphicsContext.BindHDRRenderTarget();
+        m_graphicsContext->BindHDRRenderTarget();
         m_gpuProfiler->EndPass(GpuPass::ColorGrade);
 
         //------------------------------------------------------------
@@ -376,7 +374,7 @@ namespace Tsukino::Renderer {
         // シャドウマップ・IBLのバインドを解除（DSVとSRVの同時バインド防止）
         //------------------------------------------------------------
         {
-            ID3D11DeviceContext*      context       = m_graphicsContext.GetContext();
+            ID3D11DeviceContext*      context       = m_graphicsContext->GetContext();
             ID3D11ShaderResourceView* nullSRV       = nullptr;
             constexpr UINT            shadowSRVSlot = static_cast<UINT>(SRVSlot::ShadowMap);
             context->PSSetShaderResources(shadowSRVSlot, 1, &nullSRV);
@@ -409,7 +407,7 @@ namespace Tsukino::Renderer {
         // Tonemapパス（HDR → LDR変換してバックバッファへ）
         //------------------------------------------------------------
         m_gpuProfiler->BeginPass(GpuPass::Tonemap);
-        m_tonemapPass->Execute(motionBlurred ? m_graphicsContext.GetPostProcessSRV() : m_graphicsContext.GetHDRSRV());
+        m_tonemapPass->Execute(motionBlurred ? m_graphicsContext->GetPostProcessSRV() : m_graphicsContext->GetHDRSRV());
         m_gpuProfiler->EndPass(GpuPass::Tonemap);
 
         //------------------------------------------------------------
@@ -426,14 +424,14 @@ namespace Tsukino::Renderer {
         //------------------------------------------------------------
         if(postWorldPass) {
             m_gpuProfiler->BeginPass(GpuPass::Effects);
-            ID3D11DeviceContext* context = m_graphicsContext.GetContext();
-            m_graphicsContext.BindBackBufferWithSceneDepth();
-            context->OMSetBlendState(m_resources.GetCommonStatesTK()->AlphaBlend(), nullptr, 0xFFFFFFFF);
-            context->OMSetDepthStencilState(m_resources.GetCommonStatesTK()->DepthNone(), 0);
-            postWorldPass->RenderPostWorld(context, m_frameConstants.GetWorldSceneData().view, m_frameConstants.GetWorldSceneData().projection);
-            context->OMSetBlendState(m_resources.GetCommonStatesTK()->Opaque(), nullptr, 0xFFFFFFFF);
-            context->OMSetDepthStencilState(m_resources.GetCommonStatesTK()->DepthDefault(), 0);
-            m_graphicsContext.BindBackBuffer();
+            ID3D11DeviceContext* context = m_graphicsContext->GetContext();
+            m_graphicsContext->BindBackBufferWithSceneDepth();
+            context->OMSetBlendState(m_resources.GetGpu().GetCommonStatesTK()->AlphaBlend(), nullptr, 0xFFFFFFFF);
+            context->OMSetDepthStencilState(m_resources.GetGpu().GetCommonStatesTK()->DepthNone(), 0);
+            postWorldPass->RenderPostWorld(GetNativeGraphicsContext(), m_frameConstants.GetWorldSceneData().view, m_frameConstants.GetWorldSceneData().projection);
+            context->OMSetBlendState(m_resources.GetGpu().GetCommonStatesTK()->Opaque(), nullptr, 0xFFFFFFFF);
+            context->OMSetDepthStencilState(m_resources.GetGpu().GetCommonStatesTK()->DepthDefault(), 0);
+            m_graphicsContext->BindBackBuffer();
             m_gpuProfiler->EndPass(GpuPass::Effects);
         }
 
@@ -482,12 +480,12 @@ namespace Tsukino::Renderer {
             const DrawCommand& cmd = commands[index];
             if(cmd.cameraOverride) {
                 if(!overlayDepthBound) {
-                    m_graphicsContext.BindBackBufferWithClearedDepth();
+                    m_graphicsContext->BindBackBufferWithClearedDepth();
                     m_iblBaker.Bind();
                     overlayDepthBound     = true;
                     overlayDepthSortOrder = cmd.sortOrder;
                 } else if(cmd.sortOrder != overlayDepthSortOrder) {
-                    m_graphicsContext.BindBackBufferWithClearedDepth();
+                    m_graphicsContext->BindBackBufferWithClearedDepth();
                     overlayDepthSortOrder = cmd.sortOrder;
                 }
                 m_frameConstants.UploadWorldWithCamera(*cmd.cameraOverride);
@@ -501,11 +499,14 @@ namespace Tsukino::Renderer {
         if(overlayDepthBound) {
             // 深度バッファは次のフレームの BeginFrame でワールド用に戻す（DSVとSRVの同時バインド防止）
             m_iblBaker.Unbind();
-            m_graphicsContext.BindBackBuffer();
+            m_graphicsContext->BindBackBuffer();
         }
         m_gpuProfiler->EndPass(GpuPass::Overlay);
 
         m_drawQueue.Clear();
+
+        // Submit されずに残ったデバッグ線は捨てる（溜まり続けないように）
+        m_debugDraw.Clear();
 
         //------------------------------------------------------------
         // 次フレームの速度計算用に、今フレームのViewProjectionを退避する
@@ -529,7 +530,7 @@ namespace Tsukino::Renderer {
 
         // GPUタイマーはPresentの前に閉じる（Presentの待ちをフレーム時間に含めない）
         m_gpuProfiler->EndFrame();
-        m_graphicsContext.EndFrame();
+        m_graphicsContext->EndFrame();
     }
 
     //------------------------------------------------------------
@@ -545,7 +546,7 @@ namespace Tsukino::Renderer {
         m_drawQueue.Clear();
         m_debugDraw.Clear();
 
-        if(!m_graphicsContext.Resize(width, height)) {
+        if(!m_graphicsContext->Resize(width, height)) {
             Tsukino::Core::Log::Error("Renderer::Resize - failed to resize the swap chain. Rendering continues at the previous size.");
         }
     }
@@ -572,7 +573,7 @@ namespace Tsukino::Renderer {
     void Renderer::ApplyQuality() {
         m_qualityDirty = false;
 
-        if(!m_graphicsContext.SetRenderScale(m_quality.renderScale)) {
+        if(!m_graphicsContext->SetRenderScale(m_quality.renderScale)) {
             Tsukino::Core::Log::Error("Renderer::ApplyQuality - failed to recreate the scene targets at the requested render scale.");
         }
 
@@ -610,4 +611,31 @@ namespace Tsukino::Renderer {
         return m_shadowPass ? m_shadowPass->GetSettings() : kDefaultSettings;
     }
 
+    //------------------------------------------------------------
+    //! 垂直同期の有無を設定します。
+    //------------------------------------------------------------
+    void Renderer::SetVSyncEnabled(bool enabled) {
+        m_graphicsContext->SetVSyncEnabled(enabled);
+    }
+
+    //------------------------------------------------------------
+    //! 垂直同期が有効かを取得します。
+    //------------------------------------------------------------
+    bool Renderer::IsVSyncEnabled() const {
+        return m_graphicsContext->IsVSyncEnabled();
+    }
+
+    //------------------------------------------------------------
+    //! 使っている GPU の情報を取得します。
+    //------------------------------------------------------------
+    const GraphicsAdapterInfo& Renderer::GetAdapterInfo() const noexcept {
+        return m_graphicsContext->GetAdapterInfo();
+    }
+
+    //------------------------------------------------------------
+    //! 描画 API の生のデバイスを取得します。
+    //------------------------------------------------------------
+    NativeGraphicsContext Renderer::GetNativeGraphicsContext() const noexcept {
+        return NativeGraphicsContext{m_graphicsContext->GetDevice(), m_graphicsContext->GetContext()};
+    }
 }    // namespace Tsukino::Renderer

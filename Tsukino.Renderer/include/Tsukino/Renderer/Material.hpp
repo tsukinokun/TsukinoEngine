@@ -4,16 +4,22 @@
 //! @author 山﨑愛
 //--------------------------------------------------------------
 #pragma once
-#include <Tsukino/Renderer/DX11/PipelineState.hpp>
+#include <Tsukino/Renderer/GpuHandles.hpp>
 #include <Tsukino/Renderer/ShaderSlots.hpp>
+
+#include <Tsukino/GraphicsCommon/State/SamplerType.hpp>
+
 #include <array>
+#include <optional>
 namespace Tsukino::Renderer {
+    struct PipelineState;    // 前方宣言（描画 API ごとの中身。Renderer の内部で定義）
+
     //--------------------------------------------------------------
     //! @class  Material
     //! @brief  マテリアルクラス
     //! @note   テクスチャは t0〜t4（Albedo/Normal/MetallicRoughness/Emissive/AO）の
-    //!         5枚まで保持できる。未設定のスロットは nullptr のまま SetMaterial が
-    //!         バインドするが、null SRV はサンプル結果が0になり法線マップ等が破綻するため、
+    //!         5枚まで保持できる。未設定のスロットは空のまま SetMaterial が
+    //!         バインドするが、空のスロットはサンプル結果が0になり法線マップ等が破綻するため、
     //!         デフォルトテクスチャへの差し替えは積む側（ModelSystem）の責務とする。
     //--------------------------------------------------------------
     class Material {
@@ -29,27 +35,27 @@ namespace Tsukino::Renderer {
 
         //--------------------------------------------------------------
         //! @brief  テクスチャを設定する関数（アルベド = t0 固定の簡易版）
-        //! @param  srv [in] テクスチャへのポインタ
+        //! @param  texture [in] テクスチャのハンドル
         //--------------------------------------------------------------
-        void SetTexture(ID3D11ShaderResourceView* srv) { SetTexture(SRVSlot::Albedo, srv); }
+        void SetTexture(TextureHandle texture) { SetTexture(SRVSlot::Albedo, texture); }
 
         //--------------------------------------------------------------
         //! @brief  指定スロットにテクスチャを設定する関数
-        //! @param  slot [in] マテリアルテクスチャスロット (t0〜t4)
-        //! @param  srv  [in] テクスチャへのポインタ
+        //! @param  slot    [in] マテリアルテクスチャスロット (t0〜t4)
+        //! @param  texture [in] テクスチャのハンドル
         //--------------------------------------------------------------
-        void SetTexture(SRVSlot slot, ID3D11ShaderResourceView* srv) {
+        void SetTexture(SRVSlot slot, TextureHandle texture) {
             size_t index = static_cast<size_t>(slot);
             if(index < TextureSlotCount) {
-                textures[index] = srv;
+                textures[index] = texture;
             }
         }
 
         //--------------------------------------------------------------
         //! @brief  サンプラーを設定する関数
-        //! @param  s [in] サンプラーへのポインタ
+        //! @param  type [in] サンプラーの種類
         //--------------------------------------------------------------
-        void SetSampler(ID3D11SamplerState* s) { sampler = s; }
+        void SetSampler(Tsukino::GraphicsCommon::SamplerType type) { sampler = type; }
 
         //--------------------------------------------------------------
         //! @brief  パイプラインステートを取得する関数
@@ -62,34 +68,34 @@ namespace Tsukino::Renderer {
 
         //--------------------------------------------------------------
         //! @brief  アルベド(t0)テクスチャを取得する関数
-        //! @return テクスチャへのポインタ
+        //! @return テクスチャのハンドル（未設定なら無効なハンドル）
         //--------------------------------------------------------------
         [[nodiscard]]
-        ID3D11ShaderResourceView* GetTexture() const {
+        TextureHandle GetTexture() const {
             return textures[static_cast<size_t>(SRVSlot::Albedo)];
         }
 
         //--------------------------------------------------------------
-        //! @brief  全マテリアルテクスチャ（t0〜t4）の配列を取得する関数
-        //! @return ID3D11ShaderResourceView* の配列（先頭ポインタ）
+        //! @brief  全マテリアルテクスチャ（t0〜t4）を取得する関数
+        //! @return テクスチャのハンドルの配列（未設定は無効なハンドル）
         //--------------------------------------------------------------
         [[nodiscard]]
-        const ID3D11ShaderResourceView* const* GetTextures() const {
-            return textures.data();
+        const std::array<TextureHandle, TextureSlotCount>& GetTextures() const {
+            return textures;
         }
 
         //--------------------------------------------------------------
         //! @brief  サンプラーを取得する関数
-        //! @return サンプラーへのポインタ
+        //! @return サンプラーの種類（未設定なら空。描画 API の既定のサンプラーになる）
         //--------------------------------------------------------------
         [[nodiscard]]
-        ID3D11SamplerState* GetSampler() const {
+        std::optional<Tsukino::GraphicsCommon::SamplerType> GetSampler() const {
             return sampler;
         }
 
     private:
-        PipelineState*                                   pipeline = nullptr;    // パイプラインステートへのポインタ
-        std::array<ID3D11ShaderResourceView*, TextureSlotCount> textures{};      // t0〜t4のテクスチャ（未設定はnullptr）
-        ID3D11SamplerState*                              sampler  = nullptr;    // サンプラーへのポインタ
+        PipelineState*                                      pipeline = nullptr;    // パイプラインステートへのポインタ
+        std::array<TextureHandle, TextureSlotCount>         textures{};            // t0〜t4のテクスチャ（未設定は無効なハンドル）
+        std::optional<Tsukino::GraphicsCommon::SamplerType> sampler;               // サンプラーの種類（未設定は空）
     };
 }    // namespace Tsukino::Renderer

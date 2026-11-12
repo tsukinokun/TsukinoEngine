@@ -3,6 +3,9 @@
 //! @brief  ディファードライティングパスの実装
 //----------------------------------------------------------------------------
 #include <Tsukino/Renderer/LightingPass.hpp>
+#include <Tsukino/Renderer/DX11/FrameConstantsGpu.hpp>
+#include <Tsukino/Renderer/DX11/LightingPassGpu.hpp>
+#include <Tsukino/Renderer/DX11/RenderResourcesGpu.hpp>
 
 #include "FullscreenPass.hpp"
 #include "ShadowPass.hpp"
@@ -49,7 +52,7 @@ namespace Tsukino::Renderer {
         desc.Usage             = D3D11_USAGE_DEFAULT;
         desc.BindFlags         = D3D11_BIND_CONSTANT_BUFFER;
         desc.ByteWidth         = sizeof(CBufferLights);
-        if(FAILED(device->CreateBuffer(&desc, nullptr, m_lightsBuffer.GetAddressOf()))) {
+        if(FAILED(device->CreateBuffer(&desc, nullptr, m_gpu->lightsBuffer.GetAddressOf()))) {
             Tsukino::Core::Log::Error("Failed to create lights constant buffer.");
             return false;
         }
@@ -60,9 +63,9 @@ namespace Tsukino::Renderer {
             return false;
         }
 
-        if(FAILED(device->CreatePixelShader(ps->binary.data(), ps->binary.size(), nullptr, m_ps.GetAddressOf()))) {
+        if(FAILED(device->CreatePixelShader(ps->binary.data(), ps->binary.size(), nullptr, m_gpu->ps.GetAddressOf()))) {
             Tsukino::Core::Log::Error("Failed to create lighting pixel shader.");
-            m_ps.Reset();
+            m_gpu->ps.Reset();
             return false;
         }
 
@@ -107,7 +110,7 @@ namespace Tsukino::Renderer {
     //! ライティングを実行して HDR バッファへ加算します。
     //------------------------------------------------------------------------
     void LightingPass::Execute() {
-        if(!m_ps || !m_fullscreenPass->IsValid())
+        if(!m_gpu->ps || !m_fullscreenPass->IsValid())
             return;
 
         ID3D11DeviceContext* context = m_graphicsContext->GetContext();
@@ -121,28 +124,28 @@ namespace Tsukino::Renderer {
         // シェーダーをセット（VSはフルスクリーン三角形用を共用）
         //----------------------------------------------------------
         context->VSSetShader(m_fullscreenPass->GetVertexShader(), nullptr, 0);
-        context->PSSetShader(m_ps.Get(), nullptr, 0);
+        context->PSSetShader(m_gpu->ps.Get(), nullptr, 0);
         context->IASetInputLayout(nullptr);
 
         //----------------------------------------------------------
         // 深度テストなし・ブレンドなし（discardで背景ピクセルを保護する）
         //----------------------------------------------------------
-        context->OMSetDepthStencilState(m_resources->GetCommonStatesTK()->DepthNone(), 0);
-        context->OMSetBlendState(m_resources->GetCommonStatesTK()->Opaque(), nullptr, 0xFFFFFFFF);
-        context->RSSetState(m_resources->GetCommonStatesTK()->CullNone());
+        context->OMSetDepthStencilState(m_resources->GetGpu().GetCommonStatesTK()->DepthNone(), 0);
+        context->OMSetBlendState(m_resources->GetGpu().GetCommonStatesTK()->Opaque(), nullptr, 0xFFFFFFFF);
+        context->RSSetState(m_resources->GetGpu().GetCommonStatesTK()->CullNone());
 
         //----------------------------------------------------------
         // Scene (b0) をバインド
         //----------------------------------------------------------
-        context->VSSetConstantBuffers(static_cast<UINT>(CBSlot::Scene), 1, m_frameConstants->GetSceneBufferAddress());
-        context->PSSetConstantBuffers(static_cast<UINT>(CBSlot::Scene), 1, m_frameConstants->GetSceneBufferAddress());
+        context->VSSetConstantBuffers(static_cast<UINT>(CBSlot::Scene), 1, m_frameConstants->GetGpu().GetSceneBufferAddress());
+        context->PSSetConstantBuffers(static_cast<UINT>(CBSlot::Scene), 1, m_frameConstants->GetGpu().GetSceneBufferAddress());
 
         //----------------------------------------------------------
         // Lights (b5) を更新してバインド
         //----------------------------------------------------------
-        context->UpdateSubresource(m_lightsBuffer.Get(), 0, nullptr, &m_lightsData, 0, 0);
+        context->UpdateSubresource(m_gpu->lightsBuffer.Get(), 0, nullptr, &m_lightsData, 0, 0);
         constexpr UINT lightsCBSlot = static_cast<UINT>(CBSlot::Lights);
-        context->PSSetConstantBuffers(lightsCBSlot, 1, m_lightsBuffer.GetAddressOf());
+        context->PSSetConstantBuffers(lightsCBSlot, 1, m_gpu->lightsBuffer.GetAddressOf());
 
         //----------------------------------------------------------
         // G-Buffer (t9〜t12)、深度 (t13)、ワールド座標 (t14) をバインド
@@ -167,7 +170,7 @@ namespace Tsukino::Renderer {
         //----------------------------------------------------------
         // G-Bufferサンプラー (s9)：フィルタなしのポイントサンプリング
         //----------------------------------------------------------
-        ID3D11SamplerState* pointClamp = m_resources->GetSampler(Tsukino::GraphicsCommon::SamplerType::PointClamp);
+        ID3D11SamplerState* pointClamp = m_resources->GetGpu().GetSampler(Tsukino::GraphicsCommon::SamplerType::PointClamp);
         constexpr UINT      gbufferSamplerSlot = static_cast<UINT>(SamplerSlot::GBuffer);
         context->PSSetSamplers(gbufferSamplerSlot, 1, &pointClamp);
 
@@ -194,6 +197,17 @@ namespace Tsukino::Renderer {
         //----------------------------------------------------------
         // 深度ステートを元に戻す（HDRRenderTarget復帰後のWorld/Transparent用）
         //----------------------------------------------------------
-        context->OMSetDepthStencilState(m_resources->GetCommonStatesTK()->DepthDefault(), 0);
+        context->OMSetDepthStencilState(m_resources->GetGpu().GetCommonStatesTK()->DepthDefault(), 0);
     }
+
+    //------------------------------------------------------------------------
+    //! 資源を持たない状態で作ります。
+    //------------------------------------------------------------------------
+    LightingPass::LightingPass()
+        : m_gpu(std::make_unique<Gpu>()) {}
+
+    //------------------------------------------------------------------------
+    //! 資源を破棄します。
+    //------------------------------------------------------------------------
+    LightingPass::~LightingPass() = default;
 }    // namespace Tsukino::Renderer

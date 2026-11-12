@@ -3,10 +3,11 @@
 //! @brief  メッシュバッファ生成の実装
 //! @author 山﨑愛
 //--------------------------------------------------------------
-#include <Tsukino/Renderer/DX11/MeshBuffer.hpp>
+#include <Tsukino/Renderer/DX11/MeshBufferGpu.hpp>
 #include <Tsukino/GraphicsCommon/Mesh/MeshData.hpp>
 
 #include <cmath>
+#include <memory>
 
 namespace Tsukino::Renderer {
     //--------------------------------------------------------------
@@ -14,6 +15,7 @@ namespace Tsukino::Renderer {
     //--------------------------------------------------------------
     MeshBuffer CreateMeshBuffer(ID3D11Device* device, const Tsukino::GraphicsCommon::MeshData& meshData) {
         MeshBuffer buffer{};
+        buffer.gpu = std::make_shared<MeshBuffer::Gpu>();
 
         // 頂点データが空なら何も作らない
         if(meshData.vertexData.empty() || meshData.vertexCount == 0) {
@@ -31,7 +33,7 @@ namespace Tsukino::Renderer {
         D3D11_SUBRESOURCE_DATA vinit = {};
         vinit.pSysMem                = meshData.vertexData.data();
 
-        HRESULT hr = device->CreateBuffer(&vbd, &vinit, buffer.vertexBuffer.GetAddressOf());
+        HRESULT hr = device->CreateBuffer(&vbd, &vinit, buffer.gpu->vertexBuffer.GetAddressOf());
 
         if(FAILED(hr)) {
             return buffer;
@@ -49,7 +51,7 @@ namespace Tsukino::Renderer {
             D3D11_SUBRESOURCE_DATA iinit = {};
             iinit.pSysMem                = meshData.indices.data();
 
-            hr = device->CreateBuffer(&ibd, &iinit, buffer.indexBuffer.GetAddressOf());
+            hr = device->CreateBuffer(&ibd, &iinit, buffer.gpu->indexBuffer.GetAddressOf());
 
             if(FAILED(hr)) {
                 return buffer;
@@ -65,7 +67,7 @@ namespace Tsukino::Renderer {
             D3D11_SUBRESOURCE_DATA binit = {};
             binit.pSysMem                = meshData.boneWeights.data();
 
-            HRESULT hr = device->CreateBuffer(&bbd, &binit, buffer.boneWeightBuffer.GetAddressOf());
+            HRESULT hr = device->CreateBuffer(&bbd, &binit, buffer.gpu->boneWeightBuffer.GetAddressOf());
             if(FAILED(hr)) {
                 // エラーハンドリング
             }

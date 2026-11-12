@@ -9,6 +9,7 @@ namespace Tsukino::Renderer {
     // 前方宣言
     class GraphicsContext;
     class Material;
+    class RenderResources;
     struct MeshBuffer;
     //------------------------------------------------------------
     //! @class  SpriteRenderer
@@ -24,10 +25,11 @@ namespace Tsukino::Renderer {
         //------------------------------------------------------------
         //! @brief sprite描画を行う関数
         //! @param gfx       [in] グラフィックスコンテキストへのポインタ
+        //! @param resources [in] マテリアルのテクスチャのハンドルを引く先
         //! @param material  [in] 描画に使用するマテリアルへのポインタ
         //! @param mesh      [in] 描画に使用するメッシュデータへのポインタ
         //------------------------------------------------------------
-        void Draw(GraphicsContext* gfx, Material* material, MeshBuffer* mesh);
+        void Draw(GraphicsContext* gfx, const RenderResources& resources, Material* material, MeshBuffer* mesh);
     };
 
 }    // namespace Tsukino::Renderer

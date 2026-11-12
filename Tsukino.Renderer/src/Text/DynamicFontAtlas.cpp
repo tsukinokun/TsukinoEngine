@@ -1,27 +1,43 @@
-//------------------------------------------------------------
+﻿//------------------------------------------------------------
 //! @file	DynamicFontAtlas.cpp
 //! @brief	DirectWriteによるオンデマンドグリフラスタライズと動的テクスチャアトラスの実装
 //! @author 山﨑愛
 //------------------------------------------------------------
 #include <Tsukino/Renderer/Text/DynamicFontAtlas.hpp>
+#include <Tsukino/Renderer/RenderResources.hpp>
 
 #include <Tsukino/Core/Log.hpp>
+
+#include <Tsukino/Core/WindowsLean.hpp>
+#include <dwrite_3.h>
+#include <wrl/client.h>
 
 #include <algorithm>
 #include <cmath>
 
 // 名前空間 : Tsukino::Renderer
 namespace Tsukino::Renderer {
+    using Microsoft::WRL::ComPtr;
+
+    //------------------------------------------------------------
+    //! フォントの読み込みとラスタライズに使う DirectWrite のオブジェクトです。
+    //------------------------------------------------------------
+    struct DynamicFontAtlas::DirectWrite {
+        ComPtr<IDWriteFactory5>               factory;           // DirectWrite のファクトリ
+        ComPtr<IDWriteInMemoryFontFileLoader> fontFileLoader;    // メモリ上のフォントを読むローダー
+        ComPtr<IDWriteFontFace>               fontFace;          // 読み込んだフォント
+    };
+
     //------------------------------------------------------------
     //! @brief  コンストラクタ
     //------------------------------------------------------------
-    DynamicFontAtlas::DynamicFontAtlas(ID3D11Device* device, const uint8_t* fontData, size_t fontDataSize, float pixelSize)
-        : m_device(device), m_pixelSize(pixelSize) {
+    DynamicFontAtlas::DynamicFontAtlas(RenderResources& resources, const uint8_t* fontData, size_t fontDataSize, float pixelSize)
+        : m_resources(&resources), m_dwrite(std::make_unique<DirectWrite>()), m_pixelSize(pixelSize) {
         //--------------------------------------------------------------
         // DirectWriteファクトリの作成
         //--------------------------------------------------------------
         HRESULT hr = ::DWriteCreateFactory(
-            DWRITE_FACTORY_TYPE_SHARED, __uuidof(IDWriteFactory5), reinterpret_cast<IUnknown**>(m_factory.GetAddressOf()));
+            DWRITE_FACTORY_TYPE_SHARED, __uuidof(IDWriteFactory5), reinterpret_cast<IUnknown**>(m_dwrite->factory.GetAddressOf()));
         if(FAILED(hr)) {
             Tsukino::Core::Log::Error("DynamicFontAtlas: Failed to create IDWriteFactory5.");
             return;
@@ -30,20 +46,20 @@ namespace Tsukino::Renderer {
         //--------------------------------------------------------------
         // メモリ上のフォントデータをロードするためのローダーを登録
         //--------------------------------------------------------------
-        hr = m_factory->CreateInMemoryFontFileLoader(m_fontFileLoader.GetAddressOf());
+        hr = m_dwrite->factory->CreateInMemoryFontFileLoader(m_dwrite->fontFileLoader.GetAddressOf());
         if(FAILED(hr)) {
             Tsukino::Core::Log::Error("DynamicFontAtlas: Failed to create IDWriteInMemoryFontFileLoader.");
             return;
         }
 
-        hr = m_factory->RegisterFontFileLoader(m_fontFileLoader.Get());
+        hr = m_dwrite->factory->RegisterFontFileLoader(m_dwrite->fontFileLoader.Get());
         if(FAILED(hr)) {
             Tsukino::Core::Log::Error("DynamicFontAtlas: Failed to register font file loader.");
             return;
         }
 
         ComPtr<IDWriteFontFile> fontFile;
-        hr = m_fontFileLoader->CreateInMemoryFontFileReference(m_factory.Get(), fontData, static_cast<UINT32>(fontDataSize), nullptr, &fontFile);
+        hr = m_dwrite->fontFileLoader->CreateInMemoryFontFileReference(m_dwrite->factory.Get(), fontData, static_cast<UINT32>(fontDataSize), nullptr, &fontFile);
         if(FAILED(hr)) {
             Tsukino::Core::Log::Error("DynamicFontAtlas: Failed to create in-memory font file reference.");
             return;
@@ -64,7 +80,7 @@ namespace Tsukino::Renderer {
         }
 
         IDWriteFontFile* fontFileArray[] = {fontFile.Get()};
-        hr = m_factory->CreateFontFace(faceType, 1, fontFileArray, 0, DWRITE_FONT_SIMULATIONS_NONE, &m_fontFace);
+        hr = m_dwrite->factory->CreateFontFace(faceType, 1, fontFileArray, 0, DWRITE_FONT_SIMULATIONS_NONE, &m_dwrite->fontFace);
         if(FAILED(hr)) {
             Tsukino::Core::Log::Error("DynamicFontAtlas: Failed to create font face.");
             return;
@@ -74,7 +90,7 @@ namespace Tsukino::Renderer {
         // メトリクスからピクセル換算スケールと行送り量を計算
         //--------------------------------------------------------------
         DWRITE_FONT_METRICS metrics{};
-        m_fontFace->GetMetrics(&metrics);
+        m_dwrite->fontFace->GetMetrics(&metrics);
 
         m_scale      = pixelSize / static_cast<float>(metrics.designUnitsPerEm);
         m_lineHeight = static_cast<float>(metrics.ascent + metrics.descent + metrics.lineGap) * m_scale;
@@ -82,41 +98,24 @@ namespace Tsukino::Renderer {
     }
 
     //------------------------------------------------------------
+    //! @brief  デストラクタ
+    //------------------------------------------------------------
+    DynamicFontAtlas::~DynamicFontAtlas() = default;
+
+    //------------------------------------------------------------
     //! @brief  新しいアトラスページを作成する関数
     //------------------------------------------------------------
     bool DynamicFontAtlas::CreatePage() {
-        D3D11_TEXTURE2D_DESC desc{};
-        desc.Width            = kPageSize;
-        desc.Height           = kPageSize;
-        desc.MipLevels        = 1;
-        desc.ArraySize        = 1;
-        desc.Format           = DXGI_FORMAT_R8G8B8A8_UNORM;
-        desc.SampleDesc.Count = 1;
-        desc.Usage            = D3D11_USAGE_DEFAULT;
-        desc.BindFlags        = D3D11_BIND_SHADER_RESOURCE;
-
-        // 初期データ無しで作ったテクスチャの内容はD3D11の仕様上未定義のため、明示的にゼロで埋める
+        // 中身を渡さないと 0 で埋めて作られる
         // (グリフを書き込んでいない領域のゴミを、グリフ端のサンプリングで拾ってしまうのを防ぐ)
-        const std::vector<uint8_t> clearData(static_cast<size_t>(kPageSize) * kPageSize * 4, 0);
-
-        D3D11_SUBRESOURCE_DATA initData{};
-        initData.pSysMem     = clearData.data();
-        initData.SysMemPitch = kPageSize * 4;
-
         Page page;
-        HRESULT hr = m_device->CreateTexture2D(&desc, &initData, page.texture.GetAddressOf());
-        if(FAILED(hr)) {
+        page.texture = m_resources->CreateTexture(kPageSize, kPageSize, Tsukino::GraphicsCommon::TextureFormat::RGBA8, nullptr, 0);
+        if(!page.texture.IsValid()) {
             Tsukino::Core::Log::Error("DynamicFontAtlas: Failed to create atlas page texture.");
             return false;
         }
 
-        hr = m_device->CreateShaderResourceView(page.texture.Get(), nullptr, page.srv.GetAddressOf());
-        if(FAILED(hr)) {
-            Tsukino::Core::Log::Error("DynamicFontAtlas: Failed to create atlas page SRV.");
-            return false;
-        }
-
-        m_pages.push_back(std::move(page));
+        m_pages.push_back(page);
         return true;
     }
 
@@ -173,11 +172,11 @@ namespace Tsukino::Renderer {
 
         GlyphMetrics metrics{};
         UINT32       codepoint32 = key;
-        m_fontFace->GetGlyphIndices(&codepoint32, 1, &metrics.glyphIndex);
+        m_dwrite->fontFace->GetGlyphIndices(&codepoint32, 1, &metrics.glyphIndex);
 
         // 文字送りはフォントの設計値から求める（描く大きさによらず、位置がずれない）
         DWRITE_GLYPH_METRICS designMetrics{};
-        m_fontFace->GetDesignGlyphMetrics(&metrics.glyphIndex, 1, &designMetrics, FALSE);
+        m_dwrite->fontFace->GetDesignGlyphMetrics(&metrics.glyphIndex, 1, &designMetrics, FALSE);
         metrics.advanceX = static_cast<float>(designMetrics.advanceWidth) * m_scale;
 
         auto [it, _] = m_metricsCache.emplace(key, metrics);
@@ -200,7 +199,7 @@ namespace Tsukino::Renderer {
     //------------------------------------------------------------
     //! グリフを指定の大きさでキャッシュから取得し、無ければラスタライズしてキャッシュします。
     //------------------------------------------------------------
-    const DynamicFontAtlas::GlyphImage& DynamicFontAtlas::GetOrRasterizeGlyph(wchar_t codepoint, int rasterSize, ID3D11DeviceContext* context) {
+    const DynamicFontAtlas::GlyphImage& DynamicFontAtlas::GetOrRasterizeGlyph(wchar_t codepoint, int rasterSize) {
         const uint64_t key = (static_cast<uint64_t>(rasterSize) << 32) | static_cast<uint32_t>(codepoint);
         if(auto it = m_glyphCache.find(key); it != m_glyphCache.end())
             return it->second;
@@ -209,7 +208,7 @@ namespace Tsukino::Renderer {
         const GlyphMetrics& metrics = GetGlyphMetrics(codepoint);
 
         DWRITE_GLYPH_RUN run{};
-        run.fontFace     = m_fontFace.Get();
+        run.fontFace     = m_dwrite->fontFace.Get();
         run.fontEmSize   = static_cast<float>(rasterSize);
         run.glyphCount   = 1;
         run.glyphIndices = &metrics.glyphIndex;
@@ -220,7 +219,7 @@ namespace Tsukino::Renderer {
         // グリッドフィットを切るのは、大きさごとに字形が崩れて見えるのを防ぐため
         //--------------------------------------------------------------
         ComPtr<IDWriteGlyphRunAnalysis> analysis;
-        IDWriteFactory3*                factory3 = m_factory.Get();
+        IDWriteFactory3*                factory3 = m_dwrite->factory.Get();
         HRESULT hr = factory3->CreateGlyphRunAnalysis(&run, nullptr, DWRITE_RENDERING_MODE1_NATURAL_SYMMETRIC, DWRITE_MEASURING_MODE_NATURAL,
                                                       DWRITE_GRID_FIT_MODE_DISABLED, DWRITE_TEXT_ANTIALIAS_MODE_GRAYSCALE, 0.0f, 0.0f, &analysis);
         if(FAILED(hr)) {
@@ -278,19 +277,11 @@ namespace Tsukino::Renderer {
             return it->second;
         }
 
-        D3D11_BOX box{};
-        box.left   = atlasX;
-        box.top    = atlasY;
-        box.front  = 0;
-        box.right  = atlasX + width;
-        box.bottom = atlasY + height;
-        box.back   = 1;
-
-        context->UpdateSubresource(m_pages[pageIndex].texture.Get(), 0, &box, rgbaBuffer.data(), width * 4, 0);
+        m_resources->UpdateTexture(m_pages[pageIndex].texture, atlasX, atlasY, width, height, rgbaBuffer.data(), width * 4);
 
         image.hasInk    = true;
         image.page      = pageIndex;
-        image.atlasRect = RECT{static_cast<LONG>(atlasX), static_cast<LONG>(atlasY), static_cast<LONG>(atlasX + width), static_cast<LONG>(atlasY + height)};
+        image.atlasRect = TexelRect{static_cast<i32>(atlasX), static_cast<i32>(atlasY), static_cast<i32>(atlasX + width), static_cast<i32>(atlasY + height)};
         image.bearingX  = static_cast<float>(bounds.left);
         image.bearingY  = static_cast<float>(bounds.top);
 
@@ -319,8 +310,8 @@ namespace Tsukino::Renderer {
     //------------------------------------------------------------
     //! @brief  文字列の描画サイズを取得する関数
     //------------------------------------------------------------
-    hlslpp::float2 DynamicFontAtlas::MeasureString(const std::wstring& text, ID3D11DeviceContext* /*context*/) {
-        if(!m_fontFace || text.empty())
+    hlslpp::float2 DynamicFontAtlas::MeasureString(const std::wstring& text) {
+        if(!m_dwrite->fontFace || text.empty())
             return hlslpp::float2(0.0f, 0.0f);
 
         float penX    = 0.0f;
@@ -336,12 +327,12 @@ namespace Tsukino::Renderer {
     }
 
     //------------------------------------------------------------
-    //! @brief  文字列を描画する関数
+    //! @brief  文字列を、グリフ1つにつき1枚のスプライトにして並びへ足す関数
     //------------------------------------------------------------
-    void DynamicFontAtlas::DrawString(DirectX::SpriteBatch* spriteBatch, ID3D11DeviceContext* context, const std::wstring& text,
-                                       hlslpp::float2 position, hlslpp::float4 color, hlslpp::float2 origin, float scale,
-                                       hlslpp::float4 outlineColor, float outlineWidth, float rotation) {
-        if(!m_fontFace || scale <= 0.0f)
+    void DynamicFontAtlas::AppendStringSprites(std::vector<SpriteQuad>& outSprites, const std::wstring& text,
+                                               hlslpp::float2 position, hlslpp::float4 color, hlslpp::float2 origin, float scale,
+                                               hlslpp::float4 outlineColor, float outlineWidth, float rotation) {
+        if(!m_dwrite->fontFace || scale <= 0.0f)
             return;
 
         // 回転。グリフの左上の位置を position を軸に回し、グリフ自体も同じ角度で（左上を軸に）回す
@@ -358,11 +349,13 @@ namespace Tsukino::Renderer {
         const float rasterScale = drawSize / static_cast<float>(rasterSize);
 
         //------------------------------------------------------------
-        // 1パス分の描画。offsetX/offsetYだけずらした位置に指定色で文字列を描く
+        // 1パス分のスプライト。offsetX/offsetYだけずらした位置に指定色で文字列を並べる
         //------------------------------------------------------------
         auto drawPass = [&](float offsetX, float offsetY, hlslpp::float4 passColor) {
-            DirectX::XMFLOAT4 dxColor(passColor.x, passColor.y, passColor.z, passColor.w);
-            DirectX::XMVECTOR colorVec = DirectX::XMLoadFloat4(&dxColor);
+            const float passR = passColor.x;
+            const float passG = passColor.y;
+            const float passB = passColor.z;
+            const float passA = passColor.w;
 
             const float startX = position.x - origin.x * scale + offsetX;
             const float startY = position.y - origin.y * scale + offsetY;
@@ -381,33 +374,41 @@ namespace Tsukino::Renderer {
                 if(!AdvancePen(ch, penX, penY, maxPenX))
                     continue;    // 改行
 
-                const GlyphImage& glyph = GetOrRasterizeGlyph(ch, rasterSize, context);
+                const GlyphImage& glyph = GetOrRasterizeGlyph(ch, rasterSize);
                 if(!glyph.hasInk)
                     continue;    // 実体のないグリフ（半角/全角スペース等）
-
-                RECT sourceRect = glyph.atlasRect;
 
                 const float glyphX = startX + glyphPenX * scale + glyph.bearingX * rasterScale;
                 const float glyphY = startY + glyphPenY * scale + glyph.bearingY * rasterScale;
 
-                DirectX::XMFLOAT2 destPos;
+                SpriteQuad& sprite = outSprites.emplace_back();
                 if(rotated) {
                     // 回したときは整数ピクセルにそろえない（そろえると文字がガタガタに並ぶ）
                     const float dx = glyphX - position.x;
                     const float dy = glyphY - position.y;
-                    destPos        = DirectX::XMFLOAT2(position.x + dx * cosR - dy * sinR, position.y + dx * sinR + dy * cosR);
+                    sprite.x       = position.x + dx * cosR - dy * sinR;
+                    sprite.y       = position.y + dx * sinR + dy * cosR;
                 } else {
                     // グリフの左上を整数ピクセルにそろえる（半端な位置だとバイリニアサンプリングでにじむ）
-                    destPos = DirectX::XMFLOAT2(std::round(glyphX), std::round(glyphY));
+                    sprite.x = std::round(glyphX);
+                    sprite.y = std::round(glyphY);
                 }
 
-                spriteBatch->Draw(m_pages[glyph.page].srv.Get(), destPos, &sourceRect, colorVec, rotation, DirectX::XMFLOAT2(0.0f, 0.0f), rasterScale);
+                sprite.texture  = m_pages[glyph.page].texture;
+                sprite.source   = {glyph.atlasRect.left, glyph.atlasRect.top, glyph.atlasRect.right, glyph.atlasRect.bottom};
+                sprite.color[0] = passR;
+                sprite.color[1] = passG;
+                sprite.color[2] = passB;
+                sprite.color[3] = passA;
+                sprite.rotation = rotation;
+                sprite.scaleX   = rasterScale;
+                sprite.scaleY   = rasterScale;
             }
         };
 
         //------------------------------------------------------------
-        // 縁取り：本体より先に周りへずらして描く。SpriteSortMode_Deferredなので
-        // 積んだ順にそのまま描かれ、縁取りが本体の下に入る。
+        // 縁取り：本体より先に周りへずらして並べる。スプライトは並べた順に
+        // 描かれるので、縁取りが本体の下に入る。
         // ずらす向きは円周上に等間隔に取り、縁を丸くする（太いときは向きを増やして、でこぼこを減らす）
         //------------------------------------------------------------
         if(outlineWidth > 0.0f && outlineColor.w > 0.0f) {

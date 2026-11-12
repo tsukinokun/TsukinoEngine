@@ -78,8 +78,10 @@ namespace Tsukino::BuiltIn::ECS {
             return;
         }
 
-        ID3D11Device*        device = context->renderer->GetDevice();
-        ID3D11DeviceContext* dc     = context->renderer->GetContext();
+        // Effekseer は DX11 版を使うので、Renderer の生のデバイスを D3D11 の型に戻して渡す
+        const Tsukino::Renderer::NativeGraphicsContext graphics = context->renderer->GetNativeGraphicsContext();
+        ID3D11Device*                                  device   = static_cast<ID3D11Device*>(graphics.device);
+        ID3D11DeviceContext*                           dc       = static_cast<ID3D11DeviceContext*>(graphics.context);
         if(!device || !dc) {
             return;
         }
@@ -437,10 +439,10 @@ namespace Tsukino::BuiltIn::ECS {
 
     //--------------------------------------------------------------
     //! @brief  エフェクトの描画（D3D11デバイスコンテキストでEffekseerを実行）
-    //! @param  dc  [in] D3D11 デバイスコンテキスト
+    //! @param  graphics [in] 描画 API の生のデバイス
     //--------------------------------------------------------------
-    void EffectSystem::RenderPostWorld(ID3D11DeviceContext* dc, const Tsukino::Core::Math::matrix& view, const Tsukino::Core::Math::matrix& projection) {
-        if(!m_initialized || !m_renderer || !dc) {
+    void EffectSystem::RenderPostWorld(const Tsukino::Renderer::NativeGraphicsContext& graphics, const Tsukino::Core::Math::matrix& view, const Tsukino::Core::Math::matrix& projection) {
+        if(!m_initialized || !m_renderer || !graphics.context) {
             return;
         }
 

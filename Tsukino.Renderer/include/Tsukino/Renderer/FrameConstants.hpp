@@ -6,14 +6,12 @@
 //!         2組を保持し、描画パスに応じてどちらかを転送します。
 //----------------------------------------------------------------------------
 #pragma once
-#include <Tsukino/Core/WindowsLean.hpp>
+#include <memory>
 #include <Tsukino/Core/typedef.hpp>
 #include <Tsukino/Core/Math/Matrix.hpp>
 
 #include <Tsukino/Renderer/ConstantBuffer.hpp>
 
-#include <wrl/client.h>
-#include <d3d11.h>
 
 #include <hlsl++.h>
 
@@ -31,6 +29,30 @@ namespace Tsukino::Renderer {
     //------------------------------------------------------------------------
     class FrameConstants {
     public:
+        struct Gpu;    //!< 描画 API の資源（Renderer の内部で定義）
+
+        //! 資源を持たない状態で作ります（Initialize() で作成します）。
+        FrameConstants();
+
+        //! 資源を破棄します。
+        ~FrameConstants();
+
+        FrameConstants(const FrameConstants&)            = delete;
+        FrameConstants& operator=(const FrameConstants&) = delete;
+
+        //! 描画 API の資源を取得します（Renderer の中で使う。中身の定義は公開しない）。
+        //! @return 資源への参照
+        [[nodiscard]]
+        Gpu& GetGpu() noexcept {
+            return *m_gpu;
+        }
+
+        //! 描画 API の資源を取得します（Renderer の中で使う。中身の定義は公開しない）。
+        //! @return 資源への参照
+        [[nodiscard]]
+        const Gpu& GetGpu() const noexcept {
+            return *m_gpu;
+        }
 
         //! 定数バッファを作成します。
         //! @param  [in] graphicsContext デバイスと画面サイズの取得元（Renderer がこのクラスより長生きさせる）
@@ -140,21 +162,7 @@ namespace Tsukino::Renderer {
             m_worldSceneData.occlusionCutout0.w = 0.0f;    // 遮り抜きはフレーム単位（使うフレームで毎回SetOcclusionCutoutする）
         }
 
-        //! b0 の定数バッファを取得します。
-        //! @return 定数バッファ
-        //! @note   IBL ベイクのように、時間や前フレーム行列を差し込まずに視点だけ差し替えて
-        //!         直接書き込むパスが使う
-        [[nodiscard]]
-        ID3D11Buffer* GetSceneBuffer() const noexcept {
-            return m_sceneBuffer.Get();
-        }
 
-        //! b0 の定数バッファのアドレスを取得します（*SetConstantBuffers へ渡す用）。
-        //! @return 定数バッファのアドレス
-        [[nodiscard]]
-        ID3D11Buffer* const* GetSceneBufferAddress() const noexcept {
-            return m_sceneBuffer.GetAddressOf();
-        }
 
     private:
 
@@ -165,7 +173,7 @@ namespace Tsukino::Renderer {
 
     private:
         const GraphicsContext*               m_graphicsContext = nullptr;    // デバイスと画面サイズの取得元（借りている）
-        Microsoft::WRL::ComPtr<ID3D11Buffer> m_sceneBuffer;                  // b0 の定数バッファ
+        std::unique_ptr<Gpu> m_gpu;    // 描画 API の資源（中身は Renderer の内部で定義）
         float                                m_shadowMapSize = 0.0f;         // シャドウマップの一辺（b0 の shadowParams へ配る）
         float                                m_shadowDepthRange     = 1.0f;  // シャドウの平行投影の奥行き（shadowParams.wはその逆数）
         float                                m_shadowSoftFilter     = 1.0f;  // 影を3x3で滑らかにするか（qualityParams.x）

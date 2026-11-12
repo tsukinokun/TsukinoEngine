@@ -8,7 +8,7 @@
 #include <Tsukino/Core/Path.hpp>
 #include <Tsukino/Core/typedef.hpp>
 
-#include <dxgiformat.h>
+#include <Tsukino/GraphicsCommon/Texture/TextureFormat.hpp>
 
 #include <string>
 #include <utility>
@@ -21,11 +21,11 @@ namespace Tsukino::Asset {
     //! テクスチャ1種類ぶんのインポートの規則です。
     //------------------------------------------------------------------------
     struct TextureImportRule {
-        //! 保存するブロック圧縮フォーマット（DXGI_FORMAT_UNKNOWN で圧縮しない）。
+        //! 保存するブロック圧縮フォーマット（TextureFormat::Unknown で圧縮しない）。
         //! 色空間（sRGB / 線形）はファイル名の慣習からインポーターが決めるので、どちらで書いてもよい
-        DXGI_FORMAT compressedFormat = DXGI_FORMAT_UNKNOWN;
-        bool        generateMips     = false;    //!< インポート時にミップマップを作って保存するか
-        bool        allowMipSkip     = false;    //!< 読み込み時に上位ミップを捨ててよいか（TextureImportRules::SetMipSkip）
+        Tsukino::GraphicsCommon::TextureFormat compressedFormat = Tsukino::GraphicsCommon::TextureFormat::Unknown;
+        bool                                   generateMips     = false;    //!< インポート時にミップマップを作って保存するか
+        bool                                   allowMipSkip     = false;    //!< 読み込み時に上位ミップを捨ててよいか（TextureImportRules::SetMipSkip）
     };
 
     //------------------------------------------------------------------------

@@ -425,6 +425,7 @@ project "Tsukino.Renderer"
     files {
         "Tsukino.Renderer/src/**.cpp",
         "Tsukino.Renderer/include/**.hpp",
+        "Tsukino.Renderer/internal/**.hpp",
         "Tsukino.Renderer/pch.cpp",
         "External/hlslpp/include/hlsl++.natvis",
     }
@@ -435,6 +436,7 @@ project "Tsukino.Renderer"
     includedirs {
         "Tsukino.Engine/include",
         "Tsukino.Renderer/include",
+        "Tsukino.Renderer/internal",    -- Renderer の中だけで使うヘッダ（描画 API の型を含む）。他のモジュールからは見えない
         "Tsukino.GraphicsCommon/include",
         "Tsukino.Core/include",
         "External/cereal/include",

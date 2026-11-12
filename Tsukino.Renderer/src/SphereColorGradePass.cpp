@@ -3,6 +3,9 @@
 //! @brief  球形の色調補正パスの実装
 //----------------------------------------------------------------------------
 #include <Tsukino/Renderer/SphereColorGradePass.hpp>
+#include <Tsukino/Renderer/DX11/FrameConstantsGpu.hpp>
+#include <Tsukino/Renderer/DX11/SphereColorGradePassGpu.hpp>
+#include <Tsukino/Renderer/DX11/RenderResourcesGpu.hpp>
 
 #include "FullscreenPass.hpp"
 
@@ -33,9 +36,9 @@ namespace Tsukino::Renderer {
         desc.Usage             = D3D11_USAGE_DEFAULT;
         desc.BindFlags         = D3D11_BIND_CONSTANT_BUFFER;
         desc.ByteWidth         = sizeof(CBufferSphereColorGrade);
-        if(FAILED(device->CreateBuffer(&desc, nullptr, m_buffer.GetAddressOf()))) {
+        if(FAILED(device->CreateBuffer(&desc, nullptr, m_gpu->buffer.GetAddressOf()))) {
             Tsukino::Core::Log::Error("Failed to create sphere color grade constant buffer.");
-            m_buffer.Reset();
+            m_gpu->buffer.Reset();
             return false;
         }
 
@@ -53,9 +56,9 @@ namespace Tsukino::Renderer {
         blendDesc.RenderTarget[0].DestBlendAlpha        = D3D11_BLEND_ONE;
         blendDesc.RenderTarget[0].BlendOpAlpha          = D3D11_BLEND_OP_ADD;
         blendDesc.RenderTarget[0].RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
-        if(FAILED(device->CreateBlendState(&blendDesc, m_blendState.GetAddressOf()))) {
+        if(FAILED(device->CreateBlendState(&blendDesc, m_gpu->blendState.GetAddressOf()))) {
             Tsukino::Core::Log::Error("Failed to create sphere color grade blend state.");
-            m_blendState.Reset();
+            m_gpu->blendState.Reset();
             return false;
         }
 
@@ -64,9 +67,9 @@ namespace Tsukino::Renderer {
             return false;
         }
 
-        if(FAILED(device->CreatePixelShader(ps->binary.data(), ps->binary.size(), nullptr, m_ps.GetAddressOf()))) {
+        if(FAILED(device->CreatePixelShader(ps->binary.data(), ps->binary.size(), nullptr, m_gpu->ps.GetAddressOf()))) {
             Tsukino::Core::Log::Error("Failed to create sphere color grade pixel shader.");
-            m_ps.Reset();
+            m_gpu->ps.Reset();
             return false;
         }
 
@@ -77,7 +80,7 @@ namespace Tsukino::Renderer {
     //! 色調補正を HDR バッファへ掛けます（深度(t13)だけを読むので、HDR を RTV に張ったままでよい）。
     //------------------------------------------------------------------------
     void SphereColorGradePass::Execute() {
-        if(!m_enabled || !m_ps || !m_buffer || !m_blendState || !m_fullscreenPass->IsValid())
+        if(!m_enabled || !m_gpu->ps || !m_gpu->buffer || !m_gpu->blendState || !m_fullscreenPass->IsValid())
             return;
 
         ID3D11DeviceContext* context = m_graphicsContext->GetContext();
@@ -91,7 +94,7 @@ namespace Tsukino::Renderer {
         ID3D11ShaderResourceView* depthSRV     = m_graphicsContext->GetDepthSRV();
         context->PSSetShaderResources(depthSRVSlot, 1, &depthSRV);
 
-        ID3D11SamplerState* pointClamp         = m_resources->GetSampler(Tsukino::GraphicsCommon::SamplerType::PointClamp);
+        ID3D11SamplerState* pointClamp         = m_resources->GetGpu().GetSampler(Tsukino::GraphicsCommon::SamplerType::PointClamp);
         constexpr UINT      gbufferSamplerSlot = static_cast<UINT>(SamplerSlot::GBuffer);
         context->PSSetSamplers(gbufferSamplerSlot, 1, &pointClamp);
 
@@ -99,19 +102,19 @@ namespace Tsukino::Renderer {
         // Scene (b0) とパラメータ (b8) をバインド
         //----------------------------------------------------------
         constexpr UINT sceneCBSlot = static_cast<UINT>(CBSlot::Scene);
-        context->PSSetConstantBuffers(sceneCBSlot, 1, m_frameConstants->GetSceneBufferAddress());
+        context->PSSetConstantBuffers(sceneCBSlot, 1, m_frameConstants->GetGpu().GetSceneBufferAddress());
 
-        context->UpdateSubresource(m_buffer.Get(), 0, nullptr, &m_data, 0, 0);
+        context->UpdateSubresource(m_gpu->buffer.Get(), 0, nullptr, &m_data, 0, 0);
         constexpr UINT gradeCBSlot = static_cast<UINT>(CBSlot::SphereColorGrade);
-        context->PSSetConstantBuffers(gradeCBSlot, 1, m_buffer.GetAddressOf());
+        context->PSSetConstantBuffers(gradeCBSlot, 1, m_gpu->buffer.GetAddressOf());
 
         context->VSSetShader(m_fullscreenPass->GetVertexShader(), nullptr, 0);
-        context->PSSetShader(m_ps.Get(), nullptr, 0);
+        context->PSSetShader(m_gpu->ps.Get(), nullptr, 0);
         context->IASetInputLayout(nullptr);
 
-        context->OMSetDepthStencilState(m_resources->GetCommonStatesTK()->DepthNone(), 0);
-        context->OMSetBlendState(m_blendState.Get(), nullptr, 0xFFFFFFFF);
-        context->RSSetState(m_resources->GetCommonStatesTK()->CullNone());
+        context->OMSetDepthStencilState(m_resources->GetGpu().GetCommonStatesTK()->DepthNone(), 0);
+        context->OMSetBlendState(m_gpu->blendState.Get(), nullptr, 0xFFFFFFFF);
+        context->RSSetState(m_resources->GetGpu().GetCommonStatesTK()->CullNone());
 
         FullscreenPass::Draw(context);
 
@@ -124,6 +127,17 @@ namespace Tsukino::Renderer {
         ID3D11Buffer* nullBuffer = nullptr;
         context->PSSetConstantBuffers(gradeCBSlot, 1, &nullBuffer);
 
-        context->OMSetBlendState(m_resources->GetCommonStatesTK()->Opaque(), nullptr, 0xFFFFFFFF);
+        context->OMSetBlendState(m_resources->GetGpu().GetCommonStatesTK()->Opaque(), nullptr, 0xFFFFFFFF);
     }
+
+    //------------------------------------------------------------------------
+    //! 資源を持たない状態で作ります。
+    //------------------------------------------------------------------------
+    SphereColorGradePass::SphereColorGradePass()
+        : m_gpu(std::make_unique<Gpu>()) {}
+
+    //------------------------------------------------------------------------
+    //! 資源を破棄します。
+    //------------------------------------------------------------------------
+    SphereColorGradePass::~SphereColorGradePass() = default;
 }    // namespace Tsukino::Renderer

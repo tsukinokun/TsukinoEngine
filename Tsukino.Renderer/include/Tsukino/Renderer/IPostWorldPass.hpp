@@ -9,8 +9,7 @@
 //----------------------------------------------------------------------------
 #pragma once
 #include <Tsukino/Core/Math/Matrix.hpp>
-
-struct ID3D11DeviceContext;    // 前方宣言
+#include <Tsukino/Renderer/NativeHandles.hpp>
 
 // 名前空間 : Tsukino::Renderer
 namespace Tsukino::Renderer {
@@ -24,10 +23,10 @@ namespace Tsukino::Renderer {
         virtual ~IPostWorldPass() = default;
 
         //! Worldパスの直後に呼ばれる描画を実行します。
-        //! @param  [in] dc         D3D11 デバイスコンテキスト
+        //! @param  [in] graphics   描画 API の生のデバイス（DX11 では ID3D11Device* と ID3D11DeviceContext*）
         //! @param  [in] view       ビュー行列（カメラ）
         //! @param  [in] projection 射影行列
-        virtual void RenderPostWorld(ID3D11DeviceContext*               dc,
+        virtual void RenderPostWorld(const NativeGraphicsContext&       graphics,
                                      const Tsukino::Core::Math::matrix& view,
                                      const Tsukino::Core::Math::matrix& projection) = 0;
     };

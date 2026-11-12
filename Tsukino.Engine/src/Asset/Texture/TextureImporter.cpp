@@ -7,6 +7,7 @@
 #include <Tsukino/Engine/Asset/Texture/TextureAsset.hpp>
 
 #include "TextureAlphaUtility.hpp"
+#include "TextureFormatDxgi.hpp"
 
 #include <Tsukino/Core/Log.hpp>
 #include <Tsukino/Core/IO/FileSystem.hpp>
@@ -63,7 +64,8 @@ namespace Tsukino::Asset {
         if(rule->generateMips && metadata.mipLevels <= 1)
             return true;
 
-        return rule->compressedFormat != DXGI_FORMAT_UNKNOWN && DirectX::MakeLinear(metadata.format) != DirectX::MakeLinear(rule->compressedFormat);
+        const DXGI_FORMAT ruleFormat = Detail::ToDxgiFormat(rule->compressedFormat);
+        return ruleFormat != DXGI_FORMAT_UNKNOWN && DirectX::MakeLinear(metadata.format) != DirectX::MakeLinear(ruleFormat);
     }
 
     //--------------------------------------------------------------
@@ -152,13 +154,14 @@ namespace Tsukino::Asset {
             metadata = image.GetMetadata();
         }
 
-        if(rule && rule->compressedFormat != DXGI_FORMAT_UNKNOWN) {
+        const DXGI_FORMAT ruleFormat = rule ? Detail::ToDxgiFormat(rule->compressedFormat) : DXGI_FORMAT_UNKNOWN;
+        if(ruleFormat != DXGI_FORMAT_UNKNOWN) {
             //----------------------------------------------------------
             // BC7 の既定の探索はとても遅い（初回起動の待ちになる）ので、早い探索で済ませる。
             // 1枚の中を並列にはしない（AssetLoadQueue が枚数単位で手分けしている）
             //----------------------------------------------------------
             const DirectX::TEX_COMPRESS_FLAGS flags = DirectX::TEX_COMPRESS_BC7_QUICK;
-            const DXGI_FORMAT compressedFormat = isLinear ? DirectX::MakeLinear(rule->compressedFormat) : DirectX::MakeSRGB(rule->compressedFormat);
+            const DXGI_FORMAT compressedFormat = isLinear ? DirectX::MakeLinear(ruleFormat) : DirectX::MakeSRGB(ruleFormat);
 
             DirectX::ScratchImage compressed;
             hr = DirectX::Compress(image.GetImages(), image.GetImageCount(), metadata, compressedFormat, flags, DirectX::TEX_THRESHOLD_DEFAULT, compressed);

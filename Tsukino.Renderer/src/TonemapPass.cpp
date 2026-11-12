@@ -3,6 +3,7 @@
 //! @brief  トーンマップパスの実装
 //----------------------------------------------------------------------------
 #include "TonemapPass.hpp"
+#include <Tsukino/Renderer/DX11/RenderResourcesGpu.hpp>
 #include "FullscreenPass.hpp"
 
 #include <Tsukino/Renderer/DX11/GraphicsContext.hpp>
@@ -61,7 +62,7 @@ namespace Tsukino::Renderer {
         context->PSSetShaderResources(0, 1, &hdrSRV);
 
         // LinearClampサンプラーをs0にバインド
-        ID3D11SamplerState* sampler = m_resources->GetSampler(Tsukino::GraphicsCommon::SamplerType::LinearClamp);
+        ID3D11SamplerState* sampler = m_resources->GetGpu().GetSampler(Tsukino::GraphicsCommon::SamplerType::LinearClamp);
         context->PSSetSamplers(0, 1, &sampler);
 
         // シェーダーをセット
@@ -70,7 +71,7 @@ namespace Tsukino::Renderer {
         context->IASetInputLayout(nullptr);
 
         // 深度なし・ブレンドなし
-        DirectX::CommonStates* states = m_resources->GetCommonStatesTK();
+        DirectX::CommonStates* states = m_resources->GetGpu().GetCommonStatesTK();
         context->OMSetDepthStencilState(states->DepthNone(), 0);
         context->OMSetBlendState(states->Opaque(), nullptr, 0xFFFFFFFF);
         context->RSSetState(states->CullNone());

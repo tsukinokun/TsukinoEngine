@@ -7,13 +7,11 @@
 //!         バックバッファへ直接描かれるため、ブルームの影響を受けません。
 //----------------------------------------------------------------------------
 #pragma once
-#include <Tsukino/Core/WindowsLean.hpp>
+#include <memory>
 #include <Tsukino/Core/typedef.hpp>
 
 #include <Tsukino/Renderer/ConstantBuffer.hpp>
 
-#include <wrl/client.h>
-#include <d3d11.h>
 
 #include <array>
 
@@ -53,6 +51,30 @@ namespace Tsukino::Renderer {
     //------------------------------------------------------------------------
     class BloomPass {
     public:
+        struct Gpu;    //!< 描画 API の資源（Renderer の内部で定義）
+
+        //! 資源を持たない状態で作ります（Initialize() で作成します）。
+        BloomPass();
+
+        //! 資源を破棄します。
+        ~BloomPass();
+
+        BloomPass(const BloomPass&)            = delete;
+        BloomPass& operator=(const BloomPass&) = delete;
+
+        //! 描画 API の資源を取得します（Renderer の中で使う。中身の定義は公開しない）。
+        //! @return 資源への参照
+        [[nodiscard]]
+        Gpu& GetGpu() noexcept {
+            return *m_gpu;
+        }
+
+        //! 描画 API の資源を取得します（Renderer の中で使う。中身の定義は公開しない）。
+        //! @return 資源への参照
+        [[nodiscard]]
+        const Gpu& GetGpu() const noexcept {
+            return *m_gpu;
+        }
         //! 縮小段の最大数（1/2 から 1/64 まで）。画面が小さいときは 2px を切る手前で打ち切る
         static constexpr u32 kMaxMipCount = 6;
 
@@ -111,40 +133,17 @@ namespace Tsukino::Renderer {
         //! 縮小段のテクスチャを画面サイズに合わせて作り直します。
         //! @return true: 使える縮小段が1段以上ある, false: 作成失敗
         [[nodiscard]]
-        bool EnsureMipTargets(UINT width, UINT height);
-
-        //! 定数バッファを書き換えてフルスクリーン三角形を1枚描きます。
-        //! @param  [in] source       読むテクスチャ（t0）
-        //! @param  [in] sourceWidth  読むテクスチャの幅（テクセルの大きさを求めるため）
-        //! @param  [in] sourceHeight 読むテクスチャの高さ
-        //! @param  [in] targetWidth  書き込み先の幅（ビューポート）
-        //! @param  [in] targetHeight 書き込み先の高さ（ビューポート）
-        //! @param  [in] data         定数バッファの中身（texelSize はこの関数が埋める）
-        void DrawFullscreen(ID3D11ShaderResourceView* source, UINT sourceWidth, UINT sourceHeight, UINT targetWidth, UINT targetHeight,
-                            CBufferBloom data);
-
-        //! 縮小段1枚分のテクスチャ
-        struct MipTarget {
-            Microsoft::WRL::ComPtr<ID3D11Texture2D>          texture;
-            Microsoft::WRL::ComPtr<ID3D11RenderTargetView>   rtv;
-            Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> srv;
-            UINT                                             width  = 0;
-            UINT                                             height = 0;
-        };
+        bool EnsureMipTargets(u32 width, u32 height);
 
         GraphicsContext*      m_graphicsContext = nullptr;    // デバイス・HDR バッファ・中間バッファの取得元（借りている）
         RenderResources*      m_resources       = nullptr;    // 共通ステートとサンプラーの取得元（借りている）
         const FullscreenPass* m_fullscreenPass  = nullptr;    // フルスクリーン三角形の描画（借りている）
 
-        Microsoft::WRL::ComPtr<ID3D11PixelShader> m_prefilterPS;     // 明部抽出 + 最初の縮小
-        Microsoft::WRL::ComPtr<ID3D11PixelShader> m_downsamplePS;    // 縮小
-        Microsoft::WRL::ComPtr<ID3D11PixelShader> m_upsamplePS;      // 拡大と合成
-        Microsoft::WRL::ComPtr<ID3D11Buffer>      m_buffer;          // パラメータ用バッファ（CBSlot::Bloom）
+        std::unique_ptr<Gpu> m_gpu;    // 描画 API の資源（中身は Renderer の内部で定義）
 
-        std::array<MipTarget, kMaxMipCount> m_mips{};             // 縮小段（[0] が 1/2）
         u32                                 m_mipCount     = 0;    // 実際に使う縮小段の数
-        UINT                                m_sourceWidth  = 0;    // 縮小段を作ったときの画面幅
-        UINT                                m_sourceHeight = 0;    // 縮小段を作ったときの画面高さ
+        u32                                 m_sourceWidth  = 0;    // 縮小段を作ったときの画面幅
+        u32                                 m_sourceHeight = 0;    // 縮小段を作ったときの画面高さ
         u32                                 m_mipLimit      = kMaxMipCount;    // 縮小段の数の上限（描画品質）
         u32                                 m_builtMipLimit = 0;               // 縮小段を作ったときの上限
 

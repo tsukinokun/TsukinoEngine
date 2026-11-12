@@ -9,12 +9,11 @@
 #include <Tsukino/Core/ECS/Registry/Registry.hpp>
 #include <Tsukino/EngineIntegration/EngineContext.hpp>
 #include <Tsukino/Engine/ECS/Scene.hpp>
-#include <Tsukino/Renderer/DX11/PipelineState.hpp>
 #include <Tsukino/Renderer/DrawCommand.hpp>
-#include <Tsukino/Renderer/DX11/Material.hpp>
+#include <Tsukino/Renderer/Material.hpp>
 #include <Tsukino/Renderer/ConstantBuffer.hpp>
 
-#include <Tsukino/Renderer/DX11/MeshBuffer.hpp>
+#include <Tsukino/Renderer/MeshBuffer.hpp>
 
 #include <cstdint>
 #include <deque>

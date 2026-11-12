@@ -20,6 +20,12 @@
   - boneIndices, weights, serialize()
 - **Tsukino::GraphicsCommon::DebugVertex** — `Tsukino.GraphicsCommon/include/Tsukino/GraphicsCommon/Vertex/DebugVertex.hpp`
   - position, color
+- **Tsukino::GraphicsCommon::Float2** — `Tsukino.GraphicsCommon/include/Tsukino/GraphicsCommon/Vertex/PackedFloat.hpp`
+  - x, y
+- **Tsukino::GraphicsCommon::Float3** — `Tsukino.GraphicsCommon/include/Tsukino/GraphicsCommon/Vertex/PackedFloat.hpp`
+  - x, y, z
+- **Tsukino::GraphicsCommon::Float4** — `Tsukino.GraphicsCommon/include/Tsukino/GraphicsCommon/Vertex/PackedFloat.hpp`
+  - x, y, z, w
 - **Tsukino::GraphicsCommon::MaterialData** — `Tsukino.GraphicsCommon/include/Tsukino/GraphicsCommon/Material/MaterialData.hpp`
   - name, shadingModel, baseColor, emissive, metallic, roughness, specular, alphaCutoff, toonThreshold, toonSmoothness, toonShadeColor, toonSpecularSize, albedoMap, normalMap, metallicRoughnessMap, emissiveMap, aoMap, serialize()
 - **Tsukino::GraphicsCommon::MeshData** — `Tsukino.GraphicsCommon/include/Tsukino/GraphicsCommon/Mesh/MeshData.hpp`

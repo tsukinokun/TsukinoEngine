@@ -3,6 +3,7 @@
 //! @brief  フレーム単位のシーン定数（b0）の実装
 //----------------------------------------------------------------------------
 #include <Tsukino/Renderer/FrameConstants.hpp>
+#include <Tsukino/Renderer/DX11/FrameConstantsGpu.hpp>
 
 #include <Tsukino/Renderer/DX11/GraphicsContext.hpp>
 #include <Tsukino/Renderer/ShaderSlots.hpp>
@@ -24,7 +25,7 @@ namespace Tsukino::Renderer {
         desc.BindFlags         = D3D11_BIND_CONSTANT_BUFFER;
         desc.ByteWidth         = sizeof(CBufferScene);
 
-        if(FAILED(graphicsContext.GetDevice()->CreateBuffer(&desc, nullptr, m_sceneBuffer.GetAddressOf()))) {
+        if(FAILED(graphicsContext.GetDevice()->CreateBuffer(&desc, nullptr, m_gpu->sceneBuffer.GetAddressOf()))) {
             Tsukino::Core::Log::Error("Failed to create scene constant buffer.");
             return false;
         }
@@ -150,8 +151,19 @@ namespace Tsukino::Renderer {
         uploadData.shadowParams = hlslpp::float4(m_shadowMapSize, 1.0f / m_shadowMapSize, sceneData.shadowParams.z, 1.0f / m_shadowDepthRange);
 
         // GPU上のバッファの中身を書き換えて、スロット0（b0）にバインドする
-        context->UpdateSubresource(m_sceneBuffer.Get(), 0, nullptr, &uploadData, 0, 0);
-        context->VSSetConstantBuffers(static_cast<UINT>(CBSlot::Scene), 1, m_sceneBuffer.GetAddressOf());
-        context->PSSetConstantBuffers(static_cast<UINT>(CBSlot::Scene), 1, m_sceneBuffer.GetAddressOf());
+        context->UpdateSubresource(m_gpu->sceneBuffer.Get(), 0, nullptr, &uploadData, 0, 0);
+        context->VSSetConstantBuffers(static_cast<UINT>(CBSlot::Scene), 1, m_gpu->sceneBuffer.GetAddressOf());
+        context->PSSetConstantBuffers(static_cast<UINT>(CBSlot::Scene), 1, m_gpu->sceneBuffer.GetAddressOf());
     }
+
+    //------------------------------------------------------------------------
+    //! 資源を持たない状態で作ります。
+    //------------------------------------------------------------------------
+    FrameConstants::FrameConstants()
+        : m_gpu(std::make_unique<Gpu>()) {}
+
+    //------------------------------------------------------------------------
+    //! 資源を破棄します。
+    //------------------------------------------------------------------------
+    FrameConstants::~FrameConstants() = default;
 }    // namespace Tsukino::Renderer

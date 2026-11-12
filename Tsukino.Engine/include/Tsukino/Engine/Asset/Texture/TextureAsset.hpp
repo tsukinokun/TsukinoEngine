@@ -6,7 +6,7 @@
 #pragma once
 #include <Tsukino/Engine/Asset/IAsset.hpp>
 
-#include <dxgiformat.h>
+#include <Tsukino/GraphicsCommon/Texture/TextureFormat.hpp>
 
 #include <vector>
 #include <cstdint>
@@ -47,7 +47,7 @@ namespace Tsukino::Asset {
 
         uint32_t             width  = 0;                      // テクスチャの幅
         uint32_t             height = 0;                      // テクスチャの高さ
-        DXGI_FORMAT          format = DXGI_FORMAT_UNKNOWN;    // テクスチャのフォーマット
+        Tsukino::GraphicsCommon::TextureFormat format = Tsukino::GraphicsCommon::TextureFormat::Unknown;    // テクスチャのフォーマット
         std::vector<uint8_t> pixels;                          // テクスチャのピクセルデータ。最上段から順に全段を詰めて持つ
 
         //! ミップマップ1段ぶんの、pixels内の位置と1行のバイト数
