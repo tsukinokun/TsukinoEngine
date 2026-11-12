@@ -5,6 +5,8 @@
 //-------------------------------------------------------------
 #include <Tsukino/Core/IO/FileSystem.hpp>
 
+#include <SDL3/SDL_filesystem.h>
+
 #include <fstream>
 #include <filesystem>
 // 名前空間 : Tsukino::IO
@@ -110,10 +112,17 @@ namespace Tsukino::IO {
         // デバッグ時はプロジェクトルート（Premakeのdebugdir設定に依存）
         return Tsukino::Core::Path(std::filesystem::current_path().string());
 #else
-        // リリース時は実行ファイル (.exe) の場所を基準にする
-        wchar_t exePath[MAX_PATH];
-        GetModuleFileNameW(NULL, exePath, MAX_PATH);
-        return Tsukino::Core::Path(std::filesystem::path(exePath).parent_path().string());
+        // リリース時は実行ファイル (.exe) の場所を基準にする。
+        // SDL_GetBasePath は UTF-8 で、末尾に区切り文字が付く（macOS の .app では Resources フォルダを指す）
+        const char* basePath = SDL_GetBasePath();
+        if(!basePath) {
+            return Tsukino::Core::Path(std::filesystem::current_path().string());
+        }
+        std::string root(basePath);
+        while(!root.empty() && (root.back() == '/' || root.back() == '\\')) {
+            root.pop_back();
+        }
+        return Tsukino::Core::Path(root);
 #endif
     }
 

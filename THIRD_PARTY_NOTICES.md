@@ -19,6 +19,7 @@ TsukinoEngine 本体は MIT ライセンスで配布しています（`LICENSE` 
 | [cereal](https://github.com/USCiLab/cereal) | シーンとアセットのシリアライズ | submodule | `22a1b36` | BSD 3-Clause |
 | [DirectX Tool Kit (MakeSpriteFont / XWBTool)](https://github.com/microsoft/DirectXTK) | フォントのベイクと波形バンクの生成に使う実行ファイル | `Tools/` にバイナリを直接コミット | `2026.4.1.1` | MIT |
 | [Premake](https://github.com/premake/premake-core) | プロジェクトファイルの生成 | `vendor/premake5.exe` にバイナリを直接コミット | `5.0.0-beta8` | BSD 3-Clause |
+| [SDL](https://github.com/libsdl-org/SDL) | ウィンドウ・入力・IME・ゲームパッド・保存先などのプラットフォーム層 | submodule | `829a65d (3.4.18)` | zlib |
 
 `Tools/MakeSpriteFont.exe`・`Tools/XWBTool.exe`・`vendor/premake5.exe` の 3 つは、
 ソースではなくビルド済みバイナリをこのリポジトリへ直接コミットしています。
@@ -259,6 +260,30 @@ SOFTWARE
 ### Premake
 
 BSD 3-Clause — https://github.com/premake/premake-core
+
+### SDL
+
+zlib License — https://github.com/libsdl-org/SDL
+
+```
+Copyright (C) 1997-2026 Sam Lantinga <slouken@libsdl.org>
+
+This software is provided 'as-is', without any express or implied
+warranty.  In no event will the authors be held liable for any damages
+arising from the use of this software.
+
+Permission is granted to anyone to use this software for any purpose,
+including commercial applications, and to alter it and redistribute it
+freely, subject to the following restrictions:
+
+1. The origin of this software must not be misrepresented; you must not
+   claim that you wrote the original software. If you use this software
+   in a product, an acknowledgment in the product documentation would be
+   appreciated but is not required.
+2. Altered source versions must be plainly marked as such, and must not be
+   misrepresented as being the original software.
+3. This notice may not be removed or altered from any source distribution.
+```
 
 ```
 BSD 3-Clause License

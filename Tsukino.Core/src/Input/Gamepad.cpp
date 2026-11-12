@@ -5,8 +5,7 @@
 #include <Tsukino/Core/Input/Gamepad.hpp>
 #include <Tsukino/Core/Log.hpp>
 
-#include <Xinput.h>
-#pragma comment(lib, "xinput.lib")
+#include <SDL3/SDL.h>
 
 #include <algorithm>
 #include <cmath>
@@ -15,18 +14,17 @@
 namespace Tsukino::Input {
     // 無名名前空間
     namespace {
-        // 未接続のスロットを確かめ直す間隔（秒）。
-        // 繋がっていないスロットへの XInputGetState は数ミリ秒かかることがあるため、毎フレームは読まない
+        // 未接続のスロットを確かめ直す間隔（秒）。つながっている機器の一覧は毎フレームは取り直さない
         constexpr float kReconnectIntervalSeconds = 1.0f;
 
         //----------------------------------------------------------------------------
         //! スティックの生の値へ円形のデッドゾーンをかけ、−1〜1 へ正規化します。
-        //! @param  [in] rawX     X の生の値（−32768〜32767）
-        //! @param  [in] rawY     Y の生の値（−32768〜32767）
+        //! @param  [in] rawX     X の生の値（−32768〜32767。右が正）
+        //! @param  [in] rawY     Y の生の値（−32768〜32767。上が正）
         //! @param  [in] deadZone デッドゾーン（0〜1）
         //! @return デッドゾーンの外側を 0〜1 へ引き伸ばした値
         //----------------------------------------------------------------------------
-        hlslpp::float2 ApplyRadialDeadZone(SHORT rawX, SHORT rawY, float deadZone) {
+        hlslpp::float2 ApplyRadialDeadZone(i32 rawX, i32 rawY, float deadZone) {
             // −32768 側が 1 段ぶん長いので、32767 で割って ±1 へ丸める
             float x = std::clamp(static_cast<float>(rawX) / 32767.0f, -1.0f, 1.0f);
             float y = std::clamp(static_cast<float>(rawY) / 32767.0f, -1.0f, 1.0f);
@@ -89,11 +87,23 @@ namespace Tsukino::Input {
             m_reconnectTimer = kReconnectIntervalSeconds;
         }
 
-        XINPUT_STATE state{};
-        if(XInputGetState(m_userIndex, &state) != ERROR_SUCCESS) {
+        //----------------------------------------------------------------------------
+        // 未接続なら、つながっている機器のうちスロット番号目を開く
+        //----------------------------------------------------------------------------
+        if(!m_handle) {
+            int             count = 0;
+            SDL_JoystickID* ids   = SDL_GetGamepads(&count);
+            if(ids && static_cast<int>(m_userIndex) < count) {
+                m_handle = SDL_OpenGamepad(ids[m_userIndex]);
+            }
+            SDL_free(ids);
+        }
+
+        if(!m_handle || !SDL_GamepadConnected(m_handle)) {
             if(m_connected)
                 Tsukino::Core::Log::Info("Gamepad " + std::to_string(m_userIndex) + " disconnected.");
 
+            Close();
             m_connected      = false;
             m_reconnectTimer = kReconnectIntervalSeconds;
             m_vibrating      = false;
@@ -113,38 +123,41 @@ namespace Tsukino::Input {
             m_connected = true;
         }
 
-        const XINPUT_GAMEPAD& pad = state.Gamepad;
-
         //----------------------------------------------------------------------------
         // アナログ値
+        // SDL のスティックの Y は下が正なので、上が正になるよう向きを反転する
+        // （−32768 を反転すると 32768 になるが、正規化で ±1 に丸めるので問題ない）
         //----------------------------------------------------------------------------
-        m_leftStick  = ApplyRadialDeadZone(pad.sThumbLX, pad.sThumbLY, m_stickDeadZone);
-        m_rightStick = ApplyRadialDeadZone(pad.sThumbRX, pad.sThumbRY, m_stickDeadZone);
+        auto axis = [this](SDL_GamepadAxis which) { return static_cast<i32>(SDL_GetGamepadAxis(m_handle, which)); };
 
-        m_leftTrigger  = static_cast<float>(pad.bLeftTrigger) / 255.0f;
-        m_rightTrigger = static_cast<float>(pad.bRightTrigger) / 255.0f;
+        m_leftStick  = ApplyRadialDeadZone(axis(SDL_GAMEPAD_AXIS_LEFTX), -axis(SDL_GAMEPAD_AXIS_LEFTY), m_stickDeadZone);
+        m_rightStick = ApplyRadialDeadZone(axis(SDL_GAMEPAD_AXIS_RIGHTX), -axis(SDL_GAMEPAD_AXIS_RIGHTY), m_stickDeadZone);
+
+        // トリガーは 0〜32767 で届く
+        m_leftTrigger  = std::clamp(static_cast<float>(axis(SDL_GAMEPAD_AXIS_LEFT_TRIGGER)) / 32767.0f, 0.0f, 1.0f);
+        m_rightTrigger = std::clamp(static_cast<float>(axis(SDL_GAMEPAD_AXIS_RIGHT_TRIGGER)) / 32767.0f, 0.0f, 1.0f);
 
         //----------------------------------------------------------------------------
-        // 物理ボタン
+        // 物理ボタン（SDL は位置で呼ぶ。下 = A、右 = B、左 = X、上 = Y）
         //----------------------------------------------------------------------------
         auto setButton = [this](GamepadButton button, bool isDown) { m_currentButtons[static_cast<size_t>(button)] = isDown; };
         auto wasDown   = [this](GamepadButton button) { return m_previousButtons[static_cast<size_t>(button)]; };
+        auto sdlButton = [this](SDL_GamepadButton which) { return SDL_GetGamepadButton(m_handle, which); };
 
-        const WORD buttons = pad.wButtons;
-        setButton(GamepadButton::DPadUp, (buttons & XINPUT_GAMEPAD_DPAD_UP) != 0);
-        setButton(GamepadButton::DPadDown, (buttons & XINPUT_GAMEPAD_DPAD_DOWN) != 0);
-        setButton(GamepadButton::DPadLeft, (buttons & XINPUT_GAMEPAD_DPAD_LEFT) != 0);
-        setButton(GamepadButton::DPadRight, (buttons & XINPUT_GAMEPAD_DPAD_RIGHT) != 0);
-        setButton(GamepadButton::Start, (buttons & XINPUT_GAMEPAD_START) != 0);
-        setButton(GamepadButton::Back, (buttons & XINPUT_GAMEPAD_BACK) != 0);
-        setButton(GamepadButton::LeftThumb, (buttons & XINPUT_GAMEPAD_LEFT_THUMB) != 0);
-        setButton(GamepadButton::RightThumb, (buttons & XINPUT_GAMEPAD_RIGHT_THUMB) != 0);
-        setButton(GamepadButton::LeftShoulder, (buttons & XINPUT_GAMEPAD_LEFT_SHOULDER) != 0);
-        setButton(GamepadButton::RightShoulder, (buttons & XINPUT_GAMEPAD_RIGHT_SHOULDER) != 0);
-        setButton(GamepadButton::A, (buttons & XINPUT_GAMEPAD_A) != 0);
-        setButton(GamepadButton::B, (buttons & XINPUT_GAMEPAD_B) != 0);
-        setButton(GamepadButton::X, (buttons & XINPUT_GAMEPAD_X) != 0);
-        setButton(GamepadButton::Y, (buttons & XINPUT_GAMEPAD_Y) != 0);
+        setButton(GamepadButton::DPadUp, sdlButton(SDL_GAMEPAD_BUTTON_DPAD_UP));
+        setButton(GamepadButton::DPadDown, sdlButton(SDL_GAMEPAD_BUTTON_DPAD_DOWN));
+        setButton(GamepadButton::DPadLeft, sdlButton(SDL_GAMEPAD_BUTTON_DPAD_LEFT));
+        setButton(GamepadButton::DPadRight, sdlButton(SDL_GAMEPAD_BUTTON_DPAD_RIGHT));
+        setButton(GamepadButton::Start, sdlButton(SDL_GAMEPAD_BUTTON_START));
+        setButton(GamepadButton::Back, sdlButton(SDL_GAMEPAD_BUTTON_BACK));
+        setButton(GamepadButton::LeftThumb, sdlButton(SDL_GAMEPAD_BUTTON_LEFT_STICK));
+        setButton(GamepadButton::RightThumb, sdlButton(SDL_GAMEPAD_BUTTON_RIGHT_STICK));
+        setButton(GamepadButton::LeftShoulder, sdlButton(SDL_GAMEPAD_BUTTON_LEFT_SHOULDER));
+        setButton(GamepadButton::RightShoulder, sdlButton(SDL_GAMEPAD_BUTTON_RIGHT_SHOULDER));
+        setButton(GamepadButton::A, sdlButton(SDL_GAMEPAD_BUTTON_SOUTH));
+        setButton(GamepadButton::B, sdlButton(SDL_GAMEPAD_BUTTON_EAST));
+        setButton(GamepadButton::X, sdlButton(SDL_GAMEPAD_BUTTON_WEST));
+        setButton(GamepadButton::Y, sdlButton(SDL_GAMEPAD_BUTTON_NORTH));
 
         //----------------------------------------------------------------------------
         // アナログ値をボタンとして読む分
@@ -264,12 +277,26 @@ namespace Tsukino::Input {
     //! 振動の強さをモーターへ書き込みます。
     //----------------------------------------------------------------------------
     void Gamepad::ApplyVibration(float lowFrequency, float highFrequency) {
-        XINPUT_VIBRATION vibration{};
-        vibration.wLeftMotorSpeed  = static_cast<WORD>(std::clamp(lowFrequency, 0.0f, 1.0f) * 65535.0f);
-        vibration.wRightMotorSpeed = static_cast<WORD>(std::clamp(highFrequency, 0.0f, 1.0f) * 65535.0f);
-        XInputSetState(m_userIndex, &vibration);
+        const Uint16 low  = static_cast<Uint16>(std::clamp(lowFrequency, 0.0f, 1.0f) * 65535.0f);
+        const Uint16 high = static_cast<Uint16>(std::clamp(highFrequency, 0.0f, 1.0f) * 65535.0f);
 
-        m_vibrating = vibration.wLeftMotorSpeed != 0 || vibration.wRightMotorSpeed != 0;
+        // 止めるのはこちらで時間を数えて行う。SDL 側の長さは、止め忘れたときの保険として残り時間より少し長くする
+        const Uint32 durationMs = static_cast<Uint32>((m_vibrationRemaining + 0.5f) * 1000.0f);
+        if(m_handle) {
+            SDL_RumbleGamepad(m_handle, low, high, (low != 0 || high != 0) ? durationMs : 0);
+        }
+
+        m_vibrating = low != 0 || high != 0;
+    }
+
+    //----------------------------------------------------------------------------
+    //! 開いているゲームパッドを閉じます。SDL のゲームパッド機能を終える前に呼びます。
+    //----------------------------------------------------------------------------
+    void Gamepad::Close() {
+        if(m_handle) {
+            SDL_CloseGamepad(m_handle);
+            m_handle = nullptr;
+        }
     }
 
 }    // namespace Tsukino::Input

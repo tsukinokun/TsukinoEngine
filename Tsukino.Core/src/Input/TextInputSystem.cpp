@@ -4,17 +4,82 @@
 //----------------------------------------------------------------------------
 #include <Tsukino/Core/Input/TextInputSystem.hpp>
 
-#include <imm.h>
+#include <Tsukino/Core/Window.hpp>
+
+#include <SDL3/SDL.h>
+
+namespace {
+    //----------------------------------------------------------------------------
+    //! UTF-8 の文字列を、エンジンの文字描画が扱う wchar_t の文字列へ変換します。
+    //! @param  [in] utf8 UTF-8 の文字列
+    //! @return 変換した文字列。基本多言語面（U+FFFF まで）に無い文字と壊れたバイト列は捨てる
+    //! @note   エンジンの文字描画は wchar_t 1 つを 1 文字として扱うため、
+    //!         サロゲートペアになる文字（絵文字など）は描画できない。
+    //----------------------------------------------------------------------------
+    std::wstring Utf8ToWide(const std::string& utf8) {
+        std::wstring result;
+        result.reserve(utf8.size());
+
+        std::size_t i = 0;
+        while(i < utf8.size()) {
+            const unsigned char lead = static_cast<unsigned char>(utf8[i]);
+
+            // 先頭のバイトから、この文字のバイト数と最初の値を読む
+            char32_t    codePoint = 0;
+            std::size_t length    = 0;
+            if(lead < 0x80) {
+                codePoint = lead;
+                length    = 1;
+            } else if((lead & 0xE0) == 0xC0) {
+                codePoint = lead & 0x1F;
+                length    = 2;
+            } else if((lead & 0xF0) == 0xE0) {
+                codePoint = lead & 0x0F;
+                length    = 3;
+            } else if((lead & 0xF8) == 0xF0) {
+                codePoint = lead & 0x07;
+                length    = 4;
+            } else {
+                ++i;    // 先頭として不正なバイトは読み飛ばす
+                continue;
+            }
+
+            // 続きのバイトを読む（途中で切れていたら、その文字は捨てる）
+            bool valid = (i + length <= utf8.size());
+            for(std::size_t k = 1; valid && k < length; ++k) {
+                const unsigned char next = static_cast<unsigned char>(utf8[i + k]);
+                if((next & 0xC0) != 0x80) {
+                    valid = false;
+                    break;
+                }
+                codePoint = (codePoint << 6) | (next & 0x3F);
+            }
+
+            if(!valid) {
+                ++i;
+                continue;
+            }
+            i += length;
+
+            if(codePoint <= 0xFFFF && !(codePoint >= 0xD800 && codePoint <= 0xDFFF)) {
+                result.push_back(static_cast<wchar_t>(codePoint));
+            }
+        }
+        return result;
+    }
+}    // namespace
 
 // 名前空間 : Tsukino::Input
 namespace Tsukino::Input {
     //----------------------------------------------------------------------------
     //! 入力先のウィンドウを設定し、IME を切り離します。
     //----------------------------------------------------------------------------
-    void TextInputSystem::Attach(HWND hwnd) {
-        m_hwnd = hwnd;
-        // IME が有効なままだと、キー入力が VK_PROCESSKEY に化けてゲーム操作が効かなくなる
-        ImmAssociateContextEx(m_hwnd, nullptr, 0);
+    void TextInputSystem::Attach(Tsukino::Core::Window* window) {
+        m_window = window;
+        // IME が有効なままだと、キー入力が IME に奪われてゲーム操作が効かなくなる
+        if(m_window && m_window->GetSDLWindow()) {
+            SDL_StopTextInput(m_window->GetSDLWindow());
+        }
     }
 
     //----------------------------------------------------------------------------
@@ -24,7 +89,9 @@ namespace Tsukino::Input {
         m_active    = true;
         m_maxLength = maxLength;
         m_composition.clear();
-        ImmAssociateContextEx(m_hwnd, nullptr, IACE_DEFAULT);
+        if(m_window && m_window->GetSDLWindow()) {
+            SDL_StartTextInput(m_window->GetSDLWindow());
+        }
     }
 
     //----------------------------------------------------------------------------
@@ -33,49 +100,46 @@ namespace Tsukino::Input {
     void TextInputSystem::End() {
         m_active = false;
         m_composition.clear();
-        ImmAssociateContextEx(m_hwnd, nullptr, 0);
+        if(m_window && m_window->GetSDLWindow()) {
+            SDL_StopTextInput(m_window->GetSDLWindow());
+        }
     }
 
     //----------------------------------------------------------------------------
-    //! ウィンドウメッセージを処理します。Window のメッセージフィルタから呼びます。
+    //! 入力の出来事を処理します。Window の入力通知から、ほかの処理より先に呼びます。
     //----------------------------------------------------------------------------
-    bool TextInputSystem::HandleMessage(UINT msg, WPARAM wParam, LPARAM lParam) {
+    bool TextInputSystem::HandleEvent(const InputEvent& event) {
         if(!m_active)
             return false;
 
-        switch(msg) {
+        switch(event.type) {
         //----------------------------------------------------------------------------
-        // 既定の処理へ渡すと OS 標準の変換窓が出るため、変換の開始と終了はここで止める
+        // 確定した文字
         //----------------------------------------------------------------------------
-        case WM_IME_STARTCOMPOSITION:
-            return true;
-
-        case WM_IME_ENDCOMPOSITION:
+        case InputEventType::TextInput:
+            Append(Utf8ToWide(event.text));
             m_composition.clear();
             return true;
 
-        case WM_IME_COMPOSITION:
-            // 確定文字は WM_CHAR を待たずここで読む。ImmGetCompositionStringW は
-            // ウィンドウの文字コードに関係なく UTF-16 を返す
-            if(lParam & GCS_RESULTSTR)
-                Append(ReadCompositionString(GCS_RESULTSTR));
-            if(lParam & GCS_COMPSTR)
-                m_composition = ReadCompositionString(GCS_COMPSTR);
+        //----------------------------------------------------------------------------
+        // 変換中の文字列（空なら変換の終わり）
+        //----------------------------------------------------------------------------
+        case InputEventType::TextEditing:
+            m_composition = Utf8ToWide(event.text);
             return true;
 
-        case WM_CHAR: {
-            const wchar_t c = static_cast<wchar_t>(wParam);
-            if(c == L'\b') {
-                if(!m_text.empty())
-                    m_text.pop_back();
-            } else if(c >= 0x20 && c != 0x7F) {
-                Append(std::wstring(1, c));
+        //----------------------------------------------------------------------------
+        // 1 文字消す。押しっぱなしの繰り返しでも消す。
+        // 変換中は IME が自分で消すので、確定済みの文字列には触れない。
+        // キーの押下としてはゲームへも渡す（false を返す）
+        //----------------------------------------------------------------------------
+        case InputEventType::KeyDown:
+            if(event.key == KeyCode::Backspace && m_composition.empty() && !m_text.empty()) {
+                m_text.pop_back();
             }
-            return true;
-        }
-
-        default:
             return false;
+
+        default: return false;
         }
     }
 
@@ -91,15 +155,20 @@ namespace Tsukino::Input {
     //! 変換候補の窓を出す位置を設定します。
     //----------------------------------------------------------------------------
     void TextInputSystem::SetCandidatePosition(int x, int y) {
-        HIMC context = ImmGetContext(m_hwnd);
-        if(context == nullptr)
+        if(!m_window || !m_window->GetSDLWindow())
             return;
 
-        CANDIDATEFORM form = {};
-        form.dwStyle       = CFS_CANDIDATEPOS;
-        form.ptCurrentPos  = {x, y};
-        ImmSetCandidateWindow(context, &form);
-        ImmReleaseContext(m_hwnd, context);
+        // SDL はウィンドウ座標（OS の拡大率で縮んだ座標）で受け取るので、ピクセルから戻す
+        SDL_Window* window  = m_window->GetSDLWindow();
+        const float density = SDL_GetWindowPixelDensity(window);
+        const float scale   = (density > 0.0f) ? 1.0f / density : 1.0f;
+
+        SDL_Rect area{};
+        area.x = static_cast<int>(static_cast<float>(x) * scale);
+        area.y = static_cast<int>(static_cast<float>(y) * scale);
+        area.w = 1;
+        area.h = 1;
+        SDL_SetTextInputArea(window, &area, 0);
     }
 
     //----------------------------------------------------------------------------
@@ -110,28 +179,12 @@ namespace Tsukino::Input {
             // エンジンの文字描画は wchar_t 単位なので、サロゲートペアは描画できない
             if(c >= 0xD800 && c <= 0xDFFF)
                 continue;
+            // 制御文字（改行・タブなど）は入れない
+            if(c < 0x20 || c == 0x7F)
+                continue;
             if(m_maxLength != 0 && m_text.size() >= m_maxLength)
                 break;
             m_text.push_back(c);
         }
-    }
-
-    //----------------------------------------------------------------------------
-    //! IME から文字列を読みます。
-    //----------------------------------------------------------------------------
-    std::wstring TextInputSystem::ReadCompositionString(DWORD index) const {
-        std::wstring result;
-
-        HIMC context = ImmGetContext(m_hwnd);
-        if(context == nullptr)
-            return result;
-
-        const LONG bytes = ImmGetCompositionStringW(context, index, nullptr, 0);
-        if(bytes > 0) {
-            result.resize(static_cast<std::size_t>(bytes) / sizeof(wchar_t));
-            ImmGetCompositionStringW(context, index, result.data(), static_cast<DWORD>(bytes));
-        }
-        ImmReleaseContext(m_hwnd, context);
-        return result;
     }
 }    // namespace Tsukino::Input

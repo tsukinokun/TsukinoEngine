@@ -5,9 +5,8 @@
 //! @author 山﨑愛
 //------------------------------------------------------------
 #pragma once
-#define WIN32_LEAN_AND_MEAN
-#define NOMINMAX
-#include <Windows.h>     // Windows APIの基本的な機能を提供するヘッダーファイル
+// windows.h は入れない（Tsukino.Core はどの環境でもビルドできるようにする。
+// Windows だけの処理は、そのファイルで WindowsLean.hpp を _WIN32 の中で取り込む）
 #include <string>        // 文字列操作のための標準ライブラリ
 #include <vector>        // 動的配列を使用するための標準ライブラリ
 #include <filesystem>    // ファイルシステム操作のための標準ライブラリ

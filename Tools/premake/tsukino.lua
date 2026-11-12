@@ -97,6 +97,7 @@ function tsukino_link()
         root .. "/External/cereal/include",
         root .. "/External/hlslpp/include",
         root .. "/External/entt/single_include",
+        root .. "/External/SDL/include",
 
         root .. "/External/Effekseer/Dev/Cpp",
         root .. "/External/Effekseer/Dev/Cpp/Effekseer",
@@ -124,7 +125,22 @@ function tsukino_link()
         "d3dcompiler",
         "dwrite",
         "imm32",
+        "dwmapi",    -- Window の ClickThrough（DwmExtendFrameIntoClientArea）
+
+        -- SDL3 の静的ライブラリと、SDL が使う Windows のライブラリ
+        -- （External/SDL/CMakeLists.txt の sdl_link_dependency(base ...) と揃える）
+        "SDL3-static",
+        "winmm",
+        "ole32",
+        "oleaut32",
+        "version",
+        "uuid",
+        "advapi32",
+        "setupapi",
+        "shell32",
     }
+
+    libdirs { "%{wks.location}/SDL3/build/%{cfg.buildcfg}" }
 
     nuget {
         "directxtk_desktop_win10:2026.4.1.1",
@@ -170,6 +186,29 @@ function tsukino_release_payload()
             excludeDirs = { "premake" },
         }))
     filter {}
+end
+
+----------------------------------------
+-- エンジンの SDL3 プロジェクト（kind "Utility"）の prebuildcommands に渡す、
+-- External/SDL を CMake で静的ライブラリにビルドするコマンド列を返す。
+--
+-- 出力は <wks.location>/SDL3/build/<構成>/SDL3-static.lib（tsukino_link() の libdirs と揃える）。
+-- SDL のソースの場所は、ワークスペースルートからの相対パスを VS のマクロで書く
+-- （絶対パスを焼き込むと、生成物がマシン固有になる。tsukino_release_payload() と同じ理由）。
+----------------------------------------
+function tsukino_sdl3_build_commands()
+    local rel   = path.translate(path.getrelative(_MAIN_SCRIPT_DIR, _TSUKINO_ENGINE_ROOT), "\\")
+    local src   = '"$(SolutionDir)..\\' .. rel .. '\\External\\SDL"'
+    local build = '"$(SolutionDir)SDL3\\build"'
+
+    return {
+        'set "TSUKINO_CMAKE=$(VSInstallDir)Common7\\IDE\\CommonExtensions\\Microsoft\\CMake\\CMake\\bin\\cmake.exe"',
+        'if not exist "%TSUKINO_CMAKE%" set "TSUKINO_CMAKE=cmake"',
+        'if not exist ' .. build .. '\\CMakeCache.txt "%TSUKINO_CMAKE%" -S ' .. src .. ' -B ' .. build
+            .. ' -A x64 -DSDL_SHARED=OFF -DSDL_STATIC=ON -DSDL_TEST_LIBRARY=OFF -DSDL_EXAMPLES=OFF'
+            .. ' -DSDL_INSTALL=OFF -DCMAKE_ARCHIVE_OUTPUT_DIRECTORY=' .. build .. ' >nul || exit /b 1',
+        '"%TSUKINO_CMAKE%" --build ' .. build .. ' --config $(Configuration) -- /nologo /v:q /m "/clp:ErrorsOnly;NoSummary" || exit /b 1',
+    }
 end
 
 ----------------------------------------

@@ -255,6 +255,22 @@ project "EffekseerRendererDX11"
     }
 
 ----------------------------------------
+-- SDL3（ウィンドウ・入力・IME・ゲームパッド・保存先などのプラットフォーム層）
+--
+-- SDL は CMake でしかビルドできないため、ここでは CMake を呼ぶだけのプロジェクトにする。
+-- できた静的ライブラリ（SDL3-static.lib）は tsukino_link() がリンクする。
+-- 構成名（Debug / Release）をそのまま CMake の構成に渡すので、CRT（/MDd・/MD）も揃う。
+--
+-- CMake は Visual Studio に同梱のものを使い、無ければ PATH の cmake を使う。
+-- 2回目以降は CMakeCache.txt があるので構成し直さず、変わったところだけビルドする。
+----------------------------------------
+project "SDL3"
+    location ".build/SDL3"
+    kind "Utility"
+
+    prebuildcommands(tsukino_sdl3_build_commands())
+
+----------------------------------------
 -- コアプロジェクト
 ----------------------------------------
 project "Tsukino.Core"
@@ -288,9 +304,12 @@ project "Tsukino.Core"
     includedirs {
         "Tsukino.Core/include",
         "External/cereal/include",
-        "External/hlslpp/include", 
-        "External/entt/single_include"
+        "External/hlslpp/include",
+        "External/entt/single_include",
+        "External/SDL/include",
     }
+
+    dependson { "SDL3" }
 
 ----------------------------------------
 -- 描画関係の共通モジュール

@@ -4,7 +4,11 @@
 //! @author 山﨑愛
 //--------------------------------------------------------------
 #include <Tsukino/Core/Log.hpp>
-#include <windows.h>
+#if defined(_WIN32)
+#    include <Tsukino/Core/WindowsLean.hpp>    // OutputDebugStringA
+#else
+#    include <SDL3/SDL_log.h>
+#endif
 
 #include <ctime>
 #include <filesystem>
@@ -66,7 +70,11 @@ namespace Tsukino::Core {
 
         std::time_t now = std::time(nullptr);
         std::tm     localTime{};
+#if defined(_WIN32)
         localtime_s(&localTime, &now);
+#else
+        localtime_r(&now, &localTime);
+#endif
 
         char timestamp[32]{};
         std::strftime(timestamp, sizeof(timestamp), "%Y-%m-%d %H:%M:%S", &localTime);
@@ -87,7 +95,14 @@ namespace Tsukino::Core {
     //--------------------------------------------------------------
     void Log::Write(const char* level, const std::string& msg) {
         std::string out = std::string("[") + level + "] " + msg + "\n";
+#if defined(_WIN32)
+        // Visual Studio の出力ウィンドウへ出す
         OutputDebugStringA(out.c_str());
+#else
+        // 各環境の標準のログへ出す（Android は logcat、Apple は Console、Web はブラウザのコンソール）。
+        // SDL_Log は行末に改行を足すので、改行を付ける前の形で渡す
+        SDL_Log("[%s] %s", level, msg.c_str());
+#endif
 
         std::lock_guard lock(s_logMutex);
         if (s_LogFilePath.empty())

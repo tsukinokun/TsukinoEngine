@@ -4,6 +4,10 @@
 //! @author 山﨑愛
 //--------------------------------------------------------------
 #include <Tsukino/Core/Input/InputSystem.hpp>
+#include <Tsukino/Core/Log.hpp>
+
+#include <SDL3/SDL.h>
+
 #include <algorithm>    // std::copy, std::fill
 // 名前空間 : Tsukino::Input
 namespace Tsukino::Input {
@@ -20,9 +24,22 @@ namespace Tsukino::Input {
         m_currentKeys.fill(false);
         m_previousKeys.fill(false);
 
-        // ゲームパッドへ XInput のスロット番号を割り振る
+        // ゲームパッドへスロット番号を割り振る
         for(u32 i = 0; i < kMaxGamepads; ++i)
             m_gamepads[i] = Gamepad(i);
+    }
+
+    //--------------------------------------------------------------
+    //! @brief デストラクタ
+    //--------------------------------------------------------------
+    InputSystem::~InputSystem() {
+        for(Gamepad& gamepad : m_gamepads)
+            gamepad.Close();
+
+        if(m_gamepadSubsystemReady) {
+            SDL_QuitSubSystem(SDL_INIT_GAMEPAD);
+            m_gamepadSubsystemReady = false;
+        }
     }
 
     //--------------------------------------------------------------
@@ -39,6 +56,11 @@ namespace Tsukino::Input {
 
         // ホイール量は「そのフレームでの変化量」なので、Updateの最後にリセットする
         m_wheelDelta = 0.0f;
+
+        // 離れた指を消し、残った指の「触れた瞬間」を下ろす
+        std::erase_if(m_touches, [](const TouchPoint& touch) { return touch.ended; });
+        for(TouchPoint& touch : m_touches)
+            touch.began = false;
     }
 
     //--------------------------------------------------------------
@@ -136,6 +158,32 @@ namespace Tsukino::Input {
     }
 
     //--------------------------------------------------------------
+    //! 指が触れた・動いた・離れたことを書き込みます。
+    //--------------------------------------------------------------
+    void InputSystem::SetTouchState(u64 fingerId, i32 x, i32 y, bool isDown) {
+        auto it = std::find_if(m_touches.begin(), m_touches.end(), [fingerId](const TouchPoint& touch) { return touch.id == fingerId; });
+
+        if(it == m_touches.end()) {
+            // 離れた通知だけが来た指（触れたのがフォーカスを得る前など）は無視する
+            if(!isDown)
+                return;
+
+            TouchPoint touch;
+            touch.id    = fingerId;
+            touch.x     = x;
+            touch.y     = y;
+            touch.began = true;
+            m_touches.push_back(touch);
+            return;
+        }
+
+        it->x = x;
+        it->y = y;
+        if(!isDown)
+            it->ended = true;
+    }
+
+    //--------------------------------------------------------------
     //! @brief 全てのキー・ボタンの押下状態をクリアする
     //--------------------------------------------------------------
     void InputSystem::ClearAllKeys() {
@@ -146,6 +194,9 @@ namespace Tsukino::Input {
         m_previousKeys.fill(false);
 
         m_wheelDelta = 0.0f;
+
+        // 指を離した通知もフォーカスの外へ行くので、触れていた指も消す
+        m_touches.clear();
 
         // 震えたまま別のウィンドウへ移ると止める機会が無くなるので、ここで止める
         StopGamepadVibration();
@@ -166,6 +217,20 @@ namespace Tsukino::Input {
         // デッドゾーンより大きくしておき、置いてあるだけのパッドの揺れで表示が切り替わらないようにする
         constexpr float kActivityStickThreshold   = 0.5f;
         constexpr float kActivityTriggerThreshold = 0.5f;
+
+        // SDL のゲームパッド機能は、初めて読むときに初期化する（ウィンドウを作った後になる）
+        if(!m_gamepadSubsystemReady) {
+            if(!SDL_InitSubSystem(SDL_INIT_GAMEPAD)) {
+                // 失敗は毎フレーム起きるので、ログは最初の 1 回だけ出す
+                static bool s_warned = false;
+                if(!s_warned) {
+                    Tsukino::Core::Log::Warn(std::string("Failed to initialize SDL gamepad support; gamepads are ignored: ") + SDL_GetError());
+                    s_warned = true;
+                }
+                return;
+            }
+            m_gamepadSubsystemReady = true;
+        }
 
         for(Gamepad& gamepad : m_gamepads) {
             gamepad.Poll(deltaTime, windowFocused);

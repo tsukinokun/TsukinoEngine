@@ -97,7 +97,6 @@
 - `Tsukino::Core::Sequencer` — `Tsukino.Core/include/Tsukino/Core/Time/Sequencer.hpp`
 - `Tsukino::Core::Sequencer::Entry` — `Tsukino.Core/include/Tsukino/Core/Time/Sequencer.hpp`
 - `Tsukino::Core::Window` — `Tsukino.Core/include/Tsukino/Core/Window.hpp`
-- `Tsukino::Core::Window::QueuedInputEvent` — `Tsukino.Core/include/Tsukino/Core/Window.hpp`
 - `Tsukino::ECS::EntityRef` — `Tsukino.Core/include/Tsukino/Core/ECS/EntityRef/EntityRef.hpp`
 - `Tsukino::ECS::EntityRefResolverArchive` — `Tsukino.Core/include/Tsukino/Core/ECS/EntityRef/EntityRefResolverArchive.hpp`
 - `Tsukino::ECS::EventBus` — `Tsukino.Core/include/Tsukino/Core/ECS/Event/EventBus.hpp`
@@ -113,8 +112,10 @@
 - `Tsukino::Input::InputActionMap` — `Tsukino.Core/include/Tsukino/Core/Input/InputActionMap.hpp`
 - `Tsukino::Input::InputAxisBinding` — `Tsukino.Core/include/Tsukino/Core/Input/InputActionMap.hpp`
 - `Tsukino::Input::InputBinding` — `Tsukino.Core/include/Tsukino/Core/Input/InputActionMap.hpp`
+- `Tsukino::Input::InputEvent` — `Tsukino.Core/include/Tsukino/Core/Input/InputEvent.hpp`
 - `Tsukino::Input::InputSystem` — `Tsukino.Core/include/Tsukino/Core/Input/InputSystem.hpp`
 - `Tsukino::Input::TextInputSystem` — `Tsukino.Core/include/Tsukino/Core/Input/TextInputSystem.hpp`
+- `Tsukino::Input::TouchPoint` — `Tsukino.Core/include/Tsukino/Core/Input/InputSystem.hpp`
 
 ## Tsukino.Engine — [`api/Tsukino.Engine.md`](api/Tsukino.Engine.md)
 

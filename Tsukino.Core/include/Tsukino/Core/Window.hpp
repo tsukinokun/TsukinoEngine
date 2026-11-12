@@ -4,16 +4,26 @@
 //! @author 山﨑愛
 //--------------------------------------------------------------
 #pragma once
-#include <Tsukino/Core/WindowsLean.hpp>
-#include <string>
+#include <Tsukino/Core/Input/InputEvent.hpp>
+
 #include <functional>
+#include <string>
 #include <vector>
+
+// SDL のウィンドウ（定義は <SDL3/SDL_video.h>。公開ヘッダから SDL を取り込まないための前方宣言）
+struct SDL_Window;
+
+// Windows のウィンドウハンドル（windows.h の HWND と同じ型。公開ヘッダから windows.h を取り込まないための前方宣言）
+struct HWND__;
+
 // 名前空間 : Tsukino::Core
 namespace Tsukino::Core {
     //--------------------------------------------------------------
     //! @class	 Window
     //! @brief	 ウィンドウ管理クラス
-    //! @details Win32 APIを使用してウィンドウの生成とメッセージ処理を行うクラス
+    //! @details SDL3 でウィンドウを作り、OS から届く入力を InputEvent にそろえて渡します。
+    //!          クリック透過（ClickThrough）は Windows だけの機能で、ほかの環境では
+    //!          枠なしの最前面ウィンドウになります。
     //--------------------------------------------------------------
     class Window {
     public:
@@ -23,7 +33,7 @@ namespace Tsukino::Core {
         enum class WindowStyle {
             Default,        // 通常のゲームウィンドウ
             Popup,          // 枠なしウィンドウ
-            ClickThrough    // 枠なし ＋ 背景透過 ＋ クリック透過
+            ClickThrough    // 枠なし ＋ 背景透過 ＋ クリック透過（Windows のみ）
         };
 
         //--------------------------------------------------------------
@@ -36,10 +46,10 @@ namespace Tsukino::Core {
 
     public:
         //--------------------------------------------------------------
-        // メッセージコールバックの型エイリアス
+        // 入力通知コールバックの型エイリアス
+        //! @note 引数は OS の入力をエンジン共通の形にそろえたもの
         //--------------------------------------------------------------
-        using MessageCallback = std::function<void(UINT, WPARAM, LPARAM)>;
-        using MessageFilter   = std::function<bool(UINT, WPARAM, LPARAM)>;
+        using InputCallback = std::function<void(const Tsukino::Input::InputEvent&)>;
 
         //--------------------------------------------------------------
         // リサイズ通知コールバックの型エイリアス
@@ -68,11 +78,15 @@ namespace Tsukino::Core {
         //--------------------------------------------------------------
         ~Window();
 
+        Window(const Window&)            = delete;
+        Window& operator=(const Window&) = delete;
+
         //--------------------------------------------------------------
         // ウィンドウ生成
-        //! @param title  [in] ウィンドウタイトル
-        //! @param width  [in] ウィンドウ幅
-        //! @param height [in] ウィンドウ高さ
+        //! @param title  [in] ウィンドウタイトル（UTF-8）
+        //! @param width  [in] クライアント領域の幅
+        //! @param height [in] クライアント領域の高さ
+        //! @param style  [in] ウィンドウスタイル
         //! @return ウィンドウの生成に成功した場合は true、失敗した場合は false
         //--------------------------------------------------------------
         [[nodiscard]]
@@ -86,18 +100,10 @@ namespace Tsukino::Core {
         bool ProcessMessages();
 
         //--------------------------------------------------------------
-        // メッセージコールバックを設定する関数
-        //! @param callback [in] メッセージコールバック関数
+        // 入力通知コールバックを設定する関数
+        //! @param callback [in] キー・マウス・タッチ・文字入力を受け取る関数
         //--------------------------------------------------------------
-        void SetMessageCallback(MessageCallback callback) { m_callback = callback; }
-
-        //--------------------------------------------------------------
-        // メッセージフィルタを設定する関数
-        //! @param filter [in] 全メッセージを最初に受け取る関数。true を返すと既定の処理へ渡さない
-        //! @note  MessageCallback はキーとマウスしか届かないため、IME のように
-        //!        既定の処理を止める必要があるメッセージはこちらで受ける
-        //--------------------------------------------------------------
-        void SetMessageFilter(MessageFilter filter) { m_messageFilter = filter; }
+        void SetInputCallback(InputCallback callback) { m_inputCallback = std::move(callback); }
 
         //--------------------------------------------------------------
         // リサイズ通知コールバックを設定する関数
@@ -111,7 +117,7 @@ namespace Tsukino::Core {
         // フォーカス喪失通知コールバックを設定する関数
         //! @param callback [in] ウィンドウが入力フォーカスを失ったときに呼ばれる関数
         //! @note  キーの押下状態をクリアするために使う。
-        //!        WM_KEYUP はフォーカス移動先のウィンドウへ届くため、
+        //!        キーを離した通知はフォーカス移動先のウィンドウへ届くため、
         //!        これを行わないと Alt+Tab でキーが押しっぱなしのまま残る。
         //--------------------------------------------------------------
         void SetFocusLostCallback(FocusLostCallback callback) { m_focusLostCallback = std::move(callback); }
@@ -125,35 +131,46 @@ namespace Tsukino::Core {
         void SetHitTestCallback(HitTestCallback callback) { m_hitTestCallback = std::move(callback); }
 
         //--------------------------------------------------------------
-        // Rendererが必要とするHWND
-        //! @return ウィンドウのハンドル
+        // SDL のウィンドウを取得する関数
+        //! @return SDL のウィンドウ。生成前は nullptr
         //--------------------------------------------------------------
         [[nodiscard]]
-        HWND GetHWND() const {
-            return m_hWnd;
+        SDL_Window* GetSDLWindow() const {
+            return m_window;
+        }
+
+        //--------------------------------------------------------------
+        // OS のウィンドウハンドルを取得する関数
+        //! @return Windows では HWND。それ以外の環境と生成前は nullptr
+        //--------------------------------------------------------------
+        [[nodiscard]]
+        void* GetNativeHandle() const;
+
+        //--------------------------------------------------------------
+        // Rendererが必要とするHWND
+        //! @return ウィンドウのハンドル。Windows 以外の環境と生成前は nullptr
+        //! @note   これまでのコードのために残している。新しいコードは GetNativeHandle() を使う
+        //--------------------------------------------------------------
+        [[nodiscard]]
+        HWND__* GetHWND() const {
+            return static_cast<HWND__*>(GetNativeHandle());
         }
 
         //--------------------------------------------------------------
         // ウィンドウの幅を取得する関数
-        //! @return ウィンドウの幅
+        //! @return クライアント領域の幅（ピクセル）
         //--------------------------------------------------------------
         [[nodiscard]]
         int GetWidth() const {
-            if(m_isFullscreen) {
-                return GetSystemMetrics(SM_CXSCREEN);
-            }
             return m_width;
         }
 
         //--------------------------------------------------------------
         // ウィンドウの高さを取得する関数
-        //! @return ウィンドウの高さ
+        //! @return クライアント領域の高さ（ピクセル）
         //--------------------------------------------------------------
         [[nodiscard]]
         int GetHeight() const {
-            if(m_isFullscreen) {
-                return GetSystemMetrics(SM_CYSCREEN);
-            }
             return m_height;
         }
 
@@ -179,23 +196,15 @@ namespace Tsukino::Core {
         void SetUpdateMode(UpdateMode mode);
 
         //--------------------------------------------------------------
-        //! @brief フックからコールバックを呼び出すための公開メソッド
-        //! @param msg    [in] メッセージコード
-        //! @param wParam [in] メッセージの追加情報（通常は
-        //! @param lParam [in] メッセージの追加情報（通常はイベントの座標など）
-        //--------------------------------------------------------------
-        void InvokeCallback(UINT msg, WPARAM wParam, LPARAM lParam);
-
-        //--------------------------------------------------------------
         //! @brief クリック透過（WS_EX_TRANSPARENT）を動的に切り替える関数
         //! @param enabled [in] true: クリック透過を有効化, false: 無効化
         //!                     （このウィンドウが実際にクリックを受け取る）
-        //! @note  ClickThrough スタイル以外では何もしない。
+        //! @note  ClickThrough スタイル以外と、Windows 以外の環境では何もしない。
         //--------------------------------------------------------------
         void SetClickThroughEnabled(bool enabled);
 
         //--------------------------------------------------------------
-        //! @brief フックから呼ばれ、登録済みの HitTestCallback を使って
+        //! @brief 登録済みの HitTestCallback を使って
         //!        クリック透過の有効/無効を更新する関数
         //! @param screenX [in] マウスのスクリーンX座標
         //! @param screenY [in] マウスのスクリーンY座標
@@ -209,12 +218,10 @@ namespace Tsukino::Core {
         //!          マウス/キーボード入力が止まってしまう
         //!          （WH_MOUSE_LL / WH_KEYBOARD_LL は同期呼び出しのため）。
         //!          そのためフックからは最小限のこの関数だけを呼び、
-        //!          実処理は DispatchQueuedInput() でメインループ側から行う。
-        //! @param msg    [in] メッセージコード
-        //! @param wParam [in] メッセージの追加情報
-        //! @param lParam [in] メッセージの追加情報（通常は座標など）
+        //!          実処理は ProcessMessages() の中でメインループ側から行う。
+        //! @param event [in] 積む入力
         //--------------------------------------------------------------
-        void EnqueueInput(UINT msg, WPARAM wParam, LPARAM lParam);
+        void EnqueueInput(const Tsukino::Input::InputEvent& event);
 
         //--------------------------------------------------------------
         //! @brief 全画面表示の切り替え
@@ -224,8 +231,6 @@ namespace Tsukino::Core {
 
         //--------------------------------------------------------------
         //! @brief OSカーソルの表示/非表示を切り替える関数
-        //! @details ShowCursorは内部で参照カウント方式のため、状態が
-        //!          変化した時のみ呼び出すことで多重カウントを防いでいる
         //! @param visible [in] true: 表示, false: 非表示
         //--------------------------------------------------------------
         void SetCursorVisible(bool visible);
@@ -246,15 +251,10 @@ namespace Tsukino::Core {
 
     private:
         //--------------------------------------------------------------
-        // Win32 のウィンドウプロシージャ
-        //! @param hwnd   [in]ウィンドウハンドル
-        //! @param msg    [in]メッセージコード
-        //! @param wParam [in] メッセージの追加情報（通常はイベントの種類など）
-        //! @param lParam [in] メッセージの追加情報（通常はイベントの座標など）
-        //! @return メッセージ処理の結果（通常は0）
+        //! @brief 入力を通知先へ渡す関数
+        //! @param event [in] 渡す入力
         //--------------------------------------------------------------
-        [[nodiscard]]
-        static LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
+        void NotifyInput(const Tsukino::Input::InputEvent& event);
 
         //--------------------------------------------------------------
         //! @brief クリックスルーの場合に、フックを有効化する関数
@@ -276,41 +276,45 @@ namespace Tsukino::Core {
         void DispatchQueuedInput();
 
         //--------------------------------------------------------------
-        //! @brief フックからキューへ積む入力イベント
+        //! @brief ClickThrough スタイルの Windows 固有の設定を行う関数
         //--------------------------------------------------------------
-        struct QueuedInputEvent {
-            UINT   msg;
-            WPARAM wParam;
-            LPARAM lParam;
-        };
+        void ApplyClickThroughStyle();
 
-        std::vector<QueuedInputEvent> m_inputQueue;    // フックから積まれた未処理の入力
+        //--------------------------------------------------------------
+        //! @brief exe に埋め込まれたアイコンをウィンドウへ設定する関数
+        //--------------------------------------------------------------
+        void ApplyEmbeddedIcon();
 
-        HWND m_hWnd;      // ウィンドウハンドル
+        std::vector<Tsukino::Input::InputEvent> m_inputQueue;    // フックから積まれた未処理の入力
 
-        HICON m_icon      = nullptr;    // exe に埋め込まれた大きいアイコン（無ければ nullptr）
-        HICON m_iconSmall = nullptr;    // exe に埋め込まれた小さいアイコン（無ければ nullptr）
+        SDL_Window* m_window = nullptr;    // SDL のウィンドウ
 
-        int  m_width;     // ウィンドウの幅
-        int  m_height;    // ウィンドウの高さ
+        void* m_icon      = nullptr;    // exe に埋め込まれた大きいアイコン（HICON。無ければ nullptr）
+        void* m_iconSmall = nullptr;    // exe に埋め込まれた小さいアイコン（HICON。無ければ nullptr）
+
+        int m_width  = 0;    // クライアント領域の幅（ピクセル）
+        int m_height = 0;    // クライアント領域の高さ（ピクセル）
 
         bool m_isTopmost = false;    // ウィンドウが常に最前面にあるかどうかのフラグ
 
-        WindowStyle m_style;    // これで現在のスタイルを記憶しておく
+        WindowStyle m_style = WindowStyle::Default;    // これで現在のスタイルを記憶しておく
 
         UpdateMode m_updateMode = UpdateMode::ActiveOnly;    // デフォルトは通常
 
-        MessageCallback   m_callback;             // 連絡先を保存しておく変数
-        MessageFilter     m_messageFilter;        // 全メッセージの横取り先
+        InputCallback     m_inputCallback;        // 入力の通知先
         ResizeCallback    m_resizeCallback;       // クライアント領域のサイズ変更通知先
         FocusLostCallback m_focusLostCallback;    // フォーカス喪失通知先
-        HitTestCallback   m_hitTestCallback;       // クリック透過の判定先
+        HitTestCallback   m_hitTestCallback;      // クリック透過の判定先
 
-        bool m_clickThroughEnabled = true;    // 現在クリック透過が有効かどうか（無駄なSetWindowLong呼び出し防止用）
+        bool m_clickThroughEnabled = true;    // 現在クリック透過が有効かどうか（無駄な切り替え防止用）
 
-        RECT m_preFullscreenRect;    // フルスクリーン前のサイズを保持
-        bool m_isFullscreen = false;
+        bool m_isFullscreen = false;    // 全画面表示中かどうか
 
-        bool m_cursorVisible = true;    // OSカーソルが現在表示されているか（ShowCursorの多重呼び出し防止用）
+        int m_preFullscreenX      = 0;    // 全画面にする前のウィンドウの位置 X（ClickThrough 用）
+        int m_preFullscreenY      = 0;    // 全画面にする前のウィンドウの位置 Y（ClickThrough 用）
+        int m_preFullscreenWidth  = 0;    // 全画面にする前のウィンドウの幅（ClickThrough 用）
+        int m_preFullscreenHeight = 0;    // 全画面にする前のウィンドウの高さ（ClickThrough 用）
+
+        bool m_cursorVisible = true;    // OSカーソルが現在表示されているか
     };
 }    // namespace Tsukino::Core

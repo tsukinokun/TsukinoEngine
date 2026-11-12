@@ -55,23 +55,25 @@
 |---|---|
 | `Window()` | コンストラクタ |
 | `~Window()` | デストラクタ |
+| `Window(const Window &)=delete` |  |
+| `Window & operator=(const Window &)=delete` |  |
 | `bool Create(const std::string &title, int width, int height, WindowStyle style=WindowStyle::Default)` | ウィンドウ生成 |
 | `bool ProcessMessages()` | メッセージ処理 |
-| `void SetMessageCallback(MessageCallback callback)` |  |
-| `void SetMessageFilter(MessageFilter filter)` |  |
+| `void SetInputCallback(InputCallback callback)` |  |
 | `void SetResizeCallback(ResizeCallback callback)` |  |
 | `void SetFocusLostCallback(FocusLostCallback callback)` |  |
 | `void SetHitTestCallback(HitTestCallback callback)` |  |
-| `HWND GetHWND() const` |  |
+| `SDL_Window * GetSDLWindow() const` |  |
+| `void * GetNativeHandle() const` | OS のウィンドウハンドルを取得する関数 |
+| `HWND__ * GetHWND() const` |  |
 | `int GetWidth() const` |  |
 | `int GetHeight() const` |  |
 | `void SetTopmost(bool enable)` | 動的に最前面表示を切り替える関数 |
 | `bool IsTopmost() const` |  |
 | `void SetUpdateMode(UpdateMode mode)` | ウィンドウ更新モードを設定する関数 |
-| `void InvokeCallback(UINT msg, WPARAM wParam, LPARAM lParam)` | フックからコールバックを呼び出すための公開メソッド |
 | `void SetClickThroughEnabled(bool enabled)` | クリック透過（WS_EX_TRANSPARENT）を動的に切り替える関数 |
-| `void UpdateClickThroughFromHitTest(int screenX, int screenY)` | フックから呼ばれ、登録済みの HitTestCallback を使って クリック透過の有効/無効を更新する関数 |
-| `void EnqueueInput(UINT msg, WPARAM wParam, LPARAM lParam)` | 低レベルフックから呼ばれる、入力をキューへ積むだけの関数 |
+| `void UpdateClickThroughFromHitTest(int screenX, int screenY)` | 登録済みの HitTestCallback を使って クリック透過の有効/無効を更新する関数 |
+| `void EnqueueInput(const Tsukino::Input::InputEvent &event)` | 低レベルフックから呼ばれる、入力をキューへ積むだけの関数 |
 | `void SetFullscreen(bool enable)` | 全画面表示の切り替え |
 | `void SetCursorVisible(bool visible)` | OSカーソルの表示/非表示を切り替える関数 |
 | `bool IsFocused() const` | ウィンドウがフォアグラウンド（フォーカスされている）かを取得する関数 |
@@ -171,7 +173,7 @@
 | シグネチャ | 説明 |
 |---|---|
 | `InputSystem()` | コンストラクタ |
-| `~InputSystem()=default` | デストラクタ |
+| `~InputSystem()` | デストラクタ |
 | `InputSystem(const InputSystem &)=delete` |  |
 | `InputSystem & operator=(const InputSystem &)=delete` |  |
 | `void Update()` | 更新関数 |
@@ -182,6 +184,7 @@
 | `void GetMousePosition(i32 *x, i32 *y) const` | マウスのスクリーン座標を取得 |
 | `void GetMouseDelta(i32 *dx, i32 *dy) const` | 前フレームからのマウス移動量を取得 |
 | `float GetWheelDelta() const` |  |
+| `const std::vector< TouchPoint > & GetTouches() const` |  |
 | `void PollGamepads(float deltaTime, bool windowFocused)` | 全スロットのゲームパッドの状態を読み直します。 |
 | `const Gamepad & GetGamepad(u32 index) const` | スロットを指定してゲームパッドを得ます。 |
 | `bool IsButtonDown(GamepadButton button) const` | いずれかのゲームパッドでボタンが押されているかを返します。 |
@@ -199,6 +202,7 @@
 | `void SetKeyState(KeyCode code, bool isDown)` | キー状態を直接書き換える |
 | `void SetMousePosition(i32 x, i32 y)` | マウスの座標を直接書き換える |
 | `void AddWheelDelta(float delta)` | ホイールの回転量を加算する |
+| `void SetTouchState(u64 fingerId, i32 x, i32 y, bool isDown)` | 指が触れた・動いた・離れたことを書き込みます。 |
 | `void NotifyKeyboardMouseActivity()` | キーボードかマウスが操作されたことを知らせます。 |
 | `void ClearAllKeys()` | 全てのキー・ボタンの押下状態をクリアする |
 
@@ -223,9 +227,7 @@
 - **Tsukino::Core::Sequencer::Entry** — `Tsukino.Core/include/Tsukino/Core/Time/Sequencer.hpp`
   - time, order, callback
 - **Tsukino::Core::Window** — `Tsukino.Core/include/Tsukino/Core/Window.hpp`
-  - Window(), ~Window(), Create(), ProcessMessages(), SetMessageCallback(), SetMessageFilter(), SetResizeCallback(), SetFocusLostCallback(), SetHitTestCallback(), GetHWND(), GetWidth(), GetHeight(), SetTopmost(), IsTopmost(), SetUpdateMode(), InvokeCallback(), SetClickThroughEnabled(), UpdateClickThroughFromHitTest(), EnqueueInput(), SetFullscreen(), SetCursorVisible(), IsFocused(), CenterCursor()
-- **Tsukino::Core::Window::QueuedInputEvent** — `Tsukino.Core/include/Tsukino/Core/Window.hpp`
-  - msg, wParam, lParam
+  - Window(), ~Window(), Window(), operator=(), Create(), ProcessMessages(), SetInputCallback(), SetResizeCallback(), SetFocusLostCallback(), SetHitTestCallback(), GetSDLWindow(), GetNativeHandle(), GetHWND(), GetWidth(), GetHeight(), SetTopmost(), IsTopmost(), SetUpdateMode(), SetClickThroughEnabled(), UpdateClickThroughFromHitTest(), EnqueueInput(), SetFullscreen(), SetCursorVisible(), IsFocused(), CenterCursor()
 - **Tsukino::ECS::EntityRef** — `Tsukino.Core/include/Tsukino/Core/ECS/EntityRef/EntityRef.hpp`
   - entity, localName, EntityRef(), EntityRef(), operator=(), operator=(), operator Entity(), operator==(), operator!=(), operator==(), operator!=()
 - **Tsukino::ECS::EntityRefResolverArchive** — `Tsukino.Core/include/Tsukino/Core/ECS/EntityRef/EntityRefResolverArchive.hpp`
@@ -249,14 +251,18 @@
 - **Tsukino::IO::HotReloadable** — `Tsukino.Core/include/Tsukino/Core/IO/HotReloadable.hpp`
   - HotReloadable(), HotReloadable(), operator=(), Get()
 - **Tsukino::Input::Gamepad** — `Tsukino.Core/include/Tsukino/Core/Input/Gamepad.hpp`
-  - kDefaultStickDeadZone, kDefaultTriggerThreshold, kStickButtonPressThreshold, kStickButtonReleaseThreshold, Gamepad(), Poll(), IsConnected(), IsButtonDown(), IsButtonPressed(), IsButtonReleased(), AnyButtonPressed(), GetLeftStick(), GetRightStick(), GetLeftTrigger(), GetRightTrigger(), SetVibration(), StopVibration(), SetStickDeadZone(), SetTriggerThreshold()
+  - kDefaultStickDeadZone, kDefaultTriggerThreshold, kStickButtonPressThreshold, kStickButtonReleaseThreshold, Gamepad(), Close(), Poll(), IsConnected(), IsButtonDown(), IsButtonPressed(), IsButtonReleased(), AnyButtonPressed(), GetLeftStick(), GetRightStick(), GetLeftTrigger(), GetRightTrigger(), SetVibration(), StopVibration(), SetStickDeadZone(), SetTriggerThreshold()
 - **Tsukino::Input::InputActionMap** — `Tsukino.Core/include/Tsukino/Core/Input/InputActionMap.hpp`
   - SetBinding(), GetBinding(), IsDown(), IsPressed(), IsReleased()
 - **Tsukino::Input::InputAxisBinding** — `Tsukino.Core/include/Tsukino/Core/Input/InputActionMap.hpp`
   - up, down, left, right, stick
 - **Tsukino::Input::InputBinding** — `Tsukino.Core/include/Tsukino/Core/Input/InputActionMap.hpp`
   - keys, buttons, wheelDirection
+- **Tsukino::Input::InputEvent** — `Tsukino.Core/include/Tsukino/Core/Input/InputEvent.hpp`
+  - type, key, repeat, x, y, wheel, fingerId, fromTouch, text
 - **Tsukino::Input::InputSystem** — `Tsukino.Core/include/Tsukino/Core/Input/InputSystem.hpp`
-  - InputSystem(), ~InputSystem(), InputSystem(), operator=(), Update(), IsKeyDown(), IsKeyPressed(), AnyKeyPressed(), IsKeyReleased(), GetMousePosition(), GetMouseDelta(), GetWheelDelta(), PollGamepads(), GetGamepad(), IsButtonDown(), IsButtonPressed(), IsButtonReleased(), GetLeftStick(), GetRightStick(), GetStick(), SetGamepadVibration(), StopGamepadVibration(), SetGamepadStickDeadZone(), SetGamepadTriggerThreshold(), IsAnyGamepadConnected(), GetLastInputDevice(), SetKeyState(), SetMousePosition(), AddWheelDelta(), NotifyKeyboardMouseActivity(), ClearAllKeys()
+  - InputSystem(), ~InputSystem(), InputSystem(), operator=(), Update(), IsKeyDown(), IsKeyPressed(), AnyKeyPressed(), IsKeyReleased(), GetMousePosition(), GetMouseDelta(), GetWheelDelta(), GetTouches(), PollGamepads(), GetGamepad(), IsButtonDown(), IsButtonPressed(), IsButtonReleased(), GetLeftStick(), GetRightStick(), GetStick(), SetGamepadVibration(), StopGamepadVibration(), SetGamepadStickDeadZone(), SetGamepadTriggerThreshold(), IsAnyGamepadConnected(), GetLastInputDevice(), SetKeyState(), SetMousePosition(), AddWheelDelta(), SetTouchState(), NotifyKeyboardMouseActivity(), ClearAllKeys()
 - **Tsukino::Input::TextInputSystem** — `Tsukino.Core/include/Tsukino/Core/Input/TextInputSystem.hpp`
-  - Attach(), Begin(), End(), IsActive(), HandleMessage(), GetText(), SetText(), GetComposition(), SetCandidatePosition()
+  - Attach(), Begin(), End(), IsActive(), HandleEvent(), GetText(), SetText(), GetComposition(), SetCandidatePosition()
+- **Tsukino::Input::TouchPoint** — `Tsukino.Core/include/Tsukino/Core/Input/InputSystem.hpp`
+  - id, x, y, began, ended

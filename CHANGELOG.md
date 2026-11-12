@@ -273,6 +273,27 @@ carve-out for `Tsukino.Renderer` described under **API stability** in the README
 
 ### Changed
 
+- **The window, input, IME and gamepads run on SDL3** (first step toward macOS, iOS, Android and the web).
+  SDL 3.4.18 is a submodule (`External/SDL`). The engine's premake script builds it with the CMake that ships with
+  Visual Studio (falling back to `cmake` on PATH) through a `SDL3` utility project, and `tsukino_link()` links
+  `SDL3-static` and the Windows libraries it needs, so games keep their premake setup. `Tsukino.Core` no longer
+  includes `windows.h` in its precompiled header or public headers.
+
+  Migration:
+  - `Window::SetMessageCallback` / `SetMessageFilter` (Win32 messages) are replaced by
+    `Window::SetInputCallback`, which receives an `Input::InputEvent` (key, mouse, wheel, text, IME composition, touch).
+    `Window::InvokeCallback` is removed; `EnqueueInput` now takes an `InputEvent`.
+  - `Window::GetHWND()` still returns the HWND on Windows (`nullptr` elsewhere); new code should use
+    `GetNativeHandle()` or `GetSDLWindow()`.
+  - `TextInputSystem::Attach` takes the `Window*` and `HandleMessage` becomes `HandleEvent(const InputEvent&)`.
+    `GetText()` / `GetComposition()` / `SetText()` are unchanged.
+  - `KeyCode` keeps the Windows virtual-key values, so saved key bindings still load. Keys outside the enum are
+    no longer passed through except Insert, Delete, Caps Lock and the numeric keypad.
+  - Gamepads use SDL's gamepad API instead of XInput, so non-Xbox controllers work too. Button names follow the Xbox
+    layout (A is the bottom face button).
+  - `InputSystem::GetTouches()` lists the fingers on the screen. One finger also arrives as the mouse.
+  - `ClickThrough` windows keep their behaviour on Windows (low-level hooks and `WS_EX_TRANSPARENT`).
+  - In Release, `FileSystem::GetAssetRootPath()` uses `SDL_GetBasePath()`, which returns the exe folder as UTF-8.
 - `GraphicsContext::GetWidth` / `GetHeight` are replaced by `GetSceneWidth` / `GetSceneHeight` and
   `GetBackBufferWidth` / `GetBackBufferHeight`. `CBufferScene` gained `qualityParams` (752 bytes; keep `Scene.hlsli` in sync).
 - While the render scale is below 1, Effekseer effects are drawn without scene depth, so they are no longer hidden by

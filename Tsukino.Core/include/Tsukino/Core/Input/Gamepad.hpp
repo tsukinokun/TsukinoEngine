@@ -1,8 +1,9 @@
 //----------------------------------------------------------------------------
 //! @file   Gamepad.hpp
 //! @brief  ゲームパッド1台ぶんの状態の読み取りと振動
-//! @detail XInput で毎フレーム状態を読み、ボタンの押下・スティック・トリガーの
+//! @detail SDL3 で毎フレーム状態を読み、ボタンの押下・スティック・トリガーの
 //!         値を判定しやすい形で持ちます。振動は長さを指定して出し、時間が来たら自動で止めます。
+//!         ボタンの名前は Xbox のコントローラーの配置に合わせます（A は下、B は右）。
 //----------------------------------------------------------------------------
 #pragma once
 
@@ -12,6 +13,10 @@
 #include <hlsl++.h>
 
 #include <array>
+
+// SDL のゲームパッド（定義は <SDL3/SDL_gamepad.h>。公開ヘッダから SDL を取り込まないための前方宣言）
+struct SDL_Gamepad;
+
 // 名前空間 : Tsukino::Input
 namespace Tsukino::Input {
 
@@ -31,8 +36,11 @@ namespace Tsukino::Input {
         static constexpr float kStickButtonReleaseThreshold = 0.4f;
 
         //! 状態を読むスロットを指定して初期化します。
-        //! @param  [in] userIndex XInput のスロット番号（0〜3）。
+        //! @param  [in] userIndex スロット番号（0〜3）。つながっているゲームパッドのうち、この番号目を読みます。
         explicit Gamepad(u32 userIndex = 0);
+
+        //! 開いているゲームパッドを閉じます。SDL のゲームパッド機能を終える前に呼びます。
+        void Close();
 
         //! 状態を読み直し、振動の残り時間を進めます。
         //! @param  [in] deltaTime 前フレームからの経過秒数。
@@ -123,7 +131,8 @@ namespace Tsukino::Input {
         //! @param  [in] highFrequency 右側モーターの強さ（0〜1）。
         void ApplyVibration(float lowFrequency, float highFrequency);
 
-        u32 m_userIndex = 0;    //!< XInput のスロット番号
+        u32          m_userIndex = 0;          //!< スロット番号
+        SDL_Gamepad* m_handle    = nullptr;    //!< 開いている SDL のゲームパッド（未接続なら nullptr）
 
         bool  m_connected      = false;    //!< 接続されているか
         float m_reconnectTimer = 0.0f;     //!< 未接続のとき、次に接続を確かめるまでの秒数

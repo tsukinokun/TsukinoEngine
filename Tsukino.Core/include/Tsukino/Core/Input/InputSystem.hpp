@@ -19,6 +19,15 @@ namespace Tsukino::Input {
     //! @class  InputSystem
     //! @brief  キーボード・マウスの状態監視と判定を行うクラス
     //--------------------------------------------------------------
+    //! 画面に触れている指 1 本の状態です。
+    struct TouchPoint {
+        u64  id      = 0;        //!< 指の識別子（触れてから離れるまで同じ）
+        i32  x       = 0;        //!< クライアント領域の X（ピクセル）
+        i32  y       = 0;        //!< クライアント領域の Y（ピクセル）
+        bool began   = false;    //!< このフレームに触れたなら true
+        bool ended   = false;    //!< このフレームに離れたなら true
+    };
+
     class InputSystem {
     public:
         //--------------------------------------------------------------
@@ -28,8 +37,9 @@ namespace Tsukino::Input {
 
         //--------------------------------------------------------------
         //! @brief デストラクタ
+        //! @note  開いたゲームパッドを閉じ、SDL のゲームパッド機能を終えます
         //--------------------------------------------------------------
-        ~InputSystem() = default;
+        ~InputSystem();
 
         //--------------------------------------------------------------
         // コピー・ムーブ禁止（EngineIntegrationで一元管理するため）
@@ -95,6 +105,17 @@ namespace Tsukino::Input {
         [[nodiscard]]
         float GetWheelDelta() const {
             return m_wheelDelta;
+        }
+
+        //--------------------------------------------------------------
+        // 画面に触れている指の一覧を取得する
+        //! @return 触れている指（このフレームに離れた指も、ended が true で含む）
+        //! @note   1 本指の操作はマウスとしても届く（SDL が左ボタンとカーソルを作る）ので、
+        //!         2 本指以上の操作（つまむ・2 本指で動かす）を見たいときに使う
+        //--------------------------------------------------------------
+        [[nodiscard]]
+        const std::vector<TouchPoint>& GetTouches() const {
+            return m_touches;
         }
 
         // --- ゲームパッド ---
@@ -225,6 +246,15 @@ namespace Tsukino::Input {
         void AddWheelDelta(float delta);
 
         //--------------------------------------------------------------
+        // 指が触れた・動いた・離れたことを書き込む
+        //! @param fingerId [in] 指の識別子
+        //! @param x        [in] クライアント領域の X（ピクセル）
+        //! @param y        [in] クライアント領域の Y（ピクセル）
+        //! @param isDown   [in] 触れている（触れた・動いた）なら true、離れたなら false
+        //--------------------------------------------------------------
+        void SetTouchState(u64 fingerId, i32 x, i32 y, bool isDown);
+
+        //--------------------------------------------------------------
         //! キーボードかマウスが操作されたことを知らせます。
         //! @note   最後に操作された入力機器をキーボード・マウスへ切り替える。
         //!         Win32 のメッセージを受けた側（EngineIntegration）が、キーの押下・クリック・ホイール・
@@ -255,9 +285,13 @@ namespace Tsukino::Input {
 
         float m_wheelDelta = 0.0f;    //!< 累積ホイール回転量
 
+        std::vector<TouchPoint> m_touches;    //!< 触れている指（離れた指は次の Update で消す）
+
         std::array<Gamepad, kMaxGamepads> m_gamepads;    //!< スロットごとのゲームパッド
 
         InputDevice m_lastInputDevice = InputDevice::KeyboardMouse;    //!< 最後に操作された入力機器
+
+        bool m_gamepadSubsystemReady = false;    //!< SDL のゲームパッド機能を初期化したか（初めて読むときに初期化する）
     };
 
 }    // namespace Tsukino::Input

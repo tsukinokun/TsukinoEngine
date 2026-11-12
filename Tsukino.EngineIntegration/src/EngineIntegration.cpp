@@ -139,10 +139,10 @@ namespace Tsukino::EngineIntegration {
         // メンバ構成を変えた瞬間に同じ問題が再発する。
         //------------------------------------------------------------
         if(m_window) {
-            m_window->SetMessageCallback(nullptr);
-            m_window->SetMessageFilter(nullptr);
+            m_window->SetInputCallback(nullptr);
             m_window->SetResizeCallback(nullptr);
             m_window->SetFocusLostCallback(nullptr);
+            m_window->SetHitTestCallback(nullptr);
         }
 
         //------------------------------------------------------------
@@ -159,10 +159,12 @@ namespace Tsukino::EngineIntegration {
         m_renderer.reset();
         m_window.reset();
 
+#if defined(_WIN32)
         if(m_comInitialized) {
             CoUninitialize();
             m_comInitialized = false;
         }
+#endif
     }
 
     //------------------------------------------------------------
@@ -170,8 +172,12 @@ namespace Tsukino::EngineIntegration {
     //------------------------------------------------------------
     bool EngineIntegration::Initialize(int width, int height, const std::string& title, Tsukino::Core::Window::WindowStyle style,
                                        const Tsukino::Renderer::GraphicsDeviceOptions& deviceOptions) {
+#if defined(_WIN32)
         //--------------------------------------------------------------
-        // COM初期化
+        // COM初期化（WIC・XAudio2 などが使う。Windows のみ）
+        //
+        // SDL もウィンドウを作るときに COM を初期化するが、先にここで
+        // マルチスレッドで初期化しておけば、SDL はそれをそのまま使う
         //--------------------------------------------------------------
         HRESULT hr = CoInitializeEx(nullptr, COINIT_MULTITHREADED);
         // COMの初期化に失敗した場合はエラーログを出力して終了
@@ -181,6 +187,7 @@ namespace Tsukino::EngineIntegration {
         }
         // 成功した場合のみ、デストラクタで対になる CoUninitialize を呼ぶ
         m_comInitialized = true;
+#endif
 
         //--------------------------------------------------------------
         // BuiltInのCopmonentをPrefabFactoryに登録
@@ -220,33 +227,35 @@ namespace Tsukino::EngineIntegration {
         //--------------------------------------------------------------
         // 文字入力の設定（IME のメッセージはキー入力の通知より先に受ける）
         //--------------------------------------------------------------
-        m_textInputSystem->Attach(m_window->GetHWND());
-        m_window->SetMessageFilter([this](UINT msg, WPARAM wp, LPARAM lp) { return m_textInputSystem->HandleMessage(msg, wp, lp); });
+        m_textInputSystem->Attach(m_window.get());
 
         //--------------------------------------------------------------
-        // メッセージコールバックの設定
+        // 入力の通知先の設定
         //--------------------------------------------------------------
-        m_window->SetMessageCallback([this](UINT msg, WPARAM wp, LPARAM lp) {
+        m_window->SetInputCallback([this](const Input::InputEvent& event) {
+            using Input::InputEventType;
+
+            // 文字入力として使ったもの（確定した文字・変換中の文字列）は、ゲーム操作へ渡さない
+            if(m_textInputSystem->HandleEvent(event)) {
+                return;
+            }
+
             //--------------------------------------------------------------
             // 最後に操作された機器をキーボード・マウスへ切り替える（操作表示の切り替えに使う）。
             // マウス移動は、今の座標から一定以上離れたときだけ数える。ゲームがカーソルを中央へ戻すときは
-            // 先に SetMousePosition で中央を書いておくので、戻したときに届く WM_MOUSEMOVE はここで弾かれる
+            // 先に SetMousePosition で中央を書いておくので、戻したときに届く移動はここで弾かれる
             //--------------------------------------------------------------
             constexpr i32 kMouseActivityPixels = 4;
-            switch(msg) {
-            case WM_LBUTTONDOWN:
-            case WM_RBUTTONDOWN:
-            case WM_MBUTTONDOWN:
-            case WM_KEYDOWN:
-            case WM_SYSKEYDOWN:
-            case WM_MOUSEWHEEL:
+            switch(event.type) {
+            case InputEventType::KeyDown:
+            case InputEventType::MouseWheel:
                 m_inputSystem->NotifyKeyboardMouseActivity();
                 break;
-            case WM_MOUSEMOVE: {
+            case InputEventType::MouseMove: {
                 i32 currentX = 0, currentY = 0;
                 m_inputSystem->GetMousePosition(&currentX, &currentY);
-                const i32 movedX = std::abs(static_cast<i32>(LOWORD(lp)) - currentX);
-                const i32 movedY = std::abs(static_cast<i32>(HIWORD(lp)) - currentY);
+                const i32 movedX = std::abs(event.x - currentX);
+                const i32 movedY = std::abs(event.y - currentY);
                 if(movedX >= kMouseActivityPixels || movedY >= kMouseActivityPixels)
                     m_inputSystem->NotifyKeyboardMouseActivity();
                 break;
@@ -255,48 +264,44 @@ namespace Tsukino::EngineIntegration {
                 break;
             }
 
-            switch(msg) {
-                // --- マウスボタン ---
-            case WM_LBUTTONDOWN:
-                m_inputSystem->SetKeyState(Input::KeyCode::LButton, true);
+            switch(event.type) {
+            //--------------------------------------------------------------
+            // キーとマウスボタン（マウスボタンは押した位置も座標として書く。
+            // タッチから作られたクリックは、移動を挟まずに押した位置へ飛ぶため）
+            //--------------------------------------------------------------
+            case InputEventType::KeyDown:
+            case InputEventType::KeyUp: {
+                const bool isDown        = (event.type == InputEventType::KeyDown);
+                const bool isMouseButton = (event.key == Input::KeyCode::LButton || event.key == Input::KeyCode::RButton ||
+                                            event.key == Input::KeyCode::MButton);
+                if(isMouseButton && event.fromTouch) {
+                    m_inputSystem->SetMousePosition(event.x, event.y);
+                }
+                m_inputSystem->SetKeyState(event.key, isDown);
                 break;
-            case WM_LBUTTONUP:
-                m_inputSystem->SetKeyState(Input::KeyCode::LButton, false);
-                break;
-            case WM_RBUTTONDOWN:
-                m_inputSystem->SetKeyState(Input::KeyCode::RButton, true);
-                break;
-            case WM_RBUTTONUP:
-                m_inputSystem->SetKeyState(Input::KeyCode::RButton, false);
-                break;
-            case WM_MBUTTONDOWN:
-                m_inputSystem->SetKeyState(Input::KeyCode::MButton, true);
-                break;
-            case WM_MBUTTONUP:
-                m_inputSystem->SetKeyState(Input::KeyCode::MButton, false);
-                break;
-            // --- キーボード入力 ---
-            case WM_KEYDOWN:
-            case WM_SYSKEYDOWN:    // Altキーなどを含める場合
-                m_inputSystem->SetKeyState(static_cast<Input::KeyCode>(wp), true);
+            }
+
+            //--------------------------------------------------------------
+            // マウス座標とホイール
+            //--------------------------------------------------------------
+            case InputEventType::MouseMove:
+                m_inputSystem->SetMousePosition(event.x, event.y);
                 break;
 
-            case WM_KEYUP:
-            case WM_SYSKEYUP:
-                m_inputSystem->SetKeyState(static_cast<Input::KeyCode>(wp), false);
+            case InputEventType::MouseWheel:
+                m_inputSystem->AddWheelDelta(event.wheel);
                 break;
 
-            // --- マウス座標 ---
-            case WM_MOUSEMOVE:
-                // LOWORD, HIWORD で X, Y 座標を取り出す
-                m_inputSystem->SetMousePosition(static_cast<i32>(LOWORD(lp)), static_cast<i32>(HIWORD(lp)));
+            //--------------------------------------------------------------
+            // タッチ（1 本指はマウスとしても届く。ここでは指ごとの状態を書く）
+            //--------------------------------------------------------------
+            case InputEventType::TouchDown:
+            case InputEventType::TouchMove:
+            case InputEventType::TouchUp:
+                m_inputSystem->SetTouchState(event.fingerId, event.x, event.y, event.type != InputEventType::TouchUp);
                 break;
 
-            // --- マウスホイール ---
-            case WM_MOUSEWHEEL:
-                // ホイールの回転量を取り出して加算（120単位で届くので割る）
-                float delta = static_cast<float>(GET_WHEEL_DELTA_WPARAM(wp)) / static_cast<float>(WHEEL_DELTA);
-                m_inputSystem->AddWheelDelta(delta);
+            default:
                 break;
             }
         });
@@ -388,7 +393,8 @@ namespace Tsukino::EngineIntegration {
         shaderSet.iblSpecularPrefilterPS  = iblSpecularPrefilterPSAsset.get();
         shaderSet.iblBRDFLUTPS            = iblBRDFLUTPSAsset.get();
 
-        if(!m_renderer->Initialize(m_window->GetHWND(), m_window->GetWidth(), m_window->GetHeight(), shaderSet, deviceOptions)) {
+        if(!m_renderer->Initialize(static_cast<HWND>(m_window->GetNativeHandle()), m_window->GetWidth(), m_window->GetHeight(), shaderSet,
+                                   deviceOptions)) {
             return false;
         }
 

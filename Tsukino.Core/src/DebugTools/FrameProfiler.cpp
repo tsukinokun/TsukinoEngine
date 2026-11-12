@@ -5,7 +5,7 @@
 //-------------------------------------------------------------
 #include <Tsukino/Core/DebugTools/FrameProfiler.hpp>
 
-#include <Windows.h>
+#include <SDL3/SDL_timer.h>
 
 // 名前空間 : Tsukino::Core::DebugTools
 namespace Tsukino::Core::DebugTools {
@@ -24,15 +24,10 @@ namespace Tsukino::Core::DebugTools {
         //---------------------------------------------------------
         // 周波数はシステム起動中は不変なので一度だけ引く
         //---------------------------------------------------------
-        static const double invFrequency = [] {
-            LARGE_INTEGER frequency{};
-            ::QueryPerformanceFrequency(&frequency);
-            return 1000.0 / static_cast<double>(frequency.QuadPart);
-        }();
+        static const double invFrequency = 1000.0 / static_cast<double>(SDL_GetPerformanceFrequency());
 
-        LARGE_INTEGER counter{};
-        ::QueryPerformanceCounter(&counter);
-        return static_cast<double>(counter.QuadPart) * invFrequency;
+        // Windows では中身が QueryPerformanceCounter（ほかの環境でも各 OS の高分解能カウンタ）
+        return static_cast<double>(SDL_GetPerformanceCounter()) * invFrequency;
     }
 
     //-------------------------------------------------------------
