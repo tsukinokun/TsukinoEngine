@@ -80,6 +80,10 @@ namespace Tsukino::Asset {
             {".gs.cso", Stage::Geometry},
             {".hs.cso", Stage::Hull    },
             {".ds.cso", Stage::Domain  },
+
+            // bgfx 版の組み込みシェーダー（Tools/Shaders/CMakeLists.txt が .sc から作る）
+            {".vs.sc.bin", Stage::Vertex},
+            {".ps.sc.bin", Stage::Pixel },
         };
 
         std::string name = path.filename();

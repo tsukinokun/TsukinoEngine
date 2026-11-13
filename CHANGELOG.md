@@ -17,6 +17,25 @@ carve-out for `Tsukino.Renderer` described under **API stability** in the README
   commands are dropped. The default stays `dx11`, and nothing changes for projects that do not pass the option.
   bgfx, bx, bimg and bgfx.cmake are new submodules (`External/`), pinned to the commits bgfx.cmake
   `v1.168.9624-612` expects; clone with `--recursive` or run `git submodule update --init` after pulling.
+- **bgfx renderer draws sprites, text and lines; built-in shaders compiled at build time (bgfx mode only).**
+  - The `bgfx-cmake` project also builds bgfx's shader compiler `shaderc` (once, in Release). Its dependencies
+    (glslang, SPIRV-Tools, SPIRV-Cross, tint) come from `External/bgfx/3rdparty`, so the build stays offline. The first
+    build takes a few more minutes. `BGFX_CONFIG_MAX_TEXTURES` is raised to 16384.
+  - A new `bgfx-shaders` utility project runs `Tools/Shaders/CMakeLists.txt`, which compiles
+    `Tsukino.BuiltIn/Assets/Shaders/bgfx/*.vs.sc` / `*.ps.sc` with bgfx.cmake's `bgfx_compile_shaders` into
+    `Shaders/bgfx/dxbc/<name>.sc.bin` (`s_5_0`). Only changed shaders are recompiled. The output sits in the built-in
+    asset folder, so `tsukino_release_payload()` already copies it.
+  - In bgfx mode `BuiltInShaders` loads `Shaders/bgfx/dxbc/X.vs.sc.bin` instead of `Shaders/X.vs.hlsl` when the
+    compiled file exists, and falls back to the HLSL otherwise. Ported so far: `Sprite`, `Sprite3D`, `DebugLine`, and
+    the new `SpriteBatch` (replaces DirectXTK `SpriteBatch` for `DrawKind::Sprites`).
+  - Each constant buffer is sent as one `vec4[N]` uniform with the `ConstantBuffer.hpp` struct as-is
+    (`UniformBlock<T>`, Renderer-internal); the `.sc` side names the members with `#define` (`Scene.sh`, `Transform.sh`,
+    `Material.sh`).
+  - `RenderResources` creates real bgfx textures (RGBA8 / BGRA8 / float / BC formats, full mip chains) and mesh
+    buffers, and `PipelineFactory` builds bgfx programs and states. Pipelines whose shaders are not bgfx binaries yet
+    are skipped with one warning. Not yet in bgfx mode: GBuffer / lighting / shadows / sky / post effects, skinned
+    meshes, instance and user constant buffers, `generateMips` textures, and fog on world-space sprites.
+  - `premake` now defines `TSUKINO_RENDERER_BGFX` for every project in bgfx mode (it was the Renderer project only).
 
 - **VC++ runtime in the Release payload (`tsukino_release_payload()`).** `vcruntime140.dll`, `vcruntime140_1.dll` and
   `msvcp140.dll` are copied next to the exe from the toolset's Redist folder, so a build runs on a PC without the

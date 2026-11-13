@@ -1,13 +1,12 @@
 ﻿//----------------------------------------------------------------------------
 //! @file   Passes.cpp
-//! @brief  bgfx 版の各パス・フレーム定数・ベイク済みフォントの仮の実装
+//! @brief  bgfx 版の各パス・ベイク済みフォントの仮の実装
 //! @detail どれもまだ GPU の資源を持たず、設定を受け取るだけです。
 //!         DX11 版から1つずつ移すときに、パスごとのファイルへ分けます。
 //----------------------------------------------------------------------------
 #include <Tsukino/Renderer/AmbientParticlePass.hpp>
 #include <Tsukino/Renderer/BloomPass.hpp>
 #include <Tsukino/Renderer/FogPass.hpp>
-#include <Tsukino/Renderer/FrameConstants.hpp>
 #include <Tsukino/Renderer/IBLBaker.hpp>
 #include <Tsukino/Renderer/LightingPass.hpp>
 #include <Tsukino/Renderer/MotionBlurPass.hpp>
@@ -24,7 +23,6 @@ namespace Tsukino::Renderer {
     struct AmbientParticlePass::Gpu {};
     struct BloomPass::Gpu {};
     struct FogPass::Gpu {};
-    struct FrameConstants::Gpu {};
     struct IBLBaker::Gpu {};
     struct LightingPass::Gpu {};
     struct MotionBlurPass::Gpu {};
@@ -37,8 +35,6 @@ namespace Tsukino::Renderer {
     BloomPass::~BloomPass() = default;
     FogPass::FogPass() : m_gpu(std::make_unique<Gpu>()) {}
     FogPass::~FogPass() = default;
-    FrameConstants::FrameConstants() : m_gpu(std::make_unique<Gpu>()) {}
-    FrameConstants::~FrameConstants() = default;
     IBLBaker::IBLBaker() : m_gpu(std::make_unique<Gpu>()) {}
     IBLBaker::~IBLBaker() = default;
     LightingPass::LightingPass() : m_gpu(std::make_unique<Gpu>()) {}
@@ -49,36 +45,6 @@ namespace Tsukino::Renderer {
     SkyPass::~SkyPass() = default;
     SphereColorGradePass::SphereColorGradePass() : m_gpu(std::make_unique<Gpu>()) {}
     SphereColorGradePass::~SphereColorGradePass() = default;
-
-    //------------------------------------------------------------------------
-    //! 3D のカメラを設定します（ライトの情報は上書きしない。DX11 版と同じ）。
-    //------------------------------------------------------------------------
-    void FrameConstants::SetWorldCamera(const CBufferScene& data) {
-        m_worldSceneData.view        = data.view;
-        m_worldSceneData.projection  = data.projection;
-        m_worldSceneData.viewProj    = data.viewProj;
-        m_worldSceneData.invViewProj = data.invViewProj;
-        m_worldSceneData.cameraPos   = data.cameraPos;
-    }
-
-    //------------------------------------------------------------------------
-    //! 2D（UI）のカメラを設定します。
-    //------------------------------------------------------------------------
-    void FrameConstants::SetOverlayCamera(const CBufferScene& data) {
-        m_overlaySceneData = data;
-    }
-
-    //------------------------------------------------------------------------
-    //! 経過時間を進めます（DX11 版と同じく、一定時間で折り返す）。
-    //------------------------------------------------------------------------
-    void FrameConstants::AdvanceTime(float deltaTime) {
-        m_frameDeltaTime = deltaTime;
-        m_elapsedTime += deltaTime;
-
-        constexpr float kTimeWrap = 6.28318531f * 1000.0f;
-        if(m_elapsedTime > kTimeWrap)
-            m_elapsedTime -= kTimeWrap;
-    }
 
     //------------------------------------------------------------------------
     //! 太陽の光を設定します（bgfx 版はまだライティングを描かない）。

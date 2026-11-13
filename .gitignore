@@ -57,3 +57,6 @@ Tools/HeaderCheck/generated/
 # Sandbox の SampleScene1 が実行時に書き出す Prefab（テストの生成物）
 Tsukino.Sandbox/Assets/Prefabs/CaptureTest/
 Tsukino.Sandbox/Assets/Prefabs/EntityRefTest/
+
+# bgfx 版の組み込みシェーダーの変換結果（Tools/Shaders/CMakeLists.txt がビルド時に作る）
+Tsukino.BuiltIn/Assets/Shaders/bgfx/*/

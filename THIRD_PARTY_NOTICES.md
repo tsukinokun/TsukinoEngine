@@ -25,6 +25,20 @@ TsukinoEngine 本体は MIT ライセンスで配布しています（`LICENSE` 
 | [bimg](https://github.com/bkaradzic/bimg) | bgfx の画像ライブラリ | submodule | `77bebb2` | BSD 2-Clause |
 | [bgfx.cmake](https://github.com/bkaradzic/bgfx.cmake) | bgfx・bx・bimg を CMake でビルドする手順（ビルドにだけ使い、配布物には入らない） | submodule | `be0ef0d (v1.168.9624-612)` | CC0 1.0 |
 
+`--renderer=bgfx` のときは、組み込みシェーダーを変換するために bgfx の `shaderc` もビルドします。
+`shaderc` はビルドにだけ使う道具で、exe にも配布物にも入りません（入るのは変換したシェーダーだけで、
+その中に取り込まれる `bgfx_shader.sh` は上の bgfx の条文に含まれます）。`shaderc` が使う次のものは
+bgfx の submodule の中（`External/bgfx/3rdparty/`）にあり、条文もそこにあります。
+
+| コンポーネント | 用途 | 場所 | ライセンス |
+|---|---|---|---|
+| [glslang](https://github.com/KhronosGroup/glslang) | GLSL / HLSL の構文解析と SPIR-V の生成 | `3rdparty/glslang`（`LICENSE.txt`） | BSD 3-Clause ほか（ファイルごと。条文に記載） |
+| [SPIRV-Tools](https://github.com/KhronosGroup/SPIRV-Tools) | SPIR-V の最適化 | `3rdparty/spirv-tools`（`LICENSE`） | Apache 2.0 |
+| [SPIRV-Cross](https://github.com/KhronosGroup/SPIRV-Cross) | SPIR-V から各シェーダー言語への変換 | `3rdparty/spirv-cross`（`LICENSE`） | Apache 2.0 |
+| [SPIRV-Headers](https://github.com/KhronosGroup/SPIRV-Headers) | SPIR-V の定義 | `3rdparty/spirv-headers`（`LICENSE`） | MIT ほか（条文に記載） |
+| [Dawn / Tint](https://dawn.googlesource.com/dawn) | WGSL への変換 | `3rdparty/dawn`（`LICENSE`） | BSD 3-Clause |
+| D3DCompiler / DXC（`d3dcompiler_47.dll`・`dxcompiler.dll`） | Direct3D 向けのシェーダーのコンパイル | `tools/bin/windows` | Microsoft の再頒布条件（bgfx に同梱） |
+
 `Tools/MakeSpriteFont.exe`・`Tools/XWBTool.exe`・`vendor/premake5.exe` の 3 つは、
 ソースではなくビルド済みバイナリをこのリポジトリへ直接コミットしています。
 そのため条文の掲載義務はこのファイルが担っています。

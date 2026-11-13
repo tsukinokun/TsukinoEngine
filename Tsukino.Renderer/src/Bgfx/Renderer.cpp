@@ -1,12 +1,15 @@
 ﻿//----------------------------------------------------------------------------
 //! @file   Renderer.cpp
 //! @brief  bgfx 版の Renderer の実装（作りかけ）
-//! @detail 今は bgfx を初期化して、毎フレーム背景色で塗るところまでです。
-//!         積まれた描画コマンドはまだ描かずに捨てます。DX11 版の各パスは、
-//!         段階的にここへ移していきます。
+//! @detail bgfx を初期化して、毎フレーム背景色で塗り、描画コマンドのうち
+//!         World・Transparent・Overlay のパスにあるものをバックバッファへ直接描きます。
+//!         GBuffer・ライティング・影・後処理はまだ無く、DX11 版の各パスを段階的にここへ移していきます。
 //----------------------------------------------------------------------------
 #include <Tsukino/Renderer/Renderer.hpp>
+#include <Tsukino/Renderer/Bgfx/FrameConstantsGpu.hpp>
 #include <Tsukino/Renderer/Bgfx/GraphicsContext.hpp>
+
+#include "DrawCommandExecutor.hpp"
 
 #include <bgfx/bgfx.h>
 
@@ -20,9 +23,6 @@ namespace Tsukino::Renderer {
     // Renderer.hpp が前方宣言だけで持っている内部の部品。
     // bgfx 版ではまだ中身が無いので、空の型として定義しておく
     //------------------------------------------------------------------------
-
-    //! 描画コマンドの実行（bgfx 版はまだ無い）
-    class DrawCommandExecutor {};
 
     //! フルスクリーン三角形の描画（同上）
     class FullscreenPass {};
@@ -64,7 +64,7 @@ namespace Tsukino::Renderer {
     //------------------------------------------------------------------------
     //! レンダラーを初期化します。
     //------------------------------------------------------------------------
-    bool Renderer::Initialize(const NativeWindow& window, uint32_t width, uint32_t height, const RendererShaderSet& /*shaders*/,
+    bool Renderer::Initialize(const NativeWindow& window, uint32_t width, uint32_t height, const RendererShaderSet& shaders,
                               const GraphicsDeviceOptions& deviceOptions) {
         if(!m_graphicsContext->Initialize(window.handle, width, height, deviceOptions))
             return false;
@@ -72,12 +72,27 @@ namespace Tsukino::Renderer {
         if(!m_resources.Initialize(*m_graphicsContext))
             return false;
 
+        if(!m_frameConstants.Initialize(*m_graphicsContext))
+            return false;
+
+        m_commandExecutor = std::make_unique<DrawCommandExecutor>();
+        if(!m_commandExecutor->Initialize(*m_graphicsContext, m_resources, m_frameConstants, m_drawQueue, shaders.debugVS, shaders.debugPS))
+            return false;
+
+        //--------------------------------------------------------------------
+        // ビュー。どちらもバックバッファへ、積んだ順のまま描く（bgfx は既定でステートの順に並べ替える）。
+        // 深度はリバース Z（手前ほど大きい）なので 0 で消す
+        //--------------------------------------------------------------------
+        bgfx::setViewMode(BgfxView::World, bgfx::ViewMode::Sequential);
+        bgfx::setViewMode(BgfxView::Overlay, bgfx::ViewMode::Sequential);
+        bgfx::setViewClear(BgfxView::Overlay, BGFX_CLEAR_DEPTH, 0, 0.0f, 0);
+
         m_shadowPass = std::make_unique<ShadowPass>();
         return true;
     }
 
     //------------------------------------------------------------------------
-    //! 1フレームを描きます（今は背景色で塗るだけ）。
+    //! 1フレームを描きます。
     //------------------------------------------------------------------------
     void Renderer::Render(IPostWorldPass* /*postWorldPass*/) {
         if(m_qualityDirty)
@@ -88,14 +103,66 @@ namespace Tsukino::Renderer {
 
         const u32 rgba = (ToByte(m_clearColor[0]) << 24) | (ToByte(m_clearColor[1]) << 16) | (ToByte(m_clearColor[2]) << 8)
                          | ToByte(m_clearColor[3]);
-        bgfx::setViewClear(0, BGFX_CLEAR_COLOR | BGFX_CLEAR_DEPTH, rgba, 1.0f, 0);
-        bgfx::setViewRect(0, 0, 0, static_cast<uint16_t>(m_graphicsContext->GetWidth()), static_cast<uint16_t>(m_graphicsContext->GetHeight()));
-        bgfx::touch(0);
+        const u16 width  = static_cast<u16>(m_graphicsContext->GetWidth());
+        const u16 height = static_cast<u16>(m_graphicsContext->GetHeight());
+        bgfx::setViewClear(BgfxView::World, BGFX_CLEAR_COLOR | BGFX_CLEAR_DEPTH, rgba, 0.0f, 0);
+        bgfx::setViewRect(BgfxView::World, 0, 0, width, height);
+        bgfx::setViewRect(BgfxView::Overlay, 0, 0, width, height);
+        bgfx::touch(BgfxView::World);
+
+        const auto& commands = m_drawQueue.GetCommands();
+
+        //--------------------------------------------------------------------
+        // 3D のパス。GBuffer（ディファード）とライティングはまだ無いので、深度を書くフォワード（World）と
+        // 半透明（Transparent）だけを、積んだ順にバックバッファへ描く。
+        // bgfx 版へまだ移していないシェーダーのコマンドは、DrawCommandExecutor が飛ばす
+        //--------------------------------------------------------------------
+        m_frameConstants.UploadWorld();
+        for(const RenderPass pass : {RenderPass::World, RenderPass::Transparent}) {
+            for(const DrawCommand& cmd : commands) {
+                if(cmd.pass == pass)
+                    m_commandExecutor->Execute(cmd, BgfxView::World, m_frameStats);
+            }
+        }
+
+        //--------------------------------------------------------------------
+        // Overlay パス。DX11 版と同じく sortOrder の昇順（同じ値は積んだ順）に並べて描く。
+        // 3D モデル（cameraOverride を持つコマンド）はそのカメラに差し替えて描く。
+        // sortOrder が変わるたびに深度を消し直す処理は、モデルを移すとき（段階 1-4 b）に足す
+        //--------------------------------------------------------------------
+        m_overlayOrder.clear();
+        for(u32 index = 0; index < static_cast<u32>(commands.size()); ++index) {
+            if(commands[index].pass == RenderPass::Overlay)
+                m_overlayOrder.push_back(index);
+        }
+        std::sort(m_overlayOrder.begin(), m_overlayOrder.end(), [&commands](u32 lhs, u32 rhs) {
+            if(commands[lhs].sortOrder != commands[rhs].sortOrder)
+                return commands[lhs].sortOrder < commands[rhs].sortOrder;
+            return lhs < rhs;
+        });
+
+        m_frameConstants.UploadOverlay();
+        bool overlayCameraOnLoan = false;    // シーン定数のカメラを差し替えているか
+        for(u32 index : m_overlayOrder) {
+            const DrawCommand& cmd = commands[index];
+            if(cmd.cameraOverride) {
+                m_frameConstants.UploadWorldWithCamera(*cmd.cameraOverride);
+                overlayCameraOnLoan = true;
+            } else if(overlayCameraOnLoan) {
+                m_frameConstants.UploadOverlay();
+                overlayCameraOnLoan = false;
+            }
+            m_commandExecutor->Execute(cmd, BgfxView::Overlay, m_frameStats);
+        }
+
         bgfx::frame();
 
-        // まだ描かない描画コマンドとデバッグ線は、DX11 版と同じくフレームの終わりで捨てる
+        // 描画コマンドと、Submit されずに残ったデバッグ線は、DX11 版と同じくフレームの終わりで捨てる
         m_drawQueue.Clear();
         m_debugDraw.Clear();
+
+        // 次フレームの速度計算用に、今フレームの ViewProjection を退避する（DX11 版と同じ）
+        m_frameConstants.EndFrame();
 
         // 各パスの「このフレームだけ有効」の印を戻す（DX11 版の Render() の終わりと揃える）
         m_fogPass.EndFrame();

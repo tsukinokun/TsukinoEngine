@@ -105,6 +105,12 @@ function tsukino_workspace_defaults()
     filter "action:vs*"
         buildoptions { "/utf-8" }
     filter {}
+
+    -- bgfx 版のときは、どのプロジェクトからも分かるように印を付ける
+    -- （組み込みシェーダーを .sc.bin から読む BuiltInShaders などが見る）
+    if tsukino_use_bgfx() then
+        defines { "TSUKINO_RENDERER_BGFX" }
+    end
 end
 
 ----------------------------------------
@@ -218,9 +224,9 @@ function tsukino_release_payload()
             "{COPYFILE} " .. root .. "/THIRD_PARTY_NOTICES.md %{cfg.targetdir}/THIRD_PARTY_NOTICES.md",
         }
         postbuildcommands(tsukino_crt_commands())
-        -- Tools/ のうち実行時に要るのは外部ツールの exe だけ。premake/ はビルド用のスクリプト
+        -- Tools/ のうち実行時に要るのは外部ツールの exe だけ。premake/ と Shaders/ はビルド用のスクリプト
         postbuildcommands(tsukino_mirror_commands(path.join(rel, "Tools"), "Tools", {
-            excludeDirs = { "premake" },
+            excludeDirs = { "premake", "Shaders" },
         }))
     filter {}
 end
@@ -257,20 +263,65 @@ end
 -- 渡さないと bgfx.cmake が構成のたびにネットから取ってくる。
 -- 出力は <wks.location>/bgfx/build/<構成>/ に bgfx.lib・bimg.lib・bimg_decode.lib・bx.lib
 -- （tsukino_link() の libdirs と揃える）。作り方は tsukino_sdl3_build_commands() と同じ。
+--
+-- シェーダーの変換ツール shaderc も作る（<wks.location>/bgfx/build/Release/shaderc.exe）。
+-- shaderc はビルドの道具なので、構成に関係なく Release で1回だけ作る。
+-- shaderc が使う glslang・SPIRV-Tools・SPIRV-Cross・tint は External/bgfx/3rdparty に
+-- 入っているので、ネットにはつながない。初回は shaderc の分だけさらに数分かかる。
+--
+-- CMake の設定を変えたら TSUKINO_BGFX_OPTIONS_REV を1つ上げる。前の設定で作った
+-- ビルドフォルダが残っていても、キャッシュにこの番号が無ければ構成し直す。
+-- テクスチャの上限（BGFX_CONFIG_MAX_TEXTURES）は既定の 4096 では足りない
+-- （ChronoSort はカードの画像を 4,000 枚以上読む）ので広げる。
 ----------------------------------------
 function tsukino_bgfx_build_commands()
     local rel   = path.translate(path.getrelative(_MAIN_SCRIPT_DIR, _TSUKINO_ENGINE_ROOT), "\\")
     local ext   = '$(SolutionDir)..\\' .. rel .. '\\External\\'
     local build = '"$(SolutionDir)bgfx\\build"'
+    local rev   = "2"
+    local msbuild = ' -- /nologo /v:q /m "/clp:ErrorsOnly;NoSummary" || exit /b 1'
 
     return {
         'set "TSUKINO_CMAKE=$(VSInstallDir)Common7\\IDE\\CommonExtensions\\Microsoft\\CMake\\CMake\\bin\\cmake.exe"',
         'if not exist "%TSUKINO_CMAKE%" set "TSUKINO_CMAKE=cmake"',
-        'if not exist ' .. build .. '\\CMakeCache.txt "%TSUKINO_CMAKE%" -S "' .. ext .. 'bgfx.cmake" -B ' .. build
-            .. ' -A x64 -DBGFX_BUILD_TOOLS=OFF -DBGFX_BUILD_EXAMPLES=OFF -DBGFX_INSTALL=OFF -DBGFX_CUSTOM_TARGETS=OFF'
+        'findstr /c:"TSUKINO_BGFX_OPTIONS_REV:STRING=' .. rev .. '" ' .. build .. '\\CMakeCache.txt >nul 2>&1 || "%TSUKINO_CMAKE%" -S "' .. ext .. 'bgfx.cmake" -B ' .. build
+            .. ' -A x64 -DTSUKINO_BGFX_OPTIONS_REV:STRING=' .. rev
+            .. ' -DBGFX_BUILD_TOOLS=ON -DBGFX_BUILD_TOOLS_SHADER=ON -DBGFX_BUILD_TOOLS_BIN2C=OFF'
+            .. ' -DBGFX_BUILD_TOOLS_GEOMETRY=OFF -DBGFX_BUILD_TOOLS_TEXTURE=OFF'
+            .. ' -DBGFX_BUILD_EXAMPLES=OFF -DBGFX_INSTALL=OFF -DBGFX_CUSTOM_TARGETS=OFF'
+            .. ' -DBGFX_CONFIG_MAX_TEXTURES=16384'
             .. ' "-DBX_DIR=' .. ext .. 'bx" "-DBIMG_DIR=' .. ext .. 'bimg" "-DBGFX_DIR=' .. ext .. 'bgfx"'
-            .. ' -DCMAKE_ARCHIVE_OUTPUT_DIRECTORY=' .. build .. ' >nul || exit /b 1',
-        '"%TSUKINO_CMAKE%" --build ' .. build .. ' --config $(Configuration) -- /nologo /v:q /m "/clp:ErrorsOnly;NoSummary" || exit /b 1',
+            .. ' -DCMAKE_ARCHIVE_OUTPUT_DIRECTORY=' .. build .. ' -DCMAKE_RUNTIME_OUTPUT_DIRECTORY=' .. build .. ' >nul || exit /b 1',
+        '"%TSUKINO_CMAKE%" --build ' .. build .. ' --config $(Configuration) --target bgfx bimg bimg_decode bx' .. msbuild,
+        '"%TSUKINO_CMAKE%" --build ' .. build .. ' --config Release --target shaderc' .. msbuild,
+    }
+end
+
+----------------------------------------
+-- エンジンの bgfx-shaders プロジェクト（kind "Utility"）の prebuildcommands に渡す、
+-- 組み込みシェーダー（Tsukino.BuiltIn/Assets/Shaders/bgfx/*.sc）を bgfx の形式へ
+-- 変換するコマンド列を返す。
+--
+-- 手順は Tools/Shaders/CMakeLists.txt（bgfx.cmake の bgfx_compile_shaders を使う）に書いてあり、
+-- ここはそれを CMake で構成してビルドするだけ。変わった .sc だけを変換し直す。
+-- shaderc は tsukino_bgfx_build_commands() が作ったものを使う。
+-- 出力は Tsukino.BuiltIn/Assets/Shaders/bgfx/<形式>/（Windows は dxbc = s_5_0）。
+-- 組み込みアセットのフォルダの中なので、Release の配布物へは tsukino_release_payload() の
+-- コピーでそのまま入る。
+----------------------------------------
+function tsukino_bgfx_shader_commands()
+    local rel   = path.translate(path.getrelative(_MAIN_SCRIPT_DIR, _TSUKINO_ENGINE_ROOT), "\\")
+    local root  = '$(SolutionDir)..\\' .. rel .. '\\'
+    local build = '"$(SolutionDir)bgfx\\shaders"'
+    local rev   = "1"
+
+    return {
+        'set "TSUKINO_CMAKE=$(VSInstallDir)Common7\\IDE\\CommonExtensions\\Microsoft\\CMake\\CMake\\bin\\cmake.exe"',
+        'if not exist "%TSUKINO_CMAKE%" set "TSUKINO_CMAKE=cmake"',
+        'findstr /c:"TSUKINO_SHADERS_OPTIONS_REV:STRING=' .. rev .. '" ' .. build .. '\\CMakeCache.txt >nul 2>&1 || "%TSUKINO_CMAKE%" -S "' .. root .. 'Tools\\Shaders" -B ' .. build
+            .. ' -A x64 -DTSUKINO_SHADERS_OPTIONS_REV:STRING=' .. rev
+            .. ' "-DTSUKINO_SHADERC=$(SolutionDir)bgfx\\build\\Release\\shaderc.exe" >nul || exit /b 1',
+        '"%TSUKINO_CMAKE%" --build ' .. build .. ' --config Release -- /nologo /v:q /m "/clp:ErrorsOnly;NoSummary" || exit /b 1',
     }
 end
 

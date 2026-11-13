@@ -284,6 +284,24 @@ project "bgfx-cmake"
     kind "Utility"
 
     prebuildcommands(tsukino_bgfx_build_commands())
+
+----------------------------------------
+-- 組み込みシェーダーの変換（.sc → bgfx の形式。--renderer=bgfx のときだけ作る）
+--
+-- Tools/Shaders/CMakeLists.txt を CMake で呼ぶだけのプロジェクト。shaderc を使うので bgfx-cmake の後に走る。
+-- 出力は Tsukino.BuiltIn/Assets/Shaders/bgfx/<形式>/ に置かれ、実行時に BuiltInShaders が読む。
+----------------------------------------
+project "bgfx-shaders"
+    location ".build/bgfx-shaders"
+    kind "Utility"
+    dependson { "bgfx-cmake" }
+
+    files { "Tsukino.BuiltIn/Assets/Shaders/bgfx/*.sc", "Tsukino.BuiltIn/Assets/Shaders/bgfx/*.sh" }
+    filter "files:**.sc or **.sh"
+        buildaction "None"
+    filter {}
+
+    prebuildcommands(tsukino_bgfx_shader_commands())
 end
 
 ----------------------------------------
@@ -453,7 +471,7 @@ project "Tsukino.Renderer"
     --------------------------------------------------------------------
     if tsukino_use_bgfx() then
         removefiles { "Tsukino.Renderer/src/DX11/**", "Tsukino.Renderer/internal/Tsukino/Renderer/DX11/**" }
-        defines { "TSUKINO_RENDERER_BGFX" }
+        -- TSUKINO_RENDERER_BGFX は tsukino_workspace_defaults() がワークスペース全体に付ける
         includedirs {
             "External/bgfx/include",
             "External/bimg/include",
@@ -468,7 +486,7 @@ project "Tsukino.Renderer"
         filter "configurations:Release"
             defines { "BX_CONFIG_DEBUG=0" }
         filter {}
-        dependson { "bgfx-cmake" }
+        dependson { "bgfx-cmake", "bgfx-shaders" }
     else
         removefiles { "Tsukino.Renderer/src/Bgfx/**", "Tsukino.Renderer/internal/Tsukino/Renderer/Bgfx/**" }
     end

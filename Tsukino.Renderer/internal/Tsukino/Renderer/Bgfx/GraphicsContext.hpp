@@ -66,6 +66,13 @@ namespace Tsukino::Renderer {
             return m_height;
         }
 
+        //! bgfx が初期化されていて、まだ後始末されていないかを返します。
+        //! @return 資源を作ったり破棄したりしてよいなら true
+        //! @note   MeshBuffer などは Renderer より長生きすることがある。bgfx を後始末した後に
+        //!         bgfx::destroy を呼ぶと落ちるので、破棄する前にこれで確かめる
+        [[nodiscard]]
+        static bool IsBgfxAlive() noexcept;
+
     private:
         //! 今の大きさと垂直同期の設定で、bgfx のバックバッファを作り直します。
         void ApplyReset();
