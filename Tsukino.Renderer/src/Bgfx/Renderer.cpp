@@ -1,15 +1,20 @@
 ﻿//----------------------------------------------------------------------------
 //! @file   Renderer.cpp
 //! @brief  bgfx 版の Renderer の実装（作りかけ）
-//! @detail bgfx を初期化して、毎フレーム背景色で塗り、描画コマンドのうち
-//!         World・Transparent・Overlay のパスにあるものをバックバッファへ直接描きます。
-//!         GBuffer・ライティング・影・後処理はまだ無く、DX11 版の各パスを段階的にここへ移していきます。
+//! @detail DX11 版と同じ順に、不透明なモデルを G-Buffer へ描き、照らして HDR バッファへ書き、
+//!         フォワードの 3D（World・半透明）を重ね、トーンマップしてバックバッファへ写し、
+//!         最後に UI（Overlay）を描きます。影・スカイ・環境光のベイク・後処理はまだ無く、
+//!         DX11 版の各パスを段階的にここへ移していきます。
 //----------------------------------------------------------------------------
 #include <Tsukino/Renderer/Renderer.hpp>
 #include <Tsukino/Renderer/Bgfx/FrameConstantsGpu.hpp>
 #include <Tsukino/Renderer/Bgfx/GraphicsContext.hpp>
+#include <Tsukino/Renderer/Bgfx/IBLBakerGpu.hpp>
+#include <Tsukino/Renderer/Bgfx/Views.hpp>
 
 #include "DrawCommandExecutor.hpp"
+#include "FullscreenPass.hpp"
+#include "TonemapPass.hpp"
 
 #include <bgfx/bgfx.h>
 
@@ -24,13 +29,7 @@ namespace Tsukino::Renderer {
     // bgfx 版ではまだ中身が無いので、空の型として定義しておく
     //------------------------------------------------------------------------
 
-    //! フルスクリーン三角形の描画（同上）
-    class FullscreenPass {};
-
-    //! トーンマップパス（同上）
-    class TonemapPass {};
-
-    //! パス単位の GPU タイマー（同上）
+    //! パス単位の GPU タイマー（bgfx 版はまだ無い）
     class GpuProfiler {};
 
     //------------------------------------------------------------------------
@@ -47,6 +46,15 @@ namespace Tsukino::Renderer {
         //! @return 0〜255
         u32 ToByte(float value) {
             return static_cast<u32>(std::lround(std::clamp(value, 0.0f, 1.0f) * 255.0f));
+        }
+
+        //! ビューを、積んだ順のまま描く（bgfx は既定でステートの順に並べ替える）ように設定します。
+        //! @param  [in] view        ビュー
+        //! @param  [in] frameBuffer 描く先（無効なハンドルならバックバッファ）
+        void SetupView(bgfx::ViewId view, bgfx::FrameBufferHandle frameBuffer) {
+            bgfx::setViewMode(view, bgfx::ViewMode::Sequential);
+            bgfx::setViewFrameBuffer(view, frameBuffer);
+            bgfx::setViewRect(view, 0, 0, bgfx::BackbufferRatio::Equal);
         }
     }    // namespace
 
@@ -75,19 +83,37 @@ namespace Tsukino::Renderer {
         if(!m_frameConstants.Initialize(*m_graphicsContext))
             return false;
 
+        // 環境光。スカイからのベイク（段階 1-4 c）を移すまでは、環境光の無い仮のテクスチャ
+        if(!m_iblBaker.GetGpu().CreatePlaceholder())
+            return false;
+
         m_commandExecutor = std::make_unique<DrawCommandExecutor>();
-        if(!m_commandExecutor->Initialize(*m_graphicsContext, m_resources, m_frameConstants, m_drawQueue, shaders.debugVS, shaders.debugPS))
+        if(!m_commandExecutor->Initialize(*m_graphicsContext, m_resources, m_frameConstants, m_drawQueue, m_iblBaker, shaders.debugVS,
+                                          shaders.debugPS))
             return false;
 
         //--------------------------------------------------------------------
-        // ビュー。どちらもバックバッファへ、積んだ順のまま描く（bgfx は既定でステートの順に並べ替える）。
-        // 深度はリバース Z（手前ほど大きい）なので 0 で消す
+        // フルスクリーン三角形・トーンマップ・ライティング。
+        // シェーダーがまだ bgfx の形式でなくても、起動は止めない（3D が出ないだけ）
         //--------------------------------------------------------------------
-        bgfx::setViewMode(BgfxView::World, bgfx::ViewMode::Sequential);
-        bgfx::setViewMode(BgfxView::Overlay, bgfx::ViewMode::Sequential);
-        bgfx::setViewClear(BgfxView::Overlay, BGFX_CLEAR_DEPTH, 0, 0.0f, 0);
+        m_shadowPass     = std::make_unique<ShadowPass>();
+        m_fullscreenPass = std::make_unique<FullscreenPass>();
+        m_tonemapPass    = std::make_unique<TonemapPass>();
+        if(m_fullscreenPass->Initialize(shaders.tonemapVS)) {
+            (void)m_tonemapPass->Initialize(*m_fullscreenPass, shaders.tonemapPS);
+            (void)m_lightingPass.Initialize(*m_graphicsContext, m_resources, m_frameConstants, *m_fullscreenPass, *m_shadowPass, m_iblBaker,
+                                            shaders.lightingPS);
+        }
 
-        m_shadowPass = std::make_unique<ShadowPass>();
+        //--------------------------------------------------------------------
+        // ビュー（Views.hpp の順に描かれる）。深度はリバース Z（手前ほど大きい）なので 0 で消す
+        //--------------------------------------------------------------------
+        SetupView(BgfxView::GBuffer, m_graphicsContext->GetGBufferFrameBuffer());
+        SetupView(BgfxView::Lighting, m_graphicsContext->GetHdrColorFrameBuffer());
+        SetupView(BgfxView::World, m_graphicsContext->GetHdrFrameBuffer());
+        SetupView(BgfxView::Transparent, m_graphicsContext->GetHdrFrameBuffer());
+        SetupView(BgfxView::Tonemap, BGFX_INVALID_HANDLE);
+        bgfx::setViewClear(BgfxView::GBuffer, BGFX_CLEAR_COLOR | BGFX_CLEAR_DEPTH, 0, 0.0f, 0);
         return true;
     }
 
@@ -101,34 +127,51 @@ namespace Tsukino::Renderer {
         m_frameStats              = FrameStats{};
         m_frameStats.commandCount = static_cast<u32>(m_drawQueue.GetCommands().size());
 
-        const u32 rgba = (ToByte(m_clearColor[0]) << 24) | (ToByte(m_clearColor[1]) << 16) | (ToByte(m_clearColor[2]) << 8)
-                         | ToByte(m_clearColor[3]);
-        const u16 width  = static_cast<u16>(m_graphicsContext->GetWidth());
-        const u16 height = static_cast<u16>(m_graphicsContext->GetHeight());
-        bgfx::setViewClear(BgfxView::World, BGFX_CLEAR_COLOR | BGFX_CLEAR_DEPTH, rgba, 0.0f, 0);
-        bgfx::setViewRect(BgfxView::World, 0, 0, width, height);
-        bgfx::setViewRect(BgfxView::Overlay, 0, 0, width, height);
-        bgfx::touch(BgfxView::World);
-
         const auto& commands = m_drawQueue.GetCommands();
 
         //--------------------------------------------------------------------
-        // 3D のパス。GBuffer（ディファード）とライティングはまだ無いので、深度を書くフォワード（World）と
-        // 半透明（Transparent）だけを、積んだ順にバックバッファへ描く。
-        // bgfx 版へまだ移していないシェーダーのコマンドは、DrawCommandExecutor が飛ばす
+        // 背景。G-Buffer に何も描かれていない画素は、ライティングが背景色のまま残す
+        // （DX11 版は HDR バッファを背景色で消している。スカイは段階 1-4 c）
+        //--------------------------------------------------------------------
+        const u32 rgba = (ToByte(m_clearColor[0]) << 24) | (ToByte(m_clearColor[1]) << 16) | (ToByte(m_clearColor[2]) << 8)
+                         | ToByte(m_clearColor[3]);
+        bgfx::setViewClear(BgfxView::Lighting, BGFX_CLEAR_COLOR, rgba, 0.0f, 0);
+        bgfx::touch(BgfxView::GBuffer);
+        bgfx::touch(BgfxView::Lighting);
+        bgfx::touch(BgfxView::Tonemap);
+
+        //--------------------------------------------------------------------
+        // GBuffer パス（不透明な 3D モデル）→ ライティング
         //--------------------------------------------------------------------
         m_frameConstants.UploadWorld();
-        for(const RenderPass pass : {RenderPass::World, RenderPass::Transparent}) {
+        for(const DrawCommand& cmd : commands) {
+            if(cmd.pass == RenderPass::GBuffer)
+                m_commandExecutor->Execute(cmd, BgfxView::GBuffer, m_frameStats);
+        }
+        m_lightingPass.Execute();
+
+        //--------------------------------------------------------------------
+        // フォワードの 3D。World（深度を書く物）→ 半透明（深度の事前パス → 色）。
+        // フォグ・環境パーティクル・球形の色調補正（段階 1-4 d）はまだ無い
+        //--------------------------------------------------------------------
+        for(const DrawCommand& cmd : commands) {
+            if(cmd.pass == RenderPass::World)
+                m_commandExecutor->Execute(cmd, BgfxView::World, m_frameStats);
+        }
+        for(const RenderPass pass : {RenderPass::TransparentDepth, RenderPass::Transparent}) {
             for(const DrawCommand& cmd : commands) {
                 if(cmd.pass == pass)
-                    m_commandExecutor->Execute(cmd, BgfxView::World, m_frameStats);
+                    m_commandExecutor->Execute(cmd, BgfxView::Transparent, m_frameStats);
             }
         }
 
         //--------------------------------------------------------------------
-        // Overlay パス。DX11 版と同じく sortOrder の昇順（同じ値は積んだ順）に並べて描く。
-        // 3D モデル（cameraOverride を持つコマンド）はそのカメラに差し替えて描く。
-        // sortOrder が変わるたびに深度を消し直す処理は、モデルを移すとき（段階 1-4 b）に足す
+        // トーンマップ（モーションブラーとブルームは段階 1-4 d）
+        //--------------------------------------------------------------------
+        m_tonemapPass->Execute(BgfxView::Tonemap, m_graphicsContext->GetHdrTexture());
+
+        //--------------------------------------------------------------------
+        // Overlay パス。DX11 版と同じく sortOrder の昇順（同じ値は積んだ順）に並べて描く
         //--------------------------------------------------------------------
         m_overlayOrder.clear();
         for(u32 index = 0; index < static_cast<u32>(commands.size()); ++index) {
@@ -141,18 +184,38 @@ namespace Tsukino::Renderer {
             return lhs < rhs;
         });
 
+        //--------------------------------------------------------------------
+        // UI の層の 3D モデル（cameraOverride を持つコマンド）は、そのカメラに差し替えて描く。
+        // sortOrder の違うモデルは重ね順で前後を決めるので、sortOrder が変わるたびに深度を消し直す。
+        // bgfx はビューの途中で深度を消せないので、そのたびに次の番号のビュー（深度を消すビュー）へ移る
+        //--------------------------------------------------------------------
+        bgfx::ViewId overlayView = BgfxView::Overlay;
+        SetupView(overlayView, BGFX_INVALID_HANDLE);
+        bgfx::setViewClear(overlayView, BGFX_CLEAR_DEPTH, 0, 0.0f, 0);
+
         m_frameConstants.UploadOverlay();
-        bool overlayCameraOnLoan = false;    // シーン定数のカメラを差し替えているか
+        bool overlayDepthUsed      = false;    // 今のビューの深度をモデルが使ったか
+        int  overlayDepthSortOrder = 0;        // 今の深度を使っているモデルの sortOrder
+        bool overlayCameraOnLoan   = false;    // シーン定数のカメラを差し替えているか
         for(u32 index : m_overlayOrder) {
             const DrawCommand& cmd = commands[index];
             if(cmd.cameraOverride) {
+                if(!overlayDepthUsed) {
+                    overlayDepthUsed      = true;
+                    overlayDepthSortOrder = cmd.sortOrder;
+                } else if(cmd.sortOrder != overlayDepthSortOrder && overlayView < BgfxView::OverlayLast) {
+                    ++overlayView;
+                    SetupView(overlayView, BGFX_INVALID_HANDLE);
+                    bgfx::setViewClear(overlayView, BGFX_CLEAR_DEPTH, 0, 0.0f, 0);
+                    overlayDepthSortOrder = cmd.sortOrder;
+                }
                 m_frameConstants.UploadWorldWithCamera(*cmd.cameraOverride);
                 overlayCameraOnLoan = true;
             } else if(overlayCameraOnLoan) {
                 m_frameConstants.UploadOverlay();
                 overlayCameraOnLoan = false;
             }
-            m_commandExecutor->Execute(cmd, BgfxView::Overlay, m_frameStats);
+            m_commandExecutor->Execute(cmd, overlayView, m_frameStats);
         }
 
         bgfx::frame();

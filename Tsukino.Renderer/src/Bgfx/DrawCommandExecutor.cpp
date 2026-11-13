@@ -12,6 +12,8 @@
 #include <Tsukino/Renderer/MeshBuffer.hpp>
 #include <Tsukino/Renderer/Bgfx/FrameConstantsGpu.hpp>
 #include <Tsukino/Renderer/Bgfx/GraphicsContext.hpp>
+#include <Tsukino/Renderer/Bgfx/IBLBakerGpu.hpp>
+#include <Tsukino/Renderer/Bgfx/ShaderPrograms.hpp>
 #include <Tsukino/Renderer/Bgfx/RenderResourcesGpu.hpp>
 
 #include <Tsukino/Engine/Asset/Shader/ShaderAsset.hpp>
@@ -19,14 +21,10 @@
 #include <Tsukino/GraphicsCommon/Vertex/DebugVertex.hpp>
 
 #include <Tsukino/Core/Log.hpp>
-#include <Tsukino/Core/IO/FileSystem.hpp>
 
 #include <algorithm>
 #include <cmath>
 #include <cstring>
-#include <fstream>
-#include <iterator>
-#include <string>
 #include <vector>
 
 // 名前空間 : Tsukino::Renderer
@@ -44,9 +42,6 @@ namespace Tsukino::Renderer {
 
         //! 1回の Submit で描くスプライトの枚数の上限（16bit のインデックスで足りる数）
         constexpr u32 kMaxSpritesPerSubmit = 0xFFFF / 4;
-
-        //! 変換済みのシェーダーの形式のフォルダ（BuiltInShaders と揃える。今は Windows の s_5_0 だけ）
-        constexpr const char* kShaderProfileDir = "dxbc";
 
         //! マテリアルの既定値（materialData を持たないコマンドが最初に来たとき用。色は白）
         const CBufferMaterial& DefaultMaterial() {
@@ -76,8 +71,10 @@ namespace Tsukino::Renderer {
             if(bgfx::isValid(sampler))
                 bgfx::destroy(sampler);
         }
-        if(bgfx::isValid(m_spriteSampler))
-            bgfx::destroy(m_spriteSampler);
+        for(bgfx::UniformHandle uniform : {m_spriteSampler, m_bonesUniform, m_bonesPrevUniform}) {
+            if(bgfx::isValid(uniform))
+                bgfx::destroy(uniform);
+        }
         if(bgfx::isValid(m_spriteProgram))
             bgfx::destroy(m_spriteProgram);
         if(bgfx::isValid(m_lineProgram))
@@ -91,12 +88,14 @@ namespace Tsukino::Renderer {
                                          RenderResources&                   resources,
                                          FrameConstants&                    frameConstants,
                                          const DrawCommandQueue&            drawQueue,
+                                         const IBLBaker&                    iblBaker,
                                          const Tsukino::Asset::ShaderAsset* lineVS,
                                          const Tsukino::Asset::ShaderAsset* linePS) {
         m_graphicsContext = &graphicsContext;
         m_resources       = &resources;
         m_frameConstants  = &frameConstants;
         m_drawQueue       = &drawQueue;
+        m_iblBaker        = &iblBaker;
         m_lastMaterial    = DefaultMaterial();
 
         //--------------------------------------------------------------------
@@ -112,6 +111,11 @@ namespace Tsukino::Renderer {
             m_materialSamplers[i] = bgfx::createUniform(kSamplerNames[i], bgfx::UniformType::Sampler);
         m_spriteSampler = bgfx::createUniform("s_texture", bgfx::UniformType::Sampler);
 
+        // ボーン行列（Model.vs.sc の u_bones / u_bonesPrev。1本4行で128本ぶん）
+        constexpr u16 kBoneVec4Count = static_cast<u16>(sizeof(CBufferSkinning) / 16);
+        m_bonesUniform     = bgfx::createUniform("u_bones", bgfx::UniformType::Vec4, kBoneVec4Count);
+        m_bonesPrevUniform = bgfx::createUniform("u_bonesPrev", bgfx::UniformType::Vec4, kBoneVec4Count);
+
         //--------------------------------------------------------------------
         // スプライトの並び（DrawKind::Sprites）。DX11 版は DirectXTK の SpriteBatch が
         // シェーダーを持っていたので、RendererShaderSet には無い。組み込みのシェーダーから直接読む
@@ -121,7 +125,7 @@ namespace Tsukino::Renderer {
             .add(bgfx::Attrib::Color0, 4, bgfx::AttribType::Float)
             .add(bgfx::Attrib::TexCoord0, 2, bgfx::AttribType::Float)
             .end();
-        m_spriteProgram = LoadProgram("SpriteBatch.vs", "SpriteBatch.ps");
+        m_spriteProgram = LoadBuiltInBgfxProgram("SpriteBatch.vs", "SpriteBatch.ps");
         if(!bgfx::isValid(m_spriteProgram))
             Tsukino::Core::Log::Error("DrawCommandExecutor: Failed to load the sprite batch shaders; text is not drawn.");
 
@@ -132,7 +136,7 @@ namespace Tsukino::Renderer {
             .add(bgfx::Attrib::Position, 3, bgfx::AttribType::Float)
             .add(bgfx::Attrib::Color0, 4, bgfx::AttribType::Float)
             .end();
-        m_lineProgram = CreateProgram(lineVS, linePS);
+        m_lineProgram = CreateBgfxProgram(lineVS, linePS);
         if(!bgfx::isValid(m_lineProgram))
             Tsukino::Core::Log::Error("DrawCommandExecutor: The line shaders are not bgfx shaders; debug lines are not drawn.");
 
@@ -164,8 +168,11 @@ namespace Tsukino::Renderer {
         const MeshBuffer::Gpu& mesh     = *cmd.mesh->gpu;
         if(!pipeline || !bgfx::isValid(pipeline->program) || !bgfx::isValid(mesh.vertexBuffer))
             return;
-        if(cmd.boneMatrices && cmd.boneCount > 0)
-            return;    // スキニングは段階 1-4 b で移す
+
+        // スキニングのシェーダーは2本目の頂点バッファ（ボーン）を読むので、それが無いメッシュは描かない
+        const bool isSkeletal = cmd.boneMatrices && cmd.boneCount > 0;
+        if(pipeline->format == Tsukino::GraphicsCommon::VertexFormat::Skinned && (!isSkeletal || !bgfx::isValid(mesh.boneBuffer)))
+            return;
 
         //--------------------------------------------------------------------
         // 定数（シーン・物ごと・マテリアル）。bgfx のユニフォームは描画1回ごとの値なので毎回送る。
@@ -197,6 +204,24 @@ namespace Tsukino::Renderer {
             if(entry)
                 bgfx::setTexture(static_cast<u8>(slot), m_materialSamplers[slot], entry->texture, samplerFlags);
         }
+
+        //--------------------------------------------------------------------
+        // ボーン行列。シェーダーの配列は 128 本ぶんだが、使う本数だけ送る。
+        // 前フレームの行列は、速度（モーションブラー。段階 1-4 d）を出すまで送らない
+        //--------------------------------------------------------------------
+        if(isSkeletal && bgfx::isValid(mesh.boneBuffer)) {
+            constexpr u32 kMaxBoneCount = sizeof(CBufferSkinning) / sizeof(CBufferSkinning::bones[0]);
+            const u16     vec4Count     = static_cast<u16>(std::min(cmd.boneCount, kMaxBoneCount) * 4);
+            bgfx::setUniform(m_bonesUniform, cmd.boneMatrices, vec4Count);
+            bgfx::setUniform(m_bonesPrevUniform, cmd.boneMatrices, vec4Count);
+            bgfx::setVertexBuffer(1, mesh.boneBuffer);
+            ++stats.skinnedDrawCalls;
+            stats.boneBytesUploaded += static_cast<u64>(vec4Count) * 16;
+        }
+
+        // 環境光（フォワードで照らすモデルが読む。読まないシェーダーには何も起きない）
+        if(m_iblBaker)
+            m_iblBaker->GetGpu().Bind();
 
         bgfx::setVertexBuffer(0, mesh.vertexBuffer);
         if(bgfx::isValid(mesh.indexBuffer))
@@ -400,54 +425,6 @@ namespace Tsukino::Renderer {
         case RenderPass::Transparent:      ++stats.transparentDrawCalls; break;
         case RenderPass::Overlay:          ++stats.overlayDrawCalls; break;
         }
-    }
-
-    //------------------------------------------------------------------------
-    //! 変換済みのシェーダーを2本読み込んで、プログラムを作ります。
-    //------------------------------------------------------------------------
-    bgfx::ProgramHandle DrawCommandExecutor::LoadProgram(const char* vsName, const char* psName) {
-        const Tsukino::Core::Path folder =
-            Tsukino::IO::FileSystem::GetEngineAssetRootPath() / ("Tsukino.BuiltIn/Assets/Shaders/bgfx/" + std::string(kShaderProfileDir));
-
-        // 1本読んで bgfx のシェーダーにする
-        auto loadShader = [&folder](const char* name) -> bgfx::ShaderHandle {
-            const Tsukino::Core::Path path = folder / (std::string(name) + ".sc.bin");
-            std::ifstream             file(path.string(), std::ios::binary);
-            if(!file) {
-                Tsukino::Core::Log::Error("DrawCommandExecutor: Shader not found: " + path.string());
-                return BGFX_INVALID_HANDLE;
-            }
-            const std::vector<u8> binary{std::istreambuf_iterator<char>(file), std::istreambuf_iterator<char>()};
-            return bgfx::createShader(bgfx::copy(binary.data(), static_cast<u32>(binary.size())));
-        };
-
-        const bgfx::ShaderHandle vs = loadShader(vsName);
-        const bgfx::ShaderHandle ps = loadShader(psName);
-        if(!bgfx::isValid(vs) || !bgfx::isValid(ps)) {
-            if(bgfx::isValid(vs))
-                bgfx::destroy(vs);
-            if(bgfx::isValid(ps))
-                bgfx::destroy(ps);
-            return BGFX_INVALID_HANDLE;
-        }
-        return bgfx::createProgram(vs, ps, true);
-    }
-
-    //------------------------------------------------------------------------
-    //! シェーダーアセット2本（bgfx の形式）から、プログラムを作ります。
-    //------------------------------------------------------------------------
-    bgfx::ProgramHandle DrawCommandExecutor::CreateProgram(const Tsukino::Asset::ShaderAsset* vs, const Tsukino::Asset::ShaderAsset* ps) {
-        // bgfx の形式（shaderc の出力）は頭が "VSH" / "FSH"
-        auto isBgfx = [](const Tsukino::Asset::ShaderAsset* shader) {
-            return shader && shader->binary.size() >= 4 && (shader->binary[0] == 'V' || shader->binary[0] == 'F') && shader->binary[1] == 'S'
-                   && shader->binary[2] == 'H';
-        };
-        if(!isBgfx(vs) || !isBgfx(ps))
-            return BGFX_INVALID_HANDLE;
-
-        const bgfx::ShaderHandle vsHandle = bgfx::createShader(bgfx::copy(vs->binary.data(), static_cast<u32>(vs->binary.size())));
-        const bgfx::ShaderHandle psHandle = bgfx::createShader(bgfx::copy(ps->binary.data(), static_cast<u32>(ps->binary.size())));
-        return bgfx::createProgram(vsHandle, psHandle, true);
     }
 
 }    // namespace Tsukino::Renderer

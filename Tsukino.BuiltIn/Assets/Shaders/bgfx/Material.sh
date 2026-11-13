@@ -25,4 +25,33 @@ uniform vec4 u_material[TSUKINO_MATERIAL_VEC4_COUNT];
 #define spriteUv       u_material[8]
 #define spriteFog      u_material[9]
 
+//--------------------------------------------------------------
+//! @brief  ふち（リム）の発光を求める（Material.hlsli と同じ）
+//! @param  N [in] 法線
+//! @param  V [in] 視線（画素からカメラへ）
+//! @return 足す発光の色
+//--------------------------------------------------------------
+vec3 EvaluateRimGlow(vec3 N, vec3 V)
+{
+    float NdotV = saturate(dot(N, V));
+    float edge  = max(1.0 - NdotV, 1e-6);
+
+    float rim = 0.0;
+    if(rimParams.x > 0.0)
+        rim = pow(edge, rimParams.x);
+
+    return rimColor.rgb * rim * rimColor.w;
+}
+
+//--------------------------------------------------------------
+//! @brief  リムの発光と、全体の白発光を足した値を求める
+//! @param  N [in] 法線
+//! @param  V [in] 視線
+//! @return 足す発光の色
+//--------------------------------------------------------------
+vec3 EvaluateEmissiveBoost(vec3 N, vec3 V)
+{
+    return EvaluateRimGlow(N, V) + vec3_splat(rimParams.y);
+}
+
 #endif    // TSUKINO_MATERIAL_SH

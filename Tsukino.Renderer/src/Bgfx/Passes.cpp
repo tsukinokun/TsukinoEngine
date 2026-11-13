@@ -8,11 +8,11 @@
 #include <Tsukino/Renderer/BloomPass.hpp>
 #include <Tsukino/Renderer/FogPass.hpp>
 #include <Tsukino/Renderer/IBLBaker.hpp>
-#include <Tsukino/Renderer/LightingPass.hpp>
 #include <Tsukino/Renderer/MotionBlurPass.hpp>
 #include <Tsukino/Renderer/SkyPass.hpp>
 #include <Tsukino/Renderer/SphereColorGradePass.hpp>
 #include <Tsukino/Renderer/Text/BakedFont.hpp>
+#include <Tsukino/Renderer/Bgfx/IBLBakerGpu.hpp>
 
 // 名前空間 : Tsukino::Renderer
 namespace Tsukino::Renderer {
@@ -23,8 +23,6 @@ namespace Tsukino::Renderer {
     struct AmbientParticlePass::Gpu {};
     struct BloomPass::Gpu {};
     struct FogPass::Gpu {};
-    struct IBLBaker::Gpu {};
-    struct LightingPass::Gpu {};
     struct MotionBlurPass::Gpu {};
     struct SkyPass::Gpu {};
     struct SphereColorGradePass::Gpu {};
@@ -37,24 +35,12 @@ namespace Tsukino::Renderer {
     FogPass::~FogPass() = default;
     IBLBaker::IBLBaker() : m_gpu(std::make_unique<Gpu>()) {}
     IBLBaker::~IBLBaker() = default;
-    LightingPass::LightingPass() : m_gpu(std::make_unique<Gpu>()) {}
-    LightingPass::~LightingPass() = default;
     MotionBlurPass::MotionBlurPass() : m_gpu(std::make_unique<Gpu>()) {}
     MotionBlurPass::~MotionBlurPass() = default;
     SkyPass::SkyPass() : m_gpu(std::make_unique<Gpu>()) {}
     SkyPass::~SkyPass() = default;
     SphereColorGradePass::SphereColorGradePass() : m_gpu(std::make_unique<Gpu>()) {}
     SphereColorGradePass::~SphereColorGradePass() = default;
-
-    //------------------------------------------------------------------------
-    //! 太陽の光を設定します（bgfx 版はまだライティングを描かない）。
-    //------------------------------------------------------------------------
-    void LightingPass::SetDirectionalLight(const hlslpp::float3& /*direction*/, const hlslpp::float3& /*color*/, float /*intensity*/) {}
-
-    //------------------------------------------------------------------------
-    //! 点光源・スポットライトを設定します（同上）。
-    //------------------------------------------------------------------------
-    void LightingPass::SetLights(const GPULight* /*lights*/, u32 /*count*/) {}
 
     //------------------------------------------------------------------------
     //! 空のシェーダーを設定します（bgfx 版はまだ空を描かない）。

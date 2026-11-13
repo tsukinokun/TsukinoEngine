@@ -48,6 +48,7 @@ namespace Tsukino::Renderer {
     struct MeshBuffer::Gpu {
         bgfx::VertexBufferHandle vertexBuffer = BGFX_INVALID_HANDLE;    // 頂点バッファ
         bgfx::IndexBufferHandle  indexBuffer  = BGFX_INVALID_HANDLE;    // インデックスバッファ（32bit）
+        bgfx::VertexBufferHandle boneBuffer   = BGFX_INVALID_HANDLE;    // ボーンの番号とウェイト（スキニングするメッシュだけ。2本目の頂点バッファ）
 
         Gpu() = default;
         Gpu(const Gpu&)            = delete;
@@ -102,6 +103,12 @@ namespace Tsukino::Renderer {
         //! @return 頂点レイアウト（対応していない形式なら空のレイアウト。そのときは描かない）
         [[nodiscard]]
         static const bgfx::VertexLayout& GetVertexLayout(Tsukino::GraphicsCommon::VertexFormat format);
+
+        //! スキニングの2本目の頂点バッファ（ボーンの番号 4つとウェイト 4つ。どちらも float）の頂点レイアウトを返します。
+        //! @return 頂点レイアウト
+        //! @note   bgfx の頂点の型に 32bit 整数が無いので、番号も float で持つ（128 までなので正確に表せる）
+        [[nodiscard]]
+        static const bgfx::VertexLayout& GetBoneLayout();
 
         //! サンプラーの種類から、bgfx のサンプラーのフラグを返します。
         //! @param  [in] type サンプラーの種類

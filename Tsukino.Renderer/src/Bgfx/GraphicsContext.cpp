@@ -47,6 +47,7 @@ namespace Tsukino::Renderer {
     //------------------------------------------------------------------------
     GraphicsContext::~GraphicsContext() {
         if(m_initialized) {
+            DestroyRenderTargets();
             g_bgfxAlive = false;
             bgfx::shutdown();
         }
@@ -95,7 +96,7 @@ namespace Tsukino::Renderer {
         m_adapterInfo.deviceId   = caps ? caps->deviceId : 0;
 
         Tsukino::Core::Log::Info("GraphicsContext: bgfx initialized (" + m_adapterInfo.name + ").");
-        return true;
+        return CreateRenderTargets();
     }
 
     //------------------------------------------------------------------------
@@ -124,6 +125,83 @@ namespace Tsukino::Renderer {
             return;
         bgfx::SwapChain swapChain = MakeSwapChain(m_windowHandle, m_width, m_height);
         bgfx::reset(ResetFlags(m_vsync), &swapChain);
+    }
+
+    //------------------------------------------------------------------------
+    //! 3D を描く先のテクスチャとフレームバッファを作ります。
+    //------------------------------------------------------------------------
+    bool GraphicsContext::CreateRenderTargets() {
+        //--------------------------------------------------------------------
+        // どれもバックバッファと同じ大きさ（BackbufferRatio::Equal）。bgfx::reset で大きさが変わると、
+        // bgfx が作り直してくれる。読むときはどれも点で読むので、サンプラーは点・端で止める
+        //--------------------------------------------------------------------
+        constexpr u64 kTargetFlags = BGFX_TEXTURE_RT | BGFX_SAMPLER_MIN_POINT | BGFX_SAMPLER_MAG_POINT | BGFX_SAMPLER_MIP_POINT
+                                     | BGFX_SAMPLER_U_CLAMP | BGFX_SAMPLER_V_CLAMP;
+        constexpr auto kRatio = bgfx::BackbufferRatio::Equal;
+
+        m_hdrTexture   = bgfx::createTexture2D(kRatio, false, 1, bgfx::TextureFormat::RGBA16F, kTargetFlags);
+        m_depthTexture = bgfx::createTexture2D(kRatio, false, 1, bgfx::TextureFormat::D32F, kTargetFlags);
+
+        //--------------------------------------------------------------------
+        // G-Buffer。形式は DX11 版と同じ（albedo は sRGB で持つ。ワールド座標は精度のため 32bit）
+        //--------------------------------------------------------------------
+        struct GBufferFormat {
+            bgfx::TextureFormat::Enum format;    // 形式
+            u64                       flags;     // 追加のフラグ
+        };
+        constexpr GBufferFormat kGBufferFormats[kGBufferCount] = {
+            {bgfx::TextureFormat::RGBA8,   BGFX_TEXTURE_SRGB},    // 0: albedo
+            {bgfx::TextureFormat::RGB10A2, 0},                    // 1: 法線 + ShadingModel
+            {bgfx::TextureFormat::RGBA8,   0},                    // 2: 材質
+            {bgfx::TextureFormat::RG11B10F, 0},                   // 3: 発光
+            {bgfx::TextureFormat::RGBA32F, 0},                    // 4: ワールド座標
+            {bgfx::TextureFormat::RG16F,   0},                    // 5: 速度
+        };
+        for(u32 i = 0; i < kGBufferCount; ++i)
+            m_gbufferTextures[i] = bgfx::createTexture2D(kRatio, false, 1, kGBufferFormats[i].format, kTargetFlags | kGBufferFormats[i].flags);
+
+        //--------------------------------------------------------------------
+        // フレームバッファ。テクスチャはこのクラスが持ち、フレームバッファと一緒には破棄しない
+        //--------------------------------------------------------------------
+        bgfx::TextureHandle gbufferAttachments[kGBufferCount + 1];
+        for(u32 i = 0; i < kGBufferCount; ++i)
+            gbufferAttachments[i] = m_gbufferTextures[i];
+        gbufferAttachments[kGBufferCount] = m_depthTexture;
+        m_gbufferFrameBuffer = bgfx::createFrameBuffer(kGBufferCount + 1, gbufferAttachments, false);
+
+        const bgfx::TextureHandle hdrAttachments[] = {m_hdrTexture, m_depthTexture};
+        m_hdrFrameBuffer      = bgfx::createFrameBuffer(2, hdrAttachments, false);
+        m_hdrColorFrameBuffer = bgfx::createFrameBuffer(1, &m_hdrTexture, false);
+
+        if(!bgfx::isValid(m_gbufferFrameBuffer) || !bgfx::isValid(m_hdrFrameBuffer) || !bgfx::isValid(m_hdrColorFrameBuffer)) {
+            Tsukino::Core::Log::Error("GraphicsContext: Failed to create the render targets.");
+            return false;
+        }
+        return true;
+    }
+
+    //------------------------------------------------------------------------
+    //! 3D を描く先を破棄します。
+    //------------------------------------------------------------------------
+    void GraphicsContext::DestroyRenderTargets() {
+        auto destroyFrameBuffer = [](bgfx::FrameBufferHandle& handle) {
+            if(bgfx::isValid(handle))
+                bgfx::destroy(handle);
+            handle = BGFX_INVALID_HANDLE;
+        };
+        auto destroyTexture = [](bgfx::TextureHandle& handle) {
+            if(bgfx::isValid(handle))
+                bgfx::destroy(handle);
+            handle = BGFX_INVALID_HANDLE;
+        };
+
+        destroyFrameBuffer(m_gbufferFrameBuffer);
+        destroyFrameBuffer(m_hdrFrameBuffer);
+        destroyFrameBuffer(m_hdrColorFrameBuffer);
+        destroyTexture(m_hdrTexture);
+        destroyTexture(m_depthTexture);
+        for(bgfx::TextureHandle& texture : m_gbufferTextures)
+            destroyTexture(texture);
     }
 
 }    // namespace Tsukino::Renderer

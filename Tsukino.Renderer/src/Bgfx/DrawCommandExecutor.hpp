@@ -8,6 +8,7 @@
 #pragma once
 #include <Tsukino/Renderer/Renderer.hpp>
 #include <Tsukino/Renderer/Bgfx/UniformBlock.hpp>
+#include <Tsukino/Renderer/Bgfx/Views.hpp>
 
 #include <bgfx/bgfx.h>
 
@@ -15,15 +16,6 @@
 
 // 名前空間 : Tsukino::Renderer
 namespace Tsukino::Renderer {
-
-    //------------------------------------------------------------------------
-    //! bgfx のビューの番号です（小さい番号から順に描かれる）。
-    //! @note  パスを bgfx へ移すたびに、ここへ足していく
-    //------------------------------------------------------------------------
-    namespace BgfxView {
-        inline constexpr bgfx::ViewId World   = 0;    // 3D（今はバックバッファへ直接描く）
-        inline constexpr bgfx::ViewId Overlay = 1;    // UI と文字
-    }    // namespace BgfxView
 
     //------------------------------------------------------------------------
     //! 描画コマンド1本を GPU へ流すクラスです（bgfx 版）。
@@ -40,6 +32,7 @@ namespace Tsukino::Renderer {
         //! @param  [in] resources       テクスチャ・メッシュ・パイプラインの取得元
         //! @param  [in] frameConstants  シーン定数の取得元
         //! @param  [in] drawQueue       スプライト・線の頂点の並びの取得元
+        //! @param  [in] iblBaker        環境光のテクスチャの取得元（フォワードで照らすモデルに張る）
         //! @param  [in] lineVS          線を描く頂点シェーダー（bgfx の形式）
         //! @param  [in] linePS          線を描くピクセルシェーダー（bgfx の形式）
         //! @return true: 作成成功, false: 作成失敗
@@ -48,6 +41,7 @@ namespace Tsukino::Renderer {
                         RenderResources&                   resources,
                         FrameConstants&                    frameConstants,
                         const DrawCommandQueue&            drawQueue,
+                        const IBLBaker&                    iblBaker,
                         const Tsukino::Asset::ShaderAsset* lineVS,
                         const Tsukino::Asset::ShaderAsset* linePS);
 
@@ -85,23 +79,12 @@ namespace Tsukino::Renderer {
         //! @param  [in,out] stats 描画統計の加算先
         static void CountDrawCall(RenderPass pass, Renderer::FrameStats& stats);
 
-        //! 変換済みのシェーダーを2本読み込んで、プログラムを作ります。
-        //! @param  [in] vsName 頂点シェーダーの名前（"SpriteBatch.vs" のように拡張子を除いた名前）
-        //! @param  [in] psName ピクセルシェーダーの名前
-        //! @return プログラム（読めなければ無効なハンドル）
-        static bgfx::ProgramHandle LoadProgram(const char* vsName, const char* psName);
-
-        //! シェーダーアセット2本（bgfx の形式）から、プログラムを作ります。
-        //! @param  [in] vs 頂点シェーダー
-        //! @param  [in] ps ピクセルシェーダー
-        //! @return プログラム（bgfx の形式でなければ無効なハンドル）
-        static bgfx::ProgramHandle CreateProgram(const Tsukino::Asset::ShaderAsset* vs, const Tsukino::Asset::ShaderAsset* ps);
-
     private:
         const GraphicsContext*  m_graphicsContext = nullptr;    // 描画領域の大きさ（借りている）
         RenderResources*        m_resources       = nullptr;    // テクスチャ・メッシュ・パイプライン（借りている）
         FrameConstants*         m_frameConstants  = nullptr;    // シーン定数（借りている）
         const DrawCommandQueue* m_drawQueue       = nullptr;    // スプライト・線の頂点の並び（借りている）
+        const IBLBaker*         m_iblBaker        = nullptr;    // 環境光（借りている）
 
         UniformBlock<CBufferTransform> m_transformUniform;    // 物ごとの定数（u_transform。DX11 版の b1）
         CBufferMaterial                m_lastMaterial{};      // 最後に送ったマテリアルの定数（materialData の無いコマンドが引き継ぐ）
@@ -109,6 +92,9 @@ namespace Tsukino::Renderer {
 
         //! マテリアルのテクスチャ（t0〜t4）のサンプラーのユニフォーム。シェーダーの SAMPLER2D の名前と揃える
         std::array<bgfx::UniformHandle, 5> m_materialSamplers{};
+
+        bgfx::UniformHandle m_bonesUniform     = BGFX_INVALID_HANDLE;    // ボーン行列（u_bones。DX11 版の b3）
+        bgfx::UniformHandle m_bonesPrevUniform = BGFX_INVALID_HANDLE;    // 前フレームのボーン行列（u_bonesPrev。DX11 版の b6）
 
         bgfx::UniformHandle m_spriteSampler = BGFX_INVALID_HANDLE;    // スプライトの並びのテクスチャ（s_texture）
         bgfx::ProgramHandle m_spriteProgram = BGFX_INVALID_HANDLE;    // スプライトの並びを描くプログラム

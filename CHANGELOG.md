@@ -33,9 +33,22 @@ carve-out for `Tsukino.Renderer` described under **API stability** in the README
     `Material.sh`).
   - `RenderResources` creates real bgfx textures (RGBA8 / BGRA8 / float / BC formats, full mip chains) and mesh
     buffers, and `PipelineFactory` builds bgfx programs and states. Pipelines whose shaders are not bgfx binaries yet
-    are skipped with one warning. Not yet in bgfx mode: GBuffer / lighting / shadows / sky / post effects, skinned
-    meshes, instance and user constant buffers, `generateMips` textures, and fog on world-space sprites.
+    are skipped with one warning. `generateMips` textures get no mips and world-space sprites get
+    no fog in bgfx mode yet.
   - `premake` now defines `TSUKINO_RENDERER_BGFX` for every project in bgfx mode (it was the Renderer project only).
+- **bgfx renderer draws 3D models (bgfx mode only).** The frame now follows the DX11 order: opaque models into a 6-target
+  G-Buffer (same formats as DX11), deferred lighting (sun, point and spot lights) into an RGBA16F HDR buffer, forward
+  World / TransparentDepth / Transparent passes, tonemap to the back buffer, then the Overlay pass.
+  - Ported shaders: `ModelStatic.vs`, `Model.vs` (skinning; bone indices and weights go in a second vertex stream as
+    floats, because bgfx has no 32-bit integer vertex type), `GBuffer.ps`, `Lighting.ps`, `Model.ps`, `ScreenModel.ps`,
+    `Tonemap.vs` (fullscreen triangle from a 3-vertex transient buffer instead of `SV_VertexID`) and `Tonemap.ps`, with
+    shared `PBR.sh`, `Toon.sh`, `IBL.sh`, `Lighting.sh`, `ForwardModel.sh`, `Dither.sh` and `Tonemap.sh`.
+  - bgfx has 16 texture stages, so the DX11 slots t8–t19 are renumbered (`TextureStages.sh` / `BgfxStage`).
+  - UI-layer 3D models (`cameraOverride`) get a fresh depth buffer whenever their `sortOrder` changes, by moving on to
+    the next bgfx view (bgfx cannot clear in the middle of a view).
+  - Not yet in bgfx mode: shadows, sky, IBL baking (the ambient term is black for now, so scenes look darker than
+    DX11), fog, bloom, motion blur, sphere colour grade, ambient particles, render scale, instance and user constant
+    buffers.
 
 - **VC++ runtime in the Release payload (`tsukino_release_payload()`).** `vcruntime140.dll`, `vcruntime140_1.dll` and
   `msvcp140.dll` are copied next to the exe from the toolset's Redist folder, so a build runs on a PC without the

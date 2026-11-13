@@ -8,6 +8,7 @@
 //----------------------------------------------------------------------------
 #include <Tsukino/Renderer/Bgfx/RenderResourcesGpu.hpp>
 #include <Tsukino/Renderer/Bgfx/GraphicsContext.hpp>
+#include <Tsukino/Renderer/Bgfx/ShaderPrograms.hpp>
 
 #include <Tsukino/Engine/Asset/Shader/ShaderAsset.hpp>
 #include <Tsukino/Engine/Asset/Texture/TextureAsset.hpp>
@@ -104,18 +105,6 @@ namespace Tsukino::Renderer {
         }
 
         //--------------------------------------------------------------------
-        //! シェーダーのバイナリが bgfx の形式（shaderc の出力）かを確かめます。
-        //! @param  [in] binary シェーダーのバイナリ
-        //! @return bgfx の形式なら true（頭が "VSH" / "FSH" / "CSH"）
-        //--------------------------------------------------------------------
-        bool IsBgfxShaderBinary(const std::vector<u8>& binary) {
-            if(binary.size() < 4)
-                return false;
-            const bool known = binary[0] == 'V' || binary[0] == 'F' || binary[0] == 'C';
-            return known && binary[1] == 'S' && binary[2] == 'H';
-        }
-
-        //--------------------------------------------------------------------
         //! メッシュデータから、bgfx のバッファを持ったメッシュバッファを作ります。
         //! @param  [in] meshData メッシュデータ
         //! @return メッシュバッファ（対応していない頂点の形式なら、バッファは無効のまま）
@@ -154,6 +143,22 @@ namespace Tsukino::Renderer {
                 buffer.gpu->indexBuffer = bgfx::createIndexBuffer(
                     bgfx::copy(meshData.indices.data(), static_cast<u32>(meshData.indices.size() * sizeof(u32))), BGFX_BUFFER_INDEX32);
             }
+
+            //----------------------------------------------------------------
+            // スキニングするメッシュは、ボーンの番号とウェイトを2本目の頂点バッファにする
+            // （DX11 版のスロット1と同じ。番号は float に直す）
+            //----------------------------------------------------------------
+            if(meshData.format == Tsukino::GraphicsCommon::VertexFormat::Skinned && meshData.boneWeights.size() == meshData.vertexCount) {
+                const bgfx::Memory* bones = bgfx::alloc(static_cast<u32>(meshData.boneWeights.size() * sizeof(float) * 8));
+                float*              dst   = reinterpret_cast<float*>(bones->data);
+                for(const Tsukino::GraphicsCommon::BoneWeight& weight : meshData.boneWeights) {
+                    for(int i = 0; i < 4; ++i)
+                        *dst++ = static_cast<float>(weight.boneIndices[i]);
+                    for(int i = 0; i < 4; ++i)
+                        *dst++ = weight.weights[i];
+                }
+                buffer.gpu->boneBuffer = bgfx::createVertexBuffer(bones, RenderResources::Gpu::GetBoneLayout());
+            }
             return buffer;
         }
 
@@ -185,6 +190,8 @@ namespace Tsukino::Renderer {
             bgfx::destroy(vertexBuffer);
         if(bgfx::isValid(indexBuffer))
             bgfx::destroy(indexBuffer);
+        if(bgfx::isValid(boneBuffer))
+            bgfx::destroy(boneBuffer);
     }
 
     //------------------------------------------------------------------------
@@ -258,15 +265,31 @@ namespace Tsukino::Renderer {
             return layout;
         }();
 
-        // まだ直していない形式（スキニング・パーティクル）。ストライドが 0 なので描かない
+        // まだ直していない形式（パーティクル）。ストライドが 0 なので描かない
         static const bgfx::VertexLayout kEmpty{};
 
         switch(format) {
         case VertexFormat::PositionUV:
         case VertexFormat::Sprite:           return kPositionUV;
-        case VertexFormat::PositionNormalUV: return kPositionNormalUV;
+        case VertexFormat::PositionNormalUV:
+        case VertexFormat::Skinned:          return kPositionNormalUV;    // スキニングも1本目は位置・法線・UV（ボーンは2本目）
         default:                             return kEmpty;
         }
+    }
+
+    //------------------------------------------------------------------------
+    //! スキニングの2本目の頂点バッファの頂点レイアウトを返します。
+    //------------------------------------------------------------------------
+    const bgfx::VertexLayout& RenderResources::Gpu::GetBoneLayout() {
+        static const bgfx::VertexLayout kBones = [] {
+            bgfx::VertexLayout layout;
+            layout.begin()
+                .add(bgfx::Attrib::Indices, 4, bgfx::AttribType::Float)
+                .add(bgfx::Attrib::Weight, 4, bgfx::AttribType::Float)
+                .end();
+            return layout;
+        }();
+        return kBones;
     }
 
     //------------------------------------------------------------------------
