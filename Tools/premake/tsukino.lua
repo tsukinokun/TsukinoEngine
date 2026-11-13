@@ -30,6 +30,36 @@ local TSUKINO_ROOT = path.getabsolute(path.join(path.getdirectory(_SCRIPT), "../
 _TSUKINO_ENGINE_ROOT = TSUKINO_ROOT
 
 ----------------------------------------
+-- 描画の実装の切り替え（premake5 vs2022 --renderer=bgfx）。
+--   dx11 : 今までの Direct3D 11 版（既定）
+--   bgfx : bgfx 版（作りかけ。Windows では bgfx の Direct3D 11 を使う）
+-- 公開ヘッダはどちらでも同じ。切り替えると Tsukino.Renderer のソースと、
+-- tsukino_link() がリンクするライブラリが変わる。
+-- ゲーム側の build.bat のように premake を引数なしで呼ぶ経路のために、
+-- --renderer が無いときは環境変数 TSUKINO_RENDERER も見る（set TSUKINO_RENDERER=bgfx）。
+-- この lua はエンジンとゲームの両方から読まれるので、二重に登録しない
+----------------------------------------
+if not premake.option.get("renderer") then
+    newoption {
+        trigger     = "renderer",
+        value       = "API",
+        description = "Rendering backend of Tsukino.Renderer (default: dx11, or the TSUKINO_RENDERER environment variable)",
+        allowed     = {
+            { "dx11", "Direct3D 11 (default)" },
+            { "bgfx", "bgfx (work in progress)" },
+        },
+    }
+end
+
+----------------------------------------
+-- 描画の実装に bgfx を選んでいるかを返す。
+----------------------------------------
+function tsukino_use_bgfx()
+    local renderer = _OPTIONS["renderer"] or os.getenv("TSUKINO_RENDERER") or "dx11"
+    return renderer == "bgfx"
+end
+
+----------------------------------------
 -- workspace 直下で呼ぶ。構成ごとの共通設定をまとめて入れる。
 --
 -- ここをゲーム側へ書き写すと、JPH_DEBUG_RENDERER や NDEBUG が
@@ -142,6 +172,13 @@ function tsukino_link()
 
     libdirs { "%{wks.location}/SDL3/build/%{cfg.buildcfg}" }
 
+    -- bgfx 版のときは、bgfx とその土台（bimg・bx）もリンクする。
+    -- bgfx のヘッダは Tsukino.Renderer の中だけで使うので、includedirs は足さない
+    if tsukino_use_bgfx() then
+        links { "bgfx", "bimg_decode", "bimg", "bx" }
+        libdirs { "%{wks.location}/bgfx/build/%{cfg.buildcfg}" }
+    end
+
     nuget {
         "directxtk_desktop_win10:2026.4.1.1",
         "AssimpCpp:5.0.1.6",
@@ -207,6 +244,32 @@ function tsukino_sdl3_build_commands()
         'if not exist ' .. build .. '\\CMakeCache.txt "%TSUKINO_CMAKE%" -S ' .. src .. ' -B ' .. build
             .. ' -A x64 -DSDL_SHARED=OFF -DSDL_STATIC=ON -DSDL_TEST_LIBRARY=OFF -DSDL_EXAMPLES=OFF'
             .. ' -DSDL_INSTALL=OFF -DCMAKE_ARCHIVE_OUTPUT_DIRECTORY=' .. build .. ' >nul || exit /b 1',
+        '"%TSUKINO_CMAKE%" --build ' .. build .. ' --config $(Configuration) -- /nologo /v:q /m "/clp:ErrorsOnly;NoSummary" || exit /b 1',
+    }
+end
+
+----------------------------------------
+-- エンジンの bgfx プロジェクト（kind "Utility"）の prebuildcommands に渡す、
+-- bgfx・bimg・bx を CMake で静的ライブラリにビルドするコマンド列を返す。
+--
+-- CMake の手順は External/bgfx.cmake を使い、ソースは External/bgfx・bimg・bx
+-- （bgfx.cmake が固定しているのと同じコミットの submodule）を渡す。
+-- 渡さないと bgfx.cmake が構成のたびにネットから取ってくる。
+-- 出力は <wks.location>/bgfx/build/<構成>/ に bgfx.lib・bimg.lib・bimg_decode.lib・bx.lib
+-- （tsukino_link() の libdirs と揃える）。作り方は tsukino_sdl3_build_commands() と同じ。
+----------------------------------------
+function tsukino_bgfx_build_commands()
+    local rel   = path.translate(path.getrelative(_MAIN_SCRIPT_DIR, _TSUKINO_ENGINE_ROOT), "\\")
+    local ext   = '$(SolutionDir)..\\' .. rel .. '\\External\\'
+    local build = '"$(SolutionDir)bgfx\\build"'
+
+    return {
+        'set "TSUKINO_CMAKE=$(VSInstallDir)Common7\\IDE\\CommonExtensions\\Microsoft\\CMake\\CMake\\bin\\cmake.exe"',
+        'if not exist "%TSUKINO_CMAKE%" set "TSUKINO_CMAKE=cmake"',
+        'if not exist ' .. build .. '\\CMakeCache.txt "%TSUKINO_CMAKE%" -S "' .. ext .. 'bgfx.cmake" -B ' .. build
+            .. ' -A x64 -DBGFX_BUILD_TOOLS=OFF -DBGFX_BUILD_EXAMPLES=OFF -DBGFX_INSTALL=OFF -DBGFX_CUSTOM_TARGETS=OFF'
+            .. ' "-DBX_DIR=' .. ext .. 'bx" "-DBIMG_DIR=' .. ext .. 'bimg" "-DBGFX_DIR=' .. ext .. 'bgfx"'
+            .. ' -DCMAKE_ARCHIVE_OUTPUT_DIRECTORY=' .. build .. ' >nul || exit /b 1',
         '"%TSUKINO_CMAKE%" --build ' .. build .. ' --config $(Configuration) -- /nologo /v:q /m "/clp:ErrorsOnly;NoSummary" || exit /b 1',
     }
 end

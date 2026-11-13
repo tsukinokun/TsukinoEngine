@@ -9,6 +9,15 @@ carve-out for `Tsukino.Renderer` described under **API stability** in the README
 
 ### Added
 
+- **bgfx as an optional rendering backend (work in progress).** `premake5 vs2022 --renderer=bgfx` (or the
+  `TSUKINO_RENDERER=bgfx` environment variable for build scripts that run premake without arguments) builds
+  `Tsukino.Renderer` from `src/Bgfx` instead of `src/DX11`, builds bgfx / bimg / bx with CMake through a `bgfx-cmake`
+  utility project, and makes `tsukino_link()` link them. The public headers are the same for both backends. For now the
+  bgfx renderer only initialises bgfx (Direct3D 11 on Windows) and clears the window to the clear colour; draw
+  commands are dropped. The default stays `dx11`, and nothing changes for projects that do not pass the option.
+  bgfx, bx, bimg and bgfx.cmake are new submodules (`External/`), pinned to the commits bgfx.cmake
+  `v1.168.9624-612` expects; clone with `--recursive` or run `git submodule update --init` after pulling.
+
 - **VC++ runtime in the Release payload (`tsukino_release_payload()`).** `vcruntime140.dll`, `vcruntime140_1.dll` and
   `msvcp140.dll` are copied next to the exe from the toolset's Redist folder, so a build runs on a PC without the
   Visual C++ Redistributable. The build fails if one of them is missing.
@@ -272,6 +281,10 @@ carve-out for `Tsukino.Renderer` described under **API stability** in the README
   unchanged.
 
 ### Changed
+
+- **The DX11 implementation of `Tsukino.Renderer` moved to `Tsukino.Renderer/src/DX11/`.** Only backend-neutral sources
+  (`DebugDraw`, `RenderQualityGovernor`, `Text/DynamicFontAtlas`) stay directly under `src/`. Nothing changes for code
+  that only includes the public headers.
 
 - **The public headers of `Tsukino.Renderer` no longer contain D3D11, DXGI, DirectXTK or DirectWrite types** (so a second
   backend can sit behind the same API). Headers that only the renderer uses (`GraphicsContext`, `PipelineState`,

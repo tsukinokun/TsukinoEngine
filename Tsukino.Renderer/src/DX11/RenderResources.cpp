@@ -15,7 +15,7 @@
 
 #include <Tsukino/Core/Log.hpp>
 
-#include "DX11/TextureFormatDxgi.hpp"
+#include "TextureFormatDxgi.hpp"
 
 #include <algorithm>
 #include <cstring>

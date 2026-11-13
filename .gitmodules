@@ -35,3 +35,25 @@
 	path = External/SDL
 	url = https://github.com/libsdl-org/SDL.git
 	shallow = true
+# bgfx.cmake（CMake の手順）と、bgfx・bimg・bx 本体。
+#
+# 本体の 3 つは、bgfx.cmake の CMakeLists.txt が FetchContent_Declare で固定している
+# GIT_TAG と同じコミットに合わせる。ずらすと bgfx.cmake の想定と違うソースをビルドすることになる。
+# bgfx.cmake を更新するときは、その GIT_TAG を見て 3 つも一緒に動かすこと。
+# （本体を submodule にしているのは、ビルドのたびにネットから取らずに済ませるため）
+[submodule "External/bgfx.cmake"]
+	path = External/bgfx.cmake
+	url = https://github.com/bkaradzic/bgfx.cmake.git
+	shallow = true
+[submodule "External/bx"]
+	path = External/bx
+	url = https://github.com/bkaradzic/bx.git
+	shallow = true
+[submodule "External/bimg"]
+	path = External/bimg
+	url = https://github.com/bkaradzic/bimg.git
+	shallow = true
+[submodule "External/bgfx"]
+	path = External/bgfx
+	url = https://github.com/bkaradzic/bgfx.git
+	shallow = true

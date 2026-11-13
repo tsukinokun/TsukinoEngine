@@ -20,6 +20,10 @@ TsukinoEngine 本体は MIT ライセンスで配布しています（`LICENSE` 
 | [DirectX Tool Kit (MakeSpriteFont / XWBTool)](https://github.com/microsoft/DirectXTK) | フォントのベイクと波形バンクの生成に使う実行ファイル | `Tools/` にバイナリを直接コミット | `2026.4.1.1` | MIT |
 | [Premake](https://github.com/premake/premake-core) | プロジェクトファイルの生成 | `vendor/premake5.exe` にバイナリを直接コミット | `5.0.0-beta8` | BSD 3-Clause |
 | [SDL](https://github.com/libsdl-org/SDL) | ウィンドウ・入力・IME・ゲームパッド・保存先などのプラットフォーム層 | submodule | `829a65d (3.4.18)` | zlib |
+| [bgfx](https://github.com/bkaradzic/bgfx) | 描画の翻訳レイヤー（`--renderer=bgfx` のとき） | submodule | `77b6e84` | BSD 2-Clause |
+| [bx](https://github.com/bkaradzic/bx) | bgfx の土台のライブラリ | submodule | `57548da` | BSD 2-Clause |
+| [bimg](https://github.com/bkaradzic/bimg) | bgfx の画像ライブラリ | submodule | `77bebb2` | BSD 2-Clause |
+| [bgfx.cmake](https://github.com/bkaradzic/bgfx.cmake) | bgfx・bx・bimg を CMake でビルドする手順（ビルドにだけ使い、配布物には入らない） | submodule | `be0ef0d (v1.168.9624-612)` | CC0 1.0 |
 
 `Tools/MakeSpriteFont.exe`・`Tools/XWBTool.exe`・`vendor/premake5.exe` の 3 つは、
 ソースではなくビルド済みバイナリをこのリポジトリへ直接コミットしています。
@@ -316,3 +320,38 @@ CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
 OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ```
+
+### bgfx / bx / bimg
+
+BSD 2-Clause License — https://github.com/bkaradzic/bgfx ・ https://github.com/bkaradzic/bx ・ https://github.com/bkaradzic/bimg
+（3 つとも同じ条文です）
+
+```
+Copyright 2010-2026 Branimir Karadzic
+
+Redistribution and use in source and binary forms, with or without modification,
+are permitted provided that the following conditions are met:
+
+   1. Redistributions of source code must retain the above copyright notice, this
+      list of conditions and the following disclaimer.
+
+   2. Redistributions in binary form must reproduce the above copyright notice,
+      this list of conditions and the following disclaimer in the documentation
+      and/or other materials provided with the distribution.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT,
+INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY
+OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
+OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED
+OF THE POSSIBILITY OF SUCH DAMAGE.
+```
+
+### bgfx.cmake
+
+CC0 1.0 Universal — https://github.com/bkaradzic/bgfx.cmake
+（著作権を放棄したもので、条文の掲載義務はありません。全文は `External/bgfx.cmake/LICENSE` にあります）

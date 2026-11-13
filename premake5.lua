@@ -271,6 +271,22 @@ project "SDL3"
     prebuildcommands(tsukino_sdl3_build_commands())
 
 ----------------------------------------
+-- bgfx（描画の翻訳レイヤー。--renderer=bgfx のときだけ作る）
+--
+-- SDL3 と同じく、CMake を呼ぶだけのプロジェクト。できた静的ライブラリは tsukino_link() がリンクする。
+-- プロジェクト名をライブラリ名（bgfx）と同じにすると、premake が links の "bgfx" を
+-- このプロジェクトへの参照と取り違えて、ライブラリをリンクしなくなる。
+-- 初回の構成とビルドは数分かかる。2回目からは変わったところだけビルドする。
+----------------------------------------
+if tsukino_use_bgfx() then
+project "bgfx-cmake"
+    location ".build/bgfx"
+    kind "Utility"
+
+    prebuildcommands(tsukino_bgfx_build_commands())
+end
+
+----------------------------------------
 -- コアプロジェクト
 ----------------------------------------
 project "Tsukino.Core"
@@ -424,11 +440,38 @@ project "Tsukino.Renderer"
 
     files {
         "Tsukino.Renderer/src/**.cpp",
+        "Tsukino.Renderer/src/**.hpp",
         "Tsukino.Renderer/include/**.hpp",
         "Tsukino.Renderer/internal/**.hpp",
         "Tsukino.Renderer/pch.cpp",
         "External/hlslpp/include/hlsl++.natvis",
     }
+
+    --------------------------------------------------------------------
+    -- 描画の実装の切り替え。src/DX11 と src/Bgfx のどちらか一方だけをビルドする
+    -- （internal の描画 API ごとのヘッダも同じ）。公開ヘッダと src 直下は共通
+    --------------------------------------------------------------------
+    if tsukino_use_bgfx() then
+        removefiles { "Tsukino.Renderer/src/DX11/**", "Tsukino.Renderer/internal/Tsukino/Renderer/DX11/**" }
+        defines { "TSUKINO_RENDERER_BGFX" }
+        includedirs {
+            "External/bgfx/include",
+            "External/bimg/include",
+            "External/bx/include",
+            "External/bx/include/compat/msvc",
+        }
+        -- bx が要求する設定（bgfx.cmake の bx.cmake と揃える）
+        defines { "__STDC_LIMIT_MACROS", "__STDC_FORMAT_MACROS", "__STDC_CONSTANT_MACROS" }
+        buildoptions { "/Zc:__cplusplus", "/Zc:preprocessor" }
+        filter "configurations:Debug"
+            defines { "BX_CONFIG_DEBUG=1" }
+        filter "configurations:Release"
+            defines { "BX_CONFIG_DEBUG=0" }
+        filter {}
+        dependson { "bgfx-cmake" }
+    else
+        removefiles { "Tsukino.Renderer/src/Bgfx/**", "Tsukino.Renderer/internal/Tsukino/Renderer/Bgfx/**" }
+    end
 
     -- Tsukino.BuiltIn / Tsukino.EngineIntegration は上位層のため参照しない。
     -- Worldパスの後に差し込む描画は Tsukino/Renderer/IPostWorldPass.hpp の

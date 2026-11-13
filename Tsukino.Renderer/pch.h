@@ -10,12 +10,14 @@
 #include <Windows.h>    // Windows APIの基本的な機能を提供するヘッダーファイル
 
 // DirectX 11
+#ifndef TSUKINO_RENDERER_BGFX    // bgfx 版は描画 API のヘッダを使わない
 #include <d3d11.h>          // Direct3D 11の基本的な機能を提供するヘッダーファイル
 #include <dxgi.h>           // DirectX Graphics Infrastructureの基本的な機能を提供するヘッダーファイル
 #include <d3dcompiler.h>    // HLSLシェーダーのコンパイルに必要なヘッダーファイル
 
 // WRL (ComPtr)
 #include <wrl.h>    // Microsoft::WRL::ComPtrを使用するためのヘッダーファイル
+#endif
 
 // STL（Renderer が頻繁に使うものだけ）
 #include <memory>    // スマートポインタを使用するための標準ライブラリ

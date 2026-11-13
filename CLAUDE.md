@@ -82,6 +82,12 @@ build.bat Release
 ソースファイルを新規追加したときだけ premake の再生成が要る（`open.bat`）。
 ドキュメント / マニフェスト生成は `generate-docs.bat`。
 
+描画の実装は premake で切り替える。既定は DX11（`Tsukino.Renderer/src/DX11`）。
+bgfx 版（`src/Bgfx`、作りかけ）は `vendor\premake5.exe vs2022 --renderer=bgfx` で生成し直す。
+ゲーム側の `build.bat` のように引数なしで premake を呼ぶ経路は、環境変数
+`TSUKINO_RENDERER=bgfx` で切り替わる。Renderer の中だけで使うヘッダ（描画 API の型を含む）は
+`Tsukino.Renderer/internal/` に置き、公開ヘッダ（`include/`）からは include しない。
+
 ## ログ
 
 `Tsukino::Core::Log::{Info, Warn, Error}` は既定で `OutputDebugStringA` にのみ出力する
