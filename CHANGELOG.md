@@ -46,9 +46,16 @@ carve-out for `Tsukino.Renderer` described under **API stability** in the README
   - bgfx has 16 texture stages, so the DX11 slots t8–t19 are renumbered (`TextureStages.sh` / `BgfxStage`).
   - UI-layer 3D models (`cameraOverride`) get a fresh depth buffer whenever their `sortOrder` changes, by moving on to
     the next bgfx view (bgfx cannot clear in the middle of a view).
-  - Not yet in bgfx mode: sky, IBL baking (the ambient term is black for now, so scenes look darker than
+  - Not yet in bgfx mode: IBL baking (the ambient term is black for now, so scenes look darker than
     DX11), fog, bloom, motion blur, sphere colour grade, ambient particles, render scale, instance and user constant
     buffers.
+- **bgfx renderer draws the sky (bgfx mode only).** `Sky.vs` / `Sky.ps` are ported to `.sc` (`CBufferSky` arrives as
+  `u_sky`). The sky is a fullscreen triangle in its own view between the G-Buffer and lighting views: that view clears
+  the HDR buffer to the clear colour and draws the sky, and lighting then overwrites only the pixels that have
+  geometry. `RenderQualitySettings::drawSky` works in bgfx mode.
+- **Fixed: a newly added `.sc` shader was not converted until the second build.** The `bgfx-shaders` step now runs
+  CMake's `ZERO_CHECK` target first, so the shader list is re-globbed before the conversion in the same build
+  (`tsukino_bgfx_shader_commands()`).
 - **bgfx renderer draws cascaded shadows (bgfx mode only).** The shadow map is a D32F texture array with one layer and
   one bgfx view per cascade, sampled through a comparison sampler (`SAMPLER2DARRAYSHADOW`) by the deferred lighting
   pass and by forward models.

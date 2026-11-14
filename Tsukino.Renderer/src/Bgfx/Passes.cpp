@@ -9,7 +9,6 @@
 #include <Tsukino/Renderer/FogPass.hpp>
 #include <Tsukino/Renderer/IBLBaker.hpp>
 #include <Tsukino/Renderer/MotionBlurPass.hpp>
-#include <Tsukino/Renderer/SkyPass.hpp>
 #include <Tsukino/Renderer/SphereColorGradePass.hpp>
 #include <Tsukino/Renderer/Text/BakedFont.hpp>
 #include <Tsukino/Renderer/Bgfx/IBLBakerGpu.hpp>
@@ -24,7 +23,6 @@ namespace Tsukino::Renderer {
     struct BloomPass::Gpu {};
     struct FogPass::Gpu {};
     struct MotionBlurPass::Gpu {};
-    struct SkyPass::Gpu {};
     struct SphereColorGradePass::Gpu {};
 
     AmbientParticlePass::AmbientParticlePass() : m_gpu(std::make_unique<Gpu>()) {}
@@ -37,15 +35,8 @@ namespace Tsukino::Renderer {
     IBLBaker::~IBLBaker() = default;
     MotionBlurPass::MotionBlurPass() : m_gpu(std::make_unique<Gpu>()) {}
     MotionBlurPass::~MotionBlurPass() = default;
-    SkyPass::SkyPass() : m_gpu(std::make_unique<Gpu>()) {}
-    SkyPass::~SkyPass() = default;
     SphereColorGradePass::SphereColorGradePass() : m_gpu(std::make_unique<Gpu>()) {}
     SphereColorGradePass::~SphereColorGradePass() = default;
-
-    //------------------------------------------------------------------------
-    //! 空のシェーダーを設定します（bgfx 版はまだ空を描かない）。
-    //------------------------------------------------------------------------
-    void SkyPass::SetPipeline(const Tsukino::Asset::ShaderAsset* /*vs*/, const Tsukino::Asset::ShaderAsset* /*ps*/) {}
 
     //------------------------------------------------------------------------
     // ベイク済みフォント（bgfx 版はまだ読めないので、Create() は nullptr を返す）

@@ -14,11 +14,12 @@ namespace Tsukino::Renderer::BgfxView {
 
     inline constexpr bgfx::ViewId Shadow      = 0;    // シャドウマップ（カスケード1枚ごとに1つ。0〜3 を使う）
     inline constexpr bgfx::ViewId GBuffer     = 4;    // 不透明なモデルを G-Buffer へ
-    inline constexpr bgfx::ViewId Lighting    = 5;    // G-Buffer を照らして HDR へ（背景は背景色）
-    inline constexpr bgfx::ViewId World       = 6;    // 深度を書くフォワード（デバッグ線など）を HDR へ
-    inline constexpr bgfx::ViewId Transparent = 7;    // 半透明（TransparentDepth・Transparent）を HDR へ
-    inline constexpr bgfx::ViewId Tonemap     = 8;    // HDR をトーンマップしてバックバッファへ
-    inline constexpr bgfx::ViewId Overlay     = 9;    // UI と文字（UI の層の 3D モデルが深度を消し直すたびに、1つずつ後ろの番号を使う）
+    inline constexpr bgfx::ViewId Sky         = 5;    // HDR を背景色で消して、スカイを描く
+    inline constexpr bgfx::ViewId Lighting    = 6;    // G-Buffer を照らして HDR へ（物の無い画素は背景のまま残す）
+    inline constexpr bgfx::ViewId World       = 7;    // 深度を書くフォワード（デバッグ線など）を HDR へ
+    inline constexpr bgfx::ViewId Transparent = 8;    // 半透明（TransparentDepth・Transparent）を HDR へ
+    inline constexpr bgfx::ViewId Tonemap     = 9;    // HDR をトーンマップしてバックバッファへ
+    inline constexpr bgfx::ViewId Overlay     = 10;   // UI と文字（UI の層の 3D モデルが深度を消し直すたびに、1つずつ後ろの番号を使う）
 
     static_assert(Shadow + kShadowCascadeCount <= GBuffer, "The shadow views (one per cascade) must fit before the G-Buffer view.");
 

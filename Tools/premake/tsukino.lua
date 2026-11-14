@@ -321,6 +321,10 @@ function tsukino_bgfx_shader_commands()
         'findstr /c:"TSUKINO_SHADERS_OPTIONS_REV:STRING=' .. rev .. '" ' .. build .. '\\CMakeCache.txt >nul 2>&1 || "%TSUKINO_CMAKE%" -S "' .. root .. 'Tools\\Shaders" -B ' .. build
             .. ' -A x64 -DTSUKINO_SHADERS_OPTIONS_REV:STRING=' .. rev
             .. ' "-DTSUKINO_SHADERC=$(SolutionDir)bgfx\\build\\Release\\shaderc.exe" >nul || exit /b 1',
+        -- .sc を足した・消したときは、CMake がファイルの一覧を取り直してプロジェクトを作り直す。
+        -- 同じビルドの中では作り直す前の一覧で変換するので、先に取り直しだけ（ZERO_CHECK）を済ませる。
+        -- これが無いと、足した .sc が変換されるのは次のビルドからになる
+        '"%TSUKINO_CMAKE%" --build ' .. build .. ' --config Release --target ZERO_CHECK -- /nologo /v:q "/clp:ErrorsOnly;NoSummary" || exit /b 1',
         '"%TSUKINO_CMAKE%" --build ' .. build .. ' --config Release -- /nologo /v:q /m "/clp:ErrorsOnly;NoSummary" || exit /b 1',
     }
 end

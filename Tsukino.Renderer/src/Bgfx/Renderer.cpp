@@ -3,13 +3,14 @@
 //! @brief  bgfx 版の Renderer の実装（作りかけ）
 //! @detail DX11 版と同じ順に、不透明なモデルを G-Buffer へ描き、照らして HDR バッファへ書き、
 //!         フォワードの 3D（World・半透明）を重ね、トーンマップしてバックバッファへ写し、
-//!         最後に UI（Overlay）を描きます。影はシャドウマップで落とします。スカイ・環境光のベイク・後処理はまだ無く、
+//!         最後に UI（Overlay）を描きます。影はシャドウマップで落とし、背景にはスカイを描きます。環境光のベイク・後処理はまだ無く、
 //!         DX11 版の各パスを段階的にここへ移していきます。
 //----------------------------------------------------------------------------
 #include <Tsukino/Renderer/Renderer.hpp>
 #include <Tsukino/Renderer/Bgfx/FrameConstantsGpu.hpp>
 #include <Tsukino/Renderer/Bgfx/GraphicsContext.hpp>
 #include <Tsukino/Renderer/Bgfx/IBLBakerGpu.hpp>
+#include <Tsukino/Renderer/Bgfx/SkyPassGpu.hpp>
 #include <Tsukino/Renderer/Bgfx/Views.hpp>
 
 #include "DrawCommandExecutor.hpp"
@@ -101,6 +102,12 @@ namespace Tsukino::Renderer {
         // シェーダーがまだ bgfx の形式でなくても、起動は止めない（3D が出ないだけ）
         //--------------------------------------------------------------------
         m_fullscreenPass = std::make_unique<FullscreenPass>();
+
+        // スカイ。シェーダーは SkyAtmosphereSystem が SetPipeline() で渡すまで無く、それまでは描かない
+        if(!m_skyPass.Initialize(*m_graphicsContext, m_resources, m_frameConstants))
+            Tsukino::Core::Log::Error("Renderer: Failed to create the sky pass; the sky is not drawn.");
+        m_skyPass.GetGpu().fullscreenPass = m_fullscreenPass.get();
+
         m_tonemapPass    = std::make_unique<TonemapPass>();
         if(m_fullscreenPass->Initialize(shaders.tonemapVS)) {
             (void)m_tonemapPass->Initialize(*m_fullscreenPass, shaders.tonemapPS);
@@ -112,6 +119,7 @@ namespace Tsukino::Renderer {
         // ビュー（Views.hpp の順に描かれる）。深度はリバース Z（手前ほど大きい）なので 0 で消す
         //--------------------------------------------------------------------
         SetupView(BgfxView::GBuffer, m_graphicsContext->GetGBufferFrameBuffer());
+        SetupView(BgfxView::Sky, m_graphicsContext->GetHdrColorFrameBuffer());
         SetupView(BgfxView::Lighting, m_graphicsContext->GetHdrColorFrameBuffer());
         SetupView(BgfxView::World, m_graphicsContext->GetHdrFrameBuffer());
         SetupView(BgfxView::Transparent, m_graphicsContext->GetHdrFrameBuffer());
@@ -133,13 +141,14 @@ namespace Tsukino::Renderer {
         const auto& commands = m_drawQueue.GetCommands();
 
         //--------------------------------------------------------------------
-        // 背景。G-Buffer に何も描かれていない画素は、ライティングが背景色のまま残す
-        // （DX11 版は HDR バッファを背景色で消している。スカイは段階 1-4 c）
+        // 背景。HDR バッファを背景色で消すのは、スカイのビュー（スカイを描かないときは背景色が残る）。
+        // G-Buffer に何も描かれていない画素は、ライティングが背景のまま残す
         //--------------------------------------------------------------------
         const u32 rgba = (ToByte(m_clearColor[0]) << 24) | (ToByte(m_clearColor[1]) << 16) | (ToByte(m_clearColor[2]) << 8)
                          | ToByte(m_clearColor[3]);
-        bgfx::setViewClear(BgfxView::Lighting, BGFX_CLEAR_COLOR, rgba, 0.0f, 0);
+        bgfx::setViewClear(BgfxView::Sky, BGFX_CLEAR_COLOR, rgba, 0.0f, 0);
         bgfx::touch(BgfxView::GBuffer);
+        bgfx::touch(BgfxView::Sky);
         bgfx::touch(BgfxView::Lighting);
         bgfx::touch(BgfxView::Tonemap);
 
@@ -152,13 +161,17 @@ namespace Tsukino::Renderer {
         m_shadowPass->Execute(commands, m_frameStats);
 
         //--------------------------------------------------------------------
-        // GBuffer パス（不透明な 3D モデル）→ ライティング
+        // GBuffer パス（不透明な 3D モデル）→ スカイ → ライティング
         //--------------------------------------------------------------------
         m_frameConstants.UploadWorld();
         for(const DrawCommand& cmd : commands) {
             if(cmd.pass == RenderPass::GBuffer)
                 m_commandExecutor->Execute(cmd, BgfxView::GBuffer, m_frameStats);
         }
+
+        // スカイ（最背面）。物のある画素は、この後のライティングが上書きする
+        m_skyPass.Execute();
+
         m_lightingPass.Execute();
 
         //--------------------------------------------------------------------
@@ -296,7 +309,7 @@ namespace Tsukino::Renderer {
     }
 
     //------------------------------------------------------------------------
-    //! 保留している描画品質を適用します（bgfx 版で効くのは、まだ影だけ）。
+    //! 保留している描画品質を適用します（bgfx 版で効くのは、まだ影とスカイだけ）。
     //------------------------------------------------------------------------
     void Renderer::ApplyQuality() {
         m_qualityDirty = false;
@@ -305,6 +318,7 @@ namespace Tsukino::Renderer {
             m_shadowPass->SetQuality(m_quality.shadowMapSizeLimit, m_quality.shadowCascadeCount);
 
         m_frameConstants.SetShadowSoftFilter(m_quality.shadowSoftFilter);
+        m_skyPass.SetDrawAllowed(m_quality.drawSky);
     }
 
     //------------------------------------------------------------
