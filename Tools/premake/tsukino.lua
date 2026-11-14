@@ -336,12 +336,20 @@ end
 -- 足りないまま配布物ができないよう、見つからなければビルドを失敗させる。
 -- コピーするのはビルドに使ったツールセットの Redist フォルダの DLL で、
 -- exe が必要とするバージョンと揃う。
+--
+-- 新しい VS で古いツールセット（VS 18 で v143）を使うと、VCToolsRedistInstallDir は
+-- 新しい Redist（14.5x）を指し、中には Microsoft.VC145.CRT しか無い。
+-- ツールセットの名前のフォルダが無ければ、そこにある CRT を使う
+-- （CRT は新しいものが古いツールセットの exe でも動く）。
 ----------------------------------------
 function tsukino_crt_commands()
-    local crt = "$(VCToolsRedistInstallDir)x64\\Microsoft.VC$(PlatformToolsetVersion).CRT\\"
-    local commands = {}
+    local redist = "$(VCToolsRedistInstallDir)x64\\"
+    local commands = {
+        'set "TSUKINO_CRT=' .. redist .. 'Microsoft.VC$(PlatformToolsetVersion).CRT"',
+        'if not exist "%TSUKINO_CRT%" for /d %%d in ("' .. redist .. 'Microsoft.VC*.CRT") do set "TSUKINO_CRT=%%d"',
+    }
     for _, dll in ipairs({ "vcruntime140.dll", "vcruntime140_1.dll", "msvcp140.dll" }) do
-        table.insert(commands, 'copy /Y "' .. crt .. dll .. '" "$(TargetDir)" >nul || exit /b 1')
+        table.insert(commands, 'copy /Y "%TSUKINO_CRT%\\' .. dll .. '" "$(TargetDir)" >nul || exit /b 1')
     end
     return commands
 end
