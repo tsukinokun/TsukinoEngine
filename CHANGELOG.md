@@ -46,9 +46,21 @@ carve-out for `Tsukino.Renderer` described under **API stability** in the README
   - bgfx has 16 texture stages, so the DX11 slots t8–t19 are renumbered (`TextureStages.sh` / `BgfxStage`).
   - UI-layer 3D models (`cameraOverride`) get a fresh depth buffer whenever their `sortOrder` changes, by moving on to
     the next bgfx view (bgfx cannot clear in the middle of a view).
-  - Not yet in bgfx mode: shadows, sky, IBL baking (the ambient term is black for now, so scenes look darker than
+  - Not yet in bgfx mode: sky, IBL baking (the ambient term is black for now, so scenes look darker than
     DX11), fog, bloom, motion blur, sphere colour grade, ambient particles, render scale, instance and user constant
     buffers.
+- **bgfx renderer draws cascaded shadows (bgfx mode only).** The shadow map is a D32F texture array with one layer and
+  one bgfx view per cascade, sampled through a comparison sampler (`SAMPLER2DARRAYSHADOW`) by the deferred lighting
+  pass and by forward models.
+  - Ported shaders: `ShadowMapStatic.vs`, `ShadowMap.vs` (skinning), `ShadowMap.ps` (alpha cutout and dither fade); the
+    PCF sampling of `PBR.hlsli` is now in `PBR.sh`.
+  - The cascade math (split depths, bounding spheres, texel-snapped light projections, caster culling) moved out of the
+    DX11 `ShadowPass` into the backend-neutral `ShadowCascades` (Renderer-internal) and is shared by both backends.
+  - `SetShadowSettings`, `SetShadowCullingEnabled` and the shadow part of `RenderQualitySettings` (map size limit,
+    cascade count, soft filter) now work in bgfx mode.
+  - The shadow sampler clamps at the edge instead of using a border colour (not available on every mobile graphics
+    API); the shader never samples outside a cascade, so only the outermost PCF texel differs. Instanced casters and
+    casters with a user constant buffer still wait for those buffers in bgfx mode.
 
 - **VC++ runtime in the Release payload (`tsukino_release_payload()`).** `vcruntime140.dll`, `vcruntime140_1.dll` and
   `msvcp140.dll` are copied next to the exe from the toolset's Redist folder, so a build runs on a PC without the

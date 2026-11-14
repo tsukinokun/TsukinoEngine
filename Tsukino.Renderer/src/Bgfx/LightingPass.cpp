@@ -1,8 +1,7 @@
 ﻿//----------------------------------------------------------------------------
 //! @file   LightingPass.cpp
 //! @brief  bgfx 版のディファードライティングパスと、IBL の仮のテクスチャの実装
-//! @detail G-Buffer を読み、太陽・点光源・スポットライト・環境光で照らして HDR バッファへ書きます。
-//!         影（段階 1-4 c）はまだ無く、いつも照らされている扱いです。
+//! @detail G-Buffer を読み、太陽（影つき）・点光源・スポットライト・環境光で照らして HDR バッファへ書きます。
 //!         環境光は、スカイからのベイク（段階 1-4 c）を移すまで黒い 1×1 のテクスチャです。
 //----------------------------------------------------------------------------
 #include <Tsukino/Renderer/LightingPass.hpp>
@@ -14,6 +13,7 @@
 #include <Tsukino/Renderer/Bgfx/Views.hpp>
 
 #include "FullscreenPass.hpp"
+#include "ShadowPass.hpp"
 
 #include <Tsukino/Core/Log.hpp>
 
@@ -183,6 +183,7 @@ namespace Tsukino::Renderer {
         m_frameConstants->GetGpu().Apply();
         m_gpu->lights.Set(m_lightsData);
         m_iblBaker->GetGpu().Bind();
+        m_shadowPass->BindForSampling();
 
         // 深度テストなし・ブレンドなし（何も描かれていない画素は discard で背景色のまま残す）
         m_fullscreenPass->Submit(BgfxView::Lighting, m_gpu->program, BGFX_STATE_WRITE_RGB | BGFX_STATE_WRITE_A);

@@ -1,12 +1,12 @@
 //--------------------------------------------------------------
 //! @file   PBR.sh
 //! @brief  PBR のライティングと法線の扱い（PBR.hlsli の bgfx 版）
-//! @note   影（カスケードシャドウマップ）を読む関数は、影のパスを移すとき（段階 1-4 c）に足す
 //--------------------------------------------------------------
 #ifndef TSUKINO_PBR_SH
 #define TSUKINO_PBR_SH
 
 #include "Scene.sh"
+#include "TextureStages.sh"
 
 #define PI 3.14159265358979323846
 
@@ -107,6 +107,142 @@ vec3 ApplyNormalMap(vec3 N, vec3 worldPos, vec2 uv, vec3 tangentNormal)
 
     float lenSq = dot(n, n);
     return (lenSq > 1e-12) ? n * inversesqrt(lenSq) : N;
+}
+
+//--------------------------------------------------------------
+// 影（カスケードシャドウマップ）。式と調整値は PBR.hlsli と同じ。
+// シャドウマップは配列のテクスチャ（1枚 = カスケード1つ。近い順）で、比較サンプラーで読む
+// （リバース Z なので GREATER_EQUAL。C++ 側の ShadowPass がテクスチャに付けている）
+//--------------------------------------------------------------
+SAMPLER2DARRAYSHADOW(s_shadowMap, STAGE_SHADOW_MAP);
+
+#define kShadowNormalOffset 1.5    // 法線方向の押し出し（テクセル）。N・L=0 のときの値
+#define kShadowConstantBias 1.0    // 深度バイアスの一定分（テクセル）
+#define kShadowSlopeBias    2.5    // 深度バイアスの傾き比例分（テクセル / tan）
+#define kShadowMaxSlope     4.0    // tan の上限（約76度。これより斜めな面は同じ扱い）
+
+// カスケードの境目で隣のカスケードと混ぜる幅（受け持つ奥行きの幅に対する割合）
+#define kCascadeBlendBand 0.1
+
+//--------------------------------------------------------------
+//! @brief  点のカメラのビュー空間の奥行き（カスケードの分割距離と比べる値）
+//--------------------------------------------------------------
+float ShadowViewDepth(vec3 worldPos)
+{
+    return mul(vec4(worldPos, 1.0), view).z;
+}
+
+//--------------------------------------------------------------
+//! @brief  画素が使う影のカスケードを選ぶ
+//! @param  viewDepth [in] 画素のビュー空間の奥行き
+//! @return カスケード番号（0 が最も近い）。TSUKINO_SHADOW_CASCADE_COUNT なら影を出す奥行きの外
+//! @note   奥行きより手前で終わっているカスケードの数が、そのまま選ぶ番号になる
+//--------------------------------------------------------------
+int SelectShadowCascade(float viewDepth)
+{
+    int cascade = 0;
+    for(int split = 0; split < TSUKINO_SHADOW_CASCADE_COUNT; ++split)
+        cascade += (cascadeSplitFar[split] < viewDepth) ? 1 : 0;
+
+    return cascade;
+}
+
+//--------------------------------------------------------------
+//! @brief  1枚のカスケードから影を PCF（3x3）で引く
+//! @param  worldPos [in]  影を調べる点のワールド座標
+//! @param  N        [in]  その点の法線（正規化済み）
+//! @param  NdotL    [in]  saturate(dot(N, L))
+//! @param  tanTheta [in]  光に対する面の傾き（tan。上限付き）
+//! @param  cascade  [in]  引くカスケード
+//! @param  shadow   [out] 遮られていない割合 0.0(影) - 1.0(明)
+//! @return true: 引けた, false: 点がこのカスケードの範囲の外
+//--------------------------------------------------------------
+bool SampleCascadePCF(vec3 worldPos, vec3 N, float NdotL, float tanTheta, int cascade, out float shadow)
+{
+    shadow = 1.0;
+
+    float texelWorld = cascadeTexelWorld[cascade];
+
+    // 法線オフセット。光に正対する面は押し出さない
+    vec3 samplePos = worldPos + N * (texelWorld * kShadowNormalOffset * (1.0 - NdotL));
+
+    vec4 lightSpace = mul(vec4(samplePos, 1.0), cascadeViewProj(cascade));
+
+    // クリップ座標を UV へ（Y は反転）。平行投影なので w は常に 1
+    vec2 uv = lightSpace.xy * vec2(0.5, -0.5) + 0.5;
+
+    if(uv.x < 0.0 || uv.y < 0.0 || 1.0 < uv.x || 1.0 < uv.y)
+        return false;
+
+    // 傾き比例の深度バイアス。ワールド距離で求めてから深度値へ換算する（shadowParams.w = 1/奥行き）。
+    // リバース Z なので、光へ近づける向き＝深度値を足す向き
+    float biasWorld = texelWorld * (kShadowConstantBias + kShadowSlopeBias * tanTheta);
+    float depth     = lightSpace.z + biasWorld * shadowParams.w;
+
+    // 描画品質を下げているときは1タップで済ませる（比較サンプラーの線形補間だけは効く）
+    if(qualityParams.x < 0.5) {
+        shadow = shadow2DArray(s_shadowMap, vec4(uv, float(cascade), depth));
+        return true;
+    }
+
+    float sum = 0.0;
+    for(int x = -1; x <= 1; ++x) {
+        for(int y = -1; y <= 1; ++y) {
+            vec2 offset = vec2(float(x), float(y)) * shadowParams.y;
+            sum += shadow2DArray(s_shadowMap, vec4(uv + offset, float(cascade), depth));
+        }
+    }
+
+    shadow = sum / 9.0;
+    return true;
+}
+
+//--------------------------------------------------------------
+//! @brief  太陽の影をカスケードシャドウマップから引く
+//! @param  worldPos [in] 影を調べる点のワールド座標
+//! @param  N        [in] その点の法線（正規化済み）
+//! @param  L        [in] 光の来る方向（正規化済み）
+//! @return 遮られていない割合 0.0(影) - 1.0(明)
+//! @note   ディファード（Lighting.sh）とフォワード（ForwardModel.sh）の両方がこれを使う
+//--------------------------------------------------------------
+float SampleShadowPCF(vec3 worldPos, vec3 N, vec3 L)
+{
+    float NdotL = saturate(dot(N, L));
+
+    // 光と平行に近い面で tan が発散するので上限を付ける
+    float tanTheta = min(sqrt(saturate(1.0 - NdotL * NdotL)) / max(NdotL, 1.0e-3), kShadowMaxSlope);
+
+    float viewDepth = ShadowViewDepth(worldPos);
+
+    // 法線オフセットで押し出した点や、別のカメラで描く UI の層のモデルでは、選んだカスケードから
+    // 外れることがある。そのときだけ1つ外側へ回す（ほとんどの画素は1周目で抜ける）
+    for(int cascade = SelectShadowCascade(viewDepth); cascade < TSUKINO_SHADOW_CASCADE_COUNT; ++cascade) {
+        float shadow;
+        if(!SampleCascadePCF(worldPos, N, NdotL, tanTheta, cascade, shadow))
+            continue;
+
+        // 境目の手前では1つ外側のカスケードと混ぜて、影の細かさが段にならないようにする。
+        // 最後のカスケードは外側が無いので、明るい側（影なし）へ消していく
+        float splitFar  = cascadeSplitFar[cascade];
+        float splitNear = (cascade == 0) ? 0.0 : cascadeSplitFar[max(cascade, 1) - 1];
+        float band      = max((splitFar - splitNear) * kCascadeBlendBand, 1.0e-4);
+        float t         = saturate((viewDepth - (splitFar - band)) / band);
+
+        if(t > 0.0) {
+            float next = 1.0;
+            if(cascade + 1 < TSUKINO_SHADOW_CASCADE_COUNT) {
+                if(!SampleCascadePCF(worldPos, N, NdotL, tanTheta, cascade + 1, next))
+                    next = shadow;    // 外側でも範囲外なら混ぜない
+            }
+
+            shadow = mix(shadow, next, t);
+        }
+
+        return shadow;
+    }
+
+    // どのカスケードにも入らなかった（＝影を出す奥行きの外）
+    return 1.0;
 }
 
 #endif    // TSUKINO_PBR_SH

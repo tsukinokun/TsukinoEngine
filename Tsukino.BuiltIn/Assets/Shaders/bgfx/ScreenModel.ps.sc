@@ -6,6 +6,9 @@ $input v_worldPos, v_normal, v_texcoord0, v_curClip, v_prevClip
 //! @note   トーンマップの後に描かれるので、ここでトーンマップまで掛ける
 //--------------------------------------------------------------
 #include <bgfx_shader.sh>
+
+// UI の層はシーンの影を受けない（ScreenModel.ps.hlsl と同じ）
+#define FORWARD_MODEL_NO_SHADOW
 #include "ForwardModel.sh"
 #include "Tonemap.sh"
 

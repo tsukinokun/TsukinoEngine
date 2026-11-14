@@ -51,6 +51,22 @@ namespace Tsukino::Renderer {
         //! @param  [in,out] stats 描画統計の加算先
         void Execute(const DrawCommand& cmd, bgfx::ViewId view, Renderer::FrameStats& stats);
 
+        //! 描画コマンドを、影用パイプラインに差し替えてシャドウマップへ描きます。
+        //! @param  [in]     cmd              実行する描画コマンド
+        //! @param  [in]     view             描く先のビュー（カスケード1枚ぶんのシャドウマップ）
+        //! @param  [in]     staticPipeline   スタティックメッシュ用の影用パイプライン
+        //! @param  [in]     skeletalPipeline スケルタルメッシュ用の影用パイプライン
+        //! @param  [in,out] stats            描画統計の加算先
+        //! @note   コマンドが自前の影用パイプライン（DrawCommand::shadowPipeline）を持っていれば、そちらを使う
+        void ExecuteShadow(const DrawCommand& cmd, bgfx::ViewId view, const PipelineState* staticPipeline, const PipelineState* skeletalPipeline,
+                           Renderer::FrameStats& stats);
+
+        //! フォワードで照らすモデルに張るシャドウマップの取得元を設定します。
+        //! @param  [in] shadowPass シャドウマップパス（このクラスより長生きすること。nullptr で張らない）
+        void SetShadowPass(const ShadowPass* shadowPass) noexcept {
+            m_shadowPass = shadowPass;
+        }
+
     private:
         //! DrawKind::Mesh のコマンドを描きます。
         //! @param  [in]     cmd   実行する描画コマンド
@@ -85,6 +101,7 @@ namespace Tsukino::Renderer {
         FrameConstants*         m_frameConstants  = nullptr;    // シーン定数（借りている）
         const DrawCommandQueue* m_drawQueue       = nullptr;    // スプライト・線の頂点の並び（借りている）
         const IBLBaker*         m_iblBaker        = nullptr;    // 環境光（借りている）
+        const ShadowPass*       m_shadowPass      = nullptr;    // シャドウマップ（借りている）
 
         UniformBlock<CBufferTransform> m_transformUniform;    // 物ごとの定数（u_transform。DX11 版の b1）
         CBufferMaterial                m_lastMaterial{};      // 最後に送ったマテリアルの定数（materialData の無いコマンドが引き継ぐ）

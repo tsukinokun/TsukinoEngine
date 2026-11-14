@@ -4,7 +4,7 @@ $input v_texcoord0
 //! @file   Lighting.ps.sc
 //! @brief  G-Buffer を読んで照らすディファードライティング（Lighting.ps.hlsl の bgfx 版）
 //! @note   太陽（シーン定数の lightDir / lightColor）と点光源・スポットライト（u_lights）を当て、
-//!         環境光（IBL）を足して HDR へ書く。影は段階 1-4 c で移す（今はいつも照らされている扱い）
+//!         環境光（IBL）を足して HDR へ書く
 //--------------------------------------------------------------
 #include <bgfx_shader.sh>
 #include "Scene.sh"

@@ -3,7 +3,7 @@
 //! @brief  bgfx 版の Renderer の実装（作りかけ）
 //! @detail DX11 版と同じ順に、不透明なモデルを G-Buffer へ描き、照らして HDR バッファへ書き、
 //!         フォワードの 3D（World・半透明）を重ね、トーンマップしてバックバッファへ写し、
-//!         最後に UI（Overlay）を描きます。影・スカイ・環境光のベイク・後処理はまだ無く、
+//!         最後に UI（Overlay）を描きます。影はシャドウマップで落とします。スカイ・環境光のベイク・後処理はまだ無く、
 //!         DX11 版の各パスを段階的にここへ移していきます。
 //----------------------------------------------------------------------------
 #include <Tsukino/Renderer/Renderer.hpp>
@@ -14,7 +14,10 @@
 
 #include "DrawCommandExecutor.hpp"
 #include "FullscreenPass.hpp"
+#include "ShadowPass.hpp"
 #include "TonemapPass.hpp"
+
+#include <Tsukino/Core/Log.hpp>
 
 #include <bgfx/bgfx.h>
 
@@ -31,14 +34,6 @@ namespace Tsukino::Renderer {
 
     //! パス単位の GPU タイマー（bgfx 版はまだ無い）
     class GpuProfiler {};
-
-    //------------------------------------------------------------------------
-    //! シャドウマップパスです（bgfx 版は設定を覚えておくだけ）。
-    //------------------------------------------------------------------------
-    class ShadowPass {
-    public:
-        ShadowSettings settings;    // 影の設定
-    };
 
     namespace {
         //! 0〜1 の色の成分を 8bit に直します。
@@ -93,10 +88,18 @@ namespace Tsukino::Renderer {
             return false;
 
         //--------------------------------------------------------------------
+        // シャドウマップ。作れなくても起動は止めない（影が出ないだけ）
+        //--------------------------------------------------------------------
+        m_shadowPass = std::make_unique<ShadowPass>();
+        if(!m_shadowPass->Initialize(m_resources, m_frameConstants, *m_commandExecutor, shaders.shadowStaticVS, shaders.shadowSkeletalVS,
+                                     shaders.shadowPS))
+            Tsukino::Core::Log::Error("Renderer: Failed to create the shadow pass; shadows are not drawn.");
+        m_commandExecutor->SetShadowPass(m_shadowPass.get());
+
+        //--------------------------------------------------------------------
         // フルスクリーン三角形・トーンマップ・ライティング。
         // シェーダーがまだ bgfx の形式でなくても、起動は止めない（3D が出ないだけ）
         //--------------------------------------------------------------------
-        m_shadowPass     = std::make_unique<ShadowPass>();
         m_fullscreenPass = std::make_unique<FullscreenPass>();
         m_tonemapPass    = std::make_unique<TonemapPass>();
         if(m_fullscreenPass->Initialize(shaders.tonemapVS)) {
@@ -139,6 +142,14 @@ namespace Tsukino::Renderer {
         bgfx::touch(BgfxView::GBuffer);
         bgfx::touch(BgfxView::Lighting);
         bgfx::touch(BgfxView::Tonemap);
+
+        //--------------------------------------------------------------------
+        // 影のカスケード（メインカメラの視錐台を奥行きで切った1切れごとの投影）を作り、
+        // 影を落とす物（GBuffer パスの対象＝不透明な 3D モデル）をシャドウマップへ描く。
+        // 以降のライティングとフォワードが同じカスケードを使う
+        //--------------------------------------------------------------------
+        m_shadowPass->UpdateCascades(m_frameConstants.GetWorldSceneData());
+        m_shadowPass->Execute(commands, m_frameStats);
 
         //--------------------------------------------------------------------
         // GBuffer パス（不透明な 3D モデル）→ ライティング
@@ -252,16 +263,19 @@ namespace Tsukino::Renderer {
     }
 
     //------------------------------------------------------------------------
-    //! 影を落とす物の間引きを切り替えます（bgfx 版はまだ影を描かない）。
+    //! 影を落とす物の間引きを切り替えます。
     //------------------------------------------------------------------------
-    void Renderer::SetShadowCullingEnabled(bool /*enabled*/) {}
+    void Renderer::SetShadowCullingEnabled(bool enabled) {
+        if(m_shadowPass)
+            m_shadowPass->SetCullingEnabled(enabled);
+    }
 
     //------------------------------------------------------------------------
     //! 影の設定を変えます。
     //------------------------------------------------------------------------
     void Renderer::SetShadowSettings(const ShadowSettings& settings) {
         if(m_shadowPass)
-            m_shadowPass->settings = settings;
+            m_shadowPass->SetSettings(settings);
     }
 
     //------------------------------------------------------------------------
@@ -269,7 +283,7 @@ namespace Tsukino::Renderer {
     //------------------------------------------------------------------------
     const ShadowSettings& Renderer::GetShadowSettings() const {
         static const ShadowSettings kDefaultSettings{};
-        return m_shadowPass ? m_shadowPass->settings : kDefaultSettings;
+        return m_shadowPass ? m_shadowPass->GetSettings() : kDefaultSettings;
     }
 
     //------------------------------------------------------------------------
@@ -282,10 +296,15 @@ namespace Tsukino::Renderer {
     }
 
     //------------------------------------------------------------------------
-    //! 保留している描画品質を適用します（bgfx 版はまだ効く先が無い）。
+    //! 保留している描画品質を適用します（bgfx 版で効くのは、まだ影だけ）。
     //------------------------------------------------------------------------
     void Renderer::ApplyQuality() {
         m_qualityDirty = false;
+
+        if(m_shadowPass)
+            m_shadowPass->SetQuality(m_quality.shadowMapSizeLimit, m_quality.shadowCascadeCount);
+
+        m_frameConstants.SetShadowSoftFilter(m_quality.shadowSoftFilter);
     }
 
     //------------------------------------------------------------

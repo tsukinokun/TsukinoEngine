@@ -2,7 +2,8 @@
 //! @file   ForwardModel.sh
 //! @brief  モデルをフォワードで照らす処理（ForwardModel.hlsli の bgfx 版）
 //! @note   半透明のモデル（フェード中）と、UI の層のモデルが使う。
-//!         影（段階 1-4 c）と霧（段階 1-4 d）はまだ無い。影はいつも照らされている扱い
+//!         FORWARD_MODEL_NO_SHADOW を定義してから include すると、シャドウマップを使わない（影なし）。
+//!         霧（段階 1-4 d）はまだ無い
 //--------------------------------------------------------------
 #ifndef TSUKINO_FORWARD_MODEL_SH
 #define TSUKINO_FORWARD_MODEL_SH
@@ -34,7 +35,11 @@ vec4 ShadeForwardModel(vec3 worldPos, vec3 normal, vec2 uv)
     vec3 V      = normalize(cameraPos.xyz - worldPos);
     vec3 L      = normalize(-lightDir.xyz);    // lightDir は「光が向いている方向」なので反転
 
-    float shadow = 1.0;    // 影は段階 1-4 c で移す
+#ifdef FORWARD_MODEL_NO_SHADOW
+    float shadow = 1.0;
+#else
+    float shadow = SampleShadowPCF(worldPos, N, L);
+#endif
 
     int  shadingModel = int(floor(shading.x + 0.5));
     vec3 directLight  = vec3_splat(0.0);

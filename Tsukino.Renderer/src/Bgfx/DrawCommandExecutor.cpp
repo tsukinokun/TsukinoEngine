@@ -7,6 +7,7 @@
 //!         線は一時的な頂点バッファへ写して、線のリストとして描きます。
 //----------------------------------------------------------------------------
 #include "DrawCommandExecutor.hpp"
+#include "ShadowPass.hpp"
 
 #include <Tsukino/Renderer/Material.hpp>
 #include <Tsukino/Renderer/MeshBuffer.hpp>
@@ -219,9 +220,11 @@ namespace Tsukino::Renderer {
             stats.boneBytesUploaded += static_cast<u64>(vec4Count) * 16;
         }
 
-        // 環境光（フォワードで照らすモデルが読む。読まないシェーダーには何も起きない）
+        // 環境光とシャドウマップ（フォワードで照らすモデルが読む。読まないシェーダーには何も起きない）
         if(m_iblBaker)
             m_iblBaker->GetGpu().Bind();
+        if(m_shadowPass)
+            m_shadowPass->BindForSampling();
 
         bgfx::setVertexBuffer(0, mesh.vertexBuffer);
         if(bgfx::isValid(mesh.indexBuffer))
@@ -235,6 +238,90 @@ namespace Tsukino::Renderer {
 
         CountDrawCall(cmd.pass, stats);
         stats.triangleCount += (static_cast<u64>(cmd.mesh->indexCount) * cmd.instanceCount) / 3;
+    }
+
+    //------------------------------------------------------------------------
+    //! 描画コマンドを、影用パイプラインに差し替えてシャドウマップへ描きます。
+    //------------------------------------------------------------------------
+    void DrawCommandExecutor::ExecuteShadow(const DrawCommand& cmd, bgfx::ViewId view, const PipelineState* staticPipeline,
+                                            const PipelineState* skeletalPipeline, Renderer::FrameStats& stats) {
+        // 影を落とすのはメッシュだけ（スプライト・線は形を持たない）
+        if(cmd.kind != DrawKind::Mesh || !cmd.mesh || !cmd.mesh->gpu)
+            return;
+
+        const MeshBuffer::Gpu& mesh       = *cmd.mesh->gpu;
+        const bool             isSkeletal = cmd.boneMatrices && cmd.boneCount > 0;
+
+        // コマンドが自前の影用（頂点を動かす物）を持っていればそれを使う
+        const PipelineState* pipeline = cmd.shadowPipeline ? cmd.shadowPipeline : (isSkeletal ? skeletalPipeline : staticPipeline);
+        if(!pipeline || !bgfx::isValid(pipeline->program) || !bgfx::isValid(mesh.vertexBuffer))
+            return;
+
+        // スキニングのシェーダーは2本目の頂点バッファ（ボーン）を読むので、それが無いメッシュは描かない
+        if(pipeline->format == Tsukino::GraphicsCommon::VertexFormat::Skinned && (!isSkeletal || !bgfx::isValid(mesh.boneBuffer)))
+            return;
+
+        // シーン定数（描いているカスケードの番号が入っている）と、物ごとの定数。
+        // 網点フェード（motionFlags.y）はピクセルシェーダーが読む
+        m_frameConstants->GetGpu().Apply();
+
+        CBufferTransform transform{};
+        transform.world       = cmd.transform;
+        transform.motionFlags = hlslpp::float4(0.0f, cmd.ditherFade, 0.0f, 0.0f);
+        m_transformUniform.Set(transform);
+
+        //--------------------------------------------------------------------
+        // くり抜き（アルファテスト）の影。葉のカードのように、アルベドのアルファで
+        // 形を抜いたものが四角い影を落とさないよう、影のピクセルシェーダーにも
+        // アルベドとマテリアル定数を渡す。
+        // マテリアル定数の無いコマンドは alphaCutoff = 0（くり抜かない）を渡す
+        //--------------------------------------------------------------------
+        static const CBufferMaterial kNoCutoutMaterial{};
+        m_materialUniform.Set(cmd.materialData ? *cmd.materialData : kNoCutoutMaterial);
+
+        const RenderResources::Gpu&               resources = m_resources->GetGpu();
+        const RenderResources::Gpu::TextureEntry* albedo    = nullptr;
+        u32                                       samplerFlags = BGFX_SAMPLER_NONE;    // 既定は DX11 版と同じ LinearWrap
+        if(cmd.material) {
+            albedo = resources.FindTexture(cmd.material->GetTextures()[static_cast<size_t>(SRVSlot::Albedo)]);
+            if(cmd.material->GetSampler())
+                samplerFlags = RenderResources::Gpu::GetSamplerFlags(*cmd.material->GetSampler());
+        }
+        if(!albedo)
+            albedo = resources.FindTexture(resources.white);
+        if(albedo)
+            bgfx::setTexture(static_cast<u8>(SRVSlot::Albedo), m_materialSamplers[static_cast<size_t>(SRVSlot::Albedo)], albedo->texture, samplerFlags);
+
+        // ボーン行列
+        u32 boneBytes = 0;
+        if(isSkeletal && bgfx::isValid(mesh.boneBuffer)) {
+            constexpr u32 kMaxBoneCount = sizeof(CBufferSkinning) / sizeof(CBufferSkinning::bones[0]);
+            const u16     vec4Count     = static_cast<u16>(std::min(cmd.boneCount, kMaxBoneCount) * 4);
+            bgfx::setUniform(m_bonesUniform, cmd.boneMatrices, vec4Count);
+            bgfx::setVertexBuffer(1, mesh.boneBuffer);
+            boneBytes = static_cast<u32>(vec4Count) * 16;
+        }
+
+        bgfx::setVertexBuffer(0, mesh.vertexBuffer);
+        if(bgfx::isValid(mesh.indexBuffer))
+            bgfx::setIndexBuffer(mesh.indexBuffer);
+        if(cmd.instanceCount > 1)
+            bgfx::setInstanceCount(cmd.instanceCount);
+
+        bgfx::setState(pipeline->state);
+        bgfx::submit(view, pipeline->program);
+
+        //--------------------------------------------------------------------
+        // 統計の加算（負荷調査用）
+        // GBufferと同じ形状をもう一度描いているので、ドロー数もボーン転送量も
+        // ここで二重に計上されるのが実態どおり
+        //--------------------------------------------------------------------
+        ++stats.shadowDrawCalls;
+        stats.triangleCount += (static_cast<u64>(cmd.mesh->indexCount) * cmd.instanceCount) / 3;
+        if(isSkeletal) {
+            ++stats.skinnedDrawCalls;
+            stats.boneBytesUploaded += boneBytes;
+        }
     }
 
     //------------------------------------------------------------------------

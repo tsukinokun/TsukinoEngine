@@ -29,12 +29,12 @@ SAMPLER2D(s_gbufferDepth, STAGE_GBUFFER_DEPTH);
 SAMPLER2D(s_gbufferWorldPos, STAGE_GBUFFER_WORLD_POS);
 
 //--------------------------------------------------------------
-//! @brief  太陽の影を読む
-//! @note   影のパスは段階 1-4 c で移す。それまでは影が無い（いつも照らされている）扱い
+//! @brief  太陽の影を読む（式は PBR.sh の SampleShadowPCF に一元化してある）
+//! @return 遮られていない割合 0.0(影) - 1.0(明)
 //--------------------------------------------------------------
 float GetShadowPCF(vec3 worldPos, vec3 N, vec3 L)
 {
-    return 1.0;
+    return SampleShadowPCF(worldPos, N, L);
 }
 
 //--------------------------------------------------------------
