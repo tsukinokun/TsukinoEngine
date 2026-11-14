@@ -84,6 +84,9 @@ namespace Tsukino::Renderer {
     //! スカイを描きます。
     //------------------------------------------------------------------------
     void SkyPass::Execute() {
+        // このフレームの定数は、環境光（IBL）のベイクも使う。空を描かないときも覚えておく
+        m_gpu->data = m_data;
+
         // 描画品質で省くときは描かない。背景は、ビューを消した背景色のまま残る
         if(!m_hasPipeline || !m_drawAllowed || !m_gpu->fullscreenPass || !m_frameConstants)
             return;

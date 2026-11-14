@@ -1,8 +1,7 @@
 ﻿//----------------------------------------------------------------------------
 //! @file   LightingPass.cpp
-//! @brief  bgfx 版のディファードライティングパスと、IBL の仮のテクスチャの実装
+//! @brief  bgfx 版のディファードライティングパスの実装
 //! @detail G-Buffer を読み、太陽（影つき）・点光源・スポットライト・環境光で照らして HDR バッファへ書きます。
-//!         環境光は、スカイからのベイク（段階 1-4 c）を移すまで黒い 1×1 のテクスチャです。
 //----------------------------------------------------------------------------
 #include <Tsukino/Renderer/LightingPass.hpp>
 #include <Tsukino/Renderer/Bgfx/FrameConstantsGpu.hpp>
@@ -23,54 +22,6 @@
 
 // 名前空間 : Tsukino::Renderer
 namespace Tsukino::Renderer {
-
-    //------------------------------------------------------------------------
-    //! テクスチャとユニフォームを破棄します。
-    //------------------------------------------------------------------------
-    IBLBaker::Gpu::~Gpu() {
-        if(!GraphicsContext::IsBgfxAlive())
-            return;
-        for(bgfx::TextureHandle texture : {irradiance, specular, brdfLut}) {
-            if(bgfx::isValid(texture))
-                bgfx::destroy(texture);
-        }
-        for(bgfx::UniformHandle uniform : {iblUniform, irradianceSampler, specularSampler, brdfLutSampler}) {
-            if(bgfx::isValid(uniform))
-                bgfx::destroy(uniform);
-        }
-    }
-
-    //------------------------------------------------------------------------
-    //! 環境光の無いテクスチャと、ユニフォームを作ります。
-    //------------------------------------------------------------------------
-    bool IBLBaker::Gpu::CreatePlaceholder() {
-        // キューブは6面とも黒（環境光なし）。BRDF の表も 0（鏡面の環境光なし）
-        constexpr u8 kBlackCube[6 * 4] = {};
-        constexpr u8 kBlack[4]         = {};
-        irradiance = bgfx::createTextureCube(1, false, 1, bgfx::TextureFormat::RGBA8, BGFX_TEXTURE_NONE, bgfx::copy(kBlackCube, sizeof(kBlackCube)));
-        specular   = bgfx::createTextureCube(1, false, 1, bgfx::TextureFormat::RGBA8, BGFX_TEXTURE_NONE, bgfx::copy(kBlackCube, sizeof(kBlackCube)));
-        brdfLut    = bgfx::createTexture2D(1, 1, false, 1, bgfx::TextureFormat::RGBA8, BGFX_TEXTURE_NONE, bgfx::copy(kBlack, sizeof(kBlack)));
-
-        iblUniform        = bgfx::createUniform("u_ibl", bgfx::UniformType::Vec4);
-        irradianceSampler = bgfx::createUniform("s_iblIrradiance", bgfx::UniformType::Sampler);
-        specularSampler   = bgfx::createUniform("s_iblSpecular", bgfx::UniformType::Sampler);
-        brdfLutSampler    = bgfx::createUniform("s_iblBrdfLut", bgfx::UniformType::Sampler);
-        specularMipCount  = 1.0f;
-        intensity         = 1.0f;
-        return bgfx::isValid(irradiance) && bgfx::isValid(specular) && bgfx::isValid(brdfLut);
-    }
-
-    //------------------------------------------------------------------------
-    //! 次に Submit する描画へ、IBL のテクスチャと定数を張ります。
-    //------------------------------------------------------------------------
-    void IBLBaker::Gpu::Bind() const {
-        constexpr u32 kClamp = BGFX_SAMPLER_U_CLAMP | BGFX_SAMPLER_V_CLAMP | BGFX_SAMPLER_W_CLAMP;    // DX11 版の LinearClamp
-        const float   params[4] = {specularMipCount, intensity, 0.0f, 0.0f};
-        bgfx::setUniform(iblUniform, params);
-        bgfx::setTexture(BgfxStage::IBLIrradiance, irradianceSampler, irradiance, kClamp);
-        bgfx::setTexture(BgfxStage::IBLSpecular, specularSampler, specular, kClamp);
-        bgfx::setTexture(BgfxStage::IBLBrdfLut, brdfLutSampler, brdfLut, kClamp);
-    }
 
     //------------------------------------------------------------------------
     //! プログラムとサンプラーを破棄します。

@@ -21,6 +21,7 @@ namespace Tsukino::Renderer {
         bgfx::ProgramHandle      program = BGFX_INVALID_HANDLE;    // Sky.vs ＋ Sky.ps
         UniformBlock<CBufferSky> sky;                              // 大気散乱の定数（u_sky。DX11 版の b4）
         const FullscreenPass*    fullscreenPass = nullptr;         // フルスクリーン三角形の描画（借りている。Renderer が設定する）
+        CBufferSky               data{};                           // このフレームの大気散乱の定数（SkyPass::Execute が覚える。ベイクが送る）
 
         Gpu() = default;
         Gpu(const Gpu&)            = delete;

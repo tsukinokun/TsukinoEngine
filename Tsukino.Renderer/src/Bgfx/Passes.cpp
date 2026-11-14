@@ -7,11 +7,9 @@
 #include <Tsukino/Renderer/AmbientParticlePass.hpp>
 #include <Tsukino/Renderer/BloomPass.hpp>
 #include <Tsukino/Renderer/FogPass.hpp>
-#include <Tsukino/Renderer/IBLBaker.hpp>
 #include <Tsukino/Renderer/MotionBlurPass.hpp>
 #include <Tsukino/Renderer/SphereColorGradePass.hpp>
 #include <Tsukino/Renderer/Text/BakedFont.hpp>
-#include <Tsukino/Renderer/Bgfx/IBLBakerGpu.hpp>
 
 // 名前空間 : Tsukino::Renderer
 namespace Tsukino::Renderer {
@@ -31,8 +29,6 @@ namespace Tsukino::Renderer {
     BloomPass::~BloomPass() = default;
     FogPass::FogPass() : m_gpu(std::make_unique<Gpu>()) {}
     FogPass::~FogPass() = default;
-    IBLBaker::IBLBaker() : m_gpu(std::make_unique<Gpu>()) {}
-    IBLBaker::~IBLBaker() = default;
     MotionBlurPass::MotionBlurPass() : m_gpu(std::make_unique<Gpu>()) {}
     MotionBlurPass::~MotionBlurPass() = default;
     SphereColorGradePass::SphereColorGradePass() : m_gpu(std::make_unique<Gpu>()) {}

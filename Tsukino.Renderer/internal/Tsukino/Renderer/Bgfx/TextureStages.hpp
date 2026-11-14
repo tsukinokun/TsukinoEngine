@@ -33,4 +33,7 @@ namespace Tsukino::Renderer::BgfxStage {
     inline constexpr u8 IBLSpecular   = 13;
     inline constexpr u8 IBLBrdfLut    = 14;
 
+    // IBL のベイク中だけ読むキャプチャキューブ（DX11 版の t20）
+    inline constexpr u8 IBLCaptureSource = 15;
+
 }    // namespace Tsukino::Renderer::BgfxStage

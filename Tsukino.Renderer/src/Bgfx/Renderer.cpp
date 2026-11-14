@@ -3,7 +3,7 @@
 //! @brief  bgfx 版の Renderer の実装（作りかけ）
 //! @detail DX11 版と同じ順に、不透明なモデルを G-Buffer へ描き、照らして HDR バッファへ書き、
 //!         フォワードの 3D（World・半透明）を重ね、トーンマップしてバックバッファへ写し、
-//!         最後に UI（Overlay）を描きます。影はシャドウマップで落とし、背景にはスカイを描きます。環境光のベイク・後処理はまだ無く、
+//!         最後に UI（Overlay）を描きます。影はシャドウマップで落とし、背景にはスカイを描き、環境光はスカイから焼きます。後処理はまだ無く、
 //!         DX11 版の各パスを段階的にここへ移していきます。
 //----------------------------------------------------------------------------
 #include <Tsukino/Renderer/Renderer.hpp>
@@ -79,8 +79,8 @@ namespace Tsukino::Renderer {
         if(!m_frameConstants.Initialize(*m_graphicsContext))
             return false;
 
-        // 環境光。スカイからのベイク（段階 1-4 c）を移すまでは、環境光の無い仮のテクスチャ
-        if(!m_iblBaker.GetGpu().CreatePlaceholder())
+        // 環境光の定数と、焼くまでの仮の（環境光の無い）テクスチャ。照らすシェーダーが読むので、先に作る
+        if(!m_iblBaker.CreateConstantBuffers(*m_graphicsContext))
             return false;
 
         m_commandExecutor = std::make_unique<DrawCommandExecutor>();
@@ -110,6 +110,11 @@ namespace Tsukino::Renderer {
 
         m_tonemapPass    = std::make_unique<TonemapPass>();
         if(m_fullscreenPass->Initialize(shaders.tonemapVS)) {
+            // 環境光のベイク。作れなくても起動は止めない（環境光が無いだけ）
+            if(!m_iblBaker.Initialize(*m_graphicsContext, m_resources, m_frameConstants, *m_fullscreenPass, m_skyPass, shaders.iblIrradiancePS,
+                                      shaders.iblSpecularPrefilterPS, shaders.iblBRDFLUTPS))
+                Tsukino::Core::Log::Warn("Renderer: IBL initialization failed. Ambient lighting will be disabled.");
+
             (void)m_tonemapPass->Initialize(*m_fullscreenPass, shaders.tonemapPS);
             (void)m_lightingPass.Initialize(*m_graphicsContext, m_resources, m_frameConstants, *m_fullscreenPass, *m_shadowPass, m_iblBaker,
                                             shaders.lightingPS);
@@ -171,6 +176,13 @@ namespace Tsukino::Renderer {
 
         // スカイ（最背面）。物のある画素は、この後のライティングが上書きする
         m_skyPass.Execute();
+
+        //--------------------------------------------------------------------
+        // 環境光のベイク（スカイのキャプチャ → irradiance の畳み込み → スペキュラのプレフィルタ）。
+        // スカイのパイプラインが確立した最初のフレームで一度だけ走る（RequestRecapture() で焼き直せる）。
+        // ベイクのビューはライティングより番号が小さいので、焼いた結果は同じフレームのライティングから読める
+        //--------------------------------------------------------------------
+        m_iblBaker.BakeIfNeeded();
 
         m_lightingPass.Execute();
 

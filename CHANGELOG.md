@@ -46,9 +46,17 @@ carve-out for `Tsukino.Renderer` described under **API stability** in the README
   - bgfx has 16 texture stages, so the DX11 slots t8–t19 are renumbered (`TextureStages.sh` / `BgfxStage`).
   - UI-layer 3D models (`cameraOverride`) get a fresh depth buffer whenever their `sortOrder` changes, by moving on to
     the next bgfx view (bgfx cannot clear in the middle of a view).
-  - Not yet in bgfx mode: IBL baking (the ambient term is black for now, so scenes look darker than
-    DX11), fog, bloom, motion blur, sphere colour grade, ambient particles, render scale, instance and user constant
-    buffers.
+  - Not yet in bgfx mode: fog, bloom, motion blur, sphere colour grade, ambient particles, render scale, instance and
+    user constant buffers.
+- **bgfx renderer bakes the ambient light from the sky (bgfx mode only).** `IBLBaker` captures the sky into a cube map,
+  convolves the diffuse irradiance, prefilters the specular cube (6 mips) and renders the BRDF table, as in DX11.
+  - bgfx needs one view per render target, so the bake uses one view per cube face and mip (49 views in front of the
+    shadow views; `BgfxView::Ibl*`). They only draw on the frame that bakes, and the result is read by the lighting
+    view of the same frame.
+  - Ported shaders: `BRDFIntegrate.ps`, `IrradianceConvolve.ps`, `SpecularPrefilter.ps`, with the shared sampling code
+    in `IBLBake.sh`. The bake parameters arrive as `u_iblBake` (the sample count as a float).
+  - Until the cubes are baked (and when the bake targets cannot be created) the ambient term is zero, through 1×1
+    black placeholder textures.
 - **bgfx renderer draws the sky (bgfx mode only).** `Sky.vs` / `Sky.ps` are ported to `.sc` (`CBufferSky` arrives as
   `u_sky`). The sky is a fullscreen triangle in its own view between the G-Buffer and lighting views: that view clears
   the HDR buffer to the clear colour and draws the sky, and lighting then overwrites only the pixels that have

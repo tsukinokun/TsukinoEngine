@@ -30,4 +30,7 @@
 #define STAGE_IBL_SPECULAR       13
 #define STAGE_IBL_BRDF_LUT       14
 
+// IBL のベイク中だけ読むキャプチャキューブ（DX11 版の t20）
+#define STAGE_IBL_CAPTURE_SOURCE 15
+
 #endif    // TSUKINO_TEXTURE_STAGES_SH
