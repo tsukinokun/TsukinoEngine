@@ -46,8 +46,17 @@ carve-out for `Tsukino.Renderer` described under **API stability** in the README
   - bgfx has 16 texture stages, so the DX11 slots t8–t19 are renumbered (`TextureStages.sh` / `BgfxStage`).
   - UI-layer 3D models (`cameraOverride`) get a fresh depth buffer whenever their `sortOrder` changes, by moving on to
     the next bgfx view (bgfx cannot clear in the middle of a view).
-  - Not yet in bgfx mode: fog, motion blur, sphere colour grade, ambient particles, render scale, instance and user
-    constant buffers.
+  - Not yet in bgfx mode: fog, motion blur, sphere colour grade, ambient particles, render scale.
+- **Instance buffers and user constant buffers work in bgfx mode.** The C++ side is unchanged
+  (`RenderResources::CreateInstanceBuffer` / `UpdateInstanceBuffer` / `CreateUserConstantBuffer` /
+  `UpdateUserConstantBuffer` / `DestroyBuffer`, `DrawCommand::instanceData` / `userConstantBuffer`); only the shader
+  side differs from DX11:
+  - Per-instance data arrives in the vertex shader as bgfx instance data, `i_data0`–`i_data15` (declared in
+    `varying.def.sc`), instead of a `StructuredBuffer`. One instance must be a multiple of 16 bytes and at most
+    256 bytes; `CreateInstanceBuffer` returns an invalid handle otherwise.
+  - A user constant buffer arrives as `uniform vec4 u_user0[N]` (`CBSlot::User0`) or `u_user1[N]` (`CBSlot::User1`),
+    the same way the engine's own constant buffers do, and is limited to 1024 bytes.
+  - The contents are kept on the CPU and sent with each draw, in the main passes and in the shadow pass.
 - **bgfx renderer draws bloom (bgfx mode only).** `BloomPrefilter.ps`, `BloomDownsample.ps` and `BloomUpsample.ps` are
   ported to `.sc` with the shared `Bloom.sh` (`CBufferBloom` arrives as `u_bloom`). The pass keeps up to six RGBA16F
   mip targets, recreated when the screen size or the mip limit changes, and uses one view per step (prefilter, each

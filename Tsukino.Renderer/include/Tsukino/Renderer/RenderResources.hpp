@@ -132,6 +132,8 @@ namespace Tsukino::Renderer {
         //! @param  [in] stride   1インスタンスあたりのバイト数（シェーダー側の構造体と一致させること）
         //! @param  [in] capacity 確保するインスタンス数
         //! @return バッファのハンドル。作れなかったときは無効なハンドル
+        //! @note   bgfx 版では、1インスタンスは 16 バイトの倍数で 256 バイトまで
+        //!         （頂点シェーダーの i_data0〜i_data15 に vec4 として届く）
         [[nodiscard]]
         BufferHandle CreateInstanceBuffer(u32 stride, u32 capacity);
 
@@ -146,6 +148,7 @@ namespace Tsukino::Renderer {
         //! ゲーム定義の定数バッファを作成します（DrawCommand::userConstantBuffer へ渡す）。
         //! @param  [in] byteSize 必要なバイト数。16の倍数へ自動で切り上げる
         //! @return バッファのハンドル。作れなかったときは無効なハンドル
+        //! @note   bgfx 版では 1024 バイトまで。シェーダーは uniform vec4 u_user0[N]（User1 の枠は u_user1[N]）で受ける
         [[nodiscard]]
         BufferHandle CreateUserConstantBuffer(u32 byteSize);
 

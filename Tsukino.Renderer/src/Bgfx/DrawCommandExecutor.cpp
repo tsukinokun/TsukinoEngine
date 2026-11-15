@@ -229,8 +229,7 @@ namespace Tsukino::Renderer {
         bgfx::setVertexBuffer(0, mesh.vertexBuffer);
         if(bgfx::isValid(mesh.indexBuffer))
             bgfx::setIndexBuffer(mesh.indexBuffer);
-        if(cmd.instanceCount > 1)
-            bgfx::setInstanceCount(cmd.instanceCount);
+        ApplyInstanceAndUserConstants(cmd);
 
         ApplyClipRect(cmd);
         bgfx::setState(pipeline->state);
@@ -305,8 +304,7 @@ namespace Tsukino::Renderer {
         bgfx::setVertexBuffer(0, mesh.vertexBuffer);
         if(bgfx::isValid(mesh.indexBuffer))
             bgfx::setIndexBuffer(mesh.indexBuffer);
-        if(cmd.instanceCount > 1)
-            bgfx::setInstanceCount(cmd.instanceCount);
+        ApplyInstanceAndUserConstants(cmd);
 
         bgfx::setState(pipeline->state);
         bgfx::submit(view, pipeline->program);
@@ -485,6 +483,54 @@ namespace Tsukino::Renderer {
             first += count;
             remaining -= count;
         }
+    }
+
+    //------------------------------------------------------------------------
+    //! コマンドのインスタンスごとのデータとゲーム定義の定数を、次の Submit へ設定します。
+    //------------------------------------------------------------------------
+    void DrawCommandExecutor::ApplyInstanceAndUserConstants(const DrawCommand& cmd) const {
+        using BufferKind = RenderResources::Gpu::BufferKind;
+        const RenderResources::Gpu& resources = m_resources->GetGpu();
+
+        //--------------------------------------------------------------------
+        // ゲーム定義の定数。ゲーム予約枠（User0 / User1）以外を指定されたら何もしない。
+        // シェーダーは uniform vec4 u_user0[N] / u_user1[N] で受ける
+        //--------------------------------------------------------------------
+        if(cmd.userConstantSlot == CBSlot::User0 || cmd.userConstantSlot == CBSlot::User1) {
+            if(const RenderResources::Gpu::BufferEntry* constants = resources.FindBuffer(cmd.userConstantBuffer, BufferKind::UserConstant)) {
+                const size_t slot = (cmd.userConstantSlot == CBSlot::User1) ? 1 : 0;
+                bgfx::setUniform(resources.userConstantUniforms[slot], constants->data.data(), static_cast<u16>(constants->capacity));
+            }
+        }
+
+        if(cmd.instanceCount <= 1)
+            return;
+
+        //--------------------------------------------------------------------
+        // インスタンスごとのデータ。頂点シェーダーの i_data0〜i_data15 に届く。
+        // データを持たないインスタンス描画（番号から値を計算する使い方）は、数だけを設定する
+        //--------------------------------------------------------------------
+        const RenderResources::Gpu::BufferEntry* instances = resources.FindBuffer(cmd.instanceData, BufferKind::Instance);
+        if(!instances || instances->activeCount == 0) {
+            bgfx::setInstanceCount(cmd.instanceCount);
+            return;
+        }
+
+        // 書き込んである数より多くは描かない。一時バッファに入りきらない分も描かない
+        const u16 stride    = static_cast<u16>(instances->stride);
+        const u32 requested = std::min(cmd.instanceCount, instances->activeCount);
+        const u32 count     = std::min(requested, bgfx::getAvailInstanceDataBuffer(requested, stride));
+        if(count < requested)
+            Tsukino::Core::Log::Warn("DrawCommandExecutor: Out of instance buffer space; some instances are not drawn this frame.");
+        if(count == 0) {
+            bgfx::setInstanceCount(0);
+            return;
+        }
+
+        bgfx::InstanceDataBuffer instanceBuffer;
+        bgfx::allocInstanceDataBuffer(&instanceBuffer, count, stride);
+        std::memcpy(instanceBuffer.data, instances->data.data(), static_cast<size_t>(count) * stride);
+        bgfx::setInstanceDataBuffer(&instanceBuffer);
     }
 
     //------------------------------------------------------------------------

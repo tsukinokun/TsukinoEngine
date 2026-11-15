@@ -4,7 +4,7 @@
 //! @detail テクスチャ（アセットの画像・書き換えられるテクスチャ）とメッシュのバッファを
 //!         bgfx で作り、エンジンのハンドルで引けるように表に持ちます。
 //!         パイプラインは、変換済みの bgfx のシェーダー（.sc.bin）と描画ステートの組です。
-//!         インスタンス描画のバッファとゲーム定義の定数バッファは、まだハンドルを配るだけです。
+//!         インスタンス描画のバッファとゲーム定義の定数バッファは、中身を CPU 側に持ち、描くときに送ります。
 //----------------------------------------------------------------------------
 #include <Tsukino/Renderer/Bgfx/RenderResourcesGpu.hpp>
 #include <Tsukino/Renderer/Bgfx/GraphicsContext.hpp>
@@ -21,6 +21,7 @@
 #include <algorithm>
 #include <cmath>
 #include <cstring>
+#include <string>
 
 // 名前空間 : Tsukino::Renderer
 namespace Tsukino::Renderer {
@@ -204,6 +205,35 @@ namespace Tsukino::Renderer {
             if(bgfx::isValid(entry.texture))
                 bgfx::destroy(entry.texture);
         }
+        for(bgfx::UniformHandle uniform : userConstantUniforms) {
+            if(bgfx::isValid(uniform))
+                bgfx::destroy(uniform);
+        }
+    }
+
+    //------------------------------------------------------------------------
+    //! バッファを表に入れて、エンジンのハンドルを配ります。
+    //------------------------------------------------------------------------
+    BufferHandle RenderResources::Gpu::AddBuffer(BufferEntry entry) {
+        BufferHandle handle;
+        if(!freeBufferSlots.empty()) {
+            handle.index = freeBufferSlots.back();
+            freeBufferSlots.pop_back();
+            buffers[handle.index] = std::move(entry);
+        } else if(buffers.size() < BufferHandle::kInvalidIndex) {
+            handle.index = static_cast<u16>(buffers.size());
+            buffers.push_back(std::move(entry));
+        }
+        return handle;
+    }
+
+    //------------------------------------------------------------------------
+    //! エンジンのハンドルから、指定した種類のバッファを引きます。
+    //------------------------------------------------------------------------
+    const RenderResources::Gpu::BufferEntry* RenderResources::Gpu::FindBuffer(BufferHandle handle, BufferKind kind) const {
+        if(!handle.IsValid() || handle.index >= buffers.size() || buffers[handle.index].kind != kind)
+            return nullptr;
+        return &buffers[handle.index];
     }
 
     //------------------------------------------------------------------------
@@ -416,6 +446,10 @@ namespace Tsukino::Renderer {
         constexpr u8 kFlatNormal[4] = {128, 128, 255, 255};
         m_gpu->white      = m_gpu->AddTexture({CreateSolidTexture(kWhite), 1, 1, TextureFormat::RGBA8});
         m_gpu->flatNormal = m_gpu->AddTexture({CreateSolidTexture(kFlatNormal), 1, 1, TextureFormat::RGBA8});
+
+        // ゲーム定義の定数のユニフォーム。上限の大きさで作っておき、シェーダーは要るぶんだけの配列で受ける
+        m_gpu->userConstantUniforms[0] = bgfx::createUniform("u_user0", bgfx::UniformType::Vec4, Gpu::kMaxUserConstantVec4Count);
+        m_gpu->userConstantUniforms[1] = bgfx::createUniform("u_user1", bgfx::UniformType::Vec4, Gpu::kMaxUserConstantVec4Count);
         return m_gpu->white.IsValid() && m_gpu->flatNormal.IsValid();
     }
 
@@ -604,40 +638,93 @@ namespace Tsukino::Renderer {
     }
 
     //------------------------------------------------------------------------
-    //! インスタンス描画用のバッファを作成します（bgfx 版はまだハンドルを配るだけ）。
+    //! インスタンス描画用のバッファを作成します。
     //------------------------------------------------------------------------
-    BufferHandle RenderResources::CreateInstanceBuffer(u32 /*stride*/, u32 /*capacity*/) {
-        BufferHandle handle;
-        if(m_gpu->nextBuffer < BufferHandle::kInvalidIndex)
-            handle.index = m_gpu->nextBuffer++;
-        return handle;
+    BufferHandle RenderResources::CreateInstanceBuffer(u32 stride, u32 capacity) {
+        if(stride == 0 || capacity == 0)
+            return BufferHandle{};
+
+        // bgfx のインスタンスのデータは vec4 の並び（i_data0〜i_data15）なので、16 バイト単位で 256 バイトまで
+        if(stride % 16 != 0 || stride > Gpu::kMaxInstanceStride) {
+            Tsukino::Core::Log::Error("RenderResources::CreateInstanceBuffer - the instance stride (" + std::to_string(stride)
+                                      + " bytes) must be a multiple of 16 and at most " + std::to_string(Gpu::kMaxInstanceStride) + " bytes.");
+            return BufferHandle{};
+        }
+
+        Gpu::BufferEntry entry;
+        entry.kind     = Gpu::BufferKind::Instance;
+        entry.stride   = stride;
+        entry.capacity = capacity;
+        entry.data.resize(static_cast<size_t>(stride) * capacity);
+        return m_gpu->AddBuffer(std::move(entry));
     }
 
     //------------------------------------------------------------------------
-    //! インスタンス描画用のバッファの中身を書き換えます（bgfx 版はまだ何もしない）。
+    //! インスタンス描画用のバッファの中身を書き換えます。
     //------------------------------------------------------------------------
-    u32 RenderResources::UpdateInstanceBuffer(BufferHandle /*buffer*/, const void* /*data*/, u32 count) {
-        return count;
+    u32 RenderResources::UpdateInstanceBuffer(BufferHandle buffer, const void* data, u32 count) {
+        if(!m_gpu->FindBuffer(buffer, Gpu::BufferKind::Instance))
+            return 0;
+
+        Gpu::BufferEntry& entry = m_gpu->buffers[buffer.index];
+        entry.activeCount       = 0;
+        if(!data || count == 0)
+            return 0;
+
+        // 確保量を超える書き込みは切り捨てる（呼び出し側の増減で落ちないようにする）
+        const u32 writeCount = std::min(count, entry.capacity);
+        std::memcpy(entry.data.data(), data, static_cast<size_t>(entry.stride) * writeCount);
+        entry.activeCount = writeCount;
+        return writeCount;
     }
 
     //------------------------------------------------------------------------
-    //! ゲーム定義の定数バッファを作成します（bgfx 版はまだハンドルを配るだけ）。
+    //! ゲーム定義の定数バッファを作成します。
     //------------------------------------------------------------------------
-    BufferHandle RenderResources::CreateUserConstantBuffer(u32 /*byteSize*/) {
-        BufferHandle handle;
-        if(m_gpu->nextBuffer < BufferHandle::kInvalidIndex)
-            handle.index = m_gpu->nextBuffer++;
-        return handle;
+    BufferHandle RenderResources::CreateUserConstantBuffer(u32 byteSize) {
+        if(byteSize == 0)
+            return BufferHandle{};
+
+        // 定数は vec4 の配列で送るので、16 バイト境界へ切り上げる（DX11 版と同じ）
+        const u32 alignedSize = (byteSize + 15u) & ~15u;
+        if(alignedSize / 16 > Gpu::kMaxUserConstantVec4Count) {
+            Tsukino::Core::Log::Error("RenderResources::CreateUserConstantBuffer - the size (" + std::to_string(byteSize) + " bytes) exceeds the limit of "
+                                      + std::to_string(Gpu::kMaxUserConstantVec4Count * 16) + " bytes.");
+            return BufferHandle{};
+        }
+
+        Gpu::BufferEntry entry;
+        entry.kind     = Gpu::BufferKind::UserConstant;
+        entry.stride   = 16;
+        entry.capacity = alignedSize / 16;
+        entry.data.resize(alignedSize);    // 0 で埋まる
+        return m_gpu->AddBuffer(std::move(entry));
     }
 
     //------------------------------------------------------------------------
-    //! ゲーム定義の定数バッファの中身を書き換えます（bgfx 版はまだ何もしない）。
+    //! ゲーム定義の定数バッファの中身を書き換えます。
     //------------------------------------------------------------------------
-    void RenderResources::UpdateUserConstantBuffer(BufferHandle /*buffer*/, const void* /*data*/, u32 /*byteSize*/) {}
+    void RenderResources::UpdateUserConstantBuffer(BufferHandle buffer, const void* data, u32 byteSize) {
+        if(!m_gpu->FindBuffer(buffer, Gpu::BufferKind::UserConstant) || !data || byteSize == 0)
+            return;
+
+        // 確保量を超える書き込みは、バッファの外を壊すので行わない
+        Gpu::BufferEntry& entry = m_gpu->buffers[buffer.index];
+        if(byteSize > entry.data.size())
+            return;
+
+        std::memcpy(entry.data.data(), data, byteSize);
+    }
 
     //------------------------------------------------------------------------
-    //! バッファを破棄します（bgfx 版はまだ何もしない）。
+    //! バッファを破棄します。
     //------------------------------------------------------------------------
-    void RenderResources::DestroyBuffer(BufferHandle /*buffer*/) {}
+    void RenderResources::DestroyBuffer(BufferHandle buffer) {
+        if(!buffer.IsValid() || buffer.index >= m_gpu->buffers.size() || m_gpu->buffers[buffer.index].kind == Gpu::BufferKind::None)
+            return;
+
+        m_gpu->buffers[buffer.index] = Gpu::BufferEntry{};
+        m_gpu->freeBufferSlots.push_back(buffer.index);
+    }
 
 }    // namespace Tsukino::Renderer

@@ -86,6 +86,11 @@ namespace Tsukino::Renderer {
         //! @param  [in,out] stats 描画統計の加算先
         void ExecuteLines(const DrawCommand& cmd, bgfx::ViewId view, Renderer::FrameStats& stats);
 
+        //! コマンドのインスタンスごとのデータとゲーム定義の定数を、次の Submit へ設定します。
+        //! @param  [in] cmd 描画コマンド
+        //! @note   インスタンスの数（instanceCount が 2 以上のとき）もここで設定する
+        void ApplyInstanceAndUserConstants(const DrawCommand& cmd) const;
+
         //! コマンドに切り取りがあれば、次の Submit にシザーを設定します。
         //! @param  [in] cmd 描画コマンド
         static void ApplyClipRect(const DrawCommand& cmd);
