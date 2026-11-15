@@ -3,11 +3,14 @@
 //! @brief  bgfx 版の Renderer の実装（作りかけ）
 //! @detail DX11 版と同じ順に、不透明なモデルを G-Buffer へ描き、照らして HDR バッファへ書き、
 //!         フォワードの 3D（World・半透明）を重ね、トーンマップしてバックバッファへ写し、
-//!         最後に UI（Overlay）を描きます。影はシャドウマップで落とし、背景にはスカイを描き、環境光はスカイから焼きます。
+//!         エフェクト（Effekseer。IPostWorldPass）を重ね、最後に UI（Overlay）を描きます。
+//!         影はシャドウマップで落とし、背景にはスカイを描き、環境光はスカイから焼きます。
 //!         3D は内部解像度の大きさで描き、トーンマップで画面の大きさへ引き伸ばします。
-//!         まだ無いのは Effekseer（IPostWorldPass）だけです。
+//!         エフェクトを描くフレームは、トーンマップした絵を 3D と同じ大きさの描く先へ置き、
+//!         3D の深度で隠れるようにエフェクトを重ねてから、画面の大きさへ引き伸ばして写します。
 //----------------------------------------------------------------------------
 #include <Tsukino/Renderer/Renderer.hpp>
+#include <Tsukino/Renderer/IPostWorldPass.hpp>
 #include <Tsukino/Renderer/Bgfx/FrameConstantsGpu.hpp>
 #include <Tsukino/Renderer/Bgfx/GraphicsContext.hpp>
 #include <Tsukino/Renderer/BloomPass.hpp>
@@ -16,6 +19,7 @@
 #include <Tsukino/Renderer/Bgfx/Views.hpp>
 
 #include "DrawCommandExecutor.hpp"
+#include "EffectRenderer.hpp"
 #include "FullscreenPass.hpp"
 #include "GpuProfiler.hpp"
 #include "ShadowPass.hpp"
@@ -166,10 +170,9 @@ namespace Tsukino::Renderer {
         }
 
         //--------------------------------------------------------------------
-        // ビュー（Views.hpp の順に描かれる）。3D を描くビューの描く先は毎フレーム Render() で設定する。
+        // ビュー（Views.hpp の順に描かれる）。描く先は毎フレーム Render() で設定する。
         // 深度はリバース Z（手前ほど大きい）なので 0 で消す
         //--------------------------------------------------------------------
-        SetupBackBufferView(BgfxView::Tonemap);
         bgfx::setViewClear(BgfxView::GBuffer, BGFX_CLEAR_COLOR | BGFX_CLEAR_DEPTH, 0, 0.0f, 0);
         return true;
     }
@@ -177,12 +180,22 @@ namespace Tsukino::Renderer {
     //------------------------------------------------------------------------
     //! 1フレームを描きます。
     //------------------------------------------------------------------------
-    void Renderer::Render(IPostWorldPass* /*postWorldPass*/) {
+    void Renderer::Render(IPostWorldPass* postWorldPass) {
         if(m_qualityDirty)
             ApplyQuality();
 
         // 3D を描く先（画面の大きさや内部解像度が変わると作り直される）
         SetupSceneViews(*m_graphicsContext);
+
+        //--------------------------------------------------------------------
+        // エフェクトを描くフレームは、トーンマップの描く先をエフェクトを描く先（3D の深度つき）にする。
+        // 描かないフレームは今までどおり、トーンマップがそのままバックバッファへ書く
+        //--------------------------------------------------------------------
+        const bool drawEffects = postWorldPass && m_effectRenderer && m_effectRenderer->Get() && m_graphicsContext->HasEffectTargets();
+        if(drawEffects)
+            SetupSceneView(BgfxView::Tonemap, m_graphicsContext->GetEffectFrameBuffer(), *m_graphicsContext);
+        else
+            SetupBackBufferView(BgfxView::Tonemap);
 
         m_frameStats              = FrameStats{};
         m_frameStats.commandCount = static_cast<u32>(m_drawQueue.GetCommands().size());
@@ -290,6 +303,23 @@ namespace Tsukino::Renderer {
         //--------------------------------------------------------------------
         m_bloomPass.Execute(motionBlurred);
         m_tonemapPass->Execute(BgfxView::Tonemap, motionBlurred ? m_graphicsContext->GetPostProcessTexture() : m_graphicsContext->GetHdrTexture());
+
+        //--------------------------------------------------------------------
+        // エフェクト（Overlay より前）。
+        // エフェクトは 3D 空間の演出なので UI より奥に描き、3D の深度で手前の物に隠れる（DX11 版と同じ）。
+        // 描き終えた絵を、画面の大きさへ引き伸ばしてバックバッファへ写す
+        //--------------------------------------------------------------------
+        if(drawEffects) {
+            SetupSceneView(BgfxView::Effects, m_graphicsContext->GetEffectFrameBuffer(), *m_graphicsContext);
+            bgfx::touch(BgfxView::Effects);
+
+            const CBufferScene& world = m_frameConstants.GetWorldSceneData();
+            m_effectRenderer->Prepare(BgfxView::Effects, *m_graphicsContext, world.projection);
+            postWorldPass->RenderPostWorld(world.view, world.projection);
+
+            SetupBackBufferView(BgfxView::EffectsPresent);
+            m_effectRenderer->Present(BgfxView::EffectsPresent, *m_graphicsContext);
+        }
 
         //--------------------------------------------------------------------
         // Overlay パス。DX11 版と同じく sortOrder の昇順（同じ値は積んだ順）に並べて描く
@@ -445,13 +475,17 @@ namespace Tsukino::Renderer {
     }
 
     //------------------------------------------------------------
-    //! 描画 API の生のデバイスを取得します。
-    //! @note  bgfx 版はデバイスコンテキストを外へ出さないので、context は nullptr になる
-    //!        （Effekseer の DX11 版はこのとき動かない）
+    //! Effekseer のエフェクトを描く部品を取得します。
+    //! @note  最初に呼んだときに、レンダラーとエフェクトを描く先を作る。作れなければ以後も nullptr を返す
     //------------------------------------------------------------
-    NativeGraphicsContext Renderer::GetNativeGraphicsContext() const noexcept {
-        const bgfx::InternalData* data = bgfx::getInternalData();
-        return NativeGraphicsContext{data ? data->context : nullptr, nullptr};
+    ::EffekseerRenderer::Renderer* Renderer::GetEffectRenderer() {
+        if(!m_effectRenderer) {
+            m_effectRenderer = std::make_unique<EffectRenderer>();
+            if(!m_fullscreenPass || !m_fullscreenPass->IsValid() || !m_graphicsContext->EnableEffectTargets()
+               || !m_effectRenderer->Initialize(kEffectSquareMaxCount, *m_fullscreenPass))
+                Tsukino::Core::Log::Error("Renderer: Failed to create the effect renderer; effects are not drawn.");
+        }
+        return m_effectRenderer->Get();
     }
 
 }    // namespace Tsukino::Renderer

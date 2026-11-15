@@ -44,6 +44,8 @@ namespace Tsukino::Renderer {
                 return GpuPass::Bloom;
             if(view == Tonemap)
                 return GpuPass::Tonemap;
+            if(view == Effects || view == EffectsPresent)
+                return GpuPass::Effects;
             if(view >= Overlay && view <= OverlayLast)
                 return GpuPass::Overlay;
             return std::nullopt;

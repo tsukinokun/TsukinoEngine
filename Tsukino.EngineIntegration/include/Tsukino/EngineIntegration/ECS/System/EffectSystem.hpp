@@ -4,7 +4,7 @@
 //! @author 山﨑愛
 //-------------------------------------------------------------
 #pragma once
-// windows.h の min/max マクロを避けるため、DX11 / Effekseer より先に通す
+// windows.h の min/max マクロを避けるため、Effekseer より先に通す
 #include <Tsukino/Core/WindowsLean.hpp>
 #include <Tsukino/Core/ECS/System/ISystem.hpp>
 #include <Tsukino/Core/ECS/Registry/Registry.hpp>
@@ -18,7 +18,7 @@
 #include <Tsukino/Renderer/IPostWorldPass.hpp>
 
 #include <Effekseer.h>
-#include <EffekseerRendererDX11.h>
+#include <EffekseerRendererCommon/EffekseerRendererCommon/EffekseerRenderer.Renderer.h>
 #include <EffekseerRendererCommon/EffekseerRendererCommon/TextureLoader.h>
 #include <Tsukino/EngineIntegration/IO/EffectFileInterface.hpp>
 #include <unordered_map>
@@ -52,16 +52,14 @@ namespace Tsukino::BuiltIn::ECS {
         void Update(Tsukino::ECS::Registry& registry, float deltaTime) override;
 
         //-------------------------------------------------------------
-        //! @brief  エフェクトの描画（描画 API の生のデバイスでEffekseerを実行）
-        //! @param  graphics    [in] 描画 API の生のデバイス（DX11 では ID3D11Device* と ID3D11DeviceContext*）
+        //! @brief  エフェクトの描画
         //! @param  view        [in] ビュー行列（カメラ）
         //! @param  projection  [in] 射影行列
-        //! @note   Renderer が World パスの直後に呼ぶ IPostWorldPass の実装。
-        //!         Renderer 側は EffectSystem という型を知らない
+        //! @note   Renderer が 3D の絵を描き終えた後に呼ぶ IPostWorldPass の実装。
+        //!         描く先と描く部品（Renderer::GetEffectRenderer()）は Renderer が用意しているので、
+        //!         ここはカメラを渡して描くだけ。Renderer 側は EffectSystem という型を知らない
         //--------------------------------------------------------------
-        void RenderPostWorld(const Tsukino::Renderer::NativeGraphicsContext& graphics,
-                             const Tsukino::Core::Math::matrix& view,
-                             const Tsukino::Core::Math::matrix& projection) override;
+        void RenderPostWorld(const Tsukino::Core::Math::matrix& view, const Tsukino::Core::Math::matrix& projection) override;
 
         //-------------------------------------------------------------
         //! @brief  エフェクトを再生する
@@ -168,7 +166,7 @@ namespace Tsukino::BuiltIn::ECS {
         std::unordered_map<Tsukino::Asset::AssetHandle, Effekseer::EffectRef> m_loadedEffects;
 
         Effekseer::ManagerRef              m_manager;
-        EffekseerRendererDX11::RendererRef m_renderer;
+        EffekseerRenderer::RendererRef     m_renderer;    // Renderer が持つ Effekseer のレンダラー（参照を1つ持つ）
 
         Tsukino::ECS::Registry*        m_registry = nullptr;
         Tsukino::ECS::ScopedConnection m_entityDestroyedConn;

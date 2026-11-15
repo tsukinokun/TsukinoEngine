@@ -6,10 +6,11 @@
 //!         Renderer::Render() へ渡します。
 //!         Tsukino::Physics::IPhysicsDebugDraw と同じ、下層にインターフェースを
 //!         置いて上層が実装する形です。
+//!         描画 API には依りません。描く先（3D の絵の上、深度つき）と描く部品（Renderer::GetEffectRenderer()）は
+//!         Renderer が用意し、実装する側はカメラを受け取って描くだけです。
 //----------------------------------------------------------------------------
 #pragma once
 #include <Tsukino/Core/Math/Matrix.hpp>
-#include <Tsukino/Renderer/NativeHandles.hpp>
 
 // 名前空間 : Tsukino::Renderer
 namespace Tsukino::Renderer {
@@ -22,13 +23,10 @@ namespace Tsukino::Renderer {
         //! デストラクタ
         virtual ~IPostWorldPass() = default;
 
-        //! Worldパスの直後に呼ばれる描画を実行します。
-        //! @param  [in] graphics   描画 API の生のデバイス（DX11 では ID3D11Device* と ID3D11DeviceContext*）
+        //! 3D の絵を描き終えた後（UI の前）に呼ばれる描画を実行します。
         //! @param  [in] view       ビュー行列（カメラ）
-        //! @param  [in] projection 射影行列
-        virtual void RenderPostWorld(const NativeGraphicsContext&       graphics,
-                                     const Tsukino::Core::Math::matrix& view,
-                                     const Tsukino::Core::Math::matrix& projection) = 0;
+        //! @param  [in] projection 射影行列（リバース Z）
+        virtual void RenderPostWorld(const Tsukino::Core::Math::matrix& view, const Tsukino::Core::Math::matrix& projection) = 0;
     };
 
 }    // namespace Tsukino::Renderer

@@ -137,7 +137,6 @@ function tsukino_link()
 
         root .. "/External/Effekseer/Dev/Cpp",
         root .. "/External/Effekseer/Dev/Cpp/Effekseer",
-        root .. "/External/Effekseer/Dev/Cpp/EffekseerRendererDX11",
         root .. "/External/Effekseer/Dev/Cpp/EffekseerRendererCommon",
         root .. "/External/Effekseer/Dev/Cpp/3rdParty",
     }
@@ -154,11 +153,9 @@ function tsukino_link()
 
         "Effekseer",
         "EffekseerRendererCommon",
-        "EffekseerRendererDX11",
 
         "d3d11",
         "dxgi",
-        "d3dcompiler",
         "dwrite",
         "imm32",
         "dwmapi",    -- Window の ClickThrough（DwmExtendFrameIntoClientArea）
@@ -179,10 +176,15 @@ function tsukino_link()
     libdirs { "%{wks.location}/SDL3/build/%{cfg.buildcfg}" }
 
     -- bgfx 版のときは、bgfx とその土台（bimg・bx）もリンクする。
-    -- bgfx のヘッダは Tsukino.Renderer の中だけで使うので、includedirs は足さない
+    -- bgfx のヘッダは Tsukino.Renderer の中だけで使うので、includedirs は足さない。
+    -- DX11 版のときは、Effekseer の DX11 版と、それが実行時にシェーダーを組み立てるための d3dcompiler をリンクする
+    -- （bgfx 版のエフェクトは Tsukino.Renderer が描くので、どちらも使わない）
     if tsukino_use_bgfx() then
         links { "bgfx", "bimg_decode", "bimg", "bx" }
         libdirs { "%{wks.location}/bgfx/build/%{cfg.buildcfg}" }
+    else
+        includedirs { root .. "/External/Effekseer/Dev/Cpp/EffekseerRendererDX11" }
+        links { "EffekseerRendererDX11", "d3dcompiler" }
     end
 
     nuget {

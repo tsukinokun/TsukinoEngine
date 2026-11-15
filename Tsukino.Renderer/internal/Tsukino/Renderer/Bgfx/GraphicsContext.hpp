@@ -162,6 +162,47 @@ namespace Tsukino::Renderer {
             return m_depthTexture;
         }
 
+        //------------------------------------------------------------------------
+        // エフェクト（Effekseer）を描く先。Renderer が Effekseer を使い始めたときだけ作る（EnableEffectTargets）。
+        // トーンマップした絵（LDR）を 3D の深度と組にして、その上にエフェクトを重ね、最後にバックバッファへ写す。
+        // 大きさは 3D を描く先と同じで、一緒に作り直す
+        //------------------------------------------------------------------------
+
+        //! エフェクトを描く先を作るようにします（2回目以降は何もしない）。
+        //! @return true: 作れた（描画領域がまだ無いときは、作るのを後に回して true）
+        [[nodiscard]]
+        bool EnableEffectTargets();
+
+        //! エフェクトを描く先があるかを返します。
+        [[nodiscard]]
+        bool HasEffectTargets() const noexcept {
+            return bgfx::isValid(m_effectFrameBuffer);
+        }
+
+        //! トーンマップした絵と 3D の深度のフレームバッファを返します（トーンマップとエフェクトの描く先）。
+        [[nodiscard]]
+        bgfx::FrameBufferHandle GetEffectFrameBuffer() const noexcept {
+            return m_effectFrameBuffer;
+        }
+
+        //! トーンマップした絵のテクスチャを返します（RGBA8。最後にバックバッファへ写す）。
+        [[nodiscard]]
+        bgfx::TextureHandle GetEffectColorTexture() const noexcept {
+            return m_effectColorTexture;
+        }
+
+        //! 歪みが読む背景のテクスチャを返します（エフェクトを描く前の絵の写し）。
+        [[nodiscard]]
+        bgfx::TextureHandle GetEffectBackgroundTexture() const noexcept {
+            return m_effectBackgroundTexture;
+        }
+
+        //! ソフトパーティクルが読む深度のテクスチャを返します（3D の深度の写し。描く先の深度は読めないので写す）。
+        [[nodiscard]]
+        bgfx::TextureHandle GetEffectDepthTexture() const noexcept {
+            return m_effectDepthTexture;
+        }
+
     private:
         //! 使っている GPU の情報を調べて保持し、ログへ出します。
         //! @note   Windows（D3D11）は DXGI から DX11 版と同じ値を読む。それ以外は bgfx が持つ ID と描画 API の名前だけ
@@ -190,6 +231,11 @@ namespace Tsukino::Renderer {
         bgfx::FrameBufferHandle                m_hdrColorFrameBuffer = BGFX_INVALID_HANDLE;    // HDR だけ
         bgfx::TextureHandle                    m_postProcessTexture     = BGFX_INVALID_HANDLE;    // ポストプロセス用の中間バッファ（RGBA16F）
         bgfx::FrameBufferHandle                m_postProcessFrameBuffer = BGFX_INVALID_HANDLE;    // 中間バッファだけ
+        bgfx::TextureHandle                    m_effectColorTexture      = BGFX_INVALID_HANDLE;    // トーンマップした絵（RGBA8）
+        bgfx::FrameBufferHandle                m_effectFrameBuffer       = BGFX_INVALID_HANDLE;    // トーンマップした絵 ＋ 3D の深度
+        bgfx::TextureHandle                    m_effectBackgroundTexture = BGFX_INVALID_HANDLE;    // 歪みの背景（トーンマップした絵の写し）
+        bgfx::TextureHandle                    m_effectDepthTexture      = BGFX_INVALID_HANDLE;    // ソフトパーティクルの深度（3D の深度の写し）
+        bool                                   m_effectTargetsEnabled    = false;                  // エフェクトを描く先を作るか
 
         bool                m_initialized = false;    // bgfx を初期化したか
         bool                m_vsync       = true;     // 垂直同期をするか

@@ -201,13 +201,11 @@ project "EffekseerRendererCommon"
 
     links {
         "Effekseer",
-        "d3d11",
-        "dxgi",
-        "d3dcompiler",
     }
 
+if not tsukino_use_bgfx() then
 ----------------------------------------
--- Effekseer DX11 レンダラー
+-- Effekseer DX11 レンダラー（DX11 版の描画のときだけ。bgfx 版は Tsukino.Renderer の src/Bgfx/Effekseer）
 ---------------------------------------
 project "EffekseerRendererDX11"
     location ".build/EffekseerRendererDX11"
@@ -253,6 +251,7 @@ project "EffekseerRendererDX11"
         "dxgi",
         "d3dcompiler",
     }
+end
 
 ----------------------------------------
 -- SDL3（ウィンドウ・入力・IME・ゲームパッド・保存先などのプラットフォーム層）
@@ -296,6 +295,7 @@ project "bgfx-shaders"
     kind "Utility"
 
     tsukino_shaders("Tsukino.BuiltIn/Assets/Shaders/bgfx")
+    tsukino_shaders("Tsukino.BuiltIn/Assets/Shaders/bgfx/Effekseer")    -- Effekseer の標準シェーダー（src/Bgfx/Effekseer が使う）
 end
 
 ----------------------------------------
@@ -423,9 +423,6 @@ project "Tsukino.Engine"
         "Tsukino.Core",
         "Tsukino.GraphicsCommon",
         "DirectXTex",
-        "EffekseerRendererDX11",
-        "EffekseerRendererCommon",
-        "Effekseer",
     }
 
     nuget {"AssimpCpp:5.0.1.6"}
@@ -505,7 +502,6 @@ project "Tsukino.Renderer"
         "External/entt/single_include",
         "External/Effekseer/Dev/Cpp",
         "External/Effekseer/Dev/Cpp/Effekseer",
-        "External/Effekseer/Dev/Cpp/EffekseerRendererDX11",
         "External/Effekseer/Dev/Cpp/EffekseerRendererCommon",
         "External/Effekseer/Dev/Cpp/3rdParty",
         ".build/packages/directxtk_desktop_win10.2026.4.1.1/include",
@@ -515,10 +511,15 @@ project "Tsukino.Renderer"
         "Tsukino.Core",
         "Tsukino.Engine",
         "Tsukino.GraphicsCommon",
-        "EffekseerRendererDX11",
         "EffekseerRendererCommon",
         "Effekseer",
     }
+
+    -- Effekseer の DX11 版を使うのは DX11 版の描画のときだけ（bgfx 版は Tsukino.Renderer の src/Bgfx/Effekseer が描く）
+    if not tsukino_use_bgfx() then
+        includedirs { "External/Effekseer/Dev/Cpp/EffekseerRendererDX11" }
+        links { "EffekseerRendererDX11", "d3dcompiler" }
+    end
 
     nuget { "directxtk_desktop_win10:2026.4.1.1" }
 
@@ -655,7 +656,6 @@ project "Tsukino.BuiltIn"
         "Tsukino.Renderer",
         "Tsukino.GraphicsCommon",
         "Tsukino.Core",
-        "EffekseerRendererDX11",
         "EffekseerRendererCommon",
         "Effekseer",
     }
@@ -704,7 +704,6 @@ project "Tsukino.EngineIntegration"
         "External/entt/single_include",
         "External/Effekseer/Dev/Cpp",
         "External/Effekseer/Dev/Cpp/Effekseer",
-        "External/Effekseer/Dev/Cpp/EffekseerRendererDX11",
         "External/Effekseer/Dev/Cpp/EffekseerRendererCommon",
         "External/Effekseer/Dev/Cpp/3rdParty",
         ".build/packages/directxtk_desktop_win10.2026.4.1.1/include",
@@ -718,12 +717,10 @@ project "Tsukino.EngineIntegration"
         "Tsukino.BuiltIn",
         "Tsukino.Core",
         "Tsukino.Physics",
-        "EffekseerRendererDX11",
         "EffekseerRendererCommon",
         "Effekseer",
         "d3d11",
         "dxgi",
-        "d3dcompiler",
         "dwrite"
     }
 

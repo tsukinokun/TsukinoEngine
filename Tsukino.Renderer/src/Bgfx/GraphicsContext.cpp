@@ -296,7 +296,40 @@ namespace Tsukino::Renderer {
             Tsukino::Core::Log::Error("GraphicsContext: Failed to create the render targets.");
             return false;
         }
+
+        //--------------------------------------------------------------------
+        // エフェクトを描く先（Effekseer を使い始めてから）。トーンマップした絵は 3D の深度と組にし、
+        // 歪みの背景とソフトパーティクルの深度は、描く前に写す先（blit）として作る
+        //--------------------------------------------------------------------
+        if(m_effectTargetsEnabled) {
+            constexpr u64 kCopyFlags = BGFX_TEXTURE_BLIT_DST | BGFX_SAMPLER_U_CLAMP | BGFX_SAMPLER_V_CLAMP;
+            m_effectColorTexture      = bgfx::createTexture2D(width, height, false, 1, bgfx::TextureFormat::RGBA8, kTargetFlags);
+            m_effectBackgroundTexture = bgfx::createTexture2D(width, height, false, 1, bgfx::TextureFormat::RGBA8, kCopyFlags);
+            m_effectDepthTexture      = bgfx::createTexture2D(width, height, false, 1, bgfx::TextureFormat::D32F,
+                                                              kCopyFlags | BGFX_SAMPLER_MIN_POINT | BGFX_SAMPLER_MAG_POINT | BGFX_SAMPLER_MIP_POINT);
+            const bgfx::TextureHandle effectAttachments[] = {m_effectColorTexture, m_depthTexture};
+            m_effectFrameBuffer                           = bgfx::createFrameBuffer(2, effectAttachments, false);
+            if(!bgfx::isValid(m_effectFrameBuffer) || !bgfx::isValid(m_effectBackgroundTexture) || !bgfx::isValid(m_effectDepthTexture)) {
+                Tsukino::Core::Log::Error("GraphicsContext: Failed to create the effect render targets; effects are not drawn.");
+                return false;
+            }
+        }
         return true;
+    }
+
+    //------------------------------------------------------------------------
+    //! エフェクトを描く先を作るようにします。
+    //------------------------------------------------------------------------
+    bool GraphicsContext::EnableEffectTargets() {
+        if(m_effectTargetsEnabled)
+            return true;
+        m_effectTargetsEnabled = true;
+
+        // 3D を描く先がまだ無ければ、それを作るときに一緒に作る
+        if(m_sceneWidth == 0)
+            return true;
+        DestroyRenderTargets();
+        return CreateRenderTargets();
     }
 
     //------------------------------------------------------------------------
@@ -318,6 +351,10 @@ namespace Tsukino::Renderer {
         destroyFrameBuffer(m_hdrFrameBuffer);
         destroyFrameBuffer(m_hdrColorFrameBuffer);
         destroyFrameBuffer(m_postProcessFrameBuffer);
+        destroyFrameBuffer(m_effectFrameBuffer);
+        destroyTexture(m_effectColorTexture);
+        destroyTexture(m_effectBackgroundTexture);
+        destroyTexture(m_effectDepthTexture);
         destroyTexture(m_postProcessTexture);
         destroyTexture(m_hdrTexture);
         destroyTexture(m_depthTexture);

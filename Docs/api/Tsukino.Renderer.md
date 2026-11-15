@@ -12,6 +12,12 @@
 
 `Tsukino.Renderer/include/Tsukino/Renderer/Renderer.hpp`
 
+**公開メンバ**
+
+| メンバ | 説明 |
+|---|---|
+| `int32_t kEffectSquareMaxCount` | Effekseer が1回にまとめて描ける四角の数 |
+
 **公開関数**
 
 | シグネチャ | 説明 |
@@ -35,7 +41,7 @@
 | `DebugDraw & GetDebugDraw() noexcept` | デバッグ用の線と三角形の描画を取得する |
 | `RenderResources & GetResources() noexcept` | 描画で共有する資源を取得する |
 | `FrameConstants & GetFrameConstants() noexcept` | フレーム単位のシーン定数（b0）を取得する |
-| `NativeGraphicsContext GetNativeGraphicsContext() const noexcept` | 描画 API の生のデバイスを取得します。 |
+| `::EffekseerRenderer::Renderer * GetEffectRenderer()` |  |
 | `LightingPass & GetLighting() noexcept` | ディファードライティングパスを取得する |
 | `SkyPass & GetSky() noexcept` | スカイ（大気散乱）パスを取得する |
 | `IBLBaker & GetIBL() noexcept` | スカイ由来の環境光（IBL）のベイクを取得する |
@@ -115,6 +121,28 @@
   - glyphIndex, advanceX
 - **Tsukino::Renderer::DynamicFontAtlas::Page** — `Tsukino.Renderer/include/Tsukino/Renderer/Text/DynamicFontAtlas.hpp`
   - texture, cursorX, cursorY, shelfHeight
+- **Tsukino::Renderer::EffectRenderer** — `Tsukino.Renderer/src/Bgfx/EffectRenderer.hpp`
+  - EffectRenderer(), ~EffectRenderer(), EffectRenderer(), operator=(), Initialize(), Get(), Prepare(), Present(), Initialize(), Get()
+- **Tsukino::Renderer::EffectRenderer::Impl** — `Tsukino.Renderer/src/Bgfx/EffectRenderer.cpp`
+  - renderer, background, depth
+- **Tsukino::Renderer::EffekseerBgfx::GraphicsDevice** — `Tsukino.Renderer/src/Bgfx/Effekseer/EfkGraphicsDevice.hpp`
+  - CreateVertexBuffer(), CreateIndexBuffer(), UpdateVertexBuffer(), UpdateIndexBuffer(), CreateVertexLayout(), CreateTexture(), GetDeviceName(), CreateBorrowedTexture()
+- **Tsukino::Renderer::EffekseerBgfx::IndexBuffer** — `Tsukino.Renderer/src/Bgfx/Effekseer/EfkGraphicsDevice.hpp`
+  - IndexBuffer(), ~IndexBuffer(), UpdateData(), Bind()
+- **Tsukino::Renderer::EffekseerBgfx::ModelRenderer** — `Tsukino.Renderer/src/Bgfx/Effekseer/EfkRenderer.hpp`
+  - kModelInstanceCount, Create(), BeginRendering(), Rendering(), EndRendering()
+- **Tsukino::Renderer::EffekseerBgfx::RenderState** — `Tsukino.Renderer/src/Bgfx/Effekseer/EfkRenderer.hpp`
+  - RenderState(), Update(), GetBgfxState(), GetSamplerFlags()
+- **Tsukino::Renderer::EffekseerBgfx::RendererImplemented** — `Tsukino.Renderer/src/Bgfx/Effekseer/EfkRenderer.hpp`
+  - RendererImplemented(), ~RendererImplemented(), Initialize(), SetView(), GetBgfxGraphicsDevice(), OnLostDevice(), OnResetDevice(), SetRestorationOfStatesFlag(), BeginRendering(), EndRendering(), GetSquareMaxCount(), CreateSpriteRenderer(), CreateRibbonRenderer(), CreateRingRenderer(), CreateModelRenderer(), CreateTrackRenderer(), CreateTextureLoader(), CreateModelLoader(), CreateMaterialLoader(), ResetRenderState(), GetDistortingCallback(), SetDistortingCallback(), GetGraphicsDevice(), GetRenderState(), GetIndexBuffer(), GetStandardRenderer(), SetVertexBuffer(), SetIndexBuffer(), SetLayout(), DrawSprites(), DrawPolygon(), DrawPolygonInstanced(), BeginShader(), EndShader(), SetVertexBufferToShader(), SetPixelBufferToShader(), SetTextures(), GetRef(), AddRef(), Release()
+- **Tsukino::Renderer::EffekseerBgfx::Shader** — `Tsukino.Renderer/src/Bgfx/Effekseer/EfkRenderer.hpp`
+  - Shader(), ~Shader(), Shader(), operator=(), IsValid(), SetVertexConstantBufferSize(), SetPixelConstantBufferSize(), GetVertexConstantBuffer(), GetPixelConstantBuffer(), SetConstantBuffer(), GetVertexConstantBufferSize(), GetPixelConstantBufferSize(), ApplyUniforms(), GetProgram(), GetLayout()
+- **Tsukino::Renderer::EffekseerBgfx::Texture** — `Tsukino.Renderer/src/Bgfx/Effekseer/EfkGraphicsDevice.hpp`
+  - Texture(), ~Texture(), GetHandle(), SetBorrowedHandle()
+- **Tsukino::Renderer::EffekseerBgfx::VertexBuffer** — `Tsukino.Renderer/src/Bgfx/Effekseer/EfkGraphicsDevice.hpp`
+  - VertexBuffer(), ~VertexBuffer(), UpdateData(), Bind()
+- **Tsukino::Renderer::EffekseerBgfx::VertexLayout** — `Tsukino.Renderer/src/Bgfx/Effekseer/EfkGraphicsDevice.hpp`
+  - VertexLayout(), GetLayout(), IsValid()
 - **Tsukino::Renderer::FogPass** — `Tsukino.Renderer/include/Tsukino/Renderer/FogPass.hpp`
   - FogPass(), ~FogPass(), FogPass(), operator=(), GetGpu(), GetGpu(), Initialize(), SetParameters(), SetEnabled(), Execute(), BindForwardFog(), UnbindForwardFog(), EndFrame()
 - **Tsukino::Renderer::FogPass::Gpu** — `Tsukino.Renderer/internal/Tsukino/Renderer/Bgfx/FogPassGpu.hpp`
@@ -142,7 +170,7 @@
 - **Tsukino::Renderer::GraphicsAdapterInfo** — `Tsukino.Renderer/include/Tsukino/Renderer/RenderQuality.hpp`
   - name, vendorId, deviceId, isSoftware, isUnifiedMemory, dedicatedMemory, sharedMemory
 - **Tsukino::Renderer::GraphicsContext** — `Tsukino.Renderer/internal/Tsukino/Renderer/Bgfx/GraphicsContext.hpp`
-  - kGBufferCount, GBufferCount, ~GraphicsContext(), Initialize(), Resize(), SetVSyncEnabled(), IsVSyncEnabled(), GetAdapterInfo(), GetWidth(), GetHeight(), SetRenderScale(), GetSceneWidth(), GetSceneHeight(), GetGBufferFrameBuffer(), GetHdrFrameBuffer(), GetHdrColorFrameBuffer(), GetHdrTexture(), GetPostProcessTexture(), GetPostProcessFrameBuffer(), GetGBufferTexture(), GetDepthTexture(), Initialize(), BeginFrame(), EndFrame(), GetDevice(), GetContext(), SetPipelineState(), SetMaterial(), GetHDRSRV(), BindBackBuffer(), BindBackBufferWithClearedDepth(), BindBackBufferWithSceneDepth(), BeginGBufferPass(), GetPostProcessSRV(), BindPostProcessTarget(), BindHDRRenderTarget(), BindHDRTargetOnly(), GetGBufferSRV(), GetDepthSRV(), Resize(), SetRenderScale(), GetSceneWidth(), GetSceneHeight(), GetBackBufferWidth(), GetBackBufferHeight(), SetBackBufferViewport(), GetAdapterInfo(), SetVSyncEnabled(), IsVSyncEnabled(), IsBgfxAlive()
+  - kGBufferCount, GBufferCount, ~GraphicsContext(), Initialize(), Resize(), SetVSyncEnabled(), IsVSyncEnabled(), GetAdapterInfo(), GetWidth(), GetHeight(), SetRenderScale(), GetSceneWidth(), GetSceneHeight(), GetGBufferFrameBuffer(), GetHdrFrameBuffer(), GetHdrColorFrameBuffer(), GetHdrTexture(), GetPostProcessTexture(), GetPostProcessFrameBuffer(), GetGBufferTexture(), GetDepthTexture(), EnableEffectTargets(), HasEffectTargets(), GetEffectFrameBuffer(), GetEffectColorTexture(), GetEffectBackgroundTexture(), GetEffectDepthTexture(), Initialize(), BeginFrame(), EndFrame(), GetDevice(), GetContext(), SetPipelineState(), SetMaterial(), GetHDRSRV(), BindBackBuffer(), BindBackBufferWithClearedDepth(), BindBackBufferWithSceneDepth(), BeginGBufferPass(), GetPostProcessSRV(), BindPostProcessTarget(), BindHDRRenderTarget(), BindHDRTargetOnly(), GetGBufferSRV(), GetDepthSRV(), Resize(), SetRenderScale(), GetSceneWidth(), GetSceneHeight(), GetBackBufferWidth(), GetBackBufferHeight(), SetBackBufferViewport(), GetAdapterInfo(), SetVSyncEnabled(), IsVSyncEnabled(), IsBgfxAlive()
 - **Tsukino::Renderer::GraphicsDeviceOptions** — `Tsukino.Renderer/include/Tsukino/Renderer/RenderQuality.hpp`
   - preference
 - **Tsukino::Renderer::IBLBaker** — `Tsukino.Renderer/include/Tsukino/Renderer/IBLBaker.hpp`
@@ -167,8 +195,6 @@
   - MotionBlurPass(), ~MotionBlurPass(), MotionBlurPass(), operator=(), GetGpu(), GetGpu(), Initialize(), SetParameters(), SetEnabled(), IsEnabled(), SetAllowed(), Execute(), EndFrame()
 - **Tsukino::Renderer::MotionBlurPass::Gpu** — `Tsukino.Renderer/internal/Tsukino/Renderer/Bgfx/MotionBlurPassGpu.hpp`
   - program, params, sceneSampler, velocitySampler, ps, buffer, Gpu(), Gpu(), operator=(), ~Gpu()
-- **Tsukino::Renderer::NativeGraphicsContext** — `Tsukino.Renderer/include/Tsukino/Renderer/NativeHandles.hpp`
-  - device, context
 - **Tsukino::Renderer::NativeWindow** — `Tsukino.Renderer/include/Tsukino/Renderer/NativeHandles.hpp`
   - handle
 - **Tsukino::Renderer::PipelineFactory** — `Tsukino.Renderer/include/Tsukino/Renderer/PipelineFactory.hpp`
@@ -194,7 +220,7 @@
 - **Tsukino::Renderer::RenderResources::Gpu::TextureEntry** — `Tsukino.Renderer/internal/Tsukino/Renderer/Bgfx/RenderResourcesGpu.hpp`
   - texture, width, height, format
 - **Tsukino::Renderer::Renderer** — `Tsukino.Renderer/include/Tsukino/Renderer/Renderer.hpp`
-  - Renderer(), ~Renderer(), Initialize(), Render(), Resize(), SetClearColor(), GetDrawQueue(), SetShadowCullingEnabled(), SetShadowSettings(), GetShadowSettings(), GetFrameStats(), SetVSyncEnabled(), IsVSyncEnabled(), SetQuality(), GetQuality(), GetAdapterInfo(), GetDebugDraw(), GetResources(), GetFrameConstants(), GetNativeGraphicsContext(), GetLighting(), GetSky(), GetIBL(), GetAmbientParticles(), GetFog(), GetSphereColorGrade(), GetMotionBlur(), GetBloom()
+  - kEffectSquareMaxCount, Renderer(), ~Renderer(), Initialize(), Render(), Resize(), SetClearColor(), GetDrawQueue(), SetShadowCullingEnabled(), SetShadowSettings(), GetShadowSettings(), GetFrameStats(), SetVSyncEnabled(), IsVSyncEnabled(), SetQuality(), GetQuality(), GetAdapterInfo(), GetDebugDraw(), GetResources(), GetFrameConstants(), GetEffectRenderer(), GetLighting(), GetSky(), GetIBL(), GetAmbientParticles(), GetFog(), GetSphereColorGrade(), GetMotionBlur(), GetBloom()
 - **Tsukino::Renderer::Renderer::FrameStats** — `Tsukino.Renderer/include/Tsukino/Renderer/Renderer.hpp`
   - commandCount, shadowDrawCalls, gbufferDrawCalls, worldDrawCalls, transparentDrawCalls, overlayDrawCalls, skinnedDrawCalls, triangleCount, boneBytesUploaded, gpu, TotalDrawCalls()
 - **Tsukino::Renderer::RendererShaderSet** — `Tsukino.Renderer/include/Tsukino/Renderer/Renderer.hpp`

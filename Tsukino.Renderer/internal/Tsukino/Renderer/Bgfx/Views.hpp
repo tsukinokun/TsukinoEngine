@@ -36,8 +36,10 @@ namespace Tsukino::Renderer::BgfxView {
     inline constexpr bgfx::ViewId BloomUpsample   = 68;    // 拡大しながら足し戻す（小さい段から順に。68〜72）
     inline constexpr bgfx::ViewId BloomComposite  = 73;    // 段0 をシーンへ加算
 
-    inline constexpr bgfx::ViewId Tonemap     = 74;    // シーン（HDR か中間バッファ）をトーンマップしてバックバッファへ
-    inline constexpr bgfx::ViewId Overlay     = 75;    // UI と文字（UI の層の 3D モデルが深度を消し直すたびに、1つずつ後ろの番号を使う）
+    inline constexpr bgfx::ViewId Tonemap     = 74;    // シーン（HDR か中間バッファ）をトーンマップしてバックバッファへ（エフェクトを描くフレームはエフェクトの描く先へ）
+    inline constexpr bgfx::ViewId Effects     = 75;    // エフェクト（Effekseer）をトーンマップした絵の上へ。3D の深度で隠れる
+    inline constexpr bgfx::ViewId EffectsPresent = 76;    // エフェクトを重ねた絵をバックバッファへ写す
+    inline constexpr bgfx::ViewId Overlay     = 77;    // UI と文字（UI の層の 3D モデルが深度を消し直すたびに、1つずつ後ろの番号を使う）
 
     static_assert(IblSpecular + 6 * 6 <= Shadow, "The IBL bake views (one per cube face and mip) must fit before the shadow views.");
     static_assert(Shadow + kShadowCascadeCount <= GBuffer, "The shadow views (one per cascade) must fit before the G-Buffer view.");

@@ -16,7 +16,7 @@
 #include <Tsukino/Engine/Asset/AssetHandle.hpp>
 #include <Tsukino/Engine/ECS/EngineEvent/EntityEvent.hpp>
 #include <Effekseer.h>
-#include <EffekseerRendererDX11.h>
+#include <EffekseerRendererCommon/EffekseerRendererCommon/EffekseerRenderer.Renderer.h>
 #include <EffekseerRendererCommon/EffekseerRendererCommon/TextureLoader.h>
 #include <algorithm>
 #include <cmath>
@@ -78,20 +78,13 @@ namespace Tsukino::BuiltIn::ECS {
             return;
         }
 
-        // Effekseer は DX11 版を使うので、Renderer の生のデバイスを D3D11 の型に戻して渡す
-        const Tsukino::Renderer::NativeGraphicsContext graphics = context->renderer->GetNativeGraphicsContext();
-        ID3D11Device*                                  device   = static_cast<ID3D11Device*>(graphics.device);
-        ID3D11DeviceContext*                           dc       = static_cast<ID3D11DeviceContext*>(graphics.context);
-        if(!device || !dc) {
+        // Effekseer のレンダラーは Renderer が描画 API に合わせて作って持つ（リバース Z の深度テストも Renderer が合わせる）。
+        // ここは参照を1つ持つだけ
+        ::EffekseerRenderer::Renderer* effectRenderer = context->renderer->GetEffectRenderer();
+        if(!effectRenderer) {
             return;
         }
-
-        // エンジンはリバースZ（手前ほど深度が大きい）なので、深度テストをGREATER_EQUALにする。
-        // 既定のLESS_EQUALのままだと、深度を張ったときに手前の物の後ろだけが描かれて逆になる
-        m_renderer = EffekseerRendererDX11::Renderer::Create(device, dc, 20000, D3D11_COMPARISON_GREATER_EQUAL);
-        if(!m_renderer) {
-            return;
-        }
+        m_renderer = EffekseerRenderer::RendererRef::FromPinned(effectRenderer);
 
         m_manager = Effekseer::Manager::Create(maxParticles);
         if(!m_manager) {
@@ -438,11 +431,10 @@ namespace Tsukino::BuiltIn::ECS {
     }
 
     //--------------------------------------------------------------
-    //! @brief  エフェクトの描画（D3D11デバイスコンテキストでEffekseerを実行）
-    //! @param  graphics [in] 描画 API の生のデバイス
+    //! @brief  エフェクトの描画
     //--------------------------------------------------------------
-    void EffectSystem::RenderPostWorld(const Tsukino::Renderer::NativeGraphicsContext& graphics, const Tsukino::Core::Math::matrix& view, const Tsukino::Core::Math::matrix& projection) {
-        if(!m_initialized || !m_renderer || !graphics.context) {
+    void EffectSystem::RenderPostWorld(const Tsukino::Core::Math::matrix& view, const Tsukino::Core::Math::matrix& projection) {
+        if(!m_initialized || !m_renderer) {
             return;
         }
 

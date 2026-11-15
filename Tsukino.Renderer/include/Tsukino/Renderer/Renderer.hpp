@@ -33,6 +33,11 @@
 #include <memory>
 #include <vector>
 
+// 前方宣言（Effekseer の描画部品。使う側は EffekseerRendererCommon/EffekseerRenderer.Renderer.h を include する）
+namespace EffekseerRenderer {
+    class Renderer;
+}
+
 // 名前空間 : Tsukino::Renderer
 namespace Tsukino::Renderer {
     class GraphicsContext;        // 前方宣言（Device, DeviceContext, SwapChain の持ち主。Tsukino.Renderer の内部専用）
@@ -42,6 +47,7 @@ namespace Tsukino::Renderer {
     class TonemapPass;            // 前方宣言（トーンマップパス。同上）
     class ShadowPass;             // 前方宣言（シャドウマップパス。同上）
     class GpuProfiler;            // 前方宣言（パス単位のGPUタイマー。同上）
+    class EffectRenderer;         // 前方宣言（Effekseer を描く部品の持ち主。同上）
 
     //------------------------------------------------------------
     //! @struct RendererShaderSet
@@ -284,13 +290,18 @@ namespace Tsukino::Renderer {
         }
 
         //------------------------------------------------------------
-        //! 描画 API の生のデバイスを取得します。
-        //! @return デバイスとデバイスコンテキスト（型は描画 API による。NativeHandles.hpp を参照）
-        //! @note   Renderer の外で描画 API を直接使う部品（Effekseer など）のためのもの。
-        //!         ふつうの描画は DrawCommand と RenderResources で行うこと
+        //! Effekseer のエフェクトを描く部品を取得します。
+        //! @return Effekseer のレンダラー（作れなかったときは nullptr）。Renderer が持ち、Renderer より先に破棄しない
+        //! @note   最初に呼んだときに作る（四角は1回に kEffectSquareMaxCount 個までまとめて描ける）。
+        //!         描画 API ごとの中身は Renderer が選ぶので、使う側（EffectSystem）は描画 API を知らなくてよい。
+        //!         Effekseer のマネージャーへ渡すスプライトなどのレンダラーは、これの Create*Renderer() で作る。
+        //!         描く先・カメラ以外の準備（深度・歪みの背景）は、Render() が IPostWorldPass を呼ぶ前に済ませる
         //------------------------------------------------------------
         [[nodiscard]]
-        NativeGraphicsContext GetNativeGraphicsContext() const noexcept;
+        ::EffekseerRenderer::Renderer* GetEffectRenderer();
+
+        //! Effekseer が1回にまとめて描ける四角の数
+        static constexpr int32_t kEffectSquareMaxCount = 20000;
 
         //------------------------------------------------------------
         //! @brief  ディファードライティングパスを取得する
@@ -392,6 +403,7 @@ namespace Tsukino::Renderer {
         SphereColorGradePass                 m_sphereColorGradePass;   // 球形の色調補正（同上）
         MotionBlurPass                       m_motionBlurPass;         // モーションブラー（同上）
         BloomPass                            m_bloomPass;              // ブルーム（同上）
+        std::unique_ptr<EffectRenderer>      m_effectRenderer;         // Effekseer を描く部品（GetEffectRenderer() で作る。デバイスを借りるので後ろに置く）
 
         std::array<float, 4> m_clearColor = {0.5f, 0.5f, 0.5f, 1.0f};    // 描画領域のクリアカラー (デフォルトはグレー)
 

@@ -57,7 +57,7 @@ carve-out for `Tsukino.Renderer` described under **API stability** in the README
   - Single-mip textures with `generateMips` get a full mip chain built on the CPU (2×2 box filter, averaged in linear
     space for sRGB formats) for 8-bit uncompressed formats, since bgfx cannot generate mips for ordinary textures.
   - `GetFrameStats().gpu` is filled from bgfx's per-view profiler (`BGFX_DEBUG_PROFILER`), summed per `GpuPass`.
-  - Not yet in bgfx mode: Effekseer effects (`IPostWorldPass` is not drawn). (`BakedFont` has since been removed.)
+  - (Effekseer effects and `BakedFont`, the last items missing here, have since been ported and removed respectively.)
 - **Game shaders compiled at build time with `tsukino_shaders()` (bgfx mode only).**
   - `tsukino_shaders(dir)`, called under a project, compiles `<dir>/*.vs.sc` / `*.ps.sc` before the build into
     `<dir>/dxbc/<name>.sc.bin`. A `varying.def.sc` in the folder is used if there is one, otherwise the built-in one;
@@ -70,6 +70,22 @@ carve-out for `Tsukino.Renderer` described under **API stability** in the README
   - In bgfx mode nothing compiles HLSL at run time any more: `ShaderImporter` (`D3DCompileFromFile`) is not built or
     registered, `BuiltInShaders` loads only `Shaders/bgfx/*.sc` (the HLSL fallback is gone), and `Tsukino.Engine` no
     longer includes `d3dcompiler.h`. DX11 mode still compiles HLSL at run time until the DX11 renderer is removed.
+- **Effekseer effects are drawn in bgfx mode.** A new Effekseer backend on bgfx lives in `Tsukino.Renderer/src/Bgfx/Effekseer`
+  and is built on `EffekseerRendererCommon`, like Effekseer's own DX11 backend.
+  - It implements Effekseer's graphics device (vertex / index buffers, vertex layouts, textures) and renderer, so sprites,
+    ribbons, rings, tracks and models use Effekseer's common code unchanged. Per-frame vertices go through bgfx transient
+    vertex buffers. Textures that ask for generated mips get a CPU-built chain (`MipChain`), like other bgfx textures.
+  - Effekseer's standard shaders (unlit, lit and distortion, plain and advanced, for sprites and models) are ported to
+    `.sc` in `Tsukino.BuiltIn/Assets/Shaders/bgfx/Effekseer`, compiled by `tsukino_shaders()` with their own
+    `varying.def.sc`. Models are drawn up to 10 per instanced draw, so the model constants fit the vertex uniform limits of
+    mobile GPUs.
+  - When a frame has an `IPostWorldPass`, tonemap writes into an RGBA8 target at the scene resolution that shares the
+    scene depth; effects are drawn on top of it (hidden by nearer geometry, as in DX11), then the image is stretched to
+    the back buffer before the Overlay pass. The image before the effects is copied as the distortion background and the
+    scene depth is copied for soft particles, so distortion and soft particles work (DX11 mode passes neither). Frames
+    without an `IPostWorldPass` render exactly as before.
+  - Not supported in bgfx mode: GPU particles (DX11 mode does not enable them either) and custom materials (`.efkmat`);
+    loading a custom material logs one warning and its nodes are not drawn.
 - **bgfx renderer draws motion blur (bgfx mode only).** `MotionBlur.ps` is ported to `.sc`.
   - Draws now send the previous frame's world matrix and bone matrices and set `motionFlags.x`, so the G-Buffer
     velocity target is filled when motion blur is enabled and the command has previous-frame data.
@@ -393,6 +409,14 @@ carve-out for `Tsukino.Renderer` described under **API stability** in the README
   unchanged.
 
 ### Changed
+
+- **Effekseer is created by the renderer, and `IPostWorldPass` no longer exposes the graphics API.**
+  `Renderer::GetEffectRenderer()` returns the Effekseer renderer for the active backend (created on first use, owned by
+  the renderer); `EffectSystem` takes its renderer from there instead of creating `EffekseerRendererDX11` itself.
+  `IPostWorldPass::RenderPostWorld` takes only the view and projection matrices; the renderer prepares the target, the
+  depth and the distortion background before calling it. `Renderer::GetNativeGraphicsContext()` and
+  `NativeGraphicsContext` are removed. In bgfx mode `EffekseerRendererDX11` and `d3dcompiler` are no longer built or
+  linked, and no module but `Tsukino.Renderer` (DX11 mode) includes `EffekseerRendererDX11.h`.
 
 - **The DX11 implementation of `Tsukino.Renderer` moved to `Tsukino.Renderer/src/DX11/`.** Only backend-neutral sources
   (`DebugDraw`, `RenderQualityGovernor`, `Text/DynamicFontAtlas`) stay directly under `src/`. Nothing changes for code

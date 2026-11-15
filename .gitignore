@@ -58,5 +58,13 @@ Tools/HeaderCheck/generated/
 Tsukino.Sandbox/Assets/Prefabs/CaptureTest/
 Tsukino.Sandbox/Assets/Prefabs/EntityRefTest/
 
-# bgfx 版の組み込みシェーダーの変換結果（Tools/Shaders/CMakeLists.txt がビルド時に作る）
-Tsukino.BuiltIn/Assets/Shaders/bgfx/*/
+# bgfx 版の組み込みシェーダーの変換結果（tsukino_shaders() がビルド時に、.sc と同じフォルダの形式ごとのフォルダへ作る）
+# フォルダ名は bgfx.cmake の決まり（ShaderLoader::GetBinaryDirectoryName()）
+Tsukino.BuiltIn/Assets/Shaders/bgfx/**/dxbc/
+Tsukino.BuiltIn/Assets/Shaders/bgfx/**/dxil/
+Tsukino.BuiltIn/Assets/Shaders/bgfx/**/spirv/
+Tsukino.BuiltIn/Assets/Shaders/bgfx/**/metal/
+Tsukino.BuiltIn/Assets/Shaders/bgfx/**/essl/
+Tsukino.BuiltIn/Assets/Shaders/bgfx/**/glsl/
+Tsukino.BuiltIn/Assets/Shaders/bgfx/**/pssl/
+Tsukino.BuiltIn/Assets/Shaders/bgfx/**/wgsl/

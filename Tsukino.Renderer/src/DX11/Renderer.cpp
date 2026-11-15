@@ -13,6 +13,7 @@
 #include <Tsukino/Renderer/IPostWorldPass.hpp>
 
 #include "DrawCommandExecutor.hpp"
+#include "EffectRenderer.hpp"
 #include "FullscreenPass.hpp"
 #include "TonemapPass.hpp"
 #include "ShadowPass.hpp"
@@ -428,7 +429,7 @@ namespace Tsukino::Renderer {
             m_graphicsContext->BindBackBufferWithSceneDepth();
             context->OMSetBlendState(m_resources.GetGpu().GetCommonStatesTK()->AlphaBlend(), nullptr, 0xFFFFFFFF);
             context->OMSetDepthStencilState(m_resources.GetGpu().GetCommonStatesTK()->DepthNone(), 0);
-            postWorldPass->RenderPostWorld(GetNativeGraphicsContext(), m_frameConstants.GetWorldSceneData().view, m_frameConstants.GetWorldSceneData().projection);
+            postWorldPass->RenderPostWorld(m_frameConstants.GetWorldSceneData().view, m_frameConstants.GetWorldSceneData().projection);
             context->OMSetBlendState(m_resources.GetGpu().GetCommonStatesTK()->Opaque(), nullptr, 0xFFFFFFFF);
             context->OMSetDepthStencilState(m_resources.GetGpu().GetCommonStatesTK()->DepthDefault(), 0);
             m_graphicsContext->BindBackBuffer();
@@ -633,9 +634,15 @@ namespace Tsukino::Renderer {
     }
 
     //------------------------------------------------------------
-    //! 描画 API の生のデバイスを取得します。
+    //! Effekseer のエフェクトを描く部品を取得します。
+    //! @note  最初に呼んだときに Effekseer の DX11 版のレンダラーを作る。作れなければ以後も nullptr を返す
     //------------------------------------------------------------
-    NativeGraphicsContext Renderer::GetNativeGraphicsContext() const noexcept {
-        return NativeGraphicsContext{m_graphicsContext->GetDevice(), m_graphicsContext->GetContext()};
+    ::EffekseerRenderer::Renderer* Renderer::GetEffectRenderer() {
+        if(!m_effectRenderer) {
+            m_effectRenderer = std::make_unique<EffectRenderer>();
+            if(!m_effectRenderer->Initialize(m_graphicsContext->GetDevice(), m_graphicsContext->GetContext(), kEffectSquareMaxCount))
+                Tsukino::Core::Log::Error("Renderer: Failed to create the effect renderer; effects are not drawn.");
+        }
+        return m_effectRenderer->Get();
     }
 }    // namespace Tsukino::Renderer
