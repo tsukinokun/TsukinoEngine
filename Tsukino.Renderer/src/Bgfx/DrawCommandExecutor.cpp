@@ -184,8 +184,11 @@ namespace Tsukino::Renderer {
 
         CBufferTransform transform{};
         transform.world       = cmd.transform;
-        transform.prevWorld   = cmd.transform;    // 速度（モーションブラー）は段階 1-4 d で移す
-        transform.motionFlags = hlslpp::float4(0.0f, cmd.ditherFade, cmd.occlusionCutout ? 1.0f : 0.0f, 0.0f);
+        // モーションブラーが有効で、前フレームの値があるときだけ速度を出す。
+        // それ以外は motionFlags.x = 0 にして、頂点シェーダーに前フレームの位置を計算させない
+        const bool writeVelocity = m_motionBlurEnabled && cmd.hasPrevFrame;
+        transform.prevWorld      = writeVelocity ? cmd.prevTransform : cmd.transform;
+        transform.motionFlags    = hlslpp::float4(writeVelocity ? 1.0f : 0.0f, cmd.ditherFade, cmd.occlusionCutout ? 1.0f : 0.0f, 0.0f);
         m_transformUniform.Set(transform);
 
         if(cmd.materialData)
@@ -209,13 +212,13 @@ namespace Tsukino::Renderer {
 
         //--------------------------------------------------------------------
         // ボーン行列。シェーダーの配列は 128 本ぶんだが、使う本数だけ送る。
-        // 前フレームの行列は、速度（モーションブラー。段階 1-4 d）を出すまで送らない
+        // 前フレームの行列は、速度を出すときだけ前フレームの値を送る（無ければ今の値で、動きなしの扱い）
         //--------------------------------------------------------------------
         if(isSkeletal && bgfx::isValid(mesh.boneBuffer)) {
             constexpr u32 kMaxBoneCount = sizeof(CBufferSkinning) / sizeof(CBufferSkinning::bones[0]);
             const u16     vec4Count     = static_cast<u16>(std::min(cmd.boneCount, kMaxBoneCount) * 4);
             bgfx::setUniform(m_bonesUniform, cmd.boneMatrices, vec4Count);
-            bgfx::setUniform(m_bonesPrevUniform, cmd.boneMatrices, vec4Count);
+            bgfx::setUniform(m_bonesPrevUniform, (writeVelocity && cmd.prevBoneMatrices) ? cmd.prevBoneMatrices : cmd.boneMatrices, vec4Count);
             bgfx::setVertexBuffer(1, mesh.boneBuffer);
             ++stats.skinnedDrawCalls;
             stats.boneBytesUploaded += static_cast<u64>(vec4Count) * 16;

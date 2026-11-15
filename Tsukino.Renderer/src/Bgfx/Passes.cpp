@@ -1,22 +1,12 @@
 ﻿//----------------------------------------------------------------------------
 //! @file   Passes.cpp
-//! @brief  bgfx 版の各パス・ベイク済みフォントの仮の実装
-//! @detail どれもまだ GPU の資源を持たず、設定を受け取るだけです。
-//!         DX11 版から1つずつ移すときに、パスごとのファイルへ分けます。
+//! @brief  bgfx 版のベイク済みフォントの仮の実装
+//! @detail まだ読めないので、作成は失敗（nullptr）を返します。
 //----------------------------------------------------------------------------
-#include <Tsukino/Renderer/MotionBlurPass.hpp>
 #include <Tsukino/Renderer/Text/BakedFont.hpp>
 
 // 名前空間 : Tsukino::Renderer
 namespace Tsukino::Renderer {
-
-    //------------------------------------------------------------------------
-    // 各パスの GPU の資源（bgfx 版はまだ空）と、作成・破棄
-    //------------------------------------------------------------------------
-    struct MotionBlurPass::Gpu {};
-
-    MotionBlurPass::MotionBlurPass() : m_gpu(std::make_unique<Gpu>()) {}
-    MotionBlurPass::~MotionBlurPass() = default;
 
     //------------------------------------------------------------------------
     // ベイク済みフォント（bgfx 版はまだ読めないので、Create() は nullptr を返す）

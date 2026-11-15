@@ -129,6 +129,10 @@ namespace Tsukino::Renderer {
             if(!m_sphereColorGradePass.Initialize(*m_graphicsContext, m_resources, m_frameConstants, *m_fullscreenPass, shaders.sphereColorGradePS))
                 Tsukino::Core::Log::Error("Renderer: Sphere color grade is disabled because its resources could not be created.");
 
+            // モーションブラー。作れなくても起動は止めない（ぼけないだけ）
+            if(!m_motionBlurPass.Initialize(*m_graphicsContext, m_resources, m_frameConstants, *m_fullscreenPass, shaders.motionBlurPS))
+                Tsukino::Core::Log::Error("Renderer: Motion blur is disabled because its resources could not be created.");
+
             // ブルーム。作れなくても起動は止めない（光が滲まないだけ）
             if(!m_bloomPass.Initialize(*m_graphicsContext, m_resources, *m_fullscreenPass, shaders.bloomPrefilterPS, shaders.bloomDownsamplePS,
                                        shaders.bloomUpsamplePS))
@@ -150,6 +154,7 @@ namespace Tsukino::Renderer {
         SetupView(BgfxView::Fog, m_graphicsContext->GetHdrColorFrameBuffer());
         SetupView(BgfxView::ColorGrade, m_graphicsContext->GetHdrColorFrameBuffer());
         SetupView(BgfxView::Transparent, m_graphicsContext->GetHdrFrameBuffer());
+        SetupView(BgfxView::MotionBlur, m_graphicsContext->GetPostProcessFrameBuffer());
         SetupView(BgfxView::Tonemap, BGFX_INVALID_HANDLE);
         bgfx::setViewClear(BgfxView::GBuffer, BGFX_CLEAR_COLOR | BGFX_CLEAR_DEPTH, 0, 0.0f, 0);
         return true;
@@ -166,6 +171,9 @@ namespace Tsukino::Renderer {
         m_frameStats.commandCount = static_cast<u32>(m_drawQueue.GetCommands().size());
 
         const auto& commands = m_drawQueue.GetCommands();
+
+        // モーションブラーが有効なフレームだけ、前フレームの値を持つコマンドに速度を出させる
+        m_commandExecutor->SetMotionBlurEnabled(m_motionBlurPass.IsEnabled());
 
         //--------------------------------------------------------------------
         // 背景。HDR バッファを背景色で消すのは、スカイのビュー（スカイを描かないときは背景色が残る）。
@@ -251,11 +259,19 @@ namespace Tsukino::Renderer {
         m_fogPass.UnbindForwardFog();
 
         //--------------------------------------------------------------------
-        // ブルーム（HDR の明るい所を滲ませて足し戻す）→ トーンマップ。
-        // モーションブラーは段階 1-4 d でこの前に入る
+        // モーションブラー（HDR → ポストプロセス用の中間バッファ）。
+        // 3D の描画がすべて終わり、UI が乗る前のここで掛ける。無効なら何もせず false を返すので、
+        // その場合は HDR をそのままトーンマップへ渡す
         //--------------------------------------------------------------------
-        m_bloomPass.Execute(false);
-        m_tonemapPass->Execute(BgfxView::Tonemap, m_graphicsContext->GetHdrTexture());
+        const bool motionBlurred = m_motionBlurPass.Execute();
+
+        //--------------------------------------------------------------------
+        // ブルーム（トーンマップの入力へ加算）→ トーンマップ。
+        // ブルームはモーションブラーの後に掛ける。先に掛けると、滲んだ光の裾まで
+        // 速度の向きへ引き伸ばされて輪郭のない筋になる
+        //--------------------------------------------------------------------
+        m_bloomPass.Execute(motionBlurred);
+        m_tonemapPass->Execute(BgfxView::Tonemap, motionBlurred ? m_graphicsContext->GetPostProcessTexture() : m_graphicsContext->GetHdrTexture());
 
         //--------------------------------------------------------------------
         // Overlay パス。DX11 版と同じく sortOrder の昇順（同じ値は積んだ順）に並べて描く
@@ -372,7 +388,7 @@ namespace Tsukino::Renderer {
     }
 
     //------------------------------------------------------------------------
-    //! 保留している描画品質を適用します（bgfx 版で効くのは、まだ影・スカイ・ブルームだけ）。
+    //! 保留している描画品質を適用します（内部解像度は、bgfx 版ではまだ効かない）。
     //------------------------------------------------------------------------
     void Renderer::ApplyQuality() {
         m_qualityDirty = false;
@@ -383,6 +399,7 @@ namespace Tsukino::Renderer {
         m_frameConstants.SetShadowSoftFilter(m_quality.shadowSoftFilter);
         m_skyPass.SetDrawAllowed(m_quality.drawSky);
         m_bloomPass.SetMipLimit(m_quality.bloomMipCount);
+        m_motionBlurPass.SetAllowed(m_quality.motionBlur);
     }
 
     //------------------------------------------------------------

@@ -46,7 +46,13 @@ carve-out for `Tsukino.Renderer` described under **API stability** in the README
   - bgfx has 16 texture stages, so the DX11 slots t8–t19 are renumbered (`TextureStages.sh` / `BgfxStage`).
   - UI-layer 3D models (`cameraOverride`) get a fresh depth buffer whenever their `sortOrder` changes, by moving on to
     the next bgfx view (bgfx cannot clear in the middle of a view).
-  - Not yet in bgfx mode: motion blur, render scale.
+  - Not yet in bgfx mode: render scale.
+- **bgfx renderer draws motion blur (bgfx mode only).** `MotionBlur.ps` is ported to `.sc`.
+  - Draws now send the previous frame's world matrix and bone matrices and set `motionFlags.x`, so the G-Buffer
+    velocity target is filled when motion blur is enabled and the command has previous-frame data.
+  - The bgfx `GraphicsContext` gains a post-process intermediate buffer (RGBA16F). Motion blur reads the HDR buffer
+    and writes there; bloom and tonemap then read (and bloom composites into) that buffer instead of the HDR buffer.
+  - `RenderQualitySettings::motionBlur` works in bgfx mode.
 - **bgfx renderer draws fog, the sphere colour grade and ambient particles (bgfx mode only).**
   - Fog: `Fog.ps` is ported with the shared `Fog.sh` (`CBufferFog` arrives as `u_fog`), drawn as a premultiplied
     over-blend into the HDR buffer after the world pass. Transparent models (`ForwardModel.sh`) and world-space sprites

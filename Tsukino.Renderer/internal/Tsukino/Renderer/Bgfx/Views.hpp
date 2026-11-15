@@ -28,14 +28,16 @@ namespace Tsukino::Renderer::BgfxView {
     inline constexpr bgfx::ViewId ColorGrade  = 59;    // 球形の色調補正（フォグの上から掛ける）
     inline constexpr bgfx::ViewId Transparent = 60;    // 半透明（TransparentDepth・Transparent）を HDR へ
 
-    // ブルーム。描く先（縮小段）ごとにビューが1つ要る。縮小段は最大6枚（BloomPass::kMaxMipCount）
-    inline constexpr bgfx::ViewId BloomPrefilter  = 61;    // 明部抽出 + 1/2 へ縮小（HDR → 段0）
-    inline constexpr bgfx::ViewId BloomDownsample = 62;    // 縮小（段 i-1 → 段 i。62〜66）
-    inline constexpr bgfx::ViewId BloomUpsample   = 67;    // 拡大しながら足し戻す（小さい段から順に。67〜71）
-    inline constexpr bgfx::ViewId BloomComposite  = 72;    // 段0 を HDR へ加算
+    inline constexpr bgfx::ViewId MotionBlur  = 61;    // HDR を速度の向きへぼかして、ポストプロセス用の中間バッファへ
 
-    inline constexpr bgfx::ViewId Tonemap     = 73;    // HDR をトーンマップしてバックバッファへ
-    inline constexpr bgfx::ViewId Overlay     = 74;    // UI と文字（UI の層の 3D モデルが深度を消し直すたびに、1つずつ後ろの番号を使う）
+    // ブルーム。描く先（縮小段）ごとにビューが1つ要る。縮小段は最大6枚（BloomPass::kMaxMipCount）
+    inline constexpr bgfx::ViewId BloomPrefilter  = 62;    // 明部抽出 + 1/2 へ縮小（シーン → 段0）
+    inline constexpr bgfx::ViewId BloomDownsample = 63;    // 縮小（段 i-1 → 段 i。63〜67）
+    inline constexpr bgfx::ViewId BloomUpsample   = 68;    // 拡大しながら足し戻す（小さい段から順に。68〜72）
+    inline constexpr bgfx::ViewId BloomComposite  = 73;    // 段0 をシーンへ加算
+
+    inline constexpr bgfx::ViewId Tonemap     = 74;    // シーン（HDR か中間バッファ）をトーンマップしてバックバッファへ
+    inline constexpr bgfx::ViewId Overlay     = 75;    // UI と文字（UI の層の 3D モデルが深度を消し直すたびに、1つずつ後ろの番号を使う）
 
     static_assert(IblSpecular + 6 * 6 <= Shadow, "The IBL bake views (one per cube face and mip) must fit before the shadow views.");
     static_assert(Shadow + kShadowCascadeCount <= GBuffer, "The shadow views (one per cascade) must fit before the G-Buffer view.");

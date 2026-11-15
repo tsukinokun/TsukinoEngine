@@ -149,7 +149,7 @@ namespace Tsukino::Renderer {
     //------------------------------------------------------------------------
     //! ブルームを掛けて、トーンマップの入力になるバッファへ加算します。
     //------------------------------------------------------------------------
-    void BloomPass::Execute(bool /*sourceIsPostProcess*/) {
+    void BloomPass::Execute(bool sourceIsPostProcess) {
         if(!m_enabled || m_mipLimit == 0 || !m_fullscreenPass || !m_fullscreenPass->IsValid() || !bgfx::isValid(m_gpu->prefilterProgram)
            || !bgfx::isValid(m_gpu->downsampleProgram) || !bgfx::isValid(m_gpu->upsampleProgram))
             return;
@@ -180,8 +180,10 @@ namespace Tsukino::Renderer {
         data.softKnee  = m_params.softKnee;
         data.radius    = m_params.radius;
 
-        // bgfx 版はまだモーションブラーの中間バッファを持たないので、読むのも足し戻すのも HDR バッファ
-        const bgfx::TextureHandle scene = m_graphicsContext->GetHdrTexture();
+        // モーションブラーが中間バッファへ書いた後なら、読むのも足し戻すのも中間バッファ。そうでなければ HDR バッファ
+        const bgfx::TextureHandle     scene       = sourceIsPostProcess ? m_graphicsContext->GetPostProcessTexture() : m_graphicsContext->GetHdrTexture();
+        const bgfx::FrameBufferHandle sceneTarget = sourceIsPostProcess ? m_graphicsContext->GetPostProcessFrameBuffer()
+                                                                        : m_graphicsContext->GetHdrColorFrameBuffer();
 
         //----------------------------------------------------------
         // 1) 明部抽出 + 1/2 へ縮小（シーン → mip0）
@@ -217,7 +219,7 @@ namespace Tsukino::Renderer {
         data.tintR     = m_params.tintR;
         data.tintG     = m_params.tintG;
         data.tintB     = m_params.tintB;
-        draw(BgfxView::BloomComposite, m_graphicsContext->GetHdrColorFrameBuffer(), width, height, mips[0].texture, mips[0].width, mips[0].height,
+        draw(BgfxView::BloomComposite, sceneTarget, width, height, mips[0].texture, mips[0].width, mips[0].height,
              m_gpu->upsampleProgram, kAdditiveState, data);
     }
 

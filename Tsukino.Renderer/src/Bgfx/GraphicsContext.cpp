@@ -173,7 +173,12 @@ namespace Tsukino::Renderer {
         m_hdrFrameBuffer      = bgfx::createFrameBuffer(2, hdrAttachments, false);
         m_hdrColorFrameBuffer = bgfx::createFrameBuffer(1, &m_hdrTexture, false);
 
-        if(!bgfx::isValid(m_gbufferFrameBuffer) || !bgfx::isValid(m_hdrFrameBuffer) || !bgfx::isValid(m_hdrColorFrameBuffer)) {
+        // ポストプロセス用の中間バッファ（HDR と同じ形式。モーションブラーが HDR を読んでここへ書く）
+        m_postProcessTexture     = bgfx::createTexture2D(kRatio, false, 1, bgfx::TextureFormat::RGBA16F, kTargetFlags);
+        m_postProcessFrameBuffer = bgfx::createFrameBuffer(1, &m_postProcessTexture, false);
+
+        if(!bgfx::isValid(m_gbufferFrameBuffer) || !bgfx::isValid(m_hdrFrameBuffer) || !bgfx::isValid(m_hdrColorFrameBuffer)
+           || !bgfx::isValid(m_postProcessFrameBuffer)) {
             Tsukino::Core::Log::Error("GraphicsContext: Failed to create the render targets.");
             return false;
         }
@@ -198,6 +203,8 @@ namespace Tsukino::Renderer {
         destroyFrameBuffer(m_gbufferFrameBuffer);
         destroyFrameBuffer(m_hdrFrameBuffer);
         destroyFrameBuffer(m_hdrColorFrameBuffer);
+        destroyFrameBuffer(m_postProcessFrameBuffer);
+        destroyTexture(m_postProcessTexture);
         destroyTexture(m_hdrTexture);
         destroyTexture(m_depthTexture);
         for(bgfx::TextureHandle& texture : m_gbufferTextures)

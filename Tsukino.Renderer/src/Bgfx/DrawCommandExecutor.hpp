@@ -73,6 +73,12 @@ namespace Tsukino::Renderer {
             m_fogPass = fogPass;
         }
 
+        //! このフレームで速度（モーションブラー用）を G-Buffer へ出すかを設定します。
+        //! @param  [in] enabled true: 前フレームの値を持つコマンドは速度を出す, false: 速度を出さない
+        void SetMotionBlurEnabled(bool enabled) noexcept {
+            m_motionBlurEnabled = enabled;
+        }
+
     private:
         //! DrawKind::Mesh のコマンドを描きます。
         //! @param  [in]     cmd   実行する描画コマンド
@@ -114,6 +120,7 @@ namespace Tsukino::Renderer {
         const IBLBaker*         m_iblBaker        = nullptr;    // 環境光（借りている）
         const ShadowPass*       m_shadowPass      = nullptr;    // シャドウマップ（借りている）
         const FogPass*          m_fogPass         = nullptr;    // フォワードで掛けるフォグの定数（借りている）
+        bool                    m_motionBlurEnabled = false;    // このフレームで速度を出すか
 
         UniformBlock<CBufferTransform> m_transformUniform;    // 物ごとの定数（u_transform。DX11 版の b1）
         CBufferMaterial                m_lastMaterial{};      // 最後に送ったマテリアルの定数（materialData の無いコマンドが引き継ぐ）

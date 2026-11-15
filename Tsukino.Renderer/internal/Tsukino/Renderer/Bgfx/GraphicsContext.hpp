@@ -111,6 +111,20 @@ namespace Tsukino::Renderer {
             return m_hdrTexture;
         }
 
+        //! ポストプロセス用の中間バッファのテクスチャを返します（モーションブラーが HDR を読んで書く先）。
+        //! @return テクスチャ
+        [[nodiscard]]
+        bgfx::TextureHandle GetPostProcessTexture() const noexcept {
+            return m_postProcessTexture;
+        }
+
+        //! ポストプロセス用の中間バッファだけのフレームバッファを返します。
+        //! @return フレームバッファ
+        [[nodiscard]]
+        bgfx::FrameBufferHandle GetPostProcessFrameBuffer() const noexcept {
+            return m_postProcessFrameBuffer;
+        }
+
         //! G-Buffer の1枚のテクスチャを返します。
         //! @param  [in] index 0〜5（0: albedo, 1: 法線, 2: 材質, 3: 発光, 4: ワールド座標, 5: 速度）
         //! @return テクスチャ
@@ -144,6 +158,8 @@ namespace Tsukino::Renderer {
         bgfx::FrameBufferHandle                m_gbufferFrameBuffer  = BGFX_INVALID_HANDLE;    // G-Buffer ＋ 深度
         bgfx::FrameBufferHandle                m_hdrFrameBuffer      = BGFX_INVALID_HANDLE;    // HDR ＋ 深度
         bgfx::FrameBufferHandle                m_hdrColorFrameBuffer = BGFX_INVALID_HANDLE;    // HDR だけ
+        bgfx::TextureHandle                    m_postProcessTexture     = BGFX_INVALID_HANDLE;    // ポストプロセス用の中間バッファ（RGBA16F）
+        bgfx::FrameBufferHandle                m_postProcessFrameBuffer = BGFX_INVALID_HANDLE;    // 中間バッファだけ
 
         bool                m_initialized = false;    // bgfx を初期化したか
         bool                m_vsync       = true;     // 垂直同期をするか
