@@ -57,6 +57,8 @@ carve-out for `Tsukino.Renderer` described under **API stability** in the README
   - Single-mip textures with `generateMips` get a full mip chain built on the CPU (2×2 box filter, averaged in linear
     space for sRGB formats) for 8-bit uncompressed formats, since bgfx cannot generate mips for ordinary textures.
   - `GetFrameStats().gpu` is filled from bgfx's per-view profiler (`BGFX_DEBUG_PROFILER`), summed per `GpuPass`.
+  - Not yet in bgfx mode: Effekseer effects (`IPostWorldPass` is not drawn) and `BakedFont` (`.spritefont` files are
+    not loaded; dynamic font atlases work).
 - **bgfx renderer draws motion blur (bgfx mode only).** `MotionBlur.ps` is ported to `.sc`.
   - Draws now send the previous frame's world matrix and bone matrices and set `motionFlags.x`, so the G-Buffer
     velocity target is filled when motion blur is enabled and the command has previous-frame data.
