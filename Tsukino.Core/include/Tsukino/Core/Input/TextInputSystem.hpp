@@ -28,7 +28,7 @@ namespace Tsukino::Input {
         void Attach(Tsukino::Core::Window* window);
 
         //! 文字入力を開始し、IME を使える状態にします。
-        //! @param  [in] maxLength 入力できる文字数の上限（0 で制限なし）
+        //! @param  [in] maxLength 入力できる文字数（コードポイントの数）の上限（0 で制限なし）
         void Begin(std::size_t maxLength = 0);
 
         //! 文字入力を終了し、IME を切り離します。入力済みの文字列は残ります。
@@ -44,16 +44,16 @@ namespace Tsukino::Input {
         bool HandleEvent(const InputEvent& event);
 
         //! 確定済みの文字列を返します。
-        //! @return 確定済みの文字列
-        const std::wstring& GetText() const { return m_text; }
+        //! @return 確定済みの文字列（UTF-8）
+        const std::string& GetText() const { return m_text; }
 
         //! 確定済みの文字列を置き換えます。
-        //! @param  [in] text 新しい文字列
-        void SetText(const std::wstring& text);
+        //! @param  [in] text 新しい文字列（UTF-8）
+        void SetText(const std::string& text);
 
         //! 変換中の文字列を返します。ゲーム側で確定済みの文字列に続けて表示します。
-        //! @return 変換中の文字列。変換中でなければ空
-        const std::wstring& GetComposition() const { return m_composition; }
+        //! @return 変換中の文字列（UTF-8）。変換中でなければ空
+        const std::string& GetComposition() const { return m_composition; }
 
         //! 変換候補の窓を出す位置を設定します。
         //! @param  [in] x ウィンドウのクライアント座標の X（ピクセル）
@@ -62,15 +62,15 @@ namespace Tsukino::Input {
 
     private:
 
-        //! 確定した文字列を末尾へ追加します。上限を超える分とサロゲートペアは捨てます。
-        //! @param  [in] text 追加する文字列
-        void Append(const std::wstring& text);
+        //! 確定した文字列を末尾へ追加します。上限を超える分と制御文字は捨てます。
+        //! @param  [in] text 追加する文字列（UTF-8）
+        void Append(const std::string& text);
 
     private:
         Tsukino::Core::Window* m_window    = nullptr;    // 入力先のウィンドウ
         bool                   m_active    = false;      // 入力中かどうか
         std::size_t            m_maxLength = 0;          // 文字数の上限（0 で制限なし）
-        std::wstring           m_text;                   // 確定済みの文字列
-        std::wstring           m_composition;            // 変換中の文字列
+        std::string            m_text;                   // 確定済みの文字列（UTF-8）
+        std::string            m_composition;            // 変換中の文字列（UTF-8）
     };
 }    // namespace Tsukino::Input

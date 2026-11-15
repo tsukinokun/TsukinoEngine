@@ -41,7 +41,7 @@ namespace Tsukino::BuiltIn::ECS {
     //!         maxWidth が 0 なら四角の幅に収める
     //-------------------------------------------------------------
     struct FontComponent {
-        std::wstring                text;                     // 描画するテキスト
+        std::string                 text;                     // 描画するテキスト（UTF-8）
         Tsukino::Asset::AssetRef    fontHandle;               // フォントアセット（未設定なら既定フォント）。Prefab JSONではパス文字列で書ける
         hlslpp::float4              color  = {1, 1, 1, 1};    // フォントの色（linear）。見た目の色は Core::Math::Color::SrgbToLinear で変換して渡す
         hlslpp::float2              origin = {0, 0};          // 回転の中心点などの微調整用

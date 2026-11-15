@@ -773,6 +773,13 @@
                     "cppType": "float",
                     "jsonShape": "number",
                     "default": "1.0f"
+                },
+                {
+                    "jsonKey": "text",
+                    "field": "text",
+                    "cppType": "std::string",
+                    "jsonShape": "string",
+                    "default": null
                 }
             ]
         },

@@ -14,71 +14,71 @@ namespace Tsukino::Input {
         struct KeyNameEntry {
             KeyCode        code;           // キーコード
             const char*    name;           // 設定ファイルの綴り
-            const wchar_t* displayName;    // 画面の表記
+            const char*    displayName;    // 画面の表記
         };
 
         //! ボタン1つぶんの綴りと表記です。
         struct ButtonNameEntry {
             GamepadButton  button;         // ボタン
             const char*    name;           // 設定ファイルの綴り
-            const wchar_t* displayName;    // 画面の表記
+            const char*    displayName;    // 画面の表記
         };
 
         // 英字・数字・ファンクションキーは規則的なので、表に載せず計算で引く
         constexpr std::array kKeyNames = {
-            KeyNameEntry{ KeyCode::LButton, "LButton", L"左クリック" },
-            KeyNameEntry{ KeyCode::RButton, "RButton", L"右クリック" },
-            KeyNameEntry{ KeyCode::MButton, "MButton", L"中クリック" },
-            KeyNameEntry{ KeyCode::Backspace, "Backspace", L"BS" },
-            KeyNameEntry{ KeyCode::Tab, "Tab", L"TAB" },
-            KeyNameEntry{ KeyCode::Enter, "Enter", L"ENTER" },
-            KeyNameEntry{ KeyCode::Shift, "Shift", L"SHIFT" },
-            KeyNameEntry{ KeyCode::Control, "Control", L"CTRL" },
-            KeyNameEntry{ KeyCode::Alt, "Alt", L"ALT" },
-            KeyNameEntry{ KeyCode::Escape, "Escape", L"Esc" },
-            KeyNameEntry{ KeyCode::Space, "Space", L"SPACE" },
-            KeyNameEntry{ KeyCode::PageUp, "PageUp", L"PgUp" },
-            KeyNameEntry{ KeyCode::PageDown, "PageDown", L"PgDn" },
-            KeyNameEntry{ KeyCode::End, "End", L"END" },
-            KeyNameEntry{ KeyCode::Home, "Home", L"HOME" },
-            KeyNameEntry{ KeyCode::Left, "Left", L"←" },
-            KeyNameEntry{ KeyCode::Up, "Up", L"↑" },
-            KeyNameEntry{ KeyCode::Right, "Right", L"→" },
-            KeyNameEntry{ KeyCode::Down, "Down", L"↓" },
+            KeyNameEntry{ KeyCode::LButton, "LButton", "左クリック" },
+            KeyNameEntry{ KeyCode::RButton, "RButton", "右クリック" },
+            KeyNameEntry{ KeyCode::MButton, "MButton", "中クリック" },
+            KeyNameEntry{ KeyCode::Backspace, "Backspace", "BS" },
+            KeyNameEntry{ KeyCode::Tab, "Tab", "TAB" },
+            KeyNameEntry{ KeyCode::Enter, "Enter", "ENTER" },
+            KeyNameEntry{ KeyCode::Shift, "Shift", "SHIFT" },
+            KeyNameEntry{ KeyCode::Control, "Control", "CTR" },
+            KeyNameEntry{ KeyCode::Alt, "Alt", "ALT" },
+            KeyNameEntry{ KeyCode::Escape, "Escape", "Esc" },
+            KeyNameEntry{ KeyCode::Space, "Space", "SPACE" },
+            KeyNameEntry{ KeyCode::PageUp, "PageUp", "PgUp" },
+            KeyNameEntry{ KeyCode::PageDown, "PageDown", "PgDn" },
+            KeyNameEntry{ KeyCode::End, "End", "END" },
+            KeyNameEntry{ KeyCode::Home, "Home", "HOME" },
+            KeyNameEntry{ KeyCode::Left, "Left", "←" },
+            KeyNameEntry{ KeyCode::Up, "Up", "↑" },
+            KeyNameEntry{ KeyCode::Right, "Right", "→" },
+            KeyNameEntry{ KeyCode::Down, "Down", "↓" },
         };
 
         constexpr std::array kButtonNames = {
-            ButtonNameEntry{ GamepadButton::DPadUp, "DPadUp", L"↑" },
-            ButtonNameEntry{ GamepadButton::DPadDown, "DPadDown", L"↓" },
-            ButtonNameEntry{ GamepadButton::DPadLeft, "DPadLeft", L"←" },
-            ButtonNameEntry{ GamepadButton::DPadRight, "DPadRight", L"→" },
-            ButtonNameEntry{ GamepadButton::Start, "Start", L"START" },
-            ButtonNameEntry{ GamepadButton::Back, "Back", L"BACK" },
-            ButtonNameEntry{ GamepadButton::LeftThumb, "LeftThumb", L"L3" },
-            ButtonNameEntry{ GamepadButton::RightThumb, "RightThumb", L"R3" },
-            ButtonNameEntry{ GamepadButton::LeftShoulder, "LeftShoulder", L"LB" },
-            ButtonNameEntry{ GamepadButton::RightShoulder, "RightShoulder", L"RB" },
-            ButtonNameEntry{ GamepadButton::A, "A", L"A" },
-            ButtonNameEntry{ GamepadButton::B, "B", L"B" },
-            ButtonNameEntry{ GamepadButton::X, "X", L"X" },
-            ButtonNameEntry{ GamepadButton::Y, "Y", L"Y" },
-            ButtonNameEntry{ GamepadButton::LeftTrigger, "LeftTrigger", L"LT" },
-            ButtonNameEntry{ GamepadButton::RightTrigger, "RightTrigger", L"RT" },
-            ButtonNameEntry{ GamepadButton::LeftStickUp, "LeftStickUp", L"L↑" },
-            ButtonNameEntry{ GamepadButton::LeftStickDown, "LeftStickDown", L"L↓" },
-            ButtonNameEntry{ GamepadButton::LeftStickLeft, "LeftStickLeft", L"L←" },
-            ButtonNameEntry{ GamepadButton::LeftStickRight, "LeftStickRight", L"L→" },
+            ButtonNameEntry{ GamepadButton::DPadUp, "DPadUp", "↑" },
+            ButtonNameEntry{ GamepadButton::DPadDown, "DPadDown", "↓" },
+            ButtonNameEntry{ GamepadButton::DPadLeft, "DPadLeft", "←" },
+            ButtonNameEntry{ GamepadButton::DPadRight, "DPadRight", "→" },
+            ButtonNameEntry{ GamepadButton::Start, "Start", "START" },
+            ButtonNameEntry{ GamepadButton::Back, "Back", "BACK" },
+            ButtonNameEntry{ GamepadButton::LeftThumb, "LeftThumb", "L3" },
+            ButtonNameEntry{ GamepadButton::RightThumb, "RightThumb", "R3" },
+            ButtonNameEntry{ GamepadButton::LeftShoulder, "LeftShoulder", "LB" },
+            ButtonNameEntry{ GamepadButton::RightShoulder, "RightShoulder", "RB" },
+            ButtonNameEntry{ GamepadButton::A, "A", "A" },
+            ButtonNameEntry{ GamepadButton::B, "B", "B" },
+            ButtonNameEntry{ GamepadButton::X, "X", "X" },
+            ButtonNameEntry{ GamepadButton::Y, "Y", "Y" },
+            ButtonNameEntry{ GamepadButton::LeftTrigger, "LeftTrigger", "LT" },
+            ButtonNameEntry{ GamepadButton::RightTrigger, "RightTrigger", "RT" },
+            ButtonNameEntry{ GamepadButton::LeftStickUp, "LeftStickUp", "L↑" },
+            ButtonNameEntry{ GamepadButton::LeftStickDown, "LeftStickDown", "L↓" },
+            ButtonNameEntry{ GamepadButton::LeftStickLeft, "LeftStickLeft", "L←" },
+            ButtonNameEntry{ GamepadButton::LeftStickRight, "LeftStickRight", "L→" },
         };
 
         // 1文字のキー表記（英字・数字）の置き場。表記は呼び出し側へポインタで返すので、静的に持っておく
-        constexpr std::array<wchar_t[2], 36> kSingleCharNames = { {
-            { L'A', 0 }, { L'B', 0 }, { L'C', 0 }, { L'D', 0 }, { L'E', 0 }, { L'F', 0 }, { L'G', 0 }, { L'H', 0 }, { L'I', 0 },
-            { L'J', 0 }, { L'K', 0 }, { L'L', 0 }, { L'M', 0 }, { L'N', 0 }, { L'O', 0 }, { L'P', 0 }, { L'Q', 0 }, { L'R', 0 },
-            { L'S', 0 }, { L'T', 0 }, { L'U', 0 }, { L'V', 0 }, { L'W', 0 }, { L'X', 0 }, { L'Y', 0 }, { L'Z', 0 }, { L'0', 0 },
-            { L'1', 0 }, { L'2', 0 }, { L'3', 0 }, { L'4', 0 }, { L'5', 0 }, { L'6', 0 }, { L'7', 0 }, { L'8', 0 }, { L'9', 0 },
+        constexpr std::array<char[2], 36> kSingleCharNames = { {
+            { 'A', 0 }, { 'B', 0 }, { 'C', 0 }, { 'D', 0 }, { 'E', 0 }, { 'F', 0 }, { 'G', 0 }, { 'H', 0 }, { 'I', 0 },
+            { 'J', 0 }, { 'K', 0 }, { 'L', 0 }, { 'M', 0 }, { 'N', 0 }, { 'O', 0 }, { 'P', 0 }, { 'Q', 0 }, { 'R', 0 },
+            { 'S', 0 }, { 'T', 0 }, { 'U', 0 }, { 'V', 0 }, { 'W', 0 }, { 'X', 0 }, { 'Y', 0 }, { 'Z', 0 }, { '0', 0 },
+            { '1', 0 }, { '2', 0 }, { '3', 0 }, { '4', 0 }, { '5', 0 }, { '6', 0 }, { '7', 0 }, { '8', 0 }, { '9', 0 },
         } };
 
-        constexpr std::array kFunctionKeyNames = { L"F1", L"F2", L"F3", L"F4", L"F5", L"F6", L"F7", L"F8", L"F9", L"F10", L"F11", L"F12" };
+        constexpr std::array kFunctionKeyNames = { "F1", "F2", "F3", "F4", "F5", "F6", "F7", "F8", "F9", "F10", "F11", "F12" };
 
         //----------------------------------------------------------------------------
         //! 大文字小文字を区別せずに文字列を比べます。
@@ -143,7 +143,7 @@ namespace Tsukino::Input {
     //----------------------------------------------------------------------------
     //! キーを画面に出すときの表記を得ます。
     //----------------------------------------------------------------------------
-    const wchar_t* GetKeyDisplayName(KeyCode code) {
+    const char* GetKeyDisplayName(KeyCode code) {
         for(const KeyNameEntry& entry : kKeyNames) {
             if(entry.code == code)
                 return entry.displayName;
@@ -157,18 +157,18 @@ namespace Tsukino::Input {
         if(value >= static_cast<u16>(KeyCode::F1) && value <= static_cast<u16>(KeyCode::F12))
             return kFunctionKeyNames[value - static_cast<u16>(KeyCode::F1)];
 
-        return L"";
+        return "";
     }
 
     //----------------------------------------------------------------------------
     //! ゲームパッドのボタンを画面に出すときの表記を得ます。
     //----------------------------------------------------------------------------
-    const wchar_t* GetGamepadButtonDisplayName(GamepadButton button) {
+    const char* GetGamepadButtonDisplayName(GamepadButton button) {
         for(const ButtonNameEntry& entry : kButtonNames) {
             if(entry.button == button)
                 return entry.displayName;
         }
-        return L"";
+        return "";
     }
 
 }    // namespace Tsukino::Input

@@ -410,6 +410,18 @@ carve-out for `Tsukino.Renderer` described under **API stability** in the README
 
 ### Changed
 
+- **Text is UTF-8 `std::string` everywhere, and glyphs are rasterized with stb_truetype instead of DirectWrite.**
+  - Breaking: `FontComponent::text`, `DynamicFontAtlas::AppendStringSprites` / `MeasureString` (now `std::string_view`),
+    `TextInputSystem::GetText` / `SetText` / `GetComposition`, `GetKeyDisplayName` / `GetGamepadButtonDisplayName`
+    (now `const char*`) and `GetBindingDisplayName` take and return UTF-8 instead of `std::wstring` / `wchar_t`.
+    Characters outside the Basic Multilingual Plane are no longer dropped. `TextInputSystem::Begin(maxLength)` counts
+    code points.
+  - New `Tsukino/Core/Utf8.hpp` (`Utf8::DecodeNext`, `Append`, `CountCodepoints`, `PopBack`) for walking UTF-8 text.
+  - `FontComponent::text` is now read from and written to Prefab JSON (optional `"text"` key).
+  - `DynamicFontAtlas` uses stb_truetype (already in `External/bgfx/3rdparty/stb`, compiled into the Renderer with
+    `STBTT_STATIC`), which reads TrueType and CFF `.otf` fonts. The metrics (ascent, line height, advances) come from
+    the same font tables, so layout is unchanged; glyph edges can differ slightly from DirectWrite. `.dfont` files are
+    read as UTF-8. Nothing links `dwrite` any more.
 - **Audio is played with miniaudio instead of DirectXTK Audio (XAudio2).** `.wav`, `.mp3` and `.flac` are played as
   they are: there is no import step, no `.xwb` wave bank and no `Tools/XWBTool.exe` any more, and the old `Cache/*.xwb`
   files can be deleted. miniaudio is a new submodule (`External/miniaudio`, 0.11.25); run `git submodule update --init`.

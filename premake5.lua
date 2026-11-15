@@ -435,6 +435,7 @@ project "Tsukino.Renderer"
         "External/Effekseer/Dev/Cpp/Effekseer",
         "External/Effekseer/Dev/Cpp/EffekseerRendererCommon",
         "External/Effekseer/Dev/Cpp/3rdParty",
+        "External/bgfx/3rdparty/stb",    -- stb_truetype（文字のラスタライズ。DynamicFontAtlas.cpp だけが実装ごと取り込む）
     }
 
     links {
@@ -637,7 +638,6 @@ project "Tsukino.EngineIntegration"
         "EffekseerRendererCommon",
         "Effekseer",
         "dxgi",
-        "dwrite"
     }
 
 ----------------------------------------

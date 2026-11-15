@@ -119,7 +119,6 @@ function tsukino_link()
         "EffekseerRendererCommon",
 
         "dxgi",      -- 使う GPU を選ぶ（Tsukino.Renderer の GraphicsContext）
-        "dwrite",
         "imm32",
         "dwmapi",    -- Window の ClickThrough（DwmExtendFrameIntoClientArea）
 

@@ -69,7 +69,7 @@ namespace Tsukino::Input {
     //! @param  [in] device  表記を合わせる入力機器
     //! @return 先頭のキーまたはボタンの表記。その機器の割り当てが無ければ空文字
     [[nodiscard]]
-    std::wstring GetBindingDisplayName(const InputBinding& binding, InputDevice device);
+    std::string GetBindingDisplayName(const InputBinding& binding, InputDevice device);
 
     //! 操作ごとの割り当てを持つクラスです。
     class InputActionMap {

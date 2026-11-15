@@ -27,14 +27,14 @@ namespace Tsukino::Input {
 
     //! キーを画面に出すときの表記を得ます（"SPACE" "左クリック" など）。
     //! @param  [in] code キーコード
-    //! @return 表記。対応が無ければ空文字
+    //! @return 表記（UTF-8）。対応が無ければ空文字
     [[nodiscard]]
-    const wchar_t* GetKeyDisplayName(KeyCode code);
+    const char* GetKeyDisplayName(KeyCode code);
 
     //! ゲームパッドのボタンを画面に出すときの表記を得ます（"A" "LB" "L3" など。Xbox 配置）。
     //! @param  [in] button ボタン
-    //! @return 表記。対応が無ければ空文字
+    //! @return 表記（UTF-8）。対応が無ければ空文字
     [[nodiscard]]
-    const wchar_t* GetGamepadButtonDisplayName(GamepadButton button);
+    const char* GetGamepadButtonDisplayName(GamepadButton button);
 
 }    // namespace Tsukino::Input

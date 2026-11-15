@@ -8,11 +8,10 @@
 #include <Tsukino/Core/IO/FileSystem.hpp>
 #include <Tsukino/Core/Log.hpp>
 
-#include <windows.h>
-
 #include <algorithm>
 #include <fstream>
 #include <map>
+#include <sstream>
 #include <string>
 
 // 名前空間 Tsukino::Asset
@@ -21,22 +20,10 @@ namespace Tsukino::Asset {
         //--------------------------------------------------------------
         //! @brief  文字列の前後の空白をトリムする関数
         //--------------------------------------------------------------
-        std::wstring Trim(const std::wstring& s) {
-            auto start = s.find_first_not_of(L" \t\r\n");
-            auto end   = s.find_last_not_of(L" \t\r\n");
-            return (start == std::wstring::npos) ? L"" : s.substr(start, end - start + 1);
-        }
-
-        //--------------------------------------------------------------
-        //! @brief  wstring を UTF-8 std::string に変換する関数
-        //--------------------------------------------------------------
-        std::string ToUtf8(const std::wstring& value) {
-            if(value.empty())
-                return {};
-            int size = ::WideCharToMultiByte(CP_UTF8, 0, value.c_str(), static_cast<int>(value.size()), nullptr, 0, nullptr, nullptr);
-            std::string result(size, '\0');
-            ::WideCharToMultiByte(CP_UTF8, 0, value.c_str(), static_cast<int>(value.size()), result.data(), size, nullptr, nullptr);
-            return result;
+        std::string Trim(const std::string& s) {
+            auto start = s.find_first_not_of(" \t\r\n");
+            auto end   = s.find_last_not_of(" \t\r\n");
+            return (start == std::string::npos) ? "" : s.substr(start, end - start + 1);
         }
     }    // namespace
 
@@ -59,32 +46,34 @@ namespace Tsukino::Asset {
             return false;
 
         //--------------------------------------------------------------
-        // .dfont ファイルの解析
+        // .dfont ファイルの解析（UTF-8 の「キー = 値」の行）
         //--------------------------------------------------------------
-        std::map<std::wstring, std::wstring> settings;
-        settings[L"FaceName"] = L"";
-        settings[L"Size"]     = L"32";
+        std::map<std::string, std::string> settings;
+        settings["FaceName"] = "";
+        settings["Size"]     = "32";
 
-        std::wifstream file(absoluteInputPath.ToWString());
-        if(!file.is_open()) {
+        if(!Tsukino::IO::FileSystem::Exists(absoluteInputPath)) {
             Tsukino::Core::Log::Error("Failed to open .dfont file: " + absoluteInputPath.string());
             return false;
         }
 
-        std::wstring line;
+        std::istringstream file(Tsukino::IO::FileSystem::ReadText(absoluteInputPath));
+        std::string        line;
         while(std::getline(file, line)) {
-            if(line.empty() || line[0] == L'#')
+            if(line.size() >= 3 && line.compare(0, 3, "\xEF\xBB\xBF") == 0)
+                line.erase(0, 3);    // 先頭の BOM
+            if(line.empty() || line[0] == '#')
                 continue;    // 空行とコメントをスキップ
 
-            auto pos = line.find(L'=');
-            if(pos != std::wstring::npos) {
-                std::wstring key   = Trim(line.substr(0, pos));
-                std::wstring value = Trim(line.substr(pos + 1));
-                settings[key]      = value;
+            auto pos = line.find('=');
+            if(pos != std::string::npos) {
+                std::string key   = Trim(line.substr(0, pos));
+                std::string value = Trim(line.substr(pos + 1));
+                settings[key]     = value;
             }
         }
 
-        if(!settings.contains(L"SourceFile") || settings[L"SourceFile"].empty()) {
+        if(!settings.contains("SourceFile") || settings["SourceFile"].empty()) {
             Tsukino::Core::Log::Error("DynamicFontImporter: SourceFile is not specified in " + absoluteInputPath.string());
             return false;
         }
@@ -95,20 +84,13 @@ namespace Tsukino::Asset {
         //  ゲーム側アセット・エンジンのビルトインアセットのどちらでも、
         //  .dfont と参照先フォントファイルが同じディレクトリにあれば正しく動く)
         //--------------------------------------------------------------
-        Tsukino::Core::Path sourceFontPath = absoluteInputPath.parent_path() / Tsukino::Core::Path(ToUtf8(settings[L"SourceFile"]));
+        Tsukino::Core::Path sourceFontPath = absoluteInputPath.parent_path() / Tsukino::Core::Path(settings["SourceFile"]);
 
-        std::ifstream fontFile(sourceFontPath.string(), std::ios::binary);
-        if(!fontFile.is_open()) {
+        const std::vector<uint8_t> fontData = Tsukino::IO::FileSystem::ReadBinary(sourceFontPath);
+        if(fontData.empty()) {
             Tsukino::Core::Log::Error("DynamicFontImporter: Failed to open SourceFile: " + sourceFontPath.string());
             return false;
         }
-
-        fontFile.seekg(0, std::ios::end);
-        const auto fontFileSize = static_cast<size_t>(fontFile.tellg());
-        fontFile.seekg(0, std::ios::beg);
-
-        std::vector<uint8_t> fontData(fontFileSize);
-        fontFile.read(reinterpret_cast<char*>(fontData.data()), static_cast<std::streamsize>(fontFileSize));
 
         //--------------------------------------------------------------
         // 出力パスの決定
@@ -128,8 +110,8 @@ namespace Tsukino::Asset {
         // キャッシュファイルを書き出す
         // フォーマット: [u32 faceNameLen][faceName utf-8 bytes][float pixelSize][u32 fontDataLen][fontData bytes]
         //--------------------------------------------------------------
-        std::string faceNameUtf8 = ToUtf8(settings[L"FaceName"]);
-        float       pixelSize    = std::stof(settings[L"Size"]);
+        const std::string& faceNameUtf8 = settings["FaceName"];
+        const float        pixelSize    = std::stof(settings["Size"]);
 
         std::ofstream out(outputPath.string(), std::ios::binary);
         if(!out.is_open()) {

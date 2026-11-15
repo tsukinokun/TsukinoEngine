@@ -20,6 +20,7 @@
 #include <entt/entt.hpp>
 
 #include <cmath>
+#include <cstdio>
 #include <string>
 
 // 名前空間 : Tsukino::Sandbox::DebugTools::ECS
@@ -116,9 +117,9 @@ namespace Tsukino::Sandbox::DebugTools::ECS {
         //---------------------------------------------------------
         auto hudView = registry.View<LightStressTestHudComponent, Tsukino::BuiltIn::ECS::FontComponent>();
         hudView.each([&](entt::entity entity, const LightStressTestHudComponent&, Tsukino::BuiltIn::ECS::FontComponent& font) {
-            wchar_t buf[128]{};
-            swprintf_s(buf,
-                       L"[F1] PointLights: %d   %.2f ms (%.0f fps)",
+            char buf[128]{};
+            std::snprintf(buf, sizeof(buf),
+                       "[F1] PointLights: %d   %.2f ms (%.0f fps)",
                        kLightCountSteps[m_stepIndex],
                        m_avgFrameMs,
                        (m_avgFrameMs > 0.0f) ? (1000.0f / m_avgFrameMs) : 0.0f);

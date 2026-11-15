@@ -109,8 +109,8 @@
   - Push(), PushSprites(), PushLines(), AllocMaterial(), AllocMaterialData(), AllocSceneData(), GetCommands(), GetSprites(), GetLineVertices(), Clear(), Size()
 - **Tsukino::Renderer::DynamicFontAtlas** — `Tsukino.Renderer/include/Tsukino/Renderer/Text/DynamicFontAtlas.hpp`
   - DynamicFontAtlas(), ~DynamicFontAtlas(), DynamicFontAtlas(), operator=(), AppendStringSprites(), MeasureString(), GetLineHeight(), GetAscent()
-- **Tsukino::Renderer::DynamicFontAtlas::DirectWrite** — `Tsukino.Renderer/src/Text/DynamicFontAtlas.cpp`
-  - factory, fontFileLoader, fontFace
+- **Tsukino::Renderer::DynamicFontAtlas::Font** — `Tsukino.Renderer/src/Text/DynamicFontAtlas.cpp`
+  - data, info
 - **Tsukino::Renderer::DynamicFontAtlas::GlyphImage** — `Tsukino.Renderer/include/Tsukino/Renderer/Text/DynamicFontAtlas.hpp`
   - atlasRect, page, bearingX, bearingY, hasInk
 - **Tsukino::Renderer::DynamicFontAtlas::GlyphMetrics** — `Tsukino.Renderer/include/Tsukino/Renderer/Text/DynamicFontAtlas.hpp`

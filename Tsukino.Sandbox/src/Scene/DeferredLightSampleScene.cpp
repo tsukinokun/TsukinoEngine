@@ -270,7 +270,7 @@ namespace Tsukino::Sandbox {
             t.dirty                                      = true;
 
             Tsukino::BuiltIn::ECS::FontComponent& font = registry.AddComponent<Tsukino::BuiltIn::ECS::FontComponent>(e);
-            font.text                                  = L"";
+            font.text                                  = "";
             font.color                                 = hlslpp::float4(0.4f, 1.0f, 0.6f, 1.0f);
             font.origin                                = hlslpp::float2(0.0f, 0.0f);
 

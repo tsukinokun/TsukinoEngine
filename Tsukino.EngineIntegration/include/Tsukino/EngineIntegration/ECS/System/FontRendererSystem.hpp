@@ -66,7 +66,7 @@ namespace Tsukino::BuiltIn::ECS {
         struct DrawEntry {
             Tsukino::Renderer::DynamicFontAtlas* atlas = nullptr;    // 文字を描く動的フォントアトラス（m_dynamicFontCache が持つ）
 
-            std::wstring   text;                            // 描画する文字列
+            std::string    text;                            // 描画する文字列（UTF-8）
             hlslpp::float2 position     = {0, 0};           // スクリーン座標（左上原点、ピクセル）
             hlslpp::float2 origin       = {0, 0};           // 揃えを解決済みの原点（スケール適用前）
             hlslpp::float4 color        = {1, 1, 1, 1};     // 文字色

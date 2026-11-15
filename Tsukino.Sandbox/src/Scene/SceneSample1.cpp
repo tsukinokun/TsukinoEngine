@@ -193,7 +193,7 @@ namespace Tsukino::Sandbox {
 
         // FontRendererComponent の追加
         Tsukino::BuiltIn::ECS::FontComponent& font = registry.AddComponent<Tsukino::BuiltIn::ECS::FontComponent>(fontEntity);
-        font.text                                  = L"こんにちは, Tsukino!";    // 描画するテキスト
+        font.text                                  = "こんにちは, Tsukino!";    // 描画するテキスト
 
         // 画面UIのトゥイーン（ゆっくり呼吸するように拡大・縮小を繰り返す）
         Tsukino::BuiltIn::ECS::UITween breathe;

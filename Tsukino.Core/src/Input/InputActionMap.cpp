@@ -103,18 +103,18 @@ namespace Tsukino::Input {
     //----------------------------------------------------------------------------
     //! 割り当てを画面に出すときの表記を得ます。
     //----------------------------------------------------------------------------
-    std::wstring GetBindingDisplayName(const InputBinding& binding, InputDevice device) {
+    std::string GetBindingDisplayName(const InputBinding& binding, InputDevice device) {
         if(device == InputDevice::Gamepad) {
             if(!binding.buttons.empty())
                 return GetGamepadButtonDisplayName(binding.buttons.front());
-            return L"";
+            return "";
         }
 
         if(!binding.keys.empty())
             return GetKeyDisplayName(binding.keys.front());
         if(binding.wheelDirection != 0)
-            return L"ホイール";
-        return L"";
+            return "ホイール";
+        return "";
     }
 
     //----------------------------------------------------------------------------

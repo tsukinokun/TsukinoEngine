@@ -201,6 +201,7 @@
 | `maxWidth` | `float` | number | `0.0f` |
 | `fontHandle` | `Tsukino::Asset::AssetRef` | "path/to/asset" | — |
 | `scale` | `float` | number | `1.0f` |
+| `text` | `std::string` | string | — |
 
 ### ModelComponent
 

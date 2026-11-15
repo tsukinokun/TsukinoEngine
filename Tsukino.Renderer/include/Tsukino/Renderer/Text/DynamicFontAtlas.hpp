@@ -1,6 +1,6 @@
 //------------------------------------------------------------
 //! @file	DynamicFontAtlas.hpp
-//! @brief	DirectWriteによるオンデマンドグリフラスタライズと動的テクスチャアトラスの宣言
+//! @brief	グリフのオンデマンドラスタライズ（stb_truetype）と動的テクスチャアトラスの宣言
 //! @author 山﨑愛
 //------------------------------------------------------------
 #pragma once
@@ -12,6 +12,7 @@
 #include <cstdint>
 #include <memory>
 #include <string>
+#include <string_view>
 #include <unordered_map>
 #include <vector>
 
@@ -33,7 +34,7 @@ namespace Tsukino::Renderer {
         //------------------------------------------------------------
         //! @brief  コンストラクタ
         //! @param  resources     [in] アトラスのテクスチャを作る先（アトラスより長生きさせること）
-        //! @param  fontData      [in] ttf/otfの生データ
+        //! @param  fontData      [in] ttf/otfの生データ（アトラスが写しを持つ）
         //! @param  fontDataSize  [in] fontDataのバイト数
         //! @param  pixelSize     [in] グリフをラスタライズする基準ピクセルサイズ
         //------------------------------------------------------------
@@ -51,7 +52,7 @@ namespace Tsukino::Renderer {
         //------------------------------------------------------------
         //! @brief  文字列を、グリフ1つにつき1枚のスプライトにして並びへ足す関数
         //! @param  outSprites   [in,out] スプライトの追加先（DrawCommandQueue::PushSprites へ渡す）
-        //! @param  text         [in] 描画するテキスト
+        //! @param  text         [in] 描画するテキスト（UTF-8）
         //! @param  position     [in] 描画位置（ピクセル）
         //! @param  color        [in] 文字色
         //! @param  origin       [in] 原点（左上からのオフセット、微調整用。スケール適用前の値）
@@ -61,14 +62,14 @@ namespace Tsukino::Renderer {
         //! @param  rotation     [in] 回転（ラジアン。画面上で時計回りが正）。position を軸に文字列全体を回す
         //! @note   縁取りは本体より先に足すので、並べた順に描けば縁取りが本体の下に入る
         //------------------------------------------------------------
-        void AppendStringSprites(std::vector<SpriteQuad>& outSprites, const std::wstring& text,
+        void AppendStringSprites(std::vector<SpriteQuad>& outSprites, std::string_view text,
                                  hlslpp::float2 position, hlslpp::float4 color, hlslpp::float2 origin, float scale,
                                  hlslpp::float4 outlineColor = hlslpp::float4(0.0f, 0.0f, 0.0f, 0.0f), float outlineWidth = 0.0f,
                                  float rotation = 0.0f);
 
         //------------------------------------------------------------
         //! @brief  文字列の描画サイズを取得する関数
-        //! @param  text    [in] 計測する文字列
+        //! @param  text    [in] 計測する文字列（UTF-8）
         //! @return スケール適用前（pixelSize基準）の幅と高さ
         //! @note   AppendStringSpritesのoriginはスケール適用前の値として扱われるため、
         //!         中央揃えは origin = MeasureString(...) * 0.5f でそのまま書ける。
@@ -76,7 +77,7 @@ namespace Tsukino::Renderer {
         //!         未キャッシュの文字のメトリクスを読み込んでキャッシュするためconstにはできない
         //------------------------------------------------------------
         [[nodiscard]]
-        hlslpp::float2 MeasureString(const std::wstring& text);
+        hlslpp::float2 MeasureString(std::string_view text);
 
         //------------------------------------------------------------
         //! @brief  改行時の行送り量を取得する関数（スケール適用前）
@@ -95,7 +96,7 @@ namespace Tsukino::Renderer {
         //! 1文字分のメトリクス（描く大きさによらない）です。
         //------------------------------------------------------------
         struct GlyphMetrics {
-            uint16_t glyphIndex = 0;     // フォント内のグリフ番号
+            int    glyphIndex = 0;       // フォント内のグリフ番号
             float  advanceX   = 0.0f;    // 次の文字へのペン送り量（pixelSize基準）
         };
 
@@ -135,7 +136,7 @@ namespace Tsukino::Renderer {
         // ラスタライズする大きさの段（等比で 2^(1/4) ≒ 1.19 倍ずつ。32px を基準に上下へ伸ばす）。
         // 描く大きさをそのまま整数に丸めてラスタライズすると、拡大率が動く文字
         // （ボタンのホバー・ポップする数字など）はフレームごとに新しい大きさになり、
-        // そのたびに全文字を DirectWrite で作り直してアトラスへ転送することになる。
+        // そのたびに全文字を作り直してアトラスへ転送することになる。
         // 段に切り上げてから縮小して描けば、作る大きさは数段に収まり2回目以降はキャッシュに当たる。
         // 段より細かい差は縮小（0.84〜1 倍）で埋めるため、拡大によるぼやけは起きない
         //------------------------------------------------------------
@@ -154,7 +155,7 @@ namespace Tsukino::Renderer {
         //! @param  [in] codepoint 対象の文字
         //! @return 文字のメトリクス
         //------------------------------------------------------------
-        const GlyphMetrics& GetGlyphMetrics(wchar_t codepoint);
+        const GlyphMetrics& GetGlyphMetrics(char32_t codepoint);
 
         //------------------------------------------------------------
         //! グリフを指定の大きさでキャッシュから取得し、無ければラスタライズしてキャッシュします。
@@ -162,7 +163,7 @@ namespace Tsukino::Renderer {
         //! @param  [in] rasterSize ラスタライズする大きさ（ピクセル。kMinRasterSize〜kMaxRasterSize）
         //! @return ラスタライズしたグリフ
         //------------------------------------------------------------
-        const GlyphImage& GetOrRasterizeGlyph(wchar_t codepoint, int rasterSize);
+        const GlyphImage& GetOrRasterizeGlyph(char32_t codepoint, int rasterSize);
 
         //------------------------------------------------------------
         //! 1文字分ペンを進めます（AppendStringSpritesとMeasureStringで送り量を共通化するためのもの）。
@@ -172,7 +173,7 @@ namespace Tsukino::Renderer {
         //! @param  [in,out] maxPenX これまでの行の最大X送り（スケール適用前）
         //! @return 改行なら false
         //------------------------------------------------------------
-        bool AdvancePen(wchar_t ch, float& penX, float& penY, float& maxPenX);
+        bool AdvancePen(char32_t ch, float& penX, float& penY, float& maxPenX);
 
         //------------------------------------------------------------
         //! @brief  新しいアトラスページを作成する関数
@@ -187,8 +188,8 @@ namespace Tsukino::Renderer {
 
         RenderResources* m_resources = nullptr;    // ページのテクスチャを作る先（非所有の参照）
 
-        struct DirectWrite;                       // フォントの読み込みとラスタライズに使う DirectWrite のオブジェクト（.cpp で定義）
-        std::unique_ptr<DirectWrite> m_dwrite;    // 同上
+        struct Font;                     // フォントのデータと stb_truetype の状態（.cpp で定義）
+        std::unique_ptr<Font> m_font;    // 同上。読めなかったときは nullptr
 
         float m_pixelSize  = 0.0f;    // グリフをラスタライズする基準ピクセルサイズ
         float m_scale      = 1.0f;    // フォントデザイン単位 → ピクセルへの変換係数
