@@ -12,19 +12,9 @@
 namespace Tsukino::Asset {
     //--------------------------------------------------------------
     //! @class AudioAsset
-    //! @brief .xwbファイル内の音声データのメタデータを表す構造体
-    //--------------------------------------------------------------
-    struct XWBEntry {
-        u32 offset;
-        u32 length;
-        u32 sampleRate;
-        u16 channels;
-        u16 formatTag;
-    };
-
-    //--------------------------------------------------------------
-    //! @class AudioAsset
     //! @brief 音声のアセットを管理するクラス
+    //! @note  音のファイル（.wav / .mp3 / .flac）は変換せずにそのまま使う。
+    //!        読み込みと復号は再生する側（Tsukino::Audio::AudioManager）が行う
     //--------------------------------------------------------------
     class AudioAsset : public IAsset {
     public:
@@ -46,9 +36,7 @@ namespace Tsukino::Asset {
         //--------------------------------------------------------------
         AssetType GetType() const override { return AssetType::Audio; }
 
-        XWBEntry    metadata;        // 音声データのオフセット、長さ、サンプルレート、チャンネル数、フォーマットタグなど
-        std::string waveBankPath;    // どの .xwb ファイルに属しているか
-        u32         waveIndex = 0;   // WaveBank内のインデックス（DirectXTKの再生で利用）
+        std::string filePath;    // 音のファイルのパス（UTF-8）。AudioManager がここから読む
 
     private:
         AssetHandle m_handle;    // アセットハンドル

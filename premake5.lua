@@ -346,10 +346,6 @@ project "Tsukino.Engine"
     targetdir ("bin/%{cfg.buildcfg}")
     objdir ("bin-int/%{cfg.buildcfg}")
 
-    -- AudioImporter(XWBTool.exe)が使う外部ツール(Tools/)は、
-    -- Release では exe の隣に要る。コピーは exe 側の tsukino_release_payload() が行う
-    -- （ライブラリの targetdir へ置いても exe からは見えない）
-
     files {
         "Tsukino.Engine/src/**.cpp",
         "Tsukino.Engine/include/**.hpp",
@@ -509,14 +505,20 @@ project "Tsukino.Audio"
     files {
         "Tsukino.Audio/src/**.cpp",
         "Tsukino.Audio/include/**.hpp",
-        --"Tsukino.Audio/pch.cpp"
+        "External/miniaudio/miniaudio.c",    -- miniaudio の本体（C）。wav / mp3 / flac の復号と、OS ごとの音の出力
     }
+
+    -- 使わない機能を外す（エンコード・波形の生成）
+    defines { "MA_NO_ENCODING", "MA_NO_GENERATION" }
+    filter "files:External/miniaudio/miniaudio.c"
+        warnings "Off"
+    filter {}
 
     includedirs {
         "Tsukino.Audio/include",
         "Tsukino.Core/include",
         "Tsukino.Engine/include",
-        ".build/packages/directxtk_desktop_win10.2026.4.1.1/include",
+        "External/miniaudio",
     }
 
     links {
@@ -524,7 +526,6 @@ project "Tsukino.Audio"
         "Tsukino.Core",
     }
 
-    nuget { "directxtk_desktop_win10:2026.4.1.1" }
 
 ----------------------------------------
 -- 組み込みプロジェクト

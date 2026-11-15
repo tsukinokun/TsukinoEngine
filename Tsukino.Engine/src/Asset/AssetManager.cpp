@@ -21,7 +21,6 @@
 #include <Tsukino/Engine/Asset/Texture/TextureImporter.hpp>
 #include <Tsukino/Engine/Asset/Font/DynamicFontImporter.hpp>
 #include <Tsukino/Engine/Asset/Material/MaterialImporter.hpp>
-#include <Tsukino/Engine/Asset/Audio/AudioImporter.hpp>
 #include <Tsukino/Engine/Asset/Model/ModelImporter.hpp>
 #include <Tsukino/Engine/Asset/Cubemap/CubemapImporter.hpp>
 
@@ -62,7 +61,6 @@ namespace Tsukino::Asset {
         // シェーダーはビルド時に変換済み（tsukino_shaders()）なので、インポーターは無い
         RegisterImporter(AssetType::Texture, Tsukino::Core::CreateRef<TextureImporter>(m_textureRules));    // テクスチャインポーターを登録
         RegisterImporter(AssetType::DynamicFont, Tsukino::Core::CreateRef<DynamicFontImporter>());    // 動的フォントインポーターの登録
-        RegisterImporter(AssetType::Audio, Tsukino::Core::CreateRef<AudioImporter>());        // オーディオインポーターの登録
         RegisterImporter(AssetType::Model, Tsukino::Core::CreateRef<ModelImporter>());        // モデルインポーターの登録
         RegisterImporter(AssetType::Material, Tsukino::Core::CreateRef<MaterialImporter>());  // マテリアルインポーター（.tmat）の登録
         RegisterImporter(AssetType::Cubemap, Tsukino::Core::CreateRef<CubemapImporter>());    // キューブマップインポーターを登録
@@ -287,7 +285,7 @@ namespace Tsukino::Asset {
             for(auto& loader : m_loaders) {
                 if(!loader->CanLoad(cacheBasePath.extension()))
                     continue;
-                // ローダーには fragment 付きで渡す（Audio サブリソース解決用）
+                // ローダーには fragment 付きで渡す
                 if(Tsukino::Core::Ref<IAsset> asset = loader->Load(cachePathWithFragment))
                     return asset;
             }
@@ -406,6 +404,7 @@ namespace Tsukino::Asset {
 
             {".wav",     AssetType::Audio  },
             {".mp3",     AssetType::Audio  },
+            {".flac",    AssetType::Audio  },
 
             {".dfont",   AssetType::DynamicFont},
 
@@ -442,10 +441,6 @@ namespace Tsukino::Asset {
             {".glb",     ".tsm"       },
             {".tsm",     ".tsm"       },
 
-            // Audio
-            {".wav",     ".xwb"       },
-            {".mp3",     ".xwb"       },
-
             // Cubemap
             {".cubemap", ".tcc"       },
             {".tcc",     ".tcc"       },
@@ -461,8 +456,13 @@ namespace Tsukino::Asset {
         // bgfx のシェーダー（.sc）はキャッシュを作らない。ビルド時に変換した結果が
         // ソースの隣（形式ごとのフォルダ）にあるので、それを直接読む
         //--------------------------------------------------------------
-        if(Tsukino::Core::Path::ToLower(sourceBasePath.extension()) == ".sc")
+        const std::string sourceExt = Tsukino::Core::Path::ToLower(sourceBasePath.extension());
+        if(sourceExt == ".sc")
             return ShaderLoader::ToBinaryPath(Tsukino::IO::FileSystem::GetAssetRootPath() / sourceBasePath);
+
+        // 音（.wav / .mp3 / .flac）も変換しない。ソースをそのまま読む
+        if(GetAssetTypeFromExtension(sourceExt) == AssetType::Audio)
+            return Tsukino::IO::FileSystem::GetAssetRootPath() / sourceBasePath;
 
         // 絶対パス(エンジン自身が所有するTools/やTsukino.BuiltIn/Assetsなど、
         // GetEngineAssetRootPath()経由で解決されたもの)の場合、そのまま

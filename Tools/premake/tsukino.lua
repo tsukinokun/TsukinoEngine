@@ -143,7 +143,6 @@ function tsukino_link()
     libdirs { "%{wks.location}/bgfx/build/%{cfg.buildcfg}" }
 
     nuget {
-        "directxtk_desktop_win10:2026.4.1.1",
         "AssimpCpp:5.0.1.6",
     }
 end
@@ -181,10 +180,6 @@ function tsukino_release_payload()
             "{COPYFILE} " .. root .. "/THIRD_PARTY_NOTICES.md %{cfg.targetdir}/THIRD_PARTY_NOTICES.md",
         }
         postbuildcommands(tsukino_crt_commands())
-        -- Tools/ のうち実行時に要るのは外部ツールの exe だけ。premake/ と Shaders/ はビルド用のスクリプト
-        postbuildcommands(tsukino_mirror_commands(path.join(rel, "Tools"), "Tools", {
-            excludeDirs = { "premake", "Shaders" },
-        }))
     filter {}
 end
 

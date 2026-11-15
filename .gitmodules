@@ -57,3 +57,6 @@
 	path = External/bgfx
 	url = https://github.com/bkaradzic/bgfx.git
 	shallow = true
+[submodule "External/miniaudio"]
+	path = External/miniaudio
+	url = https://github.com/mackron/miniaudio

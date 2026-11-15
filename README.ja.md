@@ -35,7 +35,7 @@ TsukinoEngineは、Windows向けの個人開発ゲームエンジンです。[bg
 - **bgfx レンダラー** — bgfx（Windows では Direct3D 11）の上の独自のディファード描画パイプライン(`Tsukino.Renderer`)。シェーダーは bgfx のシェーダー言語（`.sc`）で書き、ビルド時に変換します。
 - **物理演算** — [JoltPhysics](https://github.com/jrouwe/JoltPhysics)を統合し、剛体シミュレーションに対応。
 - **視覚エフェクト** — [Effekseer](https://github.com/tsukinokun/Effekseer)によるパーティクル・エフェクト再生。
-- **オーディオ** — DirectXTKをベースとした専用オーディオモジュール(`Tsukino.Audio`)。
+- **オーディオ** — [miniaudio](https://github.com/mackron/miniaudio) をベースとした専用オーディオモジュール(`Tsukino.Audio`)。`.wav` / `.mp3` / `.flac` を変換せずに鳴らします。
 - **アセットパイプライン** — [Assimp](https://github.com/assimp/assimp)によるモデル読み込みと、[DirectXTex](https://github.com/microsoft/DirectXTex)によるテクスチャ処理。
 - **シリアライズ** — [cereal](https://github.com/USCiLab/cereal)を用いたシーン・アセットデータのシリアライズ。
 - **モジュール構成** — `Tsukino.Core` / `Tsukino.GraphicsCommon` / `Tsukino.Engine` / `Tsukino.Renderer` / `Tsukino.Physics` / `Tsukino.Audio` / `Tsukino.BuiltIn` / `Tsukino.EngineIntegration` の各サブシステムを個別のPremakeプロジェクトとして分離し、`Tsukino.Sandbox`が実行可能ファイルとしてそれらを統合します。
@@ -76,7 +76,7 @@ git submodule update --init --recursive
 open.bat
 ```
 
-内部で`vendor\premake5.exe vs2022`が実行され、`.build/TsukinoEngine.sln`が生成された後、自動的に開かれます。NuGetパッケージ（`AssimpCpp`, `directxtk_desktop_win10`）は、初回ビルド時にVisual Studioが自動的に復元します。
+内部で`vendor\premake5.exe vs2022`が実行され、`.build/TsukinoEngine.sln`が生成された後、自動的に開かれます。NuGetパッケージ（`AssimpCpp`）は、初回ビルド時にVisual Studioが自動的に復元します。
 
 ソリューションを開いたら、**Tsukino.Sandbox**をスタートアッププロジェクトに設定して実行してください。
 起動すると多光源ショーケースが始まります。もう1つのサンプルシーンはコマンドライン引数で選びます。

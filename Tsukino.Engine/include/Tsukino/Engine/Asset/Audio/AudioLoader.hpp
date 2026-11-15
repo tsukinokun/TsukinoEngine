@@ -10,7 +10,7 @@
 namespace Tsukino::Asset {
     //--------------------------------------------------------------
     //! @class  AudioLoader
-    //! @brief  オーディオアセットのローダー
+    //! @brief  オーディオアセットのローダー（.wav / .mp3 / .flac をそのまま使う。変換もキャッシュもしない）
     //--------------------------------------------------------------
     class AudioLoader : public IAssetLoader {
     public:
@@ -28,9 +28,9 @@ namespace Tsukino::Asset {
         bool CanLoad(const std::string& ext) const override;
 
         //--------------------------------------------------------------
-        // オーディオファイルを読み込み FontAsset を生成する
+        // オーディオファイルから AudioAsset を生成する
         //! @param  path [in] オーディオファイルのパス
-        //! @return 読み込まれた FontAsset（失敗時は nullptr）
+        //! @return 生成した AudioAsset（ファイルが無いときは nullptr）
         //--------------------------------------------------------------
         [[nodiscard]]
         Tsukino::Core::Ref<IAsset> Load(const Tsukino::Core::Path& path) override;

@@ -29,6 +29,8 @@
 | `bool IsPrepared(const Tsukino::Asset::AudioAsset &audioAsset) const` | 音声のデータを読み終えたか確認する |
 | `void Stop(const Tsukino::Asset::AudioAsset &audioAsset)` | 特定の音声を停止する |
 | `void StopAll()` | 全ての音声を停止する |
+| `void Suspend()` | 音の出力を止める |
+| `void Resume()` | Suspend で止めた音の出力を再開する |
 | `bool IsPlaying(const Tsukino::Asset::AudioAsset &audioAsset) const` | 特定の音声が再生中か確認する |
 | `void SetVolume(const Tsukino::Asset::AudioAsset &audioAsset, float volume)` | 鳴っている音声の音量を変える |
 | `void SetMasterVolume(float volume)` | マスター音量を設定する |
@@ -41,8 +43,8 @@
 メンバ名のみ。詳細が要るときはヘッダを開く。
 
 - **Tsukino::Audio::AudioContext** — `Tsukino.Audio/src/Audio/AudioManager.cpp`
-  - engine, waveBanks, playing, Initialize(), Update(), GetOrLoadWaveBank()
+  - vfs, engine, engineReady, buses, prepared, playing, Initialize(), ~AudioContext(), Update()
 - **Tsukino::Audio::AudioContext::PlayingSound** — `Tsukino.Audio/src/Audio/AudioManager.cpp`
-  - waveBankPath, waveIndex, instance, volume, bus
+  - filePath, sound, volume, bus
 - **Tsukino::Audio::AudioManager** — `Tsukino.Audio/include/Tsukino/Audio/AudioManager.hpp`
-  - AudioManager(), ~AudioManager(), AudioManager(), operator=(), AudioManager(), operator=(), Initialize(), Update(), Play(), Prepare(), IsPrepared(), Stop(), StopAll(), IsPlaying(), SetVolume(), SetMasterVolume(), GetMasterVolume(), SetBusVolume(), GetBusVolume()
+  - AudioManager(), ~AudioManager(), AudioManager(), operator=(), AudioManager(), operator=(), Initialize(), Update(), Play(), Prepare(), IsPrepared(), Stop(), StopAll(), Suspend(), Resume(), IsPlaying(), SetVolume(), SetMasterVolume(), GetMasterVolume(), SetBusVolume(), GetBusVolume()

@@ -35,7 +35,7 @@ TsukinoEngine is a personal game engine project targeting Windows. It combines a
 - **bgfx Renderer** — Custom deferred rendering pipeline (`Tsukino.Renderer`) on bgfx (Direct3D 11 on Windows). Shaders are written in bgfx's shader language (`.sc`) and compiled at build time.
 - **Physics** — Integrated with [JoltPhysics](https://github.com/jrouwe/JoltPhysics) for rigid body simulation.
 - **Visual Effects** — Particle and effect playback powered by [Effekseer](https://github.com/tsukinokun/Effekseer).
-- **Audio** — Dedicated audio module (`Tsukino.Audio`) built on DirectXTK.
+- **Audio** — Dedicated audio module (`Tsukino.Audio`) built on [miniaudio](https://github.com/mackron/miniaudio); `.wav` / `.mp3` / `.flac` are played as they are.
 - **Asset Pipeline** — Model import via [Assimp](https://github.com/assimp/assimp) and texture processing via [DirectXTex](https://github.com/microsoft/DirectXTex).
 - **Serialization** — Scene and asset data serialization powered by [cereal](https://github.com/USCiLab/cereal).
 - **Modular Build** — Each subsystem (`Tsukino.Core`, `Tsukino.GraphicsCommon`, `Tsukino.Engine`, `Tsukino.Renderer`, `Tsukino.Physics`, `Tsukino.Audio`, `Tsukino.BuiltIn`, `Tsukino.EngineIntegration`) is a separate Premake project, and `Tsukino.Sandbox` ties them together as a runnable executable.
@@ -80,7 +80,7 @@ Generate the Visual Studio solution and open it:
 open.bat
 ```
 
-This runs `vendor\premake5.exe vs2022` to generate `.build/TsukinoEngine.sln` and opens it automatically. NuGet packages (`AssimpCpp`, `directxtk_desktop_win10`) are restored automatically by Visual Studio on the first build.
+This runs `vendor\premake5.exe vs2022` to generate `.build/TsukinoEngine.sln` and opens it automatically. The NuGet package `AssimpCpp` is restored automatically by Visual Studio on the first build.
 
 Once the solution is open, set **Tsukino.Sandbox** as the startup project and run it.
 It starts a many-light showcase. The other sample scene is selected with a command-line

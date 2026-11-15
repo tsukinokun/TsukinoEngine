@@ -132,9 +132,7 @@
 - **Tsukino::Asset::AssetRefResolverArchive** — `Tsukino.Engine/include/Tsukino/Engine/Asset/AssetRefResolverArchive.hpp`
   - AssetRefResolverArchive(), operator()()
 - **Tsukino::Asset::AudioAsset** — `Tsukino.Engine/include/Tsukino/Engine/Asset/Audio/AudioAsset.hpp`
-  - metadata, waveBankPath, waveIndex, GetHandle(), SetHandle(), GetType()
-- **Tsukino::Asset::AudioImporter** — `Tsukino.Engine/include/Tsukino/Engine/Asset/Audio/AudioImporter.hpp`
-  - Import()
+  - filePath, GetHandle(), SetHandle(), GetType()
 - **Tsukino::Asset::AudioLoader** — `Tsukino.Engine/include/Tsukino/Engine/Asset/Audio/AudioLoader.hpp`
   - AudioLoader(), CanLoad(), Load()
 - **Tsukino::Asset::CubemapAsset** — `Tsukino.Engine/include/Tsukino/Engine/Asset/Cubemap/CubemapAsset.hpp`
@@ -197,8 +195,6 @@
   - TextureLoader(), CanLoad(), Load()
 - **Tsukino::Asset::Vertex** — `Tsukino.Engine/src/Asset/Model/ModelImporter.cpp`
   - position, normal, texcoord
-- **Tsukino::Asset::XWBEntry** — `Tsukino.Engine/include/Tsukino/Engine/Asset/Audio/AudioAsset.hpp`
-  - offset, length, sampleRate, channels, formatTag
 - **Tsukino::ECS::EngineEvent::EntityCreatedEvent** — `Tsukino.Engine/include/Tsukino/Engine/ECS/EngineEvent/EntityEvent.hpp`
   - entity
 - **Tsukino::ECS::EngineEvent::EntityDestroyedEvent** — `Tsukino.Engine/include/Tsukino/Engine/ECS/EngineEvent/EntityEvent.hpp`

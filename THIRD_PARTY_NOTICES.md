@@ -17,7 +17,7 @@ TsukinoEngine 本体は MIT ライセンスで配布しています（`LICENSE` 
 | [hlslpp](https://github.com/redorav/hlslpp) | SIMD 数学型（ベクトル / 行列 / クォータニオン） | submodule | `cd09302 (3.8+)` | MIT |
 | [DirectXTex](https://github.com/microsoft/DirectXTex) | テクスチャの読み込みと圧縮 | submodule | `193629a` | MIT |
 | [cereal](https://github.com/USCiLab/cereal) | シーンとアセットのシリアライズ | submodule | `22a1b36` | BSD 3-Clause |
-| [DirectX Tool Kit (XWBTool)](https://github.com/microsoft/DirectXTK) | 波形バンクの生成に使う実行ファイル | `Tools/` にバイナリを直接コミット | `2026.4.1.1` | MIT |
+| [miniaudio](https://github.com/mackron/miniaudio) | 音の再生と復号（wav / mp3 / flac。`Tsukino.Audio`） | submodule | `9634bed (0.11.25)` | Public Domain または MIT No Attribution（選べる） |
 | [Premake](https://github.com/premake/premake-core) | プロジェクトファイルの生成 | `vendor/premake5.exe` にバイナリを直接コミット | `5.0.0-beta8` | BSD 3-Clause |
 | [SDL](https://github.com/libsdl-org/SDL) | ウィンドウ・入力・IME・ゲームパッド・保存先などのプラットフォーム層 | submodule | `829a65d (3.4.18)` | zlib |
 | [bgfx](https://github.com/bkaradzic/bgfx) | 描画の翻訳レイヤー | submodule | `77b6e84` | BSD 2-Clause |
@@ -39,7 +39,7 @@ bgfx の submodule の中（`External/bgfx/3rdparty/`）にあり、条文もそ
 | [Dawn / Tint](https://dawn.googlesource.com/dawn) | WGSL への変換 | `3rdparty/dawn`（`LICENSE`） | BSD 3-Clause |
 | D3DCompiler / DXC（`d3dcompiler_47.dll`・`dxcompiler.dll`） | Direct3D 向けのシェーダーのコンパイル | `tools/bin/windows` | Microsoft の再頒布条件（bgfx に同梱） |
 
-`Tools/XWBTool.exe`・`vendor/premake5.exe` の 2 つは、
+`vendor/premake5.exe` は、
 ソースではなくビルド済みバイナリをこのリポジトリへ直接コミットしています。
 そのため条文の掲載義務はこのファイルが担っています。
 
@@ -51,7 +51,6 @@ NuGet がビルド時に `.build/packages/` へ復元します。
 | パッケージ | 上流 | 用途 | 版 | ライセンス |
 |---|---|---|---|---|
 | `AssimpCpp` | [Assimp](https://github.com/assimp/assimp) | FBX などのモデル読み込み | 5.0.1.6 | BSD 3-Clause |
-| `directxtk_desktop_win10` | [DirectXTK](https://github.com/microsoft/DirectXTK) | オーディオ | 2026.4.1.1 | MIT |
 
 Release の出力には、Visual Studio に付属する Microsoft Visual C++ ランタイム（`vcruntime140.dll`・`vcruntime140_1.dll`・`msvcp140.dll`）を
 exe の隣へコピーします。これらは Visual Studio のライセンス条項に基づく再頒布可能コードで、上記のオープンソースライセンスの対象ではありません。
@@ -247,24 +246,50 @@ ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ```
 
-### DirectX Tool Kit (XWBTool)
+### miniaudio
 
-MIT — https://github.com/microsoft/DirectXTK
+Public Domain (Unlicense) または MIT No Attribution — https://github.com/mackron/miniaudio
 
 ```
-MIT License
+This software is available as a choice of the following licenses. Choose
+whichever you prefer.
 
-Copyright (c) Microsoft Corporation.
+===============================================================================
+ALTERNATIVE 1 - Public Domain (www.unlicense.org)
+===============================================================================
+This is free and unencumbered software released into the public domain.
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
+Anyone is free to copy, modify, publish, use, compile, sell, or distribute this
+software, either in source code form or as a compiled binary, for any purpose,
+commercial or non-commercial, and by any means.
 
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
+In jurisdictions that recognize copyright laws, the author or authors of this
+software dedicate any and all copyright interest in the software to the public
+domain. We make this dedication for the benefit of the public at large and to
+the detriment of our heirs and successors. We intend this dedication to be an
+overt act of relinquishment in perpetuity of all present and future rights to
+this software under copyright law.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN
+ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
+WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+For more information, please refer to <http://unlicense.org/>
+
+===============================================================================
+ALTERNATIVE 2 - MIT No Attribution
+===============================================================================
+Copyright 2025 David Reid
+
+Permission is hereby granted, free of charge, to any person obtaining a copy of
+this software and associated documentation files (the "Software"), to deal in
+the Software without restriction, including without limitation the rights to
+use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies
+of the Software, and to permit persons to whom the Software is furnished to do
+so.
 
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
@@ -272,7 +297,7 @@ FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
 AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE
+SOFTWARE.
 ```
 
 ### Premake

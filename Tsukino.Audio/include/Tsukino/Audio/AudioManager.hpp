@@ -20,7 +20,7 @@ namespace Tsukino::Asset {
 namespace Tsukino::Audio {
 
     // 前方宣言
-    class AudioContext;    // バックエンド(XAudio2等)の隠蔽
+    class AudioContext;    // バックエンド（miniaudio）の隠蔽
 
     //! 音をまとめて音量を変えるためのバスの番号（0 〜 kAudioBusCount-1）。
     //! 何番を何に使うか（BGM・効果音・声など）はゲームが決める。0 は既定のバス
@@ -105,6 +105,17 @@ namespace Tsukino::Audio {
         void StopAll();
 
         //--------------------------------------------------------------
+        // 音の出力を止める（鳴っている音は止めた位置で待つ）
+        //! @note  アプリが裏へ回ったとき（スマホのホーム画面へ戻るなど）に呼ぶ。Resume で続きから鳴る
+        //--------------------------------------------------------------
+        void Suspend();
+
+        //--------------------------------------------------------------
+        // Suspend で止めた音の出力を再開する
+        //--------------------------------------------------------------
+        void Resume();
+
+        //--------------------------------------------------------------
         // 特定の音声が再生中か確認する
         //! @param audioAsset [in] 確認対象のオーディオアセット
         //! @return true: 再生中, false: 停止中または存在しない
@@ -151,7 +162,7 @@ namespace Tsukino::Audio {
         float GetBusVolume(AudioBus bus) const;
 
     private:
-        std::unique_ptr<AudioContext> m_audioContext;    //!< バックエンド（XAudio2等）を隠蔽するコンテキスト
+        std::unique_ptr<AudioContext> m_audioContext;    //!< バックエンド（miniaudio）を隠蔽するコンテキスト
         float                         m_masterVolume;    //!< 全体の音量
         std::array<float, kAudioBusCount> m_busVolumes;  //!< バスごとの音量
     };

@@ -410,6 +410,15 @@ carve-out for `Tsukino.Renderer` described under **API stability** in the README
 
 ### Changed
 
+- **Audio is played with miniaudio instead of DirectXTK Audio (XAudio2).** `.wav`, `.mp3` and `.flac` are played as
+  they are: there is no import step, no `.xwb` wave bank and no `Tools/XWBTool.exe` any more, and the old `Cache/*.xwb`
+  files can be deleted. miniaudio is a new submodule (`External/miniaudio`, 0.11.25); run `git submodule update --init`.
+  - `AudioAsset` now holds only `filePath`; `XWBEntry`, `metadata`, `waveBankPath` and `waveIndex` are removed, and so are
+    `AudioImporter` and the `#index` fragment for picking a sound out of a wave bank.
+  - `AudioManager` keeps its API. Each bus is a miniaudio sound group, `.wav` files are decoded once and shared, and
+    `.mp3` / `.flac` are streamed. Files are read through `FileSystem`, so the paths are UTF-8.
+  - New `AudioManager::Suspend()` / `Resume()` stop and restart the audio output (for an app moving to the background).
+  - DirectXTK is no longer used anywhere.
 - **bgfx is the only rendering backend** (the Direct3D 11 renderer is removed; see Removed).
   - `GraphicsDeviceOptions::preference` works with bgfx. On Windows, `Auto` picks the high-performance adapter
     through DXGI and passes its vendor / device ID to bgfx, falling back to WARP if no hardware device can be created;
