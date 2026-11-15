@@ -8,6 +8,14 @@
 
 #include <bgfx/bgfx.h>
 
+#if defined(_WIN32)
+    #include <d3d11.h>
+    #include <dxgi.h>
+    #include <wrl/client.h>
+#endif
+
+#include <algorithm>
+#include <cmath>
 #include <string>
 
 // 名前空間 : Tsukino::Renderer
@@ -15,6 +23,57 @@ namespace Tsukino::Renderer {
 
     namespace {
         bool g_bgfxAlive = false;    // bgfx が初期化されていて、まだ後始末されていないか
+
+#if defined(_WIN32)
+        // Microsoft Basic Render Driver（WARP）のベンダー ID とデバイス ID（DX11 版と同じ判定）
+        constexpr UINT kBasicRenderVendorId = 0x1414;
+        constexpr UINT kBasicRenderDeviceId = 0x008C;
+
+        //! ワイド文字列を UTF-8 に直します。
+        //! @param  [in] text ワイド文字列（終端あり）
+        //! @return UTF-8 の文字列
+        std::string ToUtf8(const wchar_t* text) {
+            const int size = WideCharToMultiByte(CP_UTF8, 0, text, -1, nullptr, 0, nullptr, nullptr);
+            if(size <= 1)
+                return {};
+            std::string result(static_cast<size_t>(size - 1), '\0');
+            WideCharToMultiByte(CP_UTF8, 0, text, -1, result.data(), size, nullptr, nullptr);
+            return result;
+        }
+
+        //! bgfx が作った D3D11 のデバイスから、アダプタの情報を読みます。
+        //! @param  [out] info 読めた値を入れる先（読めなかった項目は触らない）
+        //! @return true: 読めた
+        bool QueryD3D11AdapterInfo(GraphicsAdapterInfo& info) {
+            const bgfx::InternalData* data = bgfx::getInternalData();
+            if(bgfx::getRendererType() != bgfx::RendererType::Direct3D11 || !data || !data->context)
+                return false;
+
+            auto* device = static_cast<ID3D11Device*>(data->context);
+
+            Microsoft::WRL::ComPtr<IDXGIDevice>   dxgiDevice;
+            Microsoft::WRL::ComPtr<IDXGIAdapter>  adapter;
+            Microsoft::WRL::ComPtr<IDXGIAdapter1> adapter1;
+            DXGI_ADAPTER_DESC1                    desc{};
+            if(FAILED(device->QueryInterface(IID_PPV_ARGS(dxgiDevice.GetAddressOf()))) || FAILED(dxgiDevice->GetAdapter(adapter.GetAddressOf()))
+               || FAILED(adapter.As(&adapter1)) || FAILED(adapter1->GetDesc1(&desc)))
+                return false;
+
+            info.name            = ToUtf8(desc.Description);
+            info.vendorId        = desc.VendorId;
+            info.deviceId        = desc.DeviceId;
+            info.dedicatedMemory = desc.DedicatedVideoMemory;
+            info.sharedMemory    = desc.SharedSystemMemory;
+            info.isSoftware      = (desc.Flags & DXGI_ADAPTER_FLAG_SOFTWARE) != 0
+                              || (desc.VendorId == kBasicRenderVendorId && desc.DeviceId == kBasicRenderDeviceId);
+
+            // CPU とメモリを共有するかどうか（内蔵 GPU の判定）
+            D3D11_FEATURE_DATA_D3D11_OPTIONS2 options2{};
+            if(SUCCEEDED(device->CheckFeatureSupport(D3D11_FEATURE_D3D11_OPTIONS2, &options2, sizeof(options2))))
+                info.isUnifiedMemory = options2.UnifiedMemoryArchitecture != FALSE;
+            return true;
+        }
+#endif
 
         //! バックバッファを作り直すときのフラグを返します。
         //! @param  [in] vsync 垂直同期をするか
@@ -89,14 +148,38 @@ namespace Tsukino::Renderer {
         m_width        = width;
         m_height      = height;
 
-        // GPU の情報（名前は bgfx が持っていないので、描画 API の名前で代用する）
-        const bgfx::Caps* caps   = bgfx::getCaps();
-        m_adapterInfo.name       = std::string("bgfx ") + bgfx::getRendererName(bgfx::getRendererType());
-        m_adapterInfo.vendorId   = caps ? caps->vendorId : 0;
-        m_adapterInfo.deviceId   = caps ? caps->deviceId : 0;
-
-        Tsukino::Core::Log::Info("GraphicsContext: bgfx initialized (" + m_adapterInfo.name + ").");
+        Tsukino::Core::Log::Info(std::string("GraphicsContext: bgfx initialized (") + bgfx::getRendererName(bgfx::getRendererType()) + ").");
+        QueryAdapterInfo();
         return CreateRenderTargets();
+    }
+
+    //------------------------------------------------------------------------
+    //! 使っている GPU の情報を調べて保持し、ログへ出します。
+    //------------------------------------------------------------------------
+    void GraphicsContext::QueryAdapterInfo() {
+        m_adapterInfo = GraphicsAdapterInfo{};
+
+#if defined(_WIN32)
+        const bool queried = QueryD3D11AdapterInfo(m_adapterInfo);
+#else
+        const bool queried = false;
+#endif
+        //--------------------------------------------------------------------
+        // 描画 API から読めないときは、bgfx が持つ ID と描画 API の名前で代用する。
+        // メモリの量は分からないので 0 のまま（画質の自動判定は低い段階になる）
+        //--------------------------------------------------------------------
+        if(!queried) {
+            const bgfx::Caps* caps = bgfx::getCaps();
+            m_adapterInfo.name     = std::string("bgfx ") + bgfx::getRendererName(bgfx::getRendererType());
+            m_adapterInfo.vendorId = caps ? caps->vendorId : 0;
+            m_adapterInfo.deviceId = caps ? caps->deviceId : 0;
+        }
+
+        constexpr u64 kMiB = 1024ull * 1024ull;
+        Tsukino::Core::Log::Info("GraphicsContext: Adapter '" + m_adapterInfo.name + "' (software: " + (m_adapterInfo.isSoftware ? "yes" : "no")
+                                 + ", unified memory: " + (m_adapterInfo.isUnifiedMemory ? "yes" : "no")
+                                 + ", dedicated: " + std::to_string(m_adapterInfo.dedicatedMemory / kMiB)
+                                 + " MiB, shared: " + std::to_string(m_adapterInfo.sharedMemory / kMiB) + " MiB)");
     }
 
     //------------------------------------------------------------------------

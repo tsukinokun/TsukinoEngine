@@ -163,6 +163,10 @@ namespace Tsukino::Renderer {
 
         bool                m_initialized = false;    // bgfx を初期化したか
         bool                m_vsync       = true;     // 垂直同期をするか
+        //! 使っている GPU の情報を調べて保持し、ログへ出します。
+        //! @note   Windows（D3D11）は DXGI から DX11 版と同じ値を読む。それ以外は bgfx が持つ ID と描画 API の名前だけ
+        void QueryAdapterInfo();
+
         void*               m_windowHandle = nullptr; // 描画先のウィンドウ（作り直すときにも渡す）
         u32                 m_width       = 0;        // 描画領域の幅
         u32                 m_height      = 0;        // 描画領域の高さ
