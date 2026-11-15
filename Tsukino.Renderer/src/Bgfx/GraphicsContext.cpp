@@ -189,7 +189,35 @@ namespace Tsukino::Renderer {
         m_width  = width;
         m_height = height;
         ApplyReset();
-        return true;
+        return RecreateRenderTargetsIfNeeded();
+    }
+
+    //------------------------------------------------------------------------
+    //! 内部解像度の倍率を設定し、3D を描く先を作り直します。
+    //------------------------------------------------------------------------
+    bool GraphicsContext::SetRenderScale(float scale) {
+        const float clamped = std::clamp(scale, RenderQualitySettings::kMinRenderScale, 1.0f);
+        if(clamped == m_renderScale)
+            return true;
+        m_renderScale = clamped;
+        return RecreateRenderTargetsIfNeeded();
+    }
+
+    //------------------------------------------------------------------------
+    //! 3D を描く大きさが変わっていれば、描く先を作り直します。
+    //------------------------------------------------------------------------
+    bool GraphicsContext::RecreateRenderTargetsIfNeeded() {
+        // 最小化などで大きさが 0 のときは、作り直さずに今の描く先を残す（DX11 版と同じ）
+        if(!m_initialized || m_width == 0 || m_height == 0)
+            return true;
+
+        const u32 sceneWidth  = std::max(1u, static_cast<u32>(std::lround(static_cast<float>(m_width) * m_renderScale)));
+        const u32 sceneHeight = std::max(1u, static_cast<u32>(std::lround(static_cast<float>(m_height) * m_renderScale)));
+        if(sceneWidth == m_sceneWidth && sceneHeight == m_sceneHeight)
+            return true;
+
+        DestroyRenderTargets();
+        return CreateRenderTargets();
     }
 
     //------------------------------------------------------------------------
@@ -215,15 +243,18 @@ namespace Tsukino::Renderer {
     //------------------------------------------------------------------------
     bool GraphicsContext::CreateRenderTargets() {
         //--------------------------------------------------------------------
-        // どれもバックバッファと同じ大きさ（BackbufferRatio::Equal）。bgfx::reset で大きさが変わると、
-        // bgfx が作り直してくれる。読むときはどれも点で読むので、サンプラーは点・端で止める
+        // どれも 3D を描く大きさ（描画領域 × 内部解像度の倍率。等倍ならバックバッファとぴったり同じ）。
+        // 既定のサンプラーは点・端で止める（読む側が線形にしたいときは setTexture で指定する）
         //--------------------------------------------------------------------
         constexpr u64 kTargetFlags = BGFX_TEXTURE_RT | BGFX_SAMPLER_MIN_POINT | BGFX_SAMPLER_MAG_POINT | BGFX_SAMPLER_MIP_POINT
                                      | BGFX_SAMPLER_U_CLAMP | BGFX_SAMPLER_V_CLAMP;
-        constexpr auto kRatio = bgfx::BackbufferRatio::Equal;
+        m_sceneWidth  = std::max(1u, static_cast<u32>(std::lround(static_cast<float>(m_width) * m_renderScale)));
+        m_sceneHeight = std::max(1u, static_cast<u32>(std::lround(static_cast<float>(m_height) * m_renderScale)));
+        const u16 width  = static_cast<u16>(m_sceneWidth);
+        const u16 height = static_cast<u16>(m_sceneHeight);
 
-        m_hdrTexture   = bgfx::createTexture2D(kRatio, false, 1, bgfx::TextureFormat::RGBA16F, kTargetFlags);
-        m_depthTexture = bgfx::createTexture2D(kRatio, false, 1, bgfx::TextureFormat::D32F, kTargetFlags);
+        m_hdrTexture   = bgfx::createTexture2D(width, height, false, 1, bgfx::TextureFormat::RGBA16F, kTargetFlags);
+        m_depthTexture = bgfx::createTexture2D(width, height, false, 1, bgfx::TextureFormat::D32F, kTargetFlags);
 
         //--------------------------------------------------------------------
         // G-Buffer。形式は DX11 版と同じ（albedo は sRGB で持つ。ワールド座標は精度のため 32bit）
@@ -241,7 +272,7 @@ namespace Tsukino::Renderer {
             {bgfx::TextureFormat::RG16F,   0},                    // 5: 速度
         };
         for(u32 i = 0; i < kGBufferCount; ++i)
-            m_gbufferTextures[i] = bgfx::createTexture2D(kRatio, false, 1, kGBufferFormats[i].format, kTargetFlags | kGBufferFormats[i].flags);
+            m_gbufferTextures[i] = bgfx::createTexture2D(width, height, false, 1, kGBufferFormats[i].format, kTargetFlags | kGBufferFormats[i].flags);
 
         //--------------------------------------------------------------------
         // フレームバッファ。テクスチャはこのクラスが持ち、フレームバッファと一緒には破棄しない
@@ -257,7 +288,7 @@ namespace Tsukino::Renderer {
         m_hdrColorFrameBuffer = bgfx::createFrameBuffer(1, &m_hdrTexture, false);
 
         // ポストプロセス用の中間バッファ（HDR と同じ形式。モーションブラーが HDR を読んでここへ書く）
-        m_postProcessTexture     = bgfx::createTexture2D(kRatio, false, 1, bgfx::TextureFormat::RGBA16F, kTargetFlags);
+        m_postProcessTexture     = bgfx::createTexture2D(width, height, false, 1, bgfx::TextureFormat::RGBA16F, kTargetFlags);
         m_postProcessFrameBuffer = bgfx::createFrameBuffer(1, &m_postProcessTexture, false);
 
         if(!bgfx::isValid(m_gbufferFrameBuffer) || !bgfx::isValid(m_hdrFrameBuffer) || !bgfx::isValid(m_hdrColorFrameBuffer)
@@ -292,6 +323,8 @@ namespace Tsukino::Renderer {
         destroyTexture(m_depthTexture);
         for(bgfx::TextureHandle& texture : m_gbufferTextures)
             destroyTexture(texture);
+        m_sceneWidth  = 0;
+        m_sceneHeight = 0;
     }
 
 }    // namespace Tsukino::Renderer

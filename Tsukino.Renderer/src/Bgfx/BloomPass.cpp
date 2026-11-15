@@ -154,8 +154,8 @@ namespace Tsukino::Renderer {
            || !bgfx::isValid(m_gpu->downsampleProgram) || !bgfx::isValid(m_gpu->upsampleProgram))
             return;
 
-        const u32 width  = m_graphicsContext->GetWidth();
-        const u32 height = m_graphicsContext->GetHeight();
+        const u32 width  = m_graphicsContext->GetSceneWidth();
+        const u32 height = m_graphicsContext->GetSceneHeight();
         if(!EnsureMipTargets(width, height))
             return;
 

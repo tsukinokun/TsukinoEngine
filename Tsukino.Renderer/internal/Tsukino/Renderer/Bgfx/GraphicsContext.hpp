@@ -34,6 +34,7 @@ namespace Tsukino::Renderer {
         //! @param  [in] width  幅
         //! @param  [in] height 高さ
         //! @return true: 成功
+        //! @note   3D を描く先も作り直すので、呼んだ後はビューの描く先を設定し直す
         bool Resize(u32 width, u32 height);
 
         //! 垂直同期の有無を設定します。
@@ -68,6 +69,26 @@ namespace Tsukino::Renderer {
             return m_height;
         }
 
+        //! 内部解像度の倍率を設定し、3D を描く先を作り直します。
+        //! @param  [in] scale 倍率（RenderQualitySettings::kMinRenderScale〜1 に収める）
+        //! @return true: 成功（倍率が変わらなければ何もせず true）
+        //! @note   描く先のハンドルが変わるので、呼んだ後はビューの描く先を設定し直す
+        bool SetRenderScale(float scale);
+
+        //! 3D を描く幅（描画領域の幅 × 内部解像度の倍率）を返します。
+        //! @return 幅（ピクセル）
+        [[nodiscard]]
+        u32 GetSceneWidth() const noexcept {
+            return m_sceneWidth;
+        }
+
+        //! 3D を描く高さ（描画領域の高さ × 内部解像度の倍率）を返します。
+        //! @return 高さ（ピクセル）
+        [[nodiscard]]
+        u32 GetSceneHeight() const noexcept {
+            return m_sceneHeight;
+        }
+
         //! bgfx が初期化されていて、まだ後始末されていないかを返します。
         //! @return 資源を作ったり破棄したりしてよいなら true
         //! @note   MeshBuffer などは Renderer より長生きすることがある。bgfx を後始末した後に
@@ -77,7 +98,8 @@ namespace Tsukino::Renderer {
 
         //------------------------------------------------------------------------
         // 3D を描く先（DX11 版の GraphicsContext が持つ HDR バッファ・G-Buffer・深度と同じ組み）。
-        // どれもバックバッファと同じ大きさで作り、bgfx が画面の大きさの変更に合わせて作り直す
+        // どれも GetSceneWidth() × GetSceneHeight() の大きさ。描画領域の大きさか内部解像度が変わると作り直す
+        // （ハンドルが変わるので、使う側は毎フレーム取り直すか、作り直した後に設定し直す）
         //------------------------------------------------------------------------
 
         //! G-Buffer の枚数（DX11 版と同じ6枚）
@@ -141,12 +163,20 @@ namespace Tsukino::Renderer {
         }
 
     private:
+        //! 使っている GPU の情報を調べて保持し、ログへ出します。
+        //! @note   Windows（D3D11）は DXGI から DX11 版と同じ値を読む。それ以外は bgfx が持つ ID と描画 API の名前だけ
+        void QueryAdapterInfo();
+
         //! 今の大きさと垂直同期の設定で、bgfx のバックバッファを作り直します。
         void ApplyReset();
 
-        //! 3D を描く先のテクスチャとフレームバッファを作ります。
+        //! 3D を描く先のテクスチャとフレームバッファを、今の描画領域と内部解像度の大きさで作ります。
         //! @return true: 作成成功
         bool CreateRenderTargets();
+
+        //! 3D を描く大きさが変わっていれば、描く先を作り直します。
+        //! @return true: 作り直さなくてよかったか、作り直せた
+        bool RecreateRenderTargetsIfNeeded();
 
         //! 3D を描く先を破棄します。
         void DestroyRenderTargets();
@@ -163,13 +193,12 @@ namespace Tsukino::Renderer {
 
         bool                m_initialized = false;    // bgfx を初期化したか
         bool                m_vsync       = true;     // 垂直同期をするか
-        //! 使っている GPU の情報を調べて保持し、ログへ出します。
-        //! @note   Windows（D3D11）は DXGI から DX11 版と同じ値を読む。それ以外は bgfx が持つ ID と描画 API の名前だけ
-        void QueryAdapterInfo();
-
         void*               m_windowHandle = nullptr; // 描画先のウィンドウ（作り直すときにも渡す）
         u32                 m_width       = 0;        // 描画領域の幅
         u32                 m_height      = 0;        // 描画領域の高さ
+        float               m_renderScale = 1.0f;     // 内部解像度の倍率
+        u32                 m_sceneWidth  = 0;        // 3D を描く幅（描く先を作ったときの大きさ）
+        u32                 m_sceneHeight = 0;        // 3D を描く高さ
         GraphicsAdapterInfo m_adapterInfo;            // 使っている GPU の情報
     };
 

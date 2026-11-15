@@ -45,7 +45,18 @@ carve-out for `Tsukino.Renderer` described under **API stability** in the README
   - bgfx has 16 texture stages, so the DX11 slots t8–t19 are renumbered (`TextureStages.sh` / `BgfxStage`).
   - UI-layer 3D models (`cameraOverride`) get a fresh depth buffer whenever their `sortOrder` changes, by moving on to
     the next bgfx view (bgfx cannot clear in the middle of a view).
-  - Not yet in bgfx mode: render scale.
+- **bgfx renderer: render scale, adapter info, generated mips and GPU pass timings (bgfx mode only).**
+  - `RenderQualitySettings::renderScale` works: the bgfx `GraphicsContext` creates the G-Buffer, depth, HDR and
+    post-process targets at the scaled size (`GetSceneWidth()` / `GetSceneHeight()`) and recreates them on resize and
+    when the scale changes. The 3D views are set up every frame because the target handles change. Tonemap samples
+    linearly (like DX11) to stretch the scene to the back buffer. World `screenParams` and the occlusion cutout use the
+    scene size, as in DX11.
+  - `Renderer::GetAdapterInfo()` reads the adapter name, dedicated / shared memory, software and unified-memory flags
+    from DXGI on Windows (Direct3D 11 backend), so `RecommendRenderQuality` picks the same level as in DX11 mode.
+    Other backends still report only the renderer name and bgfx's vendor / device IDs.
+  - Single-mip textures with `generateMips` get a full mip chain built on the CPU (2×2 box filter, averaged in linear
+    space for sRGB formats) for 8-bit uncompressed formats, since bgfx cannot generate mips for ordinary textures.
+  - `GetFrameStats().gpu` is filled from bgfx's per-view profiler (`BGFX_DEBUG_PROFILER`), summed per `GpuPass`.
 - **bgfx renderer draws motion blur (bgfx mode only).** `MotionBlur.ps` is ported to `.sc`.
   - Draws now send the previous frame's world matrix and bone matrices and set `motionFlags.x`, so the G-Buffer
     velocity target is filled when motion blur is enabled and the command has previous-frame data.

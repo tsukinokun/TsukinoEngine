@@ -3,8 +3,9 @@
 //! @brief  bgfx 版の Renderer の実装（作りかけ）
 //! @detail DX11 版と同じ順に、不透明なモデルを G-Buffer へ描き、照らして HDR バッファへ書き、
 //!         フォワードの 3D（World・半透明）を重ね、トーンマップしてバックバッファへ写し、
-//!         最後に UI（Overlay）を描きます。影はシャドウマップで落とし、背景にはスカイを描き、環境光はスカイから焼きます。後処理はまだ無く、
-//!         DX11 版の各パスを段階的にここへ移していきます。
+//!         最後に UI（Overlay）を描きます。影はシャドウマップで落とし、背景にはスカイを描き、環境光はスカイから焼きます。
+//!         3D は内部解像度の大きさで描き、トーンマップで画面の大きさへ引き伸ばします。
+//!         まだ無いのは Effekseer（IPostWorldPass）だけです。
 //----------------------------------------------------------------------------
 #include <Tsukino/Renderer/Renderer.hpp>
 #include <Tsukino/Renderer/Bgfx/FrameConstantsGpu.hpp>
@@ -16,8 +17,8 @@
 
 #include "DrawCommandExecutor.hpp"
 #include "FullscreenPass.hpp"
-#include "ShadowPass.hpp"
 #include "GpuProfiler.hpp"
+#include "ShadowPass.hpp"
 #include "TonemapPass.hpp"
 
 #include <Tsukino/Core/Log.hpp>
@@ -38,13 +39,37 @@ namespace Tsukino::Renderer {
             return static_cast<u32>(std::lround(std::clamp(value, 0.0f, 1.0f) * 255.0f));
         }
 
-        //! ビューを、積んだ順のまま描く（bgfx は既定でステートの順に並べ替える）ように設定します。
-        //! @param  [in] view        ビュー
-        //! @param  [in] frameBuffer 描く先（無効なハンドルならバックバッファ）
-        void SetupView(bgfx::ViewId view, bgfx::FrameBufferHandle frameBuffer) {
+        //! バックバッファへ描くビューを、積んだ順のまま描く（bgfx は既定でステートの順に並べ替える）ように設定します。
+        //! @param  [in] view ビュー
+        void SetupBackBufferView(bgfx::ViewId view) {
+            bgfx::setViewMode(view, bgfx::ViewMode::Sequential);
+            bgfx::setViewFrameBuffer(view, BGFX_INVALID_HANDLE);
+            bgfx::setViewRect(view, 0, 0, bgfx::BackbufferRatio::Equal);
+        }
+
+        //! 3D を描く先（内部解像度の大きさ）へ描くビューを、積んだ順のまま描くように設定します。
+        //! @param  [in] view            ビュー
+        //! @param  [in] frameBuffer     描く先
+        //! @param  [in] graphicsContext 3D を描く大きさを持つコンテキスト
+        void SetupSceneView(bgfx::ViewId view, bgfx::FrameBufferHandle frameBuffer, const GraphicsContext& graphicsContext) {
             bgfx::setViewMode(view, bgfx::ViewMode::Sequential);
             bgfx::setViewFrameBuffer(view, frameBuffer);
-            bgfx::setViewRect(view, 0, 0, bgfx::BackbufferRatio::Equal);
+            bgfx::setViewRect(view, 0, 0, static_cast<u16>(graphicsContext.GetSceneWidth()), static_cast<u16>(graphicsContext.GetSceneHeight()));
+        }
+
+        //! 3D を描くビューの描く先と大きさを設定します。
+        //! @param  [in] graphicsContext 描く先を持つコンテキスト
+        //! @note   描く先は画面の大きさや内部解像度が変わると作り直されてハンドルが変わるので、毎フレーム設定し直す
+        void SetupSceneViews(const GraphicsContext& graphicsContext) {
+            SetupSceneView(BgfxView::GBuffer, graphicsContext.GetGBufferFrameBuffer(), graphicsContext);
+            SetupSceneView(BgfxView::Sky, graphicsContext.GetHdrColorFrameBuffer(), graphicsContext);
+            SetupSceneView(BgfxView::Lighting, graphicsContext.GetHdrColorFrameBuffer(), graphicsContext);
+            SetupSceneView(BgfxView::World, graphicsContext.GetHdrFrameBuffer(), graphicsContext);
+            SetupSceneView(BgfxView::AmbientParticle, graphicsContext.GetHdrFrameBuffer(), graphicsContext);
+            SetupSceneView(BgfxView::Fog, graphicsContext.GetHdrColorFrameBuffer(), graphicsContext);
+            SetupSceneView(BgfxView::ColorGrade, graphicsContext.GetHdrColorFrameBuffer(), graphicsContext);
+            SetupSceneView(BgfxView::Transparent, graphicsContext.GetHdrFrameBuffer(), graphicsContext);
+            SetupSceneView(BgfxView::MotionBlur, graphicsContext.GetPostProcessFrameBuffer(), graphicsContext);
         }
     }    // namespace
 
@@ -73,6 +98,10 @@ namespace Tsukino::Renderer {
         if(!m_frameConstants.Initialize(*m_graphicsContext))
             return false;
 
+        // パス単位の GPU タイマー（bgfx がビューごとに測った時間を読む）
+        m_gpuProfiler = std::make_unique<GpuProfiler>();
+        m_gpuProfiler->Initialize();
+
         // 環境光の定数と、焼くまでの仮の（環境光の無い）テクスチャ。照らすシェーダーが読むので、先に作る
         if(!m_iblBaker.CreateConstantBuffers(*m_graphicsContext))
             return false;
@@ -98,10 +127,6 @@ namespace Tsukino::Renderer {
 
         //--------------------------------------------------------------------
         // フルスクリーン三角形・トーンマップ・ライティング。
-        // パス単位の GPU タイマー（bgfx がビューごとに測った時間を読む）
-        m_gpuProfiler = std::make_unique<GpuProfiler>();
-        m_gpuProfiler->Initialize();
-
         // シェーダーがまだ bgfx の形式でなくても、起動は止めない（3D が出ないだけ）
         //--------------------------------------------------------------------
         m_fullscreenPass = std::make_unique<FullscreenPass>();
@@ -141,18 +166,10 @@ namespace Tsukino::Renderer {
         }
 
         //--------------------------------------------------------------------
-        // ビュー（Views.hpp の順に描かれる）。深度はリバース Z（手前ほど大きい）なので 0 で消す
+        // ビュー（Views.hpp の順に描かれる）。3D を描くビューの描く先は毎フレーム Render() で設定する。
+        // 深度はリバース Z（手前ほど大きい）なので 0 で消す
         //--------------------------------------------------------------------
-        SetupView(BgfxView::GBuffer, m_graphicsContext->GetGBufferFrameBuffer());
-        SetupView(BgfxView::Sky, m_graphicsContext->GetHdrColorFrameBuffer());
-        SetupView(BgfxView::Lighting, m_graphicsContext->GetHdrColorFrameBuffer());
-        SetupView(BgfxView::World, m_graphicsContext->GetHdrFrameBuffer());
-        SetupView(BgfxView::AmbientParticle, m_graphicsContext->GetHdrFrameBuffer());
-        SetupView(BgfxView::Fog, m_graphicsContext->GetHdrColorFrameBuffer());
-        SetupView(BgfxView::ColorGrade, m_graphicsContext->GetHdrColorFrameBuffer());
-        SetupView(BgfxView::Transparent, m_graphicsContext->GetHdrFrameBuffer());
-        SetupView(BgfxView::MotionBlur, m_graphicsContext->GetPostProcessFrameBuffer());
-        SetupView(BgfxView::Tonemap, BGFX_INVALID_HANDLE);
+        SetupBackBufferView(BgfxView::Tonemap);
         bgfx::setViewClear(BgfxView::GBuffer, BGFX_CLEAR_COLOR | BGFX_CLEAR_DEPTH, 0, 0.0f, 0);
         return true;
     }
@@ -164,8 +181,12 @@ namespace Tsukino::Renderer {
         if(m_qualityDirty)
             ApplyQuality();
 
+        // 3D を描く先（画面の大きさや内部解像度が変わると作り直される）
+        SetupSceneViews(*m_graphicsContext);
+
         m_frameStats              = FrameStats{};
         m_frameStats.commandCount = static_cast<u32>(m_drawQueue.GetCommands().size());
+        m_frameStats.gpu          = m_gpuProfiler->Collect();
 
         const auto& commands = m_drawQueue.GetCommands();
 
@@ -186,7 +207,6 @@ namespace Tsukino::Renderer {
 
         //--------------------------------------------------------------------
         // 影のカスケード（メインカメラの視錐台を奥行きで切った1切れごとの投影）を作り、
-        m_frameStats.gpu          = m_gpuProfiler->Collect();
         // 影を落とす物（GBuffer パスの対象＝不透明な 3D モデル）をシャドウマップへ描く。
         // 以降のライティングとフォワードが同じカスケードを使う
         //--------------------------------------------------------------------
@@ -291,7 +311,7 @@ namespace Tsukino::Renderer {
         // bgfx はビューの途中で深度を消せないので、そのたびに次の番号のビュー（深度を消すビュー）へ移る
         //--------------------------------------------------------------------
         bgfx::ViewId overlayView = BgfxView::Overlay;
-        SetupView(overlayView, BGFX_INVALID_HANDLE);
+        SetupBackBufferView(overlayView);
         bgfx::setViewClear(overlayView, BGFX_CLEAR_DEPTH, 0, 0.0f, 0);
 
         m_frameConstants.UploadOverlay();
@@ -306,7 +326,7 @@ namespace Tsukino::Renderer {
                     overlayDepthSortOrder = cmd.sortOrder;
                 } else if(cmd.sortOrder != overlayDepthSortOrder && overlayView < BgfxView::OverlayLast) {
                     ++overlayView;
-                    SetupView(overlayView, BGFX_INVALID_HANDLE);
+                    SetupBackBufferView(overlayView);
                     bgfx::setViewClear(overlayView, BGFX_CLEAR_DEPTH, 0, 0.0f, 0);
                     overlayDepthSortOrder = cmd.sortOrder;
                 }
@@ -386,10 +406,13 @@ namespace Tsukino::Renderer {
     }
 
     //------------------------------------------------------------------------
-    //! 保留している描画品質を適用します（内部解像度は、bgfx 版ではまだ効かない）。
+    //! 保留している描画品質を適用します。
     //------------------------------------------------------------------------
     void Renderer::ApplyQuality() {
         m_qualityDirty = false;
+
+        if(!m_graphicsContext->SetRenderScale(m_quality.renderScale))
+            Tsukino::Core::Log::Error("Renderer::ApplyQuality - failed to recreate the scene targets at the requested render scale.");
 
         if(m_shadowPass)
             m_shadowPass->SetQuality(m_quality.shadowMapSizeLimit, m_quality.shadowCascadeCount);

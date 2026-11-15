@@ -97,7 +97,7 @@ namespace Tsukino::Renderer {
     //------------------------------------------------------------------------
     //! シーン定数へフレーム共通の値を差し込んで、次の描画で送る値として覚えます。
     //------------------------------------------------------------------------
-    void FrameConstants::Upload(const CBufferScene& sceneData, bool /*targetBackBuffer*/) {
+    void FrameConstants::Upload(const CBufferScene& sceneData, bool targetBackBuffer) {
         CBufferScene uploadData = sceneData;
 
         // 前フレームの ViewProjection（呼び出し側は知らないので、ここで合流させる）
@@ -107,12 +107,27 @@ namespace Tsukino::Renderer {
         uploadData.timeParams = hlslpp::float4(m_elapsedTime, m_frameDeltaTime, std::sin(m_elapsedTime), std::cos(m_elapsedTime));
 
         //--------------------------------------------------------------------
-        // 解像度。bgfx 版はまだ内部解像度を下げた描画先を持たないので、
-        // ワールドもオーバーレイもバックバッファの大きさにする
+        // 解像度。オーバーレイはバックバッファ、ワールドは 3D を描く先（内部解像度）の大きさ
         //--------------------------------------------------------------------
-        const float width       = m_graphicsContext ? static_cast<float>(m_graphicsContext->GetWidth()) : 0.0f;
-        const float height      = m_graphicsContext ? static_cast<float>(m_graphicsContext->GetHeight()) : 0.0f;
+        const float backBufferWidth = m_graphicsContext ? static_cast<float>(m_graphicsContext->GetWidth()) : 0.0f;
+        const float sceneWidth      = m_graphicsContext ? static_cast<float>(m_graphicsContext->GetSceneWidth()) : 0.0f;
+        const float width           = targetBackBuffer ? backBufferWidth : sceneWidth;
+        const float height          = m_graphicsContext ? static_cast<float>(targetBackBuffer ? m_graphicsContext->GetHeight()
+                                                                                               : m_graphicsContext->GetSceneHeight())
+                                                        : 0.0f;
         uploadData.screenParams = hlslpp::float4(width, height, width > 0.0f ? 1.0f / width : 0.0f, height > 0.0f ? 1.0f / height : 0.0f);
+
+        //--------------------------------------------------------------------
+        // 遮り抜きの円はウィンドウのピクセルで渡される。シェーダーは描いている
+        // バッファのピクセルと比べるので、内部解像度を下げているときは同じ割合で縮める
+        //--------------------------------------------------------------------
+        if(!targetBackBuffer && backBufferWidth > 0.0f && sceneWidth != backBufferWidth) {
+            const float scale           = sceneWidth / backBufferWidth;
+            uploadData.occlusionCutout0 = hlslpp::float4(static_cast<float>(sceneData.occlusionCutout0.x) * scale,
+                                                         static_cast<float>(sceneData.occlusionCutout0.y) * scale,
+                                                         static_cast<float>(sceneData.occlusionCutout0.z) * scale,
+                                                         static_cast<float>(sceneData.occlusionCutout0.w));
+        }
 
         // 描画品質と影の寸法（z はシャドウパスが描いているカスケード番号なので、そのまま運ぶ）
         uploadData.qualityParams = hlslpp::float4(m_shadowSoftFilter, 0.0f, 0.0f, 0.0f);

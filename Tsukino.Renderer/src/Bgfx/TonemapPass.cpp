@@ -45,8 +45,8 @@ namespace Tsukino::Renderer {
         if(!m_fullscreenPass || !bgfx::isValid(m_program) || !bgfx::isValid(hdr))
             return;
 
-        // HDR は画面と同じ大きさなので、点で読む（DX11 版の LinearClamp と見た目は同じ）
-        bgfx::setTexture(0, m_hdrSampler, hdr, BGFX_SAMPLER_U_CLAMP | BGFX_SAMPLER_V_CLAMP | BGFX_SAMPLER_MIN_POINT | BGFX_SAMPLER_MAG_POINT);
+        // 線形で読む（DX11 版と同じ LinearClamp）。内部解像度を下げているときは、ここで画面の大きさへ引き伸ばす
+        bgfx::setTexture(0, m_hdrSampler, hdr, BGFX_SAMPLER_U_CLAMP | BGFX_SAMPLER_V_CLAMP);
         m_fullscreenPass->Submit(view, m_program, BGFX_STATE_WRITE_RGB | BGFX_STATE_WRITE_A);
     }
 
