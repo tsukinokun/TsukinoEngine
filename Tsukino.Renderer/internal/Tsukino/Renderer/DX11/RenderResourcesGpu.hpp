@@ -2,7 +2,7 @@
 //! @file   RenderResourcesGpu.hpp
 //! @brief  RenderResources の DX11 の中身（Renderer の内部用）
 //! @detail 共通ステート・サンプラー・既定テクスチャ・テクスチャとバッファの表・
-//!         プリミティブメッシュ・PipelineFactory と、SpriteFont / SpriteBatch の生成を持ちます。
+//!         プリミティブメッシュ・PipelineFactory と、SpriteBatch の生成を持ちます。
 //!         RenderResources の公開関数は、ここへそのまま委ねます。
 //----------------------------------------------------------------------------
 #pragma once
@@ -17,7 +17,7 @@
 
 #include <wrl/client.h>
 #include <d3d11.h>
-#include <SpriteFont.h>
+#include <SpriteBatch.h>
 #include <CommonStates.h>
 
 #include <array>
@@ -138,13 +138,6 @@ namespace Tsukino::Renderer {
         //! @note  破棄したあとのハンドルは使わないこと（番号は別のテクスチャに使い回される）
         void DestroyTexture(TextureHandle texture);
 
-        //! 外で作られたテクスチャのビューを、ハンドルで指せるように登録します（DX11 版だけの機能）。
-        //! @param  [in] view 登録するビュー（参照を1つ持つので、元の持ち主が先に手放してもよい）
-        //! @return テクスチャのハンドル
-        //! @note  DirectXTK の SpriteFont が持つ文字の画像に使う。段階的に無くす予定の口
-        [[nodiscard]]
-        TextureHandle RegisterExternalTexture(ID3D11ShaderResourceView* view);
-
         //! ハンドルが指すテクスチャのビューを取得します（Renderer の中で描くときに使う）。
         //! @param  [in] texture テクスチャのハンドル
         //! @return ビュー。無効なハンドルなら nullptr
@@ -194,13 +187,6 @@ namespace Tsukino::Renderer {
         //! @return 定数バッファ。無効なハンドルか、定数バッファでないときは nullptr
         [[nodiscard]]
         ID3D11Buffer* ResolveUserConstantBuffer(BufferHandle buffer) const;
-
-        //! スプライトフォントを作成します。
-        //! @param  [in] data フォントデータのバイナリ
-        //! @param  [in] size フォントデータのサイズ
-        //! @return 作成した SpriteFont
-        [[nodiscard]]
-        std::unique_ptr<DirectX::SpriteFont> CreateSpriteFont(const u8* data, size_t size) const;
 
         //! メッシュデータを GPU へ送り、メッシュバッファを作成します。
         //! @param  [in] meshData メッシュデータ

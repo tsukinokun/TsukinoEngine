@@ -57,8 +57,7 @@ carve-out for `Tsukino.Renderer` described under **API stability** in the README
   - Single-mip textures with `generateMips` get a full mip chain built on the CPU (2×2 box filter, averaged in linear
     space for sRGB formats) for 8-bit uncompressed formats, since bgfx cannot generate mips for ordinary textures.
   - `GetFrameStats().gpu` is filled from bgfx's per-view profiler (`BGFX_DEBUG_PROFILER`), summed per `GpuPass`.
-  - Not yet in bgfx mode: Effekseer effects (`IPostWorldPass` is not drawn) and `BakedFont` (`.spritefont` files are
-    not loaded; dynamic font atlases work).
+  - Not yet in bgfx mode: Effekseer effects (`IPostWorldPass` is not drawn). (`BakedFont` has since been removed.)
 - **Game shaders compiled at build time with `tsukino_shaders()` (bgfx mode only).**
   - `tsukino_shaders(dir)`, called under a project, compiles `<dir>/*.vs.sc` / `*.ps.sc` before the build into
     `<dir>/dxbc/<name>.sc.bin`. A `varying.def.sc` in the folder is used if there is one, otherwise the built-in one;
@@ -694,6 +693,12 @@ carve-out for `Tsukino.Renderer` described under **API stability** in the README
   with their systems, components and assets, plus Sandbox assets no remaining scene used.
   `Tsukino.Sandbox.exe` now starts the many-light showcase by default; `api` still selects
   `SampleScene1`.
+- **Baked fonts (`BakedFont`, `.font` → `.spritefont`).** Text is drawn only from dynamic fonts (`.dfont`,
+  `DynamicFontAtlas`), which already covered every character set. Removed with it: `Tsukino/Renderer/Text/BakedFont.hpp`,
+  `FontAsset`, `FontImporter`, `FontLoader`, `AssetType::Font`, the `.font` extension, `Tools/MakeSpriteFont.exe` and the
+  unused `Tsukino.BuiltIn/Assets/Fonts/Arial.font`. The file format and the tool were Windows-only. A `FontComponent`
+  whose `fontHandle` points to anything other than a dynamic font now draws nothing; an invalid handle still falls back
+  to the built-in default font.
 
 ## [1.0.0] — 2026-09-05
 

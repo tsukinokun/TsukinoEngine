@@ -17,12 +17,10 @@
 #include <Tsukino/BuiltIn/BuiltInAssets.hpp>
 
 #include <Tsukino/Engine/Asset/AssetManager.hpp>
-#include <Tsukino/Engine/Asset/Font/FontAsset.hpp>
 #include <Tsukino/Engine/Asset/Font/DynamicFontAsset.hpp>
 
 #include <Tsukino/Renderer/DrawCommand.hpp>
 #include <Tsukino/Renderer/DrawCommandQueue.hpp>
-#include <Tsukino/Renderer/Text/BakedFont.hpp>
 
 #include <Tsukino/Core/ECS/Registry/Registry.hpp>
 #include <Tsukino/Core/Math/Matrix.hpp>
@@ -158,8 +156,9 @@ namespace Tsukino::BuiltIn::ECS {
                 fontHandle = ctx->builtinAssets->fonts.defaultFont;
             }
 
+            // 文字は動的フォント（.dfont）だけで描く
             Tsukino::Core::Ref<Tsukino::Asset::IAsset> asset = ctx->assetManager->Get(fontHandle);
-            if(!asset)
+            if(!asset || asset->GetType() != Tsukino::Asset::AssetType::DynamicFont)
                 return;
 
             //-------------------------------------------------------------
@@ -187,113 +186,45 @@ namespace Tsukino::BuiltIn::ECS {
             // 画面上の回転（Z 回転を親まで合成したもの）。行ベクトル規約なので1行目が回した X 軸の向き
             const float rotation = std::atan2(float(transform.worldMatrix[0].y), float(transform.worldMatrix[0].x));
 
-            if(asset->GetType() == Tsukino::Asset::AssetType::DynamicFont) {
-                //-------------------------------------------------------------
-                // 動的フォントアトラス経路（オンデマンドグリフラスタライズ、日本語などに対応）
-                //-------------------------------------------------------------
-                auto& atlas = m_dynamicFontCache[fontHandle];
+            //-------------------------------------------------------------
+            // 動的フォントアトラス経路（オンデマンドグリフラスタライズ、日本語などに対応）
+            //-------------------------------------------------------------
+            auto& atlas = m_dynamicFontCache[fontHandle];
 
-                if(!atlas) {
-                    Tsukino::Core::Ref<Tsukino::Asset::DynamicFontAsset> dynamicAsset =
-                        std::static_pointer_cast<Tsukino::Asset::DynamicFontAsset>(asset);
+            if(!atlas) {
+                Tsukino::Core::Ref<Tsukino::Asset::DynamicFontAsset> dynamicAsset =
+                    std::static_pointer_cast<Tsukino::Asset::DynamicFontAsset>(asset);
 
-                    atlas = std::make_unique<Tsukino::Renderer::DynamicFontAtlas>(
-                        ctx->renderer->GetResources(), dynamicAsset->m_fontFileData.data(), dynamicAsset->m_fontFileData.size(), dynamicAsset->m_pixelSize);
-                }
-
-                // 描画情報には DynamicFontAtlas の生ポインタを持たせる（キャッシュが所有する）
-                Tsukino::Renderer::DynamicFontAtlas* nativeAtlas = atlas.get();
-
-                // 揃え位置と枠に収める計算のどちらかが要るときだけ測る
-                const bool     needsMeasure = NeedsMeasure(font.horizontalAlign, font.verticalAlign) || maxWidth > 0.0f;
-                hlslpp::float2 measured(0.0f, 0.0f);
-                if(needsMeasure)
-                    measured = nativeAtlas->MeasureString(font.text);
-
-                DrawEntry& entry  = m_drawEntries.emplace_back();
-                entry.atlas       = nativeAtlas;
-                entry.text        = font.text;
-                entry.position    = canvas.ToPixel(hlslpp::float2(worldPos.x, worldPos.y));
-                entry.origin      = NeedsMeasure(font.horizontalAlign, font.verticalAlign)
-                                        ? ResolveAlignedOrigin(font.origin, measured, font.horizontalAlign, font.verticalAlign)
-                                        : font.origin;
-                entry.color        = font.color;
-                entry.outlineColor = font.outlineColor;
-                entry.color.w *= groupAlpha;
-                entry.outlineColor.w *= groupAlpha;
-                entry.outlineWidth = font.outlineWidth * canvas.scale;
-                entry.scale        = FitScale(finalScale, float(measured.x), maxWidth) * canvas.scale;    // 収める幅は UI の単位で計算してからピクセルにする
-                entry.rotation     = rotation;
-                entry.sortOrder    = font.sortOrder;
-                entry.hasClip      = hasClip;
-                entry.clipRect     = clipRect;
-            } else {
-                //-------------------------------------------------------------
-                // 事前ベイクされたSpriteFont経路（既存）
-                //-------------------------------------------------------------
-                auto& spriteFont = m_fontCache[fontHandle];
-
-                if(!spriteFont) {
-                    Tsukino::Core::Ref<Tsukino::Asset::FontAsset> fontAsset = std::static_pointer_cast<Tsukino::Asset::FontAsset>(asset);
-
-                    if(!fontAsset)
-                        return;
-
-                    //-------------------------------------------------------------
-                    // フォントを生成してキャッシュに保存
-                    //-------------------------------------------------------------
-                    spriteFont = Tsukino::Renderer::BakedFont::Create(ctx->renderer->GetResources(), fontAsset->m_binaryData.data(),
-                                                                      fontAsset->m_binaryData.size());
-                    if(!spriteFont)
-                        return;
-                }
-
-                // 描画情報にはフォントの生ポインタを持たせる（キャッシュが所有する）
-                const Tsukino::Renderer::BakedFont* nativeFont = spriteFont.get();
-
-                //-------------------------------------------------------------
-                // フォントに存在しない文字をそのままDrawStringへ渡すと例外で落ちるため、
-                // 事前にフォントが持つ文字だけへ安全側に置換する
-                // (日本語未対応のベイク済みフォントに日本語テキストを渡した場合など)
-                //-------------------------------------------------------------
-                std::wstring safeText;
-                safeText.reserve(font.text.size());
-                for(wchar_t ch : font.text) {
-                    if(nativeFont->ContainsCharacter(ch)) {
-                        safeText.push_back(ch);
-                    } else if(nativeFont->ContainsCharacter(L'?')) {
-                        safeText.push_back(L'?');
-                    }
-                }
-
-                if(safeText.empty())
-                    return;
-
-                hlslpp::float2    alignedOrigin = font.origin;
-                hlslpp::float2    measured(0.0f, 0.0f);
-                if(NeedsMeasure(font.horizontalAlign, font.verticalAlign) || maxWidth > 0.0f)
-                    measured = nativeFont->MeasureString(safeText);
-                if(NeedsMeasure(font.horizontalAlign, font.verticalAlign)) {
-                    alignedOrigin =
-                        ResolveAlignedOrigin(font.origin, measured, font.horizontalAlign, font.verticalAlign);
-                }
-
-                DrawEntry& entry   = m_drawEntries.emplace_back();
-                entry.spriteFont   = nativeFont;
-                entry.text         = std::move(safeText);
-                entry.position     = canvas.ToPixel(hlslpp::float2(worldPos.x, worldPos.y));
-                entry.origin       = alignedOrigin;
-                entry.color        = font.color;
-                entry.outlineColor = font.outlineColor;
-                entry.color.w *= groupAlpha;
-                entry.outlineColor.w *= groupAlpha;
-                entry.outlineWidth = font.outlineWidth * canvas.scale;
-                entry.scale        = FitScale(finalScale, float(measured.x), maxWidth) * canvas.scale;
-                entry.rotation     = rotation;
-                entry.sortOrder    = font.sortOrder;
-                entry.hasClip      = hasClip;
-                entry.clipRect     = clipRect;
+                atlas = std::make_unique<Tsukino::Renderer::DynamicFontAtlas>(
+                    ctx->renderer->GetResources(), dynamicAsset->m_fontFileData.data(), dynamicAsset->m_fontFileData.size(), dynamicAsset->m_pixelSize);
             }
+
+            // 描画情報には DynamicFontAtlas の生ポインタを持たせる（キャッシュが所有する）
+            Tsukino::Renderer::DynamicFontAtlas* nativeAtlas = atlas.get();
+
+            // 揃え位置と枠に収める計算のどちらかが要るときだけ測る
+            const bool     needsMeasure = NeedsMeasure(font.horizontalAlign, font.verticalAlign) || maxWidth > 0.0f;
+            hlslpp::float2 measured(0.0f, 0.0f);
+            if(needsMeasure)
+                measured = nativeAtlas->MeasureString(font.text);
+
+            DrawEntry& entry  = m_drawEntries.emplace_back();
+            entry.atlas       = nativeAtlas;
+            entry.text        = font.text;
+            entry.position    = canvas.ToPixel(hlslpp::float2(worldPos.x, worldPos.y));
+            entry.origin      = NeedsMeasure(font.horizontalAlign, font.verticalAlign)
+                                    ? ResolveAlignedOrigin(font.origin, measured, font.horizontalAlign, font.verticalAlign)
+                                    : font.origin;
+            entry.color        = font.color;
+            entry.outlineColor = font.outlineColor;
+            entry.color.w *= groupAlpha;
+            entry.outlineColor.w *= groupAlpha;
+            entry.outlineWidth = font.outlineWidth * canvas.scale;
+            entry.scale        = FitScale(finalScale, float(measured.x), maxWidth) * canvas.scale;    // 収める幅は UI の単位で計算してからピクセルにする
+            entry.rotation     = rotation;
+            entry.sortOrder    = font.sortOrder;
+            entry.hasClip      = hasClip;
+            entry.clipRect     = clipRect;
         });
 
         if(m_drawEntries.empty())
@@ -371,30 +302,8 @@ namespace Tsukino::BuiltIn::ECS {
         for(std::uint32_t order = beginIndex; order < endIndex; ++order) {
             const DrawEntry& entry = m_drawEntries[m_drawOrder[order]];
 
-            if(entry.atlas) {
-                entry.atlas->AppendStringSprites(m_sprites, entry.text, entry.position, entry.color, entry.origin, entry.scale,
-                                                 entry.outlineColor, entry.outlineWidth, entry.rotation);
-                continue;
-            }
-
-            //-------------------------------------------------------------
-            // ベイク済みSpriteFont経路。縁取りはDynamicFontAtlasと揃えて
-            // 8方向へずらしたものを先に並べ、最後に本体を並べる
-            //-------------------------------------------------------------
-            if(entry.outlineWidth > 0.0f && entry.outlineColor.w > 0.0f) {
-                constexpr float kOutlineOffsets[8][2] = {
-                    {-1.0f, -1.0f}, {0.0f, -1.0f}, {1.0f, -1.0f},
-                    {-1.0f,  0.0f},                {1.0f,  0.0f},
-                    {-1.0f,  1.0f}, {0.0f,  1.0f}, {1.0f,  1.0f},
-                };
-
-                for(const auto& offset : kOutlineOffsets) {
-                    const hlslpp::float2 shifted(entry.position.x + offset[0] * entry.outlineWidth, entry.position.y + offset[1] * entry.outlineWidth);
-                    entry.spriteFont->AppendStringSprites(m_sprites, entry.text, shifted, entry.outlineColor, entry.rotation, entry.origin, entry.scale);
-                }
-            }
-
-            entry.spriteFont->AppendStringSprites(m_sprites, entry.text, entry.position, entry.color, entry.rotation, entry.origin, entry.scale);
+            entry.atlas->AppendStringSprites(m_sprites, entry.text, entry.position, entry.color, entry.origin, entry.scale,
+                                             entry.outlineColor, entry.outlineWidth, entry.rotation);
         }
     }
 

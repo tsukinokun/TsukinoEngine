@@ -157,12 +157,6 @@
   - EffectImporter(), Import()
 - **Tsukino::Asset::EffectLoader** — `Tsukino.Engine/include/Tsukino/Engine/Asset/Effect/EffectLoader.hpp`
   - EffectLoader(), CanLoad(), Load()
-- **Tsukino::Asset::FontAsset** — `Tsukino.Engine/include/Tsukino/Engine/Asset/Font/FontAsset.hpp`
-  - m_binaryData, GetHandle(), GetType(), SetHandle()
-- **Tsukino::Asset::FontImporter** — `Tsukino.Engine/include/Tsukino/Engine/Asset/Font/FontImporter.hpp`
-  - Import()
-- **Tsukino::Asset::FontLoader** — `Tsukino.Engine/include/Tsukino/Engine/Asset/Font/FontLoader.hpp`
-  - FontLoader(), CanLoad(), Load()
 - **Tsukino::Asset::IAsset** — `Tsukino.Engine/include/Tsukino/Engine/Asset/IAsset.hpp`
   - ~IAsset(), GetHandle(), SetHandle(), GetType()
 - **Tsukino::Asset::IAssetImporter** — `Tsukino.Engine/include/Tsukino/Engine/Asset/IAssetImporter.hpp`
@@ -190,7 +184,7 @@
 - **Tsukino::Asset::ShaderImporter** — `Tsukino.Engine/include/Tsukino/Engine/Asset/Shader/ShaderImporter.hpp`
   - Import(), CollectDependencies()
 - **Tsukino::Asset::ShaderLoader** — `Tsukino.Engine/include/Tsukino/Engine/Asset/Shader/ShaderLoader.hpp`
-  - ShaderLoader(), CanLoad(), Load(), DetectStage()
+  - ShaderLoader(), CanLoad(), Load(), DetectStage(), ToBinaryPath(), GetBinaryDirectoryName()
 - **Tsukino::Asset::TextureAsset** — `Tsukino.Engine/include/Tsukino/Engine/Asset/Texture/TextureAsset.hpp`
   - width, height, format, pixels, mips, generateMips, GetHandle(), GetType(), SetHandle(), ReleasePixels()
 - **Tsukino::Asset::TextureAsset::MipLevel** — `Tsukino.Engine/include/Tsukino/Engine/Asset/Texture/TextureAsset.hpp`

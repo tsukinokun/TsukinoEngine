@@ -192,15 +192,6 @@ namespace Tsukino::Renderer {
     }
 
     //------------------------------------------------------------------------
-    //! 外で作られたテクスチャのビューを、ハンドルで指せるように登録します。
-    //------------------------------------------------------------------------
-    TextureHandle RenderResources::Gpu::RegisterExternalTexture(ID3D11ShaderResourceView* view) {
-        if(!view)
-            return {};
-        return AddTextureSlot(view);
-    }
-
-    //------------------------------------------------------------------------
     //! ハンドルが指すテクスチャのビューを取得します。
     //------------------------------------------------------------------------
     ID3D11ShaderResourceView* RenderResources::Gpu::ResolveTexture(TextureHandle texture) const {
@@ -332,13 +323,6 @@ namespace Tsukino::Renderer {
         if(!slot.instance.IsValid() && !slot.constant.IsValid())
             return nullptr;
         return &slot;
-    }
-
-    //------------------------------------------------------------------------
-    //! スプライトフォントを作成します。
-    //------------------------------------------------------------------------
-    std::unique_ptr<DirectX::SpriteFont> RenderResources::Gpu::CreateSpriteFont(const u8* data, size_t size) const {
-        return std::make_unique<DirectX::SpriteFont>(m_device, data, size);
     }
 
     //------------------------------------------------------------------------

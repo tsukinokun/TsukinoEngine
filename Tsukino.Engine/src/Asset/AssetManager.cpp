@@ -10,7 +10,6 @@
 #include <Tsukino/Engine/Asset/Util/AssetHandleGenerator.hpp>
 #include <Tsukino/Engine/Asset/Texture/TextureLoader.hpp>
 #include <Tsukino/Engine/Asset/Shader/ShaderLoader.hpp>
-#include <Tsukino/Engine/Asset/Font/FontLoader.hpp>
 #include <Tsukino/Engine/Asset/Font/DynamicFontLoader.hpp>
 #include <Tsukino/Engine/Asset/Material/MaterialLoader.hpp>
 #include <Tsukino/Engine/Asset/Audio/AudioLoader.hpp>
@@ -23,7 +22,6 @@
 #if !defined(TSUKINO_RENDERER_BGFX)
 #include <Tsukino/Engine/Asset/Shader/ShaderImporter.hpp>
 #endif
-#include <Tsukino/Engine/Asset/Font/FontImporter.hpp>
 #include <Tsukino/Engine/Asset/Font/DynamicFontImporter.hpp>
 #include <Tsukino/Engine/Asset/Material/MaterialImporter.hpp>
 #include <Tsukino/Engine/Asset/Audio/AudioImporter.hpp>
@@ -54,7 +52,6 @@ namespace Tsukino::Asset {
         //--------------------------------------------------------------
         RegisterLoader(Tsukino::Core::CreateRef<ShaderLoader>());       // シェーダローダーを登録
         RegisterLoader(Tsukino::Core::CreateRef<TextureLoader>(m_textureRules));    // テクスチャローダーを登録
-        RegisterLoader(Tsukino::Core::CreateRef<FontLoader>());         // フォントローダーを登録
         RegisterLoader(Tsukino::Core::CreateRef<DynamicFontLoader>());  // 動的フォントローダーを登録
         RegisterLoader(Tsukino::Core::CreateRef<AudioLoader>());        // オーディオローダーを登録
         RegisterLoader(Tsukino::Core::CreateRef<ModelLoader>(this));    // モデルローダーを登録
@@ -70,7 +67,6 @@ namespace Tsukino::Asset {
         RegisterImporter(AssetType::Shader, Tsukino::Core::CreateRef<ShaderImporter>());      // シェーダーインポーターの登録
 #endif
         RegisterImporter(AssetType::Texture, Tsukino::Core::CreateRef<TextureImporter>(m_textureRules));    // テクスチャインポーターを登録
-        RegisterImporter(AssetType::Font, Tsukino::Core::CreateRef<FontImporter>());          // フォントインポーターの登録
         RegisterImporter(AssetType::DynamicFont, Tsukino::Core::CreateRef<DynamicFontImporter>());    // 動的フォントインポーターの登録
         RegisterImporter(AssetType::Audio, Tsukino::Core::CreateRef<AudioImporter>());        // オーディオインポーターの登録
         RegisterImporter(AssetType::Model, Tsukino::Core::CreateRef<ModelImporter>());        // モデルインポーターの登録
@@ -422,7 +418,6 @@ namespace Tsukino::Asset {
             {".wav",     AssetType::Audio  },
             {".mp3",     AssetType::Audio  },
 
-            {".font",    AssetType::Font   },
             {".dfont",   AssetType::DynamicFont},
 
             {".tmat",    AssetType::Material},
@@ -454,8 +449,6 @@ namespace Tsukino::Asset {
             {".tga",     ".dds"       },
             {".bmp",     ".dds"       },
             {".dds",     ".dds"       },
-
-            {".font",    ".spritefont"},
 
             {".obj",     ".tsm"       },
             {".fbx",     ".tsm"       },

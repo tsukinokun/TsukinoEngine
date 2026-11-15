@@ -17,7 +17,7 @@ TsukinoEngine 本体は MIT ライセンスで配布しています（`LICENSE` 
 | [hlslpp](https://github.com/redorav/hlslpp) | SIMD 数学型（ベクトル / 行列 / クォータニオン） | submodule | `cd09302 (3.8+)` | MIT |
 | [DirectXTex](https://github.com/microsoft/DirectXTex) | テクスチャの読み込みと圧縮 | submodule | `193629a` | MIT |
 | [cereal](https://github.com/USCiLab/cereal) | シーンとアセットのシリアライズ | submodule | `22a1b36` | BSD 3-Clause |
-| [DirectX Tool Kit (MakeSpriteFont / XWBTool)](https://github.com/microsoft/DirectXTK) | フォントのベイクと波形バンクの生成に使う実行ファイル | `Tools/` にバイナリを直接コミット | `2026.4.1.1` | MIT |
+| [DirectX Tool Kit (XWBTool)](https://github.com/microsoft/DirectXTK) | 波形バンクの生成に使う実行ファイル | `Tools/` にバイナリを直接コミット | `2026.4.1.1` | MIT |
 | [Premake](https://github.com/premake/premake-core) | プロジェクトファイルの生成 | `vendor/premake5.exe` にバイナリを直接コミット | `5.0.0-beta8` | BSD 3-Clause |
 | [SDL](https://github.com/libsdl-org/SDL) | ウィンドウ・入力・IME・ゲームパッド・保存先などのプラットフォーム層 | submodule | `829a65d (3.4.18)` | zlib |
 | [bgfx](https://github.com/bkaradzic/bgfx) | 描画の翻訳レイヤー（`--renderer=bgfx` のとき） | submodule | `77b6e84` | BSD 2-Clause |
@@ -39,7 +39,7 @@ bgfx の submodule の中（`External/bgfx/3rdparty/`）にあり、条文もそ
 | [Dawn / Tint](https://dawn.googlesource.com/dawn) | WGSL への変換 | `3rdparty/dawn`（`LICENSE`） | BSD 3-Clause |
 | D3DCompiler / DXC（`d3dcompiler_47.dll`・`dxcompiler.dll`） | Direct3D 向けのシェーダーのコンパイル | `tools/bin/windows` | Microsoft の再頒布条件（bgfx に同梱） |
 
-`Tools/MakeSpriteFont.exe`・`Tools/XWBTool.exe`・`vendor/premake5.exe` の 3 つは、
+`Tools/XWBTool.exe`・`vendor/premake5.exe` の 2 つは、
 ソースではなくビルド済みバイナリをこのリポジトリへ直接コミットしています。
 そのため条文の掲載義務はこのファイルが担っています。
 
@@ -247,7 +247,7 @@ ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ```
 
-### DirectX Tool Kit (MakeSpriteFont / XWBTool)
+### DirectX Tool Kit (XWBTool)
 
 MIT — https://github.com/microsoft/DirectXTK
 

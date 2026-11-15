@@ -8,7 +8,6 @@
 
 #include <Tsukino/Renderer/Renderer.hpp>
 #include <Tsukino/Renderer/DrawCommand.hpp>
-#include <Tsukino/Renderer/Text/BakedFont.hpp>
 #include <Tsukino/Renderer/Text/DynamicFontAtlas.hpp>
 
 #include <Tsukino/Engine/Asset/AssetHandle.hpp>
@@ -63,11 +62,9 @@ namespace Tsukino::BuiltIn::ECS {
         //-------------------------------------------------------------
         //! @struct DrawEntry
         //! @brief  1エンティティ分の描画情報。1フレーム分を集めてまとめて描く
-        //! @note   atlasとspriteFontはどちらか一方だけが非nullになる
         //-------------------------------------------------------------
         struct DrawEntry {
-            Tsukino::Renderer::DynamicFontAtlas* atlas      = nullptr;    // 動的フォントアトラス経路
-            const Tsukino::Renderer::BakedFont*  spriteFont = nullptr;    // ベイク済みSpriteFont経路
+            Tsukino::Renderer::DynamicFontAtlas* atlas = nullptr;    // 文字を描く動的フォントアトラス（m_dynamicFontCache が持つ）
 
             std::wstring   text;                            // 描画する文字列
             hlslpp::float2 position     = {0, 0};           // スクリーン座標（左上原点、ピクセル）
@@ -83,8 +80,6 @@ namespace Tsukino::BuiltIn::ECS {
             Tsukino::Renderer::ClipRect clipRect;           // 切り取る矩形（hasClip のときだけ有効）
         };
 
-        // ベイク済みSpriteFontのキャッシュ
-        std::unordered_map<Tsukino::Asset::AssetHandle, std::unique_ptr<Tsukino::Renderer::BakedFont>>     m_fontCache;
         // 動的フォントアトラスのキャッシュ（オンデマンドグリフラスタライズ用）
         std::unordered_map<Tsukino::Asset::AssetHandle, std::unique_ptr<Tsukino::Renderer::DynamicFontAtlas>> m_dynamicFontCache;
 

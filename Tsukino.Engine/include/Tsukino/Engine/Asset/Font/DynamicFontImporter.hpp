@@ -10,7 +10,7 @@ namespace Tsukino::Asset {
     //--------------------------------------------------------------
     //! @class DynamicFontImporter
     //! @brief .dfont設定を読み取り、ttf/otfの生データをキャッシュへコピーするインポーター
-    //! @note  MakeSpriteFont.exeのような事前ベイクは行わない
+    //! @note  文字の画像を事前に焼き込むことはしない
     //!        (グリフは実行時にオンデマンドでラスタライズされる)
     //--------------------------------------------------------------
     class DynamicFontImporter : public IAssetImporter {

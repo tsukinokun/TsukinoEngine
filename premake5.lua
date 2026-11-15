@@ -398,7 +398,7 @@ project "Tsukino.Engine"
     targetdir ("bin/%{cfg.buildcfg}")
     objdir ("bin-int/%{cfg.buildcfg}")
 
-    -- FontImporter(MakeSpriteFont.exe)・AudioImporter(XWBTool.exe)が使う外部ツール(Tools/)は、
+    -- AudioImporter(XWBTool.exe)が使う外部ツール(Tools/)は、
     -- Release では exe の隣に要る。コピーは exe 側の tsukino_release_payload() が行う
     -- （ライブラリの targetdir へ置いても exe からは見えない）
 
