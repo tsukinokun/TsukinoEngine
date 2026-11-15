@@ -17,6 +17,7 @@
 #include "DrawCommandExecutor.hpp"
 #include "FullscreenPass.hpp"
 #include "ShadowPass.hpp"
+#include "GpuProfiler.hpp"
 #include "TonemapPass.hpp"
 
 #include <Tsukino/Core/Log.hpp>
@@ -28,14 +29,6 @@
 
 // 名前空間 : Tsukino::Renderer
 namespace Tsukino::Renderer {
-
-    //------------------------------------------------------------------------
-    // Renderer.hpp が前方宣言だけで持っている内部の部品。
-    // bgfx 版ではまだ中身が無いので、空の型として定義しておく
-    //------------------------------------------------------------------------
-
-    //! パス単位の GPU タイマー（bgfx 版はまだ無い）
-    class GpuProfiler {};
 
     namespace {
         //! 0〜1 の色の成分を 8bit に直します。
@@ -105,6 +98,10 @@ namespace Tsukino::Renderer {
 
         //--------------------------------------------------------------------
         // フルスクリーン三角形・トーンマップ・ライティング。
+        // パス単位の GPU タイマー（bgfx がビューごとに測った時間を読む）
+        m_gpuProfiler = std::make_unique<GpuProfiler>();
+        m_gpuProfiler->Initialize();
+
         // シェーダーがまだ bgfx の形式でなくても、起動は止めない（3D が出ないだけ）
         //--------------------------------------------------------------------
         m_fullscreenPass = std::make_unique<FullscreenPass>();
@@ -189,6 +186,7 @@ namespace Tsukino::Renderer {
 
         //--------------------------------------------------------------------
         // 影のカスケード（メインカメラの視錐台を奥行きで切った1切れごとの投影）を作り、
+        m_frameStats.gpu          = m_gpuProfiler->Collect();
         // 影を落とす物（GBuffer パスの対象＝不透明な 3D モデル）をシャドウマップへ描く。
         // 以降のライティングとフォワードが同じカスケードを使う
         //--------------------------------------------------------------------
