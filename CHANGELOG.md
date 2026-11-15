@@ -410,6 +410,13 @@ carve-out for `Tsukino.Renderer` described under **API stability** in the README
 
 ### Changed
 
+- **bgfx is the default rendering backend.** Running premake without `--renderer` (and without the
+  `TSUKINO_RENDERER` environment variable) now builds the bgfx renderer; pass `--renderer=dx11` or set
+  `TSUKINO_RENDERER=dx11` for the Direct3D 11 renderer until it is removed.
+  - `GraphicsDeviceOptions::preference` works in bgfx mode. On Windows, `Auto` picks the high-performance adapter
+    through DXGI (as DX11 mode does) and passes its vendor / device ID to bgfx, falling back to the software rasterizer
+    (WARP) if no hardware device can be created; `ForceSoftware` starts with the software rasterizer. Other platforms
+    use the default adapter, and `ForceSoftware` logs a warning there.
 - **Effekseer is created by the renderer, and `IPostWorldPass` no longer exposes the graphics API.**
   `Renderer::GetEffectRenderer()` returns the Effekseer renderer for the active backend (created on first use, owned by
   the renderer); `EffectSystem` takes its renderer from there instead of creating `EffekseerRendererDX11` itself.

@@ -25,7 +25,7 @@ namespace Tsukino::Renderer {
         //! @param  [in] windowHandle  描画先のウィンドウ（Windows では HWND）
         //! @param  [in] width         描画領域の幅
         //! @param  [in] height        描画領域の高さ
-        //! @param  [in] deviceOptions デバイスの選び方（bgfx 版ではまだ使わない）
+        //! @param  [in] deviceOptions デバイスの選び方
         //! @return true: 初期化成功, false: 初期化失敗
         [[nodiscard]]
         bool Initialize(void* windowHandle, u32 width, u32 height, const GraphicsDeviceOptions& deviceOptions);

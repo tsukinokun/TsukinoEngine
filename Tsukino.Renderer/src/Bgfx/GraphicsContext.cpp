@@ -10,7 +10,7 @@
 
 #if defined(_WIN32)
     #include <d3d11.h>
-    #include <dxgi.h>
+    #include <dxgi1_6.h>
     #include <wrl/client.h>
 #endif
 
@@ -73,7 +73,70 @@ namespace Tsukino::Renderer {
                 info.isUnifiedMemory = options2.UnifiedMemoryArchitecture != FALSE;
             return true;
         }
+
+        //! 高性能を優先した順で、ソフトウェアでない最初のアダプタの ID を探します。
+        //! @param  [out] vendorId ベンダー ID
+        //! @param  [out] deviceId デバイス ID
+        //! @return true: 見つかった
+        bool FindHighPerformanceAdapter(u16& vendorId, u16& deviceId) {
+            Microsoft::WRL::ComPtr<IDXGIFactory6> factory;
+            if(FAILED(CreateDXGIFactory1(IID_PPV_ARGS(factory.GetAddressOf()))))
+                return false;
+
+            Microsoft::WRL::ComPtr<IDXGIAdapter1> adapter;
+            for(UINT index = 0; SUCCEEDED(factory->EnumAdapterByGpuPreference(index, DXGI_GPU_PREFERENCE_HIGH_PERFORMANCE,
+                                                                              IID_PPV_ARGS(adapter.ReleaseAndGetAddressOf())));
+                ++index) {
+                DXGI_ADAPTER_DESC1 desc{};
+                if(SUCCEEDED(adapter->GetDesc1(&desc)) && !(desc.Flags & DXGI_ADAPTER_FLAG_SOFTWARE)) {
+                    vendorId = static_cast<u16>(desc.VendorId);
+                    deviceId = static_cast<u16>(desc.DeviceId);
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        //! bgfx に WARP（ソフトウェア描画）のアダプタを使わせます。
+        //! @param  [out] init アダプタの ID を書き込む先
+        //! @note   この bgfx の版は BGFX_PCI_ID_SOFTWARE_RASTERIZER を渡しても、合うアダプタが無いので
+        //!         既定のアダプタで作ってしまう。WARP も DXGI のアダプタの1つとして列挙されるので、その ID を直接渡す
+        void UseSoftwareAdapter(bgfx::Init& init) {
+            init.vendorId = static_cast<u16>(kBasicRenderVendorId);
+            init.deviceId = static_cast<u16>(kBasicRenderDeviceId);
+        }
+
+        //! bgfx に WARP のアダプタを指定しているかを返します。
+        //! @param  [in] init 調べる設定
+        //! @return true: WARP を指定している
+        bool IsSoftwareAdapter(const bgfx::Init& init) {
+            return init.vendorId == kBasicRenderVendorId && init.deviceId == kBasicRenderDeviceId;
+        }
 #endif
+
+        //! デバイスの選び方に合わせて、bgfx に使わせるアダプタを指定します。
+        //! @param  [in]  preference デバイスの選び方
+        //! @param  [out] init       アダプタの ID を書き込む先
+        //! @note   bgfx はベンダー ID とデバイス ID が合う最初のアダプタを使う。指定しなければ OS の既定のアダプタになる
+        void SelectAdapter(GraphicsDevicePreference preference, bgfx::Init& init) {
+            if(preference == GraphicsDevicePreference::ForceSoftware) {
+#if defined(_WIN32)
+                UseSoftwareAdapter(init);
+#else
+                Tsukino::Core::Log::Warn("GraphicsContext: The software rasterizer is not available on this platform. Using the default adapter.");
+#endif
+                return;
+            }
+#if defined(_WIN32)
+            // 内蔵と外付けの GPU があるノート PC で、外付けの方を使わせる（DX11 版と同じ選び方）
+            u16 vendorId = 0;
+            u16 deviceId = 0;
+            if(FindHighPerformanceAdapter(vendorId, deviceId)) {
+                init.vendorId = vendorId;
+                init.deviceId = deviceId;
+            }
+#endif
+        }
 
         //! バックバッファを作り直すときのフラグを返します。
         //! @param  [in] vsync 垂直同期をするか
@@ -122,7 +185,7 @@ namespace Tsukino::Renderer {
     //------------------------------------------------------------------------
     //! bgfx を初期化します。
     //------------------------------------------------------------------------
-    bool GraphicsContext::Initialize(void* windowHandle, u32 width, u32 height, const GraphicsDeviceOptions& /*deviceOptions*/) {
+    bool GraphicsContext::Initialize(void* windowHandle, u32 width, u32 height, const GraphicsDeviceOptions& deviceOptions) {
         //--------------------------------------------------------------------
         // 初期化の前に renderFrame() を1回呼ぶと、bgfx は描画用のスレッドを作らず、
         // frame() を呼んだスレッドで描画まで済ませる。エンジンは1本のスレッドで
@@ -132,12 +195,24 @@ namespace Tsukino::Renderer {
 
         bgfx::Init init;
 #if defined(_WIN32)
-        init.type = bgfx::RendererType::Direct3D11;    // Windows は今の DX11 版と同じ API で比べられるようにする
+        init.type = bgfx::RendererType::Direct3D11;
 #endif
-        init.swapChain        = MakeSwapChain(windowHandle, width, height);
-        init.reset            = ResetFlags(m_vsync);
+        init.swapChain = MakeSwapChain(windowHandle, width, height);
+        init.reset     = ResetFlags(m_vsync);
+        SelectAdapter(deviceOptions.preference, init);
 
-        if(!bgfx::init(init)) {
+        bool initialized = bgfx::init(init);
+#if defined(_WIN32)
+        //--------------------------------------------------------------------
+        // ハードウェアで作れなければ、ソフトウェア描画（WARP）で作り直す
+        //--------------------------------------------------------------------
+        if(!initialized && !IsSoftwareAdapter(init)) {
+            Tsukino::Core::Log::Warn("GraphicsContext: No usable hardware device. Falling back to WARP.");
+            UseSoftwareAdapter(init);
+            initialized = bgfx::init(init);
+        }
+#endif
+        if(!initialized) {
             Tsukino::Core::Log::Error("GraphicsContext: Failed to initialize bgfx.");
             return false;
         }

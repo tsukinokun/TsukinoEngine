@@ -30,23 +30,23 @@ local TSUKINO_ROOT = path.getabsolute(path.join(path.getdirectory(_SCRIPT), "../
 _TSUKINO_ENGINE_ROOT = TSUKINO_ROOT
 
 ----------------------------------------
--- 描画の実装の切り替え（premake5 vs2022 --renderer=bgfx）。
---   dx11 : 今までの Direct3D 11 版（既定）
---   bgfx : bgfx 版（作りかけ。Windows では bgfx の Direct3D 11 を使う）
+-- 描画の実装の切り替え（premake5 vs2022 --renderer=dx11）。
+--   bgfx : bgfx 版（既定。Windows では bgfx の Direct3D 11 を使う）
+--   dx11 : 今までの Direct3D 11 版（消す予定）
 -- 公開ヘッダはどちらでも同じ。切り替えると Tsukino.Renderer のソースと、
 -- tsukino_link() がリンクするライブラリが変わる。
 -- ゲーム側の build.bat のように premake を引数なしで呼ぶ経路のために、
--- --renderer が無いときは環境変数 TSUKINO_RENDERER も見る（set TSUKINO_RENDERER=bgfx）。
+-- --renderer が無いときは環境変数 TSUKINO_RENDERER も見る（set TSUKINO_RENDERER=dx11）。
 -- この lua はエンジンとゲームの両方から読まれるので、二重に登録しない
 ----------------------------------------
 if not premake.option.get("renderer") then
     newoption {
         trigger     = "renderer",
         value       = "API",
-        description = "Rendering backend of Tsukino.Renderer (default: dx11, or the TSUKINO_RENDERER environment variable)",
+        description = "Rendering backend of Tsukino.Renderer (default: bgfx, or the TSUKINO_RENDERER environment variable)",
         allowed     = {
-            { "dx11", "Direct3D 11 (default)" },
-            { "bgfx", "bgfx (work in progress)" },
+            { "bgfx", "bgfx (default)" },
+            { "dx11", "Direct3D 11 (to be removed)" },
         },
     }
 end
@@ -55,7 +55,7 @@ end
 -- 描画の実装に bgfx を選んでいるかを返す。
 ----------------------------------------
 function tsukino_use_bgfx()
-    local renderer = _OPTIONS["renderer"] or os.getenv("TSUKINO_RENDERER") or "dx11"
+    local renderer = _OPTIONS["renderer"] or os.getenv("TSUKINO_RENDERER") or "bgfx"
     return renderer == "bgfx"
 end
 
