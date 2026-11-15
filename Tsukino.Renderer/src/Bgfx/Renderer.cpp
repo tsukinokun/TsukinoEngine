@@ -9,6 +9,7 @@
 #include <Tsukino/Renderer/Renderer.hpp>
 #include <Tsukino/Renderer/Bgfx/FrameConstantsGpu.hpp>
 #include <Tsukino/Renderer/Bgfx/GraphicsContext.hpp>
+#include <Tsukino/Renderer/BloomPass.hpp>
 #include <Tsukino/Renderer/Bgfx/IBLBakerGpu.hpp>
 #include <Tsukino/Renderer/Bgfx/SkyPassGpu.hpp>
 #include <Tsukino/Renderer/Bgfx/Views.hpp>
@@ -115,6 +116,11 @@ namespace Tsukino::Renderer {
                                       shaders.iblSpecularPrefilterPS, shaders.iblBRDFLUTPS))
                 Tsukino::Core::Log::Warn("Renderer: IBL initialization failed. Ambient lighting will be disabled.");
 
+            // ブルーム。作れなくても起動は止めない（光が滲まないだけ）
+            if(!m_bloomPass.Initialize(*m_graphicsContext, m_resources, *m_fullscreenPass, shaders.bloomPrefilterPS, shaders.bloomDownsamplePS,
+                                       shaders.bloomUpsamplePS))
+                Tsukino::Core::Log::Error("Renderer: Bloom is disabled because its resources could not be created.");
+
             (void)m_tonemapPass->Initialize(*m_fullscreenPass, shaders.tonemapPS);
             (void)m_lightingPass.Initialize(*m_graphicsContext, m_resources, m_frameConstants, *m_fullscreenPass, *m_shadowPass, m_iblBaker,
                                             shaders.lightingPS);
@@ -202,8 +208,10 @@ namespace Tsukino::Renderer {
         }
 
         //--------------------------------------------------------------------
-        // トーンマップ（モーションブラーとブルームは段階 1-4 d）
+        // ブルーム（HDR の明るい所を滲ませて足し戻す）→ トーンマップ。
+        // モーションブラーは段階 1-4 d でこの前に入る
         //--------------------------------------------------------------------
+        m_bloomPass.Execute(false);
         m_tonemapPass->Execute(BgfxView::Tonemap, m_graphicsContext->GetHdrTexture());
 
         //--------------------------------------------------------------------
@@ -321,7 +329,7 @@ namespace Tsukino::Renderer {
     }
 
     //------------------------------------------------------------------------
-    //! 保留している描画品質を適用します（bgfx 版で効くのは、まだ影とスカイだけ）。
+    //! 保留している描画品質を適用します（bgfx 版で効くのは、まだ影・スカイ・ブルームだけ）。
     //------------------------------------------------------------------------
     void Renderer::ApplyQuality() {
         m_qualityDirty = false;
@@ -331,6 +339,7 @@ namespace Tsukino::Renderer {
 
         m_frameConstants.SetShadowSoftFilter(m_quality.shadowSoftFilter);
         m_skyPass.SetDrawAllowed(m_quality.drawSky);
+        m_bloomPass.SetMipLimit(m_quality.bloomMipCount);
     }
 
     //------------------------------------------------------------

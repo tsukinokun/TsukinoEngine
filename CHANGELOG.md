@@ -46,8 +46,13 @@ carve-out for `Tsukino.Renderer` described under **API stability** in the README
   - bgfx has 16 texture stages, so the DX11 slots t8–t19 are renumbered (`TextureStages.sh` / `BgfxStage`).
   - UI-layer 3D models (`cameraOverride`) get a fresh depth buffer whenever their `sortOrder` changes, by moving on to
     the next bgfx view (bgfx cannot clear in the middle of a view).
-  - Not yet in bgfx mode: fog, bloom, motion blur, sphere colour grade, ambient particles, render scale, instance and
-    user constant buffers.
+  - Not yet in bgfx mode: fog, motion blur, sphere colour grade, ambient particles, render scale, instance and user
+    constant buffers.
+- **bgfx renderer draws bloom (bgfx mode only).** `BloomPrefilter.ps`, `BloomDownsample.ps` and `BloomUpsample.ps` are
+  ported to `.sc` with the shared `Bloom.sh` (`CBufferBloom` arrives as `u_bloom`). The pass keeps up to six RGBA16F
+  mip targets, recreated when the screen size or the mip limit changes, and uses one view per step (prefilter, each
+  downsample, each upsample, and the additive composite into the HDR buffer) between the transparent and tonemap
+  views. `RenderQualitySettings::bloomMipCount` works in bgfx mode.
 - **bgfx renderer bakes the ambient light from the sky (bgfx mode only).** `IBLBaker` captures the sky into a cube map,
   convolves the diffuse irradiance, prefilters the specular cube (6 mips) and renders the BRDF table, as in DX11.
   - bgfx needs one view per render target, so the bake uses one view per cube face and mip (49 views in front of the

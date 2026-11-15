@@ -5,7 +5,6 @@
 //!         DX11 版から1つずつ移すときに、パスごとのファイルへ分けます。
 //----------------------------------------------------------------------------
 #include <Tsukino/Renderer/AmbientParticlePass.hpp>
-#include <Tsukino/Renderer/BloomPass.hpp>
 #include <Tsukino/Renderer/FogPass.hpp>
 #include <Tsukino/Renderer/MotionBlurPass.hpp>
 #include <Tsukino/Renderer/SphereColorGradePass.hpp>
@@ -18,15 +17,12 @@ namespace Tsukino::Renderer {
     // 各パスの GPU の資源（bgfx 版はまだ空）と、作成・破棄
     //------------------------------------------------------------------------
     struct AmbientParticlePass::Gpu {};
-    struct BloomPass::Gpu {};
     struct FogPass::Gpu {};
     struct MotionBlurPass::Gpu {};
     struct SphereColorGradePass::Gpu {};
 
     AmbientParticlePass::AmbientParticlePass() : m_gpu(std::make_unique<Gpu>()) {}
     AmbientParticlePass::~AmbientParticlePass() = default;
-    BloomPass::BloomPass() : m_gpu(std::make_unique<Gpu>()) {}
-    BloomPass::~BloomPass() = default;
     FogPass::FogPass() : m_gpu(std::make_unique<Gpu>()) {}
     FogPass::~FogPass() = default;
     MotionBlurPass::MotionBlurPass() : m_gpu(std::make_unique<Gpu>()) {}
