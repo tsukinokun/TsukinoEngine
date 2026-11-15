@@ -14,7 +14,10 @@
 #include <cereal/archives/binary.hpp>
 #include <cereal/types/string.hpp>
 
-#include <fstream>
+#include <Tsukino/Core/IO/FileSystem.hpp>
+
+#include <cstdint>
+#include <sstream>
 
 // 名前空間 : Tsukino::Asset
 namespace Tsukino::Asset {
@@ -33,11 +36,12 @@ namespace Tsukino::Asset {
         if(!m_assetManager)
             return nullptr;
 
-        std::ifstream file(path.string(), std::ios::binary);
-        if(!file.is_open()) {
+        const std::vector<std::uint8_t> bytes = Tsukino::IO::FileSystem::ReadBinary(path);
+        if(bytes.empty()) {
             Tsukino::Core::Log::Error("MaterialLoader: Failed to open " + path.string());
             return nullptr;
         }
+        std::istringstream file(std::string(bytes.begin(), bytes.end()), std::ios::binary);
 
         Tsukino::GraphicsCommon::MaterialData data;
         try {

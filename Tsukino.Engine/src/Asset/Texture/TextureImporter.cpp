@@ -58,7 +58,7 @@ namespace Tsukino::Asset {
 
         // ヘッダだけ読むので、枚数が多くても起動はほとんど遅くならない
         DirectX::TexMetadata metadata;
-        if(FAILED(DirectX::GetMetadataFromDDSFile(cachePath.ToWString().c_str(), DirectX::DDS_FLAGS_NONE, metadata)))
+        if(FAILED(DirectX::GetMetadataFromDDSFile(cachePath.ToStdPath().c_str(), DirectX::DDS_FLAGS_NONE, metadata)))
             return true;
 
         if(rule->generateMips && metadata.mipLevels <= 1)
@@ -90,7 +90,7 @@ namespace Tsukino::Asset {
         const bool        isLinear = IsLinearTexture(inputPath);
         const DirectX::WIC_FLAGS wicFlags = isLinear ? DirectX::WIC_FLAGS_IGNORE_SRGB : DirectX::WIC_FLAGS_FORCE_SRGB;
 
-        HRESULT hr = DirectX::LoadFromWICFile(absoluteInputPath.ToWString().c_str(), wicFlags, &metadata, image);
+        HRESULT hr = DirectX::LoadFromWICFile(absoluteInputPath.ToStdPath().c_str(), wicFlags, &metadata, image);
 
         if(FAILED(hr)) {
             Tsukino::Core::Log::Error("Failed to load texture: " + absoluteInputPath.string());
@@ -173,7 +173,7 @@ namespace Tsukino::Asset {
             metadata = image.GetMetadata();
         }
 
-        hr = DirectX::SaveToDDSFile(image.GetImages(), image.GetImageCount(), metadata, DirectX::DDS_FLAGS_FORCE_DX10_EXT, outputPath.ToWString().c_str());
+        hr = DirectX::SaveToDDSFile(image.GetImages(), image.GetImageCount(), metadata, DirectX::DDS_FLAGS_FORCE_DX10_EXT, outputPath.ToStdPath().c_str());
 
         // 保存に失敗した場合はエラーログを出力して false を返す
         if(FAILED(hr)) {

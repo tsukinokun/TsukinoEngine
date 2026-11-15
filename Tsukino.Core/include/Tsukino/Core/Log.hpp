@@ -4,6 +4,7 @@
 //! @author 山﨑愛
 //--------------------------------------------------------------
 #pragma once
+#include <filesystem>
 #include <string>
 // 名前空間 : Tsukino::Core
 namespace Tsukino::Core {
@@ -55,6 +56,6 @@ namespace Tsukino::Core {
         //--------------------------------------------------------------
         static void Write(const char* level, const std::string& msg);
 
-        static std::string s_LogFilePath;    // 空の間はファイルへ出力しない
+        static std::filesystem::path s_LogFilePath;    // 空の間はファイルへ出力しない
     };
 }    // namespace Tsukino::Core

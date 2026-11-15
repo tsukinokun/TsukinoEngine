@@ -7,12 +7,12 @@
 //----------------------------------------------------------------------------
 #pragma once
 #include <Tsukino/Core/IO/CerealOptional.hpp>
+#include <Tsukino/Core/IO/FileSystem.hpp>
 #include <Tsukino/Core/Log.hpp>
 
 #include <cereal/archives/json.hpp>
 
-#include <filesystem>
-#include <fstream>
+#include <sstream>
 #include <string>
 #include <utility>
 
@@ -27,11 +27,12 @@ namespace Tsukino::IO {
     //! @note   読み込みは out の写しに対して行い、最後まで読めたときだけ out へ戻す（途中で壊れていても out は元のまま）
     template <class T>
     bool TryLoadJson(const std::string& path, const char* key, T& out) {
-        std::ifstream stream(path);
-        if(!stream.is_open()) {
+        const Tsukino::Core::Path filePath(path);
+        if(!FileSystem::Exists(filePath)) {
             Tsukino::Core::Log::Warn("JSON file not found: " + path + " (using default values)");
             return false;
         }
+        std::istringstream stream(FileSystem::ReadText(filePath));
         T value = out;
         try {
             cereal::JSONInputArchive archive(stream);
@@ -51,21 +52,17 @@ namespace Tsukino::IO {
     //! @return 書けたか。
     template <class T>
     bool TrySaveJson(const std::string& path, const char* key, const T& value) {
-        std::error_code error;
-        const std::filesystem::path directory = std::filesystem::path(path).parent_path();
-        if(!directory.empty()) {
-            std::filesystem::create_directories(directory, error);
-        }
-        std::ofstream stream(path);
-        if(!stream.is_open()) {
-            Tsukino::Core::Log::Warn("Failed to open JSON file for writing: " + path);
-            return false;
-        }
+        std::ostringstream stream;
         try {
+            // アーカイブは壊すときに閉じ括弧を書くので、文字列を取り出す前に壊す
             cereal::JSONOutputArchive archive(stream);
             archive(cereal::make_nvp(key, value));
         } catch(const std::exception& e) {
             Tsukino::Core::Log::Warn("Failed to write JSON file: " + path + " (" + e.what() + ")");
+            return false;
+        }
+        if(!FileSystem::WriteText(Tsukino::Core::Path(path), stream.str())) {
+            Tsukino::Core::Log::Warn("Failed to open JSON file for writing: " + path);
             return false;
         }
         return true;

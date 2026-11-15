@@ -5,9 +5,8 @@
 //--------------------------------------------------------------
 #include <Tsukino/Engine/Asset/Shader/ShaderLoader.hpp>
 
-#include <fstream>
-#include <sstream>
-#include <iostream>
+#include <Tsukino/Core/IO/FileSystem.hpp>
+
 #include <unordered_map>
 // 名前空間 Tsukino::Asset
 namespace Tsukino::Asset {
@@ -26,8 +25,8 @@ namespace Tsukino::Asset {
         std::string filePath = path.string();
 
         // バイナリファイルを開く
-        std::ifstream file(filePath, std::ios::binary);
-        if(!file.is_open()) {
+        std::vector<u8> binary = Tsukino::IO::FileSystem::ReadBinary(path);
+        if(binary.empty()) {
             return nullptr;
         }
 
@@ -39,7 +38,7 @@ namespace Tsukino::Asset {
         asset->shaderStage = DetectStage(path);
 
         // バイナリ読み込み
-        asset->binary = std::vector<u8>(std::istreambuf_iterator<char>(file), std::istreambuf_iterator<char>());
+        asset->binary = std::move(binary);
 
         // アセットを返す
         return asset;

@@ -2,11 +2,15 @@
 //! @file   FileSystem.hpp
 //! @brief  ファイル読み込みの抽象化レイヤー
 //! @author 山﨑愛
+//! @note   パスはすべて UTF-8。読み込みは SDL の入出力を通すので、Android ではアプリに同梱した
+//!         アセット（APK の中）も、ほかの OS と同じ相対パスで読める
 //-------------------------------------------------------------
 #pragma once
-#include <string>
-#include <vector>
+#include <cstddef>
 #include <cstdint>
+#include <string>
+#include <string_view>
+#include <vector>
 #include <Tsukino/Core/Path.hpp>
 // 名前空間 : Tsukino::IO
 namespace Tsukino::IO {
@@ -33,8 +37,28 @@ namespace Tsukino::IO {
         static std::string ReadText(const Tsukino::Core::Path& path) noexcept;
 
         //---------------------------------------------------------
+        // バイナリファイルを書き込む（足りないフォルダは作る。あれば上書き）
+        //! @param  path [in] 書き込むファイルパス
+        //! @param  data [in] 書き込むデータ
+        //! @param  size [in] data のバイト数
+        //! @return 書けたら true
+        //---------------------------------------------------------
+        [[nodiscard]]
+        static bool WriteBinary(const Tsukino::Core::Path& path, const void* data, std::size_t size) noexcept;
+
+        //---------------------------------------------------------
+        // テキストファイルを書き込む（足りないフォルダは作る。あれば上書き。改行は変換しない）
+        //! @param  path [in] 書き込むファイルパス
+        //! @param  text [in] 書き込む文字列
+        //! @return 書けたら true
+        //---------------------------------------------------------
+        [[nodiscard]]
+        static bool WriteText(const Tsukino::Core::Path& path, std::string_view text) noexcept;
+
+        //---------------------------------------------------------
         // ファイルが存在するか確認する
         //! @param  path [in] 確認するファイルパス
+        //! @return あれば true（Android では APK に同梱したアセットも含む）
         //---------------------------------------------------------
         [[nodiscard]]
         static bool Exists(const Tsukino::Core::Path& path) noexcept;
@@ -79,6 +103,17 @@ namespace Tsukino::IO {
         //---------------------------------------------------------
         [[nodiscard]]
         static Tsukino::Core::Path ToEngineRelativePath(const Tsukino::Core::Path& maybeAbsolutePath);
+
+        //---------------------------------------------------------
+        // ユーザーごとのデータ（セーブ・設定）を置くフォルダを取得する
+        //! @param  organization [in] 作り手の名前（フォルダ名になる）
+        //! @param  application  [in] アプリの名前（フォルダ名になる）
+        //! @return フォルダのパス（無ければ作られる）。取れなければ GetAssetRootPath() / "Saves"
+        //! @note   Windows は %APPDATA%、macOS は ~/Library/Application Support、
+        //!         iOS / Android はアプリ専用の書き込める場所。exe の隣は書き込めないことがあるので使わない
+        //---------------------------------------------------------
+        [[nodiscard]]
+        static Tsukino::Core::Path GetUserDataPath(const std::string& organization, const std::string& application);
     };
 
 }    // namespace Tsukino::IO

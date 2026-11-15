@@ -3,6 +3,7 @@
 //! @brief   サンプルシーン1の実装
 //! @author  山﨑愛
 //-------------------------------------------------------------
+#include <Tsukino/Core/IO/FileSystem.hpp>
 #include <Tsukino/Sandbox/Scene/SampleScene1.hpp>
 
 #include <Tsukino/EngineIntegration/EngineAPI.hpp>
@@ -366,23 +367,19 @@ namespace Tsukino::Sandbox {
 
             const std::string anchorTransformPath = anchorDir + "/Transform.json";
             const std::string anchorPrefabPath    = anchorDir + "/Prefab.json";
-            if(!std::filesystem::exists(anchorPrefabPath)) {
-                std::filesystem::create_directories(anchorDir);
+            if(!Tsukino::IO::FileSystem::Exists(Tsukino::Core::Path(anchorPrefabPath))) {
                 Tsukino::BuiltIn::ECS::TransformComponent anchorTransform{};
                 context->prefabFactory->Save(anchorTransformPath, "TransformComponent", anchorTransform);
 
                 std::map<std::string, std::string> anchorComponents = {
                     {"TransformComponent", anchorTransformPath}
                 };
-                std::ofstream             os(anchorPrefabPath);
-                cereal::JSONOutputArchive archive(os);
-                archive(cereal::make_nvp("Components", anchorComponents));
+                context->prefabFactory->Save(anchorPrefabPath, "Components", anchorComponents);
             }
 
             const std::string linkTargetPath = linkerDir + "/TestLinkComponent.json";
             const std::string linkerPrefabPath = linkerDir + "/Prefab.json";
-            if(!std::filesystem::exists(linkerPrefabPath)) {
-                std::filesystem::create_directories(linkerDir);
+            if(!Tsukino::IO::FileSystem::Exists(Tsukino::Core::Path(linkerPrefabPath))) {
                 Tsukino::Sandbox::TestLinkComponent link{};
                 link.target.localName = "#Anchor";
                 context->prefabFactory->Save(linkTargetPath, "TestLinkComponent", link);
@@ -390,9 +387,7 @@ namespace Tsukino::Sandbox {
                 std::map<std::string, std::string> linkerComponents = {
                     {"TestLinkComponent", linkTargetPath}
                 };
-                std::ofstream             os(linkerPrefabPath);
-                cereal::JSONOutputArchive archive(os);
-                archive(cereal::make_nvp("Components", linkerComponents));
+                context->prefabFactory->Save(linkerPrefabPath, "Components", linkerComponents);
             }
 
             Tsukino::Engine::ECS::Prefab::PrefabFactory::PrefabInstance group = context->prefabFactory->InstantiateGroup(

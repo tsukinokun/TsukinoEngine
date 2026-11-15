@@ -410,6 +410,18 @@ carve-out for `Tsukino.Renderer` described under **API stability** in the README
 
 ### Changed
 
+- **Paths are UTF-8, and files are read through SDL.**
+  - `Path` holds UTF-8 and gains `ToStdPath()` (a `std::filesystem::path` built from UTF-8) and a `const char*`
+    constructor; `ToWString()` and the `operator/(const std::string&)` overload are removed (strings still convert to
+    `Path` implicitly). Paths with non-ASCII characters now open on Windows, where `std::ifstream(path.string())` read
+    them as the ANSI code page.
+  - `FileSystem::ReadBinary` / `ReadText` use `SDL_LoadFile`, so on Android they also read assets packed in the APK.
+    `ReadText` normalises line endings to `\n`. New `WriteBinary` / `WriteText` (create missing folders) and
+    `GetUserDataPath(organization, application)` (`SDL_GetPrefPath`: the per-user folder for saves and settings).
+    `Exists` also finds files that only SDL can open (APK assets).
+  - The asset loaders (shaders, effects, dynamic fonts, materials, models), `PrefabFactory`, `TryLoadJson` /
+    `TrySaveJson` and the log file go through `FileSystem` / `ToStdPath()` instead of opening `std::fstream` with
+    `path.string()`.
 - **Text is UTF-8 `std::string` everywhere, and glyphs are rasterized with stb_truetype instead of DirectWrite.**
   - Breaking: `FontComponent::text`, `DynamicFontAtlas::AppendStringSprites` / `MeasureString` (now `std::string_view`),
     `TextInputSystem::GetText` / `SetText` / `GetComposition`, `GetKeyDisplayName` / `GetGamepadButtonDisplayName`

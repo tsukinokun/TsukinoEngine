@@ -113,7 +113,7 @@ namespace Tsukino::Asset {
         const std::string& faceNameUtf8 = settings["FaceName"];
         const float        pixelSize    = std::stof(settings["Size"]);
 
-        std::ofstream out(outputPath.string(), std::ios::binary);
+        std::ofstream out(outputPath.ToStdPath(), std::ios::binary);
         if(!out.is_open()) {
             Tsukino::Core::Log::Error("DynamicFontImporter: Failed to write cache file: " + outputPath.string());
             return false;

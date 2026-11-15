@@ -8,7 +8,8 @@
 #include <Tsukino/Core/IO/FileSystem.hpp>
 #include <Tsukino/Core/Log.hpp>
 
-#include <fstream>
+#include <cstdint>
+#include <vector>
 // 名前空間 : Tsukino::Asset
 namespace Tsukino::Asset {
     //--------------------------------------------------------------
@@ -28,19 +29,16 @@ namespace Tsukino::Asset {
             return false;
         }
 
-        std::ifstream src(absoluteInputPath.string(), std::ios::binary);
-        if(!src.is_open()) {
+        const std::vector<std::uint8_t> data = Tsukino::IO::FileSystem::ReadBinary(absoluteInputPath);
+        if(data.empty()) {
             Tsukino::Core::Log::Error("EffectImporter: failed to open source: " + absoluteInputPath.string());
             return false;
         }
 
-        std::ofstream dst(outputPath.string(), std::ios::binary);
-        if(!dst.is_open()) {
+        if(!Tsukino::IO::FileSystem::WriteBinary(outputPath, data.data(), data.size())) {
             Tsukino::Core::Log::Error("EffectImporter: failed to open destination: " + outputPath.string());
             return false;
         }
-
-        dst << src.rdbuf();
 
         return true;
     }

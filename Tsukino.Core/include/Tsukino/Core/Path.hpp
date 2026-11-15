@@ -4,13 +4,18 @@
 //! @author 山﨑愛
 //--------------------------------------------------------------
 #pragma once
-#include <string>
+#include <algorithm>
+#include <cctype>
 #include <filesystem>
+#include <string>
+#include <utility>
 // 名前空間 : Tsukino::Core
 namespace Tsukino::Core {
     //--------------------------------------------------------------
     //! @class   Path
     //! @brief   パス管理クラス
+    //! @note    パスは UTF-8 の文字列で持ち、区切りは '/' にそろえる。
+    //!          OS のファイル操作へ渡すときは ToStdPath() を使う（Windows でも日本語のパスが化けない）
     //--------------------------------------------------------------
     class Path {
     public:
@@ -21,10 +26,24 @@ namespace Tsukino::Core {
 
         //--------------------------------------------------------------
         //! @brief   コンストラクタ
-        //! @param   path [in] パス文字列
+        //! @param   path [in] パス文字列（UTF-8）
         //--------------------------------------------------------------
         Path(const std::string& path)
             : m_path(Normalize(path)) {}
+
+        //--------------------------------------------------------------
+        //! @brief   コンストラクタ
+        //! @param   path [in] パス文字列（UTF-8。終端あり）
+        //--------------------------------------------------------------
+        Path(const char* path)
+            : m_path(Normalize(path ? std::string(path) : std::string())) {}
+
+        //--------------------------------------------------------------
+        //! @brief   std::filesystem::path から作るコンストラクタ
+        //! @param   path [in] OS のパス
+        //--------------------------------------------------------------
+        explicit Path(const std::filesystem::path& path)
+            : m_path(FromStdPath(path)) {}
 
         //--------------------------------------------------------------
         //! @brief  パス文字列を取得する関数
@@ -41,7 +60,7 @@ namespace Tsukino::Core {
         //--------------------------------------------------------------
         [[nodiscard]]
         Path parent() const {
-            return Path(std::filesystem::path(m_path).parent_path().generic_string());
+            return Path(ToStdPath().parent_path());
         }
 
         //--------------------------------------------------------------
@@ -50,7 +69,7 @@ namespace Tsukino::Core {
         //--------------------------------------------------------------
         [[nodiscard]]
         std::string filename() const {
-            return std::filesystem::path(m_path).filename().string();
+            return FromStdPath(ToStdPath().filename());
         }
 
         //--------------------------------------------------------------
@@ -59,7 +78,7 @@ namespace Tsukino::Core {
         //--------------------------------------------------------------
         [[nodiscard]]
         std::string extension() const {
-            return std::filesystem::path(m_path).extension().string();
+            return FromStdPath(ToStdPath().extension());
         }
 
         //--------------------------------------------------------------
@@ -68,7 +87,7 @@ namespace Tsukino::Core {
         //--------------------------------------------------------------
         [[nodiscard]]
         std::string stem() const {
-            return std::filesystem::path(m_path).stem().string();
+            return FromStdPath(ToStdPath().stem());
         }
 
         //--------------------------------------------------------------
@@ -77,36 +96,28 @@ namespace Tsukino::Core {
         //--------------------------------------------------------------
         [[nodiscard]]
         Path parent_path() const {
-            return Path(std::filesystem::path(m_path).parent_path().generic_string());
+            return Path(ToStdPath().parent_path());
         }
 
         //--------------------------------------------------------------
-        //! @brief  パスをwide string (UTF-16) に変換して取得する関数
-        //! @return UTF-16 のパス文字列
+        //! @brief  OS のファイル操作に渡せるパスを取得する関数
+        //! @return std::filesystem::path（UTF-8 として解釈したもの）
+        //! @note   std::ifstream などへ string() をそのまま渡すと、Windows では UTF-8 ではなく
+        //!         ANSI のコードページとして読まれ、日本語を含むパスが開けない。必ずこちらを渡す
         //--------------------------------------------------------------
         [[nodiscard]]
-        std::wstring ToWString() const {
-            return std::filesystem::path(m_path).wstring();
+        std::filesystem::path ToStdPath() const {
+            return std::filesystem::path(std::u8string(m_path.begin(), m_path.end()));
         }
 
         //-----------------------------------------------------------
         //! @brief  パスを結合する演算子
-        //! @param  rhs [in] 結合するパス要素
-        //! @return 結合後のパス
-        //-----------------------------------------------------------
-        [[nodiscard]]
-        Path operator/(const std::string& rhs) const {
-            return Path((std::filesystem::path(m_path) / rhs).generic_string());
-        }
-
-        //-----------------------------------------------------------
-        //! @brief  パスを結合する演算子
-        //! @param  rhs [in] 結合するパス要素
+        //! @param  rhs [in] 結合するパス要素（文字列からも暗黙に変わる）
         //! @return 結合後のパス
         //-----------------------------------------------------------
         [[nodiscard]]
         Path operator/(const Path& rhs) const {
-            return Path((std::filesystem::path(m_path) / rhs.m_path).generic_string());
+            return Path(ToStdPath() / rhs.ToStdPath());
         }
 
         //-----------------------------------------------------------
@@ -114,9 +125,9 @@ namespace Tsukino::Core {
         //! @param  newExt [in] 新しい拡張子
         //-----------------------------------------------------------
         void replace_extension(const std::string& newExt) {
-            std::filesystem::path p(m_path);
-            p.replace_extension(newExt);
-            m_path = p.generic_string();
+            std::filesystem::path p = ToStdPath();
+            p.replace_extension(Path(newExt).ToStdPath());
+            m_path = FromStdPath(p);
         }
 
         //--------------------------------------------------------------
@@ -151,7 +162,18 @@ namespace Tsukino::Core {
         //--------------------------------------------------------------
         [[nodiscard]]
         static std::string Normalize(const std::string& path) {
-            return std::filesystem::path(path).generic_string();
+            return FromStdPath(std::filesystem::path(std::u8string(path.begin(), path.end())));
+        }
+
+        //--------------------------------------------------------------
+        //! @brief  std::filesystem::path を UTF-8 の文字列（区切りは '/'）にする関数
+        //! @param  path [in] OS のパス
+        //! @return UTF-8 のパス文字列
+        //--------------------------------------------------------------
+        [[nodiscard]]
+        static std::string FromStdPath(const std::filesystem::path& path) {
+            const std::u8string text = path.generic_u8string();
+            return std::string(text.begin(), text.end());
         }
 
         //--------------------------------------------------------------
@@ -180,7 +202,7 @@ namespace Tsukino::Core {
 
         //--------------------------------------------------------------
         //! @brief フラグメントを無視して拡張子を取得する関数
-        //! @return 正規の拡張子（例: ".xwb"）
+        //! @return 正規の拡張子（例: ".png"）
         //--------------------------------------------------------------
         [[nodiscard]]
         std::string GetPureExtension() const {

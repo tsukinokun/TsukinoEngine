@@ -6,38 +6,42 @@
 #include <Tsukino/Core/IO/FileSystem.hpp>
 
 #include <SDL3/SDL_filesystem.h>
+#include <SDL3/SDL_iostream.h>
+#include <SDL3/SDL_stdinc.h>
 
-#include <fstream>
 #include <filesystem>
 // 名前空間 : Tsukino::IO
 namespace Tsukino::IO {
+    namespace {
+        //-------------------------------------------------------------
+        //! SDL でファイルを丸ごと読みます。
+        //! @param  [in]  path 読むファイルのパス（UTF-8）
+        //! @param  [out] size 読んだバイト数
+        //! @return 読んだデータ（SDL_free で解放する）。読めなければ nullptr
+        //-------------------------------------------------------------
+        void* LoadWholeFile(const Tsukino::Core::Path& path, std::size_t& size) noexcept {
+            size = 0;
+            return SDL_LoadFile(path.string().c_str(), &size);
+        }
+    }    // namespace
+
     //-------------------------------------------------------------
     //! @brief  バイナリファイルを読み込む
     //-------------------------------------------------------------
     std::vector<std::uint8_t> FileSystem::ReadBinary(const Tsukino::Core::Path& path) noexcept {
-        // path.string() を使用
         std::vector<std::uint8_t> buffer;
-
-        // ios::binary で開き、末尾(ate)に移動
-        std::ifstream file(path.string(), std::ios::binary | std::ios::ate);
-        if(!file)
-            return buffer;    // is_open() より file自体の評価が一般的
-
-        // ファイルサイズを取得
-        const auto size = file.tellg();
-        if(size <= 0)
+        std::size_t               size = 0;
+        void*                     data = LoadWholeFile(path, size);
+        if(!data)
             return buffer;
 
-        // バッファをサイズに合わせてリサイズし、先頭に移動
-        buffer.resize(static_cast<std::size_t>(size));
-        file.seekg(0, std::ios::beg);
-
-        // 読み込み成功を確認
-        if(!file.read(reinterpret_cast<char*>(buffer.data()), size)) {
-            buffer.clear();
+        try {
+            const auto* bytes = static_cast<const std::uint8_t*>(data);
+            buffer.assign(bytes, bytes + size);
+        } catch(...) {
+            buffer.clear();    // メモリが足りない
         }
-
-        // ファイルは自動的に閉じられる
+        SDL_free(data);
         return buffer;
     }
 
@@ -45,20 +49,61 @@ namespace Tsukino::IO {
     //! @brief  テキストファイルを読み込む
     //-------------------------------------------------------------
     std::string FileSystem::ReadText(const Tsukino::Core::Path& path) noexcept {
-        // path.string() を使用
-        std::ifstream file(path.string());
-        if(!file.is_open())
-            return std::string();
+        std::string text;
+        std::size_t size = 0;
+        void*       data = LoadWholeFile(path, size);
+        if(!data)
+            return text;
 
-        return std::string((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
+        try {
+            text.assign(static_cast<const char*>(data), size);
+            // 改行は "\n" にそろえる（Windows で書いた "\r\n" のファイルも同じに読む）
+            std::erase(text, '\r');
+        } catch(...) {
+            text.clear();
+        }
+        SDL_free(data);
+        return text;
+    }
+
+    //-------------------------------------------------------------
+    //! @brief  バイナリファイルを書き込む
+    //-------------------------------------------------------------
+    bool FileSystem::WriteBinary(const Tsukino::Core::Path& path, const void* data, std::size_t size) noexcept {
+        const Tsukino::Core::Path directory = path.parent_path();
+        if(!directory.string().empty() && !CreateDirectories(directory))
+            return false;
+
+        SDL_IOStream* stream = SDL_IOFromFile(path.string().c_str(), "wb");
+        if(!stream)
+            return false;
+
+        const bool written = (size == 0) || SDL_WriteIO(stream, data, size) == size;
+        const bool closed  = SDL_CloseIO(stream);
+        return written && closed;
+    }
+
+    //-------------------------------------------------------------
+    //! @brief  テキストファイルを書き込む
+    //-------------------------------------------------------------
+    bool FileSystem::WriteText(const Tsukino::Core::Path& path, std::string_view text) noexcept {
+        return WriteBinary(path, text.data(), text.size());
     }
 
     //-------------------------------------------------------------
     //! @brief  ファイルが存在するか確認する
     //-------------------------------------------------------------
     bool FileSystem::Exists(const Tsukino::Core::Path& path) noexcept {
-        // path.string() を使用
-        return std::filesystem::exists(path.string());
+        std::error_code ec;
+        if(std::filesystem::exists(path.ToStdPath(), ec))
+            return true;
+
+        // OS のファイルとしては見えないもの（Android の APK に同梱したアセット）は、SDL で開けるかで確かめる
+        if(SDL_IOStream* stream = SDL_IOFromFile(path.string().c_str(), "rb")) {
+            SDL_CloseIO(stream);
+            return true;
+        }
+        return false;
     }
 
     //---------------------------------------------------------
@@ -77,7 +122,7 @@ namespace Tsukino::IO {
         //-----------------------------------------------------------
         std::error_code ec;
 
-        if(std::filesystem::create_directories(path.string(), ec)) {
+        if(std::filesystem::create_directories(path.ToStdPath(), ec)) {
             return true;    // 新規に作成できた
         }
 
@@ -86,22 +131,17 @@ namespace Tsukino::IO {
         }
 
         // 何も作らなかった場合。既にディレクトリとして在るなら成功とみなす
-        return std::filesystem::is_directory(path.string(), ec);
+        return std::filesystem::is_directory(path.ToStdPath(), ec);
     }
 
     //---------------------------------------------------------
     //! @brief  ファイルの最終更新日時を取得する
     //---------------------------------------------------------
     std::filesystem::file_time_type FileSystem::GetLastWriteTime(const Tsukino::Core::Path& path) noexcept {
-        try {
-            if(Exists(path)) {
-                return std::filesystem::last_write_time(path.string());
-            }
-        } catch(...) {
-            // エラー時はエポック（古い時間）を返すなどして、比較で「古い」と判定させる
-        }
-        // 失敗時は最小値を返す
-        return std::filesystem::file_time_type::min();
+        std::error_code ec;
+        const auto      time = std::filesystem::last_write_time(path.ToStdPath(), ec);
+        // 失敗時（無いファイル・APK の中など）は最小値を返し、比較で「古い」と判定させる
+        return ec ? std::filesystem::file_time_type::min() : time;
     }
 
     //---------------------------------------------------------
@@ -110,13 +150,15 @@ namespace Tsukino::IO {
     Tsukino::Core::Path FileSystem::GetAssetRootPath() {
 #ifdef _DEBUG
         // デバッグ時はプロジェクトルート（Premakeのdebugdir設定に依存）
-        return Tsukino::Core::Path(std::filesystem::current_path().string());
+        std::error_code ec;
+        return Tsukino::Core::Path(std::filesystem::current_path(ec));
 #else
         // リリース時は実行ファイル (.exe) の場所を基準にする。
         // SDL_GetBasePath は UTF-8 で、末尾に区切り文字が付く（macOS の .app では Resources フォルダを指す）
         const char* basePath = SDL_GetBasePath();
         if(!basePath) {
-            return Tsukino::Core::Path(std::filesystem::current_path().string());
+            std::error_code ec;
+            return Tsukino::Core::Path(std::filesystem::current_path(ec));
         }
         std::string root(basePath);
         while(!root.empty() && (root.back() == '/' || root.back() == '\\')) {
@@ -144,20 +186,36 @@ namespace Tsukino::IO {
     //! @brief  絶対パスをエンジンルートからの相対パスへ変換する
     //---------------------------------------------------------
     Tsukino::Core::Path FileSystem::ToEngineRelativePath(const Tsukino::Core::Path& maybeAbsolutePath) {
-        std::filesystem::path srcFsPath(maybeAbsolutePath.string());
+        const std::filesystem::path srcFsPath = maybeAbsolutePath.ToStdPath();
         if(!srcFsPath.is_absolute()) {
             // 相対パスはそのまま返す（従来通りの挙動。ゲーム自身のアセット等はここに該当）
             return maybeAbsolutePath;
         }
 
-        std::filesystem::path engineRoot(GetEngineAssetRootPath().string());
-        std::error_code       ec;
-        std::filesystem::path rel = std::filesystem::relative(srcFsPath, engineRoot, ec);
-        if(ec || rel.empty() || rel.native()[0] == L'.') {
+        const std::filesystem::path engineRoot = GetEngineAssetRootPath().ToStdPath();
+        std::error_code             ec;
+        const std::filesystem::path rel = std::filesystem::relative(srcFsPath, engineRoot, ec);
+        if(ec || rel.empty() || rel.native()[0] == '.') {
             // エンジンルート配下でない絶対パスは変換できないためそのまま返す
             return maybeAbsolutePath;
         }
 
-        return Tsukino::Core::Path(rel.generic_string());
+        return Tsukino::Core::Path(rel);
+    }
+
+    //---------------------------------------------------------
+    //! @brief  ユーザーごとのデータを置くフォルダを取得する
+    //---------------------------------------------------------
+    Tsukino::Core::Path FileSystem::GetUserDataPath(const std::string& organization, const std::string& application) {
+        char* prefPath = SDL_GetPrefPath(organization.c_str(), application.c_str());
+        if(!prefPath)
+            return GetAssetRootPath() / "Saves";
+
+        std::string path(prefPath);
+        SDL_free(prefPath);
+        while(!path.empty() && (path.back() == '/' || path.back() == '\\')) {
+            path.pop_back();
+        }
+        return Tsukino::Core::Path(path);
     }
 }    // namespace Tsukino::IO

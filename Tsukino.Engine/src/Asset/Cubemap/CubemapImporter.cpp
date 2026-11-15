@@ -42,7 +42,7 @@ namespace Tsukino::Asset {
 
         CubemapDesc desc;
         {
-            std::ifstream ifs(fullInputPath.string());
+            std::ifstream ifs(fullInputPath.ToStdPath());
             if(!ifs) {
                 Tsukino::Core::Log::Error("CubemapImporter: Failed to open: " + fullInputPath.string());
                 return false;
@@ -72,7 +72,7 @@ namespace Tsukino::Asset {
             Tsukino::Core::Path faceFullPath = assetRoot / Tsukino::Core::Path(facePaths[i]);
 
             DirectX::TexMetadata metadata;
-            HRESULT              hr = DirectX::LoadFromWICFile(faceFullPath.ToWString().c_str(), DirectX::WIC_FLAGS_NONE, &metadata, faceImages[i]);
+            HRESULT              hr = DirectX::LoadFromWICFile(faceFullPath.ToStdPath().c_str(), DirectX::WIC_FLAGS_NONE, &metadata, faceImages[i]);
 
             if(FAILED(hr)) {
                 Tsukino::Core::Log::Error("CubemapImporter: Failed to load face: " + faceFullPath.string());
@@ -180,7 +180,7 @@ namespace Tsukino::Asset {
         }
 
         hr = DirectX::SaveToDDSFile(
-            compressed.GetImages(), compressed.GetImageCount(), compressed.GetMetadata(), DirectX::DDS_FLAGS_NONE, outputPath.ToWString().c_str());
+            compressed.GetImages(), compressed.GetImageCount(), compressed.GetMetadata(), DirectX::DDS_FLAGS_NONE, outputPath.ToStdPath().c_str());
 
         if(FAILED(hr)) {
             Tsukino::Core::Log::Error("CubemapImporter: Failed to save DDS: " + outputPath.string());

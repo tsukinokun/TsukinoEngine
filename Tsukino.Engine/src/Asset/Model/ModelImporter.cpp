@@ -228,7 +228,7 @@ namespace Tsukino::Asset {
             return false;
         }
 
-        std::ofstream ofs(outputPath.string(), std::ios::binary);
+        std::ofstream ofs(outputPath.ToStdPath(), std::ios::binary);
         if(!ofs) {
             Tsukino::Core::Log::Error("Failed to open output file");
             return false;
@@ -515,7 +515,7 @@ namespace Tsukino::Asset {
             Tsukino::Core::Path ddsPath             = tsmDir / ddsFilename;
 
             hr = DirectX::SaveToDDSFile(
-                compressed.GetImages(), compressed.GetImageCount(), compressed.GetMetadata(), DirectX::DDS_FLAGS_NONE, ddsPath.ToWString().c_str());
+                compressed.GetImages(), compressed.GetImageCount(), compressed.GetMetadata(), DirectX::DDS_FLAGS_NONE, ddsPath.ToStdPath().c_str());
             if(FAILED(hr)) {
                 Tsukino::Core::Log::Error("Failed to save DDS: " + ddsFilename);
                 continue;

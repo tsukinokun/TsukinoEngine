@@ -12,7 +12,9 @@
 
 #include <Tsukino/Core/Log.hpp>
 
-#include <fstream>
+#include <Tsukino/Core/IO/FileSystem.hpp>
+
+#include <cstdint>
 #include <sstream>
 #include <iostream>
 #include <unordered_map>
@@ -35,20 +37,12 @@ namespace Tsukino::Asset {
     Tsukino::Core::Ref<IAsset> ModelLoader::Load(const Tsukino::Core::Path& path) {
         const std::string filePath = path.string();
 
-        std::ifstream ifs(filePath, std::ios::binary);
-        if(!ifs.is_open()) {
-            Tsukino::Core::Log::Error("ModelLoader: Failed to open model: " + filePath);
+        const std::vector<std::uint8_t> bytes = Tsukino::IO::FileSystem::ReadBinary(path);
+        if(bytes.empty()) {
+            Tsukino::Core::Log::Error("ModelLoader: Failed to open model (missing or empty): " + filePath);
             return nullptr;
         }
-
-        // ファイルサイズ確認
-        ifs.seekg(0, std::ios::end);
-        const std::streamoff fileSize = ifs.tellg();
-        if(fileSize <= 0) {
-            Tsukino::Core::Log::Error("ModelLoader: Empty or invalid file: " + filePath);
-            return nullptr;
-        }
-        ifs.seekg(0, std::ios::beg);
+        std::istringstream ifs(std::string(bytes.begin(), bytes.end()), std::ios::binary);
 
         Tsukino::Core::Ref<ModelAsset> asset = Tsukino::Core::CreateRef<ModelAsset>();
 

@@ -8,7 +8,10 @@
 
 #include <Tsukino/Core/Log.hpp>
 
-#include <fstream>
+#include <Tsukino/Core/IO/FileSystem.hpp>
+
+#include <cstdint>
+#include <sstream>
 #include <vector>
 
 // 名前空間 Tsukino::Asset
@@ -24,11 +27,12 @@ namespace Tsukino::Asset {
     //! @brief .dfont キャッシュファイルを読み込み DynamicFontAsset を生成する関数
     //--------------------------------------------------------------
     Tsukino::Core::Ref<IAsset> DynamicFontLoader::Load(const Tsukino::Core::Path& path) {
-        std::ifstream file(path.string(), std::ios::binary);
-        if(!file.is_open()) {
+        const std::vector<std::uint8_t> bytes = Tsukino::IO::FileSystem::ReadBinary(path);
+        if(bytes.empty()) {
             Tsukino::Core::Log::Error("Failed to open dfont: " + path.string());
             return nullptr;
         }
+        std::istringstream file(std::string(bytes.begin(), bytes.end()), std::ios::binary);
 
         //--------------------------------------------------------------
         // フォーマット: [u32 faceNameLen][faceName utf-8 bytes][float pixelSize][u32 fontDataLen][fontData bytes]

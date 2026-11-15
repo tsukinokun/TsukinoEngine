@@ -6,7 +6,9 @@
 #include <Tsukino/Engine/Asset/Effect/EffectLoader.hpp>
 #include <Tsukino/Engine/Asset/Effect/EffectAsset.hpp>
 
-#include <fstream>
+#include <Tsukino/Core/IO/FileSystem.hpp>
+
+#include <vector>
 // 名前空間 Tsukino::Asset
 namespace Tsukino::Asset {
     //--------------------------------------------------------------
@@ -20,20 +22,10 @@ namespace Tsukino::Asset {
     //! @brief .efk ファイルを読み込み EffectAsset を生成する関数
     //--------------------------------------------------------------
     Tsukino::Core::Ref<IAsset> EffectLoader::Load(const Tsukino::Core::Path& path) {
-        std::ifstream file(path.string(), std::ios::binary);
-        if(!file.is_open()) {
+        std::vector<u8> buffer = Tsukino::IO::FileSystem::ReadBinary(path);
+        if(buffer.empty()) {
             return nullptr;
         }
-
-        file.seekg(0, std::ios::end);
-        const std::streamsize size = file.tellg();
-        if(size <= 0) {
-            return nullptr;
-        }
-
-        file.seekg(0, std::ios::beg);
-        std::vector<u8> buffer(static_cast<size_t>(size));
-        file.read(reinterpret_cast<char*>(buffer.data()), size);
 
         Tsukino::Core::Ref<EffectAsset> asset = Tsukino::Core::CreateRef<EffectAsset>();
         asset->binary = std::move(buffer);

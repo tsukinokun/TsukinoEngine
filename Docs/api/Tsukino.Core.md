@@ -32,14 +32,15 @@
 |---|---|
 | `Path()=default` | コンストラクタ |
 | `Path(const std::string &path)` | コンストラクタ |
+| `Path(const char *path)` | コンストラクタ |
+| `Path(const std::filesystem::path &path)` | std::filesystem::path から作るコンストラクタ |
 | `const std::string & string() const noexcept` | パス文字列を取得する関数 |
 | `Path parent() const` | パスの親ディレクトリを取得する関数 |
 | `std::string filename() const` | パスのファイル名を取得する関数 |
 | `std::string extension() const` | パスの拡張子を取得する関数 |
 | `std::string stem() const` | 拡張子を除いたファイル名を取得する関数 |
 | `Path parent_path() const` | パスの親ディレクトリを取得する関数 |
-| `std::wstring ToWString() const` | パスをwide string (UTF-16) に変換して取得する関数 |
-| `Path operator/(const std::string &rhs) const` | パスを結合する演算子 |
+| `std::filesystem::path ToStdPath() const` | OS のファイル操作に渡せるパスを取得する関数 |
 | `Path operator/(const Path &rhs) const` | パスを結合する演算子 |
 | `void replace_extension(const std::string &newExt)` | 拡張子を置き換える関数 |
 | `std::pair< std::string, std::string > SplitPathAndFragment(const std::string &rawPath)` | フラグメントなしとフラグメントを分割して取得する関数 |
@@ -221,7 +222,7 @@
 - **Tsukino::Core::Math::matrix** — `Tsukino.Core/include/Tsukino/Core/Math/Matrix.hpp`
   - identity(), translate(), translate(), scale(), scale(), scale(), rotateX(), rotateY(), rotateZ(), rotateXYZ(), rotateAxis(), lookAtLH(), perspectiveFovLH(), perspectiveFovInfiniteFarPlaneLH(), orthographicOffCenterLH(), fromQuaternion(), rotate(), decomposePositionRotation(), matrix()
 - **Tsukino::Core::Path** — `Tsukino.Core/include/Tsukino/Core/Path.hpp`
-  - Path(), Path(), string(), parent(), filename(), extension(), stem(), parent_path(), ToWString(), operator/(), operator/(), replace_extension(), SplitPathAndFragment(), ToLower()
+  - Path(), Path(), Path(), Path(), string(), parent(), filename(), extension(), stem(), parent_path(), ToStdPath(), operator/(), replace_extension(), SplitPathAndFragment(), ToLower()
 - **Tsukino::Core::Sequencer** — `Tsukino.Core/include/Tsukino/Core/Time/Sequencer.hpp`
   - Schedule(), Update(), Clear(), IsBusy()
 - **Tsukino::Core::Sequencer::Entry** — `Tsukino.Core/include/Tsukino/Core/Time/Sequencer.hpp`
@@ -243,7 +244,7 @@
 - **Tsukino::ECS::ScopedConnection** — `Tsukino.Core/include/Tsukino/Core/ECS/Event/ScopedConnection.hpp`
   - ScopedConnection(), ScopedConnection(), ScopedConnection(), operator=(), ScopedConnection(), operator=(), ~ScopedConnection(), Disconnect(), IsConnected()
 - **Tsukino::IO::FileSystem** — `Tsukino.Core/include/Tsukino/Core/IO/FileSystem.hpp`
-  - ReadBinary(), ReadText(), Exists(), CreateDirectories(), GetLastWriteTime(), GetAssetRootPath(), GetEngineAssetRootPath(), ToEngineRelativePath()
+  - ReadBinary(), ReadText(), WriteBinary(), WriteText(), Exists(), CreateDirectories(), GetLastWriteTime(), GetAssetRootPath(), GetEngineAssetRootPath(), ToEngineRelativePath(), GetUserDataPath()
 - **Tsukino::IO::FileWatcher** — `Tsukino.Core/include/Tsukino/Core/IO/FileWatcher.hpp`
   - Watch(), Poll(), SetInterval(), GetInterval()
 - **Tsukino::IO::FileWatcher::Entry** — `Tsukino.Core/include/Tsukino/Core/IO/FileWatcher.hpp`

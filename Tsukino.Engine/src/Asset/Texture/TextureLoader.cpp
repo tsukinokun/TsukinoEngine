@@ -32,7 +32,7 @@ namespace Tsukino::Asset {
         DirectX::ScratchImage image;
 
         // DDS 読み込み
-        auto hr = DirectX::LoadFromDDSFile(path.ToWString().c_str(), DirectX::DDS_FLAGS_NONE, nullptr, image);
+        auto hr = DirectX::LoadFromDDSFile(path.ToStdPath().c_str(), DirectX::DDS_FLAGS_NONE, nullptr, image);
 
         // 読み込みに失敗した場合は nullptr を返す
         if(FAILED(hr)) {

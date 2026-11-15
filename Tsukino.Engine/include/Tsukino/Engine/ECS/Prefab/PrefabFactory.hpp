@@ -6,6 +6,7 @@
 #pragma once
 
 #include <Tsukino/Core/Log.hpp>
+#include <Tsukino/Core/IO/FileSystem.hpp>
 #include <Tsukino/Core/ECS/Registry/Registry.hpp>
 #include <Tsukino/Core/ECS/EntityRef/EntityRef.hpp>
 #include <Tsukino/Core/ECS/EntityRef/EntityRefResolverArchive.hpp>
@@ -18,11 +19,9 @@
 #include <entt/entt.hpp>
 
 #include <string>
-#include <fstream>
-#include <iostream>
+#include <sstream>
 #include <unordered_map>
 #include <functional>
-#include <filesystem>
 #include <vector>
 
 // 名前空間 : Tsukino::Engine::ECS::Prefab
@@ -112,8 +111,8 @@ namespace Tsukino::Engine::ECS::Prefab {
                 //--------------------------------------------------------------
                 auto& component = registry.GetComponent<ComponentType>(entity);
                 if constexpr(cereal::traits::is_input_serializable<ComponentType, cereal::JSONInputArchive>::value) {
-                    std::ifstream is(compJsonPath);
-                    if(is.is_open()) {
+                    std::istringstream is;
+                    if(ReadJsonText(compJsonPath, is)) {
                         cereal::JSONInputArchive archive(is);
                         archive(cereal::make_nvp(typeName, component));
                     } else {
@@ -131,12 +130,8 @@ namespace Tsukino::Engine::ECS::Prefab {
                         return false;
                     }
 
-                    const std::string path = outDir + "/" + typeName + ".json";
-                    std::ofstream     os(path);
-                    if(!os.is_open()) {
-                        Tsukino::Core::Log::Error("Failed to open file for saving: " + path);
-                        return false;
-                    }
+                    const std::string  path = outDir + "/" + typeName + ".json";
+                    std::ostringstream os;
 
                     const auto& component = registry.GetComponent<ComponentType>(entity);
                     {
@@ -144,6 +139,9 @@ namespace Tsukino::Engine::ECS::Prefab {
                         archive(cereal::make_nvp(typeName, component));
                     }
 
+                    if(!WriteJsonText(path, os.str())) {
+                        return false;
+                    }
                     outPath = path;
                     return true;
                 };
@@ -250,15 +248,11 @@ namespace Tsukino::Engine::ECS::Prefab {
         //--------------------------------------------------------------
         [[nodiscard]]
         PrefabInstance InstantiateGroup(const std::string& groupJsonPath, Tsukino::ECS::Registry& registry) {
-            if(!std::filesystem::exists(groupJsonPath)) {
-                Tsukino::Core::Log::Error("Prefab group file not found: " + groupJsonPath);
-                return {};
-            }
-
             std::map<std::string, std::string> entityList;
             {
-                std::ifstream is(groupJsonPath);
-                if(!is.is_open()) {
+                std::istringstream is;
+                if(!ReadJsonText(groupJsonPath, is)) {
+                    Tsukino::Core::Log::Error("Prefab group file not found: " + groupJsonPath);
                     return {};
                 }
 
@@ -284,8 +278,6 @@ namespace Tsukino::Engine::ECS::Prefab {
         //! @return    1つ以上のコンポーネントを書き出せたか
         //--------------------------------------------------------------
         bool CaptureEntity(Tsukino::ECS::Registry& registry, entt::entity entity, const std::string& outDir) {
-            std::filesystem::create_directories(outDir);
-
             std::map<std::string, std::string> componentList;
             for(const auto& [typeName, saver] : m_savers) {
                 std::string path;
@@ -299,16 +291,13 @@ namespace Tsukino::Engine::ECS::Prefab {
                 return false;
             }
 
-            const std::string prefabPath = outDir + "/Prefab.json";
-            std::ofstream     os(prefabPath);
-            if(!os.is_open()) {
-                Tsukino::Core::Log::Error("Failed to open file for saving: " + prefabPath);
-                return false;
+            const std::string  prefabPath = outDir + "/Prefab.json";
+            std::ostringstream os;
+            {
+                cereal::JSONOutputArchive archive(os);
+                archive(cereal::make_nvp("Components", componentList));
             }
-
-            cereal::JSONOutputArchive archive(os);
-            archive(cereal::make_nvp("Components", componentList));
-            return true;
+            return WriteJsonText(prefabPath, os.str());
         }
 
         //--------------------------------------------------------------
@@ -320,9 +309,8 @@ namespace Tsukino::Engine::ECS::Prefab {
         //--------------------------------------------------------------
         template <typename T>
         [[nodiscard]] bool Load(const std::string& jsonPath, const std::string& keyName, T& outData) {
-            std::ifstream is(jsonPath);
-
-            if(!is.is_open()) {
+            std::istringstream is;
+            if(!ReadJsonText(jsonPath, is)) {
                 Tsukino::Core::Log::Warn("Prefab file not found: " + jsonPath + " (Using default parameters)");
                 return false;
             }
@@ -345,22 +333,44 @@ namespace Tsukino::Engine::ECS::Prefab {
         //--------------------------------------------------------------
         template <typename T>
         bool Save(const std::string& jsonPath, const std::string& keyName, const T& desc) {
-            std::ofstream os(jsonPath);
-
-            if(!os.is_open()) {
-                Tsukino::Core::Log::Error("Failed to open file for saving: " + jsonPath);
-                return false;
-            }
-
+            std::ostringstream os;
             {
                 cereal::JSONOutputArchive archive(os);
                 archive(cereal::make_nvp(keyName, desc));
             }
-
-            return true;
+            return WriteJsonText(jsonPath, os.str());
         }
 
     private:
+        //--------------------------------------------------------------
+        //! @brief     JSON ファイルを読み、読み込み用のストリームへ入れる
+        //! @param     path [in]  ファイルのパス（UTF-8）
+        //! @param     out  [out] 中身を入れる先
+        //! @return    ファイルがあれば true
+        //--------------------------------------------------------------
+        static bool ReadJsonText(const std::string& path, std::istringstream& out) {
+            const Tsukino::Core::Path filePath(path);
+            if(!Tsukino::IO::FileSystem::Exists(filePath)) {
+                return false;
+            }
+            out.str(Tsukino::IO::FileSystem::ReadText(filePath));
+            return true;
+        }
+
+        //--------------------------------------------------------------
+        //! @brief     JSON の文字列をファイルへ書く（足りないフォルダは作る）
+        //! @param     path [in] ファイルのパス（UTF-8）
+        //! @param     text [in] 書く文字列
+        //! @return    書けたら true（書けなければエラーをログへ出す）
+        //--------------------------------------------------------------
+        static bool WriteJsonText(const std::string& path, const std::string& text) {
+            if(!Tsukino::IO::FileSystem::WriteText(Tsukino::Core::Path(path), text)) {
+                Tsukino::Core::Log::Error("Failed to open file for saving: " + path);
+                return false;
+            }
+            return true;
+        }
+
         //--------------------------------------------------------------
         //! @brief     Instantiate/InstantiateGroup共通の内部実装
         //! @param     prefabJsonPath  [in]  Prefab（目次）のJSONファイルパス
@@ -369,19 +379,16 @@ namespace Tsukino::Engine::ECS::Prefab {
         //! @return    生成されたエンティティ（失敗時は entt::null）
         //--------------------------------------------------------------
         entt::entity InstantiateInternal(const std::string& prefabJsonPath, Tsukino::ECS::Registry& registry, std::vector<std::string>* outTypeNames) {
-            if(!std::filesystem::exists(prefabJsonPath)) {
-                Tsukino::Core::Log::Error("Prefab file not found: " + prefabJsonPath);
-                return entt::null;
-            }
-
             //--------------------------------------------------------------
             // メタデータ（コンポーネント名とパスのマップ）をJSONから読み込む
             //--------------------------------------------------------------
             std::map<std::string, std::string> componentList;
             {
-                std::ifstream is(prefabJsonPath);
-                if(!is.is_open())
+                std::istringstream is;
+                if(!ReadJsonText(prefabJsonPath, is)) {
+                    Tsukino::Core::Log::Error("Prefab file not found: " + prefabJsonPath);
                     return entt::null;
+                }
 
                 cereal::JSONInputArchive archive(is);
                 archive(cereal::make_nvp("Components", componentList));

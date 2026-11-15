@@ -62,11 +62,11 @@ namespace Tsukino::Asset {
     bool MaterialImporter::Import(const Tsukino::Core::Path& inPutPath, const Tsukino::Core::Path& outPutDirectory) {
         const Tsukino::Core::Path absoluteInputPath = Tsukino::IO::FileSystem::GetAssetRootPath() / inPutPath;
 
-        std::ifstream file(absoluteInputPath.string());
-        if(!file.is_open()) {
+        if(!Tsukino::IO::FileSystem::Exists(absoluteInputPath)) {
             Tsukino::Core::Log::Error("MaterialImporter: Failed to open " + absoluteInputPath.string());
             return false;
         }
+        std::istringstream file(Tsukino::IO::FileSystem::ReadText(absoluteInputPath));
 
         //--------------------------------------------------------------
         // 「キー = 値」を1行ずつ読む。読めない値・知らないキーは警告して既定値のままにする
@@ -171,7 +171,7 @@ namespace Tsukino::Asset {
             return false;
         }
 
-        std::ofstream out(outputPath.string(), std::ios::binary);
+        std::ofstream out(outputPath.ToStdPath(), std::ios::binary);
         if(!out.is_open()) {
             Tsukino::Core::Log::Error("MaterialImporter: Failed to write cache file: " + outputPath.string());
             return false;

@@ -4,6 +4,7 @@
 //! @author 山﨑愛
 //--------------------------------------------------------------
 #include <Tsukino/Core/Log.hpp>
+#include <Tsukino/Core/Path.hpp>
 #if defined(_WIN32)
 #    include <Tsukino/Core/WindowsLean.hpp>    // OutputDebugStringA
 #else
@@ -23,7 +24,7 @@ namespace Tsukino::Core {
     }    // namespace
 
     // 出力先のログファイル。空の間はファイルへ書き出さない
-    std::string Log::s_LogFilePath;
+    std::filesystem::path Log::s_LogFilePath;
 
     //--------------------------------------------------------------
     //! @brief 情報ログ出力
@@ -50,7 +51,7 @@ namespace Tsukino::Core {
     //! ログの出力先ファイルを設定します。
     //--------------------------------------------------------------
     void Log::SetLogFile(const std::string& filePath) {
-        std::filesystem::path outputPath(filePath);
+        const std::filesystem::path outputPath = Tsukino::Core::Path(filePath).ToStdPath();
 
         // 親ディレクトリが無ければ作成する。
         // ここで失敗してもログが出なくなるだけなので、実行そのものは続行する
@@ -60,7 +61,7 @@ namespace Tsukino::Core {
         }
 
         std::lock_guard lock(s_logMutex);
-        s_LogFilePath = filePath;
+        s_LogFilePath = outputPath;
 
         // 追記運用のため、起動ごとの区切りを1行入れておく。
         // これが無いと前回の実行分と混ざって、どこからが今回の出力か分からなくなる
