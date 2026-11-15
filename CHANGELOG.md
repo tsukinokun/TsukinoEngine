@@ -46,7 +46,17 @@ carve-out for `Tsukino.Renderer` described under **API stability** in the README
   - bgfx has 16 texture stages, so the DX11 slots t8–t19 are renumbered (`TextureStages.sh` / `BgfxStage`).
   - UI-layer 3D models (`cameraOverride`) get a fresh depth buffer whenever their `sortOrder` changes, by moving on to
     the next bgfx view (bgfx cannot clear in the middle of a view).
-  - Not yet in bgfx mode: fog, motion blur, sphere colour grade, ambient particles, render scale.
+  - Not yet in bgfx mode: motion blur, render scale.
+- **bgfx renderer draws fog, the sphere colour grade and ambient particles (bgfx mode only).**
+  - Fog: `Fog.ps` is ported with the shared `Fog.sh` (`CBufferFog` arrives as `u_fog`), drawn as a premultiplied
+    over-blend into the HDR buffer after the world pass. Transparent models (`ForwardModel.sh`) and world-space sprites
+    (`Sprite.ps`) apply their own fog in the shader during the transparent pass; because bgfx uniforms are per draw,
+    every model and sprite draw receives the fog constants (all zero outside the transparent pass).
+  - Sphere colour grade: `SphereColorGrade.ps` is ported. DX11 applies `dest * multiply + add` in one draw with
+    dual-source blending; bgfx has no dual-source blending (and some mobile graphics APIs lack it), so the bgfx
+    version draws the same shader twice, a multiply draw and then an add draw (`edgeParams.y` selects the output).
+  - Ambient particles: `AmbientParticle.vs` / `.ps` are ported. The particles are still generated from the vertex
+    index without a vertex buffer (`gl_VertexID` with `bgfx::setVertexCount`).
 - **Instance buffers and user constant buffers work in bgfx mode.** The C++ side is unchanged
   (`RenderResources::CreateInstanceBuffer` / `UpdateInstanceBuffer` / `CreateUserConstantBuffer` /
   `UpdateUserConstantBuffer` / `DestroyBuffer`, `DrawCommand::instanceData` / `userConstantBuffer`); only the shader

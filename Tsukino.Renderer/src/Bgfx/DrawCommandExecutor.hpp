@@ -67,6 +67,12 @@ namespace Tsukino::Renderer {
             m_shadowPass = shadowPass;
         }
 
+        //! 半透明のモデルとスプライトへ送るフォグの定数の取得元を設定します。
+        //! @param  [in] fogPass フォグパス（このクラスより長生きすること。nullptr で送らない）
+        void SetFogPass(const FogPass* fogPass) noexcept {
+            m_fogPass = fogPass;
+        }
+
     private:
         //! DrawKind::Mesh のコマンドを描きます。
         //! @param  [in]     cmd   実行する描画コマンド
@@ -107,6 +113,7 @@ namespace Tsukino::Renderer {
         const DrawCommandQueue* m_drawQueue       = nullptr;    // スプライト・線の頂点の並び（借りている）
         const IBLBaker*         m_iblBaker        = nullptr;    // 環境光（借りている）
         const ShadowPass*       m_shadowPass      = nullptr;    // シャドウマップ（借りている）
+        const FogPass*          m_fogPass         = nullptr;    // フォワードで掛けるフォグの定数（借りている）
 
         UniformBlock<CBufferTransform> m_transformUniform;    // 物ごとの定数（u_transform。DX11 版の b1）
         CBufferMaterial                m_lastMaterial{};      // 最後に送ったマテリアルの定数（materialData の無いコマンドが引き継ぐ）

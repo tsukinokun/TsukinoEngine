@@ -97,6 +97,11 @@ namespace Tsukino::Renderer {
                                      shaders.shadowPS))
             Tsukino::Core::Log::Error("Renderer: Failed to create the shadow pass; shadows are not drawn.");
         m_commandExecutor->SetShadowPass(m_shadowPass.get());
+        m_commandExecutor->SetFogPass(&m_fogPass);
+
+        // 環境パーティクル。作れなくても起動は止めない（粒子が出ないだけ）
+        if(!m_ambientParticlePass.Initialize(*m_graphicsContext, m_resources, m_frameConstants, shaders.ambientParticleVS, shaders.ambientParticlePS))
+            Tsukino::Core::Log::Error("Renderer: Ambient particles are disabled because their resources could not be created.");
 
         //--------------------------------------------------------------------
         // フルスクリーン三角形・トーンマップ・ライティング。
@@ -116,6 +121,14 @@ namespace Tsukino::Renderer {
                                       shaders.iblSpecularPrefilterPS, shaders.iblBRDFLUTPS))
                 Tsukino::Core::Log::Warn("Renderer: IBL initialization failed. Ambient lighting will be disabled.");
 
+            // フォグ。作れなくても起動は止めない（霧が出ないだけ）
+            if(!m_fogPass.Initialize(*m_graphicsContext, m_resources, m_frameConstants, *m_fullscreenPass, shaders.fogPS))
+                Tsukino::Core::Log::Error("Renderer: Fog is disabled because its resources could not be created.");
+
+            // 球形の色調補正。作れなくても起動は止めない（補正が掛からないだけ）
+            if(!m_sphereColorGradePass.Initialize(*m_graphicsContext, m_resources, m_frameConstants, *m_fullscreenPass, shaders.sphereColorGradePS))
+                Tsukino::Core::Log::Error("Renderer: Sphere color grade is disabled because its resources could not be created.");
+
             // ブルーム。作れなくても起動は止めない（光が滲まないだけ）
             if(!m_bloomPass.Initialize(*m_graphicsContext, m_resources, *m_fullscreenPass, shaders.bloomPrefilterPS, shaders.bloomDownsamplePS,
                                        shaders.bloomUpsamplePS))
@@ -133,6 +146,9 @@ namespace Tsukino::Renderer {
         SetupView(BgfxView::Sky, m_graphicsContext->GetHdrColorFrameBuffer());
         SetupView(BgfxView::Lighting, m_graphicsContext->GetHdrColorFrameBuffer());
         SetupView(BgfxView::World, m_graphicsContext->GetHdrFrameBuffer());
+        SetupView(BgfxView::AmbientParticle, m_graphicsContext->GetHdrFrameBuffer());
+        SetupView(BgfxView::Fog, m_graphicsContext->GetHdrColorFrameBuffer());
+        SetupView(BgfxView::ColorGrade, m_graphicsContext->GetHdrColorFrameBuffer());
         SetupView(BgfxView::Transparent, m_graphicsContext->GetHdrFrameBuffer());
         SetupView(BgfxView::Tonemap, BGFX_INVALID_HANDLE);
         bgfx::setViewClear(BgfxView::GBuffer, BGFX_CLEAR_COLOR | BGFX_CLEAR_DEPTH, 0, 0.0f, 0);
@@ -193,19 +209,46 @@ namespace Tsukino::Renderer {
         m_lightingPass.Execute();
 
         //--------------------------------------------------------------------
-        // フォワードの 3D。World（深度を書く物）→ 半透明（深度の事前パス → 色）。
-        // フォグ・環境パーティクル・球形の色調補正（段階 1-4 d）はまだ無い
+        // フォワードの 3D。World（深度を書く物）を描く
         //--------------------------------------------------------------------
         for(const DrawCommand& cmd : commands) {
             if(cmd.pass == RenderPass::World)
                 m_commandExecutor->Execute(cmd, BgfxView::World, m_frameStats);
         }
+
+        //--------------------------------------------------------------------
+        // 環境パーティクル（HDR へ加算合成）。深度テストありなので世界の物体に隠れる。
+        // フォグの前に置くことで、粒子にもフォグが乗る
+        //--------------------------------------------------------------------
+        m_ambientParticlePass.Execute();
+
+        //--------------------------------------------------------------------
+        // フォグ（HDR へ直接 over 合成）。
+        // 不透明・空・環境パーティクルを描き終え、まだ半透明を描く前のここで掛ける。フォグは深度から
+        // 画素の距離を求めるので、半透明の深度の事前パスより後に掛けると、半透明のモデルが重なった画素の
+        // 奥の景色にモデルの距離でフォグが掛かってしまう
+        //--------------------------------------------------------------------
+        m_fogPass.Execute();
+
+        //--------------------------------------------------------------------
+        // 球形の色調補正（フォグの上から掛ける）。フォグと同じく深度から画素の位置を求めるので、
+        // 半透明の深度の事前パスより前に置く。霧に包まれた遠景まで同じ色合いに揃えるため、フォグの後に掛ける
+        //--------------------------------------------------------------------
+        m_sphereColorGradePass.Execute();
+
+        //--------------------------------------------------------------------
+        // 半透明（深度の事前パス → 色）。半透明のモデルとワールド空間のスプライトは、
+        // 色のパスの間だけ、自分の距離ぶんのフォグをシェーダーの中で掛ける
+        //--------------------------------------------------------------------
         for(const RenderPass pass : {RenderPass::TransparentDepth, RenderPass::Transparent}) {
+            if(pass == RenderPass::Transparent)
+                m_fogPass.BindForwardFog();
             for(const DrawCommand& cmd : commands) {
                 if(cmd.pass == pass)
                     m_commandExecutor->Execute(cmd, BgfxView::Transparent, m_frameStats);
             }
         }
+        m_fogPass.UnbindForwardFog();
 
         //--------------------------------------------------------------------
         // ブルーム（HDR の明るい所を滲ませて足し戻す）→ トーンマップ。

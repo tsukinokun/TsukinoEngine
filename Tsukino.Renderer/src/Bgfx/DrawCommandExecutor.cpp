@@ -11,6 +11,7 @@
 
 #include <Tsukino/Renderer/Material.hpp>
 #include <Tsukino/Renderer/MeshBuffer.hpp>
+#include <Tsukino/Renderer/Bgfx/FogPassGpu.hpp>
 #include <Tsukino/Renderer/Bgfx/FrameConstantsGpu.hpp>
 #include <Tsukino/Renderer/Bgfx/GraphicsContext.hpp>
 #include <Tsukino/Renderer/Bgfx/IBLBakerGpu.hpp>
@@ -225,6 +226,10 @@ namespace Tsukino::Renderer {
             m_iblBaker->GetGpu().Bind();
         if(m_shadowPass)
             m_shadowPass->BindForSampling();
+
+        // フォグの定数（半透明のパスの間だけ、モデルとスプライトのシェーダーの中でフォグを掛けさせる）
+        if(m_fogPass)
+            m_fogPass->GetGpu().ApplyToDraw();
 
         bgfx::setVertexBuffer(0, mesh.vertexBuffer);
         if(bgfx::isValid(mesh.indexBuffer))

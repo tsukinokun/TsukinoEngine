@@ -3,11 +3,12 @@ $input v_texcoord0, v_worldPos
 //--------------------------------------------------------------
 //! @file   Sprite.ps.sc
 //! @brief  スプライト用のピクセルシェーダー（Sprite.ps.hlsl の bgfx 版）
-//! @note   ワールド空間のスプライトに掛ける霧は、フォグパスを移すとき（段階 1-4 d）に足す。
-//!         それまでは霧を掛けない（画面のスプライトは HLSL 版でも霧を掛けないので、見た目は同じ）
+//! @note   ワールド空間のスプライトへは、自分の距離ぶんの霧をここで掛ける（カメラ位置は Scene.sh、霧の定数は Fog.sh）
 //--------------------------------------------------------------
 #include <bgfx_shader.sh>
+#include "Scene.sh"
 #include "Material.sh"
+#include "Fog.sh"
 
 SAMPLER2D(s_albedo, 0);    // テクスチャ（DX11 版の t0 / s0）
 
@@ -56,5 +57,20 @@ void main()
     vec2 textureUv = spriteUv.xy + v_texcoord0 * spriteUv.zw;
     vec4 color     = texture2D(s_albedo, textureUv) * baseColor;
     color.a *= FillCoverage(v_texcoord0);
+
+    //----------------------------------------------------------
+    // 霧。ワールド空間のスプライトは半透明のパス（フォグの後）で描かれ、その描画にだけ
+    // フォワード用のフォグ定数（distanceParams.w = 1）が届く（FogPass::BindForwardFog）。
+    // 深度を書かないので、フォグパスに任せると奥の景色の距離で霧が掛かってしまう。ここで自分の距離ぶんだけ掛ける。
+    // 半透明は霧の色へ寄せ、加算は光そのものを弱める（加算で霧の色を足すと白く浮くため）。
+    // 画面のスプライト（Overlay）では 0 が届き、何もしない
+    //----------------------------------------------------------
+    if(distanceParams.w > 0.5) {
+        vec4 fog = ComputeFog(v_worldPos, normalize(v_worldPos - cameraPos.xyz), false);
+        if(spriteFog.x > 0.5)
+            color.rgb *= 1.0 - fog.a;
+        else
+            color.rgb = mix(color.rgb, fog.rgb, fog.a);
+    }
     gl_FragColor = color;
 }

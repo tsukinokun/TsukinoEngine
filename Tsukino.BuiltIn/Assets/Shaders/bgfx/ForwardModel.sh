@@ -3,7 +3,7 @@
 //! @brief  モデルをフォワードで照らす処理（ForwardModel.hlsli の bgfx 版）
 //! @note   半透明のモデル（フェード中）と、UI の層のモデルが使う。
 //!         FORWARD_MODEL_NO_SHADOW を定義してから include すると、シャドウマップを使わない（影なし）。
-//!         霧（段階 1-4 d）はまだ無い
+//!         半透明のパスでは、そこへフォグも掛ける（Fog.sh）
 //--------------------------------------------------------------
 #ifndef TSUKINO_FORWARD_MODEL_SH
 #define TSUKINO_FORWARD_MODEL_SH
@@ -12,6 +12,7 @@
 #include "Material.sh"
 #include "PBR.sh"
 #include "IBL.sh"
+#include "Fog.sh"
 #include "Toon.sh"
 #include "TextureStages.sh"
 
@@ -59,6 +60,16 @@ vec4 ShadeForwardModel(vec3 worldPos, vec3 normal, vec2 uv)
 
     vec3 finalColor = ambient + directLight + emissive;
     finalColor += EvaluateEmissiveBoost(N, V);
+
+    //----------------------------------------------------------
+    // フォグ。半透明のパスの描画にだけ、フォワード用のフォグ定数（distanceParams.w = 1）が届く
+    // （FogPass::BindForwardFog）。不透明の絵にはフォグパスが先に掛け終わっているので、
+    // 半透明の物はここで自分の距離ぶんだけ霧に沈める。それ以外の描画では 0 が届き、何もしない
+    //----------------------------------------------------------
+    if(distanceParams.w > 0.5) {
+        vec4 fog   = ComputeFog(worldPos, normalize(worldPos - cameraPos.xyz), false);
+        finalColor = mix(finalColor, fog.rgb, fog.a);
+    }
 
     return vec4(finalColor, baseColor.a * albedoSample.a);
 }

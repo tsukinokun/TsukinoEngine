@@ -4,10 +4,7 @@
 //! @detail どれもまだ GPU の資源を持たず、設定を受け取るだけです。
 //!         DX11 版から1つずつ移すときに、パスごとのファイルへ分けます。
 //----------------------------------------------------------------------------
-#include <Tsukino/Renderer/AmbientParticlePass.hpp>
-#include <Tsukino/Renderer/FogPass.hpp>
 #include <Tsukino/Renderer/MotionBlurPass.hpp>
-#include <Tsukino/Renderer/SphereColorGradePass.hpp>
 #include <Tsukino/Renderer/Text/BakedFont.hpp>
 
 // 名前空間 : Tsukino::Renderer
@@ -16,19 +13,10 @@ namespace Tsukino::Renderer {
     //------------------------------------------------------------------------
     // 各パスの GPU の資源（bgfx 版はまだ空）と、作成・破棄
     //------------------------------------------------------------------------
-    struct AmbientParticlePass::Gpu {};
-    struct FogPass::Gpu {};
     struct MotionBlurPass::Gpu {};
-    struct SphereColorGradePass::Gpu {};
 
-    AmbientParticlePass::AmbientParticlePass() : m_gpu(std::make_unique<Gpu>()) {}
-    AmbientParticlePass::~AmbientParticlePass() = default;
-    FogPass::FogPass() : m_gpu(std::make_unique<Gpu>()) {}
-    FogPass::~FogPass() = default;
     MotionBlurPass::MotionBlurPass() : m_gpu(std::make_unique<Gpu>()) {}
     MotionBlurPass::~MotionBlurPass() = default;
-    SphereColorGradePass::SphereColorGradePass() : m_gpu(std::make_unique<Gpu>()) {}
-    SphereColorGradePass::~SphereColorGradePass() = default;
 
     //------------------------------------------------------------------------
     // ベイク済みフォント（bgfx 版はまだ読めないので、Create() は nullptr を返す）
