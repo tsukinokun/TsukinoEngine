@@ -410,13 +410,10 @@ carve-out for `Tsukino.Renderer` described under **API stability** in the README
 
 ### Changed
 
-- **bgfx is the default rendering backend.** Running premake without `--renderer` (and without the
-  `TSUKINO_RENDERER` environment variable) now builds the bgfx renderer; pass `--renderer=dx11` or set
-  `TSUKINO_RENDERER=dx11` for the Direct3D 11 renderer until it is removed.
-  - `GraphicsDeviceOptions::preference` works in bgfx mode. On Windows, `Auto` picks the high-performance adapter
-    through DXGI (as DX11 mode does) and passes its vendor / device ID to bgfx, falling back to the software rasterizer
-    (WARP) if no hardware device can be created; `ForceSoftware` starts with the software rasterizer. Other platforms
-    use the default adapter, and `ForceSoftware` logs a warning there.
+- **bgfx is the only rendering backend** (the Direct3D 11 renderer is removed; see Removed).
+  - `GraphicsDeviceOptions::preference` works with bgfx. On Windows, `Auto` picks the high-performance adapter
+    through DXGI and passes its vendor / device ID to bgfx, falling back to WARP if no hardware device can be created;
+    `ForceSoftware` starts on WARP. Other platforms use the default adapter, and `ForceSoftware` logs a warning there.
 - **Effekseer is created by the renderer, and `IPostWorldPass` no longer exposes the graphics API.**
   `Renderer::GetEffectRenderer()` returns the Effekseer renderer for the active backend (created on first use, owned by
   the renderer); `EffectSystem` takes its renderer from there instead of creating `EffekseerRendererDX11` itself.
@@ -730,6 +727,16 @@ carve-out for `Tsukino.Renderer` described under **API stability** in the README
   unused `Tsukino.BuiltIn/Assets/Fonts/Arial.font`. The file format and the tool were Windows-only. A `FontComponent`
   whose `fontHandle` points to anything other than a dynamic font now draws nothing; an invalid handle still falls back
   to the built-in default font.
+- **The Direct3D 11 renderer.** bgfx is now the only rendering backend; `Tsukino.Renderer/src/DX11`,
+  `internal/Tsukino/Renderer/DX11`, the 40 HLSL shaders in `Tsukino.BuiltIn/Assets/Shaders`, the
+  `EffekseerRendererDX11` project, the `--renderer` premake option and `TSUKINO_RENDERER` environment variable,
+  `tsukino_use_bgfx()` and the `TSUKINO_RENDERER_BGFX` define are gone. Nothing links `d3d11` or `d3dcompiler`
+  any more (`dxgi` stays for picking the adapter on Windows), and only `Tsukino.Audio` uses DirectXTK.
+  - HLSL is no longer compiled at run time: `ShaderImporter` (`D3DCompileFromFile`) is removed, `.hlsl` / `.shader`
+    are no longer shader extensions, and `ShaderLoader` reads only `<dir>/<format>/<name>.sc.bin`. Write shaders as
+    bgfx `.sc` files and compile them with `tsukino_shaders()`.
+  - `ShaderAsset` loses `entryPoint`, `profile` and `source` (they only served the HLSL path), and `ShaderStage`
+    keeps only `Unknown`, `Vertex` and `Pixel` (bgfx, Metal and OpenGL ES have no geometry, hull or domain stages).
 
 ## [1.0.0] — 2026-09-05
 

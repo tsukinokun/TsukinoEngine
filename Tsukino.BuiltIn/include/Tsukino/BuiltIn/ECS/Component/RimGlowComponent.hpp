@@ -12,8 +12,8 @@ namespace Tsukino::BuiltIn::ECS {
     //! @note ModelSystemがCBufferMaterialのrimColor / rimParamsへ書き、
     //!       シェーダーがマテリアル本来のエミッシブへ「加算」する。
     //!       上書きではないので、モデルが元々持つエミッシブは残る。
-    //!       加算するのは不透明のGBuffer.ps.hlslと半透明のModel.ps.hlslの
-    //!       両方で、どちらもMaterial.hlsliのEvaluateEmissiveBoost()を呼ぶ。
+    //!       加算するのは不透明のGBuffer.ps.scと半透明のModel.ps.scの
+    //!       両方で、どちらもMaterial.shのEvaluateEmissiveBoost()を呼ぶ。
     //!       ModelComponent::opacityでフェード中のエンティティも同じように光る。
     //!
     //!       持っている効果は2つ。輪郭が光るリムと、面全体を一律に持ち上げるglow。

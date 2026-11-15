@@ -2,8 +2,8 @@ $input v_texcoord0
 
 //--------------------------------------------------------------
 //! @file   Sky.ps.sc
-//! @brief  スカイ（大気散乱）のピクセルシェーダー（Sky.ps.hlsl の bgfx 版）
-//! @note   大気散乱の定数（DX11 版の b4。C++ の CBufferSky）は vec4 の配列 u_sky。
+//! @brief  スカイ（大気散乱）のピクセルシェーダー
+//! @note   大気散乱の定数（C++ の CBufferSky）は vec4 の配列 u_sky。
 //!         Scene.sh と同じく、メンバーは #define で配列の要素へ当てる
 //--------------------------------------------------------------
 #include <bgfx_shader.sh>

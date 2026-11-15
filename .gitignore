@@ -24,10 +24,6 @@ Release/
 *.dll
 *.exe
 
-# DirectX shader cache
-*.cso
-*.pso
-
 # Allow vendor executables
 !vendor/**/*.exe
 
@@ -58,7 +54,7 @@ Tools/HeaderCheck/generated/
 Tsukino.Sandbox/Assets/Prefabs/CaptureTest/
 Tsukino.Sandbox/Assets/Prefabs/EntityRefTest/
 
-# bgfx 版の組み込みシェーダーの変換結果（tsukino_shaders() がビルド時に、.sc と同じフォルダの形式ごとのフォルダへ作る）
+# 組み込みシェーダーの変換結果（tsukino_shaders() がビルド時に、.sc と同じフォルダの形式ごとのフォルダへ作る）
 # フォルダ名は bgfx.cmake の決まり（ShaderLoader::GetBinaryDirectoryName()）
 Tsukino.BuiltIn/Assets/Shaders/bgfx/**/dxbc/
 Tsukino.BuiltIn/Assets/Shaders/bgfx/**/dxil/

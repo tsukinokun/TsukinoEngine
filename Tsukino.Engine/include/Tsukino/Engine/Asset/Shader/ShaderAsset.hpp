@@ -16,7 +16,7 @@ namespace Tsukino::Asset {
 
     //--------------------------------------------------------------
     //! @class  ShaderAsset
-    //! @brief  HLSL シェーダアセット（CPU 側データ）
+    //! @brief  シェーダアセット（ビルド時に変換した bgfx のシェーダー。CPU 側データ）
     //--------------------------------------------------------------
     class ShaderAsset : public IAsset {
     public:
@@ -50,10 +50,7 @@ namespace Tsukino::Asset {
         void SetHandle(const AssetHandle& h) { m_handle = h; }
 
         Tsukino::Shader::ShaderStage shaderStage;    // シェーダーステージ
-        std::string                  entryPoint;     // エントリーポイント名
-        std::string                  profile;        // シェーダープロファイル（例: "vs_5_0","ps_5_0"）
-        std::string                  source;         // HLSL ソースコード
-        std::vector<u8>              binary;         // コンパイルされたバイナリデータ
+        std::vector<u8>              binary;         // 変換済みのバイナリデータ（bgfx のシェーダーの形式）
         std::string                  filePath;       // 元ファイルのパス
 
     private:

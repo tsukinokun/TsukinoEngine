@@ -23,13 +23,13 @@ namespace Tsukino::Renderer {
         //! これより小さい縮小段は作らない（2px を切ると 13 タップが同じテクセルを読むだけになる）
         constexpr u32 kMinMipSize = 2;
 
-        //! 読む側のサンプラー（DX11 版の LinearClamp）
+        //! 読む側のサンプラー（線形・端で止める）
         constexpr u32 kLinearClamp = BGFX_SAMPLER_U_CLAMP | BGFX_SAMPLER_V_CLAMP;
 
         //! 上書きで描くステート（深度テストなし・ブレンドなし）
         constexpr u64 kOpaqueState = BGFX_STATE_WRITE_RGB | BGFX_STATE_WRITE_A;
 
-        //! 足して描くステート（DX11 版の DirectXTK の Additive と同じ SrcAlpha / One）
+        //! 足して描くステート（SrcAlpha / One）
         constexpr u64 kAdditiveState = BGFX_STATE_WRITE_RGB | BGFX_STATE_WRITE_A
                                        | BGFX_STATE_BLEND_FUNC(BGFX_STATE_BLEND_SRC_ALPHA, BGFX_STATE_BLEND_ONE);
     }    // namespace

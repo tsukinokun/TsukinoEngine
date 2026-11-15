@@ -1,7 +1,7 @@
 //--------------------------------------------------------------
 //! @file   IBL.sh
-//! @brief  スカイ由来の環境光（IBL.hlsli の bgfx 版）
-//! @note   定数（DX11 版の b10。C++ の CBufferIBL）は u_ibl の1つの vec4。
+//! @brief  スカイ由来の環境光
+//! @note   定数（C++ の CBufferIBL）は u_ibl の1つの vec4。
 //!         x: スペキュラのミップ数, y: 強さ
 //--------------------------------------------------------------
 #ifndef TSUKINO_IBL_SH
@@ -19,7 +19,7 @@ SAMPLERCUBE(s_iblSpecular, STAGE_IBL_SPECULAR);        // 鏡面：ミップ = �
 SAMPLER2D(s_iblBrdfLut, STAGE_IBL_BRDF_LUT);           // split-sum の BRDF 積分（r: スケール, g: バイアス）
 
 //--------------------------------------------------------------
-//! @brief  環境光（拡散 + 鏡面）を求める（IBL.hlsli と同じ式）
+//! @brief  環境光（拡散 + 鏡面）を求める
 //--------------------------------------------------------------
 vec3 EvaluateIBL(vec3 N, vec3 V, vec3 albedo, float metal, float rough, float spec, float ao)
 {

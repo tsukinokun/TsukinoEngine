@@ -18,7 +18,7 @@ namespace Tsukino::Renderer {
     //------------------------------------------------------------------------
     struct SphereColorGradePass::Gpu {
         bgfx::ProgramHandle                   program      = BGFX_INVALID_HANDLE;    // フルスクリーン三角形 ＋ SphereColorGrade.ps
-        UniformBlock<CBufferSphereColorGrade> grade;                                 // パラメータ（u_sphereColorGrade。DX11 版の b8）
+        UniformBlock<CBufferSphereColorGrade> grade;                                 // パラメータ（u_sphereColorGrade）
         bgfx::UniformHandle                   depthSampler = BGFX_INVALID_HANDLE;    // s_gbufferDepth
 
         Gpu() = default;
@@ -34,7 +34,7 @@ namespace Tsukino::Renderer {
     //------------------------------------------------------------------------
     struct AmbientParticlePass::Gpu {
         bgfx::ProgramHandle                  program = BGFX_INVALID_HANDLE;    // AmbientParticle.vs ＋ AmbientParticle.ps
-        UniformBlock<CBufferAmbientParticle> particle;                         // パラメータ（u_ambientParticle。DX11 版の b9）
+        UniformBlock<CBufferAmbientParticle> particle;                         // パラメータ（u_ambientParticle）
 
         Gpu() = default;
         Gpu(const Gpu&)            = delete;

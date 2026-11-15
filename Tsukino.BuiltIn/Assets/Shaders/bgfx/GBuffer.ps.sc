@@ -2,8 +2,8 @@ $input v_worldPos, v_normal, v_texcoord0, v_curClip, v_prevClip
 
 //--------------------------------------------------------------
 //! @file   GBuffer.ps.sc
-//! @brief  不透明なモデルを G-Buffer へ書くピクセルシェーダー（GBuffer.ps.hlsl の bgfx 版）
-//! @note   書き先は6枚（DX11 版と同じ並び）。
+//! @brief  不透明なモデルを G-Buffer へ書くピクセルシェーダー
+//! @note   書き先は6枚。
 //!         0: albedo, 1: 法線 + ShadingModel, 2: metallic/roughness/specular/AO（トゥーンは境目/ぼかし/ハイライト/AO）,
 //!         3: emissive + リム, 4: ワールド座標 + トゥーンの暗い色, 5: 速度（UV / フレーム）
 //--------------------------------------------------------------
@@ -25,7 +25,7 @@ SAMPLER2D(s_aoMap, STAGE_AO_MAP);
 void main()
 {
     //----------------------------------------------------------
-    // 網点フェードと遮り抜き（GBuffer.ps.hlsl と同じ）
+    // 網点フェードと遮り抜き
     //----------------------------------------------------------
     float visible = motionFlags.y;
     if(motionFlags.z > 0.5 && occlusionCutout0.w > 0.5) {

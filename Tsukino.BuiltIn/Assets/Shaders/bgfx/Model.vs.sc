@@ -3,8 +3,8 @@ $output v_worldPos, v_normal, v_texcoord0, v_curClip, v_prevClip
 
 //--------------------------------------------------------------
 //! @file   Model.vs.sc
-//! @brief  スキニングするモデル用の頂点シェーダー（Model.vs.hlsl の bgfx 版）
-//! @note   ボーン行列（DX11 版の b3 / b6。C++ の CBufferSkinning）は vec4 の配列 u_bones / u_bonesPrev。
+//! @brief  スキニングするモデル用の頂点シェーダー
+//! @note   ボーン行列（C++ の CBufferSkinning）は vec4 の配列 u_bones / u_bonesPrev。
 //!         ボーン i の行列は [4i]〜[4i + 3] の4行。ボーンの番号とウェイトは2本目の頂点バッファから届く
 //--------------------------------------------------------------
 #include <bgfx_shader.sh>

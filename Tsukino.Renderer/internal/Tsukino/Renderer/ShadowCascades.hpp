@@ -2,7 +2,7 @@
 //! @file   ShadowCascades.hpp
 //! @brief  カスケードシャドウの投影の計算（Renderer の内部用）
 //! @detail カメラの視錐台を奥行きで切り、1切れごとのライト空間の ViewProjection 行列を求めます。
-//!         描画 API に依らない計算だけを集めてあり、DX11 版と bgfx 版の ShadowPass が共用します。
+//!         描画 API に依らない計算だけを集めてあり、ShadowPass が使います。
 //----------------------------------------------------------------------------
 #pragma once
 #include <Tsukino/Renderer/ConstantBuffer.hpp>

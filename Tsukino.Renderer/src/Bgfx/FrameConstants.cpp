@@ -1,8 +1,8 @@
 ﻿//----------------------------------------------------------------------------
 //! @file   FrameConstants.cpp
 //! @brief  bgfx 版の FrameConstants の実装
-//! @detail シーン定数の組み立て（時間・解像度・前フレームの ViewProjection などの差し込み）は
-//!         DX11 版と同じです。違うのは送り方で、Upload では値を覚えるだけにし、
+//! @detail シーン定数（時間・解像度・前フレームの ViewProjection など）を組み立てます。
+//!         Upload では値を覚えるだけにし、
 //!         描画を Submit する直前に FrameConstants::Gpu::Apply がユニフォームで送ります。
 //----------------------------------------------------------------------------
 #include <Tsukino/Renderer/FrameConstants.hpp>
@@ -40,7 +40,7 @@ namespace Tsukino::Renderer {
     }
 
     //------------------------------------------------------------------------
-    //! 3D のカメラを設定します（ライトの情報は上書きしない。DX11 版と同じ）。
+    //! 3D のカメラを設定します（ライトの情報は上書きしない）。
     //------------------------------------------------------------------------
     void FrameConstants::SetWorldCamera(const CBufferScene& data) {
         m_worldSceneData.view        = data.view;
@@ -71,7 +71,7 @@ namespace Tsukino::Renderer {
     }
 
     //------------------------------------------------------------------------
-    //! 経過時間を進めます（DX11 版と同じく、一定時間で折り返す）。
+    //! 経過時間を進めます（一定時間で折り返す）。
     //------------------------------------------------------------------------
     void FrameConstants::AdvanceTime(float deltaTime) {
         m_frameDeltaTime = deltaTime;

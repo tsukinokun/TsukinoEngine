@@ -94,7 +94,7 @@ namespace Tsukino::BuiltIn::ECS {
                 //-------------------------------------------------------------
                 if(camera.projectionType == CameraComponent::ProjectionType::Orthographic) {
                     // 画面に映る UI の座標の範囲（基準が無ければ 0〜screenW, 0〜screenH）。
-                    // Bottom に上端、Top に下端を渡して上下反転する（Sprite.vs.hlsl が Y を反転するので左上原点になる）
+                    // Bottom に上端、Top に下端を渡して上下反転する（Sprite.vs.sc が Y を反転するので左上原点になる）
                     const UICanvas       fit      = isUICamera ? canvas : UICanvas::Fit(camera.referenceResolution, hlslpp::float2(screenW, screenH));
                     const hlslpp::float2 topLeft  = fit.ToUI(hlslpp::float2(0.0f, 0.0f));
                     const hlslpp::float2 lowRight = fit.ToUI(hlslpp::float2(screenW, screenH));

@@ -1,9 +1,9 @@
 ﻿//----------------------------------------------------------------------------
 //! @file   DrawCommandExecutor.hpp
 //! @brief  bgfx 版の、描画コマンド1本を GPU へ流す処理の宣言
-//! @detail Tsukino.Renderer の内部専用ヘッダです。DX11 版と同じく、メッシュ・スプライトの並び
+//! @detail Tsukino.Renderer の内部専用ヘッダです。メッシュ・スプライトの並び
 //!         （文字など）・線の頂点の列（デバッグ線）を描きます。描く先は bgfx のビュー番号で受け取ります。
-//!         スプライトは DX11 版の DirectXTK SpriteBatch の代わりに、四角の頂点を CPU で作って描きます。
+//!         スプライトは四角の頂点を CPU で作って描きます。
 //----------------------------------------------------------------------------
 #pragma once
 #include <Tsukino/Renderer/Renderer.hpp>
@@ -122,15 +122,15 @@ namespace Tsukino::Renderer {
         const FogPass*          m_fogPass         = nullptr;    // フォワードで掛けるフォグの定数（借りている）
         bool                    m_motionBlurEnabled = false;    // このフレームで速度を出すか
 
-        UniformBlock<CBufferTransform> m_transformUniform;    // 物ごとの定数（u_transform。DX11 版の b1）
+        UniformBlock<CBufferTransform> m_transformUniform;    // 物ごとの定数（u_transform）
         CBufferMaterial                m_lastMaterial{};      // 最後に送ったマテリアルの定数（materialData の無いコマンドが引き継ぐ）
-        UniformBlock<CBufferMaterial>  m_materialUniform;     // マテリアルの定数（u_material。DX11 版の b2）
+        UniformBlock<CBufferMaterial>  m_materialUniform;     // マテリアルの定数（u_material）
 
         //! マテリアルのテクスチャ（t0〜t4）のサンプラーのユニフォーム。シェーダーの SAMPLER2D の名前と揃える
         std::array<bgfx::UniformHandle, 5> m_materialSamplers{};
 
-        bgfx::UniformHandle m_bonesUniform     = BGFX_INVALID_HANDLE;    // ボーン行列（u_bones。DX11 版の b3）
-        bgfx::UniformHandle m_bonesPrevUniform = BGFX_INVALID_HANDLE;    // 前フレームのボーン行列（u_bonesPrev。DX11 版の b6）
+        bgfx::UniformHandle m_bonesUniform     = BGFX_INVALID_HANDLE;    // ボーン行列（u_bones）
+        bgfx::UniformHandle m_bonesPrevUniform = BGFX_INVALID_HANDLE;    // 前フレームのボーン行列（u_bonesPrev）
 
         bgfx::UniformHandle m_spriteSampler = BGFX_INVALID_HANDLE;    // スプライトの並びのテクスチャ（s_texture）
         bgfx::ProgramHandle m_spriteProgram = BGFX_INVALID_HANDLE;    // スプライトの並びを描くプログラム

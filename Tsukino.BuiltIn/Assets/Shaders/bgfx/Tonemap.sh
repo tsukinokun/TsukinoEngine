@@ -1,6 +1,6 @@
 //--------------------------------------------------------------
 //! @file   Tonemap.sh
-//! @brief  HDR から画面の色へのトーンマップ（Tonemap.hlsli の bgfx 版）
+//! @brief  HDR から画面の色へのトーンマップ
 //--------------------------------------------------------------
 #ifndef TSUKINO_TONEMAP_SH
 #define TSUKINO_TONEMAP_SH

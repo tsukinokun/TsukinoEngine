@@ -2,9 +2,9 @@
 //! @file   SphereColorGradePass.cpp
 //! @brief  bgfx 版の球形の色調補正パスの実装
 //! @detail 深度からワールド座標を復元し、指定した球の内側だけ HDR バッファの色を補正します。
-//!         結果は「描かれている色 × 乗算色 ＋ 加算色」です。DX11 版は2つの色を同時に出すブレンド
-//!         （デュアルソース）で1回で掛けますが、使えない描画 API があるので、
-//!         bgfx 版は乗算と加算の2回に分けて描きます（HDR を読むためのコピーは、どちらも要りません）。
+//!         結果は「描かれている色 × 乗算色 ＋ 加算色」です。2つの色を同時に出すブレンド
+//!         （デュアルソース）が使えない描画 API があるので、
+//!         乗算と加算の2回に分けて描きます（HDR を読むためのコピーは、どちらも要りません）。
 //----------------------------------------------------------------------------
 #include <Tsukino/Renderer/SphereColorGradePass.hpp>
 #include <Tsukino/Renderer/Bgfx/FrameConstantsGpu.hpp>
@@ -80,7 +80,7 @@ namespace Tsukino::Renderer {
         if(!m_enabled || !m_fullscreenPass || !bgfx::isValid(m_gpu->program))
             return;
 
-        // 深度は画面と同じ大きさなので点で読む（DX11 版の PointClamp）
+        // 深度は画面と同じ大きさなので点で読む
         constexpr u32 kPointClamp = BGFX_SAMPLER_U_CLAMP | BGFX_SAMPLER_V_CLAMP | BGFX_SAMPLER_MIN_POINT | BGFX_SAMPLER_MAG_POINT
                                     | BGFX_SAMPLER_MIP_POINT;
 

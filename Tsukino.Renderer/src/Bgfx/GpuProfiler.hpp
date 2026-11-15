@@ -3,7 +3,7 @@
 //! @brief  bgfx 版のパス単位の GPU タイマーの宣言
 //! @detail Tsukino.Renderer の内部専用ヘッダです。bgfx のプロファイラ（BGFX_DEBUG_PROFILER）が
 //!         ビューごとに測った GPU 時間を、ビューの番号から GpuPass へ振り分けて足し合わせます。
-//!         bgfx は結果が届いたフレームの値を返すので、DX11 版と同じく数フレーム遅れた値になります。
+//!         bgfx は結果が届いたフレームの値を返すので、数フレーム遅れた値になります。
 //----------------------------------------------------------------------------
 #pragma once
 #include <Tsukino/Renderer/GpuTiming.hpp>

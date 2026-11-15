@@ -13,11 +13,7 @@ namespace Tsukino::Shader {
     //--------------------------------------------------------------
     enum class ShaderStage {
         Unknown = 0,
-        Vertex,      // VS
-        Pixel,       // PS
-        Compute,     // CS
-        Geometry,    // GS
-        Hull,        // HS
-        Domain       // DS
+        Vertex,    // 頂点シェーダー（<名前>.vs.sc）
+        Pixel,     // ピクセルシェーダー（<名前>.ps.sc）
     };
 }    // namespace Tsukino::Shader

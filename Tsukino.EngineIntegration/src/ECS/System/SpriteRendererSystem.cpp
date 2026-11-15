@@ -255,7 +255,7 @@ namespace Tsukino::BuiltIn::ECS {
             else
                 material.SetPipeline(isAdditive ? m_additivePipelineCache.get() : m_pipelineCache.get());
 
-            // tintColorをb2(CBufferMaterial::baseColor)経由でSprite.ps.hlslへ渡す
+            // tintColorをb2(CBufferMaterial::baseColor)経由でSprite.ps.scへ渡す
             Tsukino::Renderer::CBufferMaterial& materialData = ctx->renderer->GetDrawQueue().AllocMaterialData();
             materialData.baseColor                            = sprite.tintColor;
             materialData.baseColor.w                          = sprite.tintColor.w * groupAlpha;
@@ -263,7 +263,7 @@ namespace Tsukino::BuiltIn::ECS {
             materialData.spriteFog = hlslpp::float4(isAdditive ? 1.0f : 0.0f, 0.0f, 0.0f, 0.0f);
 
             //-------------------------------------------------------------
-            // 塗り（Sprite.ps.hlsl が塗らない部分の不透明度を 0 にする）。
+            // 塗り（Sprite.ps.sc が塗らない部分の不透明度を 0 にする）。
             // x: 塗り方（0=全体, 1=円形, 2=左右, 3=上下）、y: 割合。
             // 円形は z: 開始角（度で持っているのでラジアンへ）、w: 向き。左右・上下は z: 逆の端から塗るか
             //-------------------------------------------------------------

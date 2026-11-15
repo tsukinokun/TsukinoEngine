@@ -1,7 +1,7 @@
 ﻿//----------------------------------------------------------------------------
 //! @file   Renderer.cpp
-//! @brief  bgfx 版の Renderer の実装（作りかけ）
-//! @detail DX11 版と同じ順に、不透明なモデルを G-Buffer へ描き、照らして HDR バッファへ書き、
+//! @brief  bgfx 版の Renderer の実装
+//! @detail 不透明なモデルを G-Buffer へ描き、照らして HDR バッファへ書き、
 //!         フォワードの 3D（World・半透明）を重ね、トーンマップしてバックバッファへ写し、
 //!         エフェクト（Effekseer。IPostWorldPass）を重ね、最後に UI（Overlay）を描きます。
 //!         影はシャドウマップで落とし、背景にはスカイを描き、環境光はスカイから焼きます。
@@ -306,7 +306,7 @@ namespace Tsukino::Renderer {
 
         //--------------------------------------------------------------------
         // エフェクト（Overlay より前）。
-        // エフェクトは 3D 空間の演出なので UI より奥に描き、3D の深度で手前の物に隠れる（DX11 版と同じ）。
+        // エフェクトは 3D 空間の演出なので UI より奥に描き、3D の深度で手前の物に隠れる。
         // 描き終えた絵を、画面の大きさへ引き伸ばしてバックバッファへ写す
         //--------------------------------------------------------------------
         if(drawEffects) {
@@ -322,7 +322,7 @@ namespace Tsukino::Renderer {
         }
 
         //--------------------------------------------------------------------
-        // Overlay パス。DX11 版と同じく sortOrder の昇順（同じ値は積んだ順）に並べて描く
+        // Overlay パス。sortOrder の昇順（同じ値は積んだ順）に並べて描く
         //--------------------------------------------------------------------
         m_overlayOrder.clear();
         for(u32 index = 0; index < static_cast<u32>(commands.size()); ++index) {
@@ -371,14 +371,14 @@ namespace Tsukino::Renderer {
 
         bgfx::frame();
 
-        // 描画コマンドと、Submit されずに残ったデバッグ線は、DX11 版と同じくフレームの終わりで捨てる
+        // 描画コマンドと、Submit されずに残ったデバッグ線は、フレームの終わりで捨てる
         m_drawQueue.Clear();
         m_debugDraw.Clear();
 
-        // 次フレームの速度計算用に、今フレームの ViewProjection を退避する（DX11 版と同じ）
+        // 次フレームの速度計算用に、今フレームの ViewProjection を退避する
         m_frameConstants.EndFrame();
 
-        // 各パスの「このフレームだけ有効」の印を戻す（DX11 版の Render() の終わりと揃える）
+        // 各パスの「このフレームだけ有効」の印を戻す
         m_fogPass.EndFrame();
         m_sphereColorGradePass.EndFrame();
         m_motionBlurPass.EndFrame();

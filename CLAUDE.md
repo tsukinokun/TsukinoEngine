@@ -45,9 +45,8 @@
 補足として、ここでしか書いていない注意点:
 
 - 応答は日本語
-- シェーダーは小文字 snake_case、種類別接頭辞（`vs_` `ps_` `gs_` `cs_` `ms_` `as_`）、
-  拡張子 `.fx`、エントリは `main`。**新規シェーダーはプロジェクトに追加しない**
-  （追加するならビルドから除外する設定にする）
+- シェーダーは bgfx の `.sc`。名前は `<名前>.vs.sc`（頂点）/ `<名前>.ps.sc`（ピクセル）、
+  共通部分は `.sh`、入出力は同じフォルダの `varying.def.sc`。変換は `tsukino_shaders()` がビルド時に行う
 
 ## モジュール構成
 
@@ -58,7 +57,7 @@
 | `Tsukino.Core` | ECS基盤（Registry / Entity / EntityRef / EventBus / ISystem）、Window、InputSystem、Log、Path、数学 |
 | `Tsukino.GraphicsCommon` | API 非依存の描画データ（MeshData / ModelData / MaterialData） |
 | `Tsukino.Engine` | アセット基盤（AssetManager / Handle / Ref / 各種 Loader）、Scene、SystemManager、PrefabFactory |
-| `Tsukino.Renderer` | DX11 バックエンド。ゲームからは主に `Renderer.hpp` のみ |
+| `Tsukino.Renderer` | 描画（bgfx）。ゲームからは主に `Renderer.hpp` のみ |
 | `Tsukino.Physics` | 物理。Jolt Physics のラッパ（PhysicsWorld / BodyHandle / IPhysicsDebugDraw）と SpringBone。Jolt の型はこのモジュールの中に閉じている |
 | `Tsukino.BuiltIn` | 組み込みコンポーネント（データのみ）、BuiltInAssets、TransformUtility |
 | `Tsukino.EngineIntegration` | アプリ向け層。EngineIntegration / EngineContext / EngineAPI / GameSceneBase と組み込みシステム群 |
@@ -82,10 +81,8 @@ build.bat Release
 ソースファイルを新規追加したときだけ premake の再生成が要る（`open.bat`）。
 ドキュメント / マニフェスト生成は `generate-docs.bat`。
 
-描画の実装は premake で切り替える。既定は bgfx（`Tsukino.Renderer/src/Bgfx`）。
-DX11 版（`src/DX11`、消す予定）は `vendor\premake5.exe vs2022 --renderer=dx11` で生成し直す。
-ゲーム側の `build.bat` のように引数なしで premake を呼ぶ経路は、環境変数
-`TSUKINO_RENDERER=dx11` で切り替わる。Renderer の中だけで使うヘッダ（描画 API の型を含む）は
+描画は bgfx（`Tsukino.Renderer/src/Bgfx`）。シェーダーは bgfx の `.sc` で書き、
+`tsukino_shaders()`（`Tools/premake/tsukino.lua`）がビルド時に変換する。Renderer の中だけで使うヘッダ（描画 API の型を含む）は
 `Tsukino.Renderer/internal/` に置き、公開ヘッダ（`include/`）からは include しない。
 
 ## ログ

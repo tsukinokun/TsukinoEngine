@@ -11,7 +11,7 @@ TsukinoEngine 本体は MIT ライセンスで配布しています（`LICENSE` 
 | コンポーネント | 用途 | 取得方法 | 固定版 | ライセンス |
 |---|---|---|---|---|
 | [Effekseer](https://github.com/effekseer/Effekseer) | パーティクル / エフェクトのランタイム | submodule（`tsukinokun/Effekseer` のフォーク） | `ec5eb6f` | MIT |
-| [Effekseer — DirectX ランタイム](https://github.com/effekseer/Effekseer) | 同上（DirectX 版ランタイムに付属する追加ライセンス） | submodule | `ec5eb6f` | MIT |
+| [Effekseer — DirectX ランタイム](https://github.com/effekseer/Effekseer) | 同上（DirectX 版ランタイムに付属する追加ライセンス。標準シェーダーはその .fx から bgfx の .sc へ移した） | submodule | `ec5eb6f` | MIT |
 | [Jolt Physics](https://github.com/jrouwe/JoltPhysics) | 剛体シミュレーション（`Tsukino.Physics`） | submodule | `3c1f4ba (v5.5.0+)` | MIT |
 | [EnTT](https://github.com/skypjack/entt) | ECS の基盤（`Tsukino.Core` の Registry / View） | submodule | `e08302e (v3.16.0+)` | MIT |
 | [hlslpp](https://github.com/redorav/hlslpp) | SIMD 数学型（ベクトル / 行列 / クォータニオン） | submodule | `cd09302 (3.8+)` | MIT |
@@ -20,12 +20,12 @@ TsukinoEngine 本体は MIT ライセンスで配布しています（`LICENSE` 
 | [DirectX Tool Kit (XWBTool)](https://github.com/microsoft/DirectXTK) | 波形バンクの生成に使う実行ファイル | `Tools/` にバイナリを直接コミット | `2026.4.1.1` | MIT |
 | [Premake](https://github.com/premake/premake-core) | プロジェクトファイルの生成 | `vendor/premake5.exe` にバイナリを直接コミット | `5.0.0-beta8` | BSD 3-Clause |
 | [SDL](https://github.com/libsdl-org/SDL) | ウィンドウ・入力・IME・ゲームパッド・保存先などのプラットフォーム層 | submodule | `829a65d (3.4.18)` | zlib |
-| [bgfx](https://github.com/bkaradzic/bgfx) | 描画の翻訳レイヤー（`--renderer=bgfx` のとき） | submodule | `77b6e84` | BSD 2-Clause |
+| [bgfx](https://github.com/bkaradzic/bgfx) | 描画の翻訳レイヤー | submodule | `77b6e84` | BSD 2-Clause |
 | [bx](https://github.com/bkaradzic/bx) | bgfx の土台のライブラリ | submodule | `57548da` | BSD 2-Clause |
 | [bimg](https://github.com/bkaradzic/bimg) | bgfx の画像ライブラリ | submodule | `77bebb2` | BSD 2-Clause |
 | [bgfx.cmake](https://github.com/bkaradzic/bgfx.cmake) | bgfx・bx・bimg を CMake でビルドする手順（ビルドにだけ使い、配布物には入らない） | submodule | `be0ef0d (v1.168.9624-612)` | CC0 1.0 |
 
-`--renderer=bgfx` のときは、組み込みシェーダーを変換するために bgfx の `shaderc` もビルドします。
+組み込みシェーダーを変換するために bgfx の `shaderc` もビルドします。
 `shaderc` はビルドにだけ使う道具で、exe にも配布物にも入りません（入るのは変換したシェーダーだけで、
 その中に取り込まれる `bgfx_shader.sh` は上の bgfx の条文に含まれます）。`shaderc` が使う次のものは
 bgfx の submodule の中（`External/bgfx/3rdparty/`）にあり、条文もそこにあります。
@@ -51,7 +51,7 @@ NuGet がビルド時に `.build/packages/` へ復元します。
 | パッケージ | 上流 | 用途 | 版 | ライセンス |
 |---|---|---|---|---|
 | `AssimpCpp` | [Assimp](https://github.com/assimp/assimp) | FBX などのモデル読み込み | 5.0.1.6 | BSD 3-Clause |
-| `directxtk_desktop_win10` | [DirectXTK](https://github.com/microsoft/DirectXTK) | オーディオ、スプライト、フォント描画 | 2026.4.1.1 | MIT |
+| `directxtk_desktop_win10` | [DirectXTK](https://github.com/microsoft/DirectXTK) | オーディオ | 2026.4.1.1 | MIT |
 
 Release の出力には、Visual Studio に付属する Microsoft Visual C++ ランタイム（`vcruntime140.dll`・`vcruntime140_1.dll`・`msvcp140.dll`）を
 exe の隣へコピーします。これらは Visual Studio のライセンス条項に基づく再頒布可能コードで、上記のオープンソースライセンスの対象ではありません。

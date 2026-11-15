@@ -26,7 +26,7 @@ namespace Tsukino::Renderer {
         //! ベイクの描画ステート（深度テストなし・ブレンドなし）
         constexpr u64 kBakeState = BGFX_STATE_WRITE_RGB | BGFX_STATE_WRITE_A;
 
-        //! キューブを読むサンプラー（DX11 版の LinearClamp）
+        //! キューブを読むサンプラー（線形・端で止める）
         constexpr u32 kLinearClamp = BGFX_SAMPLER_U_CLAMP | BGFX_SAMPLER_V_CLAMP | BGFX_SAMPLER_W_CLAMP;
 
         //! ビューの描く先と大きさを設定します。

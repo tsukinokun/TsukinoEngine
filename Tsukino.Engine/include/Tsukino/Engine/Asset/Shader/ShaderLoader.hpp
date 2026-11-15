@@ -11,7 +11,7 @@
 namespace Tsukino::Asset {
     //--------------------------------------------------------------
     //! @class  ShaderLoader
-    //! @brief  コンパイル済みのシェーダー（.cso、bgfx 版は .sc.bin）を読み込んでShaderAssetを生成するローダー
+    //! @brief  ビルド時に変換したシェーダー（.sc.bin）を読み込んでShaderAssetを生成するローダー
     //--------------------------------------------------------------
     class ShaderLoader : public IAssetLoader {
     public:

@@ -3,7 +3,7 @@ $output v_worldPos, v_normal, v_texcoord0, v_curClip, v_prevClip
 
 //--------------------------------------------------------------
 //! @file   ModelStatic.vs.sc
-//! @brief  スキニングの無いモデル用の頂点シェーダー（ModelStatic.vs.hlsl の bgfx 版）
+//! @brief  スキニングの無いモデル用の頂点シェーダー
 //--------------------------------------------------------------
 #include <bgfx_shader.sh>
 #include "Scene.sh"
@@ -18,7 +18,7 @@ void main()
     v_curClip   = mul(worldPos, viewProj);
     gl_Position = v_curClip;
 
-    // HLSL 版の mul(normal, (float3x3)world)。行ベクトルなので、行列の左上 3×3 の行を重ねる
+    // 法線を world の回転で回す。行ベクトルなので、行列の左上 3×3 の行を重ねる
     mat4 w   = world;
     v_normal = normalize(mul(vec4(a_normal, 0.0), w).xyz);
     v_texcoord0 = a_texcoord0;

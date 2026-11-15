@@ -137,7 +137,7 @@ namespace Tsukino::Renderer {
             buffer.stride      = meshData.vertexStride;
 
             //----------------------------------------------------------------
-            // 外接球（DX11 版と同じ求め方）
+            // 外接球
             //----------------------------------------------------------------
             const float extentX = (meshData.bounds.max.x - meshData.bounds.min.x) * 0.5f;
             const float extentY = (meshData.bounds.max.y - meshData.bounds.min.y) * 0.5f;
@@ -166,7 +166,7 @@ namespace Tsukino::Renderer {
 
             //----------------------------------------------------------------
             // スキニングするメッシュは、ボーンの番号とウェイトを2本目の頂点バッファにする
-            // （DX11 版のスロット1と同じ。番号は float に直す）
+            // （番号は float に直す）
             //----------------------------------------------------------------
             if(meshData.format == Tsukino::GraphicsCommon::VertexFormat::Skinned && meshData.boneWeights.size() == meshData.vertexCount) {
                 const bgfx::Memory* bones = bgfx::alloc(static_cast<u32>(meshData.boneWeights.size() * sizeof(float) * 8));
@@ -372,11 +372,11 @@ namespace Tsukino::Renderer {
             return it->second;
 
         //--------------------------------------------------------------------
-        // bgfx 版へまだ移していないシェーダー（HLSL を DX11 用にコンパイルしたもの）は
-        // bgfx では使えない。作れなかったことも覚えておき、毎フレーム作り直したりログを出し続けたりしない
+        // bgfx のシェーダーの形式でないもの（shaderc を通していないファイル）は
+        // 使えない。作れなかったことも覚えておき、毎フレーム作り直したりログを出し続けたりしない
         //--------------------------------------------------------------------
         if(!IsBgfxShaderBinary(vs.binary) || !IsBgfxShaderBinary(ps.binary)) {
-            Tsukino::Core::Log::Warn("PipelineFactory: Not a bgfx shader binary (not ported to .sc yet); draws with it are skipped: "
+            Tsukino::Core::Log::Warn("PipelineFactory: Not a bgfx shader binary; draws with it are skipped: "
                                      + vs.filePath + " / " + ps.filePath);
             m_cache.emplace(key, nullptr);
             return nullptr;
@@ -395,7 +395,7 @@ namespace Tsukino::Renderer {
         }
 
         //--------------------------------------------------------------------
-        // 描画ステート。DX11 版の PipelineFactory と同じ組み合わせにする
+        // 描画ステート
         //--------------------------------------------------------------------
         u64 state = 0;
 
@@ -409,7 +409,7 @@ namespace Tsukino::Renderer {
                      | BGFX_STATE_BLEND_FUNC(BGFX_STATE_BLEND_SRC_ALPHA, BGFX_STATE_BLEND_INV_SRC_ALPHA);
             break;
         case BlendMode::Additive:
-            // アルファは書き換えない（DX11 版と同じ。SrcBlendAlpha=ZERO, DestBlendAlpha=ONE）
+            // アルファは書き換えない（描く先のアルファ × 1 ＋ 0）
             state |= BGFX_STATE_WRITE_RGB | BGFX_STATE_WRITE_A
                      | BGFX_STATE_BLEND_FUNC_SEPARATE(BGFX_STATE_BLEND_SRC_ALPHA, BGFX_STATE_BLEND_ONE, BGFX_STATE_BLEND_ZERO,
                                                       BGFX_STATE_BLEND_ONE);
@@ -426,7 +426,7 @@ namespace Tsukino::Renderer {
         case DepthMode::EqualReadOnly: state |= BGFX_STATE_DEPTH_TEST_EQUAL; break;
         }
 
-        // カリング。DX11 版は時計回りが表（FrontCounterClockwise = FALSE）
+        // カリング。時計回りが表
         switch(cullMode) {
         case CullMode::None:  break;
         case CullMode::Back:  state |= BGFX_STATE_CULL_CCW; break;
@@ -538,8 +538,8 @@ namespace Tsukino::Renderer {
 
         //--------------------------------------------------------------------
         // 1段だけの画像で generateMips が付いていれば、1×1 までの段を CPU で作って送る
-        // （DX11 版は GPU の GenerateMips で作る。bgfx には普通のテクスチャ向けのそれが無い）。
-        // 作れるのは成分ごとに 8bit の非圧縮の形式だけで、それ以外は DX11 版と同じく1段のまま
+        // （bgfx には普通のテクスチャのミップを GPU で作る機能が無い）。
+        // 作れるのは成分ごとに 8bit の非圧縮の形式だけで、それ以外は1段のまま
         //--------------------------------------------------------------------
         const u32           byteChannels = ByteChannelCount(textureAsset.format);
         const bool          generate     = textureAsset.generateMips && !hasMips && byteChannels > 0;
@@ -584,7 +584,7 @@ namespace Tsukino::Renderer {
             return m_gpu->white;
         m_gpu->textureCache.emplace(key, handle);
 
-        // DX11 版と同じく、送り終えたので CPU 側の画素は手放す
+        // 送り終えたので CPU 側の画素は手放す
         textureAsset.ReleasePixels();
         return handle;
     }
@@ -628,7 +628,7 @@ namespace Tsukino::Renderer {
             return handle;
 
         //--------------------------------------------------------------------
-        // 中身を渡されなかったときは 0 で埋める（DX11 版と同じ。初期データ無しの中身は決まっていない）
+        // 中身を渡されなかったときは 0 で埋める（初期データ無しの中身は決まっていない）
         //--------------------------------------------------------------------
         if(data) {
             UpdateTexture(handle, 0, 0, width, height, data, rowPitch);
@@ -722,7 +722,7 @@ namespace Tsukino::Renderer {
         if(byteSize == 0)
             return BufferHandle{};
 
-        // 定数は vec4 の配列で送るので、16 バイト境界へ切り上げる（DX11 版と同じ）
+        // 定数は vec4 の配列で送るので、16 バイト境界へ切り上げる
         const u32 alignedSize = (byteSize + 15u) & ~15u;
         if(alignedSize / 16 > Gpu::kMaxUserConstantVec4Count) {
             Tsukino::Core::Log::Error("RenderResources::CreateUserConstantBuffer - the size (" + std::to_string(byteSize) + " bytes) exceeds the limit of "

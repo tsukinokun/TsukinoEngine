@@ -15,8 +15,8 @@ namespace Tsukino::Asset {
     //! @brief 対応する拡張子か判定する関数
     //--------------------------------------------------------------
     bool ShaderLoader::CanLoad(const std::string& ext) const {
-        // .bin は bgfx 版の変換済みシェーダー（<名前>.vs.sc.bin）。拡張子は最後の1つしか渡されない
-        return ext == ".cso" || ext == ".bin";
+        // 変換済みのシェーダー（<名前>.vs.sc.bin）。拡張子は最後の1つしか渡されない
+        return ext == ".bin";
     }
 
     //--------------------------------------------------------------
@@ -38,29 +38,6 @@ namespace Tsukino::Asset {
         // ステージ判定
         asset->shaderStage = DetectStage(path);
 
-        // プロファイル設定（ディスパッチテーブル）
-        using Stage = Tsukino::Shader::ShaderStage;
-
-        // ステージに対応するシェーダープロファイルを定義
-        static const std::unordered_map<Stage, std::string> profileTable = {
-            {Stage::Vertex,   "vs_5_0"},
-            {Stage::Pixel,    "ps_5_0"},
-            {Stage::Compute,  "cs_5_0"},
-            {Stage::Geometry, "gs_5_0"},
-            {Stage::Hull,     "hs_5_0"},
-            {Stage::Domain,   "ds_5_0"},
-        };
-
-        // ステージに対応するプロファイルを設定（Unknown の場合は空文字列）
-        if(auto it = profileTable.find(asset->shaderStage); it != profileTable.end()) {
-            asset->profile = it->second;
-        } else {
-            asset->profile = "";    // Unknown
-        }
-
-        // エントリーポイントは固定（.cso はコンパイル済みなので本来不要）
-        asset->entryPoint = "Main";
-
         // バイナリ読み込み
         asset->binary = std::vector<u8>(std::istreambuf_iterator<char>(file), std::istreambuf_iterator<char>());
 
@@ -75,14 +52,7 @@ namespace Tsukino::Asset {
         using Stage = Tsukino::Shader::ShaderStage;
 
         static const std::unordered_map<std::string, Stage> table = {
-            {".vs.cso", Stage::Vertex  },
-            {".ps.cso", Stage::Pixel   },
-            {".cs.cso", Stage::Compute },
-            {".gs.cso", Stage::Geometry},
-            {".hs.cso", Stage::Hull    },
-            {".ds.cso", Stage::Domain  },
-
-            // bgfx 版のシェーダー（tsukino_shaders() が .sc から作る）
+            // tsukino_shaders() が .sc から作る
             {".vs.sc.bin", Stage::Vertex},
             {".ps.sc.bin", Stage::Pixel },
         };

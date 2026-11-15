@@ -114,11 +114,11 @@ namespace Tsukino::Renderer {
         //! @param  [in] face キューブの面（0〜5：+X,-X,+Y,-Y,+Z,-Z）
         //! @return view/projection/viewProj/invViewProj/cameraPos を差し替えたシーン定数
         //!         （lightDir/lightColor/timeParams 等はワールドのシーン定数の値を引き継ぐ。
-        //!          Sky.ps.hlsl が lightColor を太陽の色として読むため）
+        //!          Sky.ps.sc が lightColor を太陽の色として読むため）
         [[nodiscard]]
         CBufferScene BuildCubeFaceSceneData(u32 face) const;
 
-        //! スカイを6面のキューブマップへ焼きます（Sky.ps.hlsl を面ごとに視点だけ差し替えて使います）。
+        //! スカイを6面のキューブマップへ焼きます（Sky.ps.sc を面ごとに視点だけ差し替えて使います）。
         void ExecuteCapturePass();
 
         //! 拡散IBL用の irradiance を畳み込みます（面ごとに1回）。

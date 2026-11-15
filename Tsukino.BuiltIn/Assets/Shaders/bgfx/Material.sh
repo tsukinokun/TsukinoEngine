@@ -1,6 +1,6 @@
 //--------------------------------------------------------------
 //! @file   Material.sh
-//! @brief  マテリアルの定数（DX11 版の b2。C++ の CBufferMaterial）の bgfx 版
+//! @brief  マテリアルの定数（C++ の CBufferMaterial）の bgfx 版
 //! @note   Scene.sh と同じく、vec4 の配列 u_material を #define で名前に当てる。
 //!         float1つのメンバーは、入っている vec4 の成分で読む。
 //--------------------------------------------------------------
@@ -26,7 +26,7 @@ uniform vec4 u_material[TSUKINO_MATERIAL_VEC4_COUNT];
 #define spriteFog      u_material[9]
 
 //--------------------------------------------------------------
-//! @brief  ふち（リム）の発光を求める（Material.hlsli と同じ）
+//! @brief  ふち（リム）の発光を求める
 //! @param  N [in] 法線
 //! @param  V [in] 視線（画素からカメラへ）
 //! @return 足す発光の色

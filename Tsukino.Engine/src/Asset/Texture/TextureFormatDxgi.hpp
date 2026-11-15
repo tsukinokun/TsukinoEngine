@@ -2,7 +2,6 @@
 //! @file   TextureFormatDxgi.hpp
 //! @brief  TextureFormat と DXGI_FORMAT の相互変換（Engine の内部用）
 //! @detail DirectXTex で DDS を読み書きするインポーターとローダーが使います。
-//!         Renderer の DX11 版にも同じ向きの変換があり、値の対応はそちらと揃えています。
 //----------------------------------------------------------------------------
 #pragma once
 #include <Tsukino/GraphicsCommon/Texture/TextureFormat.hpp>

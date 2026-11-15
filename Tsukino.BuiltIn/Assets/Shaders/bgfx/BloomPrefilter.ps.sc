@@ -2,7 +2,7 @@ $input v_texcoord0
 
 //--------------------------------------------------------------
 //! @file   BloomPrefilter.ps.sc
-//! @brief  ブルームの明部抽出（シーン → 1/2 の段。BloomPrefilter.ps.hlsl の bgfx 版）
+//! @brief  ブルームの明部抽出（シーン → 1/2 の段）
 //--------------------------------------------------------------
 #include <bgfx_shader.sh>
 #include "Bloom.sh"

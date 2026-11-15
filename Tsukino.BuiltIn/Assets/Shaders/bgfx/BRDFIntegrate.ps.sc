@@ -2,7 +2,7 @@ $input v_texcoord0
 
 //--------------------------------------------------------------
 //! @file   BRDFIntegrate.ps.sc
-//! @brief  IBL ベイク：split-sum 近似の BRDF 積分 LUT 生成（BRDFIntegrate.ps.hlsl の bgfx 版）
+//! @brief  IBL ベイク：split-sum 近似の BRDF 積分 LUT 生成
 //! @note   頂点シェーダーは Tonemap.vs を共用するフルスクリーン三角形。
 //!         スカイに依存しないので、起動時に一度だけ描けばよい。
 //!         入力 uv.x = NdotV、uv.y = roughness として、出力 rg = (スケール A, バイアス B) を書く

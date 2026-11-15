@@ -109,7 +109,7 @@ namespace Tsukino::Renderer {
         //! @param  [in] depthMargin     手前とみなす余白（targetDistance - depthMargin より手前を抜く）
         //! @param  [in] centerVisibility 円の中心で見えている割合（0で全部抜く、1で抜かない）
         //! @param  [in] edgeSoftStart   縁へ向かって元へ戻り始める位置（半径に対する割合。そこから縁まで滑らかに戻す）
-        //! @note   抜かれるのはDrawCommand::occlusionCutoutが立っている物だけ（GBuffer.ps.hlsl）。影は抜かない。
+        //! @note   抜かれるのはDrawCommand::occlusionCutoutが立っている物だけ（GBuffer.ps.sc）。影は抜かない。
         //!         毎フレームEndFrame()で無効へ戻るので、使うフレームでは毎回呼ぶこと
         //!         （呼ばないシーンへ切り替えたときに抜きっぱなしで残らない）
         void SetOcclusionCutout(float centerX, float centerY, float radius, float targetDistance, float depthMargin, float centerVisibility,

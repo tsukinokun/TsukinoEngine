@@ -3,7 +3,7 @@ $output v_color0
 
 //--------------------------------------------------------------
 //! @file   DebugLine.vs.sc
-//! @brief  線（DrawKind::Lines）用の頂点シェーダー（DebugLine.vs.hlsl の bgfx 版）
+//! @brief  線（DrawKind::Lines）用の頂点シェーダー
 //--------------------------------------------------------------
 #include <bgfx_shader.sh>
 #include "Scene.sh"

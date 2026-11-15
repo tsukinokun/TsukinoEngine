@@ -2,7 +2,6 @@
 //! @file   FrameConstantsGpu.hpp
 //! @brief  bgfx 版の FrameConstants の中身（Renderer の内部用）
 //! @detail シーン定数（CBufferScene）を送るユニフォームと、今送るべき値を持ちます。
-//!         DX11 版は Upload で定数バッファを書き換えて張っておけば済みましたが、
 //!         bgfx のユニフォームは描画1回ごとの値なので、Upload では値を覚えるだけにして、
 //!         描画コマンドを Submit する直前に Apply で送ります。
 //----------------------------------------------------------------------------

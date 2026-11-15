@@ -2,11 +2,10 @@ $input v_texcoord0
 
 //--------------------------------------------------------------
 //! @file   SphereColorGrade.ps.sc
-//! @brief  球形の色調補正パス用のピクセルシェーダー（SphereColorGrade.ps.hlsl の bgfx 版）
+//! @brief  球形の色調補正パス用のピクセルシェーダー
 //! @note   頂点シェーダーは Tonemap.vs を共用するフルスクリーン三角形。
 //!         HDR バッファは読まず、深度だけを読む。結果は「描かれている色 × 乗算色 ＋ 加算色」。
-//!         HLSL 版は2つの色を同時に出すブレンド（デュアルソース）で1回で掛けていたが、
-//!         それが使えない描画 API があるので、bgfx 版は同じシェーダーを2回描く
+//!         2つの色を同時に出すブレンド（デュアルソース）が使えない描画 API があるので、同じシェーダーを2回描く
 //!         （1回目は乗算色を出して掛け、2回目は加算色を出して足す。gradeEdgeParams.y で切り替える）。
 //!         球の外側は (加算 0, 乗算 1) なので何も変わらない
 //--------------------------------------------------------------
@@ -14,7 +13,7 @@ $input v_texcoord0
 #include "Scene.sh"
 #include "TextureStages.sh"
 
-// 色調補正のパラメータ（DX11 版の b8。C++ の CBufferSphereColorGrade）
+// 色調補正のパラメータ（C++ の CBufferSphereColorGrade）
 #define TSUKINO_SPHERE_COLOR_GRADE_VEC4_COUNT 5    // sizeof(CBufferSphereColorGrade) / 16
 
 uniform vec4 u_sphereColorGrade[TSUKINO_SPHERE_COLOR_GRADE_VEC4_COUNT];

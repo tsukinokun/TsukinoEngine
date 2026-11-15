@@ -180,9 +180,7 @@
 - **Tsukino::Asset::ScopedAssetRefResolver** — `Tsukino.Engine/include/Tsukino/Engine/Asset/AssetRef.hpp`
   - ScopedAssetRefResolver(), ~ScopedAssetRefResolver(), ScopedAssetRefResolver(), operator=(), Current()
 - **Tsukino::Asset::ShaderAsset** — `Tsukino.Engine/include/Tsukino/Engine/Asset/Shader/ShaderAsset.hpp`
-  - shaderStage, entryPoint, profile, source, binary, filePath, ShaderAsset(), GetHandle(), GetType(), SetHandle()
-- **Tsukino::Asset::ShaderImporter** — `Tsukino.Engine/include/Tsukino/Engine/Asset/Shader/ShaderImporter.hpp`
-  - Import(), CollectDependencies()
+  - shaderStage, binary, filePath, ShaderAsset(), GetHandle(), GetType(), SetHandle()
 - **Tsukino::Asset::ShaderLoader** — `Tsukino.Engine/include/Tsukino/Engine/Asset/Shader/ShaderLoader.hpp`
   - ShaderLoader(), CanLoad(), Load(), DetectStage(), ToBinaryPath(), GetBinaryDirectoryName()
 - **Tsukino::Asset::TextureAsset** — `Tsukino.Engine/include/Tsukino/Engine/Asset/Texture/TextureAsset.hpp`

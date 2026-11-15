@@ -1,5 +1,5 @@
 #pragma once
-// windows.h の min/max マクロを避けるため、DX11 / Effekseer より先に通す
+// windows.h の min/max マクロを避けるため、Effekseer より先に通す
 #include <Tsukino/Core/WindowsLean.hpp>
 #include <Effekseer.h>
 #include <Tsukino/Core/Path.hpp>

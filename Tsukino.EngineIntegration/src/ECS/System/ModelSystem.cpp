@@ -402,7 +402,7 @@ namespace Tsukino::BuiltIn::ECS {
                     Tsukino::Renderer::BlendMode blendMode = Tsukino::Renderer::BlendMode::Opaque;
 
                     // opacityフェード中は半透明フォワードへ切り替える。
-                    // Model.ps.hlslはt0（アルベド）しかサンプルしないため、フェード中だけ
+                    // Model.ps.scはt0（アルベド）しかサンプルしないため、フェード中だけ
                     // 法線/MR/エミッシブ/AOマップは効かなくなる
                     if(isFading) {
                         psHandle  = ctx->builtinAssets->shaders.modelPS;

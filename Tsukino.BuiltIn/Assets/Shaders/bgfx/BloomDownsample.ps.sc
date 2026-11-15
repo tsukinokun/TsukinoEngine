@@ -2,7 +2,7 @@ $input v_texcoord0
 
 //--------------------------------------------------------------
 //! @file   BloomDownsample.ps.sc
-//! @brief  ブルームの縮小（1つ前の段 → 半分の段。BloomDownsample.ps.hlsl の bgfx 版）
+//! @brief  ブルームの縮小（1つ前の段 → 半分の段）
 //--------------------------------------------------------------
 #include <bgfx_shader.sh>
 #include "Bloom.sh"

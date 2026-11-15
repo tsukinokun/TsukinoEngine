@@ -41,7 +41,7 @@ namespace Tsukino::Renderer {
         bgfx::UniformHandle irradianceSampler = BGFX_INVALID_HANDLE;    // s_iblIrradiance
         bgfx::UniformHandle specularSampler   = BGFX_INVALID_HANDLE;    // s_iblSpecular
         bgfx::UniformHandle brdfLutSampler    = BGFX_INVALID_HANDLE;    // s_iblBrdfLut
-        bgfx::UniformHandle bakeUniform       = BGFX_INVALID_HANDLE;    // u_iblBake（x: ラフネス, y: サンプル数。DX11 版の b11）
+        bgfx::UniformHandle bakeUniform       = BGFX_INVALID_HANDLE;    // u_iblBake（x: ラフネス, y: サンプル数）
         bgfx::UniformHandle captureSampler    = BGFX_INVALID_HANDLE;    // s_iblCaptureSource
 
         float specularMipCount = 1.0f;    // スペキュラのキューブのミップ数

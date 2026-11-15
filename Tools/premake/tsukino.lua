@@ -30,36 +30,6 @@ local TSUKINO_ROOT = path.getabsolute(path.join(path.getdirectory(_SCRIPT), "../
 _TSUKINO_ENGINE_ROOT = TSUKINO_ROOT
 
 ----------------------------------------
--- 描画の実装の切り替え（premake5 vs2022 --renderer=dx11）。
---   bgfx : bgfx 版（既定。Windows では bgfx の Direct3D 11 を使う）
---   dx11 : 今までの Direct3D 11 版（消す予定）
--- 公開ヘッダはどちらでも同じ。切り替えると Tsukino.Renderer のソースと、
--- tsukino_link() がリンクするライブラリが変わる。
--- ゲーム側の build.bat のように premake を引数なしで呼ぶ経路のために、
--- --renderer が無いときは環境変数 TSUKINO_RENDERER も見る（set TSUKINO_RENDERER=dx11）。
--- この lua はエンジンとゲームの両方から読まれるので、二重に登録しない
-----------------------------------------
-if not premake.option.get("renderer") then
-    newoption {
-        trigger     = "renderer",
-        value       = "API",
-        description = "Rendering backend of Tsukino.Renderer (default: bgfx, or the TSUKINO_RENDERER environment variable)",
-        allowed     = {
-            { "bgfx", "bgfx (default)" },
-            { "dx11", "Direct3D 11 (to be removed)" },
-        },
-    }
-end
-
-----------------------------------------
--- 描画の実装に bgfx を選んでいるかを返す。
-----------------------------------------
-function tsukino_use_bgfx()
-    local renderer = _OPTIONS["renderer"] or os.getenv("TSUKINO_RENDERER") or "bgfx"
-    return renderer == "bgfx"
-end
-
-----------------------------------------
 -- workspace 直下で呼ぶ。構成ごとの共通設定をまとめて入れる。
 --
 -- ここをゲーム側へ書き写すと、JPH_DEBUG_RENDERER や NDEBUG が
@@ -68,7 +38,7 @@ end
 -- アクセスに乗ったまま製品ビルドが作られる。
 ----------------------------------------
 function tsukino_workspace_defaults()
-    architecture "x64"                      -- DX11バックエンドはx64のみ
+    architecture "x64"
     configurations { "Debug", "Release" }   -- 以下のfilterがこの名前を前提にしている
     multiprocessorcompile "On"
     exceptionhandling "On"
@@ -105,12 +75,6 @@ function tsukino_workspace_defaults()
     filter "action:vs*"
         buildoptions { "/utf-8" }
     filter {}
-
-    -- bgfx 版のときは、どのプロジェクトからも分かるように印を付ける
-    -- （組み込みシェーダーを .sc.bin から読む BuiltInShaders などが見る）
-    if tsukino_use_bgfx() then
-        defines { "TSUKINO_RENDERER_BGFX" }
-    end
 end
 
 ----------------------------------------
@@ -154,8 +118,7 @@ function tsukino_link()
         "Effekseer",
         "EffekseerRendererCommon",
 
-        "d3d11",
-        "dxgi",
+        "dxgi",      -- 使う GPU を選ぶ（Tsukino.Renderer の GraphicsContext）
         "dwrite",
         "imm32",
         "dwmapi",    -- Window の ClickThrough（DwmExtendFrameIntoClientArea）
@@ -175,17 +138,9 @@ function tsukino_link()
 
     libdirs { "%{wks.location}/SDL3/build/%{cfg.buildcfg}" }
 
-    -- bgfx 版のときは、bgfx とその土台（bimg・bx）もリンクする。
-    -- bgfx のヘッダは Tsukino.Renderer の中だけで使うので、includedirs は足さない。
-    -- DX11 版のときは、Effekseer の DX11 版と、それが実行時にシェーダーを組み立てるための d3dcompiler をリンクする
-    -- （bgfx 版のエフェクトは Tsukino.Renderer が描くので、どちらも使わない）
-    if tsukino_use_bgfx() then
-        links { "bgfx", "bimg_decode", "bimg", "bx" }
-        libdirs { "%{wks.location}/bgfx/build/%{cfg.buildcfg}" }
-    else
-        includedirs { root .. "/External/Effekseer/Dev/Cpp/EffekseerRendererDX11" }
-        links { "EffekseerRendererDX11", "d3dcompiler" }
-    end
+    -- bgfx とその土台（bimg・bx）。bgfx のヘッダは Tsukino.Renderer の中だけで使うので、includedirs は足さない
+    links { "bgfx", "bimg_decode", "bimg", "bx" }
+    libdirs { "%{wks.location}/bgfx/build/%{cfg.buildcfg}" }
 
     nuget {
         "directxtk_desktop_win10:2026.4.1.1",
@@ -300,7 +255,7 @@ function tsukino_bgfx_build_commands()
 end
 
 ----------------------------------------
--- project 直下で呼ぶ（bgfx 版のときだけ働き、DX11 版では何もしない）。
+-- project 直下で呼ぶ。
 -- dir にある bgfx のシェーダー（*.vs.sc = 頂点、*.ps.sc = ピクセル）を、ビルドの前に
 -- bgfx の形式へ変換する。エンジンの組み込みシェーダーも、ゲームのシェーダーもこれを使う。
 --
@@ -322,10 +277,6 @@ end
 -- 中で filter を使うので、filter の外（project の直下）で呼ぶこと。
 ----------------------------------------
 function tsukino_shaders(dir)
-    if not tsukino_use_bgfx() then
-        return
-    end
-
     local rel    = path.translate(path.getrelative(_MAIN_SCRIPT_DIR, path.getabsolute(dir)), "\\")
     local engine = path.translate(path.getrelative(_MAIN_SCRIPT_DIR, _TSUKINO_ENGINE_ROOT), "\\")
     local build  = '"$(SolutionDir)shaders\\' .. rel:gsub("[\\/:%.]", "_") .. '"'

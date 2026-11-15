@@ -2,7 +2,7 @@ $input v_texcoord0, v_worldPos
 
 //--------------------------------------------------------------
 //! @file   Sprite.ps.sc
-//! @brief  スプライト用のピクセルシェーダー（Sprite.ps.hlsl の bgfx 版）
+//! @brief  スプライト用のピクセルシェーダー
 //! @note   ワールド空間のスプライトへは、自分の距離ぶんの霧をここで掛ける（カメラ位置は Scene.sh、霧の定数は Fog.sh）
 //--------------------------------------------------------------
 #include <bgfx_shader.sh>
@@ -10,7 +10,7 @@ $input v_texcoord0, v_worldPos
 #include "Material.sh"
 #include "Fog.sh"
 
-SAMPLER2D(s_albedo, 0);    // テクスチャ（DX11 版の t0 / s0）
+SAMPLER2D(s_albedo, 0);    // テクスチャ
 
 //--------------------------------------------------------------
 //! @brief  左右・上下の塗りで、このピクセルを塗る割合を求める

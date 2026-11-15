@@ -192,7 +192,7 @@ MessageBoxA(nullptr, "Failed to load shader.", "Error", MB_OK);
 - アセットは**プロジェクトルート配下**の``Assets/``に配置する
 - 実行時は``bin/<Config>/``からの``相対パス``でアクセスすることを前提とする。
 ```cpp
-Tsukino::Core::Path         path("Assets/Shaders/test.hlsl");
+Tsukino::Core::Path         path("Assets/Shaders/test.ps.sc");
 ```
 - ビルドスクリプト(``Premake``)で
     - ``Assets/``を``bin/<Config>/``にコピーするルールを定義する

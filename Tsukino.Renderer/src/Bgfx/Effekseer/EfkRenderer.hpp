@@ -5,7 +5,7 @@
 //!         ModelRendererBase）が作る頂点と定数のまま、bgfx の描画として出します。
 //!         作りは Effekseer の DX11 版（EffekseerRendererDX11 の RendererImplemented）と同じで、
 //!         共通部分のテンプレートが呼ぶ関数（BeginShader・SetTextures・DrawSprites など）をそろえています。
-//!         DX11 版と違うところ:
+//!         Effekseer の DX11 版と違うところ:
 //!         - bgfx のユニフォームと描画ステートは描画ごとなので、描く瞬間（Draw*）にまとめて渡す
 //!         - 描く先は Renderer が決める bgfx のビュー（SetView）。ビューの描く先と深度も Renderer が用意する
 //!         - シェーダーはビルド時に変換したもの（Tsukino.BuiltIn/Assets/Shaders/bgfx/Effekseer）

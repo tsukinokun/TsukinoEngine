@@ -2,7 +2,7 @@ $output v_texcoord0, v_color0
 
 //--------------------------------------------------------------
 //! @file   AmbientParticle.vs.sc
-//! @brief  環境パーティクル用の頂点シェーダー（AmbientParticle.vs.hlsl の bgfx 版）
+//! @brief  環境パーティクル用の頂点シェーダー
 //! @note   頂点バッファもインデックスバッファも持たず、頂点番号（gl_VertexID）だけから
 //!         粒子1粒 ＝ 6頂点（三角形2枚のビルボード）を作る。
 //!         位置・大きさ・輝度・速さはすべて粒子番号のハッシュから決まるので、
@@ -14,7 +14,7 @@ $output v_texcoord0, v_color0
 #include <bgfx_shader.sh>
 #include "Scene.sh"
 
-// 環境パーティクルの定数（DX11 版の b9。C++ の CBufferAmbientParticle）
+// 環境パーティクルの定数（C++ の CBufferAmbientParticle）
 #define TSUKINO_AMBIENT_PARTICLE_VEC4_COUNT 6    // sizeof(CBufferAmbientParticle) / 16
 
 uniform vec4 u_ambientParticle[TSUKINO_AMBIENT_PARTICLE_VEC4_COUNT];

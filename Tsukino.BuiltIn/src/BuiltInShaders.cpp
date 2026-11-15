@@ -22,17 +22,12 @@ namespace Tsukino::BuiltIn {
         //! @param  [in] root         エンジンのアセットのルート
         //! @param  [in] name         シェーダーの名前（"Sprite.vs" のように、拡張子を除いたファイル名）
         //! @return シェーダーアセットのハンドル
-        //! @note   bgfx 版は Shaders/bgfx/<name>.sc を読む。ゲームのシェーダーと同じ経路で、
-        //!         ビルド時に変換した結果（Shaders/bgfx/<形式>/<name>.sc.bin）が読まれる。
-        //!         DX11 版は Shaders/<name>.hlsl を読む（実行時にコンパイルする）
+        //! @note   Shaders/bgfx/<name>.sc を読む。ゲームのシェーダーと同じ経路で、
+        //!         ビルド時に変換した結果（Shaders/bgfx/<形式>/<name>.sc.bin）が読まれる
         //--------------------------------------------------------------
         Tsukino::Asset::AssetHandle LoadBuiltInShader(Tsukino::Asset::AssetManager& assetManager, const Tsukino::Core::Path& root,
                                                       const std::string& name) {
-#if defined(TSUKINO_RENDERER_BGFX)
             const Tsukino::Core::Path path = root / ("Tsukino.BuiltIn/Assets/Shaders/bgfx/" + name + ".sc");
-#else
-            const Tsukino::Core::Path path = root / ("Tsukino.BuiltIn/Assets/Shaders/" + name + ".hlsl");
-#endif
             const Tsukino::Asset::AssetHandle handle = assetManager.Load(path);
             if(!handle.IsValid())
                 Tsukino::Core::Log::Error("BuiltInShaders: Failed to load " + path.string());

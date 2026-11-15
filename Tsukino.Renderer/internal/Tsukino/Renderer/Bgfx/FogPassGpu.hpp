@@ -17,7 +17,7 @@ namespace Tsukino::Renderer {
     //------------------------------------------------------------------------
     struct FogPass::Gpu {
         bgfx::ProgramHandle      program      = BGFX_INVALID_HANDLE;    // フルスクリーン三角形 ＋ Fog.ps
-        UniformBlock<CBufferFog> fog;                                   // フォグの定数（u_fog。DX11 版の b8）
+        UniformBlock<CBufferFog> fog;                                   // フォグの定数（u_fog）
         bgfx::UniformHandle      depthSampler = BGFX_INVALID_HANDLE;    // s_gbufferDepth
 
         //! 半透明のパスの間だけ、モデルとスプライトのシェーダーの中でフォグを掛けさせる定数

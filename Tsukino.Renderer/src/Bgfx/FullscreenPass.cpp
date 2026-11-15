@@ -21,10 +21,10 @@ namespace Tsukino::Renderer {
         //--------------------------------------------------------------------
         struct FullscreenVertex {
             float x, y, z;    // 位置（クリップ空間）
-            float u, v;       // UV（左下が (0, 0)。HLSL 版の SV_VertexID から作る UV と同じ）
+            float u, v;       // UV（左下が (0, 0)）
         };
 
-        //! 画面を覆う大きな三角形（DX11 版の Tonemap.vs.hlsl の id = 0, 1, 2 と同じ頂点）
+        //! 画面を覆う大きな三角形
         constexpr FullscreenVertex kVertices[3] = {
             {-1.0f, -1.0f, 0.0f, 0.0f, 0.0f},
             { 3.0f, -1.0f, 0.0f, 2.0f, 0.0f},

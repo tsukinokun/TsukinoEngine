@@ -1,7 +1,7 @@
 //--------------------------------------------------------------
 //! @file   IBLBake.sh
 //! @brief  環境光（IBL）のベイクで共用する処理
-//! @note   HLSL 版は BRDFIntegrate.ps.hlsl と SpecularPrefilter.ps.hlsl に同じ関数を1つずつ持っていた。
+//! @note   BRDFIntegrate.ps.sc と SpecularPrefilter.ps.sc が共用する。
 //!         bgfx 版はここへまとめる
 //--------------------------------------------------------------
 #ifndef TSUKINO_IBL_BAKE_SH

@@ -136,7 +136,7 @@ namespace Tsukino::Renderer::EffekseerBgfx {
     //------------------------------------------------------------------------
     //! 今のステートを bgfx の描画ステートにします。
     //! @note  合成は Effekseer の DX11 版（RenderState.cpp。乗算済みアルファを使わないとき）と同じ。
-    //!        アルファは描く先のアルファに使わない値なので、DX11 版の決まりをそのまま写す
+    //!        アルファは描く先のアルファに使わない値なので、Effekseer の DX11 版の決まりをそのまま写す
     //------------------------------------------------------------------------
     u64 RenderState::GetBgfxState(bool lines) const {
         u64 state = BGFX_STATE_WRITE_RGB | BGFX_STATE_WRITE_A;
@@ -179,7 +179,7 @@ namespace Tsukino::Renderer::EffekseerBgfx {
 
         //--------------------------------------------------------------------
         // カリング。Effekseer の Front は「表を描く」（裏を捨てる）。
-        // DX11 版と同じく、リバース Z のときは反時計回りを表とする
+        // リバース Z のときは反時計回りを表とする
         //--------------------------------------------------------------------
         const u64 cullBack  = m_reversedDepth ? BGFX_STATE_CULL_CW : BGFX_STATE_CULL_CCW;
         const u64 cullFront = m_reversedDepth ? BGFX_STATE_CULL_CCW : BGFX_STATE_CULL_CW;
@@ -195,7 +195,7 @@ namespace Tsukino::Renderer::EffekseerBgfx {
 
     //------------------------------------------------------------------------
     //! テクスチャの読み方を bgfx のサンプラーの指定にします。
-    //! @note  DX11 版と同じく、線形のときもミップの間は補間しない（MIN_MAG_LINEAR_MIP_POINT）
+    //! @note  線形のときもミップの間は補間しない（MIN_MAG_LINEAR_MIP_POINT）
     //------------------------------------------------------------------------
     u32 RenderState::GetSamplerFlags(int32_t slot) const {
         u32 flags = BGFX_SAMPLER_MIP_POINT;

@@ -8,8 +8,8 @@ indent_style = space
 indent_size = 4
 insert_final_newline = true
 
-# HLSL（UTF-8 BOM なし）
-[*.hlsl]
+# シェーダー（bgfx の .sc / .sh。UTF-8 BOM なし）
+[*.{sc,sh}]
 charset = utf-8
 end_of_line = lf
 indent_style = space

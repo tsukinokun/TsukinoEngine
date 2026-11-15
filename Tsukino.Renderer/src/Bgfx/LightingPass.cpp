@@ -84,7 +84,7 @@ namespace Tsukino::Renderer {
     }
 
     //------------------------------------------------------------------------
-    //! 太陽の光を設定します（向きと色はシーン定数へ入る。DX11 版と同じ）。
+    //! 太陽の光を設定します（向きと色はシーン定数へ入る）。
     //------------------------------------------------------------------------
     void LightingPass::SetDirectionalLight(const hlslpp::float3& direction, const hlslpp::float3& color, float intensity) {
         if(!m_frameConstants)
@@ -117,7 +117,7 @@ namespace Tsukino::Renderer {
         if(!m_fullscreenPass || !bgfx::isValid(m_gpu->program))
             return;
 
-        // G-Buffer は画面と同じ大きさなので点で読む（DX11 版の PointClamp）
+        // G-Buffer は画面と同じ大きさなので点で読む
         constexpr u32 kPointClamp = BGFX_SAMPLER_U_CLAMP | BGFX_SAMPLER_V_CLAMP | BGFX_SAMPLER_MIN_POINT | BGFX_SAMPLER_MAG_POINT
                                     | BGFX_SAMPLER_MIP_POINT;
         const u8 stages[GraphicsContext::kGBufferCount] = {

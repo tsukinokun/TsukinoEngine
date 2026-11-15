@@ -176,7 +176,7 @@ namespace Tsukino::Renderer::EffekseerBgfx {
 
         //! テクスチャを作ります。
         //! @note  2D の画像だけ（配列・3D・描く先は作らない）。段の数が 0 のときは、8bit の形式なら
-        //!        CPU で 1×1 までの段を作る（bgfx は普通のテクスチャの段を GPU で作れないため。DX11 版は GPU で作る）
+        //!        CPU で 1×1 までの段を作る（bgfx は普通のテクスチャの段を GPU で作れないため）
         Effekseer::Backend::TextureRef CreateTexture(const Effekseer::Backend::TextureParameter& param,
                                                      const Effekseer::CustomVector<uint8_t>& initialData) override;
 

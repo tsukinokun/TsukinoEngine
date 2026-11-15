@@ -2,11 +2,11 @@ $input v_texcoord0
 
 //--------------------------------------------------------------
 //! @file   MotionBlur.ps.sc
-//! @brief  オブジェクト速度バッファを使ったモーションブラー（MotionBlur.ps.hlsl の bgfx 版）
+//! @brief  オブジェクト速度バッファを使ったモーションブラー
 //! @note   頂点シェーダーは Tonemap.vs を共用するフルスクリーン三角形。
 //!         G-Buffer の速度（5枚目）を読み、その方向へシーンカラーを平均する。
 //!
-//!         【既知の限界】（HLSL 版と同じ）
+//!         【既知の限界】
 //!         中心ピクセルの速度だけで近傍を集める素朴な gather なので、
 //!         動く物体の内側に背景が引き込まれる方向にしか滲まない。
 //!         深度を考慮した重み付けもしていないので、手前／奥が混ざるケースでは滲む
@@ -16,7 +16,7 @@ $input v_texcoord0
 SAMPLER2D(s_motionBlurScene, 0);       // シーンカラー（HDR）。LinearClamp
 SAMPLER2D(s_motionBlurVelocity, 1);    // G-Buffer の速度（rg: 1フレームあたりの UV 移動量）。PointClamp
 
-// モーションブラーのパラメータ（DX11 版の b7）。C++ 側がサンプル数も float にして送る
+// モーションブラーのパラメータ。C++ 側がサンプル数も float にして送る
 uniform vec4 u_motionBlur;
 #define blurStrength      u_motionBlur.x                // 速度ベクトルの倍率
 #define blurMaxRadius     u_motionBlur.y                // UV 単位のブラー長クランプ

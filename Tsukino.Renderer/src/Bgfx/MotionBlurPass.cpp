@@ -76,7 +76,7 @@ namespace Tsukino::Renderer {
         if(!IsEnabled() || !m_fullscreenPass || !bgfx::isValid(m_gpu->program) || !bgfx::isValid(m_graphicsContext->GetPostProcessFrameBuffer()))
             return false;
 
-        // シーンカラーは線形で、速度は点で読む（DX11 版の LinearClamp / PointClamp）
+        // シーンカラーは線形で、速度は点で読む
         constexpr u32 kLinearClamp = BGFX_SAMPLER_U_CLAMP | BGFX_SAMPLER_V_CLAMP;
         constexpr u32 kPointClamp  = kLinearClamp | BGFX_SAMPLER_MIN_POINT | BGFX_SAMPLER_MAG_POINT | BGFX_SAMPLER_MIP_POINT;
         bgfx::setTexture(0, m_gpu->sceneSampler, m_graphicsContext->GetHdrTexture(), kLinearClamp);

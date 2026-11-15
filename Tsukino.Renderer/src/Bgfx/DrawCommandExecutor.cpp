@@ -2,7 +2,7 @@
 //! @file   DrawCommandExecutor.cpp
 //! @brief  bgfx 版の、描画コマンド1本を GPU へ流す処理の実装
 //! @detail メッシュはパイプライン（PipelineFactory が作る bgfx のプログラムとステート）で描きます。
-//!         スプライトの並びは、DX11 版の DirectXTK SpriteBatch と同じ置き方で四角の頂点を CPU で作り、
+//!         スプライトの並びは、四角の頂点を CPU で作り、
 //!         同じテクスチャが続くところをまとめて一時的な頂点バッファで描きます。
 //!         線は一時的な頂点バッファへ写して、線のリストとして描きます。
 //----------------------------------------------------------------------------
@@ -119,8 +119,7 @@ namespace Tsukino::Renderer {
         m_bonesPrevUniform = bgfx::createUniform("u_bonesPrev", bgfx::UniformType::Vec4, kBoneVec4Count);
 
         //--------------------------------------------------------------------
-        // スプライトの並び（DrawKind::Sprites）。DX11 版は DirectXTK の SpriteBatch が
-        // シェーダーを持っていたので、RendererShaderSet には無い。組み込みのシェーダーから直接読む
+        // スプライトの並び（DrawKind::Sprites）のシェーダーは RendererShaderSet には無い。組み込みのシェーダーから直接読む
         //--------------------------------------------------------------------
         m_spriteLayout.begin()
             .add(bgfx::Attrib::Position, 3, bgfx::AttribType::Float)
@@ -178,7 +177,7 @@ namespace Tsukino::Renderer {
 
         //--------------------------------------------------------------------
         // 定数（シーン・物ごと・マテリアル）。bgfx のユニフォームは描画1回ごとの値なので毎回送る。
-        // マテリアルの定数を持たないコマンドは、DX11 版と同じく直前の値を引き継ぐ
+        // マテリアルの定数を持たないコマンドは、直前の値を引き継ぐ
         //--------------------------------------------------------------------
         m_frameConstants->GetGpu().Apply();
 
@@ -200,7 +199,7 @@ namespace Tsukino::Renderer {
         //--------------------------------------------------------------------
         const RenderResources::Gpu& resources = m_resources->GetGpu();
         const u32 samplerFlags = cmd.material->GetSampler() ? RenderResources::Gpu::GetSamplerFlags(*cmd.material->GetSampler())
-                                                            : BGFX_SAMPLER_NONE;    // 既定は DX11 版と同じ LinearWrap
+                                                            : BGFX_SAMPLER_NONE;    // 既定は線形・繰り返し
         const auto& textures = cmd.material->GetTextures();
         for(size_t slot = 0; slot < textures.size(); ++slot) {
             const RenderResources::Gpu::TextureEntry* entry = resources.FindTexture(textures[slot]);
@@ -288,7 +287,7 @@ namespace Tsukino::Renderer {
 
         const RenderResources::Gpu&               resources = m_resources->GetGpu();
         const RenderResources::Gpu::TextureEntry* albedo    = nullptr;
-        u32                                       samplerFlags = BGFX_SAMPLER_NONE;    // 既定は DX11 版と同じ LinearWrap
+        u32                                       samplerFlags = BGFX_SAMPLER_NONE;    // 既定は線形・繰り返し
         if(cmd.material) {
             albedo = resources.FindTexture(cmd.material->GetTextures()[static_cast<size_t>(SRVSlot::Albedo)]);
             if(cmd.material->GetSampler())
@@ -363,7 +362,7 @@ namespace Tsukino::Renderer {
         while(index < end) {
             const RenderResources::Gpu::TextureEntry* texture = resources.FindTexture(sprites[index].texture);
             if(!texture) {
-                ++index;    // テクスチャの無いスプライトは描かない（DX11 版と同じ）
+                ++index;    // テクスチャの無いスプライトは描かない
                 continue;
             }
 
@@ -446,7 +445,7 @@ namespace Tsukino::Renderer {
             index += count;
         }
 
-        // DX11 版と同じく、1コマンドを1回と数える
+        // 1コマンドを1回と数える
         CountDrawCall(cmd.pass, stats);
     }
 
@@ -461,7 +460,7 @@ namespace Tsukino::Renderer {
         if(!bgfx::isValid(m_lineProgram) || cmd.batchCount < 2 || static_cast<size_t>(cmd.batchFirst) + cmd.batchCount > vertices.size())
             return;
 
-        // 不透明・深度テストと書き込みあり（リバース Z）・カリングなし・線のリスト（DX11 版と同じ）
+        // 不透明・深度テストと書き込みあり（リバース Z）・カリングなし・線のリスト
         constexpr u64 kState = BGFX_STATE_WRITE_RGB | BGFX_STATE_WRITE_A | BGFX_STATE_WRITE_Z | BGFX_STATE_DEPTH_TEST_GEQUAL
                                | BGFX_STATE_PT_LINES;
 

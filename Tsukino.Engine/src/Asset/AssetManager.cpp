@@ -19,9 +19,6 @@
 #include <Tsukino/Engine/Asset/Effect/EffectImporter.hpp>
 
 #include <Tsukino/Engine/Asset/Texture/TextureImporter.hpp>
-#if !defined(TSUKINO_RENDERER_BGFX)
-#include <Tsukino/Engine/Asset/Shader/ShaderImporter.hpp>
-#endif
 #include <Tsukino/Engine/Asset/Font/DynamicFontImporter.hpp>
 #include <Tsukino/Engine/Asset/Material/MaterialImporter.hpp>
 #include <Tsukino/Engine/Asset/Audio/AudioImporter.hpp>
@@ -62,10 +59,7 @@ namespace Tsukino::Asset {
         //--------------------------------------------------------------
         // インポーター登録
         //--------------------------------------------------------------
-#if !defined(TSUKINO_RENDERER_BGFX)
-        // DX11 版だけ、HLSL を実行時にコンパイルする（bgfx 版のシェーダーはビルド時に変換済みなので取り込まない）
-        RegisterImporter(AssetType::Shader, Tsukino::Core::CreateRef<ShaderImporter>());      // シェーダーインポーターの登録
-#endif
+        // シェーダーはビルド時に変換済み（tsukino_shaders()）なので、インポーターは無い
         RegisterImporter(AssetType::Texture, Tsukino::Core::CreateRef<TextureImporter>(m_textureRules));    // テクスチャインポーターを登録
         RegisterImporter(AssetType::DynamicFont, Tsukino::Core::CreateRef<DynamicFontImporter>());    // 動的フォントインポーターの登録
         RegisterImporter(AssetType::Audio, Tsukino::Core::CreateRef<AudioImporter>());        // オーディオインポーターの登録
@@ -248,11 +242,8 @@ namespace Tsukino::Asset {
                     // ソース本体だけでなく、そのアセットが取り込んでいる
                     // ファイルの更新も見る。
                     //
-                    // シェーダーの .hlsli がこれにあたる。共通定義を直しても
-                    // それを #include している .hlsl 自体の日時は変わらないため、
-                    // 本体だけを見ていると古い .cso が使われ続ける。
-                    // 定数バッファのスロット番号を動かしたときなどは
-                    // コンパイルエラーにならず「絵だけ壊れる」ため発見が難しい
+                    // 共通の定義を直しても、それを取り込んでいる本体の日時は変わらないため、
+                    // 本体だけを見ていると古いキャッシュが使われ続ける
                     //------------------------------------------------
                     for(const Tsukino::Core::Path& dependency : importerIt->second->CollectDependencies(sourceBasePath)) {
                         if(!Tsukino::IO::FileSystem::Exists(dependency))
@@ -405,8 +396,6 @@ namespace Tsukino::Asset {
             {".tga",     AssetType::Texture},
             {".dds",     AssetType::Texture},
 
-            {".shader",  AssetType::Shader },
-            {".hlsl",    AssetType::Shader },
             {".sc",      AssetType::Shader },    // bgfx のシェーダー（ビルド時に変換済み）
 
             {".obj",     AssetType::Model  },
@@ -440,9 +429,6 @@ namespace Tsukino::Asset {
     //--------------------------------------------------------------
     Tsukino::Core::Path AssetManager::ConvertToCachePath(const Tsukino::Core::Path& sourcePath) {
         static const std::unordered_map<std::string, std::string> extensionMap = {
-            {".hlsl",    ".cso"       },
-            {".shader",  ".cso"       },
-
             {".png",     ".dds"       },
             {".jpg",     ".dds"       },
             {".jpeg",    ".dds"       },

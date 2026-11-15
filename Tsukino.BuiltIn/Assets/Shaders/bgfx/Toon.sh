@@ -1,6 +1,6 @@
 //--------------------------------------------------------------
 //! @file   Toon.sh
-//! @brief  ShadingModel の番号とトゥーンのライティング（Toon.hlsli の bgfx 版）
+//! @brief  ShadingModel の番号とトゥーンのライティング
 //--------------------------------------------------------------
 #ifndef TSUKINO_TOON_SH
 #define TSUKINO_TOON_SH
@@ -52,7 +52,7 @@ float ToonStep(float x, float threshold, float softness)
 }
 
 //--------------------------------------------------------------
-//! @brief  1つの光をトゥーンで当てる（Toon.hlsli と同じ）
+//! @brief  1つの光をトゥーンで当てる
 //--------------------------------------------------------------
 vec3 EvaluateToon(vec3 N, vec3 V, vec3 L, vec3 albedo, vec3 radiance, float shadow, float threshold, float softness, vec3 shadeColor,
                   float specularSize, bool shadeFloor)

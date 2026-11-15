@@ -26,7 +26,7 @@ namespace Tsukino::Renderer {
 
     //------------------------------------------------------------------------
     //! パイプライン（シェーダーと描画ステート）です。
-    //! @note  PipelineFactory::Create が作る。DX11 版の PipelineState と同じく、
+    //! @note  PipelineFactory::Create が作る。
     //!        Material が指して、描画コマンドの実行で使う
     //------------------------------------------------------------------------
     struct PipelineState {
@@ -108,7 +108,7 @@ namespace Tsukino::Renderer {
         TextureHandle                          white;              // 白テクスチャ
         TextureHandle                          flatNormal;         // フラット法線テクスチャ
 
-        //! ゲーム定義の定数のユニフォーム（u_user0 / u_user1。DX11 版の b12 / b13）
+        //! ゲーム定義の定数のユニフォーム（u_user0 / u_user1）
         std::array<bgfx::UniformHandle, kUserConstantSlotCount> userConstantUniforms{bgfx::UniformHandle BGFX_INVALID_HANDLE,
                                                                                      bgfx::UniformHandle BGFX_INVALID_HANDLE};
 

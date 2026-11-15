@@ -11,7 +11,7 @@
 namespace Tsukino::Renderer {
     //--------------------------------------------------------------
     //! カスケードシャドウの枚数
-    //!  Scene.hlsli の TSUKINO_SHADOW_CASCADE_COUNT と一致させること。
+    //!  Scene.sh の TSUKINO_SHADOW_CASCADE_COUNT と一致させること。
     //!       CBufferScene の cascadeViewProj の要素数がこれで決まるため、
     //!       b0 のレイアウトに直結する（ShadowPass::kCascadeCount もこれを使う）
     //--------------------------------------------------------------
@@ -41,9 +41,8 @@ namespace Tsukino::Renderer {
         // 14本しかないため、演出を足すたびにスロットが減っていく状態だった。
         // UnityのTime / UEのView.GameTimeと同じく、共通の素材はここに集める。
         //
-        // 末尾に足しているのは意図的。HLSLのcbufferは末尾メンバを宣言しなくても
-        // 前方の配置が変わらないため、既存のシェーダーは無改修で動く
-        // （AmbientParticle.vs.hlslがprevViewProjを省略しているのがその実例）
+        // 末尾に足しているのは意図的。シェーダー側（Scene.sh）は vec4 の配列の
+        // 何番目かで読むので、末尾に足しても前の要素の番号は変わらない
         //--------------------------------------------------------------
         hlslpp::float4 timeParams;      //!< x: 起動からの経過秒, y: 前フレームからの経過秒, z: sin(x), w: cos(x)
         hlslpp::float4 screenParams;    //!< xy: 描画領域の解像度(px), zw: その逆数(1/w, 1/h)
@@ -61,12 +60,9 @@ namespace Tsukino::Renderer {
         hlslpp::float4 qualityParams;       //!< 描画品質 x: 1=影を3x3で滑らかにする / 0=1タップ, yzw: 未使用
     };
 
-    // b0のレイアウトもMaterial.hlsli同様に手で合わせるしかないので、機械的に見張る。
-    // b2と違いパディングの細工は無いが、見張る理由はむしろこちらの方が強い。
-    // 実際にShadowMapStatic.vs.hlslがinvViewProjの宣言を落としており、
-    // 以降が64バイトずれてスタティックメッシュの影が壊れていた（Scene.hlsli参照）。
+    // b0のレイアウトはScene.shの #define（vec4 の配列の何番目か）と手で合わせるしかないので、機械的に見張る。
     // 先頭の行列を1本増減させると全メンバが動くので、要所のオフセットを固定する
-    static_assert(sizeof(CBufferScene) == 752, "CBufferScene must stay 752 bytes to match Scene.hlsli (b0).");
+    static_assert(sizeof(CBufferScene) == 752, "CBufferScene must stay 752 bytes to match Scene.sh (b0).");
     static_assert(offsetof(CBufferScene, qualityParams) == 736, "qualityParams must sit at byte 736 (right after occlusionCutout1).");
     static_assert(offsetof(CBufferScene, cascadeSplitFar) == 688, "cascadeSplitFar must sit at byte 688 (right after cascadeTexelWorld).");
     static_assert(offsetof(CBufferScene, occlusionCutout0) == 704, "occlusionCutout0 must sit at byte 704 (right after cascadeSplitFar).");
@@ -78,8 +74,7 @@ namespace Tsukino::Renderer {
     //--------------------------------------------------------------
     //! @struct CBufferTransform
     //! @brief  スロット1 (b1) 用：オブジェクトごとの固有データ
-    //! @note   b1を「world 1本だけ」で宣言している既存シェーダー（ShadowMap系・Sprite）は
-    //!         先頭64バイトしか読まないため、末尾に追加する分には無変更で動く。
+    //! @note   シェーダー側は Transform.sh。末尾に足す分には、今のシェーダーは無変更で動く。
     //--------------------------------------------------------------
     struct CBufferTransform {
         Tsukino::Core::Math::matrix world;
@@ -90,18 +85,16 @@ namespace Tsukino::Renderer {
     //--------------------------------------------------------------
     //! @struct CBufferMaterial
     //! @brief  スロット2 (b2) 用：マテリアルごとの固有データ
-    //! @note   Material.hlsli の CBufferMaterial と1バイト単位で一致させること。
+    //! @note   Material.sh の #define（vec4 の配列 u_material の何番目のどの成分か）と一致させること。
     //!         気をつける点が2つある。
     //!         1つ目は hlslpp::float3 がSIMDレジスタ幅の16バイトを占めること。
-    //!         HLSLの float3 は12バイトで、直後のスカラーが同じ16バイト行へ
-    //!         詰められるため、放っておくと metallic 以降が4バイトずれる。
-    //!         これを防ぐため、HLSL側には emissive の直後に emissivePad を置いてある。
-    //!         2つ目は float4 が16バイト境界を跨げないこと。alphaCutoff までの
-    //!         4つのスカラーがちょうど1行を埋め、rimColor が48から始まる。
+    //!         emissive は u_material[1].xyz で、4番目の成分は使わない。
+    //!         2つ目は float4 が16バイト境界を跨げないこと。metallic から alphaCutoff までの
+    //!         4つのスカラーがちょうど1行（u_material[2]）を埋め、rimColor が48から始まる。
     //--------------------------------------------------------------
     struct CBufferMaterial {
         hlslpp::float4 baseColor;
-        hlslpp::float3 emissive;       //!< xyz: 自発光色（hlslpp::float3は16バイト。余る4番目のレーンがHLSL側のemissivePad）
+        hlslpp::float3 emissive;       //!< xyz: 自発光色（hlslpp::float3は16バイト。余る4番目のレーンは使わない）
         float          metallic;
         float          roughness;
         float          specular;
@@ -115,17 +108,17 @@ namespace Tsukino::Renderer {
         hlslpp::float4 spriteFog  = hlslpp::float4(0.0f, 0.0f, 0.0f, 0.0f);    //!< スプライト専用。Transparentパスでの霧の掛け方。x: 0=霧の色へ寄せる（半透明）, 1=光を弱める（加算。霧の色を足すと白く浮くため）, yzw: 予約
     };
 
-    // b2のレイアウトはMaterial.hlsli側と手で合わせるしかないので、機械的に見張る。
+    // b2のレイアウトはMaterial.sh側と手で合わせるしかないので、機械的に見張る。
     // 総サイズだけでは不十分な点に注意。hlslpp::float3が余分に食う4バイトと、
     // float4が16バイト境界まで送られる分は打ち消し合うことがあり、
     // 中身がずれていてもサイズだけは一致してしまう。だからオフセットも固定する。
     //
-    // ただし守れるのはこちら側だけ。Material.hlsli の emissivePad を消しても
+    // ただし守れるのはこちら側だけ。Material.sh の番号を書き違えても
     // 以下のアサートは全て通り、描画結果が静かに壊れる。片方を触ったら必ず両方見る
-    static_assert(sizeof(CBufferMaterial) == 160, "CBufferMaterial must stay 160 bytes to match Material.hlsli (b2).");
+    static_assert(sizeof(CBufferMaterial) == 160, "CBufferMaterial must stay 160 bytes to match Material.sh (b2).");
     static_assert(offsetof(CBufferMaterial, spriteUv) == 128, "spriteUv must start on the 16-byte boundary at 128.");
     static_assert(offsetof(CBufferMaterial, spriteFog) == 144, "spriteFog must start on the 16-byte boundary at 144.");
-    static_assert(offsetof(CBufferMaterial, metallic) == 32, "metallic must sit at byte 32; emissivePad in Material.hlsli covers 28..31.");
+    static_assert(offsetof(CBufferMaterial, metallic) == 32, "metallic must sit at byte 32 (u_material[2].x in Material.sh).");
     static_assert(offsetof(CBufferMaterial, alphaCutoff) == 44, "alphaCutoff must fill the last slot before rimColor.");
     static_assert(offsetof(CBufferMaterial, rimColor) == 48, "rimColor must start on the 16-byte boundary at 48.");
     static_assert(offsetof(CBufferMaterial, rimParams) == 64, "rimParams must start on the 16-byte boundary at 64.");
@@ -166,7 +159,7 @@ namespace Tsukino::Renderer {
     };
 
     //--------------------------------------------------------------
-    //! @brief モーションブラーのサンプル数上限（MotionBlur.ps.hlsl と一致させること）
+    //! @brief モーションブラーのサンプル数上限（MotionBlur.ps.sc と一致させること）
     //--------------------------------------------------------------
     static constexpr int kMotionBlurMaxSamples = 16;
 
@@ -174,7 +167,7 @@ namespace Tsukino::Renderer {
     //! @struct CBufferBloom
     //! @brief  CBSlot::Bloom (b11) 用：ブルームの1描画ぶんのパラメータ
     //! @note   縮小・拡大の段ごとに texelSize が変わるので、描くたびに書き換える。
-    //!         float3 を使わず float を並べているのは、Bloom.hlsli の cbuffer と
+    //!         float3 を使わず float を並べているのは、Bloom.sh の cbuffer と
     //!         バイト位置を確実に揃えるため（hlslpp::float3 は16バイトを食う）
     //--------------------------------------------------------------
     struct CBufferBloom {
@@ -191,7 +184,7 @@ namespace Tsukino::Renderer {
         float padding1   = 0.0f;
         float padding2   = 0.0f;
     };
-    static_assert(sizeof(CBufferBloom) == 48, "CBufferBloom must stay 48 bytes to match Bloom.hlsli.");
+    static_assert(sizeof(CBufferBloom) == 48, "CBufferBloom must stay 48 bytes to match Bloom.sh.");
 
     //--------------------------------------------------------------
     //! @struct CBufferSky
@@ -224,7 +217,7 @@ namespace Tsukino::Renderer {
     //--------------------------------------------------------------
     //! @struct GPULight
     //! @brief  点光源・スポットライト1灯分のGPU転送用データ (64B)
-    //! @note   Lighting.hlsli の GPULight と1バイト単位で一致させること
+    //! @note   Lighting.sh の GPULight と1バイト単位で一致させること
     //--------------------------------------------------------------
     struct GPULight {
         hlslpp::float4 positionRange;     //!< xyz: ワールド座標, w: 影響半径
@@ -251,7 +244,7 @@ namespace Tsukino::Renderer {
     //--------------------------------------------------------------
     //! @struct CBufferFog
     //! @brief  スロット8 (b8) 用：フォグパラメータ
-    //! @note   Fog.hlsli の CBufferFog と1バイト単位で一致させること。
+    //! @note   Fog.sh の CBufferFog と1バイト単位で一致させること。
     //!         距離フォグ・高さフォグ・ノイズ揺らぎをまとめて持つ。
     //--------------------------------------------------------------
     struct CBufferFog {
@@ -267,7 +260,7 @@ namespace Tsukino::Renderer {
     //--------------------------------------------------------------
     //! @struct CBufferSphereColorGrade
     //! @brief  スロット8 (b8) 用：球形の色調補正ボリュームのパラメータ
-    //! @note   SphereColorGrade.ps.hlsl の CBufferSphereColorGrade と1バイト単位で一致させること。
+    //! @note   SphereColorGrade.ps.sc の CBufferSphereColorGrade と1バイト単位で一致させること。
     //!         b8 はフォグパスと相乗りする（フォグパスが終わってから半透明パスで張り直すまでの間だけ使う）
     //--------------------------------------------------------------
     struct CBufferSphereColorGrade {
@@ -287,7 +280,7 @@ namespace Tsukino::Renderer {
 
     //--------------------------------------------------------------
     //! スロット9 (b9) 用：環境パーティクルのパラメータ
-    //! @note AmbientParticle.vs.hlsl の CBufferAmbientParticle と
+    //! @note AmbientParticle.vs.sc の CBufferAmbientParticle と
     //!       1バイト単位で一致させること（全メンバfloat4で96バイト）。
     //!       ピクセルシェーダーはこのバッファを使わない。色も輝度も
     //!       フェードも頂点シェーダーが計算し、補間値として渡すため。
@@ -304,7 +297,7 @@ namespace Tsukino::Renderer {
     //--------------------------------------------------------------
     //! @struct CBufferIBL
     //! @brief  スロット10 (b10) 用：IBL（スカイ由来の環境光）パラメータ
-    //! @note   IBL.hlsli の CBufferIBL と1バイト単位で一致させること。
+    //! @note   IBL.sh の CBufferIBL と1バイト単位で一致させること。
     //!         irradiance/prefiltered specular/BRDF LUTの3枚のテクスチャは
     //!         定数バッファではなくSRV（t17〜t19）経由で渡す。
     //--------------------------------------------------------------
@@ -317,7 +310,7 @@ namespace Tsukino::Renderer {
     //--------------------------------------------------------------
     //! @struct CBufferIBLBake
     //! @brief  スロット11 (b11) 用：IBLベイク（キャプチャ/畳み込み/プレフィルタ）専用の一時パラメータ
-    //! @note   起動時の一発ベイク中だけバインドする一時バッファ。SpecularPrefilter.ps.hlsl の
+    //! @note   起動時の一発ベイク中だけバインドする一時バッファ。SpecularPrefilter.ps.sc の
     //!         CBufferIBLBake と1バイト単位で一致させること。
     //--------------------------------------------------------------
     struct CBufferIBLBake {

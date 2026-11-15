@@ -1,7 +1,7 @@
 //--------------------------------------------------------------
 //! @file   Lighting.sh
-//! @brief  ディファードライティングの入力（Lighting.hlsli の bgfx 版）
-//! @note   点光源・スポットライトの定数（DX11 版の b5。C++ の CBufferLights）は vec4 の配列 u_lights。
+//! @brief  ディファードライティングの入力
+//! @note   点光源・スポットライトの定数（C++ の CBufferLights）は vec4 の配列 u_lights。
 //!         [0].x が光の数（uint のビットのまま届くので floatBitsToUint で読む）、[1 + 4i] から1つの光が4つずつ並ぶ
 //--------------------------------------------------------------
 #ifndef TSUKINO_LIGHTING_SH
@@ -38,7 +38,7 @@ float GetShadowPCF(vec3 worldPos, vec3 N, vec3 L)
 }
 
 //--------------------------------------------------------------
-//! @brief  点光源の距離による減衰（Lighting.hlsli と同じ）
+//! @brief  点光源の距離による減衰
 //--------------------------------------------------------------
 float Attenuate(float dist, float range)
 {

@@ -2,7 +2,7 @@
 //! @file   GraphicsContext.hpp
 //! @brief  bgfx 版の GraphicsContext（Renderer の内部用）
 //! @detail bgfx の初期化・画面サイズの変更・垂直同期・フレームの送り出しを担当します。
-//!         DX11 版の GraphicsContext と同じ名前で、Renderer から借りられる形にしてあります。
+//!         Renderer が持ち、各パスへ貸します。
 //----------------------------------------------------------------------------
 #pragma once
 #include <Tsukino/Core/typedef.hpp>
@@ -97,12 +97,12 @@ namespace Tsukino::Renderer {
         static bool IsBgfxAlive() noexcept;
 
         //------------------------------------------------------------------------
-        // 3D を描く先（DX11 版の GraphicsContext が持つ HDR バッファ・G-Buffer・深度と同じ組み）。
+        // 3D を描く先（HDR バッファ・G-Buffer・深度）。
         // どれも GetSceneWidth() × GetSceneHeight() の大きさ。描画領域の大きさか内部解像度が変わると作り直す
         // （ハンドルが変わるので、使う側は毎フレーム取り直すか、作り直した後に設定し直す）
         //------------------------------------------------------------------------
 
-        //! G-Buffer の枚数（DX11 版と同じ6枚）
+        //! G-Buffer の枚数（6枚）
         static constexpr u32 kGBufferCount = 6;
 
         //! G-Buffer（6枚）と深度のフレームバッファを返します。
@@ -205,7 +205,7 @@ namespace Tsukino::Renderer {
 
     private:
         //! 使っている GPU の情報を調べて保持し、ログへ出します。
-        //! @note   Windows（D3D11）は DXGI から DX11 版と同じ値を読む。それ以外は bgfx が持つ ID と描画 API の名前だけ
+        //! @note   Windows（Direct3D 11）は DXGI から読む。それ以外は bgfx が持つ ID と描画 API の名前だけ
         void QueryAdapterInfo();
 
         //! 今の大きさと垂直同期の設定で、bgfx のバックバッファを作り直します。

@@ -2,7 +2,7 @@ $input v_texcoord0
 
 //--------------------------------------------------------------
 //! @file   IrradianceConvolve.ps.sc
-//! @brief  IBL ベイク：キャプチャキューブから拡散 irradiance キューブへの畳み込み（IrradianceConvolve.ps.hlsl の bgfx 版）
+//! @brief  IBL ベイク：キャプチャキューブから拡散 irradiance キューブへの畳み込み
 //! @note   頂点シェーダーは Tonemap.vs を共用するフルスクリーン三角形。面ごとに計6回描く。
 //!         出力先の面はシーン定数の invViewProj が決める（Sky.ps.sc のワールド方向の復元と同じ手法。
 //!         C++ 側が面ごとに 90°FOV のビュー・プロジェクション行列へ差し替えたシーン定数を送る）

@@ -35,8 +35,8 @@ namespace Tsukino::Renderer {
         AmbientParticle = 9,    //!< b9 : 環境パーティクルのパラメータ（CBufferAmbientParticle, 環境パーティクルパス用。VS専用）
 
         //--------------------------------------------------------------
-        // b10 : IBL（スカイ由来の環境光）パラメータ（CBufferIBL, Lighting.ps.hlsl /
-        //       Model.ps.hlsl 共用。PS専用）
+        // b10 : IBL（スカイ由来の環境光）パラメータ（CBufferIBL, Lighting.ps.sc /
+        //       Model.ps.sc 共用。PS専用）
         //--------------------------------------------------------------
         IBL = 10,    //!< b10 : IBLパラメータ（CBufferIBL）
 
@@ -112,7 +112,7 @@ namespace Tsukino::Renderer {
         //! 1箇所で見渡せる状態を保つため（デバッグ時にスロット番号だけで特定できる）
         InstanceData = 16,    //!< t16 : インスタンスごとのデータ（DrawCommand::instanceData。頂点シェーダー専用）
 
-        // --- IBL（スカイ由来の環境光。Lighting.ps.hlsl / Model.ps.hlsl 共用。PS専用） ---
+        // --- IBL（スカイ由来の環境光。Lighting.ps.sc / Model.ps.sc 共用。PS専用） ---
         IBLIrradiance          = 17,    //!< t17 : 拡散IBL用irradianceキューブマップ
         IBLPrefilteredSpecular = 18,    //!< t18 : 鏡面IBL用プレフィルタ済みキューブマップ（ミップ=ラフネス）
         IBLBRDFLUT             = 19,    //!< t19 : split-sum用BRDF積分LUT（2D, R=スケール, G=バイアス）

@@ -6,7 +6,7 @@
 
 <p align="center">
   <img src="https://img.shields.io/badge/C%2B%2B-20-blue.svg" alt="C++20">
-  <img src="https://img.shields.io/badge/DirectX-11-107C10.svg" alt="DirectX 11">
+  <img src="https://img.shields.io/badge/renderer-bgfx-107C10.svg" alt="Renderer: bgfx">
   <img src="https://img.shields.io/badge/platform-Windows-0078D6.svg" alt="Platform: Windows">
   <img src="https://img.shields.io/badge/build-Premake5-orange.svg" alt="Build: Premake5">
   <img src="https://img.shields.io/badge/ECS-EnTT-9cf.svg" alt="ECS: EnTT">
@@ -23,16 +23,16 @@
 
 # TsukinoEngine
 
-EnTTベースのECSアーキテクチャを採用した、C++20 / DirectX 11製の自作ゲームエンジンです。
+EnTTベースのECSアーキテクチャを採用した、C++20 / SDL3 / bgfx 製の自作ゲームエンジンです。
 
 ## 概要
 
-TsukinoEngineは、Windows向けの個人開発ゲームエンジンです。DirectX 11レンダラーと、[EnTT](https://github.com/skypjack/entt)によるECS(Entity Component System)を軸に、コア・描画・物理・オーディオ・アセットパイプラインといった各エンジンモジュールを独立した静的ライブラリとして構成し、[Premake5](https://premake.github.io/)でビルドします。
+TsukinoEngineは、Windows向けの個人開発ゲームエンジンです。[bgfx](https://github.com/bkaradzic/bgfx) の上に作ったディファードレンダラーと、[EnTT](https://github.com/skypjack/entt)によるECS(Entity Component System)を軸に、コア・描画・物理・オーディオ・アセットパイプラインといった各エンジンモジュールを独立した静的ライブラリとして構成し、[Premake5](https://premake.github.io/)でビルドします。
 
 ## 特徴
 
 - **ECSアーキテクチャ** — [EnTT](https://github.com/skypjack/entt)を用いたデータ指向設計により、キャッシュ効率の高いエンティティ管理を実現。
-- **DirectX 11レンダラー** — DirectX 11 APIを直接利用した独自の描画パイプライン(`Tsukino.Renderer`)。
+- **bgfx レンダラー** — bgfx（Windows では Direct3D 11）の上の独自のディファード描画パイプライン(`Tsukino.Renderer`)。シェーダーは bgfx のシェーダー言語（`.sc`）で書き、ビルド時に変換します。
 - **物理演算** — [JoltPhysics](https://github.com/jrouwe/JoltPhysics)を統合し、剛体シミュレーションに対応。
 - **視覚エフェクト** — [Effekseer](https://github.com/tsukinokun/Effekseer)によるパーティクル・エフェクト再生。
 - **オーディオ** — DirectXTKをベースとした専用オーディオモジュール(`Tsukino.Audio`)。
@@ -166,11 +166,8 @@ BodyHandle / SpringBone）、`Tsukino.Audio`、`Tsukino.GraphicsCommon`、
   `Registry::View()` は `entt::view` を返し、`Registry::OnConstruct` / `OnDestroy` は
   EnTT の sink を返します。したがってゲームはこのエンジンが取り込んでいる
   EnTT のバージョンに対してコンパイルされ、1.x では EnTT を破壊的に上げません。
-- **`Window` は Win32 です。** `Tsukino/Core/Window.hpp` は
-  `Tsukino/Core/WindowsLean.hpp`（`NOMINMAX` と `WIN32_LEAN_AND_MEAN` を先に定義）
-  を通して `<windows.h>` を取り込み、`MessageCallback` は `UINT` / `WPARAM` / `LPARAM`
-  を受け取ります。本エンジンは Windows / DirectX 11 専用で、1.x の間に
-  Window の API が移植可能になることはありません。
+- **プラットフォーム層は SDL3 です。** `Window` と `InputSystem` は SDL3、描画は bgfx の
+  上に作ってあり、公開ヘッダは `<windows.h>` を取り込みません。
 - **失敗はログを出して既定値を返す方式です。** `FileSystem::ReadBinary` は
   ファイルが無い場合・空の場合・途中までしか読めなかった場合のいずれも空を返し、
   `AssetManager::Load` はどの失敗でも `AssetHandle::Invalid()` を返し、

@@ -25,7 +25,7 @@ namespace Tsukino::Renderer {
         bool g_bgfxAlive = false;    // bgfx が初期化されていて、まだ後始末されていないか
 
 #if defined(_WIN32)
-        // Microsoft Basic Render Driver（WARP）のベンダー ID とデバイス ID（DX11 版と同じ判定）
+        // Microsoft Basic Render Driver（WARP）のベンダー ID とデバイス ID
         constexpr UINT kBasicRenderVendorId = 0x1414;
         constexpr UINT kBasicRenderDeviceId = 0x008C;
 
@@ -128,7 +128,7 @@ namespace Tsukino::Renderer {
                 return;
             }
 #if defined(_WIN32)
-            // 内蔵と外付けの GPU があるノート PC で、外付けの方を使わせる（DX11 版と同じ選び方）
+            // 内蔵と外付けの GPU があるノート PC で、外付けの方を使わせる
             u16 vendorId = 0;
             u16 deviceId = 0;
             if(FindHighPerformanceAdapter(vendorId, deviceId)) {
@@ -150,15 +150,15 @@ namespace Tsukino::Renderer {
         //! @param  [in] width        幅
         //! @param  [in] height       高さ
         //! @return スワップチェーンの設定
-        //! @note   バックバッファは DX11 版と同じく sRGB にする（書き込むときに linear → sRGB に直す）。
-        //!         そうしないと、UI の色が DX11 版より暗く見える。新しい bgfx では
+        //! @note   バックバッファは sRGB にする（書き込むときに linear → sRGB に直す）。
+        //!         そうしないと、UI の色が暗く見える。新しい bgfx では
         //!         BGFX_RESET_SRGB_BACKBUFFER ではなく、スワップチェーンのフラグで指定する
         bgfx::SwapChain MakeSwapChain(void* windowHandle, u32 width, u32 height) {
             bgfx::SwapChain swapChain;
             swapChain.nwh    = windowHandle;
             swapChain.width  = width;
             swapChain.height = height;
-            swapChain.formatColor = bgfx::TextureFormat::RGBA8;    // DX11 版と同じ R8G8B8A8（書き込みは sRGB のビュー）
+            swapChain.formatColor = bgfx::TextureFormat::RGBA8;    // R8G8B8A8（書き込みは sRGB のビュー）
             swapChain.flags |= BGFX_SWAP_CHAIN_SRGB_BACKBUFFER;
             return swapChain;
         }
@@ -282,7 +282,7 @@ namespace Tsukino::Renderer {
     //! 3D を描く大きさが変わっていれば、描く先を作り直します。
     //------------------------------------------------------------------------
     bool GraphicsContext::RecreateRenderTargetsIfNeeded() {
-        // 最小化などで大きさが 0 のときは、作り直さずに今の描く先を残す（DX11 版と同じ）
+        // 最小化などで大きさが 0 のときは、作り直さずに今の描く先を残す
         if(!m_initialized || m_width == 0 || m_height == 0)
             return true;
 
@@ -332,7 +332,7 @@ namespace Tsukino::Renderer {
         m_depthTexture = bgfx::createTexture2D(width, height, false, 1, bgfx::TextureFormat::D32F, kTargetFlags);
 
         //--------------------------------------------------------------------
-        // G-Buffer。形式は DX11 版と同じ（albedo は sRGB で持つ。ワールド座標は精度のため 32bit）
+        // G-Buffer。形式（albedo は sRGB で持つ。ワールド座標は精度のため 32bit）
         //--------------------------------------------------------------------
         struct GBufferFormat {
             bgfx::TextureFormat::Enum format;    // 形式

@@ -87,7 +87,7 @@ namespace Tsukino::Renderer {
 
         //! 半透明モデルのフォワード描画で、シェーダーの中でフォグを掛けさせます。
         //! @note   Transparent パスの直前に呼び、終わったら UnbindForwardFog() で外すこと。
-        //!         distanceParams.w を1にした定数を b8 へ張る（ForwardModel.hlsli がこれを見る）。
+        //!         distanceParams.w を1にした定数を b8 へ張る（ForwardModel.sh がこれを見る）。
         //!         このフレームでフォグが無効なら何も張らない（＝シェーダーは何もしない）
         void BindForwardFog();
 

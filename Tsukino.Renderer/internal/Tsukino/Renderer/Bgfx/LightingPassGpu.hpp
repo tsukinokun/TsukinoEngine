@@ -20,7 +20,7 @@ namespace Tsukino::Renderer {
     //------------------------------------------------------------------------
     struct LightingPass::Gpu {
         bgfx::ProgramHandle         program = BGFX_INVALID_HANDLE;    // フルスクリーン三角形 ＋ Lighting.ps
-        UniformBlock<CBufferLights> lights;                           // 点光源・スポットライト（u_lights。DX11 版の b5）
+        UniformBlock<CBufferLights> lights;                           // 点光源・スポットライト（u_lights）
 
         //! G-Buffer と深度のサンプラー（s_gbufferAlbedo・Normal・Material・Emissive・Depth・WorldPos の順）
         std::array<bgfx::UniformHandle, GraphicsContext::kGBufferCount> gbufferSamplers{};

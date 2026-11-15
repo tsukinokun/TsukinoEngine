@@ -2,7 +2,7 @@ $input v_texcoord0
 
 //--------------------------------------------------------------
 //! @file   SpecularPrefilter.ps.sc
-//! @brief  IBL ベイク：キャプチャキューブからプレフィルタ済みスペキュラキューブへの畳み込み（SpecularPrefilter.ps.hlsl の bgfx 版）
+//! @brief  IBL ベイク：キャプチャキューブからプレフィルタ済みスペキュラキューブへの畳み込み
 //! @note   頂点シェーダーは Tonemap.vs を共用するフルスクリーン三角形。面×ミップの回数だけ描く。
 //!         出力先の面はシーン定数の invViewProj が、ラフネスとサンプル数は u_iblBake が決める
 //!         （どちらもミップ・面ごとに C++ 側が送る）。
@@ -16,7 +16,7 @@ $input v_texcoord0
 // キャプチャキューブ（大気散乱スカイを6面へ焼いたもの）
 SAMPLERCUBE(s_iblCaptureSource, STAGE_IBL_CAPTURE_SOURCE);
 
-// このミップのベイクパラメータ（DX11 版の b11）。x: ラフネス, y: サンプル数（float で届く）
+// このミップのベイクパラメータ。x: ラフネス, y: サンプル数（float で届く）
 uniform vec4 u_iblBake;
 #define bakeRoughness   u_iblBake.x
 #define bakeSampleCount uint(u_iblBake.y + 0.5)

@@ -6,7 +6,7 @@
 
 <p align="center">
   <img src="https://img.shields.io/badge/C%2B%2B-20-blue.svg" alt="C++20">
-  <img src="https://img.shields.io/badge/DirectX-11-107C10.svg" alt="DirectX 11">
+  <img src="https://img.shields.io/badge/renderer-bgfx-107C10.svg" alt="Renderer: bgfx">
   <img src="https://img.shields.io/badge/platform-Windows-0078D6.svg" alt="Platform: Windows">
   <img src="https://img.shields.io/badge/build-Premake5-orange.svg" alt="Build: Premake5">
   <img src="https://img.shields.io/badge/ECS-EnTT-9cf.svg" alt="ECS: EnTT">
@@ -23,16 +23,16 @@
 
 # TsukinoEngine
 
-A C++20 / DirectX 11 game engine built from scratch, driven by an EnTT-based ECS architecture.
+A C++20 game engine built from scratch on SDL3 and bgfx, driven by an EnTT-based ECS architecture.
 
 ## Overview
 
-TsukinoEngine is a personal game engine project targeting Windows. It combines a DirectX 11 renderer, an Entity Component System (ECS) built on [EnTT](https://github.com/skypjack/entt), and a set of engine modules (core, rendering, physics, audio, and asset pipeline) organized as independent static-library projects, all wired together with [Premake5](https://premake.github.io/).
+TsukinoEngine is a personal game engine project targeting Windows. It combines a deferred renderer on [bgfx](https://github.com/bkaradzic/bgfx), an Entity Component System (ECS) built on [EnTT](https://github.com/skypjack/entt), and a set of engine modules (core, rendering, physics, audio, and asset pipeline) organized as independent static-library projects, all wired together with [Premake5](https://premake.github.io/).
 
 ## Features
 
 - **ECS Architecture** — Gameplay logic is built on top of [EnTT](https://github.com/skypjack/entt) for cache-friendly, data-oriented entity management.
-- **DirectX 11 Renderer** — Custom rendering pipeline (`Tsukino.Renderer`) built directly on the DirectX 11 API.
+- **bgfx Renderer** — Custom deferred rendering pipeline (`Tsukino.Renderer`) on bgfx (Direct3D 11 on Windows). Shaders are written in bgfx's shader language (`.sc`) and compiled at build time.
 - **Physics** — Integrated with [JoltPhysics](https://github.com/jrouwe/JoltPhysics) for rigid body simulation.
 - **Visual Effects** — Particle and effect playback powered by [Effekseer](https://github.com/tsukinokun/Effekseer).
 - **Audio** — Dedicated audio module (`Tsukino.Audio`) built on DirectXTK.
@@ -170,10 +170,8 @@ not change them:
   returns an `entt::view`, and `Registry::OnConstruct` / `OnDestroy` return EnTT sinks.
   A game therefore compiles against the EnTT version this engine vendors, and 1.x will
   not bump EnTT across a breaking release.
-- **`Window` is Win32.** `Tsukino/Core/Window.hpp` pulls in `<windows.h>` (through
-  `Tsukino/Core/WindowsLean.hpp`, which sets `NOMINMAX` and `WIN32_LEAN_AND_MEAN`
-  first), and `MessageCallback` takes `UINT` / `WPARAM` / `LPARAM`. This engine is
-  Windows and DirectX 11 only; the Window API is not going to become portable in 1.x.
+- **The platform layer is SDL3.** `Window` and `InputSystem` are built on SDL3, and the
+  renderer on bgfx. The public headers do not include `<windows.h>`.
 - **Failures are reported by logging and returning a default.** `FileSystem::ReadBinary`
   returns an empty buffer for a missing file, an empty file and a partial read alike;
   `AssetManager::Load` returns `AssetHandle::Invalid()` for every failure; a Prefab

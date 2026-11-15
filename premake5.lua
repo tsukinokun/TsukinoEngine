@@ -203,56 +203,6 @@ project "EffekseerRendererCommon"
         "Effekseer",
     }
 
-if not tsukino_use_bgfx() then
-----------------------------------------
--- Effekseer DX11 レンダラー（DX11 版の描画のときだけ。bgfx 版は Tsukino.Renderer の src/Bgfx/Effekseer）
----------------------------------------
-project "EffekseerRendererDX11"
-    location ".build/EffekseerRendererDX11"
-    kind "StaticLib"
-    language "C++"
-    cppdialect "C++20"
-
-    flags { "NoPCH" }
-
-    files {
-        "External/Effekseer/Dev/Cpp/EffekseerRendererDX11/EffekseerRendererDX11/**.h",
-        "External/Effekseer/Dev/Cpp/EffekseerRendererDX11/EffekseerRendererDX11/**.cpp",
-        "External/Effekseer/Dev/Cpp/EffekseerMaterialCompiler/**.h",
-        "External/Effekseer/Dev/Cpp/EffekseerMaterialCompiler/**.cpp",
-    }
-
-    -- DX12/Metal のマテリアルコンパイラは 3rdParty/LLGI に依存するため、
-    -- DX11 ビルドでは使わないこの2つを除外する。
-    removefiles {
-        "External/Effekseer/Dev/Cpp/EffekseerMaterialCompiler/DirectX12/**",
-        "External/Effekseer/Dev/Cpp/EffekseerMaterialCompiler/Metal/**",
-    }
-
-    includedirs {
-        "External/Effekseer/Dev/Cpp",
-        "External/Effekseer/Dev/Cpp/Effekseer",
-        "External/Effekseer/Dev/Cpp/EffekseerRendererDX11",
-        "External/Effekseer/Dev/Cpp/EffekseerMaterialCompiler",
-        "External/Effekseer/Dev/Cpp/3rdParty",
-        "External/Effekseer/Dev/Cpp/EffekseerRendererCommon",
-    }
-
-    defines { "EFK_USE_DX11" }
-
-    filter "system:windows"
-        defines { "WIN32", "_WIN32_WINNT=0x0A00" }
-    filter {}
-
-    links {
-        "EffekseerRendererCommon",
-        "Effekseer",
-        "d3d11",
-        "dxgi",
-        "d3dcompiler",
-    }
-end
-
 ----------------------------------------
 -- SDL3（ウィンドウ・入力・IME・ゲームパッド・保存先などのプラットフォーム層）
 --
@@ -270,14 +220,13 @@ project "SDL3"
     prebuildcommands(tsukino_sdl3_build_commands())
 
 ----------------------------------------
--- bgfx（描画の翻訳レイヤー。--renderer=bgfx のときだけ作る）
+-- bgfx（描画の翻訳レイヤー）
 --
 -- SDL3 と同じく、CMake を呼ぶだけのプロジェクト。できた静的ライブラリは tsukino_link() がリンクする。
 -- プロジェクト名をライブラリ名（bgfx）と同じにすると、premake が links の "bgfx" を
 -- このプロジェクトへの参照と取り違えて、ライブラリをリンクしなくなる。
 -- 初回の構成とビルドは数分かかる。2回目からは変わったところだけビルドする。
 ----------------------------------------
-if tsukino_use_bgfx() then
 project "bgfx-cmake"
     location ".build/bgfx"
     kind "Utility"
@@ -285,7 +234,7 @@ project "bgfx-cmake"
     prebuildcommands(tsukino_bgfx_build_commands())
 
 ----------------------------------------
--- 組み込みシェーダーの変換（.sc → bgfx の形式。--renderer=bgfx のときだけ作る）
+-- 組み込みシェーダーの変換（.sc → bgfx の形式）
 --
 -- ゲームのシェーダーと同じ tsukino_shaders() で変換する（shaderc を使うので bgfx-cmake の後に走る）。
 -- 出力は Tsukino.BuiltIn/Assets/Shaders/bgfx/<形式>/ に置かれ、実行時に BuiltInShaders が読む。
@@ -296,7 +245,6 @@ project "bgfx-shaders"
 
     tsukino_shaders("Tsukino.BuiltIn/Assets/Shaders/bgfx")
     tsukino_shaders("Tsukino.BuiltIn/Assets/Shaders/bgfx/Effekseer")    -- Effekseer の標準シェーダー（src/Bgfx/Effekseer が使う）
-end
 
 ----------------------------------------
 -- コアプロジェクト
@@ -427,12 +375,6 @@ project "Tsukino.Engine"
 
     nuget {"AssimpCpp:5.0.1.6"}
 
-    -- HLSL を実行時にコンパイルする ShaderImporter は DX11 版だけが使う。
-    -- bgfx 版のシェーダーはビルド時に変換する（tsukino_shaders()）ので、d3dcompiler を使わない
-    if tsukino_use_bgfx() then
-        removefiles { "Tsukino.Engine/src/Asset/Shader/ShaderImporter.cpp" }
-    end
-
 ----------------------------------------
 -- 描画プロジェクト
 ----------------------------------------
@@ -463,30 +405,23 @@ project "Tsukino.Renderer"
     }
 
     --------------------------------------------------------------------
-    -- 描画の実装の切り替え。src/DX11 と src/Bgfx のどちらか一方だけをビルドする
-    -- （internal の描画 API ごとのヘッダも同じ）。公開ヘッダと src 直下は共通
+    -- 描画は bgfx（src/Bgfx）。bgfx のヘッダは Renderer の中だけで使う
     --------------------------------------------------------------------
-    if tsukino_use_bgfx() then
-        removefiles { "Tsukino.Renderer/src/DX11/**", "Tsukino.Renderer/internal/Tsukino/Renderer/DX11/**" }
-        -- TSUKINO_RENDERER_BGFX は tsukino_workspace_defaults() がワークスペース全体に付ける
-        includedirs {
-            "External/bgfx/include",
-            "External/bimg/include",
-            "External/bx/include",
-            "External/bx/include/compat/msvc",
-        }
-        -- bx が要求する設定（bgfx.cmake の bx.cmake と揃える）
-        defines { "__STDC_LIMIT_MACROS", "__STDC_FORMAT_MACROS", "__STDC_CONSTANT_MACROS" }
-        buildoptions { "/Zc:__cplusplus", "/Zc:preprocessor" }
-        filter "configurations:Debug"
-            defines { "BX_CONFIG_DEBUG=1" }
-        filter "configurations:Release"
-            defines { "BX_CONFIG_DEBUG=0" }
-        filter {}
-        dependson { "bgfx-cmake", "bgfx-shaders" }
-    else
-        removefiles { "Tsukino.Renderer/src/Bgfx/**", "Tsukino.Renderer/internal/Tsukino/Renderer/Bgfx/**" }
-    end
+    includedirs {
+        "External/bgfx/include",
+        "External/bimg/include",
+        "External/bx/include",
+        "External/bx/include/compat/msvc",
+    }
+    -- bx が要求する設定（bgfx.cmake の bx.cmake と揃える）
+    defines { "__STDC_LIMIT_MACROS", "__STDC_FORMAT_MACROS", "__STDC_CONSTANT_MACROS" }
+    buildoptions { "/Zc:__cplusplus", "/Zc:preprocessor" }
+    filter "configurations:Debug"
+        defines { "BX_CONFIG_DEBUG=1" }
+    filter "configurations:Release"
+        defines { "BX_CONFIG_DEBUG=0" }
+    filter {}
+    dependson { "bgfx-cmake", "bgfx-shaders" }
 
     -- Tsukino.BuiltIn / Tsukino.EngineIntegration は上位層のため参照しない。
     -- Worldパスの後に差し込む描画は Tsukino/Renderer/IPostWorldPass.hpp の
@@ -504,7 +439,6 @@ project "Tsukino.Renderer"
         "External/Effekseer/Dev/Cpp/Effekseer",
         "External/Effekseer/Dev/Cpp/EffekseerRendererCommon",
         "External/Effekseer/Dev/Cpp/3rdParty",
-        ".build/packages/directxtk_desktop_win10.2026.4.1.1/include",
     }
 
     links {
@@ -514,14 +448,6 @@ project "Tsukino.Renderer"
         "EffekseerRendererCommon",
         "Effekseer",
     }
-
-    -- Effekseer の DX11 版を使うのは DX11 版の描画のときだけ（bgfx 版は Tsukino.Renderer の src/Bgfx/Effekseer が描く）
-    if not tsukino_use_bgfx() then
-        includedirs { "External/Effekseer/Dev/Cpp/EffekseerRendererDX11" }
-        links { "EffekseerRendererDX11", "d3dcompiler" }
-    end
-
-    nuget { "directxtk_desktop_win10:2026.4.1.1" }
 
 ----------------------------------------
 -- 物理プロジェクト
@@ -627,15 +553,8 @@ project "Tsukino.BuiltIn"
     files {
         "Tsukino.BuiltIn/src/**.cpp",
         "Tsukino.BuiltIn/include/**.hpp",
-        "Tsukino.BuiltIn/Assets/**.hlsl",
-        "Tsukino.BuiltIn/Assets/**.hlsli",
         "Tsukino.BuiltIn/pch.cpp"
     }
-
-    -- .hlsl/.hlsliはビルド対象から除外（.hlsliはインクルード専用でコンパイル自体行われない）
-    filter  "files:**.hlsl or files:**.hlsli"
-        buildaction "None"
-    filter {}
 
     includedirs {
         "Tsukino.BuiltIn/include",
@@ -659,8 +578,6 @@ project "Tsukino.BuiltIn"
         "EffekseerRendererCommon",
         "Effekseer",
     }
-
-    nuget { "directxtk_desktop_win10:2026.4.1.1" }
 
 ----------------------------------------
 -- エンジン統合プロジェクト
@@ -706,7 +623,6 @@ project "Tsukino.EngineIntegration"
         "External/Effekseer/Dev/Cpp/Effekseer",
         "External/Effekseer/Dev/Cpp/EffekseerRendererCommon",
         "External/Effekseer/Dev/Cpp/3rdParty",
-        ".build/packages/directxtk_desktop_win10.2026.4.1.1/include",
     }
 
     links {
@@ -719,12 +635,9 @@ project "Tsukino.EngineIntegration"
         "Tsukino.Physics",
         "EffekseerRendererCommon",
         "Effekseer",
-        "d3d11",
         "dxgi",
         "dwrite"
     }
-
-    nuget { "directxtk_desktop_win10:2026.4.1.1" }
 
 ----------------------------------------
 -- サンドボックス（実行ファイル）
@@ -780,13 +693,7 @@ project "Tsukino.Sandbox"
         "Tsukino.Sandbox/src/**.cpp",
         "Tsukino.Sandbox/include/**.hpp",
         "Tsukino.Sandbox/pch.cpp",
-        "Tsukino.Sandbox/Assets/**.hlsl"
     }
-
-    -- .hlslはビルド対象から除外
-    filter  "files:**.hlsl" 
-        buildaction "None"
-    filter {}
 
     -- エンジンのinclude・lib・NuGetをまとめて設定する。
     -- ゲーム側リポジトリの実行ファイルも同じ関数を呼ぶ

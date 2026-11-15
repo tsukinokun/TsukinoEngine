@@ -1,6 +1,6 @@
 //--------------------------------------------------------------
 //! @file   PBR.sh
-//! @brief  PBR のライティングと法線の扱い（PBR.hlsli の bgfx 版）
+//! @brief  PBR のライティングと法線の扱い
 //--------------------------------------------------------------
 #ifndef TSUKINO_PBR_SH
 #define TSUKINO_PBR_SH
@@ -10,7 +10,7 @@
 
 #define PI 3.14159265358979323846
 
-// 影の中でも残す明るさ（PBR の直接光。HLSL 版と同じ）
+// 影の中でも残す明るさ（PBR の直接光）
 #define kShadowMinLit 0.25
 
 //--------------------------------------------------------------
@@ -42,7 +42,7 @@ vec3 F_Schlick(float cosTheta, vec3 F0)
 }
 
 //--------------------------------------------------------------
-//! @brief  1つの光の直接光を PBR で求める（PBR.hlsli と同じ式）
+//! @brief  1つの光の直接光を PBR で求める
 //--------------------------------------------------------------
 vec3 EvaluatePBR(vec3 N, vec3 V, vec3 L, vec3 albedo, float metal, float rough0, float spec, vec3 radiance)
 {
@@ -84,11 +84,11 @@ vec3 DecodeNormal(vec3 enc)
 }
 
 //--------------------------------------------------------------
-//! @brief  法線マップを、接線を持たないメッシュに画面の微分で当てる（PBR.hlsli と同じ）
+//! @brief  法線マップを、接線を持たないメッシュに画面の微分で当てる
 //--------------------------------------------------------------
 vec3 ApplyNormalMap(vec3 N, vec3 worldPos, vec2 uv, vec3 tangentNormal)
 {
-    // HLSL 版の ddx / ddy と同じ向きにする（bgfx の dFdy は HLSL では -ddy になる）
+    // 画面の下向きを +y にする（bgfx の dFdy は Direct3D の ddy と符号が逆）
     vec3 dp1  = dFdx(worldPos);
     vec3 dp2  = -dFdy(worldPos);
     vec2 duv1 = dFdx(uv);
@@ -102,7 +102,7 @@ vec3 ApplyNormalMap(vec3 N, vec3 worldPos, vec2 uv, vec3 tangentNormal)
     float maxLenSq = max(dot(T, T), dot(B, B));
     float invmax   = (maxLenSq > 0.0) ? inversesqrt(maxLenSq) : 0.0;
 
-    // HLSL の mul(tangentNormal, float3x3(T, B, N)) = 行 T・B・N の重ね合わせ
+    // 接空間の法線を、行 T・B・N の重ね合わせで戻す
     vec3 n = tangentNormal.x * (T * invmax) + tangentNormal.y * (B * invmax) + tangentNormal.z * N;
 
     float lenSq = dot(n, n);
@@ -110,7 +110,7 @@ vec3 ApplyNormalMap(vec3 N, vec3 worldPos, vec2 uv, vec3 tangentNormal)
 }
 
 //--------------------------------------------------------------
-// 影（カスケードシャドウマップ）。式と調整値は PBR.hlsli と同じ。
+// 影（カスケードシャドウマップ）。
 // シャドウマップは配列のテクスチャ（1枚 = カスケード1つ。近い順）で、比較サンプラーで読む
 // （リバース Z なので GREATER_EQUAL。C++ 側の ShadowPass がテクスチャに付けている）
 //--------------------------------------------------------------

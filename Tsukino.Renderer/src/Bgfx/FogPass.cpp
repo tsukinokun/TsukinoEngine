@@ -88,7 +88,7 @@ namespace Tsukino::Renderer {
         if(!m_enabled || !m_fullscreenPass || !bgfx::isValid(m_gpu->program))
             return;
 
-        // 深度は画面と同じ大きさなので点で読む（DX11 版の PointClamp）
+        // 深度は画面と同じ大きさなので点で読む
         constexpr u32 kPointClamp = BGFX_SAMPLER_U_CLAMP | BGFX_SAMPLER_V_CLAMP | BGFX_SAMPLER_MIN_POINT | BGFX_SAMPLER_MAG_POINT
                                     | BGFX_SAMPLER_MIP_POINT;
         bgfx::setTexture(BgfxStage::GBufferDepth, m_gpu->depthSampler, m_graphicsContext->GetDepthTexture(), kPointClamp);
