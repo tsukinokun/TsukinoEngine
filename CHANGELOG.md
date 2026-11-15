@@ -33,8 +33,7 @@ carve-out for `Tsukino.Renderer` described under **API stability** in the README
     `Material.sh`).
   - `RenderResources` creates real bgfx textures (RGBA8 / BGRA8 / float / BC formats, full mip chains) and mesh
     buffers, and `PipelineFactory` builds bgfx programs and states. Pipelines whose shaders are not bgfx binaries yet
-    are skipped with one warning. `generateMips` textures get no mips and world-space sprites get
-    no fog in bgfx mode yet.
+    are skipped with one warning.
   - `premake` now defines `TSUKINO_RENDERER_BGFX` for every project in bgfx mode (it was the Renderer project only).
 - **bgfx renderer draws 3D models (bgfx mode only).** The frame now follows the DX11 order: opaque models into a 6-target
   G-Buffer (same formats as DX11), deferred lighting (sun, point and spot lights) into an RGBA16F HDR buffer, forward

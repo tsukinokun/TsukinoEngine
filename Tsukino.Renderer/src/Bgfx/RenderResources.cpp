@@ -10,6 +10,8 @@
 #include <Tsukino/Renderer/Bgfx/GraphicsContext.hpp>
 #include <Tsukino/Renderer/Bgfx/ShaderPrograms.hpp>
 
+#include "MipChain.hpp"
+
 #include <Tsukino/Engine/Asset/Shader/ShaderAsset.hpp>
 #include <Tsukino/Engine/Asset/Texture/TextureAsset.hpp>
 
@@ -69,6 +71,23 @@ namespace Tsukino::Renderer {
             case TextureFormat::BC7:        return {F::BC7, false, 16, 4};
             case TextureFormat::BC7_sRGB:   return {F::BC7, true, 16, 4};
             default:                        return {};
+            }
+        }
+
+        //--------------------------------------------------------------------
+        //! 成分ごとに 8bit の非圧縮の形式なら、1画素の成分の数を返します（CPU でミップを作れる形式）。
+        //! @param  [in] format エンジンの形式
+        //! @return 成分の数（作れない形式なら 0）
+        //--------------------------------------------------------------------
+        u32 ByteChannelCount(TextureFormat format) {
+            switch(format) {
+            case TextureFormat::R8:         return 1;
+            case TextureFormat::RG8:        return 2;
+            case TextureFormat::RGBA8:
+            case TextureFormat::RGBA8_sRGB:
+            case TextureFormat::BGRA8:
+            case TextureFormat::BGRA8_sRGB: return 4;
+            default:                        return 0;
             }
         }
 
@@ -491,11 +510,10 @@ namespace Tsukino::Renderer {
 
         //--------------------------------------------------------------------
         // ミップの段。bgfx は 1×1 までそろった段か、1段だけを受け付ける。
-        // ファイルの段がそろっていなければ、いちばん上の段だけを送る。
-        // 1段だけの画像の generateMips（GPU で縮小を作る）は、bgfx 版ではまだしない
+        // ファイルの段がそろっていなければ、いちばん上の段だけを送る
         //--------------------------------------------------------------------
         const u32  fileMips = static_cast<u32>(textureAsset.mips.size());
-        const bool hasMips  = fileMips > 1 && fileMips == FullMipCount(textureAsset.width, textureAsset.height);
+        bool       hasMips  = fileMips > 1 && fileMips == FullMipCount(textureAsset.width, textureAsset.height);
         const u32  mipCount = hasMips ? fileMips : 1;
 
         //--------------------------------------------------------------------
@@ -518,9 +536,28 @@ namespace Tsukino::Renderer {
             totalSize += packedPitch * rows;
         }
 
-        const bgfx::Memory* memory = bgfx::alloc(totalSize);
-        u8*                 dst    = memory->data;
-        for(u32 mip = 0; mip < mipCount; ++mip) {
+        //--------------------------------------------------------------------
+        // 1段だけの画像で generateMips が付いていれば、1×1 までの段を CPU で作って送る
+        // （DX11 版は GPU の GenerateMips で作る。bgfx には普通のテクスチャ向けのそれが無い）。
+        // 作れるのは成分ごとに 8bit の非圧縮の形式だけで、それ以外は DX11 版と同じく1段のまま
+        //--------------------------------------------------------------------
+        const u32           byteChannels = ByteChannelCount(textureAsset.format);
+        const bool          generate     = textureAsset.generateMips && !hasMips && byteChannels > 0;
+        const bgfx::Memory* memory       = nullptr;
+        if(generate) {
+            const size_t          srcOffset = fileMips > 0 ? textureAsset.mips[0].offset : 0;
+            const u32             srcPitch  = (fileMips > 0 && textureAsset.mips[0].rowPitch != 0) ? textureAsset.mips[0].rowPitch
+                                                                                                    : PackedRowPitch(info, textureAsset.width);
+            const std::vector<u8> chain     = BuildMipChain(byteChannels, info.srgb, textureAsset.width, textureAsset.height,
+                                                            textureAsset.pixels.data() + srcOffset, srcPitch);
+            memory  = bgfx::copy(chain.data(), static_cast<u32>(chain.size()));
+            hasMips = true;
+        } else {
+            memory = bgfx::alloc(totalSize);
+        }
+
+        u8* dst = memory->data;
+        for(u32 mip = 0; mip < mipCount && !generate; ++mip) {
             const u32    width       = std::max(1u, textureAsset.width >> mip);
             const u32    height      = std::max(1u, textureAsset.height >> mip);
             const u32    packedPitch = PackedRowPitch(info, width);
