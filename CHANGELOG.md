@@ -59,6 +59,18 @@ carve-out for `Tsukino.Renderer` described under **API stability** in the README
   - `GetFrameStats().gpu` is filled from bgfx's per-view profiler (`BGFX_DEBUG_PROFILER`), summed per `GpuPass`.
   - Not yet in bgfx mode: Effekseer effects (`IPostWorldPass` is not drawn) and `BakedFont` (`.spritefont` files are
     not loaded; dynamic font atlases work).
+- **Game shaders compiled at build time with `tsukino_shaders()` (bgfx mode only).**
+  - `tsukino_shaders(dir)`, called under a project, compiles `<dir>/*.vs.sc` / `*.ps.sc` before the build into
+    `<dir>/dxbc/<name>.sc.bin`. A `varying.def.sc` in the folder is used if there is one, otherwise the built-in one;
+    `#include` searches the folder and then the built-in `Shaders/bgfx`, so game shaders can include `Scene.sh` and the
+    other built-in headers. It does nothing in DX11 mode. The output is a build product: add it to `.gitignore`.
+  - The built-in shaders use the same function (`bgfx-shaders` project), and `Tools/Shaders/CMakeLists.txt` takes the
+    folder as `TSUKINO_SHADER_DIR`. This replaces `tsukino_bgfx_shader_commands()`.
+  - `AssetManager::Load("<dir>/Water.ps.sc")` loads the compiled binary (`ShaderLoader::ToBinaryPath`); `.sc` files are
+    not imported or cached at run time.
+  - In bgfx mode nothing compiles HLSL at run time any more: `ShaderImporter` (`D3DCompileFromFile`) is not built or
+    registered, `BuiltInShaders` loads only `Shaders/bgfx/*.sc` (the HLSL fallback is gone), and `Tsukino.Engine` no
+    longer includes `d3dcompiler.h`. DX11 mode still compiles HLSL at run time until the DX11 renderer is removed.
 - **bgfx renderer draws motion blur (bgfx mode only).** `MotionBlur.ps` is ported to `.sc`.
   - Draws now send the previous frame's world matrix and bone matrices and set `motionFlags.x`, so the G-Buffer
     velocity target is filled when motion blur is enabled and the command has previous-frame data.
@@ -105,7 +117,7 @@ carve-out for `Tsukino.Renderer` described under **API stability** in the README
   geometry. `RenderQualitySettings::drawSky` works in bgfx mode.
 - **Fixed: a newly added `.sc` shader was not converted until the second build.** The `bgfx-shaders` step now runs
   CMake's `ZERO_CHECK` target first, so the shader list is re-globbed before the conversion in the same build
-  (`tsukino_bgfx_shader_commands()`).
+  (now in `tsukino_shaders()`).
 - **bgfx renderer draws cascaded shadows (bgfx mode only).** The shadow map is a D32F texture array with one layer and
   one bgfx view per cascade, sampled through a comparison sampler (`SAMPLER2DARRAYSHADOW`) by the deferred lighting
   pass and by forward models.

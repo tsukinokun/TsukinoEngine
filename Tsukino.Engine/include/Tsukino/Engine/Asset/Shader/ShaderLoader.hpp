@@ -11,7 +11,7 @@
 namespace Tsukino::Asset {
     //--------------------------------------------------------------
     //! @class  ShaderLoader
-    //! @brief  .shader ファイルを読み込んでShaderAssetを生成するローダー
+    //! @brief  コンパイル済みのシェーダー（.cso、bgfx 版は .sc.bin）を読み込んでShaderAssetを生成するローダー
     //--------------------------------------------------------------
     class ShaderLoader : public IAssetLoader {
     public:
@@ -43,6 +43,25 @@ namespace Tsukino::Asset {
         //--------------------------------------------------------------
         [[nodiscard]]
         static Tsukino::Shader::ShaderStage DetectStage(const Tsukino::Core::Path& path);
+
+        //--------------------------------------------------------------
+        //! bgfx のシェーダーのソース（.sc）から、ビルド時に変換した結果のパスを返します。
+        //! @param  [in] sourcePath シェーダーのソースのパス（例: Assets/Shaders/Water.ps.sc）
+        //! @return 変換した結果のパス（例: Assets/Shaders/dxbc/Water.ps.sc.bin）
+        //! @note   変換は tsukino_shaders()（Tools/premake/tsukino.lua）がビルド時に行い、
+        //!         ソースと同じフォルダの、形式ごとのフォルダへ書き出す。
+        //!         実行時には変換しない（変換の道具はアプリに入らない）
+        //--------------------------------------------------------------
+        [[nodiscard]]
+        static Tsukino::Core::Path ToBinaryPath(const Tsukino::Core::Path& sourcePath);
+
+        //--------------------------------------------------------------
+        //! この環境で読む、変換済みのシェーダーの形式のフォルダ名を返します。
+        //! @return フォルダ名（Windows の Direct3D 11 は "dxbc"）
+        //! @note   名前は bgfx.cmake の決まりに合わせる（Tools/Shaders/CMakeLists.txt の出力先）
+        //--------------------------------------------------------------
+        [[nodiscard]]
+        static const char* GetBinaryDirectoryName();
     };
 
 }    // namespace Tsukino::Asset

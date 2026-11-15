@@ -288,20 +288,14 @@ project "bgfx-cmake"
 ----------------------------------------
 -- 組み込みシェーダーの変換（.sc → bgfx の形式。--renderer=bgfx のときだけ作る）
 --
--- Tools/Shaders/CMakeLists.txt を CMake で呼ぶだけのプロジェクト。shaderc を使うので bgfx-cmake の後に走る。
+-- ゲームのシェーダーと同じ tsukino_shaders() で変換する（shaderc を使うので bgfx-cmake の後に走る）。
 -- 出力は Tsukino.BuiltIn/Assets/Shaders/bgfx/<形式>/ に置かれ、実行時に BuiltInShaders が読む。
 ----------------------------------------
 project "bgfx-shaders"
     location ".build/bgfx-shaders"
     kind "Utility"
-    dependson { "bgfx-cmake" }
 
-    files { "Tsukino.BuiltIn/Assets/Shaders/bgfx/*.sc", "Tsukino.BuiltIn/Assets/Shaders/bgfx/*.sh" }
-    filter "files:**.sc or **.sh"
-        buildaction "None"
-    filter {}
-
-    prebuildcommands(tsukino_bgfx_shader_commands())
+    tsukino_shaders("Tsukino.BuiltIn/Assets/Shaders/bgfx")
 end
 
 ----------------------------------------
@@ -435,6 +429,12 @@ project "Tsukino.Engine"
     }
 
     nuget {"AssimpCpp:5.0.1.6"}
+
+    -- HLSL を実行時にコンパイルする ShaderImporter は DX11 版だけが使う。
+    -- bgfx 版のシェーダーはビルド時に変換する（tsukino_shaders()）ので、d3dcompiler を使わない
+    if tsukino_use_bgfx() then
+        removefiles { "Tsukino.Engine/src/Asset/Shader/ShaderImporter.cpp" }
+    end
 
 ----------------------------------------
 -- 描画プロジェクト

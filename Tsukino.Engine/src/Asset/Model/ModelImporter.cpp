@@ -29,7 +29,6 @@
 
 #include "../Texture/TextureAlphaUtility.hpp"
 
-#include <d3dcompiler.h>
 #include <fstream>
 #include <cereal/archives/binary.hpp>
 #include <cereal/types/string.hpp>

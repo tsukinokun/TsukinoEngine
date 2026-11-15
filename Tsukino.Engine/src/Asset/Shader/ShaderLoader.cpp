@@ -15,7 +15,8 @@ namespace Tsukino::Asset {
     //! @brief 対応する拡張子か判定する関数
     //--------------------------------------------------------------
     bool ShaderLoader::CanLoad(const std::string& ext) const {
-        return ext == ".cso";
+        // .bin は bgfx 版の変換済みシェーダー（<名前>.vs.sc.bin）。拡張子は最後の1つしか渡されない
+        return ext == ".cso" || ext == ".bin";
     }
 
     //--------------------------------------------------------------
@@ -81,7 +82,7 @@ namespace Tsukino::Asset {
             {".hs.cso", Stage::Hull    },
             {".ds.cso", Stage::Domain  },
 
-            // bgfx 版の組み込みシェーダー（Tools/Shaders/CMakeLists.txt が .sc から作る）
+            // bgfx 版のシェーダー（tsukino_shaders() が .sc から作る）
             {".vs.sc.bin", Stage::Vertex},
             {".ps.sc.bin", Stage::Pixel },
         };
@@ -97,6 +98,22 @@ namespace Tsukino::Asset {
 
         // どのサフィックスにもマッチしない場合は Unknown を返す
         return Stage::Unknown;
+    }
+
+    //--------------------------------------------------------------
+    //! bgfx のシェーダーのソース（.sc）から、ビルド時に変換した結果のパスを返します。
+    //--------------------------------------------------------------
+    Tsukino::Core::Path ShaderLoader::ToBinaryPath(const Tsukino::Core::Path& sourcePath) {
+        return sourcePath.parent_path() / std::string(GetBinaryDirectoryName()) / (sourcePath.filename() + ".bin");
+    }
+
+    //--------------------------------------------------------------
+    //! この環境で読む、変換済みのシェーダーの形式のフォルダ名を返します。
+    //--------------------------------------------------------------
+    const char* ShaderLoader::GetBinaryDirectoryName() {
+        // 今の bgfx 版は Windows の Direct3D 11（shaderc の s_5_0）だけ。
+        // 他の OS（Metal・SPIR-V・GLES）は、その OS へ移すときに足す
+        return "dxbc";
     }
 
 }    // namespace Tsukino::Asset

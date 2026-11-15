@@ -1,7 +1,7 @@
 ﻿//----------------------------------------------------------------------------
 //! @file   ShaderPrograms.hpp
 //! @brief  bgfx のシェーダーとプログラムを作る関数（Renderer の内部用）
-//! @detail シェーダーアセット（BuiltInShaders が読んだ .sc.bin）からプログラムを作る関数と、
+//! @detail シェーダーアセット（ビルド時に変換した .sc.bin）からプログラムを作る関数と、
 //!         RendererShaderSet に無い組み込みのシェーダーをファイルから直接読む関数です。
 //----------------------------------------------------------------------------
 #pragma once
@@ -18,9 +18,6 @@ namespace Tsukino::Asset {
 
 // 名前空間 : Tsukino::Renderer
 namespace Tsukino::Renderer {
-
-    //! 変換済みのシェーダーの形式のフォルダ（BuiltInShaders と揃える。今は Windows の s_5_0 だけ）
-    inline constexpr const char* kBgfxShaderProfileDir = "dxbc";
 
     //! シェーダーのバイナリが bgfx の形式（shaderc の出力）かを確かめます。
     //! @param  [in] binary シェーダーのバイナリ

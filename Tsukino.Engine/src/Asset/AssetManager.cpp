@@ -20,7 +20,9 @@
 #include <Tsukino/Engine/Asset/Effect/EffectImporter.hpp>
 
 #include <Tsukino/Engine/Asset/Texture/TextureImporter.hpp>
+#if !defined(TSUKINO_RENDERER_BGFX)
 #include <Tsukino/Engine/Asset/Shader/ShaderImporter.hpp>
+#endif
 #include <Tsukino/Engine/Asset/Font/FontImporter.hpp>
 #include <Tsukino/Engine/Asset/Font/DynamicFontImporter.hpp>
 #include <Tsukino/Engine/Asset/Material/MaterialImporter.hpp>
@@ -63,7 +65,10 @@ namespace Tsukino::Asset {
         //--------------------------------------------------------------
         // インポーター登録
         //--------------------------------------------------------------
+#if !defined(TSUKINO_RENDERER_BGFX)
+        // DX11 版だけ、HLSL を実行時にコンパイルする（bgfx 版のシェーダーはビルド時に変換済みなので取り込まない）
         RegisterImporter(AssetType::Shader, Tsukino::Core::CreateRef<ShaderImporter>());      // シェーダーインポーターの登録
+#endif
         RegisterImporter(AssetType::Texture, Tsukino::Core::CreateRef<TextureImporter>(m_textureRules));    // テクスチャインポーターを登録
         RegisterImporter(AssetType::Font, Tsukino::Core::CreateRef<FontImporter>());          // フォントインポーターの登録
         RegisterImporter(AssetType::DynamicFont, Tsukino::Core::CreateRef<DynamicFontImporter>());    // 動的フォントインポーターの登録
@@ -406,6 +411,7 @@ namespace Tsukino::Asset {
 
             {".shader",  AssetType::Shader },
             {".hlsl",    AssetType::Shader },
+            {".sc",      AssetType::Shader },    // bgfx のシェーダー（ビルド時に変換済み）
 
             {".obj",     AssetType::Model  },
             {".fbx",     AssetType::Model  },
@@ -471,6 +477,13 @@ namespace Tsukino::Asset {
 
         auto [sourceBase, sourceFragment] = Tsukino::Core::Path::SplitPathAndFragment(sourcePath.string());
         Tsukino::Core::Path sourceBasePath(sourceBase);
+
+        //--------------------------------------------------------------
+        // bgfx のシェーダー（.sc）はキャッシュを作らない。ビルド時に変換した結果が
+        // ソースの隣（形式ごとのフォルダ）にあるので、それを直接読む
+        //--------------------------------------------------------------
+        if(Tsukino::Core::Path::ToLower(sourceBasePath.extension()) == ".sc")
+            return ShaderLoader::ToBinaryPath(Tsukino::IO::FileSystem::GetAssetRootPath() / sourceBasePath);
 
         // 絶対パス(エンジン自身が所有するTools/やTsukino.BuiltIn/Assetsなど、
         // GetEngineAssetRootPath()経由で解決されたもの)の場合、そのまま

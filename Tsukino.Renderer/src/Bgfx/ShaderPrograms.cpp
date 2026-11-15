@@ -5,6 +5,7 @@
 #include <Tsukino/Renderer/Bgfx/ShaderPrograms.hpp>
 
 #include <Tsukino/Engine/Asset/Shader/ShaderAsset.hpp>
+#include <Tsukino/Engine/Asset/Shader/ShaderLoader.hpp>
 
 #include <Tsukino/Core/Log.hpp>
 #include <Tsukino/Core/IO/FileSystem.hpp>
@@ -43,12 +44,12 @@ namespace Tsukino::Renderer {
     //! 組み込みの変換済みシェーダーを2本ファイルから読み込んで、プログラムを作ります。
     //------------------------------------------------------------------------
     bgfx::ProgramHandle LoadBuiltInBgfxProgram(const char* vsName, const char* psName) {
-        const Tsukino::Core::Path folder =
-            Tsukino::IO::FileSystem::GetEngineAssetRootPath() / ("Tsukino.BuiltIn/Assets/Shaders/bgfx/" + std::string(kBgfxShaderProfileDir));
+        const Tsukino::Core::Path folder = Tsukino::IO::FileSystem::GetEngineAssetRootPath() / std::string("Tsukino.BuiltIn/Assets/Shaders/bgfx");
 
         // 1本読んで bgfx のシェーダーにする
         auto loadShader = [&folder](const char* name) -> bgfx::ShaderHandle {
-            const Tsukino::Core::Path path = folder / (std::string(name) + ".sc.bin");
+            // ゲームのシェーダーと同じ決まりで、ソース（.sc）の隣の変換結果を読む
+            const Tsukino::Core::Path path = Tsukino::Asset::ShaderLoader::ToBinaryPath(folder / (std::string(name) + ".sc"));
             std::ifstream             file(path.string(), std::ios::binary);
             if(!file) {
                 Tsukino::Core::Log::Error("ShaderPrograms: Shader not found: " + path.string());

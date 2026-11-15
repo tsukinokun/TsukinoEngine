@@ -298,29 +298,51 @@ function tsukino_bgfx_build_commands()
 end
 
 ----------------------------------------
--- エンジンの bgfx-shaders プロジェクト（kind "Utility"）の prebuildcommands に渡す、
--- 組み込みシェーダー（Tsukino.BuiltIn/Assets/Shaders/bgfx/*.sc）を bgfx の形式へ
--- 変換するコマンド列を返す。
+-- project 直下で呼ぶ（bgfx 版のときだけ働き、DX11 版では何もしない）。
+-- dir にある bgfx のシェーダー（*.vs.sc = 頂点、*.ps.sc = ピクセル）を、ビルドの前に
+-- bgfx の形式へ変換する。エンジンの組み込みシェーダーも、ゲームのシェーダーもこれを使う。
+--
+--   tsukino_shaders("MyGame/Assets/Shaders")
+--
+--   dir: 呼んだ premake スクリプトからの相対パス（files と同じ）
+--
+-- 出力は <dir>/<形式>/<名前>.sc.bin（Windows は dxbc = s_5_0）。生成物なので .gitignore に入れる。
+-- 実行時は AssetManager::Load("<dir>/Water.ps.sc") のように .sc のパスで読むと、
+-- この出力が読まれる（ShaderLoader::ToBinaryPath）。実行時には変換しない。
+-- Release の配布物へは、アセットのフォルダごとコピーすれば出力も一緒に入る。
+--
+-- 入出力の宣言（varying.def.sc）は dir にあればそれを、無ければ組み込みのものを使う。
+-- #include は dir → 組み込みの Shaders/bgfx の順に探すので、Scene.sh などをそのまま使える。
 --
 -- 手順は Tools/Shaders/CMakeLists.txt（bgfx.cmake の bgfx_compile_shaders を使う）に書いてあり、
 -- ここはそれを CMake で構成してビルドするだけ。変わった .sc だけを変換し直す。
--- shaderc は tsukino_bgfx_build_commands() が作ったものを使う。
--- 出力は Tsukino.BuiltIn/Assets/Shaders/bgfx/<形式>/（Windows は dxbc = s_5_0）。
--- 組み込みアセットのフォルダの中なので、Release の配布物へは tsukino_release_payload() の
--- コピーでそのまま入る。
+-- shaderc は tsukino_bgfx_build_commands() が作ったものを使うので、bgfx-cmake の後に走らせる。
+-- 中で filter を使うので、filter の外（project の直下）で呼ぶこと。
 ----------------------------------------
-function tsukino_bgfx_shader_commands()
-    local rel   = path.translate(path.getrelative(_MAIN_SCRIPT_DIR, _TSUKINO_ENGINE_ROOT), "\\")
-    local root  = '$(SolutionDir)..\\' .. rel .. '\\'
-    local build = '"$(SolutionDir)bgfx\\shaders"'
-    local rev   = "1"
+function tsukino_shaders(dir)
+    if not tsukino_use_bgfx() then
+        return
+    end
 
-    return {
+    local rel    = path.translate(path.getrelative(_MAIN_SCRIPT_DIR, path.getabsolute(dir)), "\\")
+    local engine = path.translate(path.getrelative(_MAIN_SCRIPT_DIR, _TSUKINO_ENGINE_ROOT), "\\")
+    local build  = '"$(SolutionDir)shaders\\' .. rel:gsub("[\\/:%.]", "_") .. '"'
+    local rev    = "2"
+
+    files { dir .. "/*.sc", dir .. "/*.sh" }
+    filter "files:**.sc or **.sh"
+        buildaction "None"
+    filter {}
+
+    dependson { "bgfx-cmake" }
+
+    prebuildcommands {
         'set "TSUKINO_CMAKE=$(VSInstallDir)Common7\\IDE\\CommonExtensions\\Microsoft\\CMake\\CMake\\bin\\cmake.exe"',
         'if not exist "%TSUKINO_CMAKE%" set "TSUKINO_CMAKE=cmake"',
-        'findstr /c:"TSUKINO_SHADERS_OPTIONS_REV:STRING=' .. rev .. '" ' .. build .. '\\CMakeCache.txt >nul 2>&1 || "%TSUKINO_CMAKE%" -S "' .. root .. 'Tools\\Shaders" -B ' .. build
+        'findstr /c:"TSUKINO_SHADERS_OPTIONS_REV:STRING=' .. rev .. '" ' .. build .. '\\CMakeCache.txt >nul 2>&1 || "%TSUKINO_CMAKE%" -S "$(SolutionDir)..\\' .. engine .. '\\Tools\\Shaders" -B ' .. build
             .. ' -A x64 -DTSUKINO_SHADERS_OPTIONS_REV:STRING=' .. rev
-            .. ' "-DTSUKINO_SHADERC=$(SolutionDir)bgfx\\build\\Release\\shaderc.exe" >nul || exit /b 1',
+            .. ' "-DTSUKINO_SHADERC=$(SolutionDir)bgfx\\build\\Release\\shaderc.exe"'
+            .. ' "-DTSUKINO_SHADER_DIR=$(SolutionDir)..\\' .. rel .. '" >nul || exit /b 1',
         -- .sc を足した・消したときは、CMake がファイルの一覧を取り直してプロジェクトを作り直す。
         -- 同じビルドの中では作り直す前の一覧で変換するので、先に取り直しだけ（ZERO_CHECK）を済ませる。
         -- これが無いと、足した .sc が変換されるのは次のビルドからになる
