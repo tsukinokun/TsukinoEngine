@@ -138,7 +138,7 @@ function tsukino_link()
     libdirs { "%{wks.location}/SDL3/build/%{cfg.buildcfg}" }
 
     -- bgfx とその土台（bimg・bx）。bgfx のヘッダは Tsukino.Renderer の中だけで使うので、includedirs は足さない
-    links { "bgfx", "bimg_decode", "bimg", "bx" }
+    links { "bgfx", "bimg_encode", "bimg_decode", "bimg", "bx" }
     libdirs { "%{wks.location}/bgfx/build/%{cfg.buildcfg}" }
 
     nuget {
@@ -212,7 +212,7 @@ end
 -- CMake の手順は External/bgfx.cmake を使い、ソースは External/bgfx・bimg・bx
 -- （bgfx.cmake が固定しているのと同じコミットの submodule）を渡す。
 -- 渡さないと bgfx.cmake が構成のたびにネットから取ってくる。
--- 出力は <wks.location>/bgfx/build/<構成>/ に bgfx.lib・bimg.lib・bimg_decode.lib・bx.lib
+-- 出力は <wks.location>/bgfx/build/<構成>/ に bgfx.lib・bimg.lib・bimg_decode.lib・bimg_encode.lib・bx.lib
 -- （tsukino_link() の libdirs と揃える）。作り方は tsukino_sdl3_build_commands() と同じ。
 --
 -- シェーダーの変換ツール shaderc も作る（<wks.location>/bgfx/build/Release/shaderc.exe）。
@@ -243,7 +243,7 @@ function tsukino_bgfx_build_commands()
             .. ' -DBGFX_CONFIG_MAX_TEXTURES=16384'
             .. ' "-DBX_DIR=' .. ext .. 'bx" "-DBIMG_DIR=' .. ext .. 'bimg" "-DBGFX_DIR=' .. ext .. 'bgfx"'
             .. ' -DCMAKE_ARCHIVE_OUTPUT_DIRECTORY=' .. build .. ' -DCMAKE_RUNTIME_OUTPUT_DIRECTORY=' .. build .. ' >nul || exit /b 1',
-        '"%TSUKINO_CMAKE%" --build ' .. build .. ' --config $(Configuration) --target bgfx bimg bimg_decode bx' .. msbuild,
+        '"%TSUKINO_CMAKE%" --build ' .. build .. ' --config $(Configuration) --target bgfx bimg bimg_decode bimg_encode bx' .. msbuild,
         '"%TSUKINO_CMAKE%" --build ' .. build .. ' --config Release --target shaderc' .. msbuild,
     }
 end

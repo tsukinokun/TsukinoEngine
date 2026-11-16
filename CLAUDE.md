@@ -7,7 +7,7 @@
 
 ### 探索してはいけない場所
 
-`External/` 配下（Effekseer / JoltPhysics / entt / cereal / hlslpp / DirectXTex）は
+`External/` 配下（Effekseer / JoltPhysics / entt / cereal / hlslpp / SDL / bgfx / bx / bimg / miniaudio など）は
 **読まない・grep しない**。約4,600ファイル・180MBあり、コンテキストを食い潰す。
 `.ignore` で機械的にも塞いであるが、意図として覚えておくこと。
 

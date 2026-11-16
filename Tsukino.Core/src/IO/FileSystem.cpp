@@ -46,6 +46,25 @@ namespace Tsukino::IO {
     }
 
     //-------------------------------------------------------------
+    //! @brief  バイナリファイルの先頭だけを読み込む
+    //-------------------------------------------------------------
+    std::vector<std::uint8_t> FileSystem::ReadBinaryHead(const Tsukino::Core::Path& path, std::size_t maxBytes) noexcept {
+        std::vector<std::uint8_t> buffer;
+        SDL_IOStream*             stream = SDL_IOFromFile(path.string().c_str(), "rb");
+        if(!stream)
+            return buffer;
+
+        try {
+            buffer.resize(maxBytes);
+            buffer.resize(SDL_ReadIO(stream, buffer.data(), maxBytes));
+        } catch(...) {
+            buffer.clear();
+        }
+        SDL_CloseIO(stream);
+        return buffer;
+    }
+
+    //-------------------------------------------------------------
     //! @brief  テキストファイルを読み込む
     //-------------------------------------------------------------
     std::string FileSystem::ReadText(const Tsukino::Core::Path& path) noexcept {

@@ -36,7 +36,7 @@ TsukinoEngineは、Windows向けの個人開発ゲームエンジンです。[bg
 - **物理演算** — [JoltPhysics](https://github.com/jrouwe/JoltPhysics)を統合し、剛体シミュレーションに対応。
 - **視覚エフェクト** — [Effekseer](https://github.com/tsukinokun/Effekseer)によるパーティクル・エフェクト再生。
 - **オーディオ** — [miniaudio](https://github.com/mackron/miniaudio) をベースとした専用オーディオモジュール(`Tsukino.Audio`)。`.wav` / `.mp3` / `.flac` を変換せずに鳴らします。
-- **アセットパイプライン** — [Assimp](https://github.com/assimp/assimp)によるモデル読み込みと、[DirectXTex](https://github.com/microsoft/DirectXTex)によるテクスチャ処理。
+- **アセットパイプライン** — [Assimp](https://github.com/assimp/assimp)によるモデル読み込みと、[bimg](https://github.com/bkaradzic/bimg)によるテクスチャ処理。
 - **シリアライズ** — [cereal](https://github.com/USCiLab/cereal)を用いたシーン・アセットデータのシリアライズ。
 - **モジュール構成** — `Tsukino.Core` / `Tsukino.GraphicsCommon` / `Tsukino.Engine` / `Tsukino.Renderer` / `Tsukino.Physics` / `Tsukino.Audio` / `Tsukino.BuiltIn` / `Tsukino.EngineIntegration` の各サブシステムを個別のPremakeプロジェクトとして分離し、`Tsukino.Sandbox`が実行可能ファイルとしてそれらを統合します。
 
@@ -46,7 +46,7 @@ TsukinoEngineは、Windows向けの個人開発ゲームエンジンです。[bg
 
 - Windows 10 または 11（x64）
 - Visual Studio 2022（**C++によるデスクトップ開発**ワークロード）。
-  エンジン本体は C++20、同梱の DirectXTex と Jolt は C++17 でビルドされます
+  エンジン本体は C++20、同梱の Jolt は C++17 でビルドされます
 - Git
 - ディスク空き容量 2GB 程度。同梱サブモジュールとサンプルアセットが大きいため、
   最初のクローンには時間がかかります
@@ -58,7 +58,7 @@ TsukinoEngineは、Windows向けの個人開発ゲームエンジンです。[bg
 git config --global core.longpaths true
 ```
 
-サブモジュール（hlslpp, entt, DirectXTex, cereal, JoltPhysics, Effekseer）を含めてクローンします。
+サブモジュール（hlslpp, entt, cereal, JoltPhysics, Effekseer, SDL, bgfx, bx, bimg, bgfx.cmake, miniaudio）を含めてクローンします。
 
 ```bash
 git clone --recurse-submodules https://github.com/tsukinokun/TsukinoEngine.git

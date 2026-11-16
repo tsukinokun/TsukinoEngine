@@ -15,14 +15,13 @@ TsukinoEngine 本体は MIT ライセンスで配布しています（`LICENSE` 
 | [Jolt Physics](https://github.com/jrouwe/JoltPhysics) | 剛体シミュレーション（`Tsukino.Physics`） | submodule | `3c1f4ba (v5.5.0+)` | MIT |
 | [EnTT](https://github.com/skypjack/entt) | ECS の基盤（`Tsukino.Core` の Registry / View） | submodule | `e08302e (v3.16.0+)` | MIT |
 | [hlslpp](https://github.com/redorav/hlslpp) | SIMD 数学型（ベクトル / 行列 / クォータニオン） | submodule | `cd09302 (3.8+)` | MIT |
-| [DirectXTex](https://github.com/microsoft/DirectXTex) | テクスチャの読み込みと圧縮 | submodule | `193629a` | MIT |
 | [cereal](https://github.com/USCiLab/cereal) | シーンとアセットのシリアライズ | submodule | `22a1b36` | BSD 3-Clause |
 | [miniaudio](https://github.com/mackron/miniaudio) | 音の再生と復号（wav / mp3 / flac。`Tsukino.Audio`） | submodule | `9634bed (0.11.25)` | Public Domain または MIT No Attribution（選べる） |
 | [Premake](https://github.com/premake/premake-core) | プロジェクトファイルの生成 | `vendor/premake5.exe` にバイナリを直接コミット | `5.0.0-beta8` | BSD 3-Clause |
 | [SDL](https://github.com/libsdl-org/SDL) | ウィンドウ・入力・IME・ゲームパッド・保存先などのプラットフォーム層 | submodule | `829a65d (3.4.18)` | zlib |
 | [bgfx](https://github.com/bkaradzic/bgfx) | 描画の翻訳レイヤー | submodule | `77b6e84` | BSD 2-Clause |
 | [bx](https://github.com/bkaradzic/bx) | bgfx の土台のライブラリ | submodule | `57548da` | BSD 2-Clause |
-| [bimg](https://github.com/bkaradzic/bimg) | bgfx の画像ライブラリ | submodule | `77bebb2` | BSD 2-Clause |
+| [bimg](https://github.com/bkaradzic/bimg) | bgfx の画像ライブラリ。テクスチャの読み込み（stb_image ほか）と圧縮（libsquish・astc-encoder ほか。条文は `External/bimg/3rdparty/`）にも使う | submodule | `77bebb2` | BSD 2-Clause |
 | [bgfx.cmake](https://github.com/bkaradzic/bgfx.cmake) | bgfx・bx・bimg を CMake でビルドする手順（ビルドにだけ使い、配布物には入らない） | submodule | `be0ef0d (v1.168.9624-612)` | CC0 1.0 |
 
 組み込みシェーダーを変換するために bgfx の `shaderc` もビルドします。
@@ -185,34 +184,6 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
-```
-
-### DirectXTex
-
-MIT — https://github.com/microsoft/DirectXTex
-
-```
-MIT License
-
-Copyright (c) Microsoft Corporation.
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE
 ```
 
 ### cereal

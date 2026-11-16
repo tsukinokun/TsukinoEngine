@@ -6,10 +6,6 @@
 	path = External/entt
 	url = https://github.com/skypjack/entt.git
 	shallow = true
-[submodule "External/DirectXTex"]
-	path = External/DirectXTex
-	url = https://github.com/microsoft/DirectXTex.git
-	shallow = true
 [submodule "External/cereal"]
 	path = External/cereal
 	url = https://github.com/USCiLab/cereal.git

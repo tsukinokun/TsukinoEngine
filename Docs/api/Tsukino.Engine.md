@@ -136,13 +136,21 @@
 - **Tsukino::Asset::AudioLoader** — `Tsukino.Engine/include/Tsukino/Engine/Asset/Audio/AudioLoader.hpp`
   - AudioLoader(), CanLoad(), Load()
 - **Tsukino::Asset::CubemapAsset** — `Tsukino.Engine/include/Tsukino/Engine/Asset/Cubemap/CubemapAsset.hpp`
-  - ddsData, width, height, GetHandle(), GetType(), SetHandle()
+  - data, width, height, GetHandle(), GetType(), SetHandle()
 - **Tsukino::Asset::CubemapDesc** — `Tsukino.Engine/include/Tsukino/Engine/Asset/Cubemap/CubemapDesc.hpp`
   - px, nx, py, ny, pz, nz, serialize()
 - **Tsukino::Asset::CubemapImporter** — `Tsukino.Engine/include/Tsukino/Engine/Asset/Cubemap/CubemapImporter.hpp`
   - Import()
 - **Tsukino::Asset::CubemapLoader** — `Tsukino.Engine/include/Tsukino/Engine/Asset/Cubemap/CubemapLoader.hpp`
   - CubemapLoader(), CanLoad(), Load()
+- **Tsukino::Asset::Detail::ImageEncodeOptions** — `Tsukino.Engine/src/Asset/Texture/ImageCodec.hpp`
+  - srgb, generateMips, compressedFormat
+- **Tsukino::Asset::Detail::Rgba8Image** — `Tsukino.Engine/src/Asset/Texture/ImageCodec.hpp`
+  - width, height, pixels
+- **Tsukino::Asset::Detail::TextureFileData** — `Tsukino.Engine/src/Asset/Texture/ImageCodec.hpp`
+  - format, mips, pixels
+- **Tsukino::Asset::Detail::TextureFileData::Mip** — `Tsukino.Engine/src/Asset/Texture/ImageCodec.hpp`
+  - offset, size, width, height, rowPitch
 - **Tsukino::Asset::DynamicFontAsset** — `Tsukino.Engine/include/Tsukino/Engine/Asset/Font/DynamicFontAsset.hpp`
   - m_faceName, m_pixelSize, m_fontFileData, GetHandle(), GetType(), SetHandle()
 - **Tsukino::Asset::DynamicFontImporter** — `Tsukino.Engine/include/Tsukino/Engine/Asset/Font/DynamicFontImporter.hpp`

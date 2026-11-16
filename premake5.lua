@@ -35,41 +35,6 @@ workspace "TsukinoEngine"                   -- ソリューション名
 end
 
 ----------------------------------------
--- DirectXTexプロジェクトを追加
-----------------------------------------
-project "DirectXTex"
-    location ".build/DirectXTex"
-    kind "StaticLib"
-    language "C++"
-    cppdialect "C++17"
-
-    -- PCH も一旦やめて、素の状態にする
-    flags { "NoPCH" }
-
-    files {
-        "External/DirectXTex/DirectXTex/*.h",
-        "External/DirectXTex/DirectXTex/*.inl",
-        "External/DirectXTex/DirectXTex/*.cpp",
-        "External/DirectXTex/Common/*.h",
-    }
-
-    -- GPU / Compute Shader 関連は全部切る
-    removefiles {
-        "External/DirectXTex/DirectXTex/BCDirectCompute.cpp",
-        "External/DirectXTex/DirectXTex/DirectXTexCompressGPU.cpp",
-        "External/DirectXTex/DirectXTex/DirectXTexD3D12.cpp"
-    }
-
-    includedirs {
-        "External/DirectXTex/DirectXTex",
-        "External/DirectXTex/Common",
-    }
-
-    filter "system:windows"
-        defines { "WIN32", "_WIN32_WINNT=0x0A00" }
-    filter {}
-
-----------------------------------------
 -- joltプロジェクトを追加
 ----------------------------------------
 project "JoltPhysics"
@@ -359,14 +324,26 @@ project "Tsukino.Engine"
         "External/cereal/include",
         "External/hlslpp/include", 
         "External/entt/single_include",
-        "External/DirectXTex",
         ".build/packages/AssimpCpp:5.0.1.6/build/native/include",
+        -- 画像の読み込み・圧縮（bimg）。ヘッダは Engine の src/Asset/Texture/ImageCodec.cpp だけが使う
+        "External/bimg/include",
+        "External/bx/include",
+        "External/bx/include/compat/msvc",
     }
+
+    -- bx が要求する設定（bgfx.cmake の bx.cmake と揃える。Tsukino.Renderer と同じ）
+    defines { "__STDC_LIMIT_MACROS", "__STDC_FORMAT_MACROS", "__STDC_CONSTANT_MACROS" }
+    buildoptions { "/Zc:__cplusplus", "/Zc:preprocessor" }
+    filter "configurations:Debug"
+        defines { "BX_CONFIG_DEBUG=1" }
+    filter "configurations:Release"
+        defines { "BX_CONFIG_DEBUG=0" }
+    filter {}
+    dependson { "bgfx-cmake" }
 
     links {
         "Tsukino.Core",
         "Tsukino.GraphicsCommon",
-        "DirectXTex",
     }
 
     nuget {"AssimpCpp:5.0.1.6"}

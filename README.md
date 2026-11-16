@@ -36,7 +36,7 @@ TsukinoEngine is a personal game engine project targeting Windows. It combines a
 - **Physics** — Integrated with [JoltPhysics](https://github.com/jrouwe/JoltPhysics) for rigid body simulation.
 - **Visual Effects** — Particle and effect playback powered by [Effekseer](https://github.com/tsukinokun/Effekseer).
 - **Audio** — Dedicated audio module (`Tsukino.Audio`) built on [miniaudio](https://github.com/mackron/miniaudio); `.wav` / `.mp3` / `.flac` are played as they are.
-- **Asset Pipeline** — Model import via [Assimp](https://github.com/assimp/assimp) and texture processing via [DirectXTex](https://github.com/microsoft/DirectXTex).
+- **Asset Pipeline** — Model import via [Assimp](https://github.com/assimp/assimp) and texture decoding, mipmapping and block compression via [bimg](https://github.com/bkaradzic/bimg); textures are cached as KTX.
 - **Serialization** — Scene and asset data serialization powered by [cereal](https://github.com/USCiLab/cereal).
 - **Modular Build** — Each subsystem (`Tsukino.Core`, `Tsukino.GraphicsCommon`, `Tsukino.Engine`, `Tsukino.Renderer`, `Tsukino.Physics`, `Tsukino.Audio`, `Tsukino.BuiltIn`, `Tsukino.EngineIntegration`) is a separate Premake project, and `Tsukino.Sandbox` ties them together as a runnable executable.
 
@@ -46,7 +46,7 @@ TsukinoEngine is a personal game engine project targeting Windows. It combines a
 
 - Windows 10 or 11 (x64)
 - Visual Studio 2022 with the "Desktop development with C++" workload. The engine
-  builds as C++20; the vendored DirectXTex and Jolt build as C++17.
+  builds as C++20; the vendored Jolt builds as C++17.
 - Git
 - About 2 GB of disk space and a slow first clone — the vendored submodules, and this
   repository's own sample assets, are large.
@@ -62,7 +62,7 @@ part way through. Enable long paths first:
 git config --global core.longpaths true
 ```
 
-Clone the repository together with its submodules (hlslpp, entt, DirectXTex, cereal, JoltPhysics, Effekseer):
+Clone the repository together with its submodules (hlslpp, entt, cereal, JoltPhysics, Effekseer, SDL, bgfx, bx, bimg, bgfx.cmake, miniaudio):
 
 ```bash
 git clone --recurse-submodules https://github.com/tsukinokun/TsukinoEngine.git

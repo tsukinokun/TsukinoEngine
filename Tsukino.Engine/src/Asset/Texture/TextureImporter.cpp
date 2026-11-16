@@ -6,13 +6,10 @@
 #include <Tsukino/Engine/Asset/Texture/TextureImporter.hpp>
 #include <Tsukino/Engine/Asset/Texture/TextureAsset.hpp>
 
-#include "TextureAlphaUtility.hpp"
-#include "TextureFormatDxgi.hpp"
+#include "ImageCodec.hpp"
 
 #include <Tsukino/Core/Log.hpp>
 #include <Tsukino/Core/IO/FileSystem.hpp>
-
-#include <DirectXTex/DirectXTex.h>
 
 #include <cctype>
 #include <cstdint>
@@ -47,7 +44,25 @@ namespace Tsukino::Asset {
             }
             return false;
         }
+
+        //--------------------------------------------------------------
+        //! sRGB の印を外した形式を返します（同じ圧縮かを比べるため）。
+        //! @param  [in] format 形式
+        //! @return sRGB の印を外した形式
+        //--------------------------------------------------------------
+        Tsukino::GraphicsCommon::TextureFormat WithoutSrgb(Tsukino::GraphicsCommon::TextureFormat format) {
+            using Tsukino::GraphicsCommon::TextureFormat;
+            switch(format) {
+            case TextureFormat::RGBA8_sRGB: return TextureFormat::RGBA8;
+            case TextureFormat::BGRA8_sRGB: return TextureFormat::BGRA8;
+            case TextureFormat::BC1_sRGB:   return TextureFormat::BC1;
+            case TextureFormat::BC3_sRGB:   return TextureFormat::BC3;
+            case TextureFormat::BC7_sRGB:   return TextureFormat::BC7;
+            default:                        return format;
+            }
+        }
     }    // namespace
+
     //--------------------------------------------------------------
     //! 既にあるキャッシュが規則のフォーマットと違うかを調べます。
     //--------------------------------------------------------------
@@ -57,15 +72,21 @@ namespace Tsukino::Asset {
             return false;
 
         // ヘッダだけ読むので、枚数が多くても起動はほとんど遅くならない
-        DirectX::TexMetadata metadata;
-        if(FAILED(DirectX::GetMetadataFromDDSFile(cachePath.ToStdPath().c_str(), DirectX::DDS_FLAGS_NONE, metadata)))
+        constexpr std::size_t                  kHeaderBytes = 4096;
+        const std::vector<std::uint8_t>        head         = Tsukino::IO::FileSystem::ReadBinaryHead(cachePath, kHeaderBytes);
+        Tsukino::GraphicsCommon::TextureFormat format       = Tsukino::GraphicsCommon::TextureFormat::Unknown;
+        u32                                    mipCount     = 0;
+        if(!Detail::ReadTextureFileInfo(head.data(), head.size(), format, mipCount))
             return true;
 
-        if(rule->generateMips && metadata.mipLevels <= 1)
+        if(rule->generateMips && mipCount <= 1)
             return true;
 
-        const DXGI_FORMAT ruleFormat = Detail::ToDxgiFormat(rule->compressedFormat);
-        return ruleFormat != DXGI_FORMAT_UNKNOWN && DirectX::MakeLinear(metadata.format) != DirectX::MakeLinear(ruleFormat);
+        // BC7 は BC3 で作るので、BC7 の規則は BC3 のキャッシュと一致とみなす
+        Tsukino::GraphicsCommon::TextureFormat wanted = WithoutSrgb(rule->compressedFormat);
+        if(wanted == Tsukino::GraphicsCommon::TextureFormat::BC7)
+            wanted = Tsukino::GraphicsCommon::TextureFormat::BC3;
+        return wanted != Tsukino::GraphicsCommon::TextureFormat::Unknown && WithoutSrgb(format) != wanted;
     }
 
     //--------------------------------------------------------------
@@ -73,26 +94,13 @@ namespace Tsukino::Asset {
     //--------------------------------------------------------------
     bool TextureImporter::Import(const Tsukino::Core::Path& inputPath, const Tsukino::Core::Path& outputDirectory) {
         //--------------------------------------------------------------
-        // ルートからの絶対パスで開く
+        // ルートからの絶対パスで開いて、RGBA8 にする
         //--------------------------------------------------------------
-        Tsukino::Core::Path baseDir           = Tsukino::IO::FileSystem::GetAssetRootPath();
-        Tsukino::Core::Path absoluteInputPath = baseDir / inputPath;
+        const Tsukino::Core::Path       absoluteInputPath = Tsukino::IO::FileSystem::GetAssetRootPath() / inputPath;
+        const std::vector<std::uint8_t> fileData          = Tsukino::IO::FileSystem::ReadBinary(absoluteInputPath);
 
-        //--------------------------------------------------------------
-        // テクスチャをDirectXTexで読み込むための変数
-        //--------------------------------------------------------------
-        DirectX::ScratchImage image;
-        DirectX::TexMetadata  metadata;
-
-        //--------------------------------------------------------------
-        // 色のテクスチャは sRGB、法線などのデータのテクスチャは線形として扱う（ここが最重要）
-        //--------------------------------------------------------------
-        const bool        isLinear = IsLinearTexture(inputPath);
-        const DirectX::WIC_FLAGS wicFlags = isLinear ? DirectX::WIC_FLAGS_IGNORE_SRGB : DirectX::WIC_FLAGS_FORCE_SRGB;
-
-        HRESULT hr = DirectX::LoadFromWICFile(absoluteInputPath.ToStdPath().c_str(), wicFlags, &metadata, image);
-
-        if(FAILED(hr)) {
+        Detail::Rgba8Image image;
+        if(!Detail::DecodeImage(fileData.data(), fileData.size(), image)) {
             Tsukino::Core::Log::Error("Failed to load texture: " + absoluteInputPath.string());
             return false;
         }
@@ -100,90 +108,33 @@ namespace Tsukino::Asset {
         //--------------------------------------------------------------
         // 透明ピクセルのRGBを近傍色で塗り広げる（バイリニア補間時の黒縁対策）
         //--------------------------------------------------------------
-        Tsukino::Asset::Detail::DilateTransparentEdges(image);
+        Detail::DilateTransparentEdges(image);
 
         //--------------------------------------------------------------
         // outputDirectory(Cache/) に inputPath(相対) を結合して階層を維持
         // (inputPathが絶対パスの場合はToEngineRelativePath()で相対パスに戻してから結合する)
         //--------------------------------------------------------------
         Tsukino::Core::Path outputPath = outputDirectory / Tsukino::IO::FileSystem::ToEngineRelativePath(inputPath);
-        outputPath.replace_extension(".dds");    // 拡張子をDDSに変更
+        outputPath.replace_extension(".ktx");
 
         //--------------------------------------------------------------
-        // 親ディレクトリの生成
-        //--------------------------------------------------------------
-        // 出力先を作れないまま書き込みへ進むと、失敗が原因から遠い場所で
-        // 「キャッシュが無い」として現れるため、ここで止める
-        if(!Tsukino::IO::FileSystem::CreateDirectories(outputPath.parent_path())) {
-            Tsukino::Core::Log::Error("TextureImporter: Failed to create the output directory: "
-                                      + outputPath.parent_path().string());
-            return false;
-        }
-
-        //--------------------------------------------------------------
-        // DDSファイルとして保存
-        //--------------------------------------------------------------
-        //--------------------------------------------------------------
-        // 色空間をフォーマットに刻んでから保存する。
-        // DDS の旧形式のヘッダには sRGB を書く場所が無く、DDS_FLAGS_NONE で
-        // 保存すると読み込み時に UNORM として扱われる。すると sRGB の値を
-        // 線形の値として読んでしまい、sRGB のバックバッファへ書くときに
-        // もう一度ガンマが掛かって、すべての色が白っぽく浮いて見えていた。
-        // DX10 拡張ヘッダなら sRGB を保持できるので、常にそちらで書く
-        //--------------------------------------------------------------
-        const DXGI_FORMAT storedFormat = isLinear ? DirectX::MakeLinear(metadata.format) : DirectX::MakeSRGB(metadata.format);
-        image.OverrideFormat(storedFormat);
-        metadata.format = storedFormat;
-
-        //--------------------------------------------------------------
+        // 色のテクスチャは sRGB、法線などのデータのテクスチャは線形として扱う（ここが最重要）。
+        // KTX は色空間を持てるので、読むときに sRGB の値を線形の値と取り違えない。
         // 規則があるテクスチャは、ミップマップを作ってブロック圧縮してから保存する
         //--------------------------------------------------------------
         const TextureImportRule* rule = m_rules ? m_rules->Find(inputPath) : nullptr;
-        if(rule && rule->generateMips) {
-            // sRGB の色は線形にしてから平均する（そのまま平均すると縮んだ段が暗くなる）。
-            // ボックスフィルタは一辺が2のべき乗の絵でしか使えないので、線形フィルタにする
-            const DirectX::TEX_FILTER_FLAGS filter = DirectX::TEX_FILTER_LINEAR | (isLinear ? DirectX::TEX_FILTER_DEFAULT : DirectX::TEX_FILTER_SRGB);
 
-            DirectX::ScratchImage mipChain;
-            hr = DirectX::GenerateMipMaps(*image.GetImage(0, 0, 0), filter, 0, mipChain);
-            if(FAILED(hr)) {
-                Tsukino::Core::Log::Error("TextureImporter: Failed to generate mipmaps: " + outputPath.string());
-                return false;
-            }
-            image    = std::move(mipChain);
-            metadata = image.GetMetadata();
-        }
+        Detail::ImageEncodeOptions options;
+        options.srgb             = !IsLinearTexture(inputPath);
+        options.generateMips     = rule && rule->generateMips;
+        options.compressedFormat = rule ? WithoutSrgb(rule->compressedFormat) : Tsukino::GraphicsCommon::TextureFormat::Unknown;
 
-        const DXGI_FORMAT ruleFormat = rule ? Detail::ToDxgiFormat(rule->compressedFormat) : DXGI_FORMAT_UNKNOWN;
-        if(ruleFormat != DXGI_FORMAT_UNKNOWN) {
-            //----------------------------------------------------------
-            // BC7 の既定の探索はとても遅い（初回起動の待ちになる）ので、早い探索で済ませる。
-            // 1枚の中を並列にはしない（AssetLoadQueue が枚数単位で手分けしている）
-            //----------------------------------------------------------
-            const DirectX::TEX_COMPRESS_FLAGS flags = DirectX::TEX_COMPRESS_BC7_QUICK;
-            const DXGI_FORMAT compressedFormat = isLinear ? DirectX::MakeLinear(ruleFormat) : DirectX::MakeSRGB(ruleFormat);
-
-            DirectX::ScratchImage compressed;
-            hr = DirectX::Compress(image.GetImages(), image.GetImageCount(), metadata, compressedFormat, flags, DirectX::TEX_THRESHOLD_DEFAULT, compressed);
-            if(FAILED(hr)) {
-                Tsukino::Core::Log::Error("TextureImporter: Failed to compress: " + outputPath.string());
-                return false;
-            }
-            image    = std::move(compressed);
-            metadata = image.GetMetadata();
-        }
-
-        hr = DirectX::SaveToDDSFile(image.GetImages(), image.GetImageCount(), metadata, DirectX::DDS_FLAGS_FORCE_DX10_EXT, outputPath.ToStdPath().c_str());
-
-        // 保存に失敗した場合はエラーログを出力して false を返す
-        if(FAILED(hr)) {
-            Tsukino::Core::Log::Error("Failed to save DDS: " + outputPath.string());
+        if(!Detail::WriteTextureKtx(outputPath, image, options)) {
+            Tsukino::Core::Log::Error("Failed to save texture: " + outputPath.string());
             return false;
         }
 
-        // 成功した場合は情報ログを出力して true を返す
         Tsukino::Core::Log::Info("Texture imported: " + outputPath.string());
-
         return true;
     }
 

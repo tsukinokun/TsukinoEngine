@@ -393,6 +393,7 @@ namespace Tsukino::Asset {
             {".bmp",     AssetType::Texture},
             {".tga",     AssetType::Texture},
             {".dds",     AssetType::Texture},
+            {".ktx",     AssetType::Texture},
 
             {".sc",      AssetType::Shader },    // bgfx のシェーダー（ビルド時に変換済み）
 
@@ -428,12 +429,13 @@ namespace Tsukino::Asset {
     //--------------------------------------------------------------
     Tsukino::Core::Path AssetManager::ConvertToCachePath(const Tsukino::Core::Path& sourcePath) {
         static const std::unordered_map<std::string, std::string> extensionMap = {
-            {".png",     ".dds"       },
-            {".jpg",     ".dds"       },
-            {".jpeg",    ".dds"       },
-            {".tga",     ".dds"       },
-            {".bmp",     ".dds"       },
-            {".dds",     ".dds"       },
+            {".png",     ".ktx"       },
+            {".jpg",     ".ktx"       },
+            {".jpeg",    ".ktx"       },
+            {".tga",     ".ktx"       },
+            {".bmp",     ".ktx"       },
+            {".dds",     ".ktx"       },
+            {".ktx",     ".ktx"       },
 
             {".obj",     ".tsm"       },
             {".fbx",     ".tsm"       },

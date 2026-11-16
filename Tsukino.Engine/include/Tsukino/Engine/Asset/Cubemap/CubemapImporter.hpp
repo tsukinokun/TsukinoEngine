@@ -10,7 +10,7 @@ namespace Tsukino::Asset {
     //--------------------------------------------------------------
     //! @class CubemapImporter
     //! @brief .cubemapファイルから6枚のPNGを読み込み
-    //!        キューブマップDDSとして出力するインポータークラス
+    //!        キューブマップ（KTX）として出力するインポータークラス
     //--------------------------------------------------------------
     class CubemapImporter : public IAssetImporter {
     public:

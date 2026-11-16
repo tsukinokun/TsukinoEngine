@@ -11,7 +11,7 @@
 namespace Tsukino::Asset {
     //--------------------------------------------------------------
     //! @class  CubemapAsset
-    //! @brief  キューブマップDDSのバイナリを保持するアセット
+    //! @brief  キューブマップのファイル（KTX）の中身を保持するアセット
     //--------------------------------------------------------------
     class CubemapAsset : public IAsset {
     public:
@@ -30,8 +30,8 @@ namespace Tsukino::Asset {
         //--------------------------------------------------------------
         void SetHandle(const AssetHandle& h) override { m_handle = h; }
 
-        // キューブマップDDSのバイナリデータ
-        std::vector<uint8_t> ddsData;
+        // キューブマップのファイル（KTX。6面とミップを含む）の中身
+        std::vector<uint8_t> data;
 
         // メタデータ
         uint32_t width  = 0;

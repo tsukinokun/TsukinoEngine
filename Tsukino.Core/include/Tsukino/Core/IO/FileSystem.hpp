@@ -29,6 +29,15 @@ namespace Tsukino::IO {
         static std::vector<std::uint8_t> ReadBinary(const Tsukino::Core::Path& path) noexcept;
 
         //---------------------------------------------------------
+        // バイナリファイルの先頭だけを読み込む（ヘッダを見るとき用）
+        //! @param  path     [in] 読み込むファイルパス
+        //! @param  maxBytes [in] 読む最大のバイト数
+        //! @return 読み込んだバイト列（ファイルが短ければその長さ。失敗時は空）
+        //---------------------------------------------------------
+        [[nodiscard]]
+        static std::vector<std::uint8_t> ReadBinaryHead(const Tsukino::Core::Path& path, std::size_t maxBytes) noexcept;
+
+        //---------------------------------------------------------
         // テキストファイルを読み込む
         //! @param  path [in] 読み込むファイルパス
         //! @return 読み込んだ文字列（失敗時は空）

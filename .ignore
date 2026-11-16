@@ -2,7 +2,7 @@
 # .gitignore とは別物で、git の追跡は一切変えず「検索空間」だけを削る。
 # どうしても中を検索したいときは rg --no-ignore を使う。
 
-# vendored 3rd party（Effekseer / JoltPhysics / entt / cereal / hlslpp / DirectXTex）。
+# vendored 3rd party（Effekseer / JoltPhysics / entt / cereal / hlslpp / SDL / bgfx / bimg / miniaudio など）。
 External/
 
 # 自動生成ドキュメントの機械可読版（外部ツール用）。

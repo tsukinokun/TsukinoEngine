@@ -3,22 +3,21 @@
 //! @brief  キューブマップインポーターの実装
 //! @author 山﨑愛
 //--------------------------------------------------------------
-#define NOMINMAX
 #include <Tsukino/Engine/Asset/Cubemap/CubemapImporter.hpp>
 #include <Tsukino/Engine/Asset/Cubemap/CubemapDesc.hpp>
+
+#include "../Texture/ImageCodec.hpp"
 
 #include <Tsukino/Core/Log.hpp>
 #include <Tsukino/Core/Path.hpp>
 #include <Tsukino/Core/IO/FileSystem.hpp>
 #include <Tsukino/Core/typedef.hpp>
 
-#include <DirectXTex/DirectXTex.h>
-#include <wincodec.h>
-
 #include <cereal/archives/json.hpp>
 #include <cereal/types/string.hpp>
-#include <fstream>
+
 #include <array>
+#include <sstream>
 #include <string>
 
 namespace Tsukino::Asset {
@@ -27,8 +26,7 @@ namespace Tsukino::Asset {
         //--------------------------------------------------------------
         // 拡張子チェック
         //--------------------------------------------------------------
-        std::string ext = inputPath.extension();
-        std::transform(ext.begin(), ext.end(), ext.begin(), ::tolower);
+        const std::string ext = Tsukino::Core::Path::ToLower(inputPath.extension());
         if(ext != ".cubemap") {
             Tsukino::Core::Log::Error("CubemapImporter: Unsupported format: " + ext);
             return false;
@@ -37,153 +35,73 @@ namespace Tsukino::Asset {
         //--------------------------------------------------------------
         // .cubemapファイル（JSON）を読み込む
         //--------------------------------------------------------------
-        Tsukino::Core::Path assetRoot     = Tsukino::IO::FileSystem::GetAssetRootPath();
-        Tsukino::Core::Path fullInputPath = assetRoot / inputPath;
+        const Tsukino::Core::Path assetRoot     = Tsukino::IO::FileSystem::GetAssetRootPath();
+        const Tsukino::Core::Path fullInputPath = assetRoot / inputPath;
 
         CubemapDesc desc;
         {
-            std::ifstream ifs(fullInputPath.ToStdPath());
-            if(!ifs) {
+            if(!Tsukino::IO::FileSystem::Exists(fullInputPath)) {
                 Tsukino::Core::Log::Error("CubemapImporter: Failed to open: " + fullInputPath.string());
                 return false;
             }
-            cereal::JSONInputArchive archive(ifs);
+            std::istringstream       stream(Tsukino::IO::FileSystem::ReadText(fullInputPath));
+            cereal::JSONInputArchive archive(stream);
             archive(desc);
         }
 
-        // 面の順番：DirectXキューブマップ規約
-        // +X, -X, +Y, -Y, +Z, -Z
+        // 面の順番：+X, -X, +Y, -Y, +Z, -Z（Direct3D・Metal・OpenGL で共通の並び）
         const std::array<std::string, 6> facePaths = {desc.px, desc.nx, desc.py, desc.ny, desc.pz, desc.nz};
         const std::array<std::string, 6> faceKeys  = {"px", "nx", "py", "ny", "pz", "nz"};
 
         //--------------------------------------------------------------
-        // 6枚の画像を読み込む
+        // 6枚の画像を読み込む（同じ大きさであること）
         //--------------------------------------------------------------
-        std::array<DirectX::ScratchImage, 6> faceImages;
-        size_t                               width  = 0;
-        size_t                               height = 0;
-
+        std::array<Detail::Rgba8Image, 6> faces;
         for(u32 i = 0; i < 6; ++i) {
             if(facePaths[i].empty()) {
                 Tsukino::Core::Log::Error("CubemapImporter: Missing face path: " + faceKeys[i]);
                 return false;
             }
 
-            Tsukino::Core::Path faceFullPath = assetRoot / Tsukino::Core::Path(facePaths[i]);
-
-            DirectX::TexMetadata metadata;
-            HRESULT              hr = DirectX::LoadFromWICFile(faceFullPath.ToStdPath().c_str(), DirectX::WIC_FLAGS_NONE, &metadata, faceImages[i]);
-
-            if(FAILED(hr)) {
+            const Tsukino::Core::Path       faceFullPath = assetRoot / Tsukino::Core::Path(facePaths[i]);
+            const std::vector<std::uint8_t> fileData     = Tsukino::IO::FileSystem::ReadBinary(faceFullPath);
+            if(!Detail::DecodeImage(fileData.data(), fileData.size(), faces[i])) {
                 Tsukino::Core::Log::Error("CubemapImporter: Failed to load face: " + faceFullPath.string());
                 return false;
             }
 
-            // 最初の面でサイズを確定
-            if(i == 0) {
-                width  = metadata.width;
-                height = metadata.height;
-            } else {
-                if(metadata.width != width || metadata.height != height) {
-                    Tsukino::Core::Log::Error("CubemapImporter: Face size mismatch at: " + faceKeys[i]);
-                    return false;
-                }
-            }
-
-            // RGBA8に統一
-            const DirectX::Image* srcImg = faceImages[i].GetImage(0, 0, 0);
-            if(srcImg->format != DXGI_FORMAT_R8G8B8A8_UNORM) {
-                DirectX::ScratchImage converted;
-                HRESULT hrConv = DirectX::Convert(*srcImg, DXGI_FORMAT_R8G8B8A8_UNORM, DirectX::TEX_FILTER_DEFAULT, DirectX::TEX_THRESHOLD_DEFAULT, converted);
-                if(FAILED(hrConv)) {
-                    Tsukino::Core::Log::Error("CubemapImporter: Failed to convert face format: " + faceKeys[i]);
-                    return false;
-                }
-                faceImages[i] = std::move(converted);
+            if(faces[i].width != faces[0].width || faces[i].height != faces[0].height) {
+                Tsukino::Core::Log::Error("CubemapImporter: Face size mismatch at: " + faceKeys[i]);
+                return false;
             }
         }
 
         //--------------------------------------------------------------
-        // 4の倍数にリサイズ
+        // ブロック圧縮のため、4の倍数の大きさにそろえる
         //--------------------------------------------------------------
-        size_t newWidth  = (width + 3) & ~3;
-        size_t newHeight = (height + 3) & ~3;
-
-        if(newWidth != width || newHeight != height) {
-            for(u32 i = 0; i < 6; ++i) {
-                DirectX::ScratchImage resized;
-                DirectX::Resize(*faceImages[i].GetImage(0, 0, 0), newWidth, newHeight, DirectX::TEX_FILTER_DEFAULT, resized);
-                faceImages[i] = std::move(resized);
+        const u32 width  = (faces[0].width + 3u) & ~3u;
+        const u32 height = (faces[0].height + 3u) & ~3u;
+        if(width != faces[0].width || height != faces[0].height) {
+            for(Detail::Rgba8Image& face : faces) {
+                face = Detail::ResizeImage(face, width, height, false);
             }
-            width  = newWidth;
-            height = newHeight;
         }
 
         //--------------------------------------------------------------
-        // 6枚をキューブマップにまとめる
+        // ミップマップを作り、BC1 で圧縮する（スカイボックスはアルファ不要）。
+        // 中身は KTX（拡張子は .tcc のまま。テクスチャと読み分けるため）
         //--------------------------------------------------------------
-        DirectX::ScratchImage cubeImage;
-        HRESULT               hr = cubeImage.InitializeCube(DXGI_FORMAT_R8G8B8A8_UNORM, width, height, 1, 1);
-        if(FAILED(hr)) {
-            Tsukino::Core::Log::Error("CubemapImporter: Failed to initialize cubemap.");
-            return false;
-        }
+        Detail::ImageEncodeOptions options;
+        options.srgb             = false;
+        options.generateMips     = true;
+        options.compressedFormat = Tsukino::GraphicsCommon::TextureFormat::BC1;
 
-        for(u32 i = 0; i < 6; ++i) {
-            const DirectX::Image* src = faceImages[i].GetImage(0, 0, 0);
-            const DirectX::Image* dst = cubeImage.GetImage(0, i, 0);
-            std::memcpy(dst->pixels, src->pixels, src->slicePitch);
-        }
-
-        //--------------------------------------------------------------
-        // ミップマップ生成
-        //--------------------------------------------------------------
-        DirectX::ScratchImage mipChain;
-        hr = DirectX::GenerateMipMaps(cubeImage.GetImages(), cubeImage.GetImageCount(), cubeImage.GetMetadata(), DirectX::TEX_FILTER_DEFAULT, 0, mipChain);
-
-        if(FAILED(hr)) {
-            Tsukino::Core::Log::Error("CubemapImporter: Failed to generate mipmaps.");
-            return false;
-        }
-
-        //--------------------------------------------------------------
-        // BC1圧縮（スカイボックスはアルファ不要）
-        //--------------------------------------------------------------
-        DirectX::ScratchImage compressed;
-        hr = DirectX::Compress(mipChain.GetImages(),
-                               mipChain.GetImageCount(),
-                               mipChain.GetMetadata(),
-                               DXGI_FORMAT_BC1_UNORM,
-                               DirectX::TEX_COMPRESS_DEFAULT,
-                               DirectX::TEX_THRESHOLD_DEFAULT,
-                               compressed);
-
-        if(FAILED(hr)) {
-            Tsukino::Core::Log::Error("CubemapImporter: Failed to compress cubemap.");
-            return false;
-        }
-
-        //--------------------------------------------------------------
-        // 出力パスの構築・保存
-        // (inputPathが絶対パスの場合はToEngineRelativePath()で相対パスに戻してから結合する)
-        //--------------------------------------------------------------
         Tsukino::Core::Path tempPath = Tsukino::IO::FileSystem::ToEngineRelativePath(inputPath);
         tempPath.replace_extension(".tcc");
-        Tsukino::Core::Path outputPath = outputDirectory / tempPath;
+        const Tsukino::Core::Path outputPath = outputDirectory / tempPath;
 
-        // 出力先を作れないまま書き込みへ進むと、失敗が原因から遠い場所で
-        // 「キャッシュが無い」として現れるため、ここで止める
-        if(!Tsukino::IO::FileSystem::CreateDirectories(outputPath.parent_path())) {
-            Tsukino::Core::Log::Error("CubemapImporter: Failed to create the output directory: "
-                                      + outputPath.parent_path().string());
-            return false;
-        }
-
-        hr = DirectX::SaveToDDSFile(
-            compressed.GetImages(), compressed.GetImageCount(), compressed.GetMetadata(), DirectX::DDS_FLAGS_NONE, outputPath.ToStdPath().c_str());
-
-        if(FAILED(hr)) {
-            Tsukino::Core::Log::Error("CubemapImporter: Failed to save DDS: " + outputPath.string());
+        if(!Detail::WriteCubemapKtx(outputPath, faces, options)) {
+            Tsukino::Core::Log::Error("CubemapImporter: Failed to save: " + outputPath.string());
             return false;
         }
 

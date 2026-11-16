@@ -24,10 +24,7 @@
 #include <assimp/scene.h>
 #include <assimp/postprocess.h>
 
-#include <DirectXTex/DirectXTex.h>
-#include <wincodec.h>
-
-#include "../Texture/TextureAlphaUtility.hpp"
+#include "../Texture/ImageCodec.hpp"
 
 #include <fstream>
 #include <cereal/archives/binary.hpp>
@@ -336,14 +333,14 @@ namespace Tsukino::Asset {
         };
 
         //--------------------------------------------------------------
-        // 埋め込みテクスチャをDDSに変換・保存
+        // 埋め込みテクスチャをKTXに変換・保存
         //--------------------------------------------------------------
         std::string                          modelBaseName = inputPath.stem();
-        std::unordered_map<u32, std::string> embeddedTexIndexToDDSPath;
+        std::unordered_map<u32, std::string> embeddedTexIndexToPath;
 
-        // アルファでくり抜くテクスチャのDDSパス。あとでアルベドに割り当てて
+        // アルファでくり抜くテクスチャのパス。あとでアルベドに割り当てて
         // MaterialData::alphaCutoff を立てるために使う
-        std::unordered_set<std::string> cutoutDDSPaths;
+        std::unordered_set<std::string> cutoutTexturePaths;
 
         //--------------------------------------------------------------
         // どのテクスチャインデックスがsRGBか事前に収集
@@ -388,85 +385,37 @@ namespace Tsukino::Asset {
         for(u32 i = 0; i < scene->mNumTextures; ++i) {
             const aiTexture* tex = scene->mTextures[i];
 
-            DirectX::ScratchImage image;
-
+            //--------------------------------------------------------------
+            // RGBA8 にする。mHeight が 0 なら png などのファイルの中身、そうでなければ BGRA の画素の並び
+            //--------------------------------------------------------------
+            Detail::Rgba8Image image;
             if(tex->mHeight == 0) {
-                DirectX::TexMetadata metadata;
-                HRESULT              hr = DirectX::LoadFromWICMemory(
-                    reinterpret_cast<const std::byte*>(tex->pcData), static_cast<size_t>(tex->mWidth), DirectX::WIC_FLAGS_NONE, &metadata, image, nullptr);
-                if(FAILED(hr)) {
+                if(!Detail::DecodeImage(tex->pcData, static_cast<size_t>(tex->mWidth), image)) {
                     Tsukino::Core::Log::Error("Failed to load embedded texture: " + std::to_string(i));
                     continue;
                 }
             } else {
-                HRESULT hr = image.Initialize2D(DXGI_FORMAT_B8G8R8A8_UNORM, tex->mWidth, tex->mHeight, 1, 1);
-                if(FAILED(hr)) {
-                    Tsukino::Core::Log::Error("Failed to initialize raw texture: " + std::to_string(i));
-                    continue;
+                image.width  = tex->mWidth;
+                image.height = tex->mHeight;
+                image.pixels.resize(static_cast<size_t>(tex->mWidth) * tex->mHeight * 4);
+                for(size_t p = 0; p < static_cast<size_t>(tex->mWidth) * tex->mHeight; ++p) {
+                    const aiTexel& texel     = tex->pcData[p];
+                    image.pixels[p * 4 + 0] = texel.r;
+                    image.pixels[p * 4 + 1] = texel.g;
+                    image.pixels[p * 4 + 2] = texel.b;
+                    image.pixels[p * 4 + 3] = texel.a;
                 }
-                const DirectX::Image* img = image.GetImage(0, 0, 0);
-                if(!img) {
-                    Tsukino::Core::Log::Error("GetImage returned nullptr after Initialize2D: " + std::to_string(i));
-                    continue;
-                }
-                std::memcpy(img->pixels, tex->pcData, img->slicePitch);
-            }
-
-            const DirectX::Image* srcImg = image.GetImage(0, 0, 0);
-            if(!srcImg) {
-                Tsukino::Core::Log::Error("GetImage returned nullptr: " + std::to_string(i));
-                continue;
             }
 
             //--------------------------------------------------------------
-            // sRGBかどうかでターゲットフォーマットを決定
+            // 色のテクスチャ（ベースカラーなど）は sRGB、法線などは線形として扱う
             //--------------------------------------------------------------
             const bool isSRGB = srgbTexIndices.count(i) > 0;
 
-            //元データがsRGBなら、メタデータのフォーマットを明示的に_SRGBに書き換える
-            if(isSRGB) {
-                // ロードされたフォーマットがUNORM系なら、対応する_SRGBフォーマットに上書きする
-                DXGI_FORMAT srgbFormat = DirectX::MakeSRGB(image.GetMetadata().format);
-                if(srgbFormat != DXGI_FORMAT_UNKNOWN) {
-                    image.OverrideFormat(srgbFormat);
-                }
-            }
-
-            // 中間フォーマットもsRGB / リニアを切り替えるようにする
-            const DXGI_FORMAT intermediateFormat = isSRGB ? DXGI_FORMAT_R8G8B8A8_UNORM_SRGB : DXGI_FORMAT_R8G8B8A8_UNORM;
-            const DXGI_FORMAT bcFormat           = isSRGB ? DXGI_FORMAT_BC3_UNORM_SRGB : DXGI_FORMAT_BC3_UNORM;
-
-            // intermediateFormat（_SRGB か _UNORM）を基準にコンバート
-            if(image.GetMetadata().format != intermediateFormat) {
-                DirectX::ScratchImage converted;
-                HRESULT               hrConv =
-                    DirectX::Convert(*image.GetImage(0, 0, 0), intermediateFormat, DirectX::TEX_FILTER_DEFAULT, DirectX::TEX_THRESHOLD_DEFAULT, converted);
-                if(FAILED(hrConv)) {
-                    Tsukino::Core::Log::Error("Failed to convert texture format: " + std::to_string(i));
-                    continue;
-                }
-                image = std::move(converted);
-            }
-
-            // 2048を超える場合はリサイズ
-            constexpr size_t maxSize = 2048;
-            if(image.GetMetadata().width > maxSize || image.GetMetadata().height > maxSize) {
-                size_t                newWidth  = std::min(image.GetMetadata().width, maxSize);
-                size_t                newHeight = std::min(image.GetMetadata().height, maxSize);
-                DirectX::ScratchImage resized;
-                DirectX::Resize(*image.GetImage(0, 0, 0), newWidth, newHeight, DirectX::TEX_FILTER_DEFAULT, resized);
-                image = std::move(resized);
-            }
-
-            // 4の倍数にリサイズ（BC圧縮の要件）
-            {
-                size_t newWidth  = (image.GetMetadata().width + 3) & ~3;
-                size_t newHeight = (image.GetMetadata().height + 3) & ~3;
-                if(newWidth != image.GetMetadata().width || newHeight != image.GetMetadata().height) {
-                    DirectX::ScratchImage resized;
-                    DirectX::Resize(*image.GetImage(0, 0, 0), newWidth, newHeight, DirectX::TEX_FILTER_DEFAULT, resized);
-                    image = std::move(resized);
-                }
+            // 2048を超える場合は縮める
+            constexpr u32 maxSize = 2048;
+            if(image.width > maxSize || image.height > maxSize) {
+                image = Detail::ResizeImage(image, std::min(image.width, maxSize), std::min(image.height, maxSize), isSRGB);
             }
 
             //--------------------------------------------------------------
@@ -479,60 +428,40 @@ namespace Tsukino::Asset {
             // 法線マップやスペキュラマップもアルファチャンネルを持つことがあるが、
             // それはくり抜き情報ではない。アルベド以外にふち処理を掛けると
             // 法線などのRGBを近傍色で塗り潰して壊してしまう
-            const bool hasCutout = albedoTexIndices.count(i) > 0 && Tsukino::Asset::Detail::HasCutoutAlpha(image);
+            const bool hasCutout = albedoTexIndices.count(i) > 0 && Detail::HasCutoutAlpha(image);
             if(hasCutout) {
-                Tsukino::Asset::Detail::DilateTransparentEdges(image);
+                Detail::DilateTransparentEdges(image);
             }
 
-            // ミップマップ生成
-            {
-                DirectX::ScratchImage mipChain;
-                HRESULT               hrMip = DirectX::GenerateMipMaps(*image.GetImage(0, 0, 0), DirectX::TEX_FILTER_DEFAULT, 0, mipChain);
-                if(FAILED(hrMip)) {
-                    Tsukino::Core::Log::Error("Failed to generate mipmaps: " + std::to_string(i));
-                    continue;
-                }
-                image = std::move(mipChain);
-            }
+            //--------------------------------------------------------------
+            // ミップマップを作り、BC3 で圧縮して KTX で保存する（4の倍数の大きさへは書き出しがそろえる）
+            //--------------------------------------------------------------
+            const std::string         ktxFilename       = modelBaseName + "_" + std::to_string(i) + ".ktx";
+            const Tsukino::Core::Path relativeInputPath = Tsukino::IO::FileSystem::ToEngineRelativePath(inputPath);
+            const Tsukino::Core::Path tsmDir            = (outputDirectory / relativeInputPath).parent_path();
+            const Tsukino::Core::Path ktxPath           = tsmDir / ktxFilename;
 
-            // BC3圧縮（sRGB / リニアを自動選択）
-            DirectX::ScratchImage compressed;
-            HRESULT               hr = DirectX::Compress(image.GetImages(),
-                                           image.GetImageCount(),
-                                           image.GetMetadata(),
-                                           bcFormat,
-                                           DirectX::TEX_COMPRESS_DEFAULT,
-                                           DirectX::TEX_THRESHOLD_DEFAULT,
-                                           compressed);
-            if(FAILED(hr)) {
-                Tsukino::Core::Log::Error("Failed to compress texture: " + std::to_string(i));
-                continue;
-            }
-            // 保存
-            std::string         ddsFilename        = modelBaseName + "_" + std::to_string(i) + ".dds";
-            Tsukino::Core::Path relativeInputPath   = Tsukino::IO::FileSystem::ToEngineRelativePath(inputPath);
-            Tsukino::Core::Path tsmDir              = (outputDirectory / relativeInputPath).parent_path();
-            Tsukino::Core::Path ddsPath             = tsmDir / ddsFilename;
-
-            hr = DirectX::SaveToDDSFile(
-                compressed.GetImages(), compressed.GetImageCount(), compressed.GetMetadata(), DirectX::DDS_FLAGS_NONE, ddsPath.ToStdPath().c_str());
-            if(FAILED(hr)) {
-                Tsukino::Core::Log::Error("Failed to save DDS: " + ddsFilename);
+            Detail::ImageEncodeOptions options;
+            options.srgb             = isSRGB;
+            options.generateMips     = true;
+            options.compressedFormat = Tsukino::GraphicsCommon::TextureFormat::BC3;
+            if(!Detail::WriteTextureKtx(ktxPath, image, options)) {
+                Tsukino::Core::Log::Error("Failed to save texture: " + ktxFilename);
                 continue;
             }
 
             // マテリアルに焼き込む参照パスは、他のゲームアセットと同じ「GetAssetRootPath()からの
             // 相対パス(Cache/を含まない)」規約にする。AssetManager::Load()が"Cache/"を付与して
-            // 実ファイル(ddsPathと同じ場所)を解決する。
-            // (ddsPathのような絶対パス、かつ既にCache/を含むパスをそのまま焼き込むと、
+            // 実ファイル(ktxPathと同じ場所)を解決する。
+            // (ktxPathのような絶対パス、かつ既にCache/を含むパスをそのまま焼き込むと、
             //  AssetManager::Load()経由で再度Cache/が付与されてしまい、二重になったパスが
             //  実在せずロードに失敗する。特にRelease構成ではGetEngineAssetRootPath()と
             //  GetAssetRootPath()が同じディレクトリを指すため、この問題が顕在化する)
-            Tsukino::Core::Path materialRefPath = relativeInputPath.parent_path() / ddsFilename;
-            embeddedTexIndexToDDSPath[i]        = materialRefPath.string();
+            Tsukino::Core::Path materialRefPath = relativeInputPath.parent_path() / ktxFilename;
+            embeddedTexIndexToPath[i]        = materialRefPath.string();
 
             if(hasCutout) {
-                cutoutDDSPaths.insert(materialRefPath.string());
+                cutoutTexturePaths.insert(materialRefPath.string());
             }
         }
 
@@ -570,8 +499,8 @@ namespace Tsukino::Asset {
 
             for(u32 t = 0; t < scene->mNumTextures; ++t) {
                 if(scene->mTextures[t] == embedded) {
-                    auto it = embeddedTexIndexToDDSPath.find(t);
-                    if(it != embeddedTexIndexToDDSPath.end())
+                    auto it = embeddedTexIndexToPath.find(t);
+                    if(it != embeddedTexIndexToPath.end())
                         return it->second;
                 }
             }
@@ -596,7 +525,7 @@ namespace Tsukino::Asset {
             // 埋め込みテクスチャだけが対象で、外部ファイル参照のテクスチャは
             // TextureImporter が別に読むためここでは判定できない
             //--------------------------------------------------------------
-            if(cutoutDDSPaths.count(dstMat.albedoMap) > 0) {
+            if(cutoutTexturePaths.count(dstMat.albedoMap) > 0) {
                 dstMat.alphaCutoff = 0.5f;
                 Tsukino::Core::Log::Info("Alpha cutout detected. Enabling alpha test: " + dstMat.albedoMap);
             }

@@ -63,7 +63,7 @@ namespace Tsukino::Asset {
         //! GPUへ送るときにミップマップ（1/2ずつ縮めた絵の段）を作るか。
         //! pixelsは最上段だけを持つ形のまま、縮小はRendererがGPUで作る。
         //! GPUが縮められるフォーマット（非圧縮のRGBA8系など）のときだけ効く（ブロック圧縮は1段のまま）。
-        //! 細かい線や模様を、縮めて描いたときにちらつかせないために使う（TextureLoaderは1段だけのDDSで立てる）
+        //! 細かい線や模様を、縮めて描いたときにちらつかせないために使う（TextureLoaderは1段だけのファイルで立てる）
         bool generateMips = false;
 
     private:

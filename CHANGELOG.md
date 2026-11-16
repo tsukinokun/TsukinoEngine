@@ -410,6 +410,18 @@ carve-out for `Tsukino.Renderer` described under **API stability** in the README
 
 ### Changed
 
+- **Textures are decoded, mipmapped and compressed with bimg instead of DirectXTex / WIC, and cached as KTX.**
+  - `.png` / `.jpg` / `.tga` / `.bmp` / `.dds` / `.ktx` sources are imported to `Cache/<path>.ktx`; `TextureLoader` reads
+    `.ktx`. KTX keeps the colour space, mips and block format, and also holds the mobile formats (ASTC / ETC2) later.
+    The old `Cache/*.dds` files are no longer read: delete `Cache/` once (the first start re-imports; about 100 s in
+    Debug for ChronoSort).
+  - Embedded model textures are written as `<model>_<n>.ktx`. They are now tagged sRGB correctly: the old DDS files
+    lost the sRGB flag (legacy header), so base colours were read as linear and looked washed out.
+  - Cubemaps (`.cubemap` → `.tcc`) hold a KTX cube with mips (BC1).
+  - Block compression uses libsquish's range fit (bimg `Quality::Fastest`); a cluster-fit search was about 7× slower on
+    the first import. bimg cannot encode BC7, so a `BC7` import rule produces BC3 (with a warning).
+  - `CubemapAsset::ddsData` is renamed `data`. New `FileSystem::ReadBinaryHead(path, maxBytes)` reads just a header.
+  - The DirectXTex submodule is removed; `bimg_encode` is built by the `bgfx-cmake` step and linked by `tsukino_link()`.
 - **Paths are UTF-8, and files are read through SDL.**
   - `Path` holds UTF-8 and gains `ToStdPath()` (a `std::filesystem::path` built from UTF-8) and a `const char*`
     constructor; `ToWString()` and the `operator/(const std::string&)` overload are removed (strings still convert to

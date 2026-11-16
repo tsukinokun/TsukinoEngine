@@ -244,7 +244,7 @@
 - **Tsukino::ECS::ScopedConnection** — `Tsukino.Core/include/Tsukino/Core/ECS/Event/ScopedConnection.hpp`
   - ScopedConnection(), ScopedConnection(), ScopedConnection(), operator=(), ScopedConnection(), operator=(), ~ScopedConnection(), Disconnect(), IsConnected()
 - **Tsukino::IO::FileSystem** — `Tsukino.Core/include/Tsukino/Core/IO/FileSystem.hpp`
-  - ReadBinary(), ReadText(), WriteBinary(), WriteText(), Exists(), CreateDirectories(), GetLastWriteTime(), GetAssetRootPath(), GetEngineAssetRootPath(), ToEngineRelativePath(), GetUserDataPath()
+  - ReadBinary(), ReadBinaryHead(), ReadText(), WriteBinary(), WriteText(), Exists(), CreateDirectories(), GetLastWriteTime(), GetAssetRootPath(), GetEngineAssetRootPath(), ToEngineRelativePath(), GetUserDataPath()
 - **Tsukino::IO::FileWatcher** — `Tsukino.Core/include/Tsukino/Core/IO/FileWatcher.hpp`
   - Watch(), Poll(), SetInterval(), GetInterval()
 - **Tsukino::IO::FileWatcher::Entry** — `Tsukino.Core/include/Tsukino/Core/IO/FileWatcher.hpp`
