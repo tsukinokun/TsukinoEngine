@@ -73,6 +73,10 @@ namespace Tsukino::Renderer {
             case TextureFormat::BC5:        return {F::BC5, false, 16, 4};
             case TextureFormat::BC7:        return {F::BC7, false, 16, 4};
             case TextureFormat::BC7_sRGB:   return {F::BC7, true, 16, 4};
+            case TextureFormat::ASTC4x4:      return {F::ASTC4x4, false, 16, 4};
+            case TextureFormat::ASTC4x4_sRGB: return {F::ASTC4x4, true, 16, 4};
+            case TextureFormat::ASTC6x6:      return {F::ASTC6x6, false, 16, 6};
+            case TextureFormat::ASTC6x6_sRGB: return {F::ASTC6x6, true, 16, 6};
             default:                        return {};
             }
         }

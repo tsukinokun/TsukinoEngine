@@ -58,6 +58,8 @@ namespace Tsukino::Asset {
             case TextureFormat::BC1_sRGB:   return TextureFormat::BC1;
             case TextureFormat::BC3_sRGB:   return TextureFormat::BC3;
             case TextureFormat::BC7_sRGB:   return TextureFormat::BC7;
+            case TextureFormat::ASTC4x4_sRGB: return TextureFormat::ASTC4x4;
+            case TextureFormat::ASTC6x6_sRGB: return TextureFormat::ASTC6x6;
             default:                        return format;
             }
         }
@@ -82,8 +84,8 @@ namespace Tsukino::Asset {
         if(rule->generateMips && mipCount <= 1)
             return true;
 
-        // BC7 は BC3 で作るので、BC7 の規則は BC3 のキャッシュと一致とみなす
-        Tsukino::GraphicsCommon::TextureFormat wanted = WithoutSrgb(rule->compressedFormat);
+        // BC7 は BC3 で作るので、BC7 の規則は BC3 のキャッシュと一致とみなす。スマホ向けなら ASTC と比べる
+        Tsukino::GraphicsCommon::TextureFormat wanted = m_rules->Resolve(WithoutSrgb(rule->compressedFormat));
         if(wanted == Tsukino::GraphicsCommon::TextureFormat::BC7)
             wanted = Tsukino::GraphicsCommon::TextureFormat::BC3;
         return wanted != Tsukino::GraphicsCommon::TextureFormat::Unknown && WithoutSrgb(format) != wanted;
@@ -127,7 +129,7 @@ namespace Tsukino::Asset {
         Detail::ImageEncodeOptions options;
         options.srgb             = !IsLinearTexture(inputPath);
         options.generateMips     = rule && rule->generateMips;
-        options.compressedFormat = rule ? WithoutSrgb(rule->compressedFormat) : Tsukino::GraphicsCommon::TextureFormat::Unknown;
+        options.compressedFormat = rule ? m_rules->Resolve(WithoutSrgb(rule->compressedFormat)) : Tsukino::GraphicsCommon::TextureFormat::Unknown;
 
         if(!Detail::WriteTextureKtx(outputPath, image, options)) {
             Tsukino::Core::Log::Error("Failed to save texture: " + outputPath.string());

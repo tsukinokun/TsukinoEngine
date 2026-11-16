@@ -33,6 +33,7 @@ Release/
 # アセットマネージャーが生成する中間ファイルを無視
 Cache/
 **/Cache/
+**/Cache-*/
 
 # doxygen関連
 html/

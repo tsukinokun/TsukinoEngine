@@ -70,4 +70,7 @@ Android ではアセットを APK の中から読みます（`FileSystem` は SD
 
 - アプリが裏へ回ると、エンジンは音を止めて描画を飛ばします（`Window::AppLifecycle`）。表へ戻ると描画先を付け直します。
 - UI は `Window::GetSafeArea()` の四角の中に置くと、画面の切り欠きやホームバーに隠れません。
-- BC 圧縮のテクスチャを読めない GPU では、読み込むときに RGBA8 へ展開します（メモリは増えます）。
+- スマホのテクスチャは ASTC にします。開発機で `AssetManager::SetTextureTarget(TextureTarget::Mobile)` と
+  `SetCacheFolderName("Cache-Mobile")` を呼んでから全アセットを読むと、スマホ向けのキャッシュができます
+  （BC1 → ASTC 6×6、BC3 / BC7 → ASTC 4×4）。それを `Cache` という名前で同梱します。ASTC の圧縮は Debug では遅いので Release で作ります。
+- GPU が読めない圧縮形式のテクスチャ（スマホの BC、パソコンの ASTC）は、読み込むときに RGBA8 へ展開します（メモリは増えます）。

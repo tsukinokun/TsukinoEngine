@@ -70,6 +70,10 @@ namespace Tsukino::Asset::Detail {
             {TextureFormat::BC5,        bimg::TextureFormat::BC5,     false},
             {TextureFormat::BC7,        bimg::TextureFormat::BC7,     false},
             {TextureFormat::BC7_sRGB,   bimg::TextureFormat::BC7,     true },
+            {TextureFormat::ASTC4x4,      bimg::TextureFormat::ASTC4x4, false},
+            {TextureFormat::ASTC4x4_sRGB, bimg::TextureFormat::ASTC4x4, true },
+            {TextureFormat::ASTC6x6,      bimg::TextureFormat::ASTC6x6, false},
+            {TextureFormat::ASTC6x6_sRGB, bimg::TextureFormat::ASTC6x6, true },
         };
 
         //! bimg の形式と sRGB かどうかから、エンジンの形式を返します（無ければ Unknown）。
@@ -191,9 +195,15 @@ namespace Tsukino::Asset::Detail {
             return Tsukino::IO::FileSystem::WriteBinary(path, block.more(0), static_cast<std::size_t>(size));
         }
 
-        //! 4 の倍数へ切り上げます（ブロック圧縮の最上段は4の倍数の大きさが要る）。
+        //! 4 の倍数へ切り上げます（BC 圧縮の最上段は4の倍数の大きさが要る）。
         u32 RoundUpTo4(u32 value) {
             return (value + 3u) & ~3u;
+        }
+
+        //! BC 圧縮の形式かを返します（ASTC は大きさの決まりが無い）。
+        bool IsBcFormat(TextureFormat format) {
+            const bimg::TextureFormat::Enum target = ToBimg(format);
+            return target >= bimg::TextureFormat::BC1 && target <= bimg::TextureFormat::BC7;
         }
     }    // namespace
 
@@ -351,7 +361,7 @@ namespace Tsukino::Asset::Detail {
         // ブロック圧縮するなら、最上段を4の倍数の大きさにそろえる
         const Rgba8Image* source = &image;
         Rgba8Image        padded;
-        if(options.compressedFormat != TextureFormat::Unknown && (image.width % 4 != 0 || image.height % 4 != 0)) {
+        if(IsBcFormat(options.compressedFormat) && (image.width % 4 != 0 || image.height % 4 != 0)) {
             padded = ResizeImage(image, RoundUpTo4(image.width), RoundUpTo4(image.height), options.srgb);
             source = &padded;
         }

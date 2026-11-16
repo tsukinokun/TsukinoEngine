@@ -14,8 +14,20 @@
 #include <utility>
 #include <vector>
 
+#if defined(__APPLE__)
+#    include <TargetConditionals.h>
+#endif
+
 // 名前空間 : Tsukino::Asset
 namespace Tsukino::Asset {
+
+    //------------------------------------------------------------------------
+    //! テクスチャを圧縮するときに、どの端末の GPU に合わせるかです。
+    //------------------------------------------------------------------------
+    enum class TextureTarget : u8 {
+        Desktop,    //!< パソコン（BC 圧縮）
+        Mobile,     //!< スマホ（ASTC 圧縮。BC1 → ASTC 6×6、BC3 / BC4 / BC5 / BC7 → ASTC 4×4）
+    };
 
     //------------------------------------------------------------------------
     //! テクスチャ1種類ぶんのインポートの規則です。
@@ -60,9 +72,35 @@ namespace Tsukino::Asset {
             return m_mipSkip;
         }
 
+        //! 圧縮をどの端末の GPU に合わせるかを設定します（既定はビルドしている OS に合わせる）。
+        //! @param  [in] target 合わせる端末
+        //! @note   開発機でスマホ向けのキャッシュを作るときに Mobile にする。
+        //!         作られるキャッシュの形式が規則と違えば、次に読んだときに作り直される
+        void SetTarget(TextureTarget target) noexcept {
+            m_target = target;
+        }
+
+        //! 圧縮をどの端末の GPU に合わせるかを取得します。
+        //! @return 合わせる端末
+        [[nodiscard]]
+        TextureTarget GetTarget() const noexcept {
+            return m_target;
+        }
+
+        //! 規則やインポーターが求めた圧縮の形式を、合わせる端末の形式に直します。
+        //! @param  [in] requested 求めた形式（sRGB の印は無くてよい）
+        //! @return 実際に作る形式（sRGB の印は無い。Unknown は Unknown のまま）
+        [[nodiscard]]
+        Tsukino::GraphicsCommon::TextureFormat Resolve(Tsukino::GraphicsCommon::TextureFormat requested) const noexcept;
+
     private:
         std::vector<std::pair<std::string, TextureImportRule>> m_rules;          // 対象のフォルダと規則の組
         u32                                                    m_mipSkip = 0;    // 読み込み時に捨てる上位ミップの段数
+#if defined(__ANDROID__) || (defined(__APPLE__) && TARGET_OS_IPHONE)
+        TextureTarget m_target = TextureTarget::Mobile;     // 圧縮を合わせる端末
+#else
+        TextureTarget m_target = TextureTarget::Desktop;    // 圧縮を合わせる端末
+#endif
     };
 
 }    // namespace Tsukino::Asset

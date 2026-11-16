@@ -64,12 +64,12 @@ namespace Tsukino::Asset {
         RegisterImporter(AssetType::Texture, Tsukino::Core::CreateRef<TextureImporter>(m_textureRules));    // テクスチャインポーターを登録
         RegisterImporter(AssetType::DynamicFont, Tsukino::Core::CreateRef<DynamicFontImporter>());    // 動的フォントインポーターの登録
 #if !defined(TSUKINO_WITHOUT_MODEL_IMPORTER)
-        RegisterImporter(AssetType::Model, Tsukino::Core::CreateRef<ModelImporter>());        // モデルインポーターの登録
+        RegisterImporter(AssetType::Model, Tsukino::Core::CreateRef<ModelImporter>(m_textureRules));        // モデルインポーターの登録
 #else
         // Assimp の無いビルド（スマホなど）は .fbx / .obj を取り込めない。開発機で作ったキャッシュ（.tsm）を同梱して読む
 #endif
         RegisterImporter(AssetType::Material, Tsukino::Core::CreateRef<MaterialImporter>());  // マテリアルインポーター（.tmat）の登録
-        RegisterImporter(AssetType::Cubemap, Tsukino::Core::CreateRef<CubemapImporter>());    // キューブマップインポーターを登録
+        RegisterImporter(AssetType::Cubemap, Tsukino::Core::CreateRef<CubemapImporter>(m_textureRules));    // キューブマップインポーターを登録
         RegisterImporter(AssetType::Effect, Tsukino::Core::CreateRef<EffectImporter>());      // エフェクトインポーターを登録
     }
 
@@ -271,7 +271,7 @@ namespace Tsukino::Asset {
             }
 
             if(shouldImport) {
-                Tsukino::Core::Path cacheDir = Tsukino::IO::FileSystem::GetAssetRootPath() / "Cache";
+                Tsukino::Core::Path cacheDir = Tsukino::IO::FileSystem::GetAssetRootPath() / m_cacheFolderName;
 
                 // 失敗しても即座には抜けない。古いキャッシュが残っていれば
                 // それで読み込みを続行できるため。キャッシュも無ければ
@@ -308,7 +308,7 @@ namespace Tsukino::Asset {
         //------------------------------------------------
         if(!asset && usedOldCache) {
             Tsukino::Core::Log::Warn("AssetManager: The cache could not be read (the format may have changed). Re-importing: " + path.string());
-            if(importerIt->second->Import(sourceBasePath, Tsukino::IO::FileSystem::GetAssetRootPath() / "Cache"))
+            if(importerIt->second->Import(sourceBasePath, Tsukino::IO::FileSystem::GetAssetRootPath() / m_cacheFolderName))
                 asset = loadFromCache();
         }
 
@@ -354,6 +354,20 @@ namespace Tsukino::Asset {
     //--------------------------------------------------------------
     void AssetManager::SetTextureMipSkip(u32 mipSkip) {
         m_textureRules->SetMipSkip(mipSkip);
+    }
+
+    //--------------------------------------------------------------
+    //! @brief テクスチャの圧縮をどの端末の GPU に合わせるかを設定する関数
+    //--------------------------------------------------------------
+    void AssetManager::SetTextureTarget(TextureTarget target) {
+        m_textureRules->SetTarget(target);
+    }
+
+    //--------------------------------------------------------------
+    //! @brief キャッシュを置くフォルダの名前を設定する関数
+    //--------------------------------------------------------------
+    void AssetManager::SetCacheFolderName(const std::string& name) {
+        m_cacheFolderName = name.empty() ? std::string("Cache") : name;
     }
 
     //--------------------------------------------------------------
@@ -481,7 +495,7 @@ namespace Tsukino::Asset {
         // Cache/ 以下に組み込む(相対パスのまま渡される通常のゲームアセットは対象外で挙動は変わらない)。
         Tsukino::Core::Path cacheRelativeSource = Tsukino::IO::FileSystem::ToEngineRelativePath(sourceBasePath);
 
-        Tsukino::Core::Path cacheBasePath = Tsukino::IO::FileSystem::GetAssetRootPath() / "Cache" / cacheRelativeSource;
+        Tsukino::Core::Path cacheBasePath = Tsukino::IO::FileSystem::GetAssetRootPath() / m_cacheFolderName / cacheRelativeSource;
 
         std::string ext = Tsukino::Core::Path::ToLower(sourceBasePath.extension());
         if(auto it = extensionMap.find(ext); it != extensionMap.end()) {

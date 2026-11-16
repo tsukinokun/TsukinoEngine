@@ -442,7 +442,8 @@ namespace Tsukino::Asset {
             Detail::ImageEncodeOptions options;
             options.srgb             = isSRGB;
             options.generateMips     = true;
-            options.compressedFormat = Tsukino::GraphicsCommon::TextureFormat::BC3;
+            options.compressedFormat = m_rules ? m_rules->Resolve(Tsukino::GraphicsCommon::TextureFormat::BC3)
+                                               : Tsukino::GraphicsCommon::TextureFormat::BC3;
             if(!Detail::WriteTextureKtx(ktxPath, image, options)) {
                 Tsukino::Core::Log::Error("Failed to save texture: " + ktxFilename);
                 continue;

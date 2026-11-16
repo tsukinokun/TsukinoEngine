@@ -9,6 +9,17 @@ carve-out for `Tsukino.Renderer` described under **API stability** in the README
 
 ### Added
 
+- **ASTC textures for phones, and caches cooked per device.** `TextureFormat` gains `ASTC4x4` / `ASTC6x6` (and `_sRGB`),
+  encoded by bimg (astc-encoder) and drawn natively where the GPU supports them (decoded to RGBA8 otherwise, e.g. Direct3D
+  11).
+  - `TextureImportRules::SetTarget` / `AssetManager::SetTextureTarget(TextureTarget::Mobile)` maps the requested block
+    formats when importing: BC1 → ASTC 6×6, BC3 / BC4 / BC5 / BC7 → ASTC 4×4. Texture import rules, embedded model
+    textures and cubemaps all follow it, and an existing cache in the other format is re-imported. Android and iOS builds
+    default to `Mobile`.
+  - `AssetManager::SetCacheFolderName("Cache-Mobile")` writes the caches to another folder, so a desktop can cook the phone
+    caches next to its own; ship that folder as `Cache`.
+  - ASTC encoding is slow in Debug builds (the Sandbox models took about two minutes); cook in Release.
+
 - **CMake build for Windows, macOS, iOS and Android.** The root `CMakeLists.txt` builds every engine module, the vendored
   libraries (SDL3, bgfx / bimg / bx and `shaderc`, Jolt, Effekseer, miniaudio) and the Sandbox. A game adds the engine
   with `add_subdirectory` and links `Tsukino::Engine`; `cmake/Tsukino.cmake` provides `tsukino_add_app` (executable, app

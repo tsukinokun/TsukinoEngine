@@ -9,6 +9,28 @@
 // 名前空間 : Tsukino::Asset
 namespace Tsukino::Asset {
 
+    //------------------------------------------------------------------------
+    //! 規則やインポーターが求めた圧縮の形式を、合わせる端末の形式に直します。
+    //------------------------------------------------------------------------
+    Tsukino::GraphicsCommon::TextureFormat TextureImportRules::Resolve(Tsukino::GraphicsCommon::TextureFormat requested) const noexcept {
+        using Tsukino::GraphicsCommon::TextureFormat;
+        if(m_target == TextureTarget::Desktop)
+            return requested;
+
+        // スマホの GPU は BC を読めないことが多いので、同じくらいの用途の ASTC にする
+        switch(requested) {
+        case TextureFormat::BC1:
+        case TextureFormat::BC1_sRGB: return TextureFormat::ASTC6x6;
+        case TextureFormat::BC3:
+        case TextureFormat::BC3_sRGB:
+        case TextureFormat::BC4:
+        case TextureFormat::BC5:
+        case TextureFormat::BC7:
+        case TextureFormat::BC7_sRGB: return TextureFormat::ASTC4x4;
+        default:                      return requested;
+        }
+    }
+
     namespace {
         //--------------------------------------------------------------
         //! パスの区切りを / に揃えます。

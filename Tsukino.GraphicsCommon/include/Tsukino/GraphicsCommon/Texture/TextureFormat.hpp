@@ -38,6 +38,10 @@ namespace Tsukino::GraphicsCommon {
         BC5,           //!< ブロック圧縮 BC5（2ch。法線マップ向け）
         BC7,           //!< ブロック圧縮 BC7（線形。高品質）
         BC7_sRGB,      //!< ブロック圧縮 BC7（sRGB）
+        ASTC4x4,       //!< ASTC 4×4（線形。スマホ向けの高品質な圧縮。BC3 / BC7 の代わり）
+        ASTC4x4_sRGB,  //!< ASTC 4×4（sRGB）
+        ASTC6x6,       //!< ASTC 6×6（線形。スマホ向けの軽い圧縮。BC1 の代わり）
+        ASTC6x6_sRGB,  //!< ASTC 6×6（sRGB）
         Count
     };
 
