@@ -23,7 +23,7 @@ namespace Tsukino::Renderer {
         const FullscreenPass*    fullscreenPass = nullptr;         // フルスクリーン三角形の描画（借りている。Renderer が設定する）
         CBufferSky               data{};                           // このフレームの大気散乱の定数（SkyPass::Execute が覚える。ベイクが送る）
 
-        Gpu() = default;
+        Gpu()                      = default;
         Gpu(const Gpu&)            = delete;
         Gpu& operator=(const Gpu&) = delete;
 

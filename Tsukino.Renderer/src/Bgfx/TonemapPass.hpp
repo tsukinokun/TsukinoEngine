@@ -38,9 +38,9 @@ namespace Tsukino::Renderer {
         void Execute(bgfx::ViewId view, bgfx::TextureHandle hdr) const;
 
     private:
-        const FullscreenPass* m_fullscreenPass = nullptr;                  // フルスクリーン三角形（借りている）
-        bgfx::ProgramHandle   m_program        = BGFX_INVALID_HANDLE;      // トーンマップのプログラム
-        bgfx::UniformHandle   m_hdrSampler     = BGFX_INVALID_HANDLE;      // s_hdr
+        const FullscreenPass* m_fullscreenPass = nullptr;                // フルスクリーン三角形（借りている）
+        bgfx::ProgramHandle   m_program        = BGFX_INVALID_HANDLE;    // トーンマップのプログラム
+        bgfx::UniformHandle   m_hdrSampler     = BGFX_INVALID_HANDLE;    // s_hdr
     };
 
 }    // namespace Tsukino::Renderer

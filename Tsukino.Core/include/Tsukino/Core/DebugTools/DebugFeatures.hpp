@@ -14,9 +14,9 @@
 
 // 物理コリジョン形状 / 接地判定ボックスのデバッグ描画 (F5キーでトグル)
 #ifndef TSUKINO_DISABLE_DEBUG_COLLISION_DRAW
-#    ifndef TSUKINO_DEBUG_COLLISION_DRAW
-#        define TSUKINO_DEBUG_COLLISION_DRAW
-#    endif
+#ifndef TSUKINO_DEBUG_COLLISION_DRAW
+#define TSUKINO_DEBUG_COLLISION_DRAW
+#endif
 #endif
 
 // TSUKINO_DEBUG_COLLISION_DRAW が有効な場合に、起動直後からワイヤーフレーム描画を
@@ -26,9 +26,9 @@
 // 調整用ファイルのホットリロード（Tsukino::IO::HotReload）。
 // 実行中に保存し直したファイルを、メインループの Update の前で読み直す
 #ifndef TSUKINO_DISABLE_HOT_RELOAD
-#    ifndef TSUKINO_ENABLE_HOT_RELOAD
-#        define TSUKINO_ENABLE_HOT_RELOAD
-#    endif
+#ifndef TSUKINO_ENABLE_HOT_RELOAD
+#define TSUKINO_ENABLE_HOT_RELOAD
+#endif
 #endif
 
 #endif    // _DEBUG
@@ -46,16 +46,16 @@
 // 無効にすると計測コードは全て空実装へコンパイルされ、実行時コストはゼロになる。
 // 製品ビルドで落としたい場合は TSUKINO_DISABLE_FRAME_PROFILER を定義する。
 #ifndef TSUKINO_DISABLE_FRAME_PROFILER
-#    ifndef TSUKINO_ENABLE_FRAME_PROFILER
-#        define TSUKINO_ENABLE_FRAME_PROFILER
-#    endif
+#ifndef TSUKINO_ENABLE_FRAME_PROFILER
+#define TSUKINO_ENABLE_FRAME_PROFILER
+#endif
 #endif
 
 // 敵の大量スポーンによる負荷試験（ホットキー操作・HUD表示）。
 // TSUKINO_ENABLE_FRAME_PROFILER が無効だと計測値が出ないため、通常は両方を有効にする。
 // 製品ビルドで落としたい場合は TSUKINO_DISABLE_STRESS_TEST を定義する。
 #ifndef TSUKINO_DISABLE_STRESS_TEST
-#    ifndef TSUKINO_ENABLE_STRESS_TEST
-#        define TSUKINO_ENABLE_STRESS_TEST
-#    endif
+#ifndef TSUKINO_ENABLE_STRESS_TEST
+#define TSUKINO_ENABLE_STRESS_TEST
+#endif
 #endif

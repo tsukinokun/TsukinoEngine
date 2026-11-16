@@ -34,7 +34,19 @@ namespace Tsukino::Asset {
                 c = static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
             }
             static const char* const kLinearSuffixes[] = {
-                "_n", "_nrm", "_norm", "_normal", "_mr", "_orm", "_ao", "_metallic", "_roughness", "_rough", "_height", "_disp", "_mask",
+                "_n",
+                "_nrm",
+                "_norm",
+                "_normal",
+                "_mr",
+                "_orm",
+                "_ao",
+                "_metallic",
+                "_roughness",
+                "_rough",
+                "_height",
+                "_disp",
+                "_mask",
             };
             for(const char* suffix : kLinearSuffixes) {
                 const size_t length = std::strlen(suffix);
@@ -53,14 +65,22 @@ namespace Tsukino::Asset {
         Tsukino::GraphicsCommon::TextureFormat WithoutSrgb(Tsukino::GraphicsCommon::TextureFormat format) {
             using Tsukino::GraphicsCommon::TextureFormat;
             switch(format) {
-            case TextureFormat::RGBA8_sRGB: return TextureFormat::RGBA8;
-            case TextureFormat::BGRA8_sRGB: return TextureFormat::BGRA8;
-            case TextureFormat::BC1_sRGB:   return TextureFormat::BC1;
-            case TextureFormat::BC3_sRGB:   return TextureFormat::BC3;
-            case TextureFormat::BC7_sRGB:   return TextureFormat::BC7;
-            case TextureFormat::ASTC4x4_sRGB: return TextureFormat::ASTC4x4;
-            case TextureFormat::ASTC6x6_sRGB: return TextureFormat::ASTC6x6;
-            default:                        return format;
+            case TextureFormat::RGBA8_sRGB:
+                return TextureFormat::RGBA8;
+            case TextureFormat::BGRA8_sRGB:
+                return TextureFormat::BGRA8;
+            case TextureFormat::BC1_sRGB:
+                return TextureFormat::BC1;
+            case TextureFormat::BC3_sRGB:
+                return TextureFormat::BC3;
+            case TextureFormat::BC7_sRGB:
+                return TextureFormat::BC7;
+            case TextureFormat::ASTC4x4_sRGB:
+                return TextureFormat::ASTC4x4;
+            case TextureFormat::ASTC6x6_sRGB:
+                return TextureFormat::ASTC6x6;
+            default:
+                return format;
             }
         }
     }    // namespace

@@ -25,12 +25,12 @@ namespace Tsukino::Renderer {
         Tsukino::Core::Math::matrix view;
         Tsukino::Core::Math::matrix projection;
         Tsukino::Core::Math::matrix viewProj;
-        Tsukino::Core::Math::matrix invViewProj;      //!< viewProjの逆行列（スカイ・ポストエフェクト等で使用）
+        Tsukino::Core::Math::matrix invViewProj;                             //!< viewProjの逆行列（スカイ・ポストエフェクト等で使用）
         Tsukino::Core::Math::matrix cascadeViewProj[kShadowCascadeCount];    //!< カスケードごとのライト空間ViewProjection（近→遠）
-        hlslpp::float4              lightDir;         //!< ライトの方向
-        hlslpp::float4              lightColor;       //!< ライト色と強度 xyz: 色(linear), w: 強度
-        hlslpp::float4              cameraPos;        //!< カメラのワールド座標 xyz: 座標, w: 未使用
-        Tsukino::Core::Math::matrix prevViewProj;     //!< 前フレームのViewProjection行列（速度バッファ生成用）
+        hlslpp::float4              lightDir;                                //!< ライトの方向
+        hlslpp::float4              lightColor;                              //!< ライト色と強度 xyz: 色(linear), w: 強度
+        hlslpp::float4              cameraPos;                               //!< カメラのワールド座標 xyz: 座標, w: 未使用
+        Tsukino::Core::Math::matrix prevViewProj;                            //!< 前フレームのViewProjection行列（速度バッファ生成用）
 
         //--------------------------------------------------------------
         // 以下はフレーム共通の「素材」。Rendererが毎フレーム自動で埋める。
@@ -45,7 +45,8 @@ namespace Tsukino::Renderer {
         //--------------------------------------------------------------
         hlslpp::float4 timeParams;      //!< x: 起動からの経過秒, y: 前フレームからの経過秒, z: sin(x), w: cos(x)
         hlslpp::float4 screenParams;    //!< xy: 描画領域の解像度(px), zw: その逆数(1/w, 1/h)
-        hlslpp::float4 shadowParams;         //!< x: シャドウマップの一辺(px), y: その逆数(=texelSize), z: シャドウパスが描画中のカスケード番号, w: 1/奥行き（ワールド距離→深度値の換算）
+        hlslpp::float4
+            shadowParams;    //!< x: シャドウマップの一辺(px), y: その逆数(=texelSize), z: シャドウパスが描画中のカスケード番号, w: 1/奥行き（ワールド距離→深度値の換算）
         hlslpp::float4 cascadeTexelWorld;    //!< xyzw: 各カスケードの1テクセルのワールド幅（シャドウバイアスの単位。カスケード4枚ぶん）
         hlslpp::float4 cascadeSplitFar;      //!< xyzw: 各カスケードが受け持つ奥行きの奥側（カメラのビュー空間 z。カスケードの選択に使う）
 
@@ -54,9 +55,10 @@ namespace Tsukino::Renderer {
         // 画面上の円の中だけ網点で抜く。DrawCommand::occlusionCutoutが立っている物だけが対象
         //--------------------------------------------------------------
         hlslpp::float4 occlusionCutout0;    //!< xy: 円の中心（画面ピクセル）, z: 半径（ピクセル）, w: 1=有効 / 0=無効
-        hlslpp::float4 occlusionCutout1;    //!< x: 注目している物までのカメラからの距離, y: 手前とみなす余白, z: 円の中心で見えている割合（0で全部抜く）, w: 縁へ戻り始める位置（半径に対する割合）
+        hlslpp::float4
+            occlusionCutout1;    //!< x: 注目している物までのカメラからの距離, y: 手前とみなす余白, z: 円の中心で見えている割合（0で全部抜く）, w: 縁へ戻り始める位置（半径に対する割合）
 
-        hlslpp::float4 qualityParams;       //!< 描画品質 x: 1=影を3x3で滑らかにする / 0=1タップ, yzw: 未使用
+        hlslpp::float4 qualityParams;    //!< 描画品質 x: 1=影を3x3で滑らかにする / 0=1タップ, yzw: 未使用
     };
 
     // u_scene のレイアウトはScene.shの #define（vec4 の配列の何番目か）と手で合わせるしかないので、機械的に見張る。
@@ -65,7 +67,8 @@ namespace Tsukino::Renderer {
     static_assert(offsetof(CBufferScene, qualityParams) == 736, "qualityParams must sit at byte 736 (right after occlusionCutout1).");
     static_assert(offsetof(CBufferScene, cascadeSplitFar) == 688, "cascadeSplitFar must sit at byte 688 (right after cascadeTexelWorld).");
     static_assert(offsetof(CBufferScene, occlusionCutout0) == 704, "occlusionCutout0 must sit at byte 704 (right after cascadeSplitFar).");
-    static_assert(offsetof(CBufferScene, cascadeViewProj) == 256, "cascadeViewProj must start at byte 256; a missing matrix before it shifts every cascade by 64 bytes.");
+    static_assert(offsetof(CBufferScene, cascadeViewProj) == 256,
+                  "cascadeViewProj must start at byte 256; a missing matrix before it shifts every cascade by 64 bytes.");
     static_assert(offsetof(CBufferScene, prevViewProj) == 560, "prevViewProj must sit at byte 560 (right after the cascade matrices).");
     static_assert(offsetof(CBufferScene, shadowParams) == 656, "shadowParams must sit at byte 656.");
     static_assert(offsetof(CBufferScene, cascadeTexelWorld) == 672, "cascadeTexelWorld must sit at byte 672; the shadow bias reads it per cascade.");
@@ -77,8 +80,9 @@ namespace Tsukino::Renderer {
     //--------------------------------------------------------------
     struct CBufferTransform {
         Tsukino::Core::Math::matrix world;
-        Tsukino::Core::Math::matrix prevWorld;      //!< 前フレームのワールド行列（速度バッファ生成用）
-        hlslpp::float4              motionFlags;    //!< x: 1=前フレーム有効 / 0=速度ゼロ, y: 網点フェードの見えている割合（DrawCommand::ditherFade）, z: 1=遮り抜きの対象（DrawCommand::occlusionCutout。シャドウパスでは常に0）, w: 予約
+        Tsukino::Core::Math::matrix prevWorld;    //!< 前フレームのワールド行列（速度バッファ生成用）
+        hlslpp::float4
+            motionFlags;    //!< x: 1=前フレーム有効 / 0=速度ゼロ, y: 網点フェードの見えている割合（DrawCommand::ditherFade）, z: 1=遮り抜きの対象（DrawCommand::occlusionCutout。シャドウパスでは常に0）, w: 予約
     };
 
     //--------------------------------------------------------------
@@ -93,18 +97,31 @@ namespace Tsukino::Renderer {
     //--------------------------------------------------------------
     struct CBufferMaterial {
         hlslpp::float4 baseColor;
-        hlslpp::float3 emissive;       //!< xyz: 自発光色（hlslpp::float3は16バイト。余る4番目のレーンは使わない）
+        hlslpp::float3 emissive;    //!< xyz: 自発光色（hlslpp::float3は16バイト。余る4番目のレーンは使わない）
         float          metallic;
         float          roughness;
         float          specular;
         float          alphaCutoff;    //!< アルファテストのしきい値（0=無効）
         hlslpp::float4 rimColor;       //!< xyz: ふちの色, w: ふちの強さ
         hlslpp::float4 rimParams;      //!< x: ふちの鋭さ(pow指数), y: 全体の白発光量, zw: 予約
-        hlslpp::float4 spriteFill = hlslpp::float4(0.0f, 0.0f, 0.0f, 0.0f);    //!< スプライト専用の塗り。x: 塗り方(0=全体, 1=円形, 2=左右, 3=上下), y: 塗る割合, z: 円形は開始角(ラジアン)・左右上下は逆の端からなら1, w: 円形の向き(+1=時計回り, -1=反時計回り)
-        hlslpp::float4 shading    = hlslpp::float4(0.0f, 0.5f, 0.05f, 0.0f);    //!< x: ShadingModel の番号(0=PBR, 1=Unlit, 2=Toon), y: トゥーンの境目, z: トゥーンのぼかし幅, w: トゥーンのハイライトの大きさ
+        hlslpp::float4 spriteFill = hlslpp::float4(
+            0.0f,
+            0.0f,
+            0.0f,
+            0.0f);    //!< スプライト専用の塗り。x: 塗り方(0=全体, 1=円形, 2=左右, 3=上下), y: 塗る割合, z: 円形は開始角(ラジアン)・左右上下は逆の端からなら1, w: 円形の向き(+1=時計回り, -1=反時計回り)
+        hlslpp::float4 shading = hlslpp::float4(
+            0.0f,
+            0.5f,
+            0.05f,
+            0.0f);    //!< x: ShadingModel の番号(0=PBR, 1=Unlit, 2=Toon), y: トゥーンの境目, z: トゥーンのぼかし幅, w: トゥーンのハイライトの大きさ
         hlslpp::float4 toonShadeColor = hlslpp::float4(0.5f, 0.5f, 0.5f, 0.0f);    //!< xyz: トゥーンの暗い側に掛ける色, w: 予約
-        hlslpp::float4 spriteUv   = hlslpp::float4(0.0f, 0.0f, 1.0f, 1.0f);    //!< スプライト専用。描く四角の UV(0〜1) を画像のどこに当てるか。xy: 始まり, zw: 幅と高さ（9 スライスの1枚ずつに使う）
-        hlslpp::float4 spriteFog  = hlslpp::float4(0.0f, 0.0f, 0.0f, 0.0f);    //!< スプライト専用。Transparentパスでの霧の掛け方。x: 0=霧の色へ寄せる（半透明）, 1=光を弱める（加算。霧の色を足すと白く浮くため）, yzw: 予約
+        hlslpp::float4 spriteUv       = hlslpp::float4(
+            0.0f, 0.0f, 1.0f, 1.0f);    //!< スプライト専用。描く四角の UV(0〜1) を画像のどこに当てるか。xy: 始まり, zw: 幅と高さ（9 スライスの1枚ずつに使う）
+        hlslpp::float4 spriteFog = hlslpp::float4(
+            0.0f,
+            0.0f,
+            0.0f,
+            0.0f);    //!< スプライト専用。Transparentパスでの霧の掛け方。x: 0=霧の色へ寄せる（半透明）, 1=光を弱める（加算。霧の色を足すと白く浮くため）, yzw: 予約
     };
 
     // u_material のレイアウトはMaterial.sh側と手で合わせるしかないので、機械的に見張る。
@@ -262,11 +279,11 @@ namespace Tsukino::Renderer {
     //! @note   SphereColorGrade.ps.sc の CBufferSphereColorGrade と1バイト単位で一致させること。
     //--------------------------------------------------------------
     struct CBufferSphereColorGrade {
-        hlslpp::float4 sphere;         //!< xyz: 球の中心（ワールド）, w: 半径
-        hlslpp::float4 tint;           //!< xyz: 内側で掛ける色（乗算。暗くするなら1未満）, w: 全体の効き（0〜1）
-        hlslpp::float4 fogColor;       //!< xyz: 内側で寄せる霧の色(linear), w: 霧の濃さ（1/距離）
-        hlslpp::float4 edgeColor;      //!< xyz: 境界に足す光の色(linear, HDR), w: 光の帯の幅
-        hlslpp::float4 edgeParams;     //!< x: 境界のぼかし幅, yzw: 予約
+        hlslpp::float4 sphere;        //!< xyz: 球の中心（ワールド）, w: 半径
+        hlslpp::float4 tint;          //!< xyz: 内側で掛ける色（乗算。暗くするなら1未満）, w: 全体の効き（0〜1）
+        hlslpp::float4 fogColor;      //!< xyz: 内側で寄せる霧の色(linear), w: 霧の濃さ（1/距離）
+        hlslpp::float4 edgeColor;     //!< xyz: 境界に足す光の色(linear, HDR), w: 光の帯の幅
+        hlslpp::float4 edgeParams;    //!< x: 境界のぼかし幅, yzw: 予約
     };
 
     //--------------------------------------------------------------
@@ -312,7 +329,7 @@ namespace Tsukino::Renderer {
     //--------------------------------------------------------------
     struct CBufferIBLBake {
         float        roughness   = 0.0f;    //!< このmipに割り当てられたラフネス [0,1]
-        unsigned int sampleCount = 32;       //!< GGX重要度サンプリングのサンプル数（mipが荒いほど増やす）
+        unsigned int sampleCount = 32;      //!< GGX重要度サンプリングのサンプル数（mipが荒いほど増やす）
         float        pad[2]{};              //!< 16バイトアライメント用
     };
 

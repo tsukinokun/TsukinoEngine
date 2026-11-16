@@ -18,13 +18,24 @@ namespace Tsukino::BuiltIn::ECS {
     //! @param  [in] params  書き出す撒き方
     template <class Archive>
     void save(Archive& archive, const BurstParams& params) {
-        archive(cereal::make_nvp("count", params.count), cereal::make_nvp("speedMin", params.speedMin), cereal::make_nvp("speedMax", params.speedMax),
-                cereal::make_nvp("upwardBias", params.upwardBias), cereal::make_nvp("spread", params.spread),
-                cereal::make_nvp("lifeMin", params.lifeMin), cereal::make_nvp("lifeMax", params.lifeMax), cereal::make_nvp("sizeMin", params.sizeMin),
-                cereal::make_nvp("sizeMax", params.sizeMax), cereal::make_nvp("endSizeScale", params.endSizeScale),
-                cereal::make_nvp("gravity", params.gravity), cereal::make_nvp("drag", params.drag), cereal::make_nvp("radius", params.radius),
-                cereal::make_nvp("delayMax", params.delayMax), cereal::make_nvp("colorA", params.colorA), cereal::make_nvp("colorB", params.colorB),
-                cereal::make_nvp("endAlpha", params.endAlpha), cereal::make_nvp("additive", params.additive),
+        archive(cereal::make_nvp("count", params.count),
+                cereal::make_nvp("speedMin", params.speedMin),
+                cereal::make_nvp("speedMax", params.speedMax),
+                cereal::make_nvp("upwardBias", params.upwardBias),
+                cereal::make_nvp("spread", params.spread),
+                cereal::make_nvp("lifeMin", params.lifeMin),
+                cereal::make_nvp("lifeMax", params.lifeMax),
+                cereal::make_nvp("sizeMin", params.sizeMin),
+                cereal::make_nvp("sizeMax", params.sizeMax),
+                cereal::make_nvp("endSizeScale", params.endSizeScale),
+                cereal::make_nvp("gravity", params.gravity),
+                cereal::make_nvp("drag", params.drag),
+                cereal::make_nvp("radius", params.radius),
+                cereal::make_nvp("delayMax", params.delayMax),
+                cereal::make_nvp("colorA", params.colorA),
+                cereal::make_nvp("colorB", params.colorB),
+                cereal::make_nvp("endAlpha", params.endAlpha),
+                cereal::make_nvp("additive", params.additive),
                 cereal::make_nvp("texturePixels", params.texturePixels));
     }
 

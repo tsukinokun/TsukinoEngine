@@ -49,7 +49,7 @@ namespace Tsukino::Asset {
         try {
             cereal::BinaryInputArchive archive(ifs);
             archive(asset->modelData);
-        } catch (const std::exception& e) {
+        } catch(const std::exception& e) {
             Tsukino::Core::Log::Error("ModelLoader: Failed to deserialize .tsm: " + filePath + " - " + e.what());
             return nullptr;
         }
@@ -78,7 +78,7 @@ namespace Tsukino::Asset {
         }
 
         Tsukino::Core::Log::Info("ModelLoader: Successfully loaded .tsm (" + std::to_string(asset->modelData.nodes.size()) + " mesh nodes): " + filePath);
-        
+
         return asset;
     }
 }    // namespace Tsukino::Asset

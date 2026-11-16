@@ -22,7 +22,6 @@ namespace Tsukino::Core {
 namespace Tsukino::Input {
     class TextInputSystem {
     public:
-
         //! 入力先のウィンドウを設定し、IME を切り離します。
         //! @param  [in] window 入力を受け取るウィンドウ
         void Attach(Tsukino::Core::Window* window);
@@ -61,7 +60,6 @@ namespace Tsukino::Input {
         void SetCandidatePosition(int x, int y);
 
     private:
-
         //! 確定した文字列を末尾へ追加します。上限を超える分と制御文字は捨てます。
         //! @param  [in] text 追加する文字列（UTF-8）
         void Append(const std::string& text);

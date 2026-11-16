@@ -52,32 +52,58 @@ namespace Tsukino::Renderer {
         BgfxFormatInfo ToBgfxFormat(TextureFormat format) {
             using F = bgfx::TextureFormat;
             switch(format) {
-            case TextureFormat::R8:         return {F::R8, false, 1, 1};
-            case TextureFormat::RG8:        return {F::RG8, false, 2, 1};
-            case TextureFormat::RGBA8:      return {F::RGBA8, false, 4, 1};
-            case TextureFormat::RGBA8_sRGB: return {F::RGBA8, true, 4, 1};
-            case TextureFormat::BGRA8:      return {F::BGRA8, false, 4, 1};
-            case TextureFormat::BGRA8_sRGB: return {F::BGRA8, true, 4, 1};
-            case TextureFormat::R16:        return {F::R16, false, 2, 1};
-            case TextureFormat::RGBA16:     return {F::RGBA16, false, 8, 1};
-            case TextureFormat::R16F:       return {F::R16F, false, 2, 1};
-            case TextureFormat::RGBA16F:    return {F::RGBA16F, false, 8, 1};
-            case TextureFormat::R32F:       return {F::R32F, false, 4, 1};
-            case TextureFormat::RGBA32F:    return {F::RGBA32F, false, 16, 1};
-            case TextureFormat::RGB10A2:    return {F::RGB10A2, false, 4, 1};
-            case TextureFormat::BC1:        return {F::BC1, false, 8, 4};
-            case TextureFormat::BC1_sRGB:   return {F::BC1, true, 8, 4};
-            case TextureFormat::BC3:        return {F::BC3, false, 16, 4};
-            case TextureFormat::BC3_sRGB:   return {F::BC3, true, 16, 4};
-            case TextureFormat::BC4:        return {F::BC4, false, 8, 4};
-            case TextureFormat::BC5:        return {F::BC5, false, 16, 4};
-            case TextureFormat::BC7:        return {F::BC7, false, 16, 4};
-            case TextureFormat::BC7_sRGB:   return {F::BC7, true, 16, 4};
-            case TextureFormat::ASTC4x4:      return {F::ASTC4x4, false, 16, 4};
-            case TextureFormat::ASTC4x4_sRGB: return {F::ASTC4x4, true, 16, 4};
-            case TextureFormat::ASTC6x6:      return {F::ASTC6x6, false, 16, 6};
-            case TextureFormat::ASTC6x6_sRGB: return {F::ASTC6x6, true, 16, 6};
-            default:                        return {};
+            case TextureFormat::R8:
+                return {F::R8, false, 1, 1};
+            case TextureFormat::RG8:
+                return {F::RG8, false, 2, 1};
+            case TextureFormat::RGBA8:
+                return {F::RGBA8, false, 4, 1};
+            case TextureFormat::RGBA8_sRGB:
+                return {F::RGBA8, true, 4, 1};
+            case TextureFormat::BGRA8:
+                return {F::BGRA8, false, 4, 1};
+            case TextureFormat::BGRA8_sRGB:
+                return {F::BGRA8, true, 4, 1};
+            case TextureFormat::R16:
+                return {F::R16, false, 2, 1};
+            case TextureFormat::RGBA16:
+                return {F::RGBA16, false, 8, 1};
+            case TextureFormat::R16F:
+                return {F::R16F, false, 2, 1};
+            case TextureFormat::RGBA16F:
+                return {F::RGBA16F, false, 8, 1};
+            case TextureFormat::R32F:
+                return {F::R32F, false, 4, 1};
+            case TextureFormat::RGBA32F:
+                return {F::RGBA32F, false, 16, 1};
+            case TextureFormat::RGB10A2:
+                return {F::RGB10A2, false, 4, 1};
+            case TextureFormat::BC1:
+                return {F::BC1, false, 8, 4};
+            case TextureFormat::BC1_sRGB:
+                return {F::BC1, true, 8, 4};
+            case TextureFormat::BC3:
+                return {F::BC3, false, 16, 4};
+            case TextureFormat::BC3_sRGB:
+                return {F::BC3, true, 16, 4};
+            case TextureFormat::BC4:
+                return {F::BC4, false, 8, 4};
+            case TextureFormat::BC5:
+                return {F::BC5, false, 16, 4};
+            case TextureFormat::BC7:
+                return {F::BC7, false, 16, 4};
+            case TextureFormat::BC7_sRGB:
+                return {F::BC7, true, 16, 4};
+            case TextureFormat::ASTC4x4:
+                return {F::ASTC4x4, false, 16, 4};
+            case TextureFormat::ASTC4x4_sRGB:
+                return {F::ASTC4x4, true, 16, 4};
+            case TextureFormat::ASTC6x6:
+                return {F::ASTC6x6, false, 16, 6};
+            case TextureFormat::ASTC6x6_sRGB:
+                return {F::ASTC6x6, true, 16, 6};
+            default:
+                return {};
             }
         }
 
@@ -88,13 +114,17 @@ namespace Tsukino::Renderer {
         //--------------------------------------------------------------------
         u32 ByteChannelCount(TextureFormat format) {
             switch(format) {
-            case TextureFormat::R8:         return 1;
-            case TextureFormat::RG8:        return 2;
+            case TextureFormat::R8:
+                return 1;
+            case TextureFormat::RG8:
+                return 2;
             case TextureFormat::RGBA8:
             case TextureFormat::RGBA8_sRGB:
             case TextureFormat::BGRA8:
-            case TextureFormat::BGRA8_sRGB: return 4;
-            default:                        return 0;
+            case TextureFormat::BGRA8_sRGB:
+                return 4;
+            default:
+                return 0;
             }
         }
 
@@ -126,8 +156,7 @@ namespace Tsukino::Renderer {
         //--------------------------------------------------------------------
         u32 FullMipCount(u32 width, u32 height) {
             u32 count = 1;
-            for(u32 size = std::max(width, height); size > 1; size >>= 1)
-                ++count;
+            for(u32 size = std::max(width, height); size > 1; size >>= 1) ++count;
             return count;
         }
 
@@ -164,11 +193,10 @@ namespace Tsukino::Renderer {
                 return buffer;
             }
 
-            buffer.gpu->vertexBuffer =
-                bgfx::createVertexBuffer(bgfx::copy(meshData.vertexData.data(), static_cast<u32>(meshData.vertexData.size())), layout);
+            buffer.gpu->vertexBuffer = bgfx::createVertexBuffer(bgfx::copy(meshData.vertexData.data(), static_cast<u32>(meshData.vertexData.size())), layout);
             if(!meshData.indices.empty()) {
-                buffer.gpu->indexBuffer = bgfx::createIndexBuffer(
-                    bgfx::copy(meshData.indices.data(), static_cast<u32>(meshData.indices.size() * sizeof(u32))), BGFX_BUFFER_INDEX32);
+                buffer.gpu->indexBuffer =
+                    bgfx::createIndexBuffer(bgfx::copy(meshData.indices.data(), static_cast<u32>(meshData.indices.size() * sizeof(u32))), BGFX_BUFFER_INDEX32);
             }
 
             //----------------------------------------------------------------
@@ -179,10 +207,8 @@ namespace Tsukino::Renderer {
                 const bgfx::Memory* bones = bgfx::alloc(static_cast<u32>(meshData.boneWeights.size() * sizeof(float) * 8));
                 float*              dst   = reinterpret_cast<float*>(bones->data);
                 for(const Tsukino::GraphicsCommon::BoneWeight& weight : meshData.boneWeights) {
-                    for(int i = 0; i < 4; ++i)
-                        *dst++ = static_cast<float>(weight.boneIndices[i]);
-                    for(int i = 0; i < 4; ++i)
-                        *dst++ = weight.weights[i];
+                    for(int i = 0; i < 4; ++i) *dst++ = static_cast<float>(weight.boneIndices[i]);
+                    for(int i = 0; i < 4; ++i) *dst++ = weight.weights[i];
                 }
                 buffer.gpu->boneBuffer = bgfx::createVertexBuffer(bones, RenderResources::Gpu::GetBoneLayout());
             }
@@ -303,10 +329,7 @@ namespace Tsukino::Renderer {
         // 位置と UV（VertexPUV。静的メッシュとスプライト）
         static const bgfx::VertexLayout kPositionUV = [] {
             bgfx::VertexLayout layout;
-            layout.begin()
-                .add(bgfx::Attrib::Position, 3, bgfx::AttribType::Float)
-                .add(bgfx::Attrib::TexCoord0, 2, bgfx::AttribType::Float)
-                .end();
+            layout.begin().add(bgfx::Attrib::Position, 3, bgfx::AttribType::Float).add(bgfx::Attrib::TexCoord0, 2, bgfx::AttribType::Float).end();
             return layout;
         }();
 
@@ -326,10 +349,13 @@ namespace Tsukino::Renderer {
 
         switch(format) {
         case VertexFormat::PositionUV:
-        case VertexFormat::Sprite:           return kPositionUV;
+        case VertexFormat::Sprite:
+            return kPositionUV;
         case VertexFormat::PositionNormalUV:
-        case VertexFormat::Skinned:          return kPositionNormalUV;    // スキニングも1本目は位置・法線・UV（ボーンは2本目）
-        default:                             return kEmpty;
+        case VertexFormat::Skinned:
+            return kPositionNormalUV;    // スキニングも1本目は位置・法線・UV（ボーンは2本目）
+        default:
+            return kEmpty;
         }
     }
 
@@ -339,10 +365,7 @@ namespace Tsukino::Renderer {
     const bgfx::VertexLayout& RenderResources::Gpu::GetBoneLayout() {
         static const bgfx::VertexLayout kBones = [] {
             bgfx::VertexLayout layout;
-            layout.begin()
-                .add(bgfx::Attrib::Indices, 4, bgfx::AttribType::Float)
-                .add(bgfx::Attrib::Weight, 4, bgfx::AttribType::Float)
-                .end();
+            layout.begin().add(bgfx::Attrib::Indices, 4, bgfx::AttribType::Float).add(bgfx::Attrib::Weight, 4, bgfx::AttribType::Float).end();
             return layout;
         }();
         return kBones;
@@ -358,22 +381,31 @@ namespace Tsukino::Renderer {
         constexpr u32 kAniso = BGFX_SAMPLER_MIN_ANISOTROPIC | BGFX_SAMPLER_MAG_ANISOTROPIC;
 
         switch(type) {
-        case SamplerType::PointWrap:        return kPoint;
-        case SamplerType::PointClamp:       return kPoint | kClamp;
-        case SamplerType::LinearClamp:      return kClamp;
-        case SamplerType::AnisotropicWrap:  return kAniso;
-        case SamplerType::AnisotropicClamp: return kAniso | kClamp;
+        case SamplerType::PointWrap:
+            return kPoint;
+        case SamplerType::PointClamp:
+            return kPoint | kClamp;
+        case SamplerType::LinearClamp:
+            return kClamp;
+        case SamplerType::AnisotropicWrap:
+            return kAniso;
+        case SamplerType::AnisotropicClamp:
+            return kAniso | kClamp;
         case SamplerType::LinearWrap:
-        default:                            return BGFX_SAMPLER_NONE;    // bgfx の既定 = なめらか・リピート
+        default:
+            return BGFX_SAMPLER_NONE;    // bgfx の既定 = なめらか・リピート
         }
     }
 
     //------------------------------------------------------------------------
     //! パイプラインを作ります。
     //------------------------------------------------------------------------
-    std::shared_ptr<PipelineState> PipelineFactory::Create(const Tsukino::Asset::ShaderAsset& vs, const Tsukino::Asset::ShaderAsset& ps,
-                                                           Tsukino::GraphicsCommon::VertexFormat format, DepthMode depthMode,
-                                                           BlendMode blendMode, CullMode cullMode) {
+    std::shared_ptr<PipelineState> PipelineFactory::Create(const Tsukino::Asset::ShaderAsset&    vs,
+                                                           const Tsukino::Asset::ShaderAsset&    ps,
+                                                           Tsukino::GraphicsCommon::VertexFormat format,
+                                                           DepthMode                             depthMode,
+                                                           BlendMode                             blendMode,
+                                                           CullMode                              cullMode) {
         const PipelineKey key{vs.GetHandle().Value(), ps.GetHandle().Value(), format, depthMode, blendMode, cullMode};
         if(auto it = m_cache.find(key); it != m_cache.end())
             return it->second;
@@ -383,8 +415,7 @@ namespace Tsukino::Renderer {
         // 使えない。作れなかったことも覚えておき、毎フレーム作り直したりログを出し続けたりしない
         //--------------------------------------------------------------------
         if(!IsBgfxShaderBinary(vs.binary) || !IsBgfxShaderBinary(ps.binary)) {
-            Tsukino::Core::Log::Warn("PipelineFactory: Not a bgfx shader binary; draws with it are skipped: "
-                                     + vs.filePath + " / " + ps.filePath);
+            Tsukino::Core::Log::Warn("PipelineFactory: Not a bgfx shader binary; draws with it are skipped: " + vs.filePath + " / " + ps.filePath);
             m_cache.emplace(key, nullptr);
             return nullptr;
         }
@@ -412,14 +443,12 @@ namespace Tsukino::Renderer {
             state |= BGFX_STATE_WRITE_RGB | BGFX_STATE_WRITE_A;
             break;
         case BlendMode::Alpha:
-            state |= BGFX_STATE_WRITE_RGB | BGFX_STATE_WRITE_A
-                     | BGFX_STATE_BLEND_FUNC(BGFX_STATE_BLEND_SRC_ALPHA, BGFX_STATE_BLEND_INV_SRC_ALPHA);
+            state |= BGFX_STATE_WRITE_RGB | BGFX_STATE_WRITE_A | BGFX_STATE_BLEND_FUNC(BGFX_STATE_BLEND_SRC_ALPHA, BGFX_STATE_BLEND_INV_SRC_ALPHA);
             break;
         case BlendMode::Additive:
             // アルファは書き換えない（描く先のアルファ × 1 ＋ 0）
             state |= BGFX_STATE_WRITE_RGB | BGFX_STATE_WRITE_A
-                     | BGFX_STATE_BLEND_FUNC_SEPARATE(BGFX_STATE_BLEND_SRC_ALPHA, BGFX_STATE_BLEND_ONE, BGFX_STATE_BLEND_ZERO,
-                                                      BGFX_STATE_BLEND_ONE);
+                     | BGFX_STATE_BLEND_FUNC_SEPARATE(BGFX_STATE_BLEND_SRC_ALPHA, BGFX_STATE_BLEND_ONE, BGFX_STATE_BLEND_ZERO, BGFX_STATE_BLEND_ONE);
             break;
         case BlendMode::DepthOnly:
             break;    // 色は書かない
@@ -427,17 +456,29 @@ namespace Tsukino::Renderer {
 
         // 深度（リバース Z。近いほど大きい）
         switch(depthMode) {
-        case DepthMode::None:          break;
-        case DepthMode::ReadWrite:     state |= BGFX_STATE_DEPTH_TEST_GEQUAL | BGFX_STATE_WRITE_Z; break;
-        case DepthMode::ReadOnly:      state |= BGFX_STATE_DEPTH_TEST_GEQUAL; break;
-        case DepthMode::EqualReadOnly: state |= BGFX_STATE_DEPTH_TEST_EQUAL; break;
+        case DepthMode::None:
+            break;
+        case DepthMode::ReadWrite:
+            state |= BGFX_STATE_DEPTH_TEST_GEQUAL | BGFX_STATE_WRITE_Z;
+            break;
+        case DepthMode::ReadOnly:
+            state |= BGFX_STATE_DEPTH_TEST_GEQUAL;
+            break;
+        case DepthMode::EqualReadOnly:
+            state |= BGFX_STATE_DEPTH_TEST_EQUAL;
+            break;
         }
 
         // カリング。時計回りが表
         switch(cullMode) {
-        case CullMode::None:  break;
-        case CullMode::Back:  state |= BGFX_STATE_CULL_CCW; break;
-        case CullMode::Front: state |= BGFX_STATE_CULL_CW; break;
+        case CullMode::None:
+            break;
+        case CullMode::Back:
+            state |= BGFX_STATE_CULL_CCW;
+            break;
+        case CullMode::Front:
+            state |= BGFX_STATE_CULL_CW;
+            break;
         }
 
         pipeline->state = state;
@@ -449,7 +490,8 @@ namespace Tsukino::Renderer {
     //! 資源を持たない状態で作ります。
     //------------------------------------------------------------------------
     RenderResources::RenderResources()
-        : m_gpu(std::make_unique<Gpu>()) {}
+        : m_gpu(std::make_unique<Gpu>()) {
+    }
 
     //------------------------------------------------------------------------
     //! 資源を破棄します。
@@ -470,8 +512,8 @@ namespace Tsukino::Renderer {
         // 既定のテクスチャ（白と、法線マップが無いときの平らな法線）
         constexpr u8 kWhite[4]      = {255, 255, 255, 255};
         constexpr u8 kFlatNormal[4] = {128, 128, 255, 255};
-        m_gpu->white      = m_gpu->AddTexture({CreateSolidTexture(kWhite), 1, 1, TextureFormat::RGBA8});
-        m_gpu->flatNormal = m_gpu->AddTexture({CreateSolidTexture(kFlatNormal), 1, 1, TextureFormat::RGBA8});
+        m_gpu->white                = m_gpu->AddTexture({CreateSolidTexture(kWhite), 1, 1, TextureFormat::RGBA8});
+        m_gpu->flatNormal           = m_gpu->AddTexture({CreateSolidTexture(kFlatNormal), 1, 1, TextureFormat::RGBA8});
 
         // ゲーム定義の定数のユニフォーム。上限の大きさで作っておき、シェーダーは要るぶんだけの配列で受ける
         m_gpu->userConstantUniforms[0] = bgfx::createUniform("u_user0", bgfx::UniformType::Vec4, Gpu::kMaxUserConstantVec4Count);
@@ -513,21 +555,21 @@ namespace Tsukino::Renderer {
             const bgfx::Caps* caps = bgfx::getCaps();
             if(!caps)
                 return false;
-            const u16 needed = info.srgb ? BGFX_CAPS_FORMAT_TEXTURE_2D_SRGB : BGFX_CAPS_FORMAT_TEXTURE_2D;
+            const u16  needed = info.srgb ? BGFX_CAPS_FORMAT_TEXTURE_2D_SRGB : BGFX_CAPS_FORMAT_TEXTURE_2D;
             const auto source = static_cast<bimg::TextureFormat::Enum>(info.format);    // bgfx と bimg の形式の番号は同じ
             if((caps->formats[info.format] & needed) != 0 || !bimg::isCompressed(source))
                 return false;
 
-            static bx::DefaultAllocator allocator;
-            std::vector<u8>             pixels;
+            static bx::DefaultAllocator                         allocator;
+            std::vector<u8>                                     pixels;
             std::vector<Tsukino::Asset::TextureAsset::MipLevel> mips;
             for(size_t mip = 0; mip < textureAsset.mips.size(); ++mip) {
-                const u32 width  = std::max(1u, textureAsset.width >> mip);
-                const u32 height = std::max(1u, textureAsset.height >> mip);
+                const u32    width  = std::max(1u, textureAsset.width >> mip);
+                const u32    height = std::max(1u, textureAsset.height >> mip);
                 const size_t offset = pixels.size();
                 pixels.resize(offset + static_cast<size_t>(width) * height * 4);
-                bimg::imageDecodeToRgba8(&allocator, pixels.data() + offset, textureAsset.pixels.data() + textureAsset.mips[mip].offset, width,
-                                         height, width * 4, source);
+                bimg::imageDecodeToRgba8(
+                    &allocator, pixels.data() + offset, textureAsset.pixels.data() + textureAsset.mips[mip].offset, width, height, width * 4, source);
                 mips.push_back({offset, width * 4});
             }
 
@@ -550,8 +592,7 @@ namespace Tsukino::Renderer {
         if(info.format != bgfx::TextureFormat::Unknown && !textureAsset.pixels.empty() && DecompressIfUnsupported(textureAsset, info)) {
             info = ToBgfxFormat(textureAsset.format);
         }
-        if(info.format == bgfx::TextureFormat::Unknown || textureAsset.width == 0 || textureAsset.height == 0
-           || textureAsset.pixels.empty()) {
+        if(info.format == bgfx::TextureFormat::Unknown || textureAsset.width == 0 || textureAsset.height == 0 || textureAsset.pixels.empty()) {
             Tsukino::Core::Log::Error("RenderResources: Unsupported or empty texture; the white texture is used instead.");
             return m_gpu->white;
         }
@@ -560,9 +601,9 @@ namespace Tsukino::Renderer {
         // ミップの段。bgfx は 1×1 までそろった段か、1段だけを受け付ける。
         // ファイルの段がそろっていなければ、いちばん上の段だけを送る
         //--------------------------------------------------------------------
-        const u32  fileMips = static_cast<u32>(textureAsset.mips.size());
-        bool       hasMips  = fileMips > 1 && fileMips == FullMipCount(textureAsset.width, textureAsset.height);
-        const u32  mipCount = hasMips ? fileMips : 1;
+        const u32 fileMips = static_cast<u32>(textureAsset.mips.size());
+        bool      hasMips  = fileMips > 1 && fileMips == FullMipCount(textureAsset.width, textureAsset.height);
+        const u32 mipCount = hasMips ? fileMips : 1;
 
         //--------------------------------------------------------------------
         // 段ごとに行のすき間を詰めて1つの塊にする（bgfx が受け取る並び）
@@ -593,11 +634,11 @@ namespace Tsukino::Renderer {
         const bool          generate     = textureAsset.generateMips && !hasMips && byteChannels > 0;
         const bgfx::Memory* memory       = nullptr;
         if(generate) {
-            const size_t          srcOffset = fileMips > 0 ? textureAsset.mips[0].offset : 0;
-            const u32             srcPitch  = (fileMips > 0 && textureAsset.mips[0].rowPitch != 0) ? textureAsset.mips[0].rowPitch
-                                                                                                    : PackedRowPitch(info, textureAsset.width);
-            const std::vector<u8> chain     = BuildMipChain(byteChannels, info.srgb, textureAsset.width, textureAsset.height,
-                                                            textureAsset.pixels.data() + srcOffset, srcPitch);
+            const size_t srcOffset = fileMips > 0 ? textureAsset.mips[0].offset : 0;
+            const u32    srcPitch =
+                (fileMips > 0 && textureAsset.mips[0].rowPitch != 0) ? textureAsset.mips[0].rowPitch : PackedRowPitch(info, textureAsset.width);
+            const std::vector<u8> chain =
+                BuildMipChain(byteChannels, info.srgb, textureAsset.width, textureAsset.height, textureAsset.pixels.data() + srcOffset, srcPitch);
             memory  = bgfx::copy(chain.data(), static_cast<u32>(chain.size()));
             hasMips = true;
         } else {
@@ -618,7 +659,7 @@ namespace Tsukino::Renderer {
             }
         }
 
-        const u64 flags = info.srgb ? BGFX_TEXTURE_SRGB : BGFX_TEXTURE_NONE;
+        const u64                 flags = info.srgb ? BGFX_TEXTURE_SRGB : BGFX_TEXTURE_NONE;
         const bgfx::TextureHandle texture =
             bgfx::createTexture2D(static_cast<u16>(textureAsset.width), static_cast<u16>(textureAsset.height), hasMips, 1, info.format, flags, memory);
         if(!bgfx::isValid(texture)) {
@@ -626,8 +667,8 @@ namespace Tsukino::Renderer {
             return m_gpu->white;
         }
 
-        const TextureHandle handle = m_gpu->AddTexture(
-            {texture, static_cast<u16>(textureAsset.width), static_cast<u16>(textureAsset.height), textureAsset.format});
+        const TextureHandle handle =
+            m_gpu->AddTexture({texture, static_cast<u16>(textureAsset.width), static_cast<u16>(textureAsset.height), textureAsset.format});
         if(!handle.IsValid())
             return m_gpu->white;
         m_gpu->textureCache.emplace(key, handle);
@@ -654,8 +695,7 @@ namespace Tsukino::Renderer {
     //------------------------------------------------------------------------
     //! 書き換えられる 2D テクスチャを作成します。
     //------------------------------------------------------------------------
-    TextureHandle RenderResources::CreateTexture(u32 width, u32 height, Tsukino::GraphicsCommon::TextureFormat format, const void* data,
-                                                 u32 rowPitch) {
+    TextureHandle RenderResources::CreateTexture(u32 width, u32 height, Tsukino::GraphicsCommon::TextureFormat format, const void* data, u32 rowPitch) {
         const BgfxFormatInfo info = ToBgfxFormat(format);
         if(info.format == bgfx::TextureFormat::Unknown || width == 0 || height == 0 || width > 0xFFFF || height > 0xFFFF) {
             Tsukino::Core::Log::Error("RenderResources: Invalid texture description.");
@@ -663,9 +703,8 @@ namespace Tsukino::Renderer {
         }
 
         // 中身は後から書き換えるので、初期データ無しで作る（書き換えられるテクスチャになる）
-        const u64 flags = info.srgb ? BGFX_TEXTURE_SRGB : BGFX_TEXTURE_NONE;
-        const bgfx::TextureHandle texture =
-            bgfx::createTexture2D(static_cast<u16>(width), static_cast<u16>(height), false, 1, info.format, flags, nullptr);
+        const u64                 flags   = info.srgb ? BGFX_TEXTURE_SRGB : BGFX_TEXTURE_NONE;
+        const bgfx::TextureHandle texture = bgfx::createTexture2D(static_cast<u16>(width), static_cast<u16>(height), false, 1, info.format, flags, nullptr);
         if(!bgfx::isValid(texture)) {
             Tsukino::Core::Log::Error("RenderResources: Failed to create a bgfx texture.");
             return {};
@@ -703,8 +742,15 @@ namespace Tsukino::Renderer {
 
         // 最後の行は詰めた幅までしか読まない（呼び出し側の画素の終わりを越えないように）
         const u32 size = pitch * (rows - 1) + PackedRowPitch(info, width);
-        bgfx::updateTexture2D(entry->texture, 0, 0, static_cast<u16>(x), static_cast<u16>(y), static_cast<u16>(width), static_cast<u16>(height),
-                              bgfx::copy(data, size), static_cast<u16>(pitch));
+        bgfx::updateTexture2D(entry->texture,
+                              0,
+                              0,
+                              static_cast<u16>(x),
+                              static_cast<u16>(y),
+                              static_cast<u16>(width),
+                              static_cast<u16>(height),
+                              bgfx::copy(data, size),
+                              static_cast<u16>(pitch));
     }
 
     //------------------------------------------------------------------------

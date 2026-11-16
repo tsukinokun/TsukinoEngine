@@ -6,9 +6,9 @@
 #include <Tsukino/Core/Log.hpp>
 #include <Tsukino/Core/Path.hpp>
 #if defined(_WIN32)
-#    include <Tsukino/Core/WindowsLean.hpp>    // OutputDebugStringA
+#include <Tsukino/Core/WindowsLean.hpp>    // OutputDebugStringA
 #else
-#    include <SDL3/SDL_log.h>
+#include <SDL3/SDL_log.h>
 #endif
 
 #include <ctime>
@@ -55,7 +55,7 @@ namespace Tsukino::Core {
 
         // 親ディレクトリが無ければ作成する。
         // ここで失敗してもログが出なくなるだけなので、実行そのものは続行する
-        if (outputPath.has_parent_path()) {
+        if(outputPath.has_parent_path()) {
             std::error_code errorCode;
             std::filesystem::create_directories(outputPath.parent_path(), errorCode);
         }
@@ -66,7 +66,7 @@ namespace Tsukino::Core {
         // 追記運用のため、起動ごとの区切りを1行入れておく。
         // これが無いと前回の実行分と混ざって、どこからが今回の出力か分からなくなる
         std::ofstream stream(s_LogFilePath, std::ios::app);
-        if (!stream)
+        if(!stream)
             return;
 
         std::time_t now = std::time(nullptr);
@@ -106,13 +106,13 @@ namespace Tsukino::Core {
 #endif
 
         std::lock_guard lock(s_logMutex);
-        if (s_LogFilePath.empty())
+        if(s_LogFilePath.empty())
             return;
 
         // 都度開いて追記する。ログの頻度は低く、それより
         // クラッシュしてもそこまでの行が確実に残ることを優先する
         std::ofstream stream(s_LogFilePath, std::ios::app);
-        if (stream) {
+        if(stream) {
             stream << out;
         }
     }

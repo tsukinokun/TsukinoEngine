@@ -16,8 +16,12 @@ namespace Tsukino::BuiltIn::ECS {
     //--------------------------------------------------------------
     //! @brief ボーン名からnodeIndexを解決する
     //--------------------------------------------------------------
-    void ResolveBoneNodeIndex(Tsukino::EngineIntegration::EngineContext* ctx, Tsukino::ECS::Registry& registry, Tsukino::ECS::Entity modelEntity,
-                              const std::string& boneName, Tsukino::Asset::AssetHandle& resolvedAgainstModel, Tsukino::u32& outNodeIndex) {
+    void ResolveBoneNodeIndex(Tsukino::EngineIntegration::EngineContext* ctx,
+                              Tsukino::ECS::Registry&                    registry,
+                              Tsukino::ECS::Entity                       modelEntity,
+                              const std::string&                         boneName,
+                              Tsukino::Asset::AssetHandle&               resolvedAgainstModel,
+                              Tsukino::u32&                              outNodeIndex) {
         if(!ctx || !ctx->assetManager || !registry.HasComponent<ModelComponent>(modelEntity))
             return;
 

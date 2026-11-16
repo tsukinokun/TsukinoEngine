@@ -239,15 +239,15 @@ namespace Tsukino::Asset {
         // LoadAsync の依頼。裏のスレッドは最初の依頼で作る
         //--------------------------------------------------------------
         struct AsyncRequest {
-            Tsukino::Core::Path        path;       // 読むアセットのパス
-            std::promise<AssetHandle>  promise;    // 読み終えたハンドルの渡し先
+            Tsukino::Core::Path       path;       // 読むアセットのパス
+            std::promise<AssetHandle> promise;    // 読み終えたハンドルの渡し先
         };
 
-        std::mutex               m_asyncMutex;             // m_asyncRequests / m_asyncStopping を守る
-        std::condition_variable  m_asyncWake;              // 依頼が来たか、止めるときに裏のスレッドを起こす
-        std::deque<AsyncRequest> m_asyncRequests;          // 読み始めていない依頼
-        std::vector<std::thread> m_asyncWorkers;           // 裏のスレッド
-        bool                     m_asyncStopping = false;  // 止めている途中か
+        std::mutex               m_asyncMutex;               // m_asyncRequests / m_asyncStopping を守る
+        std::condition_variable  m_asyncWake;                // 依頼が来たか、止めるときに裏のスレッドを起こす
+        std::deque<AsyncRequest> m_asyncRequests;            // 読み始めていない依頼
+        std::vector<std::thread> m_asyncWorkers;             // 裏のスレッド
+        bool                     m_asyncStopping = false;    // 止めている途中か
     };
 
 }    // namespace Tsukino::Asset

@@ -27,20 +27,20 @@ namespace Tsukino::BuiltIn::ECS {
         //-------------------------------------------------------------
         // 設定（作る側が決める）
         //-------------------------------------------------------------
-        Tsukino::ECS::Entity content   = entt::null;    // 中身のエンティティ（枠の子）。ScrollViewSystem が位置を動かす
-        Tsukino::ECS::Entity scrollBar = entt::null;    // スクロールバーの溝（ScrollBarComponent を持つ）。無ければ entt::null
-        float                contentHeight = 0.0f;      // 中身の高さ（画面ピクセル）。枠より低ければスクロールしない
-        bool                 enabled       = true;      // 入力を受けるか（閉じている画面のスクロールは false にする）。false の間はスクロールバーも隠す
-        float                wheelStep     = 60.0f;     // ホイール1目盛りで動く量（ピクセル）
-        float                keyStep       = 40.0f;     // ↑↓キー1回で動く量（ピクセル）
-        float                followSpeed   = 18.0f;     // 目標位置への追従の速さ（大きいほど速い。1秒あたりの減衰率）
-        float                dragThreshold = 6.0f;      // 押したまま動かしたとき、ドラッグとみなす距離（ピクセル）
+        Tsukino::ECS::Entity content       = entt::null;    // 中身のエンティティ（枠の子）。ScrollViewSystem が位置を動かす
+        Tsukino::ECS::Entity scrollBar     = entt::null;    // スクロールバーの溝（ScrollBarComponent を持つ）。無ければ entt::null
+        float                contentHeight = 0.0f;          // 中身の高さ（画面ピクセル）。枠より低ければスクロールしない
+        bool                 enabled       = true;          // 入力を受けるか（閉じている画面のスクロールは false にする）。false の間はスクロールバーも隠す
+        float                wheelStep     = 60.0f;         // ホイール1目盛りで動く量（ピクセル）
+        float                keyStep       = 40.0f;         // ↑↓キー1回で動く量（ピクセル）
+        float                followSpeed   = 18.0f;         // 目標位置への追従の速さ（大きいほど速い。1秒あたりの減衰率）
+        float                dragThreshold = 6.0f;          // 押したまま動かしたとき、ドラッグとみなす距離（ピクセル）
 
         //-------------------------------------------------------------
         // 状態（ScrollViewSystem が書く）
         //-------------------------------------------------------------
-        float offset       = 0.0f;     // 今の表示位置（0 が一番上。下へスクロールするほど増える）
-        float targetOffset = 0.0f;     // 目標の表示位置（offset はここへなめらかに寄っていく）
+        float offset       = 0.0f;    // 今の表示位置（0 が一番上。下へスクロールするほど増える）
+        float targetOffset = 0.0f;    // 目標の表示位置（offset はここへなめらかに寄っていく）
 
         bool  pointerDown     = false;    // 枠の中で左ボタンを押している
         bool  dragScrolling   = false;    // この押し込みで中身をドラッグしてスクロールした（次に押すまで true のまま）
@@ -63,8 +63,6 @@ namespace Tsukino::BuiltIn::ECS {
         //-------------------------------------------------------------
         //! @brief  一番上へ即座に戻す（画面を開き直したとき用）
         //-------------------------------------------------------------
-        void ScrollToTop() {
-            ScrollTo(0.0f, true);
-        }
+        void ScrollToTop() { ScrollTo(0.0f, true); }
     };
 }    // namespace Tsukino::BuiltIn::ECS

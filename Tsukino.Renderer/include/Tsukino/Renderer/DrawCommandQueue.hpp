@@ -71,7 +71,9 @@ namespace Tsukino::Renderer {
         //!         呼ばれるまでポインタは必ず有効
         //----------------------------------------------------------
         [[nodiscard]]
-        Material& AllocMaterial() { return m_materialArena.emplace_back(); }
+        Material& AllocMaterial() {
+            return m_materialArena.emplace_back();
+        }
 
         //----------------------------------------------------------
         // このフレームで使うマテリアル定数データを1つ確保する
@@ -79,7 +81,9 @@ namespace Tsukino::Renderer {
         //! @note   DrawCommand::materialData が指す実体はここから取ること
         //----------------------------------------------------------
         [[nodiscard]]
-        CBufferMaterial& AllocMaterialData() { return m_materialDataArena.emplace_back(); }
+        CBufferMaterial& AllocMaterialData() {
+            return m_materialDataArena.emplace_back();
+        }
 
         //----------------------------------------------------------
         // このフレームで使うシーン定数（カメラの差し替え用）を1つ確保する
@@ -87,7 +91,9 @@ namespace Tsukino::Renderer {
         //! @note   DrawCommand::cameraOverride が指す実体はここから取ること
         //----------------------------------------------------------
         [[nodiscard]]
-        CBufferScene& AllocSceneData() { return m_sceneDataArena.emplace_back(); }
+        CBufferScene& AllocSceneData() {
+            return m_sceneDataArena.emplace_back();
+        }
 
         //----------------------------------------------------------
         //! @brief コマンド一覧を取得

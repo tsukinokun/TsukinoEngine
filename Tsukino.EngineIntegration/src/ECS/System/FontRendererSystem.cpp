@@ -25,8 +25,6 @@
 #include <Tsukino/Core/ECS/Registry/Registry.hpp>
 #include <Tsukino/Core/Math/Matrix.hpp>
 
-
-
 #include <algorithm>
 #include <cmath>
 #include <cwctype>
@@ -51,15 +49,25 @@ namespace Tsukino::BuiltIn::ECS {
             hlslpp::float2 origin = baseOrigin;
 
             switch(horizontal) {
-            case HorizontalAlign::Center: origin.x += textSize.x * 0.5f; break;
-            case HorizontalAlign::Right:  origin.x += textSize.x; break;
-            case HorizontalAlign::Left:   break;
+            case HorizontalAlign::Center:
+                origin.x += textSize.x * 0.5f;
+                break;
+            case HorizontalAlign::Right:
+                origin.x += textSize.x;
+                break;
+            case HorizontalAlign::Left:
+                break;
             }
 
             switch(vertical) {
-            case VerticalAlign::Middle: origin.y += textSize.y * 0.5f; break;
-            case VerticalAlign::Bottom: origin.y += textSize.y; break;
-            case VerticalAlign::Top:    break;
+            case VerticalAlign::Middle:
+                origin.y += textSize.y * 0.5f;
+                break;
+            case VerticalAlign::Bottom:
+                origin.y += textSize.y;
+                break;
+            case VerticalAlign::Top:
+                break;
             }
 
             return origin;
@@ -192,8 +200,7 @@ namespace Tsukino::BuiltIn::ECS {
             auto& atlas = m_dynamicFontCache[fontHandle];
 
             if(!atlas) {
-                Tsukino::Core::Ref<Tsukino::Asset::DynamicFontAsset> dynamicAsset =
-                    std::static_pointer_cast<Tsukino::Asset::DynamicFontAsset>(asset);
+                Tsukino::Core::Ref<Tsukino::Asset::DynamicFontAsset> dynamicAsset = std::static_pointer_cast<Tsukino::Asset::DynamicFontAsset>(asset);
 
                 atlas = std::make_unique<Tsukino::Renderer::DynamicFontAtlas>(
                     ctx->renderer->GetResources(), dynamicAsset->fontFileData.data(), dynamicAsset->fontFileData.size(), dynamicAsset->pixelSize);
@@ -208,23 +215,23 @@ namespace Tsukino::BuiltIn::ECS {
             if(needsMeasure)
                 measured = nativeAtlas->MeasureString(font.text);
 
-            DrawEntry& entry  = m_drawEntries.emplace_back();
-            entry.atlas       = nativeAtlas;
-            entry.text        = font.text;
-            entry.position    = canvas.ToPixel(hlslpp::float2(worldPos.x, worldPos.y));
-            entry.origin      = NeedsMeasure(font.horizontalAlign, font.verticalAlign)
-                                    ? ResolveAlignedOrigin(font.origin, measured, font.horizontalAlign, font.verticalAlign)
-                                    : font.origin;
-            entry.color        = font.color;
-            entry.outlineColor = font.outlineColor;
-            entry.color.w *= groupAlpha;
+            DrawEntry& entry      = m_drawEntries.emplace_back();
+            entry.atlas           = nativeAtlas;
+            entry.text            = font.text;
+            entry.position        = canvas.ToPixel(hlslpp::float2(worldPos.x, worldPos.y));
+            entry.origin          = NeedsMeasure(font.horizontalAlign, font.verticalAlign)
+                                        ? ResolveAlignedOrigin(font.origin, measured, font.horizontalAlign, font.verticalAlign)
+                                        : font.origin;
+            entry.color           = font.color;
+            entry.outlineColor    = font.outlineColor;
+            entry.color.w        *= groupAlpha;
             entry.outlineColor.w *= groupAlpha;
-            entry.outlineWidth = font.outlineWidth * canvas.scale;
-            entry.scale        = FitScale(finalScale, float(measured.x), maxWidth) * canvas.scale;    // 収める幅は UI の単位で計算してからピクセルにする
-            entry.rotation     = rotation;
-            entry.sortOrder    = font.sortOrder;
-            entry.hasClip      = hasClip;
-            entry.clipRect     = clipRect;
+            entry.outlineWidth    = font.outlineWidth * canvas.scale;
+            entry.scale           = FitScale(finalScale, float(measured.x), maxWidth) * canvas.scale;    // 収める幅は UI の単位で計算してからピクセルにする
+            entry.rotation        = rotation;
+            entry.sortOrder       = font.sortOrder;
+            entry.hasClip         = hasClip;
+            entry.clipRect        = clipRect;
         });
 
         if(m_drawEntries.empty())
@@ -260,8 +267,9 @@ namespace Tsukino::BuiltIn::ECS {
         auto sameClip = [](const DrawEntry& lhs, const DrawEntry& rhs) {
             if(lhs.hasClip != rhs.hasClip)
                 return false;
-            return !lhs.hasClip || (lhs.clipRect.left == rhs.clipRect.left && lhs.clipRect.top == rhs.clipRect.top && lhs.clipRect.right == rhs.clipRect.right
-                                    && lhs.clipRect.bottom == rhs.clipRect.bottom);
+            return !lhs.hasClip
+                   || (lhs.clipRect.left == rhs.clipRect.left && lhs.clipRect.top == rhs.clipRect.top && lhs.clipRect.right == rhs.clipRect.right
+                       && lhs.clipRect.bottom == rhs.clipRect.bottom);
         };
 
         Tsukino::Renderer::DrawCommandQueue& queue = ctx->renderer->GetDrawQueue();
@@ -302,8 +310,8 @@ namespace Tsukino::BuiltIn::ECS {
         for(std::uint32_t order = beginIndex; order < endIndex; ++order) {
             const DrawEntry& entry = m_drawEntries[m_drawOrder[order]];
 
-            entry.atlas->AppendStringSprites(m_sprites, entry.text, entry.position, entry.color, entry.origin, entry.scale,
-                                             entry.outlineColor, entry.outlineWidth, entry.rotation);
+            entry.atlas->AppendStringSprites(
+                m_sprites, entry.text, entry.position, entry.color, entry.origin, entry.scale, entry.outlineColor, entry.outlineWidth, entry.rotation);
         }
     }
 

@@ -129,8 +129,8 @@ namespace Tsukino::Renderer {
 
         // 解像度が変わったのでシャドウマップを作り直す。失敗したら前のものがそのまま残る
         if(!CreateShadowMap(m_settings.mapSize)) {
-            Tsukino::Core::Log::Error("Failed to recreate the shadow map at " + std::to_string(m_settings.mapSize)
-                                      + " px; keeping the previous " + std::to_string(previousMapSize) + " px shadow map.");
+            Tsukino::Core::Log::Error("Failed to recreate the shadow map at " + std::to_string(m_settings.mapSize) + " px; keeping the previous "
+                                      + std::to_string(previousMapSize) + " px shadow map.");
             m_settings.mapSize = previousMapSize;
         }
     }
@@ -144,9 +144,9 @@ namespace Tsukino::Renderer {
         if(static_cast<float>(hlslpp::dot(lightDir, lightDir)) <= 0.0f)
             return;
 
-        const ShadowCascadeSet cascadeSet = ShadowCascades::ComputeCascades(worldScene.view, worldScene.invViewProj, hlslpp::normalize(lightDir),
-                                                                            m_settings, m_activeCascadeCount);
-        m_cascades                        = cascadeSet.cascades;
+        const ShadowCascadeSet cascadeSet =
+            ShadowCascades::ComputeCascades(worldScene.view, worldScene.invViewProj, hlslpp::normalize(lightDir), m_settings, m_activeCascadeCount);
+        m_cascades = cascadeSet.cascades;
 
         // 奥行きはカスケードの大きさから毎フレーム決まる。カメラ行列が未設定で求まらなかったフレームは前の値を残す
         const float depthRange = cascadeSet.depthTowardLight + cascadeSet.depthAwayFromLight;
@@ -169,7 +169,8 @@ namespace Tsukino::Renderer {
             splitFar[i]        = m_cascades[i].splitFar;
         }
 
-        m_frameConstants->SetShadowCascades(cascadeViewProj, hlslpp::float4(texelWorld[0], texelWorld[1], texelWorld[2], texelWorld[3]),
+        m_frameConstants->SetShadowCascades(cascadeViewProj,
+                                            hlslpp::float4(texelWorld[0], texelWorld[1], texelWorld[2], texelWorld[3]),
                                             hlslpp::float4(splitFar[0], splitFar[1], splitFar[2], splitFar[3]));
     }
 

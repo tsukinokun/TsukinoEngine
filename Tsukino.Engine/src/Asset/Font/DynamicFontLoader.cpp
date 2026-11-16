@@ -71,9 +71,9 @@ namespace Tsukino::Asset {
         // DynamicFontAsset 生成
         //--------------------------------------------------------------
         Tsukino::Core::Ref<DynamicFontAsset> asset = Tsukino::Core::CreateRef<DynamicFontAsset>();
-        asset->faceName                          = std::move(faceName);
-        asset->pixelSize                         = pixelSize;
-        asset->fontFileData                      = std::move(fontData);
+        asset->faceName                            = std::move(faceName);
+        asset->pixelSize                           = pixelSize;
+        asset->fontFileData                        = std::move(fontData);
 
         return asset;
     }

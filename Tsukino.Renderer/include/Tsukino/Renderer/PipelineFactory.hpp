@@ -35,7 +35,7 @@ namespace Tsukino::Renderer {
     //--------------------------------------------------------------
     struct PipelineHash {
         std::size_t operator()(const PipelineKey& key) const noexcept {
-            std::size_t seed = 0;
+            std::size_t seed    = 0;
             const auto  combine = [&seed](std::size_t value) {
                 // 要素ごとに混ぜてからずらして足す（XOR を並べるだけでは、似た値の組がぶつかりやすい）
                 seed ^= value + 0x9e3779b97f4a7c15ull + (seed << 6) + (seed >> 2);

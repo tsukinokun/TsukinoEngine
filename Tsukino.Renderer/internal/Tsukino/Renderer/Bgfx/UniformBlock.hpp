@@ -30,14 +30,12 @@ namespace Tsukino::Renderer {
         //! 構造体1つぶんの vec4 の数
         static constexpr u16 kVec4Count = static_cast<u16>(sizeof(T) / 16);
 
-        UniformBlock() = default;
+        UniformBlock()                               = default;
         UniformBlock(const UniformBlock&)            = delete;
         UniformBlock& operator=(const UniformBlock&) = delete;
 
         //! ユニフォームを破棄します。
-        ~UniformBlock() {
-            Destroy();
-        }
+        ~UniformBlock() { Destroy(); }
 
         //! ユニフォームを作成します。
         //! @param  [in] name シェーダー側の配列の名前（例 "u_scene"）

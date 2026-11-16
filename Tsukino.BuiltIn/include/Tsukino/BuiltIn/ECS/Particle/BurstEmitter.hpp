@@ -23,25 +23,25 @@ namespace Tsukino::BuiltIn::ECS {
 
     //! 粒子1種類の撒き方です。範囲で書いた値は、粒子ごとに最小〜最大の間で乱数を振ります。
     struct BurstParams {
-        int            count         = 16;        // 粒子の数
-        float          speedMin      = 40.0f;     // 速さ（1秒あたり）の最小
-        float          speedMax      = 120.0f;    // 速さの最大
-        float          upwardBias    = 0.5f;      // 上向き成分の強さ（0 で水平に広がる）
-        float          spread        = 1.0f;      // 水平方向の広がり（0 で真上だけ）
-        float          lifeMin       = 0.5f;      // 寿命（秒）の最小
-        float          lifeMax       = 1.0f;      // 寿命の最大
-        float          sizeMin       = 6.0f;      // 生まれたときの大きさ（ワールド単位）の最小
-        float          sizeMax       = 12.0f;     // 生まれたときの大きさの最大
-        float          endSizeScale  = 0.2f;      // 消えるときの大きさの倍率
-        float          gravity       = 120.0f;    // 下向きの加速度（負なら浮き上がる）
-        float          drag          = 2.0f;      // 速度の減衰（1秒あたりの割合）
-        float          radius        = 10.0f;     // 撒き始めの位置のばらつき（水平の半径）
-        float          delayMax      = 0.0f;      // 出るタイミングのばらつき（秒）
+        int            count         = 16;                                        // 粒子の数
+        float          speedMin      = 40.0f;                                     // 速さ（1秒あたり）の最小
+        float          speedMax      = 120.0f;                                    // 速さの最大
+        float          upwardBias    = 0.5f;                                      // 上向き成分の強さ（0 で水平に広がる）
+        float          spread        = 1.0f;                                      // 水平方向の広がり（0 で真上だけ）
+        float          lifeMin       = 0.5f;                                      // 寿命（秒）の最小
+        float          lifeMax       = 1.0f;                                      // 寿命の最大
+        float          sizeMin       = 6.0f;                                      // 生まれたときの大きさ（ワールド単位）の最小
+        float          sizeMax       = 12.0f;                                     // 生まれたときの大きさの最大
+        float          endSizeScale  = 0.2f;                                      // 消えるときの大きさの倍率
+        float          gravity       = 120.0f;                                    // 下向きの加速度（負なら浮き上がる）
+        float          drag          = 2.0f;                                      // 速度の減衰（1秒あたりの割合）
+        float          radius        = 10.0f;                                     // 撒き始めの位置のばらつき（水平の半径）
+        float          delayMax      = 0.0f;                                      // 出るタイミングのばらつき（秒）
         hlslpp::float4 colorA        = hlslpp::float4(1.0f, 1.0f, 1.0f, 1.0f);    // 色の候補 A
         hlslpp::float4 colorB        = hlslpp::float4(1.0f, 1.0f, 1.0f, 1.0f);    // 色の候補 B（A との間で乱数）
-        float          endAlpha      = 0.0f;      // 消えるときの不透明度
-        bool           additive      = true;      // 加算合成で光らせるか
-        float          texturePixels = 64.0f;     // テクスチャの一辺のピクセル数
+        float          endAlpha      = 0.0f;                                      // 消えるときの不透明度
+        bool           additive      = true;                                      // 加算合成で光らせるか
+        float          texturePixels = 64.0f;                                     // テクスチャの一辺のピクセル数
     };
 
     // 名前空間 : Tsukino::BuiltIn::ECS::BurstEmitter
@@ -53,8 +53,8 @@ namespace Tsukino::BuiltIn::ECS {
         //! @param  [in]     params   撒き方
         //! @param  [in]     position 撒く中心（ワールド座標）
         //! @param  [in,out] rng      ばらつき用の乱数
-        inline void Emit(Tsukino::ECS::Scene& scene, Tsukino::Asset::AssetHandle texture, const BurstParams& params, const hlslpp::float3& position,
-                         std::mt19937& rng) {
+        inline void Emit(
+            Tsukino::ECS::Scene& scene, Tsukino::Asset::AssetHandle texture, const BurstParams& params, const hlslpp::float3& position, std::mt19937& rng) {
             constexpr float                       kTwoPi = 6.2831853f;
             std::uniform_real_distribution<float> unit(0.0f, 1.0f);
             auto                                  range = [&](float a, float b) { return a + (b - a) * unit(rng); };

@@ -22,15 +22,15 @@ namespace Tsukino::BuiltIn::ECS {
     //!         Kinematic/Static向け。DynamicはPhysicsSystemがTransformを物理側から上書きするので使わない
     //--------------------------------------------------------------
     struct BoneFollowColliderComponent {
-        std::string boneName;                 //!< 付いていくボーンの名前（ModelComponentのモデルのノード名）
-        bool        followHeight = false;     //!< 高さも追うか。falseなら水平だけ（倒れた体の持ち上がりで判定が浮かないように）
-        float       followSpeed  = 12.0f;     //!< ボーンへ追いつく速さ（1/秒、指数平滑）。0以下なら毎フレームぴったり合わせる
+        std::string boneName;                //!< 付いていくボーンの名前（ModelComponentのモデルのノード名）
+        bool        followHeight = false;    //!< 高さも追うか。falseなら水平だけ（倒れた体の持ち上がりで判定が浮かないように）
+        float       followSpeed  = 12.0f;    //!< ボーンへ追いつく速さ（1/秒、指数平滑）。0以下なら毎フレームぴったり合わせる
 
         // --- 実行時の状態（保存しない） ---
         hlslpp::float3              baseOffset{0.0f, 0.0f, 0.0f};          //!< 最初のフレームのoffsetPosition
         hlslpp::float3              restBonePosition{0.0f, 0.0f, 0.0f};    //!< 最初に取れたフレームのボーン位置（モデル空間）
         hlslpp::float3              currentShift{0.0f, 0.0f, 0.0f};        //!< 今ずらしている量
-        bool                        hasRest = false;                       //!< baseOffset・restBonePositionを取ったか
+        bool                        hasRest       = false;                 //!< baseOffset・restBonePositionを取ったか
         Tsukino::u32                boneNodeIndex = UINT32_MAX;            //!< boneNameを解決したnodeIndex
         Tsukino::Asset::AssetHandle resolvedAgainstModel;                  //!< boneNodeIndexを解決したときのモデル
     };

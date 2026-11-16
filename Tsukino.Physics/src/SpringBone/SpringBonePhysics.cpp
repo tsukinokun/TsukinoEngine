@@ -22,11 +22,11 @@ namespace Tsukino::Physics::SpringBonePhysics {
     //! @brief  ノード階層をDFSで辿り、揺れ物チェーンを構築する
     //--------------------------------------------------------------
     SpringBoneChain BuildChainFromHierarchy(const std::string&                           name,
-                                             u32                                          anchorNodeIndex,
-                                             const std::vector<GraphicsCommon::NodeData>& nodes,
-                                             const std::unordered_set<std::string>&       excludeNodeNames,
-                                             u32                                          maxDepth,
-                                             const SpringBoneSettings&                    settings) {
+                                            u32                                          anchorNodeIndex,
+                                            const std::vector<GraphicsCommon::NodeData>& nodes,
+                                            const std::unordered_set<std::string>&       excludeNodeNames,
+                                            u32                                          maxDepth,
+                                            const SpringBoneSettings&                    settings) {
         SpringBoneChain chain;
         chain.name            = name;
         chain.anchorNodeIndex = anchorNodeIndex;
@@ -65,15 +65,15 @@ namespace Tsukino::Physics::SpringBonePhysics {
 
         // ============================================================
         // [NOTE] 複雑な階層構造での注意点
-        // 
+        //
         // 1. 兄弟ノードの扱い:
         //    アンカーの子として登録された兄弟ノードは、全てチェーンに含まれる。
         //    これは髪のような「全ての毛先を揺らす」ケースに適している。
-        // 
+        //
         // 2. 分岐構造の処理:
         //    兄弟関係のノードは並列に処理されるため、互いに影響を受けない。
         //    各兄弟はアンカーを親として独立したチェーン要素となる。
-        // 
+        //
         // 3. excludeNodeNamesの動作:
         //    指定された名前のノードからその子孫は全て除外される。
         //    これは髪型や服装で「特定の部分を固定」するための機能。
@@ -154,7 +154,7 @@ namespace Tsukino::Physics::SpringBonePhysics {
         // - maxDepth = 0: 無制限
         // - maxDepth = 1: rootNodeIndex単体のみ（depth=1のみ許可、depth=2で打ち切り）
         // - maxDepth = 2: root + 子 (depth=1, 2まで許可)
-        // 
+        //
         // これは「自身を含めて何階層」という意味で、
         // maxDepth=1は「自分だけ」、maxDepth=2は「自分+子」という解釈になる。
         // ============================================================
@@ -210,7 +210,7 @@ namespace Tsukino::Physics::SpringBonePhysics {
             // モデルの問題として、親と同じ位置にボーンがある場合、
             // restLengthが0になる。これはUpdateChain()の
             // ApplyLengthConstraint()でNaNを引き起こす。
-            // 
+            //
             // 対策: 適切な最小値を設定する、または
             // モデルの階層構造を修正する。
             // ============================================================
@@ -339,7 +339,7 @@ namespace Tsukino::Physics::SpringBonePhysics {
                         const WorldPose& pose = animatedPoses[collider.attachNodeIndex];
                         // ベクトルをクォータニオンで回すのは mul(vector, rotation)（前方回転）が正しい。
                         // mul(rotation, vector) は _hlslpp_quat_mul_vec_inv_ps を呼ぶ「逆回転」の別関数なので誤り
-                        colliderPos           = pose.position + hlslpp::mul(collider.localOffset, pose.rotation);
+                        colliderPos = pose.position + hlslpp::mul(collider.localOffset, pose.rotation);
                     }
 
                     hlslpp::float3 diff    = newPos - colliderPos;

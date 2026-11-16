@@ -28,11 +28,7 @@ namespace Tsukino::BuiltIn::ECS {
     //--------------------------------------------------------------
     template <class Archive>
     void load(Archive& archive, MotionBlurComponent& blur) {
-        archive(blur.enabled,
-                blur.strength,
-                blur.maxBlurRadius,
-                blur.sampleCount,
-                blur.targetFps);
+        archive(blur.enabled, blur.strength, blur.maxBlurRadius, blur.sampleCount, blur.targetFps);
     }
 
 }    // namespace Tsukino::BuiltIn::ECS

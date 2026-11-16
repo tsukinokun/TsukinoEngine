@@ -24,37 +24,38 @@ namespace Tsukino::BuiltIn {
         //--------------------------------------------------------------
         void Initialize(Tsukino::Asset::AssetManager* assetManager);
 
-        Tsukino::Asset::AssetHandle spriteVS;          // スプライト用頂点シェーダーのハンドル
-        Tsukino::Asset::AssetHandle spritePS;          // スプライト用ピクセルシェーダーのハンドル
-        Tsukino::Asset::AssetHandle spriteWorldVS;     // ワールド空間スプライト（深度テストされるビルボード）用頂点シェーダーのハンドル（PSはspritePSを共用）
-        Tsukino::Asset::AssetHandle modelVS;           // モデル用頂点シェーダーのハンドル
-        Tsukino::Asset::AssetHandle modelPS;           // モデル用ピクセルシェーダーのハンドル
-        Tsukino::Asset::AssetHandle screenModelPS;     // 画面の UI の層に描くモデル（ScreenModelComponent）用ピクセルシェーダーのハンドル（VSはmodelVS/staticModelVSを共用）
-        Tsukino::Asset::AssetHandle staticModelVS;     // アニメーションなしモデル用頂点シェーダーのハンドル
-        Tsukino::Asset::AssetHandle debugVS;           // デバッグ用頂点シェーダーのハンドル
-        Tsukino::Asset::AssetHandle debugPS;           // デバッグ用ピクセルシェーダーのハンドル
-        Tsukino::Asset::AssetHandle shadowVS;          // シャドウマップ用頂点シェーダー（スケルタル）のハンドル
-        Tsukino::Asset::AssetHandle shadowStaticVS;    // シャドウマップ用頂点シェーダー（スタティック）のハンドル
-        Tsukino::Asset::AssetHandle shadowPS;          // シャドウマップ用ピクセルシェーダーのハンドル
-        Tsukino::Asset::AssetHandle skyVS;             // スカイ用頂点シェーダーのハンドル
-        Tsukino::Asset::AssetHandle skyPS;             // スカイ用ピクセルシェーダーのハンドル
-        Tsukino::Asset::AssetHandle tonemapVS;         // トーンマップ用頂点シェーダーのハンドル
-        Tsukino::Asset::AssetHandle tonemapPS;         // トーンマップ用ピクセルシェーダーのハンドル
-        Tsukino::Asset::AssetHandle gbufferPS;         // ディファードGBufferパス用ピクセルシェーダーのハンドル（VSはmodelVS/staticModelVSを共用）
-        Tsukino::Asset::AssetHandle lightingPS;        // ディファードLightingパス用ピクセルシェーダーのハンドル（VSはtonemapVSを共用）
-        Tsukino::Asset::AssetHandle motionBlurPS;      // モーションブラーパス用ピクセルシェーダーのハンドル（VSはtonemapVSを共用）
-        Tsukino::Asset::AssetHandle bloomPrefilterPS;     // ブルームの明部抽出用ピクセルシェーダーのハンドル（VSはtonemapVSを共用）
-        Tsukino::Asset::AssetHandle bloomDownsamplePS;    // ブルームの縮小用ピクセルシェーダーのハンドル（同上）
-        Tsukino::Asset::AssetHandle bloomUpsamplePS;      // ブルームの拡大・合成用ピクセルシェーダーのハンドル（同上）
-        Tsukino::Asset::AssetHandle fogPS;             // フォグパス用ピクセルシェーダーのハンドル（VSはtonemapVSを共用）
+        Tsukino::Asset::AssetHandle spriteVS;         // スプライト用頂点シェーダーのハンドル
+        Tsukino::Asset::AssetHandle spritePS;         // スプライト用ピクセルシェーダーのハンドル
+        Tsukino::Asset::AssetHandle spriteWorldVS;    // ワールド空間スプライト（深度テストされるビルボード）用頂点シェーダーのハンドル（PSはspritePSを共用）
+        Tsukino::Asset::AssetHandle modelVS;          // モデル用頂点シェーダーのハンドル
+        Tsukino::Asset::AssetHandle modelPS;          // モデル用ピクセルシェーダーのハンドル
+        Tsukino::Asset::AssetHandle
+            screenModelPS;    // 画面の UI の層に描くモデル（ScreenModelComponent）用ピクセルシェーダーのハンドル（VSはmodelVS/staticModelVSを共用）
+        Tsukino::Asset::AssetHandle staticModelVS;         // アニメーションなしモデル用頂点シェーダーのハンドル
+        Tsukino::Asset::AssetHandle debugVS;               // デバッグ用頂点シェーダーのハンドル
+        Tsukino::Asset::AssetHandle debugPS;               // デバッグ用ピクセルシェーダーのハンドル
+        Tsukino::Asset::AssetHandle shadowVS;              // シャドウマップ用頂点シェーダー（スケルタル）のハンドル
+        Tsukino::Asset::AssetHandle shadowStaticVS;        // シャドウマップ用頂点シェーダー（スタティック）のハンドル
+        Tsukino::Asset::AssetHandle shadowPS;              // シャドウマップ用ピクセルシェーダーのハンドル
+        Tsukino::Asset::AssetHandle skyVS;                 // スカイ用頂点シェーダーのハンドル
+        Tsukino::Asset::AssetHandle skyPS;                 // スカイ用ピクセルシェーダーのハンドル
+        Tsukino::Asset::AssetHandle tonemapVS;             // トーンマップ用頂点シェーダーのハンドル
+        Tsukino::Asset::AssetHandle tonemapPS;             // トーンマップ用ピクセルシェーダーのハンドル
+        Tsukino::Asset::AssetHandle gbufferPS;             // ディファードGBufferパス用ピクセルシェーダーのハンドル（VSはmodelVS/staticModelVSを共用）
+        Tsukino::Asset::AssetHandle lightingPS;            // ディファードLightingパス用ピクセルシェーダーのハンドル（VSはtonemapVSを共用）
+        Tsukino::Asset::AssetHandle motionBlurPS;          // モーションブラーパス用ピクセルシェーダーのハンドル（VSはtonemapVSを共用）
+        Tsukino::Asset::AssetHandle bloomPrefilterPS;      // ブルームの明部抽出用ピクセルシェーダーのハンドル（VSはtonemapVSを共用）
+        Tsukino::Asset::AssetHandle bloomDownsamplePS;     // ブルームの縮小用ピクセルシェーダーのハンドル（同上）
+        Tsukino::Asset::AssetHandle bloomUpsamplePS;       // ブルームの拡大・合成用ピクセルシェーダーのハンドル（同上）
+        Tsukino::Asset::AssetHandle fogPS;                 // フォグパス用ピクセルシェーダーのハンドル（VSはtonemapVSを共用）
         Tsukino::Asset::AssetHandle sphereColorGradePS;    // 球形の色調補正パス用ピクセルシェーダーのハンドル（同上）
 
         Tsukino::Asset::AssetHandle ambientParticleVS;    // 環境パーティクル用頂点シェーダーのハンドル（SV_VertexIDだけで板を生成する）
         Tsukino::Asset::AssetHandle ambientParticlePS;    // 環境パーティクル用ピクセルシェーダーのハンドル
 
         // IBLベイク用ピクセルシェーダーのハンドル（VSはtonemapVS/skyVSを共用する）
-        Tsukino::Asset::AssetHandle iblIrradiancePS;         // 拡散IBL用irradiance畳み込みPS
-        Tsukino::Asset::AssetHandle iblSpecularPrefilterPS;  // 鏡面IBL用プレフィルタPS
-        Tsukino::Asset::AssetHandle iblBRDFLUTPS;            // split-sum用BRDF積分LUT生成PS
+        Tsukino::Asset::AssetHandle iblIrradiancePS;           // 拡散IBL用irradiance畳み込みPS
+        Tsukino::Asset::AssetHandle iblSpecularPrefilterPS;    // 鏡面IBL用プレフィルタPS
+        Tsukino::Asset::AssetHandle iblBRDFLUTPS;              // split-sum用BRDF積分LUT生成PS
     };
 }    // namespace Tsukino::BuiltIn

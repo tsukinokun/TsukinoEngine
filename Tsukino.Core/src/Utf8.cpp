@@ -114,8 +114,7 @@ namespace Tsukino::Core::Utf8 {
             return;
         // 続きのバイトを飛ばして、その文字の先頭まで戻る（壊れた並びでも最大4バイトで止める）
         std::size_t start = text.size() - 1;
-        for(int k = 0; k < 3 && start > 0 && IsContinuation(static_cast<unsigned char>(text[start])); ++k)
-            --start;
+        for(int k = 0; k < 3 && start > 0 && IsContinuation(static_cast<unsigned char>(text[start])); ++k) --start;
         text.erase(start);
     }
 

@@ -101,8 +101,7 @@ namespace Tsukino::Asset {
         // 出力先を作れないまま書き込みへ進むと、失敗が原因から遠い場所で
         // 「キャッシュが無い」として現れるため、ここで止める
         if(!Tsukino::IO::FileSystem::CreateDirectories(outputPath.parent_path())) {
-            Tsukino::Core::Log::Error("DynamicFontImporter: Failed to create the output directory: "
-                                      + outputPath.parent_path().string());
+            Tsukino::Core::Log::Error("DynamicFontImporter: Failed to create the output directory: " + outputPath.parent_path().string());
             return false;
         }
 

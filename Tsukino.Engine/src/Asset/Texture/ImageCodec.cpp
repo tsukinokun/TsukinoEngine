@@ -44,32 +44,32 @@ namespace Tsukino::Asset::Detail {
         //! エンジンの形式と bimg の形式（＋ sRGB かどうか）の対応です。
         //----------------------------------------------------------------------------
         struct FormatPair {
-            TextureFormat              engine;
-            bimg::TextureFormat::Enum  bimg;
-            bool                       srgb;
+            TextureFormat             engine;
+            bimg::TextureFormat::Enum bimg;
+            bool                      srgb;
         };
         constexpr FormatPair kFormatPairs[] = {
-            {TextureFormat::R8,         bimg::TextureFormat::R8,      false},
-            {TextureFormat::RG8,        bimg::TextureFormat::RG8,     false},
-            {TextureFormat::RGBA8,      bimg::TextureFormat::RGBA8,   false},
-            {TextureFormat::RGBA8_sRGB, bimg::TextureFormat::RGBA8,   true },
-            {TextureFormat::BGRA8,      bimg::TextureFormat::BGRA8,   false},
-            {TextureFormat::BGRA8_sRGB, bimg::TextureFormat::BGRA8,   true },
-            {TextureFormat::R16,        bimg::TextureFormat::R16,     false},
-            {TextureFormat::RGBA16,     bimg::TextureFormat::RGBA16,  false},
-            {TextureFormat::R16F,       bimg::TextureFormat::R16F,    false},
-            {TextureFormat::RGBA16F,    bimg::TextureFormat::RGBA16F, false},
-            {TextureFormat::R32F,       bimg::TextureFormat::R32F,    false},
-            {TextureFormat::RGBA32F,    bimg::TextureFormat::RGBA32F, false},
-            {TextureFormat::RGB10A2,    bimg::TextureFormat::RGB10A2, false},
-            {TextureFormat::BC1,        bimg::TextureFormat::BC1,     false},
-            {TextureFormat::BC1_sRGB,   bimg::TextureFormat::BC1,     true },
-            {TextureFormat::BC3,        bimg::TextureFormat::BC3,     false},
-            {TextureFormat::BC3_sRGB,   bimg::TextureFormat::BC3,     true },
-            {TextureFormat::BC4,        bimg::TextureFormat::BC4,     false},
-            {TextureFormat::BC5,        bimg::TextureFormat::BC5,     false},
-            {TextureFormat::BC7,        bimg::TextureFormat::BC7,     false},
-            {TextureFormat::BC7_sRGB,   bimg::TextureFormat::BC7,     true },
+            {TextureFormat::R8,           bimg::TextureFormat::R8,      false},
+            {TextureFormat::RG8,          bimg::TextureFormat::RG8,     false},
+            {TextureFormat::RGBA8,        bimg::TextureFormat::RGBA8,   false},
+            {TextureFormat::RGBA8_sRGB,   bimg::TextureFormat::RGBA8,   true },
+            {TextureFormat::BGRA8,        bimg::TextureFormat::BGRA8,   false},
+            {TextureFormat::BGRA8_sRGB,   bimg::TextureFormat::BGRA8,   true },
+            {TextureFormat::R16,          bimg::TextureFormat::R16,     false},
+            {TextureFormat::RGBA16,       bimg::TextureFormat::RGBA16,  false},
+            {TextureFormat::R16F,         bimg::TextureFormat::R16F,    false},
+            {TextureFormat::RGBA16F,      bimg::TextureFormat::RGBA16F, false},
+            {TextureFormat::R32F,         bimg::TextureFormat::R32F,    false},
+            {TextureFormat::RGBA32F,      bimg::TextureFormat::RGBA32F, false},
+            {TextureFormat::RGB10A2,      bimg::TextureFormat::RGB10A2, false},
+            {TextureFormat::BC1,          bimg::TextureFormat::BC1,     false},
+            {TextureFormat::BC1_sRGB,     bimg::TextureFormat::BC1,     true },
+            {TextureFormat::BC3,          bimg::TextureFormat::BC3,     false},
+            {TextureFormat::BC3_sRGB,     bimg::TextureFormat::BC3,     true },
+            {TextureFormat::BC4,          bimg::TextureFormat::BC4,     false},
+            {TextureFormat::BC5,          bimg::TextureFormat::BC5,     false},
+            {TextureFormat::BC7,          bimg::TextureFormat::BC7,     false},
+            {TextureFormat::BC7_sRGB,     bimg::TextureFormat::BC7,     true },
             {TextureFormat::ASTC4x4,      bimg::TextureFormat::ASTC4x4, false},
             {TextureFormat::ASTC4x4_sRGB, bimg::TextureFormat::ASTC4x4, true },
             {TextureFormat::ASTC6x6,      bimg::TextureFormat::ASTC6x6, false},
@@ -132,8 +132,8 @@ namespace Tsukino::Asset::Detail {
             const u32  width   = faces.front()->width;
             const u32  height  = faces.front()->height;
 
-            ContainerPtr container(bimg::imageAlloc(Allocator(), bimg::TextureFormat::RGBA8, static_cast<u16>(width), static_cast<u16>(height), 1, 1,
-                                                    cubeMap, false));
+            ContainerPtr container(
+                bimg::imageAlloc(Allocator(), bimg::TextureFormat::RGBA8, static_cast<u16>(width), static_cast<u16>(height), 1, 1, cubeMap, false));
             if(!container)
                 return nullptr;
 
@@ -252,16 +252,15 @@ namespace Tsukino::Asset::Detail {
                 const float x0 = static_cast<float>(x) * scaleX;
                 const float x1 = std::max(x0 + 1e-4f, static_cast<float>(x + 1) * scaleX);
 
-                float sum[4]   = {};
-                float totalW   = 0.0f;
+                float sum[4] = {};
+                float totalW = 0.0f;
                 for(u32 sy = static_cast<u32>(y0); sy < source.height && static_cast<float>(sy) < y1; ++sy) {
                     const float wy = std::min(y1, static_cast<float>(sy + 1)) - std::max(y0, static_cast<float>(sy));
                     for(u32 sx = static_cast<u32>(x0); sx < source.width && static_cast<float>(sx) < x1; ++sx) {
                         const float wx = std::min(x1, static_cast<float>(sx + 1)) - std::max(x0, static_cast<float>(sx));
                         const float w  = wx * wy;
                         const u8*   p  = &source.pixels[(static_cast<std::size_t>(sy) * source.width + sx) * 4];
-                        for(int c = 0; c < 3; ++c)
-                            sum[c] += w * (srgb ? toLinear[p[c]] : static_cast<float>(p[c]) / 255.0f);
+                        for(int c = 0; c < 3; ++c) sum[c] += w * (srgb ? toLinear[p[c]] : static_cast<float>(p[c]) / 255.0f);
                         sum[3] += w * static_cast<float>(p[3]) / 255.0f;
                         totalW += w;
                     }
@@ -416,7 +415,7 @@ namespace Tsukino::Asset::Detail {
             format            = container->m_srgb ? TextureFormat::RGBA8_sRGB : TextureFormat::RGBA8;
         }
 
-        out = TextureFileData{};
+        out        = TextureFileData{};
         out.format = format;
 
         const bimg::ImageBlockInfo& block = bimg::getBlockInfo(container->m_format);
@@ -426,7 +425,7 @@ namespace Tsukino::Asset::Detail {
             if(!bimg::imageGetRawData(*container, 0, lod, container->m_data, container->m_size, mip))
                 break;
 
-            const u32 blocksX = std::max<u32>(block.minBlockX, (mip.m_width + block.blockWidth - 1) / block.blockWidth);
+            const u32            blocksX = std::max<u32>(block.minBlockX, (mip.m_width + block.blockWidth - 1) / block.blockWidth);
             TextureFileData::Mip entry;
             entry.offset   = total;
             entry.size     = mip.m_size;

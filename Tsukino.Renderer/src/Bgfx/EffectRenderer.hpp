@@ -61,8 +61,8 @@ namespace Tsukino::Renderer {
         void Present(bgfx::ViewId view, const GraphicsContext& graphicsContext) const;
 
     private:
-        struct Impl;                      //!< Effekseer の型を持つ中身（EffectRenderer.cpp で定義）
-        std::unique_ptr<Impl> m_impl;     // 中身
+        struct Impl;                     //!< Effekseer の型を持つ中身（EffectRenderer.cpp で定義）
+        std::unique_ptr<Impl> m_impl;    // 中身
 
         const FullscreenPass* m_fullscreenPass = nullptr;                // フルスクリーン三角形の描画（借りている）
         bgfx::ProgramHandle   m_copyProgram    = BGFX_INVALID_HANDLE;    // 絵を写すプログラム（Tonemap.vs + Copy.ps）

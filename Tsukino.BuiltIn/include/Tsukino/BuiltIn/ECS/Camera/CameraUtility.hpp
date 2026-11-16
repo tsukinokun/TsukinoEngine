@@ -41,8 +41,8 @@ namespace Tsukino::BuiltIn::ECS::CameraUtility {
         const float ndcY = 1.0f - (float(screenPoint.y) / float(screenSize.y)) * 2.0f;
 
         // 行ベクトル規約なので mul(v, m) の順。w で割って同次座標から戻す
-        hlslpp::float4 nearPoint = hlslpp::mul(hlslpp::float4(ndcX, ndcY, 1.0f, 1.0f), camera.invViewProjMatrix);
-        hlslpp::float4 farPoint  = hlslpp::mul(hlslpp::float4(ndcX, ndcY, 0.0f, 1.0f), camera.invViewProjMatrix);
+        hlslpp::float4       nearPoint = hlslpp::mul(hlslpp::float4(ndcX, ndcY, 1.0f, 1.0f), camera.invViewProjMatrix);
+        hlslpp::float4       farPoint  = hlslpp::mul(hlslpp::float4(ndcX, ndcY, 0.0f, 1.0f), camera.invViewProjMatrix);
         const hlslpp::float3 nearWorld = nearPoint.xyz / nearPoint.w;
         const hlslpp::float3 farWorld  = farPoint.xyz / farPoint.w;
 
@@ -60,7 +60,10 @@ namespace Tsukino::BuiltIn::ECS::CameraUtility {
     //! @param  [out] screenPoint 画面上の点（ビューポート左上原点のピクセル座標）。
     //! @return カメラの前方にあれば true。後方なら false で screenPoint は変更しません。
     //----------------------------------------------------------------------------
-    inline bool WorldToScreenPoint(const CameraComponent& camera, const hlslpp::float3& worldPoint, const hlslpp::float2& screenSize, hlslpp::float2& screenPoint) {
+    inline bool WorldToScreenPoint(const CameraComponent& camera,
+                                   const hlslpp::float3&  worldPoint,
+                                   const hlslpp::float2&  screenSize,
+                                   hlslpp::float2&        screenPoint) {
         const hlslpp::float4 clip = hlslpp::mul(hlslpp::float4(worldPoint, 1.0f), camera.viewProjMatrix);
         if(float(clip.w) <= 0.0f) {
             return false;
@@ -105,8 +108,13 @@ namespace Tsukino::BuiltIn::ECS::CameraUtility {
     //! @param  [out] uv          交点の矩形上の位置（0〜1、左下が 0,0）。
     //! @return 矩形の範囲内で交われば true。
     //----------------------------------------------------------------------------
-    inline bool IntersectRect(const Ray& ray, const Tsukino::Core::Math::matrix& worldMatrix, const hlslpp::float3& axisU, const hlslpp::float3& axisV,
-                              const hlslpp::float2& size, float& distance, hlslpp::float2& uv) {
+    inline bool IntersectRect(const Ray&                         ray,
+                              const Tsukino::Core::Math::matrix& worldMatrix,
+                              const hlslpp::float3&              axisU,
+                              const hlslpp::float3&              axisV,
+                              const hlslpp::float2&              size,
+                              float&                             distance,
+                              hlslpp::float2&                    uv) {
         // ローカルの軸をワールドへ。スケールも含むため、長さを保ったまま使う
         const hlslpp::float3 center = worldMatrix[3].xyz;
         const hlslpp::float3 worldU = hlslpp::mul(hlslpp::float4(axisU, 0.0f), worldMatrix).xyz;
@@ -119,11 +127,11 @@ namespace Tsukino::BuiltIn::ECS::CameraUtility {
         }
 
         // 交点を矩形の軸へ射影して、範囲内かを調べる
-        const hlslpp::float3 local  = ray.GetPoint(t) - center;
-        const float          lenU2  = hlslpp::dot(worldU, worldU);
-        const float          lenV2  = hlslpp::dot(worldV, worldV);
-        const float          u      = float(hlslpp::dot(local, worldU)) / lenU2 / float(size.x) + 0.5f;
-        const float          v      = float(hlslpp::dot(local, worldV)) / lenV2 / float(size.y) + 0.5f;
+        const hlslpp::float3 local = ray.GetPoint(t) - center;
+        const float          lenU2 = hlslpp::dot(worldU, worldU);
+        const float          lenV2 = hlslpp::dot(worldV, worldV);
+        const float          u     = float(hlslpp::dot(local, worldU)) / lenU2 / float(size.x) + 0.5f;
+        const float          v     = float(hlslpp::dot(local, worldV)) / lenV2 / float(size.y) + 0.5f;
         if(u < 0.0f || u > 1.0f || v < 0.0f || v > 1.0f) {
             return false;
         }

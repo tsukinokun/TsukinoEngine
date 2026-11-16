@@ -34,7 +34,8 @@ namespace Tsukino::Renderer {
     //! 資源を持たない状態で作ります。
     //------------------------------------------------------------------------
     MotionBlurPass::MotionBlurPass()
-        : m_gpu(std::make_unique<Gpu>()) {}
+        : m_gpu(std::make_unique<Gpu>()) {
+    }
 
     //------------------------------------------------------------------------
     //! 資源を破棄します。
@@ -44,8 +45,11 @@ namespace Tsukino::Renderer {
     //------------------------------------------------------------------------
     //! ユニフォームとプログラムを作成します。
     //------------------------------------------------------------------------
-    bool MotionBlurPass::Initialize(GraphicsContext& graphicsContext, RenderResources& resources, FrameConstants& frameConstants,
-                                    const FullscreenPass& fullscreenPass, const Tsukino::Asset::ShaderAsset* ps) {
+    bool MotionBlurPass::Initialize(GraphicsContext&                   graphicsContext,
+                                    RenderResources&                   resources,
+                                    FrameConstants&                    frameConstants,
+                                    const FullscreenPass&              fullscreenPass,
+                                    const Tsukino::Asset::ShaderAsset* ps) {
         m_graphicsContext = &graphicsContext;
         m_resources       = &resources;
         m_frameConstants  = &frameConstants;

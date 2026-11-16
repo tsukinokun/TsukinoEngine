@@ -20,7 +20,8 @@ namespace Tsukino::Renderer {
     //! 資源を持たない状態で作ります。
     //------------------------------------------------------------------------
     FrameConstants::FrameConstants()
-        : m_gpu(std::make_unique<Gpu>()) {}
+        : m_gpu(std::make_unique<Gpu>()) {
+    }
 
     //------------------------------------------------------------------------
     //! 資源を破棄します。
@@ -74,8 +75,8 @@ namespace Tsukino::Renderer {
     //! 経過時間を進めます（一定時間で折り返す）。
     //------------------------------------------------------------------------
     void FrameConstants::AdvanceTime(float deltaTime) {
-        m_frameDeltaTime = deltaTime;
-        m_elapsedTime += deltaTime;
+        m_frameDeltaTime  = deltaTime;
+        m_elapsedTime    += deltaTime;
 
         constexpr float kTimeWrap = 6.28318531f * 1000.0f;    // 2πの整数倍で折り返せば sin/cos に段差が出ない
         if(m_elapsedTime > kTimeWrap)
@@ -86,9 +87,9 @@ namespace Tsukino::Renderer {
     //! 影のカスケードをワールドのシーン定数へ書き込みます。
     //------------------------------------------------------------------------
     void FrameConstants::SetShadowCascades(const std::array<Tsukino::Core::Math::matrix, kShadowCascadeCount>& cascadeViewProj,
-                                           const hlslpp::float4& cascadeTexelWorld, const hlslpp::float4& cascadeSplitFar) {
-        for(unsigned int i = 0; i < kShadowCascadeCount; ++i)
-            m_worldSceneData.cascadeViewProj[i] = cascadeViewProj[i];
+                                           const hlslpp::float4&                                               cascadeTexelWorld,
+                                           const hlslpp::float4&                                               cascadeSplitFar) {
+        for(unsigned int i = 0; i < kShadowCascadeCount; ++i) m_worldSceneData.cascadeViewProj[i] = cascadeViewProj[i];
 
         m_worldSceneData.cascadeTexelWorld = cascadeTexelWorld;
         m_worldSceneData.cascadeSplitFar   = cascadeSplitFar;
@@ -112,9 +113,8 @@ namespace Tsukino::Renderer {
         const float backBufferWidth = m_graphicsContext ? static_cast<float>(m_graphicsContext->GetWidth()) : 0.0f;
         const float sceneWidth      = m_graphicsContext ? static_cast<float>(m_graphicsContext->GetSceneWidth()) : 0.0f;
         const float width           = targetBackBuffer ? backBufferWidth : sceneWidth;
-        const float height          = m_graphicsContext ? static_cast<float>(targetBackBuffer ? m_graphicsContext->GetHeight()
-                                                                                               : m_graphicsContext->GetSceneHeight())
-                                                        : 0.0f;
+        const float height =
+            m_graphicsContext ? static_cast<float>(targetBackBuffer ? m_graphicsContext->GetHeight() : m_graphicsContext->GetSceneHeight()) : 0.0f;
         uploadData.screenParams = hlslpp::float4(width, height, width > 0.0f ? 1.0f / width : 0.0f, height > 0.0f ? 1.0f / height : 0.0f);
 
         //--------------------------------------------------------------------

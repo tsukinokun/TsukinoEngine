@@ -30,12 +30,12 @@ namespace Tsukino::Renderer {
         bgfx::ProgramHandle downsampleProgram = BGFX_INVALID_HANDLE;    // フルスクリーン三角形 ＋ BloomDownsample.ps（縮小）
         bgfx::ProgramHandle upsampleProgram   = BGFX_INVALID_HANDLE;    // フルスクリーン三角形 ＋ BloomUpsample.ps（拡大と合成）
 
-        UniformBlock<CBufferBloom> params;                                // パラメータ（u_bloom）
+        UniformBlock<CBufferBloom> params;                                 // パラメータ（u_bloom）
         bgfx::UniformHandle        sourceSampler = BGFX_INVALID_HANDLE;    // s_bloomSource
 
         std::array<MipTarget, kMaxMipCount> mips{};    // 縮小段（[0] が 1/2）
 
-        Gpu() = default;
+        Gpu()                      = default;
         Gpu(const Gpu&)            = delete;
         Gpu& operator=(const Gpu&) = delete;
 

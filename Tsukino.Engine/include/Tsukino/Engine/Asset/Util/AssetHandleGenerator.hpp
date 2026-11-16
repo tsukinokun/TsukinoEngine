@@ -40,8 +40,7 @@ namespace Tsukino::Asset {
             // 区切り文字を'/'へ統一する
             std::replace(key.begin(), key.end(), '\\', '/');
             // Windowsのファイルシステムは大文字小文字を区別しないため小文字へ揃える
-            std::transform(key.begin(), key.end(), key.begin(),
-                           [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
+            std::transform(key.begin(), key.end(), key.begin(), [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
             return key;
         }
 
@@ -56,7 +55,7 @@ namespace Tsukino::Asset {
             u64 hash = 14695981039346656037ULL;    // FNV offset basis
             for(unsigned char c : key) {
                 hash ^= static_cast<u64>(c);
-                hash *= 1099511628211ULL;          // FNV prime
+                hash *= 1099511628211ULL;    // FNV prime
             }
 
             // 0はAssetHandle::Invalid()と衝突するため、その場合だけ別の値へ寄せる

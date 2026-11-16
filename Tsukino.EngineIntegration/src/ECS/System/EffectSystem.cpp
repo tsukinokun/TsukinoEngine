@@ -47,9 +47,8 @@ namespace Tsukino::BuiltIn::ECS {
                 return;
             }
 
-            ::Effekseer::Vector3D axis(static_cast<float>(rotation.x) / sinHalf,
-                                      static_cast<float>(rotation.y) / sinHalf,
-                                      static_cast<float>(rotation.z) / sinHalf);
+            ::Effekseer::Vector3D axis(
+                static_cast<float>(rotation.x) / sinHalf, static_cast<float>(rotation.y) / sinHalf, static_cast<float>(rotation.z) / sinHalf);
             manager->SetRotation(handle, axis, angle);
         }
     }    // namespace
@@ -160,8 +159,12 @@ namespace Tsukino::BuiltIn::ECS {
     //--------------------------------------------------------------
     //! @brief  エフェクトを再生する
     //--------------------------------------------------------------
-    int EffectSystem::PlayEffect(
-        Tsukino::ECS::Registry& registry, Tsukino::Asset::AssetHandle asset, const Tsukino::Core::Path& effectPath, const float* position, bool looping, float scale) {
+    int EffectSystem::PlayEffect(Tsukino::ECS::Registry&     registry,
+                                 Tsukino::Asset::AssetHandle asset,
+                                 const Tsukino::Core::Path&  effectPath,
+                                 const float*                position,
+                                 bool                        looping,
+                                 float                       scale) {
         if(!m_initialized || !m_manager) {
             return -1;
         }

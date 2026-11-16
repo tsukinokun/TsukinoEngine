@@ -29,8 +29,10 @@ namespace Tsukino::Asset {
             case TextureFormat::BC4:
             case TextureFormat::BC5:
             case TextureFormat::BC7:
-            case TextureFormat::BC7_sRGB: return true;
-            default:                      return false;
+            case TextureFormat::BC7_sRGB:
+                return true;
+            default:
+                return false;
             }
         }
     }    // namespace

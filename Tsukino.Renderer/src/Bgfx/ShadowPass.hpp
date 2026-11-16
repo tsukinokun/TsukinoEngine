@@ -87,9 +87,7 @@ namespace Tsukino::Renderer {
         //! @param  [in] enabled true で間引く
         //! @note   既定は有効。同じビルドで有効・無効の両方を計測できるようにするための口で、
         //!         見た目は変わらない前提（変わるなら間引きすぎている）
-        void SetCullingEnabled(bool enabled) {
-            m_cullingEnabled = enabled;
-        }
+        void SetCullingEnabled(bool enabled) { m_cullingEnabled = enabled; }
 
     private:
         //! シーンの調整値へ描画品質の上限を掛けて適用します。

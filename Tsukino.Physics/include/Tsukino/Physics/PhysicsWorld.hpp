@@ -171,10 +171,7 @@ namespace Tsukino::Physics {
         //! @param  [in] halfHeight カプセル円柱部分の半分の高さ
         //! @return 重なっているボディのユーザーデータの一覧
         //! @note   センサー的な即時オーバーラップ判定であり、物理的な反発は起きません
-        std::vector<uint64_t> OverlapCapsule(const hlslpp::float3&     center,
-                                             const hlslpp::quaternion& rotation,
-                                             float                     radius,
-                                             float                     halfHeight) const;
+        std::vector<uint64_t> OverlapCapsule(const hlslpp::float3& center, const hlslpp::quaternion& rotation, float radius, float halfHeight) const;
 
         //! 指定の直方体と重なっているボディがあるかどうかを調べます。
         //! @param  [in] center     直方体中心のワールド座標

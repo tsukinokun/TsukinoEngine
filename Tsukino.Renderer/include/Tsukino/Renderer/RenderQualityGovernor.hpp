@@ -26,12 +26,9 @@ namespace Tsukino::Renderer {
     //------------------------------------------------------------------------
     class RenderQualityGovernor {
     public:
-
         //! 判断に使う値を設定します。
         //! @param  [in] settings 判断に使う値
-        void SetSettings(const RenderQualityGovernorSettings& settings) noexcept {
-            m_settings = settings;
-        }
+        void SetSettings(const RenderQualityGovernorSettings& settings) noexcept { m_settings = settings; }
 
         //! 測り直します（平均とクールダウンを捨てます）。
         void Reset() noexcept;
@@ -44,9 +41,9 @@ namespace Tsukino::Renderer {
 
     private:
         RenderQualityGovernorSettings m_settings{};             // 判断に使う値
-        float                         m_average       = 0.0f;   // フレーム間隔の移動平均（秒。0 は未測定）
-        float                         m_overBudget    = 0.0f;   // 目標を割り続けている時間（秒）
-        float                         m_cooldownLeft  = 0.0f;   // 判断を止めている残り時間（秒）
+        float                         m_average      = 0.0f;    // フレーム間隔の移動平均（秒。0 は未測定）
+        float                         m_overBudget   = 0.0f;    // 目標を割り続けている時間（秒）
+        float                         m_cooldownLeft = 0.0f;    // 判断を止めている残り時間（秒）
     };
 
 }    // namespace Tsukino::Renderer

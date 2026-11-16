@@ -31,7 +31,8 @@ namespace Tsukino::Renderer {
     //! 資源を持たない状態で作ります。
     //------------------------------------------------------------------------
     AmbientParticlePass::AmbientParticlePass()
-        : m_gpu(std::make_unique<Gpu>()) {}
+        : m_gpu(std::make_unique<Gpu>()) {
+    }
 
     //------------------------------------------------------------------------
     //! 資源を破棄します。
@@ -41,8 +42,11 @@ namespace Tsukino::Renderer {
     //------------------------------------------------------------------------
     //! ユニフォームとプログラムを作成します。
     //------------------------------------------------------------------------
-    bool AmbientParticlePass::Initialize(GraphicsContext& graphicsContext, RenderResources& resources, FrameConstants& frameConstants,
-                                         const Tsukino::Asset::ShaderAsset* vs, const Tsukino::Asset::ShaderAsset* ps) {
+    bool AmbientParticlePass::Initialize(GraphicsContext&                   graphicsContext,
+                                         RenderResources&                   resources,
+                                         FrameConstants&                    frameConstants,
+                                         const Tsukino::Asset::ShaderAsset* vs,
+                                         const Tsukino::Asset::ShaderAsset* ps) {
         m_graphicsContext = &graphicsContext;
         m_resources       = &resources;
         m_frameConstants  = &frameConstants;
@@ -82,8 +86,8 @@ namespace Tsukino::Renderer {
         // 深度を書かないことで粒子どうしの前後関係を気にせずに済み、加算合成なので描画順のソートも要らない。
         // カリングはしない（板の巻き方向を問わない）
         //--------------------------------------------------------------------
-        constexpr u64 kState = BGFX_STATE_WRITE_RGB | BGFX_STATE_WRITE_A | BGFX_STATE_DEPTH_TEST_GEQUAL
-                               | BGFX_STATE_BLEND_FUNC(BGFX_STATE_BLEND_SRC_ALPHA, BGFX_STATE_BLEND_ONE);
+        constexpr u64 kState =
+            BGFX_STATE_WRITE_RGB | BGFX_STATE_WRITE_A | BGFX_STATE_DEPTH_TEST_GEQUAL | BGFX_STATE_BLEND_FUNC(BGFX_STATE_BLEND_SRC_ALPHA, BGFX_STATE_BLEND_ONE);
 
         // 頂点バッファなしで「1粒 = 三角形2枚」を一括描画（頂点シェーダーが頂点番号から作る）
         bgfx::setVertexCount(m_count * 6);

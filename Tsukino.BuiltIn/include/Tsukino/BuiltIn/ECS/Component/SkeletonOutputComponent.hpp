@@ -12,7 +12,7 @@ namespace Tsukino::BuiltIn::ECS {
     //! @brief  スケルトンの出力を管理するコンポーネント
     //-------------------------------------------------------------
     struct SkeletonOutputComponent {
-        static constexpr int kMaxBones = 128;                // 最大ボーン数
+        static constexpr int kMaxBones = 128;              // 最大ボーン数
         alignas(16) float localMatrices[kMaxBones][16];    // 各ボーンのローカル行列
         u32 boneCount = 0;                                 // 実際のボーン数
     };

@@ -84,12 +84,9 @@ namespace Tsukino::Sandbox {
         //--------------------------------------------------------------
         // アセットのロード
         //--------------------------------------------------------------
-        Tsukino::Asset::AssetHandle blockHandle =
-            context->assetManager->Load(Tsukino::Core::Path("Tsukino.Sandbox/Assets/Models/Block.fbx"));
-        Tsukino::Asset::AssetHandle characterHandle =
-            context->assetManager->Load(Tsukino::Core::Path("Tsukino.Sandbox/Assets/Models/CharaTest.fbx"));
-        Tsukino::Asset::AssetHandle centerPieceHandle =
-            context->assetManager->Load(Tsukino::Core::Path("Tsukino.Sandbox/Assets/Models/Ball.fbx"));
+        Tsukino::Asset::AssetHandle blockHandle       = context->assetManager->Load(Tsukino::Core::Path("Tsukino.Sandbox/Assets/Models/Block.fbx"));
+        Tsukino::Asset::AssetHandle characterHandle   = context->assetManager->Load(Tsukino::Core::Path("Tsukino.Sandbox/Assets/Models/CharaTest.fbx"));
+        Tsukino::Asset::AssetHandle centerPieceHandle = context->assetManager->Load(Tsukino::Core::Path("Tsukino.Sandbox/Assets/Models/Ball.fbx"));
 
         Tsukino::ECS::Registry& registry = m_scene.GetRegistry();
 
@@ -116,14 +113,14 @@ namespace Tsukino::Sandbox {
         //--------------------------------------------------------------
         {
             constexpr int   kCharacterCount = 5;
-            constexpr float kRingRadius  = 170.0f;
+            constexpr float kRingRadius     = 170.0f;
 
             for(int i = 0; i < kCharacterCount; ++i) {
                 float angle = 2.0f * kPi * static_cast<float>(i) / static_cast<float>(kCharacterCount);
 
                 Tsukino::ECS::Entity                       e         = m_scene.CreateEntity();
                 Tsukino::BuiltIn::ECS::TransformComponent& transform = registry.AddComponent<Tsukino::BuiltIn::ECS::TransformComponent>(e);
-                transform.position = hlslpp::float3(std::cos(angle) * kRingRadius, kGroundY, std::sin(angle) * kRingRadius);
+                transform.position                                   = hlslpp::float3(std::cos(angle) * kRingRadius, kGroundY, std::sin(angle) * kRingRadius);
                 // 中心を向かせる（モデルのローカル+Zが正面）
                 transform.rotation = hlslpp::quaternion::rotation_y(-angle + kPi * 0.5f);
                 transform.scale    = hlslpp::float3(1.0f, 1.0f, 1.0f);
@@ -181,11 +178,11 @@ namespace Tsukino::Sandbox {
             };
 
             const Spec specs[] = {
-                {hlslpp::float3(0.0f, 120.0f, 0.0f), hlslpp::float3(1.0f, 0.85f, 0.6f), 40000.0f, 600.0f},        // 中央上（暖色）
-                {hlslpp::float3(260.0f, 80.0f, 0.0f), hlslpp::float3(1.0f, 0.25f, 0.2f), 55000.0f, 700.0f},       // 赤
-                {hlslpp::float3(-260.0f, 80.0f, 0.0f), hlslpp::float3(0.2f, 0.5f, 1.0f), 55000.0f, 700.0f},       // 青
-                {hlslpp::float3(0.0f, 80.0f, 260.0f), hlslpp::float3(0.3f, 1.0f, 0.45f), 55000.0f, 700.0f},       // 緑
-                {hlslpp::float3(0.0f, 80.0f, -260.0f), hlslpp::float3(1.0f, 0.5f, 1.0f), 55000.0f, 700.0f},       // 紫
+                {hlslpp::float3(0.0f,    120.0f, 0.0f),    hlslpp::float3(1.0f, 0.85f, 0.6f),  40000.0f, 600.0f}, // 中央上（暖色）
+                {hlslpp::float3(260.0f,  80.0f,  0.0f),    hlslpp::float3(1.0f, 0.25f, 0.2f),  55000.0f, 700.0f}, // 赤
+                {hlslpp::float3(-260.0f, 80.0f,  0.0f),    hlslpp::float3(0.2f, 0.5f,  1.0f),  55000.0f, 700.0f}, // 青
+                {hlslpp::float3(0.0f,    80.0f,  260.0f),  hlslpp::float3(0.3f, 1.0f,  0.45f), 55000.0f, 700.0f}, // 緑
+                {hlslpp::float3(0.0f,    80.0f,  -260.0f), hlslpp::float3(1.0f, 0.5f,  1.0f),  55000.0f, 700.0f}, // 紫
             };
 
             for(const auto& spec : specs) {
@@ -198,10 +195,10 @@ namespace Tsukino::Sandbox {
                 transform.parent                                     = entt::null;
 
                 Tsukino::BuiltIn::ECS::PointLightComponent& light = registry.AddComponent<Tsukino::BuiltIn::ECS::PointLightComponent>(e);
-                light.color                                      = spec.color;
-                light.intensity                                  = spec.intensity;
-                light.range                                      = spec.range;
-                light.enabled                                    = true;
+                light.color                                       = spec.color;
+                light.intensity                                   = spec.intensity;
+                light.range                                       = spec.range;
+                light.enabled                                     = true;
             }
         }
 
@@ -219,12 +216,12 @@ namespace Tsukino::Sandbox {
             transform.parent                                     = entt::null;
 
             Tsukino::BuiltIn::ECS::SpotLightComponent& light = registry.AddComponent<Tsukino::BuiltIn::ECS::SpotLightComponent>(e);
-            light.color                                     = hlslpp::float3(1.0f, 0.98f, 0.9f);
-            light.intensity                                 = 300000.0f;    // 距離420から照らすため d^2≒18万 を見込む
-            light.range                                     = 1000.0f;
-            light.innerConeDeg                              = 14.0f;
-            light.outerConeDeg                              = 26.0f;
-            light.enabled                                   = true;
+            light.color                                      = hlslpp::float3(1.0f, 0.98f, 0.9f);
+            light.intensity                                  = 300000.0f;    // 距離420から照らすため d^2≒18万 を見込む
+            light.range                                      = 1000.0f;
+            light.innerConeDeg                               = 14.0f;
+            light.outerConeDeg                               = 26.0f;
+            light.enabled                                    = true;
         }
 
         //--------------------------------------------------------------

@@ -25,6 +25,6 @@ namespace Tsukino::BuiltIn::ECS {
         float          intensity  = 1.0f;                   //!< ライトの強度
         bool           castShadow = true;                   //!< シャドウを落とすか
 
-        Tsukino::Renderer::ShadowSettings shadow;           //!< カスケードシャドウの調整値（castShadow が true のときだけ使う）
+        Tsukino::Renderer::ShadowSettings shadow;    //!< カスケードシャドウの調整値（castShadow が true のときだけ使う）
     };
 }    // namespace Tsukino::BuiltIn::ECS

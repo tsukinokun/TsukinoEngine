@@ -202,7 +202,8 @@ namespace Tsukino::Renderer {
     //! 資源を持たない状態で作ります。
     //------------------------------------------------------------------------
     IBLBaker::IBLBaker()
-        : m_gpu(std::make_unique<Gpu>()) {}
+        : m_gpu(std::make_unique<Gpu>()) {
+    }
 
     //------------------------------------------------------------------------
     //! 資源を破棄します。
@@ -258,8 +259,8 @@ namespace Tsukino::Renderer {
         //------------------------------------------------------------
         // キューブマップ本体3枚と BRDF LUT（スカイに依存しない2D、r: スケールA, g: バイアスB）
         //------------------------------------------------------------
-        if(!m_gpu->CreateBakeTargets(static_cast<u16>(kCaptureSize), static_cast<u16>(kIrradianceSize), static_cast<u16>(kSpecularBaseSize),
-                                     static_cast<u16>(kBRDFLUTSize))) {
+        if(!m_gpu->CreateBakeTargets(
+               static_cast<u16>(kCaptureSize), static_cast<u16>(kIrradianceSize), static_cast<u16>(kSpecularBaseSize), static_cast<u16>(kBRDFLUTSize))) {
             Tsukino::Core::Log::Error("Renderer: Failed to create one or more IBL cube maps.");
             return false;
         }
@@ -340,7 +341,7 @@ namespace Tsukino::Renderer {
         constexpr float kNearZ      = 0.1f;
         constexpr float kFarZ       = 100.0f;
 
-        data.view        = Tsukino::Core::Math::matrix::lookAtLH(eye, eye + kFaceTargets[idx], kFaceUps[idx]);
+        data.view = Tsukino::Core::Math::matrix::lookAtLH(eye, eye + kFaceTargets[idx], kFaceUps[idx]);
         // リバースZ対応のperspectiveFovLHはCameraSystemと同じくfarZ, nearZの順で渡す
         data.projection  = Tsukino::Core::Math::matrix::perspectiveFovLH(kFovRadians, 1.0f, kFarZ, kNearZ);
         data.viewProj    = hlslpp::mul(data.view, data.projection);

@@ -123,10 +123,10 @@ namespace Tsukino::BuiltIn::ECS::TransformUtility {
             // 親あり：親のワールド行列の逆行列を通してローカル座標へ落とす。
             // 行ベクトル規約なので「点（w=1）× 行列」の順で掛ける
             //--------------------------------------------------------------
-            const auto&          parentWorld    = registry.GetComponent<TransformComponent>(parent).worldMatrix;
+            const auto&            parentWorld    = registry.GetComponent<TransformComponent>(parent).worldMatrix;
             const hlslpp::float4x4 invParentWorld = hlslpp::inverse(parentWorld);
-            const hlslpp::float4 localPosition   = hlslpp::mul(hlslpp::float4(worldPosition, 1.0f), invParentWorld);
-            transform.position                   = hlslpp::float3(localPosition.xyz);
+            const hlslpp::float4   localPosition  = hlslpp::mul(hlslpp::float4(worldPosition, 1.0f), invParentWorld);
+            transform.position                    = hlslpp::float3(localPosition.xyz);
         }
 
         transform.dirty = true;

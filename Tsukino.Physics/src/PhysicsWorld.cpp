@@ -143,8 +143,8 @@ namespace Tsukino::Physics {
         //! @return 常に true を返し、従来どおりブレークポイントで止めます。
         //--------------------------------------------------------------------
         bool JoltAssertFailed(const char* inExpression, const char* inMessage, const char* inFile, JPH::uint inLine) {
-            Tsukino::Core::Log::Error(std::string("Jolt assert failed: ") + inExpression + (inMessage ? std::string(" (") + inMessage + ")" : std::string()) +
-                                      " at " + inFile + ":" + std::to_string(inLine));
+            Tsukino::Core::Log::Error(std::string("Jolt assert failed: ") + inExpression + (inMessage ? std::string(" (") + inMessage + ")" : std::string())
+                                      + " at " + inFile + ":" + std::to_string(inLine));
             return true;
         }
 #endif    // JPH_ENABLE_ASSERTS
@@ -174,11 +174,11 @@ namespace Tsukino::Physics {
     //!         参照される側ほど上に置く
     //------------------------------------------------------------------------
     struct PhysicsWorld::Impl {
-        std::unique_ptr<JPH::TempAllocatorImpl>   tempAllocator;    //!< 物理計算用一時アロケータ
-        std::unique_ptr<JPH::JobSystemThreadPool> jobSystem;        //!< 物理シミュレーション用ジョブシステム
-        BPLayerInterfaceImpl              bpLayerInterface;           //!< ブロードフェーズインターフェース
-        ObjectVsBroadPhaseLayerFilterImpl objVsBpFilter;              //!< オブジェクト対ブロードフェーズ層フィルタ
-        ObjectLayerPairFilterImpl         objPairFilter;              //!< オブジェクト層間フィルタ
+        std::unique_ptr<JPH::TempAllocatorImpl>   tempAllocator;       //!< 物理計算用一時アロケータ
+        std::unique_ptr<JPH::JobSystemThreadPool> jobSystem;           //!< 物理シミュレーション用ジョブシステム
+        BPLayerInterfaceImpl                      bpLayerInterface;    //!< ブロードフェーズインターフェース
+        ObjectVsBroadPhaseLayerFilterImpl         objVsBpFilter;       //!< オブジェクト対ブロードフェーズ層フィルタ
+        ObjectLayerPairFilterImpl                 objPairFilter;       //!< オブジェクト層間フィルタ
 
         std::unique_ptr<JPH::PhysicsSystem>  physicsSystem;      //!< Jolt 物理システム本体
         std::unique_ptr<ContactListenerImpl> contactListener;    //!< 衝突イベントリスナー
@@ -237,8 +237,7 @@ namespace Tsukino::Physics {
             // heightOffset は地形の左下隅(Min)、heightScale はグリッド1つあたりの
             // 間隔(サイズ)を指すという取り決めになっている
             //----------------------------------------------------------------
-            JPH::HeightFieldShapeSettings hfSettings(
-                desc.heightSamples, ToJoltVec3(desc.heightOffset), ToJoltVec3(desc.heightScale), desc.heightSize);
+            JPH::HeightFieldShapeSettings hfSettings(desc.heightSamples, ToJoltVec3(desc.heightOffset), ToJoltVec3(desc.heightScale), desc.heightSize);
 
             // このフラグが「地形の法線」を正しく計算させる
             hfSettings.mBlockSize = 2;    // デフォルトの2にする
@@ -253,12 +252,11 @@ namespace Tsukino::Physics {
             heightfieldCache[cacheKey]      = (JPH::HeightFieldShape*)shape.GetPtr();
 
             JPH::AABox localBounds = shape->GetLocalBounds();
-            Tsukino::Core::Log::Info("HeightField local bounds min=(" + std::to_string(localBounds.mMin.GetX()) + ","
-                                     + std::to_string(localBounds.mMin.GetZ()) + ") max=(" + std::to_string(localBounds.mMax.GetX()) + ","
-                                     + std::to_string(localBounds.mMax.GetZ()) + ")");
-            Tsukino::Core::Log::Info("Requested offset=(" + std::to_string(float(desc.heightOffset.x)) + ","
-                                     + std::to_string(float(desc.heightOffset.z)) + ") scale=(" + std::to_string(float(desc.heightScale.x)) + ","
-                                     + std::to_string(float(desc.heightScale.z)) + ") size=" + std::to_string(desc.heightSize));
+            Tsukino::Core::Log::Info("HeightField local bounds min=(" + std::to_string(localBounds.mMin.GetX()) + "," + std::to_string(localBounds.mMin.GetZ())
+                                     + ") max=(" + std::to_string(localBounds.mMax.GetX()) + "," + std::to_string(localBounds.mMax.GetZ()) + ")");
+            Tsukino::Core::Log::Info("Requested offset=(" + std::to_string(float(desc.heightOffset.x)) + "," + std::to_string(float(desc.heightOffset.z))
+                                     + ") scale=(" + std::to_string(float(desc.heightScale.x)) + "," + std::to_string(float(desc.heightScale.z))
+                                     + ") size=" + std::to_string(desc.heightSize));
 
             return shape;
         }
@@ -325,10 +323,10 @@ namespace Tsukino::Physics {
         JPH::BodyCreationSettings settings(
             shape, ToJoltRVec3(desc.position), ToJoltQuat(desc.rotation), ToJoltMotionType(desc.motion), ToObjectLayer(desc.motion));
 
-        settings.mIsSensor                             = desc.isSensor;
-        settings.mFriction                             = desc.friction;
-        settings.mRestitution                          = desc.restitution;
-        settings.mGravityFactor                        = desc.gravityFactor;
+        settings.mIsSensor      = desc.isSensor;
+        settings.mFriction      = desc.friction;
+        settings.mRestitution   = desc.restitution;
+        settings.mGravityFactor = desc.gravityFactor;
 
         //--------------------------------------------------------------------
         // 質量と許可軸は、呼び出し側が明示したときだけ上書きする。
@@ -400,8 +398,7 @@ namespace Tsukino::Physics {
             return;
 
         // Jolt が「deltaTime 後に目標へ着く」線速度・角速度を設定する（位置はStep中に積分される）
-        m_impl->physicsSystem->GetBodyInterface().MoveKinematic(
-            JPH::BodyID(handle.value), ToJoltRVec3(targetPosition), ToJoltQuat(targetRotation), deltaTime);
+        m_impl->physicsSystem->GetBodyInterface().MoveKinematic(JPH::BodyID(handle.value), ToJoltRVec3(targetPosition), ToJoltQuat(targetRotation), deltaTime);
     }
 
     //------------------------------------------------------------------------
@@ -613,10 +610,7 @@ namespace Tsukino::Physics {
     //------------------------------------------------------------------------
     //! 指定のカプセル形状と現在重なっている全ボディのユーザーデータを取得します。
     //------------------------------------------------------------------------
-    std::vector<uint64_t> PhysicsWorld::OverlapCapsule(const hlslpp::float3&     center,
-                                                       const hlslpp::quaternion& rotation,
-                                                       float                     radius,
-                                                       float                     halfHeight) const {
+    std::vector<uint64_t> PhysicsWorld::OverlapCapsule(const hlslpp::float3& center, const hlslpp::quaternion& rotation, float radius, float halfHeight) const {
         std::vector<uint64_t> result;
         if(!m_impl || !m_impl->physicsSystem)
             return result;
@@ -643,8 +637,8 @@ namespace Tsukino::Physics {
         if(!m_impl || !m_impl->physicsSystem)
             return false;
 
-        JPH::BoxShape                                            checkShape(ToJoltVec3(halfExtent));
-        JPH::IgnoreSingleBodyFilter                              bodyFilter(JPH::BodyID(ignore.value));
+        JPH::BoxShape                                             checkShape(ToJoltVec3(halfExtent));
+        JPH::IgnoreSingleBodyFilter                               bodyFilter(JPH::BodyID(ignore.value));
         JPH::AllHitCollisionCollector<JPH::CollideShapeCollector> collector;
 
         m_impl->physicsSystem->GetNarrowPhaseQuery().CollideShape(&checkShape,
@@ -678,9 +672,9 @@ namespace Tsukino::Physics {
         }
 
         JPH::CharacterVirtualSettings settings;
-        settings.mShape                                = shape;
-        settings.mMaxSlopeAngle                        = JPH::DegreesToRadians(desc.maxSlopeDeg);
-        settings.mMass                                 = desc.mass;
+        settings.mShape         = shape;
+        settings.mMaxSlopeAngle = JPH::DegreesToRadians(desc.maxSlopeDeg);
+        settings.mMass          = desc.mass;
 
         //--------------------------------------------------------------------
         // 接地判定に使う平面。カプセル底面付近を接地面とみなす
@@ -690,15 +684,15 @@ namespace Tsukino::Physics {
         //   +centerOffset.y を足していた以前の実装は符号が逆で、足元(y≈0)の接触点が
         //   常に許容範囲外になり、isGrounded が恒久的に false のままになっていた）
         //--------------------------------------------------------------------
-        settings.mSupportingVolume                     = JPH::Plane(JPH::Vec3::sAxisY(), -desc.radius);
+        settings.mSupportingVolume = JPH::Plane(JPH::Vec3::sAxisY(), -desc.radius);
 
-        JPH::Ref<JPH::CharacterVirtual> character = new JPH::CharacterVirtual(
-            &settings, ToJoltRVec3(desc.position), ToJoltQuat(desc.rotation), desc.userData, m_impl->physicsSystem.get());
+        JPH::Ref<JPH::CharacterVirtual> character =
+            new JPH::CharacterVirtual(&settings, ToJoltRVec3(desc.position), ToJoltQuat(desc.rotation), desc.userData, m_impl->physicsSystem.get());
 
         character->SetListener(&m_impl->characterContactListener);
 
-        const uint32_t id       = m_impl->nextCharacterId++;
-        m_impl->characters[id]  = character;
+        const uint32_t id      = m_impl->nextCharacterId++;
+        m_impl->characters[id] = character;
 
         return CharacterHandle{id};
     }

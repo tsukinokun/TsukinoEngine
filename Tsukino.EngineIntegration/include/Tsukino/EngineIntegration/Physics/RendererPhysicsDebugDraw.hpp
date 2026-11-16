@@ -21,7 +21,8 @@ namespace Tsukino::EngineIntegration {
     public:
         //! コンストラクタ
         //! @param  [in] renderer 描画先のレンダラー
-        explicit RendererPhysicsDebugDraw(Tsukino::Renderer::Renderer* renderer) : m_renderer(renderer) {}
+        explicit RendererPhysicsDebugDraw(Tsukino::Renderer::Renderer* renderer)
+            : m_renderer(renderer) {}
 
         //! 線分を1本描画します。
         //! @param  [in] from  始点（ワールド座標）
@@ -39,10 +40,7 @@ namespace Tsukino::EngineIntegration {
         //! @param  [in] v1    頂点1（ワールド座標）
         //! @param  [in] v2    頂点2（ワールド座標）
         //! @param  [in] color 色（RGBA。各成分 0.0〜1.0）
-        void DrawTriangle(const hlslpp::float3& v0,
-                          const hlslpp::float3& v1,
-                          const hlslpp::float3& v2,
-                          const hlslpp::float4& color) override {
+        void DrawTriangle(const hlslpp::float3& v0, const hlslpp::float3& v1, const hlslpp::float3& v2, const hlslpp::float4& color) override {
             if(!m_renderer)
                 return;
 
@@ -57,7 +55,7 @@ namespace Tsukino::EngineIntegration {
         static Tsukino::GraphicsCommon::DebugVertex MakeVertex(const hlslpp::float3& position, const hlslpp::float4& color) {
             return Tsukino::GraphicsCommon::DebugVertex{
                 {position.x, position.y, position.z},
-                {color.x,    color.y,    color.z,    color.w}
+                {color.x, color.y, color.z, color.w}
             };
         }
 

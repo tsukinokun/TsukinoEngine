@@ -19,12 +19,12 @@ namespace Tsukino::BuiltIn::ECS {
         //--------------------------------------------------------------
         // 設定（作る側が決める）
         //--------------------------------------------------------------
-        Tsukino::ECS::EntityRef track;                     // 値を測る線の始点（ローカル座標の原点が最小値）。未設定ならこのエンティティ自身
-        float                   trackLength     = 100.0f;  // 最小値から最大値までの長さ（track のローカル座標）
-        float                   minValue        = 0.0f;    // 最小値
-        float                   maxValue        = 1.0f;    // 最大値
-        float                   changeThreshold = 0.0f;    // これより小さい変化は無視する（マウスの細かい揺れで値が変わり続けないように）
-        bool                    interactable    = true;    // つかめる状態か
+        Tsukino::ECS::EntityRef track;                       // 値を測る線の始点（ローカル座標の原点が最小値）。未設定ならこのエンティティ自身
+        float                   trackLength     = 100.0f;    // 最小値から最大値までの長さ（track のローカル座標）
+        float                   minValue        = 0.0f;      // 最小値
+        float                   maxValue        = 1.0f;      // 最大値
+        float                   changeThreshold = 0.0f;      // これより小さい変化は無視する（マウスの細かい揺れで値が変わり続けないように）
+        bool                    interactable    = true;      // つかめる状態か
 
         //--------------------------------------------------------------
         // 状態（UISliderSystem が書く。value は作る側が初期値を書いてよい）

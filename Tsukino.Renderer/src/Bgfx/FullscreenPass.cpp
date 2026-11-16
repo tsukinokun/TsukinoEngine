@@ -27,8 +27,8 @@ namespace Tsukino::Renderer {
         //! 画面を覆う大きな三角形
         constexpr FullscreenVertex kVertices[3] = {
             {-1.0f, -1.0f, 0.0f, 0.0f, 0.0f},
-            { 3.0f, -1.0f, 0.0f, 2.0f, 0.0f},
-            {-1.0f,  3.0f, 0.0f, 0.0f, 2.0f},
+            {3.0f,  -1.0f, 0.0f, 2.0f, 0.0f},
+            {-1.0f, 3.0f,  0.0f, 0.0f, 2.0f},
         };
     }    // namespace
 
@@ -38,10 +38,7 @@ namespace Tsukino::Renderer {
     bool FullscreenPass::Initialize(const Tsukino::Asset::ShaderAsset* vs) {
         m_vs    = vs;
         m_valid = vs && IsBgfxShaderBinary(vs->binary);
-        m_layout.begin()
-            .add(bgfx::Attrib::Position, 3, bgfx::AttribType::Float)
-            .add(bgfx::Attrib::TexCoord0, 2, bgfx::AttribType::Float)
-            .end();
+        m_layout.begin().add(bgfx::Attrib::Position, 3, bgfx::AttribType::Float).add(bgfx::Attrib::TexCoord0, 2, bgfx::AttribType::Float).end();
         if(!m_valid)
             Tsukino::Core::Log::Error("FullscreenPass: The fullscreen vertex shader is not a bgfx shader.");
         return m_valid;

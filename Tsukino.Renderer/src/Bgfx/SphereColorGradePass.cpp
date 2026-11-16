@@ -36,7 +36,8 @@ namespace Tsukino::Renderer {
     //! 資源を持たない状態で作ります。
     //------------------------------------------------------------------------
     SphereColorGradePass::SphereColorGradePass()
-        : m_gpu(std::make_unique<Gpu>()) {}
+        : m_gpu(std::make_unique<Gpu>()) {
+    }
 
     //------------------------------------------------------------------------
     //! 資源を破棄します。
@@ -46,8 +47,11 @@ namespace Tsukino::Renderer {
     //------------------------------------------------------------------------
     //! ユニフォームとプログラムを作成します。
     //------------------------------------------------------------------------
-    bool SphereColorGradePass::Initialize(GraphicsContext& graphicsContext, RenderResources& resources, FrameConstants& frameConstants,
-                                          const FullscreenPass& fullscreenPass, const Tsukino::Asset::ShaderAsset* ps) {
+    bool SphereColorGradePass::Initialize(GraphicsContext&                   graphicsContext,
+                                          RenderResources&                   resources,
+                                          FrameConstants&                    frameConstants,
+                                          const FullscreenPass&              fullscreenPass,
+                                          const Tsukino::Asset::ShaderAsset* ps) {
         m_graphicsContext = &graphicsContext;
         m_resources       = &resources;
         m_frameConstants  = &frameConstants;
@@ -81,20 +85,18 @@ namespace Tsukino::Renderer {
             return;
 
         // 深度は画面と同じ大きさなので点で読む
-        constexpr u32 kPointClamp = BGFX_SAMPLER_U_CLAMP | BGFX_SAMPLER_V_CLAMP | BGFX_SAMPLER_MIN_POINT | BGFX_SAMPLER_MAG_POINT
-                                    | BGFX_SAMPLER_MIP_POINT;
+        constexpr u32 kPointClamp = BGFX_SAMPLER_U_CLAMP | BGFX_SAMPLER_V_CLAMP | BGFX_SAMPLER_MIN_POINT | BGFX_SAMPLER_MAG_POINT | BGFX_SAMPLER_MIP_POINT;
 
         //--------------------------------------------------------------------
         // 1回目：描かれている色 × 乗算色（暗くする・色を寄せる）。
         // 2回目：＋ 加算色（霧の色・境界の光）。
         // どちらもアルファはそのまま残す。ビューは積んだ順に描くので、この順で掛かる
         //--------------------------------------------------------------------
-        constexpr u64 kMultiplyState = BGFX_STATE_WRITE_RGB | BGFX_STATE_WRITE_A
-                                       | BGFX_STATE_BLEND_FUNC_SEPARATE(BGFX_STATE_BLEND_ZERO, BGFX_STATE_BLEND_SRC_COLOR, BGFX_STATE_BLEND_ZERO,
-                                                                        BGFX_STATE_BLEND_ONE);
+        constexpr u64 kMultiplyState =
+            BGFX_STATE_WRITE_RGB | BGFX_STATE_WRITE_A
+            | BGFX_STATE_BLEND_FUNC_SEPARATE(BGFX_STATE_BLEND_ZERO, BGFX_STATE_BLEND_SRC_COLOR, BGFX_STATE_BLEND_ZERO, BGFX_STATE_BLEND_ONE);
         constexpr u64 kAddState = BGFX_STATE_WRITE_RGB | BGFX_STATE_WRITE_A
-                                  | BGFX_STATE_BLEND_FUNC_SEPARATE(BGFX_STATE_BLEND_ONE, BGFX_STATE_BLEND_ONE, BGFX_STATE_BLEND_ZERO,
-                                                                   BGFX_STATE_BLEND_ONE);
+                                  | BGFX_STATE_BLEND_FUNC_SEPARATE(BGFX_STATE_BLEND_ONE, BGFX_STATE_BLEND_ONE, BGFX_STATE_BLEND_ZERO, BGFX_STATE_BLEND_ONE);
 
         for(const bool add : {false, true}) {
             // シェーダーが出す色の切り替え（edgeParams.y。0 = 乗算色, 1 = 加算色）

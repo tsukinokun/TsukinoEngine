@@ -28,9 +28,9 @@ namespace Tsukino::BuiltIn::ECS {
     struct MotionVectorComponent {
         static constexpr int kMaxBones = SkeletonOutputComponent::kMaxBones;    // ボーン行列の上限（スケルトンの出力と同じ）
 
-        Tsukino::Core::Math::matrix prevWorld;                     // 前フレームのワールド行列
-        alignas(16) float prevBones[kMaxBones][16]{};              // 前フレームのボーン行列（スキンメッシュのみ）
-        u32  prevBoneCount = 0;                                    // 前フレームのボーン数
-        bool valid         = false;                                // 初回フレームは false（速度ゼロ扱い）
+        Tsukino::Core::Math::matrix prevWorld;           // 前フレームのワールド行列
+        alignas(16) float prevBones[kMaxBones][16]{};    // 前フレームのボーン行列（スキンメッシュのみ）
+        u32  prevBoneCount = 0;                          // 前フレームのボーン数
+        bool valid         = false;                      // 初回フレームは false（速度ゼロ扱い）
     };
 }    // namespace Tsukino::BuiltIn::ECS

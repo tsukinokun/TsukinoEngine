@@ -95,8 +95,8 @@ int main(int argc, char* argv[]) {
 
     while(engineAPI.ProcessMessages()) {
         auto  currentTime = std::chrono::steady_clock::now();
-        float deltaTime    = std::chrono::duration<float>(currentTime - lastTime).count();
-        lastTime            = currentTime;
+        float deltaTime   = std::chrono::duration<float>(currentTime - lastTime).count();
+        lastTime          = currentTime;
         // ウィンドウドラッグ等で1フレームが極端に長くなった場合の暴走を防ぐ上限
         deltaTime = std::min(deltaTime, 1.0f / 15.0f);
 

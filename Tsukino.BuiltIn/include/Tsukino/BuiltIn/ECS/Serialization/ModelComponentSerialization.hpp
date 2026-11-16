@@ -18,8 +18,10 @@ namespace Tsukino::BuiltIn::ECS {
     //--------------------------------------------------------------
     template <class Archive>
     void save(Archive& archive, const ModelComponent& model) {
-        archive(cereal::make_nvp("modelHandle", model.modelHandle), cereal::make_nvp("visible", model.visible),
-                cereal::make_nvp("opacity", model.opacity), cereal::make_nvp("doubleSided", model.doubleSided),
+        archive(cereal::make_nvp("modelHandle", model.modelHandle),
+                cereal::make_nvp("visible", model.visible),
+                cereal::make_nvp("opacity", model.opacity),
+                cereal::make_nvp("doubleSided", model.doubleSided),
                 cereal::make_nvp("materials", model.materials));
     }
 

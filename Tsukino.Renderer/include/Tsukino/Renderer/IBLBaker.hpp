@@ -10,7 +10,6 @@
 
 #include <Tsukino/Renderer/ConstantBuffer.hpp>
 
-
 #include <memory>
 
 namespace Tsukino::Asset {
@@ -62,9 +61,7 @@ namespace Tsukino::Renderer {
         //!        太陽角度の変化を検知してこれを呼べば次フレームで再ベイクされる。
         //!        ベイクは6〜48回のフルスクリーン三角形描画（すべて128px以下）を伴うため、
         //!        毎フレーム呼ぶような使い方はしないこと（呼び出し側でスロットリングする）
-        void RequestRecapture() noexcept {
-            m_baked = false;
-        }
+        void RequestRecapture() noexcept { m_baked = false; }
 
         //! ユニフォーム（u_ibl と、ベイク中だけ使う u_iblBake）を作成します。
         //! @param  [in] graphicsContext 描画デバイスの持ち主
@@ -106,7 +103,6 @@ namespace Tsukino::Renderer {
         void Bind();
 
     private:
-
         //! 原点から見たキューブの1面ぶんのシーン定数を組み立てます。
         //! @param  [in] face キューブの面（0〜5：+X,-X,+Y,-Y,+Z,-Z）
         //! @return view/projection/viewProj/invViewProj/cameraPos を差し替えたシーン定数
@@ -142,10 +138,9 @@ namespace Tsukino::Renderer {
 
         std::unique_ptr<Gpu> m_gpu;    // 描画 API の資源（中身は Renderer の内部で定義）
 
+        bool m_hasBakeShaders = false;    // 上記3PSと3キューブ/LUTの生成がすべて成功したか
 
-        bool                                      m_hasBakeShaders = false; // 上記3PSと3キューブ/LUTの生成がすべて成功したか
-
-        CBufferIBL                           m_data{};        // CPU側の IBL パラメータ（ベイク完了時に1度だけ更新する）
+        CBufferIBL m_data{};    // CPU側の IBL パラメータ（ベイク完了時に1度だけ更新する）
 
         bool m_baked = false;    // スカイ由来の IBL（キャプチャ/irradiance/プレフィルタ）を焼き終えたか
     };

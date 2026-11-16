@@ -81,7 +81,8 @@ namespace Tsukino::Renderer {
     //! コンストラクタ
     //------------------------------------------------------------------------
     Renderer::Renderer()
-        : m_graphicsContext(std::make_unique<GraphicsContext>()) {}
+        : m_graphicsContext(std::make_unique<GraphicsContext>()) {
+    }
 
     //------------------------------------------------------------------------
     //! デストラクタ
@@ -91,8 +92,8 @@ namespace Tsukino::Renderer {
     //------------------------------------------------------------------------
     //! レンダラーを初期化します。
     //------------------------------------------------------------------------
-    bool Renderer::Initialize(const NativeWindow& window, uint32_t width, uint32_t height, const RendererShaderSet& shaders,
-                              const GraphicsDeviceOptions& deviceOptions) {
+    bool Renderer::Initialize(
+        const NativeWindow& window, uint32_t width, uint32_t height, const RendererShaderSet& shaders, const GraphicsDeviceOptions& deviceOptions) {
         if(!m_graphicsContext->Initialize(window.handle, width, height, deviceOptions))
             return false;
 
@@ -111,16 +112,14 @@ namespace Tsukino::Renderer {
             return false;
 
         m_commandExecutor = std::make_unique<DrawCommandExecutor>();
-        if(!m_commandExecutor->Initialize(*m_graphicsContext, m_resources, m_frameConstants, m_drawQueue, m_iblBaker, shaders.debugVS,
-                                          shaders.debugPS))
+        if(!m_commandExecutor->Initialize(*m_graphicsContext, m_resources, m_frameConstants, m_drawQueue, m_iblBaker, shaders.debugVS, shaders.debugPS))
             return false;
 
         //--------------------------------------------------------------------
         // シャドウマップ。作れなくても起動は止めない（影が出ないだけ）
         //--------------------------------------------------------------------
         m_shadowPass = std::make_unique<ShadowPass>();
-        if(!m_shadowPass->Initialize(m_resources, m_frameConstants, *m_commandExecutor, shaders.shadowStaticVS, shaders.shadowSkeletalVS,
-                                     shaders.shadowPS))
+        if(!m_shadowPass->Initialize(m_resources, m_frameConstants, *m_commandExecutor, shaders.shadowStaticVS, shaders.shadowSkeletalVS, shaders.shadowPS))
             Tsukino::Core::Log::Error("Renderer: Failed to create the shadow pass; shadows are not drawn.");
         m_commandExecutor->SetShadowPass(m_shadowPass.get());
         m_commandExecutor->SetFogPass(&m_fogPass);
@@ -140,11 +139,17 @@ namespace Tsukino::Renderer {
             Tsukino::Core::Log::Error("Renderer: Failed to create the sky pass; the sky is not drawn.");
         m_skyPass.GetGpu().fullscreenPass = m_fullscreenPass.get();
 
-        m_tonemapPass    = std::make_unique<TonemapPass>();
+        m_tonemapPass = std::make_unique<TonemapPass>();
         if(m_fullscreenPass->Initialize(shaders.tonemapVS)) {
             // 環境光のベイク。作れなくても起動は止めない（環境光が無いだけ）
-            if(!m_iblBaker.Initialize(*m_graphicsContext, m_resources, m_frameConstants, *m_fullscreenPass, m_skyPass, shaders.iblIrradiancePS,
-                                      shaders.iblSpecularPrefilterPS, shaders.iblBRDFLUTPS))
+            if(!m_iblBaker.Initialize(*m_graphicsContext,
+                                      m_resources,
+                                      m_frameConstants,
+                                      *m_fullscreenPass,
+                                      m_skyPass,
+                                      shaders.iblIrradiancePS,
+                                      shaders.iblSpecularPrefilterPS,
+                                      shaders.iblBRDFLUTPS))
                 Tsukino::Core::Log::Warn("Renderer: IBL initialization failed. Ambient lighting will be disabled.");
 
             // フォグ。作れなくても起動は止めない（霧が出ないだけ）
@@ -160,13 +165,13 @@ namespace Tsukino::Renderer {
                 Tsukino::Core::Log::Error("Renderer: Motion blur is disabled because its resources could not be created.");
 
             // ブルーム。作れなくても起動は止めない（光が滲まないだけ）
-            if(!m_bloomPass.Initialize(*m_graphicsContext, m_resources, *m_fullscreenPass, shaders.bloomPrefilterPS, shaders.bloomDownsamplePS,
-                                       shaders.bloomUpsamplePS))
+            if(!m_bloomPass.Initialize(
+                   *m_graphicsContext, m_resources, *m_fullscreenPass, shaders.bloomPrefilterPS, shaders.bloomDownsamplePS, shaders.bloomUpsamplePS))
                 Tsukino::Core::Log::Error("Renderer: Bloom is disabled because its resources could not be created.");
 
             (void)m_tonemapPass->Initialize(*m_fullscreenPass, shaders.tonemapPS);
-            (void)m_lightingPass.Initialize(*m_graphicsContext, m_resources, m_frameConstants, *m_fullscreenPass, *m_shadowPass, m_iblBaker,
-                                            shaders.lightingPS);
+            (void)m_lightingPass.Initialize(
+                *m_graphicsContext, m_resources, m_frameConstants, *m_fullscreenPass, *m_shadowPass, m_iblBaker, shaders.lightingPS);
         }
 
         //--------------------------------------------------------------------
@@ -210,8 +215,7 @@ namespace Tsukino::Renderer {
         // 背景。HDR バッファを背景色で消すのは、スカイのビュー（スカイを描かないときは背景色が残る）。
         // G-Buffer に何も描かれていない画素は、ライティングが背景のまま残す
         //--------------------------------------------------------------------
-        const u32 rgba = (ToByte(m_clearColor[0]) << 24) | (ToByte(m_clearColor[1]) << 16) | (ToByte(m_clearColor[2]) << 8)
-                         | ToByte(m_clearColor[3]);
+        const u32 rgba = (ToByte(m_clearColor[0]) << 24) | (ToByte(m_clearColor[1]) << 16) | (ToByte(m_clearColor[2]) << 8) | ToByte(m_clearColor[3]);
         bgfx::setViewClear(BgfxView::Sky, BGFX_CLEAR_COLOR, rgba, 0.0f, 0);
         bgfx::touch(BgfxView::GBuffer);
         bgfx::touch(BgfxView::Sky);

@@ -75,7 +75,8 @@ namespace Tsukino::Asset {
         data.name = inputPath.filename();
 
         auto warn = [&](int lineNumber, const std::string& text) {
-            Tsukino::Core::Log::Warn("MaterialImporter: " + text + " (" + inputPath.string() + " line " + std::to_string(lineNumber) + "). The default value is used.");
+            Tsukino::Core::Log::Warn("MaterialImporter: " + text + " (" + inputPath.string() + " line " + std::to_string(lineNumber)
+                                     + "). The default value is used.");
         };
 
         std::string line;

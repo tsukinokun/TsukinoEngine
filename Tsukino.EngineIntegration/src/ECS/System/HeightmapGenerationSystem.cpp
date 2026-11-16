@@ -173,12 +173,12 @@ namespace Tsukino::BuiltIn::ECS {
         //! @param  cellSizeX,cellSizeZ [in] 1セルのワールドサイズ（サンプル間隔と同じにする）
         //-------------------------------------------------------------
         std::vector<std::vector<uint32_t>> BuildTriangleBuckets(const std::vector<hlslpp::float3>& vertices,
-                                                                 const std::vector<uint32_t>&       indices,
-                                                                 uint32_t                            gridSize,
-                                                                 float                                minX,
-                                                                 float                                minZ,
-                                                                 float                                cellSizeX,
-                                                                 float                                cellSizeZ) {
+                                                                const std::vector<uint32_t>&       indices,
+                                                                uint32_t                           gridSize,
+                                                                float                              minX,
+                                                                float                              minZ,
+                                                                float                              cellSizeX,
+                                                                float                              cellSizeZ) {
             std::vector<std::vector<uint32_t>> buckets(static_cast<size_t>(gridSize) * gridSize);
 
             const int32_t maxCellIndex = static_cast<int32_t>(gridSize) - 1;
@@ -243,9 +243,9 @@ namespace Tsukino::BuiltIn::ECS {
 
                     for(uint32_t v = 0; v < mesh.vertexCount; ++v) {
                         const uint8_t* raw = mesh.vertexData.data() + (size_t)v * mesh.vertexStride;
-                        float          px = 0.0f;
-                        float          py = 0.0f;
-                        float          pz = 0.0f;
+                        float          px  = 0.0f;
+                        float          py  = 0.0f;
+                        float          pz  = 0.0f;
                         std::memcpy(&px, raw + 0, sizeof(float));
                         std::memcpy(&py, raw + 4, sizeof(float));
                         std::memcpy(&pz, raw + 8, sizeof(float));
@@ -374,7 +374,7 @@ namespace Tsukino::BuiltIn::ECS {
             entitiesToRemoveRequest.push_back(entity);
         });
 
-        for(auto entity : entitiesToRemoveRequest) {   
+        for(auto entity : entitiesToRemoveRequest) {
             registry.RemoveComponent<TerrainGenerationRequestComponent>(entity);
         }
     }

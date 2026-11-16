@@ -7,7 +7,7 @@
 #include <Tsukino/BuiltIn/ECS/Component/CameraComponent.hpp>
 
 #include <Tsukino/Core/IO/CerealOptional.hpp>
-#include <Tsukino/Core/Math/Serialization/HlslppSerialization.hpp>   
+#include <Tsukino/Core/Math/Serialization/HlslppSerialization.hpp>
 
 #include <cereal/cereal.hpp>
 

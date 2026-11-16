@@ -42,9 +42,24 @@ namespace Tsukino::BuiltIn::ECS {
     //--------------------------------------------------------------
     template <class Archive>
     void load(Archive& archive, AmbientParticleComponent& particle) {
-        archive(particle.enabled, particle.count, particle.volumeSize, particle.seed, particle.color, particle.intensity, particle.minSize,
-                particle.maxSize, particle.minBrightness, particle.maxBrightness, particle.twinkle, particle.driftVelocity, particle.swayAmplitude,
-                particle.swayFrequency, particle.minSpeedScale, particle.maxSpeedScale, particle.edgeFadeStart, particle.nearFadeDistance);
+        archive(particle.enabled,
+                particle.count,
+                particle.volumeSize,
+                particle.seed,
+                particle.color,
+                particle.intensity,
+                particle.minSize,
+                particle.maxSize,
+                particle.minBrightness,
+                particle.maxBrightness,
+                particle.twinkle,
+                particle.driftVelocity,
+                particle.swayAmplitude,
+                particle.swayFrequency,
+                particle.minSpeedScale,
+                particle.maxSpeedScale,
+                particle.edgeFadeStart,
+                particle.nearFadeDistance);
     }
 
 }    // namespace Tsukino::BuiltIn::ECS

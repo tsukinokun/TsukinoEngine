@@ -18,7 +18,7 @@ namespace Tsukino::Asset {
         asset->data = data;
 
         // パスのあるテクスチャだけを読み込む（空のスロットは描画時に既定のテクスチャへ置き換わる）
-        auto load = [&](const std::string& path) { return path.empty() ? AssetHandle() : assetManager.Load(Tsukino::Core::Path(path)); };
+        auto load                      = [&](const std::string& path) { return path.empty() ? AssetHandle() : assetManager.Load(Tsukino::Core::Path(path)); };
         asset->albedoHandle            = load(data.albedoMap);
         asset->normalHandle            = load(data.normalMap);
         asset->metallicRoughnessHandle = load(data.metallicRoughnessMap);

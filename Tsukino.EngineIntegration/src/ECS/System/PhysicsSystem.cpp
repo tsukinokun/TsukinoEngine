@@ -186,10 +186,7 @@ namespace Tsukino::BuiltIn::ECS {
     //-------------------------------------------------------------
     //! @brief  指定のカプセル形状と現在重なっている全エンティティを取得する
     //-------------------------------------------------------------
-    std::vector<entt::entity> PhysicsSystem::OverlapCapsule(const hlslpp::float3&     center,
-                                                            const hlslpp::quaternion& rotation,
-                                                            float                     radius,
-                                                            float                     halfHeight) {
+    std::vector<entt::entity> PhysicsSystem::OverlapCapsule(const hlslpp::float3& center, const hlslpp::quaternion& rotation, float radius, float halfHeight) {
         std::vector<entt::entity> result;
         if(!m_world)
             return result;
@@ -293,8 +290,7 @@ namespace Tsukino::BuiltIn::ECS {
                 basePosition = tf.position;
                 baseRotation = tf.rotation;
             }
-            Tsukino::Physics::ComposeTransform(
-                basePosition, baseRotation, col.offsetPosition, col.offsetRotation, desc.position, desc.rotation);
+            Tsukino::Physics::ComposeTransform(basePosition, baseRotation, col.offsetPosition, col.offsetRotation, desc.position, desc.rotation);
 
             desc.isSensor = col.isSensor;
             desc.userData = static_cast<uint64_t>(entity);
@@ -368,8 +364,7 @@ namespace Tsukino::BuiltIn::ECS {
                 //-------------------------------------------------------------
                 hlslpp::float3     bodyPosition;
                 hlslpp::quaternion bodyRotation;
-                Tsukino::Physics::ComposeTransform(
-                    tf.position, tf.rotation, col.offsetPosition, col.offsetRotation, bodyPosition, bodyRotation);
+                Tsukino::Physics::ComposeTransform(tf.position, tf.rotation, col.offsetPosition, col.offsetRotation, bodyPosition, bodyRotation);
 
                 //-------------------------------------------------------------
                 // このステップの終わりに Transform の位置へ着くよう、速度として動かす。

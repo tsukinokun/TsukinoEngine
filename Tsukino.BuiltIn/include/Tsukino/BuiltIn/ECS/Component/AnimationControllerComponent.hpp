@@ -20,13 +20,13 @@ namespace Tsukino::BuiltIn::ECS {
         //! @brief  次のアニメーションの情報
         //-------------------------------------------------------------
         struct NextAnimation {
-            Tsukino::Asset::AssetHandle clip;                       // リソースマネージャ内のID
+            Tsukino::Asset::AssetHandle clip;                      // リソースマネージャ内のID
             u32                         animationIndex = 0;        // 次に再生するアニメーションのインデックス
             float                       fadeTime       = 0.0f;     // フェード時間（秒）
-            bool                        immediate       = false;    // 即座に切り替えるか、今のが終わってからか
+            bool                        immediate      = false;    // 即座に切り替えるか、今のが終わってからか
             bool                        isLooping      = true;     // 切り替え後のループ再生フラグ
-            float                       clipStartTime = 0.0f;     // クリップ内の再生レンジ開始（秒）。既定0で全体再生
-            float                       clipEndTime   = 0.0f;     // クリップ内の再生レンジ終了（秒）。0以下ならクリップ末尾まで
+            float                       clipStartTime  = 0.0f;     // クリップ内の再生レンジ開始（秒）。既定0で全体再生
+            float                       clipEndTime    = 0.0f;     // クリップ内の再生レンジ終了（秒）。0以下ならクリップ末尾まで
             bool                        inPlace        = false;    // trueならルートモーションノードの水平移動を無視する
         } next;
 
@@ -35,12 +35,12 @@ namespace Tsukino::BuiltIn::ECS {
         //! @brief  ブレンド元（フェードアウト中）のアニメーションのスナップショット
         //-------------------------------------------------------------
         struct OutgoingAnimation {
-            Tsukino::Asset::AssetHandle clip;                       // リソースマネージャ内のID
+            Tsukino::Asset::AssetHandle clip;                      // リソースマネージャ内のID
             u32                         animationIndex = 0;        // 再生するアニメーションのインデックス
             float                       elapsedTime    = 0.0f;     // 遷移開始時点から独立して進む経過時間（秒）
             bool                        isLooping      = true;     // ループ再生フラグ
-            float                       clipStartTime = 0.0f;     // クリップ内の再生レンジ開始（秒）。既定0で全体再生
-            float                       clipEndTime   = 0.0f;     // クリップ内の再生レンジ終了（秒）。0以下ならクリップ末尾まで
+            float                       clipStartTime  = 0.0f;     // クリップ内の再生レンジ開始（秒）。既定0で全体再生
+            float                       clipEndTime    = 0.0f;     // クリップ内の再生レンジ終了（秒）。0以下ならクリップ末尾まで
             bool                        inPlace        = false;    // trueならルートモーションノードの水平移動を無視する
         } outgoing;
     };

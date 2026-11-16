@@ -35,9 +35,7 @@ namespace Tsukino::Asset {
         //! @param  handle  [in] 設定するアセットのハンドル
         //! @note   AssetManager とローダーが、登録するときに呼ぶ
         //--------------------------------------------------------------
-        void SetHandle(const AssetHandle& handle) noexcept {
-            m_handle = handle;
-        }
+        void SetHandle(const AssetHandle& handle) noexcept { m_handle = handle; }
 
         //--------------------------------------------------------------
         //! @brief  アセットの種類を取得する関数

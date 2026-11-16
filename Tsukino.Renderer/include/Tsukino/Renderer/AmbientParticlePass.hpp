@@ -12,7 +12,6 @@
 
 #include <Tsukino/Renderer/ConstantBuffer.hpp>
 
-
 namespace Tsukino::Asset {
     class ShaderAsset;    // 前方宣言
 }
@@ -64,8 +63,11 @@ namespace Tsukino::Renderer {
         //! @param  [in] ps              環境パーティクル用のピクセルシェーダー
         //! @return true: 作成成功, false: 作成失敗（パスは何もしなくなる）
         [[nodiscard]]
-        bool Initialize(GraphicsContext& graphicsContext, RenderResources& resources, FrameConstants& frameConstants,
-                        const Tsukino::Asset::ShaderAsset* vs, const Tsukino::Asset::ShaderAsset* ps);
+        bool Initialize(GraphicsContext&                   graphicsContext,
+                        RenderResources&                   resources,
+                        FrameConstants&                    frameConstants,
+                        const Tsukino::Asset::ShaderAsset* vs,
+                        const Tsukino::Asset::ShaderAsset* ps);
 
         //! 環境パーティクルのパラメータを設定します。
         //! @param  [in] params        環境パーティクルの定数バッファデータ
@@ -77,27 +79,23 @@ namespace Tsukino::Renderer {
 
         //! このフレームで環境パーティクルを描くかを設定します。
         //! @param  [in] enabled true: 描く, false: 描かない
-        void SetEnabled(bool enabled) noexcept {
-            m_enabled = enabled;
-        }
+        void SetEnabled(bool enabled) noexcept { m_enabled = enabled; }
 
         //! 環境パーティクルを HDR バッファへ加算合成で描きます。
         //! @note   フォグパスの直前に呼ぶこと
         void Execute();
 
         //! フレームの終わりの処理をします（有効フラグを false へ戻します）。
-        void EndFrame() noexcept {
-            m_enabled = false;
-        }
+        void EndFrame() noexcept { m_enabled = false; }
 
     private:
         GraphicsContext* m_graphicsContext = nullptr;    // デバイスの取得元（借りている）
         RenderResources* m_resources       = nullptr;    // 共通ステートの取得元（借りている）
         FrameConstants*  m_frameConstants  = nullptr;    // u_scene の取得元（借りている）
 
-        std::unique_ptr<Gpu> m_gpu;    // 描画 API の資源（中身は Renderer の内部で定義）
-        CBufferAmbientParticle                     m_data{};             // CPU側の環境パーティクルパラメータ
-        u32                                        m_count   = 0;        // 今フレームの粒子数
-        bool                                       m_enabled = false;    // このフレームで有効か
+        std::unique_ptr<Gpu>   m_gpu;                // 描画 API の資源（中身は Renderer の内部で定義）
+        CBufferAmbientParticle m_data{};             // CPU側の環境パーティクルパラメータ
+        u32                    m_count   = 0;        // 今フレームの粒子数
+        bool                   m_enabled = false;    // このフレームで有効か
     };
 }    // namespace Tsukino::Renderer

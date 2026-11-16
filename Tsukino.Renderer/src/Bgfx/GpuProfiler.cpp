@@ -57,8 +57,7 @@ namespace Tsukino::Renderer {
     //------------------------------------------------------------------------
     void GpuProfiler::Initialize() {
         bgfx::setDebug(BGFX_DEBUG_PROFILER);
-        for(std::size_t i = 0; i < kGpuPassCount; ++i)
-            m_latest.passes[i].name = GetGpuPassName(static_cast<GpuPass>(i));
+        for(std::size_t i = 0; i < kGpuPassCount; ++i) m_latest.passes[i].name = GetGpuPassName(static_cast<GpuPass>(i));
     }
 
     //------------------------------------------------------------------------
@@ -72,8 +71,7 @@ namespace Tsukino::Renderer {
         const double toMs = 1000.0 / static_cast<double>(stats->gpuTimerFreq);
 
         GpuFrameTimings timings;
-        for(std::size_t i = 0; i < kGpuPassCount; ++i)
-            timings.passes[i].name = GetGpuPassName(static_cast<GpuPass>(i));
+        for(std::size_t i = 0; i < kGpuPassCount; ++i) timings.passes[i].name = GetGpuPassName(static_cast<GpuPass>(i));
 
         //--------------------------------------------------------------------
         // フレーム全体は、最初のビューの開始から最後のビューの終了まで。

@@ -81,10 +81,10 @@ namespace Tsukino::Renderer::EffekseerBgfx {
         //! 静的なバッファを破棄します。
         void DestroyHandle();
 
-        std::vector<u8>          m_data;                             // 中身（CPU 側）
-        bool                     m_dynamic = false;                  // 毎フレーム書き換えるか
-        bgfx::VertexBufferHandle m_handle  = BGFX_INVALID_HANDLE;    // 静的なバッファ（書き換えないときだけ。最初に描くときに作る）
-        u32                      m_handleLayoutHash = 0;             // 静的なバッファを作った頂点レイアウト
+        std::vector<u8>          m_data;                                      // 中身（CPU 側）
+        bool                     m_dynamic          = false;                  // 毎フレーム書き換えるか
+        bgfx::VertexBufferHandle m_handle           = BGFX_INVALID_HANDLE;    // 静的なバッファ（書き換えないときだけ。最初に描くときに作る）
+        u32                      m_handleLayoutHash = 0;                      // 静的なバッファを作った頂点レイアウト
     };
 
     //------------------------------------------------------------------------
@@ -162,7 +162,8 @@ namespace Tsukino::Renderer::EffekseerBgfx {
         Effekseer::Backend::VertexBufferRef CreateVertexBuffer(int32_t size, const void* initialData, bool isDynamic) override;
 
         //! インデックスバッファを作ります。
-        Effekseer::Backend::IndexBufferRef CreateIndexBuffer(int32_t elementCount, const void* initialData,
+        Effekseer::Backend::IndexBufferRef CreateIndexBuffer(int32_t                                   elementCount,
+                                                             const void*                               initialData,
                                                              Effekseer::Backend::IndexBufferStrideType stride) override;
 
         //! 頂点バッファの中身を書き換えます。
@@ -178,12 +179,10 @@ namespace Tsukino::Renderer::EffekseerBgfx {
         //! @note  2D の画像だけ（配列・3D・描く先は作らない）。段の数が 0 のときは、8bit の形式なら
         //!        CPU で 1×1 までの段を作る（bgfx は普通のテクスチャの段を GPU で作れないため）
         Effekseer::Backend::TextureRef CreateTexture(const Effekseer::Backend::TextureParameter& param,
-                                                     const Effekseer::CustomVector<uint8_t>& initialData) override;
+                                                     const Effekseer::CustomVector<uint8_t>&     initialData) override;
 
         //! 描画デバイスの名前を返します。
-        std::string GetDeviceName() const override {
-            return "bgfx";
-        }
+        std::string GetDeviceName() const override { return "bgfx"; }
 
         //! Renderer が持つテクスチャを借りて見せるテクスチャを作ります（破棄しない）。
         //! @param  [in] handle テクスチャ

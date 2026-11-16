@@ -58,26 +58,20 @@ namespace Tsukino::Renderer {
         //! @param  [in]     skeletalPipeline スケルタルメッシュ用の影用パイプライン
         //! @param  [in,out] stats            描画統計の加算先
         //! @note   コマンドが自前の影用パイプライン（DrawCommand::shadowPipeline）を持っていれば、そちらを使う
-        void ExecuteShadow(const DrawCommand& cmd, bgfx::ViewId view, const PipelineState* staticPipeline, const PipelineState* skeletalPipeline,
-                           Renderer::FrameStats& stats);
+        void ExecuteShadow(
+            const DrawCommand& cmd, bgfx::ViewId view, const PipelineState* staticPipeline, const PipelineState* skeletalPipeline, Renderer::FrameStats& stats);
 
         //! フォワードで照らすモデルに張るシャドウマップの取得元を設定します。
         //! @param  [in] shadowPass シャドウマップパス（このクラスより長生きすること。nullptr で張らない）
-        void SetShadowPass(const ShadowPass* shadowPass) noexcept {
-            m_shadowPass = shadowPass;
-        }
+        void SetShadowPass(const ShadowPass* shadowPass) noexcept { m_shadowPass = shadowPass; }
 
         //! 半透明のモデルとスプライトへ送るフォグの定数の取得元を設定します。
         //! @param  [in] fogPass フォグパス（このクラスより長生きすること。nullptr で送らない）
-        void SetFogPass(const FogPass* fogPass) noexcept {
-            m_fogPass = fogPass;
-        }
+        void SetFogPass(const FogPass* fogPass) noexcept { m_fogPass = fogPass; }
 
         //! このフレームで速度（モーションブラー用）を G-Buffer へ出すかを設定します。
         //! @param  [in] enabled true: 前フレームの値を持つコマンドは速度を出す, false: 速度を出さない
-        void SetMotionBlurEnabled(bool enabled) noexcept {
-            m_motionBlurEnabled = enabled;
-        }
+        void SetMotionBlurEnabled(bool enabled) noexcept { m_motionBlurEnabled = enabled; }
 
     private:
         //! DrawKind::Mesh のコマンドを描きます。
@@ -113,14 +107,14 @@ namespace Tsukino::Renderer {
         static void CountDrawCall(RenderPass pass, Renderer::FrameStats& stats);
 
     private:
-        const GraphicsContext*  m_graphicsContext = nullptr;    // 描画領域の大きさ（借りている）
-        RenderResources*        m_resources       = nullptr;    // テクスチャ・メッシュ・パイプライン（借りている）
-        FrameConstants*         m_frameConstants  = nullptr;    // シーン定数（借りている）
-        const DrawCommandQueue* m_drawQueue       = nullptr;    // スプライト・線の頂点の並び（借りている）
-        const IBLBaker*         m_iblBaker        = nullptr;    // 環境光（借りている）
-        const ShadowPass*       m_shadowPass      = nullptr;    // シャドウマップ（借りている）
-        const FogPass*          m_fogPass         = nullptr;    // フォワードで掛けるフォグの定数（借りている）
-        bool                    m_motionBlurEnabled = false;    // このフレームで速度を出すか
+        const GraphicsContext*  m_graphicsContext   = nullptr;    // 描画領域の大きさ（借りている）
+        RenderResources*        m_resources         = nullptr;    // テクスチャ・メッシュ・パイプライン（借りている）
+        FrameConstants*         m_frameConstants    = nullptr;    // シーン定数（借りている）
+        const DrawCommandQueue* m_drawQueue         = nullptr;    // スプライト・線の頂点の並び（借りている）
+        const IBLBaker*         m_iblBaker          = nullptr;    // 環境光（借りている）
+        const ShadowPass*       m_shadowPass        = nullptr;    // シャドウマップ（借りている）
+        const FogPass*          m_fogPass           = nullptr;    // フォワードで掛けるフォグの定数（借りている）
+        bool                    m_motionBlurEnabled = false;      // このフレームで速度を出すか
 
         UniformBlock<CBufferTransform> m_transformUniform;    // 物ごとの定数（u_transform）
         CBufferMaterial                m_lastMaterial{};      // 最後に送ったマテリアルの定数（materialData の無いコマンドが引き継ぐ）

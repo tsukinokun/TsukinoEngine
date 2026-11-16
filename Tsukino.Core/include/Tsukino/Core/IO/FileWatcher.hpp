@@ -49,21 +49,23 @@ namespace Tsukino::IO {
         //! @return 更新時刻を調べる間隔
         //---------------------------------------------------------
         [[nodiscard]]
-        std::chrono::milliseconds GetInterval() const noexcept { return m_interval; }
+        std::chrono::milliseconds GetInterval() const noexcept {
+            return m_interval;
+        }
 
     private:
         //! 監視中のファイル1本ぶんの情報
         struct Entry {
-            Tsukino::Core::Path             path;                //!< 監視するファイル
-            std::function<void()>           onChanged;           //!< 更新されたときに呼ぶ関数
-            std::filesystem::file_time_type knownTime;           //!< 最後に通知した（または登録した）ときの更新時刻
-            std::filesystem::file_time_type pendingTime;         //!< 見つけたが、まだ通知していない更新時刻
+            Tsukino::Core::Path             path;               //!< 監視するファイル
+            std::function<void()>           onChanged;          //!< 更新されたときに呼ぶ関数
+            std::filesystem::file_time_type knownTime;          //!< 最後に通知した（または登録した）ときの更新時刻
+            std::filesystem::file_time_type pendingTime;        //!< 見つけたが、まだ通知していない更新時刻
             bool                            pending = false;    //!< 書き込みが落ち着くのを待っているか
         };
 
-        std::mutex                            m_mutex;                                       //!< m_entries を守る
-        std::vector<Entry>                    m_entries;                                     //!< 監視中のファイル
-        std::chrono::milliseconds             m_interval = std::chrono::milliseconds(500);  //!< 確認の間隔
-        std::chrono::steady_clock::time_point m_lastPoll;                                  //!< 前回確認した時刻
+        std::mutex                            m_mutex;                                        //!< m_entries を守る
+        std::vector<Entry>                    m_entries;                                      //!< 監視中のファイル
+        std::chrono::milliseconds             m_interval = std::chrono::milliseconds(500);    //!< 確認の間隔
+        std::chrono::steady_clock::time_point m_lastPoll;                                     //!< 前回確認した時刻
     };
 }    // namespace Tsukino::IO

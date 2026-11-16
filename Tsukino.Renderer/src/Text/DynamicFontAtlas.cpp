@@ -25,15 +25,16 @@ namespace Tsukino::Renderer {
     //! stbtt_fontinfo はデータを指すだけなので、データもここで持つ。
     //------------------------------------------------------------
     struct DynamicFontAtlas::Font {
-        std::vector<uint8_t> data;    // ttf/otf の中身
-        stbtt_fontinfo       info{};  // stb_truetype がフォントを読むための状態
+        std::vector<uint8_t> data;      // ttf/otf の中身
+        stbtt_fontinfo       info{};    // stb_truetype がフォントを読むための状態
     };
 
     //------------------------------------------------------------
     //! @brief  コンストラクタ
     //------------------------------------------------------------
     DynamicFontAtlas::DynamicFontAtlas(RenderResources& resources, const uint8_t* fontData, size_t fontDataSize, float pixelSize)
-        : m_resources(&resources), m_pixelSize(pixelSize) {
+        : m_resources(&resources)
+        , m_pixelSize(pixelSize) {
         auto font = std::make_unique<Font>();
         font->data.assign(fontData, fontData + fontDataSize);
 
@@ -100,9 +101,9 @@ namespace Tsukino::Renderer {
 
         // 現在のシェルフに収まらなければ次のシェルフへ折り返す
         if(page->cursorX + paddedWidth > kPageSize) {
-            page->cursorX     = 0;
-            page->cursorY += page->shelfHeight;
-            page->shelfHeight = 0;
+            page->cursorX      = 0;
+            page->cursorY     += page->shelfHeight;
+            page->shelfHeight  = 0;
         }
 
         // 現在のページに収まらなければ新しいページを作成する
@@ -116,8 +117,8 @@ namespace Tsukino::Renderer {
         outX    = page->cursorX;
         outY    = page->cursorY;
 
-        page->cursorX += paddedWidth;
-        page->shelfHeight = std::max(page->shelfHeight, paddedHeight);
+        page->cursorX     += paddedWidth;
+        page->shelfHeight  = std::max(page->shelfHeight, paddedHeight);
 
         return true;
     }
@@ -185,8 +186,14 @@ namespace Tsukino::Renderer {
         }
 
         std::vector<uint8_t> coverage(static_cast<size_t>(width) * height);
-        stbtt_MakeGlyphBitmap(&m_font->info, coverage.data(), static_cast<int>(width), static_cast<int>(height), static_cast<int>(width),
-                              rasterScale, rasterScale, metrics.glyphIndex);
+        stbtt_MakeGlyphBitmap(&m_font->info,
+                              coverage.data(),
+                              static_cast<int>(width),
+                              static_cast<int>(height),
+                              static_cast<int>(width),
+                              rasterScale,
+                              rasterScale,
+                              metrics.glyphIndex);
 
         // 白RGB + カバレッジ値のアルファへ展開する
         // (スプライトのシェーダー（SpriteBatch.ps.sc）はRGBA全チャンネルをサンプルして頂点色を乗算するため、
@@ -225,7 +232,7 @@ namespace Tsukino::Renderer {
         if(ch == U'\n') {
             if(penX > maxPenX)
                 maxPenX = penX;
-            penX = 0.0f;
+            penX  = 0.0f;
             penY += m_lineHeight;
             return false;
         }
@@ -258,9 +265,15 @@ namespace Tsukino::Renderer {
     //------------------------------------------------------------
     //! @brief  文字列を、グリフ1つにつき1枚のスプライトにして並びへ足す関数
     //------------------------------------------------------------
-    void DynamicFontAtlas::AppendStringSprites(std::vector<SpriteQuad>& outSprites, std::string_view text,
-                                               hlslpp::float2 position, hlslpp::float4 color, hlslpp::float2 origin, float scale,
-                                               hlslpp::float4 outlineColor, float outlineWidth, float rotation) {
+    void DynamicFontAtlas::AppendStringSprites(std::vector<SpriteQuad>& outSprites,
+                                               std::string_view         text,
+                                               hlslpp::float2           position,
+                                               hlslpp::float4           color,
+                                               hlslpp::float2           origin,
+                                               float                    scale,
+                                               hlslpp::float4           outlineColor,
+                                               float                    outlineWidth,
+                                               float                    rotation) {
         if(!m_font || scale <= 0.0f)
             return;
 

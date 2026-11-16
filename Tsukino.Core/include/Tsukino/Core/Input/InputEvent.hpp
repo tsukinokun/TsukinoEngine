@@ -28,14 +28,14 @@ namespace Tsukino::Input {
 
     //! 入力の出来事 1 件です。種類ごとに使う項目だけが意味を持ちます。
     struct InputEvent {
-        InputEventType type     = InputEventType::KeyDown;    // 出来事の種類
-        KeyCode        key      = KeyCode::None;              // 押した・離したキー（KeyDown / KeyUp）
-        bool           repeat   = false;                      // キーの押しっぱなしによる繰り返しなら true（KeyDown）
-        i32            x        = 0;                          // 位置 X（クライアント領域のピクセル）
-        i32            y        = 0;                          // 位置 Y（クライアント領域のピクセル）
-        float          wheel    = 0.0f;                       // ホイールの回転量（奥へ回すと正）
-        u64            fingerId = 0;                          // 指の識別子（Touch*）
-        bool           fromTouch = false;                     // タッチから作られたマウスの出来事なら true
-        std::string    text;                                  // 文字列（TextInput / TextEditing）
+        InputEventType type      = InputEventType::KeyDown;    // 出来事の種類
+        KeyCode        key       = KeyCode::None;              // 押した・離したキー（KeyDown / KeyUp）
+        bool           repeat    = false;                      // キーの押しっぱなしによる繰り返しなら true（KeyDown）
+        i32            x         = 0;                          // 位置 X（クライアント領域のピクセル）
+        i32            y         = 0;                          // 位置 Y（クライアント領域のピクセル）
+        float          wheel     = 0.0f;                       // ホイールの回転量（奥へ回すと正）
+        u64            fingerId  = 0;                          // 指の識別子（Touch*）
+        bool           fromTouch = false;                      // タッチから作られたマウスの出来事なら true
+        std::string    text;                                   // 文字列（TextInput / TextEditing）
     };
 }    // namespace Tsukino::Input

@@ -12,7 +12,6 @@
 
 #include <Tsukino/Renderer/ConstantBuffer.hpp>
 
-
 #include <hlsl++.h>
 
 #include <array>
@@ -99,7 +98,8 @@ namespace Tsukino::Renderer {
         //! @param  [in] cascadeTexelWorld カスケードごとの1テクセルのワールド幅（xyzwが各カスケード。近→遠）
         //! @param  [in] cascadeSplitFar   カスケードごとの受け持つ奥行きの奥側（カメラのビュー空間 z。xyzwが各カスケード。近→遠）
         void SetShadowCascades(const std::array<Tsukino::Core::Math::matrix, kShadowCascadeCount>& cascadeViewProj,
-                               const hlslpp::float4& cascadeTexelWorld, const hlslpp::float4& cascadeSplitFar);
+                               const hlslpp::float4&                                               cascadeTexelWorld,
+                               const hlslpp::float4&                                               cascadeSplitFar);
 
         //! 遮り抜き（注目したい物の手前の遮り物を、画面上の円の中だけ網点で抜く）を設定します。
         //! @param  [in] centerX         円の中心X（画面ピクセル）
@@ -112,8 +112,8 @@ namespace Tsukino::Renderer {
         //! @note   抜かれるのはDrawCommand::occlusionCutoutが立っている物だけ（GBuffer.ps.sc）。影は抜かない。
         //!         毎フレームEndFrame()で無効へ戻るので、使うフレームでは毎回呼ぶこと
         //!         （呼ばないシーンへ切り替えたときに抜きっぱなしで残らない）
-        void SetOcclusionCutout(float centerX, float centerY, float radius, float targetDistance, float depthMargin, float centerVisibility,
-                                float edgeSoftStart) noexcept {
+        void SetOcclusionCutout(
+            float centerX, float centerY, float radius, float targetDistance, float depthMargin, float centerVisibility, float edgeSoftStart) noexcept {
             m_worldSceneData.occlusionCutout0 = hlslpp::float4(centerX, centerY, radius, 1.0f);
             m_worldSceneData.occlusionCutout1 = hlslpp::float4(targetDistance, depthMargin, centerVisibility, edgeSoftStart);
         }
@@ -122,9 +122,7 @@ namespace Tsukino::Renderer {
         //! @param  [in] cascade カスケード番号（0が最も近い）
         //! @note   シャドウ用の頂点シェーダーはこれを見て cascadeViewProj[] を引く。
         //!         設定しただけでは反映されないので、続けて UploadWorld() を呼ぶこと
-        void SetShadowCascadeIndex(unsigned int cascade) noexcept {
-            m_worldSceneData.shadowParams.z = static_cast<float>(cascade);
-        }
+        void SetShadowCascadeIndex(unsigned int cascade) noexcept { m_worldSceneData.shadowParams.z = static_cast<float>(cascade); }
 
         //! ワールドのシーン定数を取得します。
         //! @return ワールドのシーン定数
@@ -134,20 +132,14 @@ namespace Tsukino::Renderer {
         }
 
         //! ワールドのシーン定数を u_scene へ転送してバインドします。
-        void UploadWorld() {
-            Upload(m_worldSceneData, false);
-        }
+        void UploadWorld() { Upload(m_worldSceneData, false); }
 
         //! 影を 3x3 で滑らかにするかを設定します（描画品質。u_scene の qualityParams へ配る）。
         //! @param  [in] enabled true: 3x3, false: 1タップ
-        void SetShadowSoftFilter(bool enabled) noexcept {
-            m_shadowSoftFilter = enabled ? 1.0f : 0.0f;
-        }
+        void SetShadowSoftFilter(bool enabled) noexcept { m_shadowSoftFilter = enabled ? 1.0f : 0.0f; }
 
         //! オーバーレイのシーン定数を u_scene へ転送してバインドします。
-        void UploadOverlay() {
-            Upload(m_overlaySceneData, true);
-        }
+        void UploadOverlay() { Upload(m_overlaySceneData, true); }
 
         //! ワールドのシーン定数のカメラだけを差し替えて u_scene へ転送してバインドします。
         //! @param  [in] camera カメラ行列を詰めたシーン定数。view / projection / viewProj / invViewProj / cameraPos だけを使う
@@ -158,25 +150,22 @@ namespace Tsukino::Renderer {
         //! @note   CameraSystem は dirty 時しか行列を再計算しないため、
         //!         「送られてきたタイミング」ではなく「フレームの末尾」で退避するのが確実
         void EndFrame() noexcept {
-            m_prevWorldViewProj = m_worldSceneData.viewProj;
+            m_prevWorldViewProj                 = m_worldSceneData.viewProj;
             m_worldSceneData.occlusionCutout0.w = 0.0f;    // 遮り抜きはフレーム単位（使うフレームで毎回SetOcclusionCutoutする）
         }
 
-
-
     private:
-
         //! シーン定数へフレーム共通の値を差し込んで u_scene へ転送し、VS と PS にバインドします。
         //! @param  [in] sceneData        転送するシーン定数
         //! @param  [in] targetBackBuffer true: バックバッファへ描くパス（UI）, false: 内部解像度で描くパス
         void Upload(const CBufferScene& sceneData, bool targetBackBuffer);
 
     private:
-        const GraphicsContext*               m_graphicsContext = nullptr;    // デバイスと画面サイズの取得元（借りている）
-        std::unique_ptr<Gpu> m_gpu;    // 描画 API の資源（中身は Renderer の内部で定義）
-        float                                m_shadowMapSize = 0.0f;         // シャドウマップの一辺（u_scene の shadowParams へ配る）
-        float                                m_shadowDepthRange     = 1.0f;  // シャドウの平行投影の奥行き（shadowParams.wはその逆数）
-        float                                m_shadowSoftFilter     = 1.0f;  // 影を3x3で滑らかにするか（qualityParams.x）
+        const GraphicsContext* m_graphicsContext = nullptr;    // デバイスと画面サイズの取得元（借りている）
+        std::unique_ptr<Gpu>   m_gpu;                          // 描画 API の資源（中身は Renderer の内部で定義）
+        float                  m_shadowMapSize    = 0.0f;      // シャドウマップの一辺（u_scene の shadowParams へ配る）
+        float                  m_shadowDepthRange = 1.0f;      // シャドウの平行投影の奥行き（shadowParams.wはその逆数）
+        float                  m_shadowSoftFilter = 1.0f;      // 影を3x3で滑らかにするか（qualityParams.x）
 
         CBufferScene m_worldSceneData{};      // 3D（メインカメラ）用
         CBufferScene m_overlaySceneData{};    // 2D（UIカメラ）用

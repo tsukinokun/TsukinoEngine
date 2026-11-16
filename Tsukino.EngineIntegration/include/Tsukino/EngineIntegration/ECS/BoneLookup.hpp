@@ -29,6 +29,10 @@ namespace Tsukino::BuiltIn::ECS {
     //! @note   NodeWorldMatrixComponent/NodeWorldPoseComponentはModelComponent側のノード並びで書かれるので、
     //!         再生中のクリップが切り替わっても再解決は要らない。モデルがまだ読めていなければ何もせず、次の呼び出しで解決する
     //--------------------------------------------------------------
-    void ResolveBoneNodeIndex(Tsukino::EngineIntegration::EngineContext* ctx, Tsukino::ECS::Registry& registry, Tsukino::ECS::Entity modelEntity,
-                              const std::string& boneName, Tsukino::Asset::AssetHandle& resolvedAgainstModel, Tsukino::u32& outNodeIndex);
+    void ResolveBoneNodeIndex(Tsukino::EngineIntegration::EngineContext* ctx,
+                              Tsukino::ECS::Registry&                    registry,
+                              Tsukino::ECS::Entity                       modelEntity,
+                              const std::string&                         boneName,
+                              Tsukino::Asset::AssetHandle&               resolvedAgainstModel,
+                              Tsukino::u32&                              outNodeIndex);
 }    // namespace Tsukino::BuiltIn::ECS

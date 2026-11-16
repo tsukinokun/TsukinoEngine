@@ -140,10 +140,10 @@ namespace Tsukino::Input {
         std::array<bool, kGamepadButtonCount> m_currentButtons{};     //!< 現フレームのボタン状態
         std::array<bool, kGamepadButtonCount> m_previousButtons{};    //!< 前フレームのボタン状態
 
-        hlslpp::float2 m_leftStick  = hlslpp::float2(0.0f, 0.0f);    //!< 左スティック
-        hlslpp::float2 m_rightStick = hlslpp::float2(0.0f, 0.0f);    //!< 右スティック
-        float          m_leftTrigger  = 0.0f;                         //!< 左トリガー
-        float          m_rightTrigger = 0.0f;                         //!< 右トリガー
+        hlslpp::float2 m_leftStick    = hlslpp::float2(0.0f, 0.0f);    //!< 左スティック
+        hlslpp::float2 m_rightStick   = hlslpp::float2(0.0f, 0.0f);    //!< 右スティック
+        float          m_leftTrigger  = 0.0f;                          //!< 左トリガー
+        float          m_rightTrigger = 0.0f;                          //!< 右トリガー
 
         float m_stickDeadZone    = kDefaultStickDeadZone;       //!< スティックのデッドゾーン
         float m_triggerThreshold = kDefaultTriggerThreshold;    //!< トリガーのしきい値

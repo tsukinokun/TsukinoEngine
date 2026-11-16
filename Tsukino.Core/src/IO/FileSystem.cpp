@@ -12,7 +12,7 @@
 #include <filesystem>
 
 #if defined(__APPLE__)
-#    include <TargetConditionals.h>
+#include <TargetConditionals.h>
 #endif
 
 //-------------------------------------------------------------
@@ -20,9 +20,9 @@
 // スマホでは開発機のパスが見えないので、Debug でも同梱したアセット（.app の中・APK）を読む
 //-------------------------------------------------------------
 #if defined(_DEBUG) && !defined(__ANDROID__) && !(defined(__APPLE__) && TARGET_OS_IPHONE)
-#    define TSUKINO_ASSETS_FROM_SOURCE_TREE 1
+#define TSUKINO_ASSETS_FROM_SOURCE_TREE 1
 #else
-#    define TSUKINO_ASSETS_FROM_SOURCE_TREE 0
+#define TSUKINO_ASSETS_FROM_SOURCE_TREE 0
 #endif
 
 // 名前空間 : Tsukino::IO

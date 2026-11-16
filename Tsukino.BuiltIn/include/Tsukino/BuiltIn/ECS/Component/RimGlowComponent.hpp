@@ -26,10 +26,10 @@ namespace Tsukino::BuiltIn::ECS {
     //!       activeを立てただけでは何も起きず、指定したぶんだけ光る
     //--------------------------------------------------------------
     struct RimGlowComponent {
-        bool           active       = false;                              // falseの間は一切描画に影響しない
-        hlslpp::float3 rimColor     = hlslpp::float3(1.0f, 1.0f, 1.0f);   // ふちの色（HDRなので1.0超も可）
-        float          rimIntensity = 0.0f;                               // ふちの強さ。1.0超で白飛び方向に光る
-        float          rimPower     = 3.0f;                               // ふちの鋭さ。大きいほど輪郭に集中する
-        float          glow         = 0.0f;                               // 面全体を一律に持ち上げる量（0=なし）
+        bool           active       = false;                               // falseの間は一切描画に影響しない
+        hlslpp::float3 rimColor     = hlslpp::float3(1.0f, 1.0f, 1.0f);    // ふちの色（HDRなので1.0超も可）
+        float          rimIntensity = 0.0f;                                // ふちの強さ。1.0超で白飛び方向に光る
+        float          rimPower     = 3.0f;                                // ふちの鋭さ。大きいほど輪郭に集中する
+        float          glow         = 0.0f;                                // 面全体を一律に持ち上げる量（0=なし）
     };
 }    // namespace Tsukino::BuiltIn::ECS

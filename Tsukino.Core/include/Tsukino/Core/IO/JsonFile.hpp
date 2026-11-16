@@ -33,7 +33,7 @@ namespace Tsukino::IO {
             return false;
         }
         std::istringstream stream(FileSystem::ReadText(filePath));
-        T value = out;
+        T                  value = out;
         try {
             cereal::JSONInputArchive archive(stream);
             archive(cereal::make_nvp(key, value));

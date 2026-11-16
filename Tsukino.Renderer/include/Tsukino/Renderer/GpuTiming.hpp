@@ -46,8 +46,19 @@ namespace Tsukino::Renderer {
     [[nodiscard]]
     constexpr const char* GetGpuPassName(GpuPass pass) noexcept {
         constexpr std::array<const char*, kGpuPassCount> kNames = {
-            "Shadow", "Sky", "GBuffer", "Lighting", "World", "Fog", "ColorGrade",
-            "Transparent", "MotionBlur", "Bloom", "Tonemap", "Effects", "Overlay",
+            "Shadow",
+            "Sky",
+            "GBuffer",
+            "Lighting",
+            "World",
+            "Fog",
+            "ColorGrade",
+            "Transparent",
+            "MotionBlur",
+            "Bloom",
+            "Tonemap",
+            "Effects",
+            "Overlay",
         };
         const std::size_t index = static_cast<std::size_t>(pass);
         return (index < kGpuPassCount) ? kNames[index] : "?";
@@ -68,8 +79,8 @@ namespace Tsukino::Renderer {
     //!        フレームは捨て、最後に取れた値を持ち越す
     //------------------------------------------------------------------------
     struct GpuFrameTimings {
-        std::array<GpuPassTiming, kGpuPassCount> passes{};    //!< パスごとの時間（GpuPass の順）
-        float                                    frameMs = 0.0f;    //!< フレーム全体（パスの間の処理も含む）
-        bool                                     valid   = false;   //!< 一度でも計測結果が取れたか
+        std::array<GpuPassTiming, kGpuPassCount> passes{};           //!< パスごとの時間（GpuPass の順）
+        float                                    frameMs = 0.0f;     //!< フレーム全体（パスの間の処理も含む）
+        bool                                     valid   = false;    //!< 一度でも計測結果が取れたか
     };
 }    // namespace Tsukino::Renderer

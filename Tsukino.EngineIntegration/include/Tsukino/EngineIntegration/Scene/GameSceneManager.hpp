@@ -85,10 +85,10 @@ namespace Tsukino::EngineIntegration {
         GameSceneBase* GetCurrentScene() const;
 
     private:
-        EngineContext*                 m_context = nullptr;    // エンジンコンテキストを保持
-        std::unique_ptr<GameSceneBase> m_currentScene;         // 現在のシーン
-        std::unique_ptr<GameSceneBase> m_nextScene;            // 次に遷移予約されたシーン
-        std::unordered_map<std::string, SceneFactory> m_factories;    // 名前で切り替えるシーンの作り方
-        Tsukino::ECS::ScopedConnection m_changeRequest;        // 今のシーンの SceneChangeRequestedEvent の購読
+        EngineContext*                                m_context = nullptr;    // エンジンコンテキストを保持
+        std::unique_ptr<GameSceneBase>                m_currentScene;         // 現在のシーン
+        std::unique_ptr<GameSceneBase>                m_nextScene;            // 次に遷移予約されたシーン
+        std::unordered_map<std::string, SceneFactory> m_factories;            // 名前で切り替えるシーンの作り方
+        Tsukino::ECS::ScopedConnection                m_changeRequest;        // 今のシーンの SceneChangeRequestedEvent の購読
     };
 }    // namespace Tsukino::EngineIntegration

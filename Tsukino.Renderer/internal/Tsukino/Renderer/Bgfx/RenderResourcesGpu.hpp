@@ -31,11 +31,11 @@ namespace Tsukino::Renderer {
     //!        Material が指して、描画コマンドの実行で使う
     //------------------------------------------------------------------------
     struct PipelineState {
-        bgfx::ProgramHandle                   program = BGFX_INVALID_HANDLE;    // 頂点・ピクセルシェーダーの組
-        u64                                   state   = 0;                      // bgfx の描画ステート（BGFX_STATE_*）
+        bgfx::ProgramHandle                   program = BGFX_INVALID_HANDLE;                               // 頂点・ピクセルシェーダーの組
+        u64                                   state   = 0;                                                 // bgfx の描画ステート（BGFX_STATE_*）
         Tsukino::GraphicsCommon::VertexFormat format  = Tsukino::GraphicsCommon::VertexFormat::Unknown;    // 頂点の形式
 
-        PipelineState() = default;
+        PipelineState()                                = default;
         PipelineState(const PipelineState&)            = delete;
         PipelineState& operator=(const PipelineState&) = delete;
 
@@ -51,7 +51,7 @@ namespace Tsukino::Renderer {
         bgfx::IndexBufferHandle  indexBuffer  = BGFX_INVALID_HANDLE;    // インデックスバッファ（32bit）
         bgfx::VertexBufferHandle boneBuffer   = BGFX_INVALID_HANDLE;    // ボーンの番号とウェイト（スキニングするメッシュだけ。2本目の頂点バッファ）
 
-        Gpu() = default;
+        Gpu()                      = default;
         Gpu(const Gpu&)            = delete;
         Gpu& operator=(const Gpu&) = delete;
 
@@ -65,10 +65,10 @@ namespace Tsukino::Renderer {
     struct RenderResources::Gpu {
         //! テクスチャの表の1行
         struct TextureEntry {
-            bgfx::TextureHandle texture = BGFX_INVALID_HANDLE;    // bgfx のテクスチャ
-            u16                 width   = 0;                      // 幅（スプライトの UV を求めるのに使う）
-            u16                 height  = 0;                      // 高さ
-            Tsukino::GraphicsCommon::TextureFormat format = Tsukino::GraphicsCommon::TextureFormat::Unknown;    // 形式（書き換えのときに使う）
+            bgfx::TextureHandle                    texture = BGFX_INVALID_HANDLE;                                // bgfx のテクスチャ
+            u16                                    width   = 0;                                                  // 幅（スプライトの UV を求めるのに使う）
+            u16                                    height  = 0;                                                  // 高さ
+            Tsukino::GraphicsCommon::TextureFormat format  = Tsukino::GraphicsCommon::TextureFormat::Unknown;    // 形式（書き換えのときに使う）
         };
 
         //! バッファの種類
@@ -98,22 +98,22 @@ namespace Tsukino::Renderer {
         //! ゲーム定義の定数バッファの枠の数（UserUniformSlot）
         static constexpr u32 kUserConstantSlotCount = static_cast<u32>(UserUniformSlot::Count);
 
-        std::optional<PipelineFactory> pipelineFactory;    // パイプラインの生成器
+        std::optional<PipelineFactory>                                                             pipelineFactory;    // パイプラインの生成器
         std::array<MeshBuffer, static_cast<size_t>(Tsukino::GraphicsCommon::PrimitiveType::Count)> primitiveMeshes;    // プリミティブ
 
-        std::vector<TextureEntry>              textures;           // エンジンのハンドルの番号 → bgfx のテクスチャ
-        std::vector<u16>                       freeTextureSlots;   // 空いた番号（破棄したテクスチャの分）
-        std::unordered_map<u64, TextureHandle> textureCache;       // アセットのハンドル → テクスチャのハンドル
-        std::vector<BufferEntry>               buffers;            // エンジンのハンドルの番号 → バッファ
-        std::vector<u16>                       freeBufferSlots;    // 空いた番号（破棄したバッファの分）
-        TextureHandle                          white;              // 白テクスチャ
-        TextureHandle                          flatNormal;         // フラット法線テクスチャ
+        std::vector<TextureEntry>              textures;            // エンジンのハンドルの番号 → bgfx のテクスチャ
+        std::vector<u16>                       freeTextureSlots;    // 空いた番号（破棄したテクスチャの分）
+        std::unordered_map<u64, TextureHandle> textureCache;        // アセットのハンドル → テクスチャのハンドル
+        std::vector<BufferEntry>               buffers;             // エンジンのハンドルの番号 → バッファ
+        std::vector<u16>                       freeBufferSlots;     // 空いた番号（破棄したバッファの分）
+        TextureHandle                          white;               // 白テクスチャ
+        TextureHandle                          flatNormal;          // フラット法線テクスチャ
 
         //! ゲーム定義の定数のユニフォーム（u_user0 / u_user1）
         std::array<bgfx::UniformHandle, kUserConstantSlotCount> userConstantUniforms{bgfx::UniformHandle BGFX_INVALID_HANDLE,
                                                                                      bgfx::UniformHandle BGFX_INVALID_HANDLE};
 
-        Gpu() = default;
+        Gpu()                      = default;
         Gpu(const Gpu&)            = delete;
         Gpu& operator=(const Gpu&) = delete;
 

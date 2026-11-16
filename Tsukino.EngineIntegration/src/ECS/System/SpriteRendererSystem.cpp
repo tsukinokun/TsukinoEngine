@@ -61,18 +61,19 @@ namespace Tsukino::BuiltIn::ECS {
                 //-------------------------------------------------------------
                 // 生レイアウト配列を削除し、VertexFormat::Sprite を指定
                 //-------------------------------------------------------------
-                m_pipelineCache = ctx->renderer->GetResources().GetPipelineFactory()->Create(*vsAsset,
-                                                                              *psAsset,
-                                                                              Tsukino::GraphicsCommon::VertexFormat::Sprite,    // 頂点フォーマットを指定
-                                                                              Tsukino::Renderer::DepthMode::None,
-                                                                              Tsukino::Renderer::BlendMode::Alpha);
+                m_pipelineCache =
+                    ctx->renderer->GetResources().GetPipelineFactory()->Create(*vsAsset,
+                                                                               *psAsset,
+                                                                               Tsukino::GraphicsCommon::VertexFormat::Sprite,    // 頂点フォーマットを指定
+                                                                               Tsukino::Renderer::DepthMode::None,
+                                                                               Tsukino::Renderer::BlendMode::Alpha);
 
                 // 発光表現（EXP玉等）用。シェーダー自体はAlpha版と共通で、ブレンドステートだけ異なる
                 m_additivePipelineCache = ctx->renderer->GetResources().GetPipelineFactory()->Create(*vsAsset,
-                                                                                      *psAsset,
-                                                                                      Tsukino::GraphicsCommon::VertexFormat::Sprite,
-                                                                                      Tsukino::Renderer::DepthMode::None,
-                                                                                      Tsukino::Renderer::BlendMode::Additive);
+                                                                                                     *psAsset,
+                                                                                                     Tsukino::GraphicsCommon::VertexFormat::Sprite,
+                                                                                                     Tsukino::Renderer::DepthMode::None,
+                                                                                                     Tsukino::Renderer::BlendMode::Additive);
             }
 
             // ワールド空間ビルボード用（SpriteSpace::World）。頂点シェーダーがY反転を行わない
@@ -81,16 +82,16 @@ namespace Tsukino::BuiltIn::ECS {
             //   薄いエフェクト用途では十分。他の不透明オブジェクトの手前/後ろの判定は正しく出る）
             if(worldVsAsset && psAsset) {
                 m_worldPipelineCache = ctx->renderer->GetResources().GetPipelineFactory()->Create(*worldVsAsset,
-                                                                                   *psAsset,
-                                                                                   Tsukino::GraphicsCommon::VertexFormat::Sprite,
-                                                                                   Tsukino::Renderer::DepthMode::ReadOnly,
-                                                                                   Tsukino::Renderer::BlendMode::Alpha);
+                                                                                                  *psAsset,
+                                                                                                  Tsukino::GraphicsCommon::VertexFormat::Sprite,
+                                                                                                  Tsukino::Renderer::DepthMode::ReadOnly,
+                                                                                                  Tsukino::Renderer::BlendMode::Alpha);
 
                 m_worldAdditivePipelineCache = ctx->renderer->GetResources().GetPipelineFactory()->Create(*worldVsAsset,
-                                                                                           *psAsset,
-                                                                                           Tsukino::GraphicsCommon::VertexFormat::Sprite,
-                                                                                           Tsukino::Renderer::DepthMode::ReadOnly,
-                                                                                           Tsukino::Renderer::BlendMode::Additive);
+                                                                                                          *psAsset,
+                                                                                                          Tsukino::GraphicsCommon::VertexFormat::Sprite,
+                                                                                                          Tsukino::Renderer::DepthMode::ReadOnly,
+                                                                                                          Tsukino::Renderer::BlendMode::Additive);
             }
         }
 
@@ -111,8 +112,7 @@ namespace Tsukino::BuiltIn::ECS {
                 const auto& camera = cameraView.get<CameraComponent>(entity);
                 if(camera.isPrimary) {
                     hlslpp::float3 cameraPosition;    // ここでは使わない（回転だけ取り出す）
-                    Tsukino::Core::Math::matrix::decomposePositionRotation(
-                        hlslpp::inverse(camera.viewMatrix), cameraPosition, cameraRotation);
+                    Tsukino::Core::Math::matrix::decomposePositionRotation(hlslpp::inverse(camera.viewMatrix), cameraPosition, cameraRotation);
                     hasCamera = true;
                     break;
                 }
@@ -257,8 +257,8 @@ namespace Tsukino::BuiltIn::ECS {
 
             // tintColorをu_material（CBufferMaterial::baseColor）経由でSprite.ps.scへ渡す
             Tsukino::Renderer::CBufferMaterial& materialData = ctx->renderer->GetDrawQueue().AllocMaterialData();
-            materialData.baseColor                            = sprite.tintColor;
-            materialData.baseColor.w                          = sprite.tintColor.w * groupAlpha;
+            materialData.baseColor                           = sprite.tintColor;
+            materialData.baseColor.w                         = sprite.tintColor.w * groupAlpha;
             // 霧の掛け方（ワールド空間のときだけ効く）。加算は霧の色へ寄せず、光を弱める
             materialData.spriteFog = hlslpp::float4(isAdditive ? 1.0f : 0.0f, 0.0f, 0.0f, 0.0f);
 
@@ -298,8 +298,8 @@ namespace Tsukino::BuiltIn::ECS {
             // 1枚ずつ「全体の中のどの範囲か」と「画像のどの範囲か」を決めて積む。
             // 単位の四角は中心が原点で、ローカルの +y が画面の下・画像の v が増える向き
             //-------------------------------------------------------------
-            const bool hasSlice = !isWorld && !isFill &&
-                                  (sprite.sliceBorder.x > 0.0f || sprite.sliceBorder.y > 0.0f || sprite.sliceBorder.z > 0.0f || sprite.sliceBorder.w > 0.0f);
+            const bool hasSlice = !isWorld && !isFill
+                                  && (sprite.sliceBorder.x > 0.0f || sprite.sliceBorder.y > 0.0f || sprite.sliceBorder.z > 0.0f || sprite.sliceBorder.w > 0.0f);
             if(!hasSlice) {
                 m_entries.push_back({sprite.sortOrder, cmd});
                 return;
@@ -316,8 +316,8 @@ namespace Tsukino::BuiltIn::ECS {
             //-------------------------------------------------------------
             const float sliceScale = std::max(sprite.sliceScale, 0.0f);
             auto        bands      = [&](float startPx, float endPx, float drawSize, float* outStart, float* outEnd) {
-                float a     = startPx * sliceScale / drawSize;
-                float b     = endPx * sliceScale / drawSize;
+                float       a     = startPx * sliceScale / drawSize;
+                float       b     = endPx * sliceScale / drawSize;
                 const float total = a + b;
                 if(total > 1.0f) {
                     a /= total;
@@ -344,8 +344,8 @@ namespace Tsukino::BuiltIn::ECS {
                         continue;
 
                     // 単位の四角を、全体の中のこの範囲へ縮めて動かしてから、全体の行列で写す
-                    const float centerX   = (posX[column] + posX[column + 1]) * 0.5f - 0.5f;
-                    const float centerY   = (posY[row] + posY[row + 1]) * 0.5f - 0.5f;
+                    const float centerX     = (posX[column] + posX[column + 1]) * 0.5f - 0.5f;
+                    const float centerY     = (posY[row] + posY[row + 1]) * 0.5f - 0.5f;
                     const auto  pieceMatrix = hlslpp::mul(Tsukino::Core::Math::matrix::scale(w, h, 1.0f),
                                                           Tsukino::Core::Math::matrix::translate(hlslpp::float3(centerX, centerY, 0.0f)));
 
@@ -354,8 +354,8 @@ namespace Tsukino::BuiltIn::ECS {
                     pieceData.spriteUv = hlslpp::float4(uvX[column], uvY[row], uvX[column + 1] - uvX[column], uvY[row + 1] - uvY[row]);
 
                     Tsukino::Renderer::DrawCommand piece = cmd;
-                    piece.transform                     = hlslpp::mul(pieceMatrix, cmd.transform);
-                    piece.materialData                  = &pieceData;
+                    piece.transform                      = hlslpp::mul(pieceMatrix, cmd.transform);
+                    piece.materialData                   = &pieceData;
                     m_entries.push_back({sprite.sortOrder, piece});
                 }
             }

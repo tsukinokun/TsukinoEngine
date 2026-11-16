@@ -16,7 +16,7 @@ namespace Tsukino::Renderer {
     //! FogPass の中身です。
     //------------------------------------------------------------------------
     struct FogPass::Gpu {
-        bgfx::ProgramHandle      program      = BGFX_INVALID_HANDLE;    // フルスクリーン三角形 ＋ Fog.ps
+        bgfx::ProgramHandle      program = BGFX_INVALID_HANDLE;         // フルスクリーン三角形 ＋ Fog.ps
         UniformBlock<CBufferFog> fog;                                   // フォグの定数（u_fog）
         bgfx::UniformHandle      depthSampler = BGFX_INVALID_HANDLE;    // s_gbufferDepth
 
@@ -25,7 +25,7 @@ namespace Tsukino::Renderer {
         CBufferFog forwardData{};
         bool       forwardActive = false;    // forwardData を送る区間か
 
-        Gpu() = default;
+        Gpu()                      = default;
         Gpu(const Gpu&)            = delete;
         Gpu& operator=(const Gpu&) = delete;
 

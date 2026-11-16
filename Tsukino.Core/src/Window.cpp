@@ -7,7 +7,7 @@
 
 #include <SDL3/SDL_metal.h>
 #if defined(__APPLE__)
-#    include <TargetConditionals.h>
+#include <TargetConditionals.h>
 #endif
 #include <SDL3/SDL.h>
 
@@ -18,8 +18,8 @@
 #include <cmath>
 
 #if defined(_WIN32)
-#    include <Tsukino/Core/WindowsLean.hpp>
-#    include <dwmapi.h>
+#include <Tsukino/Core/WindowsLean.hpp>
+#include <dwmapi.h>
 #endif
 
 using Tsukino::Input::InputEvent;
@@ -54,30 +54,51 @@ namespace {
 
         switch(scancode) {
         case SDL_SCANCODE_RETURN:
-        case SDL_SCANCODE_KP_ENTER: return KeyCode::Enter;
-        case SDL_SCANCODE_ESCAPE: return KeyCode::Escape;
-        case SDL_SCANCODE_BACKSPACE: return KeyCode::Backspace;
-        case SDL_SCANCODE_TAB: return KeyCode::Tab;
-        case SDL_SCANCODE_SPACE: return KeyCode::Space;
-        case SDL_SCANCODE_LEFT: return KeyCode::Left;
-        case SDL_SCANCODE_RIGHT: return KeyCode::Right;
-        case SDL_SCANCODE_UP: return KeyCode::Up;
-        case SDL_SCANCODE_DOWN: return KeyCode::Down;
-        case SDL_SCANCODE_PAGEUP: return KeyCode::PageUp;
-        case SDL_SCANCODE_PAGEDOWN: return KeyCode::PageDown;
-        case SDL_SCANCODE_HOME: return KeyCode::Home;
-        case SDL_SCANCODE_END: return KeyCode::End;
+        case SDL_SCANCODE_KP_ENTER:
+            return KeyCode::Enter;
+        case SDL_SCANCODE_ESCAPE:
+            return KeyCode::Escape;
+        case SDL_SCANCODE_BACKSPACE:
+            return KeyCode::Backspace;
+        case SDL_SCANCODE_TAB:
+            return KeyCode::Tab;
+        case SDL_SCANCODE_SPACE:
+            return KeyCode::Space;
+        case SDL_SCANCODE_LEFT:
+            return KeyCode::Left;
+        case SDL_SCANCODE_RIGHT:
+            return KeyCode::Right;
+        case SDL_SCANCODE_UP:
+            return KeyCode::Up;
+        case SDL_SCANCODE_DOWN:
+            return KeyCode::Down;
+        case SDL_SCANCODE_PAGEUP:
+            return KeyCode::PageUp;
+        case SDL_SCANCODE_PAGEDOWN:
+            return KeyCode::PageDown;
+        case SDL_SCANCODE_HOME:
+            return KeyCode::Home;
+        case SDL_SCANCODE_END:
+            return KeyCode::End;
         case SDL_SCANCODE_LSHIFT:
-        case SDL_SCANCODE_RSHIFT: return KeyCode::Shift;
+        case SDL_SCANCODE_RSHIFT:
+            return KeyCode::Shift;
         case SDL_SCANCODE_LCTRL:
-        case SDL_SCANCODE_RCTRL: return KeyCode::Control;
+        case SDL_SCANCODE_RCTRL:
+            return KeyCode::Control;
         case SDL_SCANCODE_LALT:
-        case SDL_SCANCODE_RALT: return KeyCode::Alt;
-        case SDL_SCANCODE_INSERT: return static_cast<KeyCode>(0x2D);       // VK_INSERT
-        case SDL_SCANCODE_DELETE: return static_cast<KeyCode>(0x2E);       // VK_DELETE
-        case SDL_SCANCODE_CAPSLOCK: return static_cast<KeyCode>(0x14);     // VK_CAPITAL
-        case SDL_SCANCODE_KP_0: return static_cast<KeyCode>(0x60);         // VK_NUMPAD0
-        default: return KeyCode::None;
+        case SDL_SCANCODE_RALT:
+            return KeyCode::Alt;
+        case SDL_SCANCODE_INSERT:
+            return static_cast<KeyCode>(0x2D);    // VK_INSERT
+        case SDL_SCANCODE_DELETE:
+            return static_cast<KeyCode>(0x2E);    // VK_DELETE
+        case SDL_SCANCODE_CAPSLOCK:
+            return static_cast<KeyCode>(0x14);    // VK_CAPITAL
+        case SDL_SCANCODE_KP_0:
+            return static_cast<KeyCode>(0x60);    // VK_NUMPAD0
+        default:
+            return KeyCode::None;
         }
     }
 
@@ -88,10 +109,14 @@ namespace {
     //--------------------------------------------------------------
     KeyCode ToMouseKeyCode(Uint8 button) {
         switch(button) {
-        case SDL_BUTTON_LEFT: return KeyCode::LButton;
-        case SDL_BUTTON_RIGHT: return KeyCode::RButton;
-        case SDL_BUTTON_MIDDLE: return KeyCode::MButton;
-        default: return KeyCode::None;
+        case SDL_BUTTON_LEFT:
+            return KeyCode::LButton;
+        case SDL_BUTTON_RIGHT:
+            return KeyCode::RButton;
+        case SDL_BUTTON_MIDDLE:
+            return KeyCode::MButton;
+        default:
+            return KeyCode::None;
         }
     }
 }    // namespace
@@ -158,18 +183,39 @@ namespace Tsukino::Core {
             event.y = pMouse->pt.y;
 
             switch(wParam) {
-            case WM_MOUSEMOVE: event.type = InputEventType::MouseMove; break;
-            case WM_LBUTTONDOWN: event.type = InputEventType::KeyDown; event.key = KeyCode::LButton; break;
-            case WM_LBUTTONUP: event.type = InputEventType::KeyUp; event.key = KeyCode::LButton; break;
-            case WM_RBUTTONDOWN: event.type = InputEventType::KeyDown; event.key = KeyCode::RButton; break;
-            case WM_RBUTTONUP: event.type = InputEventType::KeyUp; event.key = KeyCode::RButton; break;
-            case WM_MBUTTONDOWN: event.type = InputEventType::KeyDown; event.key = KeyCode::MButton; break;
-            case WM_MBUTTONUP: event.type = InputEventType::KeyUp; event.key = KeyCode::MButton; break;
+            case WM_MOUSEMOVE:
+                event.type = InputEventType::MouseMove;
+                break;
+            case WM_LBUTTONDOWN:
+                event.type = InputEventType::KeyDown;
+                event.key  = KeyCode::LButton;
+                break;
+            case WM_LBUTTONUP:
+                event.type = InputEventType::KeyUp;
+                event.key  = KeyCode::LButton;
+                break;
+            case WM_RBUTTONDOWN:
+                event.type = InputEventType::KeyDown;
+                event.key  = KeyCode::RButton;
+                break;
+            case WM_RBUTTONUP:
+                event.type = InputEventType::KeyUp;
+                event.key  = KeyCode::RButton;
+                break;
+            case WM_MBUTTONDOWN:
+                event.type = InputEventType::KeyDown;
+                event.key  = KeyCode::MButton;
+                break;
+            case WM_MBUTTONUP:
+                event.type = InputEventType::KeyUp;
+                event.key  = KeyCode::MButton;
+                break;
             case WM_MOUSEWHEEL:
                 event.type  = InputEventType::MouseWheel;
                 event.wheel = static_cast<float>(static_cast<short>(HIWORD(pMouse->mouseData))) / static_cast<float>(WHEEL_DELTA);
                 break;
-            default: return CallNextHookEx(g_mouseHook, nCode, wParam, lParam);
+            default:
+                return CallNextHookEx(g_mouseHook, nCode, wParam, lParam);
             }
             DispatchInput(event);
         }
@@ -276,9 +322,15 @@ namespace Tsukino::Core {
         //--------------------------------------------------------------
         SDL_WindowFlags flags = SDL_WINDOW_HIGH_PIXEL_DENSITY;
         switch(style) {
-        case WindowStyle::Default: flags |= SDL_WINDOW_RESIZABLE; break;
-        case WindowStyle::Popup: flags |= SDL_WINDOW_BORDERLESS; break;
-        case WindowStyle::ClickThrough: flags |= SDL_WINDOW_BORDERLESS | SDL_WINDOW_ALWAYS_ON_TOP; break;
+        case WindowStyle::Default:
+            flags |= SDL_WINDOW_RESIZABLE;
+            break;
+        case WindowStyle::Popup:
+            flags |= SDL_WINDOW_BORDERLESS;
+            break;
+        case WindowStyle::ClickThrough:
+            flags |= SDL_WINDOW_BORDERLESS | SDL_WINDOW_ALWAYS_ON_TOP;
+            break;
         }
 #if defined(__APPLE__)
         flags |= SDL_WINDOW_METAL;    // Apple の OS では Metal で描く
@@ -335,7 +387,8 @@ namespace Tsukino::Core {
             // 終了
             //--------------------------------------------------------------
             case SDL_EVENT_QUIT:
-            case SDL_EVENT_WINDOW_CLOSE_REQUESTED: return false;
+            case SDL_EVENT_WINDOW_CLOSE_REQUESTED:
+                return false;
 
             //--------------------------------------------------------------
             // キーボード
@@ -405,9 +458,9 @@ namespace Tsukino::Core {
             case SDL_EVENT_FINGER_MOTION:
             case SDL_EVENT_FINGER_UP:
             case SDL_EVENT_FINGER_CANCELED:
-                event.type = (sdlEvent.type == SDL_EVENT_FINGER_DOWN)     ? InputEventType::TouchDown
-                             : (sdlEvent.type == SDL_EVENT_FINGER_MOTION) ? InputEventType::TouchMove
-                                                                          : InputEventType::TouchUp;
+                event.type     = (sdlEvent.type == SDL_EVENT_FINGER_DOWN)     ? InputEventType::TouchDown
+                                 : (sdlEvent.type == SDL_EVENT_FINGER_MOTION) ? InputEventType::TouchMove
+                                                                              : InputEventType::TouchUp;
                 event.fingerId = static_cast<u64>(sdlEvent.tfinger.fingerID);
                 event.x        = static_cast<i32>(std::lround(sdlEvent.tfinger.x * static_cast<float>(m_width)));
                 event.y        = static_cast<i32>(std::lround(sdlEvent.tfinger.y * static_cast<float>(m_height)));
@@ -476,9 +529,11 @@ namespace Tsukino::Core {
                 }
                 break;
 
-            case SDL_EVENT_TERMINATING: return false;
+            case SDL_EVENT_TERMINATING:
+                return false;
 
-            default: break;
+            default:
+                break;
             }
         }
 
@@ -501,10 +556,10 @@ namespace Tsukino::Core {
         // SDL はウィンドウ座標（OS の拡大率で縮んだ座標）で返すので、ピクセルへ直す
         const float density = SDL_GetWindowPixelDensity(m_window);
         const float scale   = (density > 0.0f) ? density : 1.0f;
-        area.x      = static_cast<int>(std::lround(static_cast<float>(rect.x) * scale));
-        area.y      = static_cast<int>(std::lround(static_cast<float>(rect.y) * scale));
-        area.width  = static_cast<int>(std::lround(static_cast<float>(rect.w) * scale));
-        area.height = static_cast<int>(std::lround(static_cast<float>(rect.h) * scale));
+        area.x              = static_cast<int>(std::lround(static_cast<float>(rect.x) * scale));
+        area.y              = static_cast<int>(std::lround(static_cast<float>(rect.y) * scale));
+        area.width          = static_cast<int>(std::lround(static_cast<float>(rect.w) * scale));
+        area.height         = static_cast<int>(std::lround(static_cast<float>(rect.h) * scale));
         return area;
     }
 
@@ -605,10 +660,10 @@ namespace Tsukino::Core {
         // 埋め込まれていなければ何もせず、SDL の既定のアイコンのままにする
         //--------------------------------------------------------------
         HINSTANCE instance = GetModuleHandle(nullptr);
-        HICON     icon     = static_cast<HICON>(LoadImage(instance, kAppIconResourceName, IMAGE_ICON, GetSystemMetrics(SM_CXICON),
-                                                          GetSystemMetrics(SM_CYICON), LR_DEFAULTCOLOR));
-        HICON iconSmall = static_cast<HICON>(LoadImage(instance, kAppIconResourceName, IMAGE_ICON, GetSystemMetrics(SM_CXSMICON),
-                                                       GetSystemMetrics(SM_CYSMICON), LR_DEFAULTCOLOR));
+        HICON     icon     = static_cast<HICON>(
+            LoadImage(instance, kAppIconResourceName, IMAGE_ICON, GetSystemMetrics(SM_CXICON), GetSystemMetrics(SM_CYICON), LR_DEFAULTCOLOR));
+        HICON iconSmall = static_cast<HICON>(
+            LoadImage(instance, kAppIconResourceName, IMAGE_ICON, GetSystemMetrics(SM_CXSMICON), GetSystemMetrics(SM_CYSMICON), LR_DEFAULTCOLOR));
         if(icon) {
             SendMessage(hwnd, WM_SETICON, ICON_BIG, reinterpret_cast<LPARAM>(icon));
         }

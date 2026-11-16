@@ -34,7 +34,7 @@ namespace Tsukino::BuiltIn::ECS {
         hlslpp::float3 linearVelocity  = {0, 0, 0};    // 線速度
         hlslpp::float3 angularVelocity = {0, 0, 0};    // 角速度
 
-                // 継続的に加える力・トルク（Dynamic用。PhysicsSystemが毎フレームAddForce/AddTorqueして消費はしない）
+        // 継続的に加える力・トルク（Dynamic用。PhysicsSystemが毎フレームAddForce/AddTorqueして消費はしない）
         hlslpp::float3 force  = {0, 0, 0};    //!< 加える力（他システムが毎フレーム上書きする想定）
         hlslpp::float3 torque = {0, 0, 0};    //!< 加えるトルク
 
@@ -50,7 +50,7 @@ namespace Tsukino::BuiltIn::ECS {
         bool freezePositionX = false;
         bool freezePositionY = false;
         bool freezePositionZ = false;
-        bool freezeRotationX = true;    
+        bool freezeRotationX = true;
         bool freezeRotationY = true;
         bool freezeRotationZ = true;
 

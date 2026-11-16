@@ -158,7 +158,7 @@ namespace Tsukino::Asset {
             static const bool installed = [] {
                 void*         original = nullptr;
                 const HMODULE assimp   = ::GetModuleHandleA(kAssimpDebugModuleName);
-                const bool    ok = PatchImportedFunction(assimp, "ucrtbased.dll", "_wassert", reinterpret_cast<void*>(&AssimpWassertFilter), &original);
+                const bool    ok       = PatchImportedFunction(assimp, "ucrtbased.dll", "_wassert", reinterpret_cast<void*>(&AssimpWassertFilter), &original);
                 if(ok) {
                     g_originalWassert = reinterpret_cast<WassertFn>(original);
                 } else {
@@ -218,8 +218,7 @@ namespace Tsukino::Asset {
         // 出力先を作れないまま書き込みへ進むと、失敗が原因から遠い場所で
         // 「キャッシュが無い」として現れるため、ここで止める
         if(!Tsukino::IO::FileSystem::CreateDirectories(outputPath.parent_path())) {
-            Tsukino::Core::Log::Error("ModelImporter: Failed to create the output directory: "
-                                      + outputPath.parent_path().string());
+            Tsukino::Core::Log::Error("ModelImporter: Failed to create the output directory: " + outputPath.parent_path().string());
             return false;
         }
 
@@ -320,8 +319,8 @@ namespace Tsukino::Asset {
                 // metallicも同様。Phongには金属の概念が無く、0が既定として正しい
                 //------------------------------------------------------
                 if(hasShininess) {
-                    Tsukino::Core::Log::Info("Material '" + dstMat.name + "': converted Phong to metallic-roughness (shininess "
-                                             + std::to_string(shininess) + " -> roughness " + std::to_string(dstMat.roughness) + ").");
+                    Tsukino::Core::Log::Info("Material '" + dstMat.name + "': converted Phong to metallic-roughness (shininess " + std::to_string(shininess)
+                                             + " -> roughness " + std::to_string(dstMat.roughness) + ").");
                 } else {
                     Tsukino::Core::Log::Warn("Material '" + dstMat.name
                                              + "' has neither PBR nor Phong values. Falling back to defaults (metallic 0, roughness 0.5, specular 0.5), "
@@ -397,7 +396,7 @@ namespace Tsukino::Asset {
                 image.height = tex->mHeight;
                 image.pixels.resize(static_cast<size_t>(tex->mWidth) * tex->mHeight * 4);
                 for(size_t p = 0; p < static_cast<size_t>(tex->mWidth) * tex->mHeight; ++p) {
-                    const aiTexel& texel     = tex->pcData[p];
+                    const aiTexel& texel    = tex->pcData[p];
                     image.pixels[p * 4 + 0] = texel.r;
                     image.pixels[p * 4 + 1] = texel.g;
                     image.pixels[p * 4 + 2] = texel.b;
@@ -442,8 +441,7 @@ namespace Tsukino::Asset {
             Detail::ImageEncodeOptions options;
             options.srgb             = isSRGB;
             options.generateMips     = true;
-            options.compressedFormat = m_rules ? m_rules->Resolve(Tsukino::GraphicsCommon::TextureFormat::BC3)
-                                               : Tsukino::GraphicsCommon::TextureFormat::BC3;
+            options.compressedFormat = m_rules ? m_rules->Resolve(Tsukino::GraphicsCommon::TextureFormat::BC3) : Tsukino::GraphicsCommon::TextureFormat::BC3;
             if(!Detail::WriteTextureKtx(ktxPath, image, options)) {
                 Tsukino::Core::Log::Error("Failed to save texture: " + ktxFilename);
                 continue;
@@ -457,7 +455,7 @@ namespace Tsukino::Asset {
             //  実在せずロードに失敗する。特にRelease構成ではGetEngineAssetRootPath()と
             //  GetAssetRootPath()が同じディレクトリを指すため、この問題が顕在化する)
             Tsukino::Core::Path materialRefPath = relativeInputPath.parent_path() / ktxFilename;
-            embeddedTexIndexToPath[i]        = materialRefPath.string();
+            embeddedTexIndexToPath[i]           = materialRefPath.string();
 
             if(hasCutout) {
                 cutoutTexturePaths.insert(materialRefPath.string());
@@ -487,8 +485,8 @@ namespace Tsukino::Asset {
 
                 const Tsukino::Core::Path fallback = inputPath.parent_path() / Tsukino::Core::Path(rawPath.filename());
                 if(Tsukino::IO::FileSystem::Exists(fallback)) {
-                    Tsukino::Core::Log::Info("ModelImporter: texture path in the model does not exist, using the one next to the model: "
-                                             + rawPath.string() + " -> " + fallback.string());
+                    Tsukino::Core::Log::Info("ModelImporter: texture path in the model does not exist, using the one next to the model: " + rawPath.string()
+                                             + " -> " + fallback.string());
                     return fallback.string();
                 }
 

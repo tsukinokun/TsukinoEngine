@@ -37,13 +37,19 @@ namespace Tsukino::Renderer::EffekseerBgfx {
         // 並びは advanced の lit・unlit・歪み、通常の lit・unlit・歪み（EndRendering_ に渡す順）
         std::array<std::unique_ptr<Shader>, 6> shaders = {
             std::make_unique<Shader>("Effekseer/ModelAdLit.vs", "Effekseer/AdLit.ps", layout, "u_efkModelAdVS", kModelAdVSVec4Count, "u_efkPS", kPSVec4Count),
-            std::make_unique<Shader>("Effekseer/ModelAdUnlit.vs", "Effekseer/AdUnlit.ps", layout, "u_efkModelAdVS", kModelAdVSVec4Count, "u_efkPS", kPSVec4Count),
-            std::make_unique<Shader>("Effekseer/ModelAdDistortion.vs", "Effekseer/AdDistortion.ps", layout, "u_efkModelAdVS", kModelAdVSVec4Count, "u_efkDistPS",
+            std::make_unique<Shader>(
+                "Effekseer/ModelAdUnlit.vs", "Effekseer/AdUnlit.ps", layout, "u_efkModelAdVS", kModelAdVSVec4Count, "u_efkPS", kPSVec4Count),
+            std::make_unique<Shader>("Effekseer/ModelAdDistortion.vs",
+                                     "Effekseer/AdDistortion.ps",
+                                     layout,
+                                     "u_efkModelAdVS",
+                                     kModelAdVSVec4Count,
+                                     "u_efkDistPS",
                                      kDistortionPSVec4Count),
             std::make_unique<Shader>("Effekseer/ModelLit.vs", "Effekseer/Lit.ps", layout, "u_efkModelVS", kModelVSVec4Count, "u_efkPS", kPSVec4Count),
             std::make_unique<Shader>("Effekseer/ModelUnlit.vs", "Effekseer/Unlit.ps", layout, "u_efkModelVS", kModelVSVec4Count, "u_efkPS", kPSVec4Count),
-            std::make_unique<Shader>("Effekseer/ModelDistortion.vs", "Effekseer/Distortion.ps", layout, "u_efkModelVS", kModelVSVec4Count, "u_efkDistPS",
-                                     kDistortionPSVec4Count),
+            std::make_unique<Shader>(
+                "Effekseer/ModelDistortion.vs", "Effekseer/Distortion.ps", layout, "u_efkModelVS", kModelVSVec4Count, "u_efkDistPS", kDistortionPSVec4Count),
         };
         for(const auto& shader : shaders) {
             if(!shader->IsValid()) {
@@ -110,9 +116,15 @@ namespace Tsukino::Renderer::EffekseerBgfx {
                 return;
         }
 
-        EndRendering_<RendererImplemented, Shader, Effekseer::Model, true, kCount>(m_renderer.Get(), m_shaders[0].get(), m_shaders[1].get(),
-                                                                                   m_shaders[2].get(), m_shaders[3].get(), m_shaders[4].get(),
-                                                                                   m_shaders[5].get(), parameter, userData);
+        EndRendering_<RendererImplemented, Shader, Effekseer::Model, true, kCount>(m_renderer.Get(),
+                                                                                   m_shaders[0].get(),
+                                                                                   m_shaders[1].get(),
+                                                                                   m_shaders[2].get(),
+                                                                                   m_shaders[3].get(),
+                                                                                   m_shaders[4].get(),
+                                                                                   m_shaders[5].get(),
+                                                                                   parameter,
+                                                                                   userData);
     }
 
 }    // namespace Tsukino::Renderer::EffekseerBgfx

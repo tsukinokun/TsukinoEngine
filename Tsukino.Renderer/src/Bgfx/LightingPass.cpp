@@ -40,7 +40,8 @@ namespace Tsukino::Renderer {
     //! 資源を持たない状態で作ります。
     //------------------------------------------------------------------------
     LightingPass::LightingPass()
-        : m_gpu(std::make_unique<Gpu>()) {}
+        : m_gpu(std::make_unique<Gpu>()) {
+    }
 
     //------------------------------------------------------------------------
     //! 資源を破棄します。
@@ -75,10 +76,14 @@ namespace Tsukino::Renderer {
         }
 
         constexpr const char* kSamplerNames[GraphicsContext::kGBufferCount] = {
-            "s_gbufferAlbedo", "s_gbufferNormal", "s_gbufferMaterial", "s_gbufferEmissive", "s_gbufferDepth", "s_gbufferWorldPos",
+            "s_gbufferAlbedo",
+            "s_gbufferNormal",
+            "s_gbufferMaterial",
+            "s_gbufferEmissive",
+            "s_gbufferDepth",
+            "s_gbufferWorldPos",
         };
-        for(u32 i = 0; i < GraphicsContext::kGBufferCount; ++i)
-            m_gpu->gbufferSamplers[i] = bgfx::createUniform(kSamplerNames[i], bgfx::UniformType::Sampler);
+        for(u32 i = 0; i < GraphicsContext::kGBufferCount; ++i) m_gpu->gbufferSamplers[i] = bgfx::createUniform(kSamplerNames[i], bgfx::UniformType::Sampler);
         return true;
     }
 
@@ -99,8 +104,8 @@ namespace Tsukino::Renderer {
     void LightingPass::SetLights(const GPULight* lights, u32 count) {
         const u32 copyCount = std::min(count, MAX_LIGHTS);
         if(count > MAX_LIGHTS && !m_lightOverflowWarned) {
-            Tsukino::Core::Log::Error("LightingPass::SetLights - light count (" + std::to_string(count) + ") exceeds MAX_LIGHTS ("
-                                      + std::to_string(MAX_LIGHTS) + "). Extra lights are dropped.");
+            Tsukino::Core::Log::Error("LightingPass::SetLights - light count (" + std::to_string(count) + ") exceeds MAX_LIGHTS (" + std::to_string(MAX_LIGHTS)
+                                      + "). Extra lights are dropped.");
             m_lightOverflowWarned = true;
         }
 
@@ -117,18 +122,24 @@ namespace Tsukino::Renderer {
             return;
 
         // G-Buffer は画面と同じ大きさなので点で読む
-        constexpr u32 kPointClamp = BGFX_SAMPLER_U_CLAMP | BGFX_SAMPLER_V_CLAMP | BGFX_SAMPLER_MIN_POINT | BGFX_SAMPLER_MAG_POINT
-                                    | BGFX_SAMPLER_MIP_POINT;
-        const u8 stages[GraphicsContext::kGBufferCount] = {
-            BgfxStage::GBufferAlbedo, BgfxStage::GBufferNormal, BgfxStage::GBufferMaterial,
-            BgfxStage::GBufferEmissive, BgfxStage::GBufferDepth, BgfxStage::GBufferWorldPos,
+        constexpr u32 kPointClamp = BGFX_SAMPLER_U_CLAMP | BGFX_SAMPLER_V_CLAMP | BGFX_SAMPLER_MIN_POINT | BGFX_SAMPLER_MAG_POINT | BGFX_SAMPLER_MIP_POINT;
+        const u8      stages[GraphicsContext::kGBufferCount] = {
+            BgfxStage::GBufferAlbedo,
+            BgfxStage::GBufferNormal,
+            BgfxStage::GBufferMaterial,
+            BgfxStage::GBufferEmissive,
+            BgfxStage::GBufferDepth,
+            BgfxStage::GBufferWorldPos,
         };
         const bgfx::TextureHandle textures[GraphicsContext::kGBufferCount] = {
-            m_graphicsContext->GetGBufferTexture(0), m_graphicsContext->GetGBufferTexture(1), m_graphicsContext->GetGBufferTexture(2),
-            m_graphicsContext->GetGBufferTexture(3), m_graphicsContext->GetDepthTexture(),     m_graphicsContext->GetGBufferTexture(4),
+            m_graphicsContext->GetGBufferTexture(0),
+            m_graphicsContext->GetGBufferTexture(1),
+            m_graphicsContext->GetGBufferTexture(2),
+            m_graphicsContext->GetGBufferTexture(3),
+            m_graphicsContext->GetDepthTexture(),
+            m_graphicsContext->GetGBufferTexture(4),
         };
-        for(u32 i = 0; i < GraphicsContext::kGBufferCount; ++i)
-            bgfx::setTexture(stages[i], m_gpu->gbufferSamplers[i], textures[i], kPointClamp);
+        for(u32 i = 0; i < GraphicsContext::kGBufferCount; ++i) bgfx::setTexture(stages[i], m_gpu->gbufferSamplers[i], textures[i], kPointClamp);
 
         m_frameConstants->GetGpu().Apply();
         m_gpu->lights.Set(m_lightsData);

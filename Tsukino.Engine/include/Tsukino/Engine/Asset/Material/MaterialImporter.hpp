@@ -31,7 +31,6 @@ namespace Tsukino::Asset {
     //! マテリアルファイル（.tmat）を読み取り、MaterialData をキャッシュへ書き出すインポーターです。
     class MaterialImporter : public IAssetImporter {
     public:
-
         //! マテリアルファイルをインポートします。
         //! @param  [in] inputPath       インポートする .tmat ファイルのパス
         //! @param  [in] outputDirectory 出力先ディレクトリ

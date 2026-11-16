@@ -46,9 +46,7 @@ namespace Tsukino::BuiltIn::ECS {
             const void* animation = nullptr;
             const void* skeleton  = nullptr;
 
-            bool operator==(const ChannelTableKey& other) const noexcept {
-                return animation == other.animation && skeleton == other.skeleton;
-            }
+            bool operator==(const ChannelTableKey& other) const noexcept { return animation == other.animation && skeleton == other.skeleton; }
         };
 
         //-------------------------------------------------------------

@@ -23,10 +23,10 @@ namespace Tsukino::Renderer {
     struct MeshBuffer {
         struct Gpu;    //!< 描画 API の資源（Renderer の内部で定義）
 
-        std::shared_ptr<Gpu> gpu;                 // 頂点・インデックス・ボーンウェイトのバッファ
-        u32                  vertexCount = 0;     // 頂点数
-        u32                  indexCount  = 0;     // インデックス数
-        u32                  stride      = 0;     // 頂点のストライド（バイト単位）
+        std::shared_ptr<Gpu> gpu;                // 頂点・インデックス・ボーンウェイトのバッファ
+        u32                  vertexCount = 0;    // 頂点数
+        u32                  indexCount  = 0;    // インデックス数
+        u32                  stride      = 0;    // 頂点のストライド（バイト単位）
 
         //----------------------------------------------------------
         // バウンディング球（ローカル空間）。MeshData の AABB から作る。

@@ -40,8 +40,21 @@ namespace Tsukino::BuiltIn::ECS {
     //--------------------------------------------------------------
     template <class Archive>
     void load(Archive& archive, FogComponent& fog) {
-        archive(fog.enabled, fog.color, fog.density, fog.startDistance, fog.maxOpacity, fog.heightFogEnabled, fog.height, fog.heightFalloff,
-                fog.heightDensity, fog.sunColor, fog.sunScatterPower, fog.noiseEnabled, fog.noiseScale, fog.noiseIntensity, fog.windDirection,
+        archive(fog.enabled,
+                fog.color,
+                fog.density,
+                fog.startDistance,
+                fog.maxOpacity,
+                fog.heightFogEnabled,
+                fog.height,
+                fog.heightFalloff,
+                fog.heightDensity,
+                fog.sunColor,
+                fog.sunScatterPower,
+                fog.noiseEnabled,
+                fog.noiseScale,
+                fog.noiseIntensity,
+                fog.windDirection,
                 fog.windSpeed);
     }
 

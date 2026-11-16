@@ -46,8 +46,13 @@ namespace Tsukino::Renderer::EffekseerBgfx {
         //! @param  [in] vsVec4Count 頂点の定数の vec4 の数（シェーダーの配列の長さ）
         //! @param  [in] psUniform   ピクセルの定数のユニフォームの名前
         //! @param  [in] psVec4Count ピクセルの定数の vec4 の数
-        Shader(const char* vsName, const char* psName, const Effekseer::Backend::VertexLayoutRef& layout, const char* vsUniform, u16 vsVec4Count,
-               const char* psUniform, u16 psVec4Count);
+        Shader(const char*                                vsName,
+               const char*                                psName,
+               const Effekseer::Backend::VertexLayoutRef& layout,
+               const char*                                vsUniform,
+               u16                                        vsVec4Count,
+               const char*                                psUniform,
+               u16                                        psVec4Count);
 
         //! プログラムとユニフォームを破棄します。
         ~Shader() override;
@@ -68,14 +73,10 @@ namespace Tsukino::Renderer::EffekseerBgfx {
         void SetPixelConstantBufferSize(int32_t size) override;
 
         //! 頂点の定数の入れ物を返します。
-        void* GetVertexConstantBuffer() override {
-            return m_vsData.data();
-        }
+        void* GetVertexConstantBuffer() override { return m_vsData.data(); }
 
         //! ピクセルの定数の入れ物を返します。
-        void* GetPixelConstantBuffer() override {
-            return m_psData.data();
-        }
+        void* GetPixelConstantBuffer() override { return m_psData.data(); }
 
         //! 何もしません（定数は描くときに ApplyUniforms() で送る）。
         void SetConstantBuffer() override {}
@@ -108,7 +109,7 @@ namespace Tsukino::Renderer::EffekseerBgfx {
         }
 
     private:
-        bgfx::ProgramHandle m_program   = BGFX_INVALID_HANDLE;    // プログラム
+        bgfx::ProgramHandle m_program = BGFX_INVALID_HANDLE;      // プログラム
         bgfx::VertexLayout  m_layout;                             // 頂点レイアウト
         bgfx::UniformHandle m_vsUniform = BGFX_INVALID_HANDLE;    // 頂点の定数
         bgfx::UniformHandle m_psUniform = BGFX_INVALID_HANDLE;    // ピクセルの定数
@@ -169,9 +170,7 @@ namespace Tsukino::Renderer::EffekseerBgfx {
 
         //! 描く先のビューを設定します（Renderer が毎フレーム、描く前に呼ぶ）。
         //! @param  [in] view ビュー
-        void SetView(bgfx::ViewId view) noexcept {
-            m_view = view;
-        }
+        void SetView(bgfx::ViewId view) noexcept { m_view = view; }
 
         //! bgfx 版の描画デバイスを返します。
         [[nodiscard]]
@@ -182,41 +181,31 @@ namespace Tsukino::Renderer::EffekseerBgfx {
         //------------------------------------------------------------------------
         // EffekseerRenderer::Renderer
         //------------------------------------------------------------------------
-        void OnLostDevice() override {}
-        void OnResetDevice() override {}
-        void SetRestorationOfStatesFlag(bool /*flag*/) override {}
-        bool BeginRendering() override;
-        bool EndRendering() override;
-        int32_t GetSquareMaxCount() const override {
-            return m_squareMaxCount;
-        }
-        ::Effekseer::SpriteRendererRef CreateSpriteRenderer() override;
-        ::Effekseer::RibbonRendererRef CreateRibbonRenderer() override;
-        ::Effekseer::RingRendererRef   CreateRingRenderer() override;
-        ::Effekseer::ModelRendererRef  CreateModelRenderer() override;
-        ::Effekseer::TrackRendererRef  CreateTrackRenderer() override;
-        ::Effekseer::TextureLoaderRef  CreateTextureLoader(::Effekseer::FileInterfaceRef fileInterface = nullptr) override;
-        ::Effekseer::ModelLoaderRef    CreateModelLoader(::Effekseer::FileInterfaceRef fileInterface = nullptr) override;
-        ::Effekseer::MaterialLoaderRef CreateMaterialLoader(::Effekseer::FileInterfaceRef fileInterface = nullptr) override;
-        void                           ResetRenderState() override;
-        EffekseerRenderer::DistortingCallback* GetDistortingCallback() override {
-            return m_distortingCallback;
-        }
-        void                                    SetDistortingCallback(EffekseerRenderer::DistortingCallback* callback) override;
-        Effekseer::Backend::GraphicsDeviceRef GetGraphicsDevice() const override {
-            return m_graphicsDevice;
-        }
+        void                                   OnLostDevice() override {}
+        void                                   OnResetDevice() override {}
+        void                                   SetRestorationOfStatesFlag(bool /*flag*/) override {}
+        bool                                   BeginRendering() override;
+        bool                                   EndRendering() override;
+        int32_t                                GetSquareMaxCount() const override { return m_squareMaxCount; }
+        ::Effekseer::SpriteRendererRef         CreateSpriteRenderer() override;
+        ::Effekseer::RibbonRendererRef         CreateRibbonRenderer() override;
+        ::Effekseer::RingRendererRef           CreateRingRenderer() override;
+        ::Effekseer::ModelRendererRef          CreateModelRenderer() override;
+        ::Effekseer::TrackRendererRef          CreateTrackRenderer() override;
+        ::Effekseer::TextureLoaderRef          CreateTextureLoader(::Effekseer::FileInterfaceRef fileInterface = nullptr) override;
+        ::Effekseer::ModelLoaderRef            CreateModelLoader(::Effekseer::FileInterfaceRef fileInterface = nullptr) override;
+        ::Effekseer::MaterialLoaderRef         CreateMaterialLoader(::Effekseer::FileInterfaceRef fileInterface = nullptr) override;
+        void                                   ResetRenderState() override;
+        EffekseerRenderer::DistortingCallback* GetDistortingCallback() override { return m_distortingCallback; }
+        void                                   SetDistortingCallback(EffekseerRenderer::DistortingCallback* callback) override;
+        Effekseer::Backend::GraphicsDeviceRef  GetGraphicsDevice() const override { return m_graphicsDevice; }
 
         //------------------------------------------------------------------------
         // 共通部分のテンプレート（StandardRenderer・ModelRendererBase など）が呼ぶ関数
         //------------------------------------------------------------------------
-        EffekseerRenderer::RenderStateBase* GetRenderState() {
-            return m_renderState.get();
-        }
-        Effekseer::Backend::IndexBufferRef GetIndexBuffer();
-        EffekseerRenderer::StandardRenderer<RendererImplemented, Shader>* GetStandardRenderer() {
-            return m_standardRenderer.get();
-        }
+        EffekseerRenderer::RenderStateBase*                               GetRenderState() { return m_renderState.get(); }
+        Effekseer::Backend::IndexBufferRef                                GetIndexBuffer();
+        EffekseerRenderer::StandardRenderer<RendererImplemented, Shader>* GetStandardRenderer() { return m_standardRenderer.get(); }
         void SetVertexBuffer(const Effekseer::Backend::VertexBufferRef& vertexBuffer, int32_t stride);
         void SetIndexBuffer(const Effekseer::Backend::IndexBufferRef& indexBuffer);
         void SetLayout(Shader* shader);
@@ -232,15 +221,9 @@ namespace Tsukino::Renderer::EffekseerBgfx {
         //------------------------------------------------------------------------
         // Effekseer::IReference
         //------------------------------------------------------------------------
-        int GetRef() override {
-            return ::Effekseer::ReferenceObject::GetRef();
-        }
-        int AddRef() override {
-            return ::Effekseer::ReferenceObject::AddRef();
-        }
-        int Release() override {
-            return ::Effekseer::ReferenceObject::Release();
-        }
+        int GetRef() override { return ::Effekseer::ReferenceObject::GetRef(); }
+        int AddRef() override { return ::Effekseer::ReferenceObject::AddRef(); }
+        int Release() override { return ::Effekseer::ReferenceObject::Release(); }
 
     private:
         //! 今のシェーダー・バッファ・テクスチャ・ステートで1回描きます。
@@ -255,24 +238,24 @@ namespace Tsukino::Renderer::EffekseerBgfx {
         //! @param  [in]     message 警告
         static void WarnOnce(bool& warned, const char* message);
 
-        Effekseer::RefPtr<GraphicsDevice>                                               m_graphicsDevice;          // 描画デバイス
-        int32_t                                                                         m_squareMaxCount = 0;      // まとめて描ける四角の数
-        std::unique_ptr<RenderState>                                                    m_renderState;             // 描画ステート
-        std::unique_ptr<EffekseerRenderer::StandardRenderer<RendererImplemented, Shader>> m_standardRenderer;     // スプライトなどをまとめて描く共通部分
-        Effekseer::Backend::IndexBufferRef                                              m_indexBuffer;             // 四角を並べるインデックス
-        Effekseer::Backend::IndexBufferRef                                              m_wireframeIndexBuffer;    // 四角の輪郭を並べるインデックス
-        EffekseerRenderer::DistortingCallback*                                          m_distortingCallback = nullptr;    // 歪みの前に呼ぶもの（持ち主）
+        Effekseer::RefPtr<GraphicsDevice>                                                 m_graphicsDevice;          // 描画デバイス
+        int32_t                                                                           m_squareMaxCount = 0;      // まとめて描ける四角の数
+        std::unique_ptr<RenderState>                                                      m_renderState;             // 描画ステート
+        std::unique_ptr<EffekseerRenderer::StandardRenderer<RendererImplemented, Shader>> m_standardRenderer;        // スプライトなどをまとめて描く共通部分
+        Effekseer::Backend::IndexBufferRef                                                m_indexBuffer;             // 四角を並べるインデックス
+        Effekseer::Backend::IndexBufferRef                                                m_wireframeIndexBuffer;    // 四角の輪郭を並べるインデックス
+        EffekseerRenderer::DistortingCallback*                                            m_distortingCallback = nullptr;    // 歪みの前に呼ぶもの（持ち主）
 
-        bgfx::ViewId                                  m_view = 0;                     // 描く先のビュー
-        std::array<bgfx::UniformHandle, Effekseer::TextureSlotMax> m_samplers;        // テクスチャのサンプラー（s_efkTex0〜7）
+        bgfx::ViewId                                               m_view = 0;    // 描く先のビュー
+        std::array<bgfx::UniformHandle, Effekseer::TextureSlotMax> m_samplers;    // テクスチャのサンプラー（s_efkTex0〜7）
 
         // 次の描画に使うもの（共通部分が描く前に設定する）
-        Shader*                            m_currentShader = nullptr;    // シェーダー
-        Effekseer::Backend::VertexBufferRef m_currentVertexBuffer;      // 頂点バッファ
-        int32_t                            m_currentStride = 0;          // 頂点の大きさ
-        Effekseer::Backend::IndexBufferRef m_currentIndexBuffer;         // インデックスバッファ
-        std::array<bgfx::TextureHandle, Effekseer::TextureSlotMax> m_currentTextures;    // テクスチャ
-        int32_t                            m_currentTextureCount = 0;    // テクスチャの数
+        Shader*                                                    m_currentShader = nullptr;    // シェーダー
+        Effekseer::Backend::VertexBufferRef                        m_currentVertexBuffer;        // 頂点バッファ
+        int32_t                                                    m_currentStride = 0;          // 頂点の大きさ
+        Effekseer::Backend::IndexBufferRef                         m_currentIndexBuffer;         // インデックスバッファ
+        std::array<bgfx::TextureHandle, Effekseer::TextureSlotMax> m_currentTextures;            // テクスチャ
+        int32_t                                                    m_currentTextureCount = 0;    // テクスチャの数
 
         bool m_warnedLayout   = false;    // 頂点の大きさが合わない警告を出したか
         bool m_warnedVertices = false;    // 一時的な頂点バッファが足りない警告を出したか

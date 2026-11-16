@@ -17,13 +17,11 @@ namespace Tsukino::Renderer {
     //! FrameConstants の中身です。
     //------------------------------------------------------------------------
     struct FrameConstants::Gpu {
-        UniformBlock<CBufferScene> scene;      // シーン定数のユニフォーム（シェーダーの u_scene。Shaders/bgfx/Scene.sh）
-        CBufferScene               current{};  // 最後に Upload した値（次の描画で送る）
+        UniformBlock<CBufferScene> scene;        // シーン定数のユニフォーム（シェーダーの u_scene。Shaders/bgfx/Scene.sh）
+        CBufferScene               current{};    // 最後に Upload した値（次の描画で送る）
 
         //! 最後に Upload した値を、次に Submit する描画へ送ります。
-        void Apply() const {
-            scene.Set(current);
-        }
+        void Apply() const { scene.Set(current); }
     };
 
 }    // namespace Tsukino::Renderer

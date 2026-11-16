@@ -143,7 +143,8 @@ namespace Tsukino::Sandbox {
 
         Tsukino::Asset::AssetHandle animationHandle = context->assetManager->Load(Tsukino::Core::Path("Tsukino.Sandbox/Assets/Anims/Slow Run.fbx"));
 
-        Tsukino::Asset::AssetHandle effectHandle = context->assetManager->Load(Tsukino::Core::Path("Tsukino.Sandbox/Assets/Effects/Effekseer01/Laser01.efkefc"));
+        Tsukino::Asset::AssetHandle effectHandle =
+            context->assetManager->Load(Tsukino::Core::Path("Tsukino.Sandbox/Assets/Effects/Effekseer01/Laser01.efkefc"));
 
         Tsukino::ECS::Registry& registry = m_scene.GetRegistry();
 
@@ -236,12 +237,12 @@ namespace Tsukino::Sandbox {
 
         // アニメーションを再生・制御するコンポーネント
         Tsukino::BuiltIn::ECS::AnimationPlayerComponent& animPlayer = registry.AddComponent<Tsukino::BuiltIn::ECS::AnimationPlayerComponent>(modelEntity);
-        animPlayer.currentClipId                                  = animationHandle;    // ロー等速再生ドした testAnim.fbx のハンドルを渡す
-        animPlayer.animationIndex                                  = 1;                  // 再生するアニメーションのインデックスを指定
-        animPlayer.elapsedTime                                     = 2.2f;               // 0秒からスタート
-        animPlayer.playbackSpeed                                   = 0.5f;               //
-        animPlayer.isLooping                                       = true;               // ループさせる
-        animPlayer.isPlaying                                       = true;               // 再生状態にする
+        animPlayer.currentClipId                                    = animationHandle;    // ロー等速再生ドした testAnim.fbx のハンドルを渡す
+        animPlayer.animationIndex                                   = 1;                  // 再生するアニメーションのインデックスを指定
+        animPlayer.elapsedTime                                      = 2.2f;               // 0秒からスタート
+        animPlayer.playbackSpeed                                    = 0.5f;               //
+        animPlayer.isLooping                                        = true;               // ループさせる
+        animPlayer.isPlaying                                        = true;               // 再生状態にする
 
         Tsukino::BuiltIn::ECS::SpringBoneComponent& springBone = registry.AddComponent<Tsukino::BuiltIn::ECS::SpringBoneComponent>(modelEntity);
 
@@ -300,7 +301,8 @@ namespace Tsukino::Sandbox {
 
             auto* t = registry.try_get<Tsukino::BuiltIn::ECS::TransformComponent>(testEntity);
             if(t) {
-                Tsukino::Core::Log::Info("Transform.position = (" + std::to_string(t->position.x) + ", " + std::to_string(t->position.y) + ", " + std::to_string(t->position.z) + ")");
+                Tsukino::Core::Log::Info("Transform.position = (" + std::to_string(t->position.x) + ", " + std::to_string(t->position.y) + ", "
+                                         + std::to_string(t->position.z) + ")");
             } else {
                 Tsukino::Core::Log::Error("TransformComponent NOT attached!");
             }
@@ -327,7 +329,7 @@ namespace Tsukino::Sandbox {
             overrideTransform.scale    = hlslpp::float3(1.0f, 1.0f, 1.0f);
             context->prefabFactory->ApplyOverride<Tsukino::BuiltIn::ECS::TransformComponent>(registry, testEntity, overrideTransform);
 
-            auto* t = registry.try_get<Tsukino::BuiltIn::ECS::TransformComponent>(testEntity);
+            auto*      t          = registry.try_get<Tsukino::BuiltIn::ECS::TransformComponent>(testEntity);
             const bool overrideOk = t && t->position.x == 42.0f && t->position.y == 43.0f && t->position.z == 44.0f;
             Tsukino::Core::Log::Info(overrideOk ? "ApplyOverride OK: position = (42, 43, 44)" : "ApplyOverride FAILED");
         }
@@ -344,8 +346,8 @@ namespace Tsukino::Sandbox {
             const std::string captureDir = "Tsukino.Sandbox/Assets/Prefabs/CaptureTest";
             if(context->prefabFactory->CaptureEntity(registry, testEntity, captureDir)) {
                 entt::entity capturedEntity = context->prefabFactory->Instantiate(captureDir + "/Prefab.json", registry);
-                auto*        t              = capturedEntity != entt::null ? registry.try_get<Tsukino::BuiltIn::ECS::TransformComponent>(capturedEntity) : nullptr;
-                const bool   captureOk       = t && t->position.x == 42.0f && t->position.y == 43.0f && t->position.z == 44.0f;
+                auto*        t         = capturedEntity != entt::null ? registry.try_get<Tsukino::BuiltIn::ECS::TransformComponent>(capturedEntity) : nullptr;
+                const bool   captureOk = t && t->position.x == 42.0f && t->position.y == 43.0f && t->position.z == 44.0f;
                 Tsukino::Core::Log::Info(captureOk ? "CaptureEntity round-trip OK: position = (42, 43, 44)" : "CaptureEntity round-trip FAILED");
             } else {
                 Tsukino::Core::Log::Error("CaptureEntity FAILED");
@@ -377,7 +379,7 @@ namespace Tsukino::Sandbox {
                 context->prefabFactory->Save(anchorPrefabPath, "Components", anchorComponents);
             }
 
-            const std::string linkTargetPath = linkerDir + "/TestLinkComponent.json";
+            const std::string linkTargetPath   = linkerDir + "/TestLinkComponent.json";
             const std::string linkerPrefabPath = linkerDir + "/Prefab.json";
             if(!Tsukino::IO::FileSystem::Exists(Tsukino::Core::Path(linkerPrefabPath))) {
                 Tsukino::Sandbox::TestLinkComponent link{};
@@ -402,7 +404,7 @@ namespace Tsukino::Sandbox {
             if(anchorIt == group.end() || linkerIt == group.end()) {
                 Tsukino::Core::Log::Error("InstantiateGroup FAILED: missing named entity");
             } else {
-                auto* link = registry.try_get<Tsukino::Sandbox::TestLinkComponent>(linkerIt->second);
+                auto*      link      = registry.try_get<Tsukino::Sandbox::TestLinkComponent>(linkerIt->second);
                 const bool resolveOk = link && link->target.entity == anchorIt->second;
                 Tsukino::Core::Log::Info(resolveOk ? "InstantiateGroup EntityRef resolution OK" : "InstantiateGroup EntityRef resolution FAILED");
             }

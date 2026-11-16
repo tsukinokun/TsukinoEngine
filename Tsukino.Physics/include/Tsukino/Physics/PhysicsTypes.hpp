@@ -106,7 +106,7 @@ namespace Tsukino::Physics {
     //! ボディ生成時の指定
     //------------------------------------------------------------------------
     struct BodyDesc {
-        ShapeDesc          shape;                                       //!< 形状
+        ShapeDesc          shape;                                        //!< 形状
         hlslpp::float3     position = {0.0f, 0.0f, 0.0f};                //!< 生成位置（ワールド）
         hlslpp::quaternion rotation = hlslpp::quaternion::identity();    //!< 生成時の向き
         MotionType         motion   = MotionType::Static;                //!< 運動タイプ

@@ -9,7 +9,6 @@
 
 #include <Tsukino/Renderer/ConstantBuffer.hpp>
 
-
 namespace Tsukino::Asset {
     class ShaderAsset;    // 前方宣言
 }
@@ -63,9 +62,7 @@ namespace Tsukino::Renderer {
 
         //! 大気散乱のパラメータを設定します。
         //! @param  [in] sky 大気散乱の定数バッファデータ
-        void SetParameters(const CBufferSky& sky) noexcept {
-            m_data = sky;
-        }
+        void SetParameters(const CBufferSky& sky) noexcept { m_data = sky; }
 
         //! スカイのシェーダーを作成して、パスを有効にします。
         //! @param  [in] vs 頂点シェーダーアセット
@@ -85,21 +82,16 @@ namespace Tsukino::Renderer {
         //! 描画品質として空を描くかを設定します。
         //! @param  [in] allowed true: 描く, false: 描かない（背景はクリアカラーになる）
         //! @note   描かないときも定数バッファは更新するので、環境光（IBL）のベイクには影響しない
-        void SetDrawAllowed(bool allowed) noexcept {
-            m_drawAllowed = allowed;
-        }
-
-
-
+        void SetDrawAllowed(bool allowed) noexcept { m_drawAllowed = allowed; }
 
     private:
         GraphicsContext* m_graphicsContext = nullptr;    // デバイスとデバイスコンテキストの取得元（借りている）
         RenderResources* m_resources       = nullptr;    // 共通ステートの取得元（借りている）
         FrameConstants*  m_frameConstants  = nullptr;    // u_scene の取得元（借りている）
 
-        std::unique_ptr<Gpu> m_gpu;    // 描画 API の資源（中身は Renderer の内部で定義）
-        CBufferSky                                 m_data{};    // スカイパラメータ
-        bool                                       m_drawAllowed = true;     // 描画品質として空を描くか
-        bool                                       m_hasPipeline = false;    // SetPipeline() でシェーダーを作れたか
+        std::unique_ptr<Gpu> m_gpu;                    // 描画 API の資源（中身は Renderer の内部で定義）
+        CBufferSky           m_data{};                 // スカイパラメータ
+        bool                 m_drawAllowed = true;     // 描画品質として空を描くか
+        bool                 m_hasPipeline = false;    // SetPipeline() でシェーダーを作れたか
     };
 }    // namespace Tsukino::Renderer

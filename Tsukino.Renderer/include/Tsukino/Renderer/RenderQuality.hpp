@@ -32,12 +32,12 @@ namespace Tsukino::Renderer {
     //------------------------------------------------------------------------
     struct GraphicsAdapterInfo {
         std::string name;                       //!< アダプタの名前（UTF-8）
-        u32         vendorId         = 0;       //!< ベンダー ID
-        u32         deviceId         = 0;       //!< デバイス ID
-        bool        isSoftware       = false;   //!< ソフトウェア描画（WARP や Basic Render Driver）か
-        bool        isUnifiedMemory  = false;   //!< CPU とメモリを共有する GPU（内蔵 GPU など）か
-        u64         dedicatedMemory  = 0;       //!< 専用ビデオメモリ（バイト）
-        u64         sharedMemory     = 0;       //!< 共有システムメモリ（バイト）
+        u32         vendorId        = 0;        //!< ベンダー ID
+        u32         deviceId        = 0;        //!< デバイス ID
+        bool        isSoftware      = false;    //!< ソフトウェア描画（WARP や Basic Render Driver）か
+        bool        isUnifiedMemory = false;    //!< CPU とメモリを共有する GPU（内蔵 GPU など）か
+        u64         dedicatedMemory = 0;        //!< 専用ビデオメモリ（バイト）
+        u64         sharedMemory    = 0;        //!< 共有システムメモリ（バイト）
     };
 
     //------------------------------------------------------------------------
@@ -55,14 +55,14 @@ namespace Tsukino::Renderer {
     //! @note  既定値は「品質を下げない」値で、Renderer の初期状態と同じ
     //------------------------------------------------------------------------
     struct RenderQualitySettings {
-        float renderScale        = 1.0f;     //!< 3D を描く内部解像度の倍率（kMinRenderScale〜1。UI は常に等倍）
-        u32   shadowMapSizeLimit = 0;        //!< シャドウマップの一辺の上限（0 で上限なし。シーンの値より大きくはしない）
-        u32   shadowCascadeCount = 4;        //!< 実際に描くカスケードの枚数（1〜kShadowCascadeCount）
-        bool  shadowSoftFilter   = true;     //!< true: 影を 3x3 で滑らかにする, false: 1タップ
-        u32   bloomMipCount      = 6;        //!< ブルームの縮小段の上限（0 でブルームを切る）
-        bool  motionBlur         = true;     //!< モーションブラーを許すか
-        bool  drawSky            = true;     //!< 空を毎フレーム描くか（false なら背景はクリアカラー。環境光のベイクは行う）
-        u32   textureMipSkip     = 0;        //!< 切り捨てるテクスチャの上位ミップの段数（読み込み時に効く）
+        float renderScale        = 1.0f;    //!< 3D を描く内部解像度の倍率（kMinRenderScale〜1。UI は常に等倍）
+        u32   shadowMapSizeLimit = 0;       //!< シャドウマップの一辺の上限（0 で上限なし。シーンの値より大きくはしない）
+        u32   shadowCascadeCount = 4;       //!< 実際に描くカスケードの枚数（1〜kShadowCascadeCount）
+        bool  shadowSoftFilter   = true;    //!< true: 影を 3x3 で滑らかにする, false: 1タップ
+        u32   bloomMipCount      = 6;       //!< ブルームの縮小段の上限（0 でブルームを切る）
+        bool  motionBlur         = true;    //!< モーションブラーを許すか
+        bool  drawSky            = true;    //!< 空を毎フレーム描くか（false なら背景はクリアカラー。環境光のベイクは行う）
+        u32   textureMipSkip     = 0;       //!< 切り捨てるテクスチャの上位ミップの段数（読み込み時に効く）
 
         static constexpr float kMinRenderScale = 0.25f;    //!< renderScale の下限
     };
@@ -76,32 +76,32 @@ namespace Tsukino::Renderer {
     constexpr RenderQualitySettings GetRenderQualityPreset(RenderQualityLevel level) noexcept {
         RenderQualitySettings settings;
         switch(level) {
-            case RenderQualityLevel::High:
-                break;
-            case RenderQualityLevel::Medium:
-                settings.shadowMapSizeLimit = 2048;
-                settings.shadowCascadeCount = 3;
-                settings.bloomMipCount      = 4;
-                break;
-            case RenderQualityLevel::Low:
-                settings.renderScale        = 0.75f;
-                settings.shadowMapSizeLimit = 1024;
-                settings.shadowCascadeCount = 2;
-                settings.shadowSoftFilter   = false;
-                settings.bloomMipCount      = 3;
-                settings.motionBlur         = false;
-                settings.textureMipSkip     = 1;
-                break;
-            case RenderQualityLevel::Minimum:
-                settings.renderScale        = 0.6f;
-                settings.shadowMapSizeLimit = 512;
-                settings.shadowCascadeCount = 1;
-                settings.shadowSoftFilter   = false;
-                settings.bloomMipCount      = 0;
-                settings.motionBlur         = false;
-                settings.drawSky            = false;
-                settings.textureMipSkip     = 1;
-                break;
+        case RenderQualityLevel::High:
+            break;
+        case RenderQualityLevel::Medium:
+            settings.shadowMapSizeLimit = 2048;
+            settings.shadowCascadeCount = 3;
+            settings.bloomMipCount      = 4;
+            break;
+        case RenderQualityLevel::Low:
+            settings.renderScale        = 0.75f;
+            settings.shadowMapSizeLimit = 1024;
+            settings.shadowCascadeCount = 2;
+            settings.shadowSoftFilter   = false;
+            settings.bloomMipCount      = 3;
+            settings.motionBlur         = false;
+            settings.textureMipSkip     = 1;
+            break;
+        case RenderQualityLevel::Minimum:
+            settings.renderScale        = 0.6f;
+            settings.shadowMapSizeLimit = 512;
+            settings.shadowCascadeCount = 1;
+            settings.shadowSoftFilter   = false;
+            settings.bloomMipCount      = 0;
+            settings.motionBlur         = false;
+            settings.drawSky            = false;
+            settings.textureMipSkip     = 1;
+            break;
         }
         return settings;
     }
@@ -131,10 +131,14 @@ namespace Tsukino::Renderer {
     [[nodiscard]]
     constexpr const char* GetRenderQualityName(RenderQualityLevel level) noexcept {
         switch(level) {
-            case RenderQualityLevel::High:    return "High";
-            case RenderQualityLevel::Medium:  return "Medium";
-            case RenderQualityLevel::Low:     return "Low";
-            case RenderQualityLevel::Minimum: return "Minimum";
+        case RenderQualityLevel::High:
+            return "High";
+        case RenderQualityLevel::Medium:
+            return "Medium";
+        case RenderQualityLevel::Low:
+            return "Low";
+        case RenderQualityLevel::Minimum:
+            return "Minimum";
         }
         return "Unknown";
     }

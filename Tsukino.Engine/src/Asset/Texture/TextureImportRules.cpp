@@ -20,14 +20,17 @@ namespace Tsukino::Asset {
         // スマホの GPU は BC を読めないことが多いので、同じくらいの用途の ASTC にする
         switch(requested) {
         case TextureFormat::BC1:
-        case TextureFormat::BC1_sRGB: return TextureFormat::ASTC6x6;
+        case TextureFormat::BC1_sRGB:
+            return TextureFormat::ASTC6x6;
         case TextureFormat::BC3:
         case TextureFormat::BC3_sRGB:
         case TextureFormat::BC4:
         case TextureFormat::BC5:
         case TextureFormat::BC7:
-        case TextureFormat::BC7_sRGB: return TextureFormat::ASTC4x4;
-        default:                      return requested;
+        case TextureFormat::BC7_sRGB:
+            return TextureFormat::ASTC4x4;
+        default:
+            return requested;
         }
     }
 

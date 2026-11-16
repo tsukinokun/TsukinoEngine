@@ -83,7 +83,7 @@ namespace Tsukino::EngineIntegration {
         // 入力システムの更新
         m_context.inputSystem->Update();
         // オーディオの更新
-        if (m_context.audioManager) {
+        if(m_context.audioManager) {
             m_context.audioManager->Update(deltaTime);
         }
     }

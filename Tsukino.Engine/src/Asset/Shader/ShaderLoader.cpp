@@ -83,7 +83,7 @@ namespace Tsukino::Asset {
         // OS ごとに描画 API を1つに決めている（Tsukino.Renderer の GraphicsContext と揃える）。
         // フォルダ名は bgfx.cmake の決まり（Tools/Shaders/CMakeLists.txt の出力先）
 #if defined(_WIN32)
-        return "dxbc";     // Direct3D 11（shaderc の s_5_0）
+        return "dxbc";    // Direct3D 11（shaderc の s_5_0）
 #elif defined(__APPLE__)
         return "metal";    // Metal（macOS・iOS）
 #elif defined(__ANDROID__)

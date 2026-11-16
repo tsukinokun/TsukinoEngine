@@ -32,26 +32,46 @@ namespace Tsukino::Renderer::EffekseerBgfx {
         //! @return bgfx の形式（直せなければ Unknown）
         BgfxTextureFormat ToBgfxTextureFormat(TextureFormatType format) {
             switch(format) {
-                case TextureFormatType::R8G8B8A8_UNORM:      return {bgfx::TextureFormat::RGBA8, false, 4};
-                case TextureFormatType::R8G8B8A8_UNORM_SRGB: return {bgfx::TextureFormat::RGBA8, true, 4};
-                case TextureFormatType::B8G8R8A8_UNORM:      return {bgfx::TextureFormat::BGRA8, false, 4};
-                case TextureFormatType::B8G8R8A8_UNORM_SRGB: return {bgfx::TextureFormat::BGRA8, true, 4};
-                case TextureFormatType::R8_UNORM:            return {bgfx::TextureFormat::R8, false, 1};
-                case TextureFormatType::R16_FLOAT:           return {bgfx::TextureFormat::R16F};
-                case TextureFormatType::R32_FLOAT:           return {bgfx::TextureFormat::R32F};
-                case TextureFormatType::R16G16_FLOAT:        return {bgfx::TextureFormat::RG16F};
-                case TextureFormatType::R16G16B16A16_FLOAT:  return {bgfx::TextureFormat::RGBA16F};
-                case TextureFormatType::R32G32B32A32_FLOAT:  return {bgfx::TextureFormat::RGBA32F};
-                case TextureFormatType::RG11B10_UFLOAT:      return {bgfx::TextureFormat::RG11B10F};
-                case TextureFormatType::BC1:                 return {bgfx::TextureFormat::BC1};
-                case TextureFormatType::BC1_SRGB:            return {bgfx::TextureFormat::BC1, true};
-                case TextureFormatType::BC2:                 return {bgfx::TextureFormat::BC2};
-                case TextureFormatType::BC2_SRGB:            return {bgfx::TextureFormat::BC2, true};
-                case TextureFormatType::BC3:                 return {bgfx::TextureFormat::BC3};
-                case TextureFormatType::BC3_SRGB:            return {bgfx::TextureFormat::BC3, true};
-                case TextureFormatType::BC7:                 return {bgfx::TextureFormat::BC7};
-                case TextureFormatType::BC7_SRGB:            return {bgfx::TextureFormat::BC7, true};
-                default:                                     return {};
+            case TextureFormatType::R8G8B8A8_UNORM:
+                return {bgfx::TextureFormat::RGBA8, false, 4};
+            case TextureFormatType::R8G8B8A8_UNORM_SRGB:
+                return {bgfx::TextureFormat::RGBA8, true, 4};
+            case TextureFormatType::B8G8R8A8_UNORM:
+                return {bgfx::TextureFormat::BGRA8, false, 4};
+            case TextureFormatType::B8G8R8A8_UNORM_SRGB:
+                return {bgfx::TextureFormat::BGRA8, true, 4};
+            case TextureFormatType::R8_UNORM:
+                return {bgfx::TextureFormat::R8, false, 1};
+            case TextureFormatType::R16_FLOAT:
+                return {bgfx::TextureFormat::R16F};
+            case TextureFormatType::R32_FLOAT:
+                return {bgfx::TextureFormat::R32F};
+            case TextureFormatType::R16G16_FLOAT:
+                return {bgfx::TextureFormat::RG16F};
+            case TextureFormatType::R16G16B16A16_FLOAT:
+                return {bgfx::TextureFormat::RGBA16F};
+            case TextureFormatType::R32G32B32A32_FLOAT:
+                return {bgfx::TextureFormat::RGBA32F};
+            case TextureFormatType::RG11B10_UFLOAT:
+                return {bgfx::TextureFormat::RG11B10F};
+            case TextureFormatType::BC1:
+                return {bgfx::TextureFormat::BC1};
+            case TextureFormatType::BC1_SRGB:
+                return {bgfx::TextureFormat::BC1, true};
+            case TextureFormatType::BC2:
+                return {bgfx::TextureFormat::BC2};
+            case TextureFormatType::BC2_SRGB:
+                return {bgfx::TextureFormat::BC2, true};
+            case TextureFormatType::BC3:
+                return {bgfx::TextureFormat::BC3};
+            case TextureFormatType::BC3_SRGB:
+                return {bgfx::TextureFormat::BC3, true};
+            case TextureFormatType::BC7:
+                return {bgfx::TextureFormat::BC7};
+            case TextureFormatType::BC7_SRGB:
+                return {bgfx::TextureFormat::BC7, true};
+            default:
+                return {};
             }
         }
 
@@ -61,8 +81,7 @@ namespace Tsukino::Renderer::EffekseerBgfx {
         //! @return 段の数
         u32 FullMipCount(u32 width, u32 height) {
             u32 count = 1;
-            for(u32 size = std::max(width, height); size > 1; size /= 2)
-                ++count;
+            for(u32 size = std::max(width, height); size > 1; size /= 2) ++count;
             return count;
         }
 
@@ -93,7 +112,7 @@ namespace Tsukino::Renderer::EffekseerBgfx {
             //----------------------------------------------------------------
             // セマンティクス → bgfx の頂点の入力
             //----------------------------------------------------------------
-            const std::string semantic(element.SemanticName.c_str());
+            const std::string  semantic(element.SemanticName.c_str());
             bgfx::Attrib::Enum attrib = bgfx::Attrib::Count;
             if(semantic == "POSITION" && element.SemanticIndex == 0)
                 attrib = bgfx::Attrib::Position;
@@ -110,12 +129,28 @@ namespace Tsukino::Renderer::EffekseerBgfx {
             bool                   normalized = false;
             bool                   asInt      = false;
             switch(element.Format) {
-                case VertexLayoutFormat::R32_FLOAT:          num = 1; break;
-                case VertexLayoutFormat::R32G32_FLOAT:       num = 2; break;
-                case VertexLayoutFormat::R32G32B32_FLOAT:    num = 3; break;
-                case VertexLayoutFormat::R32G32B32A32_FLOAT: num = 4; break;
-                case VertexLayoutFormat::R8G8B8A8_UNORM:     num = 4; type = bgfx::AttribType::Uint8; normalized = true; break;
-                case VertexLayoutFormat::R8G8B8A8_UINT:      num = 4; type = bgfx::AttribType::Uint8; asInt = true; break;
+            case VertexLayoutFormat::R32_FLOAT:
+                num = 1;
+                break;
+            case VertexLayoutFormat::R32G32_FLOAT:
+                num = 2;
+                break;
+            case VertexLayoutFormat::R32G32B32_FLOAT:
+                num = 3;
+                break;
+            case VertexLayoutFormat::R32G32B32A32_FLOAT:
+                num = 4;
+                break;
+            case VertexLayoutFormat::R8G8B8A8_UNORM:
+                num        = 4;
+                type       = bgfx::AttribType::Uint8;
+                normalized = true;
+                break;
+            case VertexLayoutFormat::R8G8B8A8_UINT:
+                num   = 4;
+                type  = bgfx::AttribType::Uint8;
+                asInt = true;
+                break;
             }
 
             if(attrib == bgfx::Attrib::Count || num == 0) {
@@ -288,7 +323,7 @@ namespace Tsukino::Renderer::EffekseerBgfx {
     void Texture::SetBorrowedHandle(bgfx::TextureHandle handle, u32 width, u32 height) {
         if(m_owned)
             return;
-        m_handle     = handle;
+        m_handle    = handle;
         param_.Size = {static_cast<int32_t>(width), static_cast<int32_t>(height), 1};
     }
 
@@ -302,7 +337,8 @@ namespace Tsukino::Renderer::EffekseerBgfx {
     //------------------------------------------------------------------------
     //! インデックスバッファを作ります。
     //------------------------------------------------------------------------
-    Effekseer::Backend::IndexBufferRef GraphicsDevice::CreateIndexBuffer(int32_t elementCount, const void* initialData,
+    Effekseer::Backend::IndexBufferRef GraphicsDevice::CreateIndexBuffer(int32_t                                   elementCount,
+                                                                         const void*                               initialData,
                                                                          Effekseer::Backend::IndexBufferStrideType stride) {
         return Effekseer::MakeRefPtr<IndexBuffer>(elementCount, initialData, stride);
     }
@@ -330,8 +366,7 @@ namespace Tsukino::Renderer::EffekseerBgfx {
     //------------------------------------------------------------------------
     //! 頂点形式を作ります。
     //------------------------------------------------------------------------
-    Effekseer::Backend::VertexLayoutRef GraphicsDevice::CreateVertexLayout(const Effekseer::Backend::VertexLayoutElement* elements,
-                                                                           int32_t                                        elementCount) {
+    Effekseer::Backend::VertexLayoutRef GraphicsDevice::CreateVertexLayout(const Effekseer::Backend::VertexLayoutElement* elements, int32_t elementCount) {
         auto layout = Effekseer::MakeRefPtr<VertexLayout>(elements, elementCount);
         if(!layout->IsValid())
             return nullptr;
@@ -342,7 +377,7 @@ namespace Tsukino::Renderer::EffekseerBgfx {
     //! テクスチャを作ります。
     //------------------------------------------------------------------------
     Effekseer::Backend::TextureRef GraphicsDevice::CreateTexture(const Effekseer::Backend::TextureParameter& param,
-                                                                 const Effekseer::CustomVector<uint8_t>&    initialData) {
+                                                                 const Effekseer::CustomVector<uint8_t>&     initialData) {
         //--------------------------------------------------------------------
         // 作れるのは 2D の画像だけ（配列・3D は GPU パーティクルが使うもので、エンジンは使わない）
         //--------------------------------------------------------------------
@@ -377,8 +412,7 @@ namespace Tsukino::Renderer::EffekseerBgfx {
                 const std::vector<u8> chain = BuildMipChain(format.channels, format.srgb, width, height, initialData.data(), width * format.channels);
                 memory                      = bgfx::copy(chain.data(), static_cast<u32>(chain.size()));
                 hasMips                     = true;
-            } else if(static_cast<u32>(param.MipLevelCount) == FullMipCount(width, height) && param.MipLevelCount > 1
-                      && initialData.size() >= fullSize) {
+            } else if(static_cast<u32>(param.MipLevelCount) == FullMipCount(width, height) && param.MipLevelCount > 1 && initialData.size() >= fullSize) {
                 memory  = bgfx::copy(initialData.data(), fullSize);
                 hasMips = true;
             } else if(initialData.size() >= baseSize) {
@@ -389,8 +423,7 @@ namespace Tsukino::Renderer::EffekseerBgfx {
             }
         }
 
-        const bgfx::TextureHandle handle =
-            bgfx::createTexture2D(static_cast<u16>(width), static_cast<u16>(height), hasMips, 1, format.format, flags, memory);
+        const bgfx::TextureHandle handle = bgfx::createTexture2D(static_cast<u16>(width), static_cast<u16>(height), hasMips, 1, format.format, flags, memory);
         if(!bgfx::isValid(handle))
             return nullptr;
         return Effekseer::MakeRefPtr<Texture>(handle, param, true);

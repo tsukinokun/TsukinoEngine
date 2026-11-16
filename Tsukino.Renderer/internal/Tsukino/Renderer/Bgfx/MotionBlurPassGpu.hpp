@@ -19,7 +19,7 @@ namespace Tsukino::Renderer {
         bgfx::UniformHandle sceneSampler    = BGFX_INVALID_HANDLE;    // s_motionBlurScene
         bgfx::UniformHandle velocitySampler = BGFX_INVALID_HANDLE;    // s_motionBlurVelocity
 
-        Gpu() = default;
+        Gpu()                      = default;
         Gpu(const Gpu&)            = delete;
         Gpu& operator=(const Gpu&) = delete;
 

@@ -94,8 +94,7 @@ namespace Tsukino::Asset {
         Detail::ImageEncodeOptions options;
         options.srgb             = false;
         options.generateMips     = true;
-        options.compressedFormat = m_rules ? m_rules->Resolve(Tsukino::GraphicsCommon::TextureFormat::BC1)
-                                           : Tsukino::GraphicsCommon::TextureFormat::BC1;
+        options.compressedFormat = m_rules ? m_rules->Resolve(Tsukino::GraphicsCommon::TextureFormat::BC1) : Tsukino::GraphicsCommon::TextureFormat::BC1;
 
         Tsukino::Core::Path tempPath = Tsukino::IO::FileSystem::ToEngineRelativePath(inputPath);
         tempPath.replace_extension(".tcc");

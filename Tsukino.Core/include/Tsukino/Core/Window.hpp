@@ -162,7 +162,9 @@ namespace Tsukino::Core {
         //! @return true: 裏に回っている（描画してはいけない）
         //--------------------------------------------------------------
         [[nodiscard]]
-        bool IsInBackground() const { return m_inBackground; }
+        bool IsInBackground() const {
+            return m_inBackground;
+        }
 
         //--------------------------------------------------------------
         // クリックスルー判定コールバックを設定する関数
@@ -335,12 +337,12 @@ namespace Tsukino::Core {
 
         UpdateMode m_updateMode = UpdateMode::ActiveOnly;    // デフォルトは通常
 
-        InputCallback     m_inputCallback;        // 入力の通知先
-        ResizeCallback    m_resizeCallback;       // クライアント領域のサイズ変更通知先
-        FocusLostCallback m_focusLostCallback;    // フォーカス喪失通知先
-        LifecycleCallback m_lifecycleCallback;    // アプリの状態の通知先
-        bool              m_inBackground = false; // アプリが裏に回っているか
-        HitTestCallback   m_hitTestCallback;      // クリック透過の判定先
+        InputCallback     m_inputCallback;           // 入力の通知先
+        ResizeCallback    m_resizeCallback;          // クライアント領域のサイズ変更通知先
+        FocusLostCallback m_focusLostCallback;       // フォーカス喪失通知先
+        LifecycleCallback m_lifecycleCallback;       // アプリの状態の通知先
+        bool              m_inBackground = false;    // アプリが裏に回っているか
+        HitTestCallback   m_hitTestCallback;         // クリック透過の判定先
 
         bool m_clickThroughEnabled = true;    // 現在クリック透過が有効かどうか（無駄な切り替え防止用）
 

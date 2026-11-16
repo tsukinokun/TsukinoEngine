@@ -16,7 +16,6 @@
 #include <unordered_map>
 #include <vector>
 
-
 // 名前空間 : Tsukino::Renderer
 namespace Tsukino::Renderer {
     class RenderResources;    // 前方宣言
@@ -62,10 +61,15 @@ namespace Tsukino::Renderer {
         //! @param  rotation     [in] 回転（ラジアン。画面上で時計回りが正）。position を軸に文字列全体を回す
         //! @note   縁取りは本体より先に足すので、並べた順に描けば縁取りが本体の下に入る
         //------------------------------------------------------------
-        void AppendStringSprites(std::vector<SpriteQuad>& outSprites, std::string_view text,
-                                 hlslpp::float2 position, hlslpp::float4 color, hlslpp::float2 origin, float scale,
-                                 hlslpp::float4 outlineColor = hlslpp::float4(0.0f, 0.0f, 0.0f, 0.0f), float outlineWidth = 0.0f,
-                                 float rotation = 0.0f);
+        void AppendStringSprites(std::vector<SpriteQuad>& outSprites,
+                                 std::string_view         text,
+                                 hlslpp::float2           position,
+                                 hlslpp::float4           color,
+                                 hlslpp::float2           origin,
+                                 float                    scale,
+                                 hlslpp::float4           outlineColor = hlslpp::float4(0.0f, 0.0f, 0.0f, 0.0f),
+                                 float                    outlineWidth = 0.0f,
+                                 float                    rotation     = 0.0f);
 
         //------------------------------------------------------------
         //! @brief  文字列の描画サイズを取得する関数
@@ -83,32 +87,36 @@ namespace Tsukino::Renderer {
         //! @brief  改行時の行送り量を取得する関数（スケール適用前）
         //------------------------------------------------------------
         [[nodiscard]]
-        float GetLineHeight() const noexcept { return m_lineHeight; }
+        float GetLineHeight() const noexcept {
+            return m_lineHeight;
+        }
 
         //------------------------------------------------------------
         //! @brief  ベースラインから上端までの距離を取得する関数（スケール適用前）
         //------------------------------------------------------------
         [[nodiscard]]
-        float GetAscent() const noexcept { return m_ascent; }
+        float GetAscent() const noexcept {
+            return m_ascent;
+        }
 
     private:
         //------------------------------------------------------------
         //! 1文字分のメトリクス（描く大きさによらない）です。
         //------------------------------------------------------------
         struct GlyphMetrics {
-            int    glyphIndex = 0;       // フォント内のグリフ番号
-            float  advanceX   = 0.0f;    // 次の文字へのペン送り量（pixelSize基準）
+            int   glyphIndex = 0;       // フォント内のグリフ番号
+            float advanceX   = 0.0f;    // 次の文字へのペン送り量（pixelSize基準）
         };
 
         //------------------------------------------------------------
         //! 1グリフを1つの大きさでラスタライズしたもの（アトラス上の位置）です。
         //------------------------------------------------------------
         struct GlyphImage {
-            TexelRect atlasRect{};   // アトラスページ内の矩形（ピクセル座標）
-            int   page     = 0;      // 所属ページのインデックス
-            float bearingX = 0.0f;   // ペン位置からのインクの左オフセット（ラスタライズした大きさのピクセル）
-            float bearingY = 0.0f;   // ベースラインからのインクの上オフセット（ラスタライズした大きさのピクセル）
-            bool  hasInk   = false;  // 実体のあるグリフか（全角スペース等はfalse）
+            TexelRect atlasRect{};         // アトラスページ内の矩形（ピクセル座標）
+            int       page     = 0;        // 所属ページのインデックス
+            float     bearingX = 0.0f;     // ペン位置からのインクの左オフセット（ラスタライズした大きさのピクセル）
+            float     bearingY = 0.0f;     // ベースラインからのインクの上オフセット（ラスタライズした大きさのピクセル）
+            bool      hasInk   = false;    // 実体のあるグリフか（全角スペース等はfalse）
         };
 
         //------------------------------------------------------------
@@ -116,10 +124,10 @@ namespace Tsukino::Renderer {
         //! @brief  アトラスの1ページ分のGPUリソースとシェルフパッカーの状態
         //------------------------------------------------------------
         struct Page {
-            TextureHandle texture;                // ページのテクスチャ（RenderResources が持つ）
-            uint32_t      cursorX     = 0;        // 現在のシェルフ内での書き込みX位置
-            uint32_t      cursorY     = 0;        // 現在のシェルフのY位置
-            uint32_t      shelfHeight = 0;        // 現在のシェルフの高さ
+            TextureHandle texture;            // ページのテクスチャ（RenderResources が持つ）
+            uint32_t      cursorX     = 0;    // 現在のシェルフ内での書き込みX位置
+            uint32_t      cursorY     = 0;    // 現在のシェルフのY位置
+            uint32_t      shelfHeight = 0;    // 現在のシェルフの高さ
         };
 
         static constexpr uint32_t kPageSize = 1024;    // 1ページあたりの一辺のピクセル数
@@ -196,9 +204,9 @@ namespace Tsukino::Renderer {
         float m_lineHeight = 0.0f;    // 改行時の行送り量（ピクセル、m_pixelSize基準）
         float m_ascent     = 0.0f;    // ベースラインから上端までの距離（ピクセル、m_pixelSize基準）
 
-        std::vector<Page>                            m_pages;
-        std::unordered_map<uint32_t, GlyphMetrics>   m_metricsCache;    // 文字ごとのメトリクス（キーは文字コード）
-        std::unordered_map<uint64_t, GlyphImage>     m_glyphCache;      // ラスタライズしたグリフ（キーは「大きさ << 32 | 文字コード」）
+        std::vector<Page>                          m_pages;
+        std::unordered_map<uint32_t, GlyphMetrics> m_metricsCache;    // 文字ごとのメトリクス（キーは文字コード）
+        std::unordered_map<uint64_t, GlyphImage>   m_glyphCache;      // ラスタライズしたグリフ（キーは「大きさ << 32 | 文字コード」）
     };
 
 }    // namespace Tsukino::Renderer

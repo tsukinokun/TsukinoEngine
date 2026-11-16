@@ -149,7 +149,7 @@ namespace Tsukino::GraphicsCommon {
         std::vector<NodeData>      nodes;
         std::vector<MeshData>      meshes;
         std::vector<MaterialData>  materials;
-        std::vector<AnimationData> animations;    
+        std::vector<AnimationData> animations;
         SkeletonData               skeleton;    // スケルトンデータ
         u32                        rootNodeIndex = 0;
 

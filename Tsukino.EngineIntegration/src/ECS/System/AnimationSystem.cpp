@@ -55,7 +55,7 @@ namespace Tsukino::BuiltIn::ECS {
             channelIndexByName.emplace(animation.channels[channelIndex].nodeName, static_cast<std::int32_t>(channelIndex));
         }
 
-        std::vector<std::int32_t> table(model.nodes.size(), -1);
+        std::vector<std::int32_t>                    table(model.nodes.size(), -1);
         std::unordered_map<std::string, std::size_t> nodeIndexByName;
         nodeIndexByName.reserve(model.nodes.size());
         for(std::size_t nodeIndex = 0; nodeIndex < model.nodes.size(); ++nodeIndex) {
@@ -114,8 +114,7 @@ namespace Tsukino::BuiltIn::ECS {
     template <typename KeyType>
     [[nodiscard]]
     static std::size_t FindKeyIndex(const std::vector<KeyType>& keys, float time) {
-        const auto upper =
-            std::upper_bound(keys.begin(), keys.end(), time, [](float value, const KeyType& key) { return value < key.time; });
+        const auto upper = std::upper_bound(keys.begin(), keys.end(), time, [](float value, const KeyType& key) { return value < key.time; });
 
         //---------------------------------------------------------
         // 呼び出し元が端（time <= 先頭 / time >= 末尾）を先に弾いているため、
@@ -201,8 +200,7 @@ namespace Tsukino::BuiltIn::ECS {
     //-------------------------------------------------------------
     static ClipRangeTicks ComputeRangeTicks(const Tsukino::GraphicsCommon::AnimationData& anim, float startSec, float endSec) {
         const float startTicks = std::clamp(startSec * anim.ticksPerSecond, 0.0f, anim.duration);
-        const float endTicks   = (endSec > 0.0f) ? std::clamp(endSec * anim.ticksPerSecond, startTicks, anim.duration)
-                                                  : anim.duration;
+        const float endTicks   = (endSec > 0.0f) ? std::clamp(endSec * anim.ticksPerSecond, startTicks, anim.duration) : anim.duration;
         return {startTicks, endTicks};
     }
 
@@ -216,12 +214,11 @@ namespace Tsukino::BuiltIn::ECS {
     //! @param  outFinished [out] 非ループ時にレンジ末尾へ到達したか
     //! @return クリップ内の絶対tick時刻
     //-------------------------------------------------------------
-    static float EvaluateClipTicks(const Tsukino::GraphicsCommon::AnimationData& anim,
-                                   float elapsedSec, float startSec, float endSec,
-                                   bool looping, bool& outFinished) {
-        const ClipRangeTicks range      = ComputeRangeTicks(anim, startSec, endSec);
+    static float EvaluateClipTicks(
+        const Tsukino::GraphicsCommon::AnimationData& anim, float elapsedSec, float startSec, float endSec, bool looping, bool& outFinished) {
+        const ClipRangeTicks range = ComputeRangeTicks(anim, startSec, endSec);
         // レンジ長が0だとfmodがNaNを返し、ポーズ全体が壊れる（開始=終了の設定ミスへの保険）
-        const float           rangeTicks = std::max(range.end - range.start, 0.0001f);
+        const float rangeTicks = std::max(range.end - range.start, 0.0001f);
 
         const float localTicks = elapsedSec * anim.ticksPerSecond;
         if(!looping && localTicks >= rangeTicks) {
@@ -297,12 +294,12 @@ namespace Tsukino::BuiltIn::ECS {
 
             if(controller && controller->next.clip.IsValid()) {
                 if(controller->next.immediate) {
-                    player.currentClipId       = controller->next.clip;
+                    player.currentClipId        = controller->next.clip;
                     player.animationIndex       = controller->next.animationIndex;
                     player.elapsedTime          = 0.0f;
                     player.isLooping            = controller->next.isLooping;
-                    player.clipStartTime       = controller->next.clipStartTime;
-                    player.clipEndTime         = controller->next.clipEndTime;
+                    player.clipStartTime        = controller->next.clipStartTime;
+                    player.clipEndTime          = controller->next.clipEndTime;
                     player.inPlace              = controller->next.inPlace;
                     controller->isTransitioning = false;
                     controller->blendAlpha      = 0.0f;
@@ -311,20 +308,20 @@ namespace Tsukino::BuiltIn::ECS {
                     // outgoingとしてスナップショットして自分の経過時間を保ったまま並行フェードアウトさせる。
                     // 遷移中に更に別の遷移が来た場合も、その時点でplayerが指しているクリップが新たなoutgoingに
                     // なるだけなので同じロジックで自然に処理される。
-                    controller->outgoing.clip            = player.currentClipId;
+                    controller->outgoing.clip           = player.currentClipId;
                     controller->outgoing.animationIndex = player.animationIndex;
                     controller->outgoing.elapsedTime    = player.elapsedTime;
-                    controller->outgoing.isLooping       = player.isLooping;
-                    controller->outgoing.clipStartTime = player.clipStartTime;
-                    controller->outgoing.clipEndTime   = player.clipEndTime;
-                    controller->outgoing.inPlace         = player.inPlace;
+                    controller->outgoing.isLooping      = player.isLooping;
+                    controller->outgoing.clipStartTime  = player.clipStartTime;
+                    controller->outgoing.clipEndTime    = player.clipEndTime;
+                    controller->outgoing.inPlace        = player.inPlace;
 
-                    player.currentClipId = controller->next.clip;
+                    player.currentClipId  = controller->next.clip;
                     player.animationIndex = controller->next.animationIndex;
                     player.elapsedTime    = 0.0f;
                     player.isLooping      = controller->next.isLooping;
-                    player.clipStartTime = controller->next.clipStartTime;
-                    player.clipEndTime   = controller->next.clipEndTime;
+                    player.clipStartTime  = controller->next.clipStartTime;
+                    player.clipEndTime    = controller->next.clipEndTime;
                     player.inPlace        = controller->next.inPlace;
 
                     controller->isTransitioning = true;
@@ -362,8 +359,7 @@ namespace Tsukino::BuiltIn::ECS {
             const auto& animData = modelAss->modelData.animations[animIndex];
 
             // Convert to ticks（clipStartTime/clipEndTimeで指定されたレンジ内で評価する）
-            float animTime = EvaluateClipTicks(animData, player.elapsedTime, player.clipStartTime,
-                                               player.clipEndTime, player.isLooping, player.isFinished);
+            float animTime = EvaluateClipTicks(animData, player.elapsedTime, player.clipStartTime, player.clipEndTime, player.isLooping, player.isFinished);
 
             // Outgoing anim blend logic: 遷移中は、フェードアウトしていくoutgoingクリップを
             // 自分自身の経過時間(controller->outgoing.elapsedTime)で独立して評価する
@@ -383,10 +379,12 @@ namespace Tsukino::BuiltIn::ECS {
                         blendAnimData = &outModelAss->modelData.animations[outAnimIndex];
 
                         bool outFinished = false;    // outgoing側は既に再生完了扱いのため使わない（フェードアウト目的のみ）
-                        blendAnimTime = EvaluateClipTicks(*blendAnimData, controller->outgoing.elapsedTime,
-                                                          controller->outgoing.clipStartTime,
-                                                          controller->outgoing.clipEndTime,
-                                                          controller->outgoing.isLooping, outFinished);
+                        blendAnimTime    = EvaluateClipTicks(*blendAnimData,
+                                                             controller->outgoing.elapsedTime,
+                                                             controller->outgoing.clipStartTime,
+                                                             controller->outgoing.clipEndTime,
+                                                             controller->outgoing.isLooping,
+                                                             outFinished);
 
                         finalBlendAlpha = controller->blendAlpha;
                     }
@@ -427,21 +425,20 @@ namespace Tsukino::BuiltIn::ECS {
             //-------------------------------------------------------------
             if(!player.rootMotionResolved) {
                 player.rootMotionNodeIndex = ResolveRootMotionNode(skeletonModelAss->modelData, player.rootMotionNodeName);
-                player.rootMotionResolved   = true;
+                player.rootMotionResolved  = true;
 #if defined(_DEBUG)
                 const std::string resolvedName = (player.rootMotionNodeIndex < skeletonModelAss->modelData.nodes.size())
-                                                      ? skeletonModelAss->modelData.nodes[player.rootMotionNodeIndex].name
-                                                      : "(none)";
-                Tsukino::Core::Log::Info("AnimationSystem: root motion node resolved to index="
-                                         + std::to_string(player.rootMotionNodeIndex) + " (" + resolvedName + ")");
+                                                     ? skeletonModelAss->modelData.nodes[player.rootMotionNodeIndex].name
+                                                     : "(none)";
+                Tsukino::Core::Log::Info("AnimationSystem: root motion node resolved to index=" + std::to_string(player.rootMotionNodeIndex) + " ("
+                                         + resolvedName + ")");
 #endif
             }
 
             // In Place：現在クリップ／ブレンド元(outgoing)クリップのうち、どちらかがIn Place対象か
             bool applyInPlace      = player.inPlace && player.rootMotionNodeIndex != UINT32_MAX;
-            bool applyBlendInPlace = controller && controller->outgoing.inPlace && blendAnimData
-                                     && player.rootMotionNodeIndex != UINT32_MAX;
-            bool needsRootLock = applyInPlace || applyBlendInPlace;
+            bool applyBlendInPlace = controller && controller->outgoing.inPlace && blendAnimData && player.rootMotionNodeIndex != UINT32_MAX;
+            bool needsRootLock     = applyInPlace || applyBlendInPlace;
 
             // 「非In Place → In Place」に切り替わった最初のフレームでだけ、現在の生のHips位置を
             // 凍結基準として記録する。以後、In Placeが有効な間（連撃の各段のようにクリップが
@@ -452,7 +449,7 @@ namespace Tsukino::BuiltIn::ECS {
                 const float srcTime     = applyInPlace ? animTime : blendAnimTime;
                 for(const auto& channel : *srcChannels) {
                     if(channel.nodeName == skeletonModelAss->modelData.nodes[player.rootMotionNodeIndex].name) {
-                        hlslpp::float3 rawPos      = LerpVector(channel.positionKeys, srcTime);
+                        hlslpp::float3 rawPos  = LerpVector(channel.positionKeys, srcTime);
                         player.rootMotionLockX = rawPos.x;
                         player.rootMotionLockZ = rawPos.z;
                         break;
@@ -489,13 +486,11 @@ namespace Tsukino::BuiltIn::ECS {
             //-------------------------------------------------------------
             const std::size_t nodeCount = skeletonModelAss->modelData.nodes.size();
 
-            auto& matrixOut = registry.HasComponent<NodeWorldMatrixComponent>(entity)
-                                   ? registry.GetComponent<NodeWorldMatrixComponent>(entity)
-                                   : registry.AddComponent<NodeWorldMatrixComponent>(entity);
+            auto& matrixOut = registry.HasComponent<NodeWorldMatrixComponent>(entity) ? registry.GetComponent<NodeWorldMatrixComponent>(entity)
+                                                                                      : registry.AddComponent<NodeWorldMatrixComponent>(entity);
 
-            auto& poseOut = registry.HasComponent<NodeWorldPoseComponent>(entity)
-                                 ? registry.GetComponent<NodeWorldPoseComponent>(entity)
-                                 : registry.AddComponent<NodeWorldPoseComponent>(entity);
+            auto& poseOut = registry.HasComponent<NodeWorldPoseComponent>(entity) ? registry.GetComponent<NodeWorldPoseComponent>(entity)
+                                                                                  : registry.AddComponent<NodeWorldPoseComponent>(entity);
 
             std::vector<Tsukino::Core::Math::matrix>& globalNodeMatrices = matrixOut.matrices;
 
@@ -544,8 +539,7 @@ namespace Tsukino::BuiltIn::ECS {
                     bool               blendChannelFound = false;
 
                     // ブレンド元も同じく対応表から引く
-                    const std::int32_t blendChannelIndex =
-                        (blendChannelTable != nullptr && i < blendChannelTable->size()) ? (*blendChannelTable)[i] : -1;
+                    const std::int32_t blendChannelIndex = (blendChannelTable != nullptr && i < blendChannelTable->size()) ? (*blendChannelTable)[i] : -1;
                     if(blendChannelIndex >= 0) {
                         const auto& bChannel = blendAnimData->channels[static_cast<std::size_t>(blendChannelIndex)];
 
@@ -688,8 +682,9 @@ namespace Tsukino::BuiltIn::ECS {
                         // ここで各ノードの実名・親・restLengthが分かる。
                         //---------------------------------------------------------
                         for(const auto& chain : springBone.chains) {
-                            const std::string anchorName =
-                                (chain.anchorNodeIndex < skeletonModelAss->modelData.nodes.size()) ? skeletonModelAss->modelData.nodes[chain.anchorNodeIndex].name : "(none)";
+                            const std::string anchorName = (chain.anchorNodeIndex < skeletonModelAss->modelData.nodes.size())
+                                                               ? skeletonModelAss->modelData.nodes[chain.anchorNodeIndex].name
+                                                               : "(none)";
                             Tsukino::Core::Log::Info("SpringBone chain '" + chain.name + "' resolved: " + std::to_string(chain.nodes.size())
                                                      + " nodes, anchor=" + std::to_string(chain.anchorNodeIndex) + " (" + anchorName + ")");
                             for(const auto& n : chain.nodes) {

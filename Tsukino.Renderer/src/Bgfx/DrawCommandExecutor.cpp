@@ -37,9 +37,9 @@ namespace Tsukino::Renderer {
         //! スプライトの並びの頂点（位置はクリップ空間、色、UV）です。
         //--------------------------------------------------------------------
         struct SpriteVertex {
-            float x, y, z;         // 位置（クリップ空間。z は使わない）
-            float r, g, b, a;      // テクスチャに掛ける色
-            float u, v;            // UV
+            float x, y, z;       // 位置（クリップ空間。z は使わない）
+            float r, g, b, a;    // テクスチャに掛ける色
+            float u, v;          // UV
         };
 
         //! 1回の Submit で描くスプライトの枚数の上限（16bit のインデックスで足りる数）
@@ -49,14 +49,14 @@ namespace Tsukino::Renderer {
         const CBufferMaterial& DefaultMaterial() {
             static const CBufferMaterial material = [] {
                 CBufferMaterial m{};
-                m.baseColor = hlslpp::float4(1.0f, 1.0f, 1.0f, 1.0f);
-                m.emissive  = hlslpp::float3(0.0f, 0.0f, 0.0f);
-                m.metallic  = 0.0f;
-                m.roughness = 1.0f;
-                m.specular  = 0.5f;
+                m.baseColor   = hlslpp::float4(1.0f, 1.0f, 1.0f, 1.0f);
+                m.emissive    = hlslpp::float3(0.0f, 0.0f, 0.0f);
+                m.metallic    = 0.0f;
+                m.roughness   = 1.0f;
+                m.specular    = 0.5f;
                 m.alphaCutoff = 0.0f;
-                m.rimColor  = hlslpp::float4(0.0f, 0.0f, 0.0f, 0.0f);
-                m.rimParams = hlslpp::float4(0.0f, 0.0f, 0.0f, 0.0f);
+                m.rimColor    = hlslpp::float4(0.0f, 0.0f, 0.0f, 0.0f);
+                m.rimParams   = hlslpp::float4(0.0f, 0.0f, 0.0f, 0.0f);
                 return m;
             }();
             return material;
@@ -109,14 +109,13 @@ namespace Tsukino::Renderer {
             return false;
         }
         constexpr const char* kSamplerNames[] = {"s_albedo", "s_normalMap", "s_metallicRoughness", "s_emissiveMap", "s_aoMap"};
-        for(size_t i = 0; i < m_materialSamplers.size(); ++i)
-            m_materialSamplers[i] = bgfx::createUniform(kSamplerNames[i], bgfx::UniformType::Sampler);
+        for(size_t i = 0; i < m_materialSamplers.size(); ++i) m_materialSamplers[i] = bgfx::createUniform(kSamplerNames[i], bgfx::UniformType::Sampler);
         m_spriteSampler = bgfx::createUniform("s_texture", bgfx::UniformType::Sampler);
 
         // ボーン行列（Model.vs.sc の u_bones / u_bonesPrev。1本4行で128本ぶん）
         constexpr u16 kBoneVec4Count = static_cast<u16>(sizeof(CBufferSkinning) / 16);
-        m_bonesUniform     = bgfx::createUniform("u_bones", bgfx::UniformType::Vec4, kBoneVec4Count);
-        m_bonesPrevUniform = bgfx::createUniform("u_bonesPrev", bgfx::UniformType::Vec4, kBoneVec4Count);
+        m_bonesUniform               = bgfx::createUniform("u_bones", bgfx::UniformType::Vec4, kBoneVec4Count);
+        m_bonesPrevUniform           = bgfx::createUniform("u_bonesPrev", bgfx::UniformType::Vec4, kBoneVec4Count);
 
         //--------------------------------------------------------------------
         // スプライトの並び（DrawKind::Sprites）のシェーダーは RendererShaderSet には無い。組み込みのシェーダーから直接読む
@@ -133,10 +132,7 @@ namespace Tsukino::Renderer {
         //--------------------------------------------------------------------
         // 線（DrawKind::Lines）
         //--------------------------------------------------------------------
-        m_lineLayout.begin()
-            .add(bgfx::Attrib::Position, 3, bgfx::AttribType::Float)
-            .add(bgfx::Attrib::Color0, 4, bgfx::AttribType::Float)
-            .end();
+        m_lineLayout.begin().add(bgfx::Attrib::Position, 3, bgfx::AttribType::Float).add(bgfx::Attrib::Color0, 4, bgfx::AttribType::Float).end();
         m_lineProgram = CreateBgfxProgram(lineVS, linePS);
         if(!bgfx::isValid(m_lineProgram))
             Tsukino::Core::Log::Error("DrawCommandExecutor: The line shaders are not bgfx shaders; debug lines are not drawn.");
@@ -149,9 +145,15 @@ namespace Tsukino::Renderer {
     //------------------------------------------------------------------------
     void DrawCommandExecutor::Execute(const DrawCommand& cmd, bgfx::ViewId view, Renderer::FrameStats& stats) {
         switch(cmd.kind) {
-        case DrawKind::Sprites: ExecuteSprites(cmd, view, stats); return;
-        case DrawKind::Lines:   ExecuteLines(cmd, view, stats); return;
-        case DrawKind::Mesh:    ExecuteMesh(cmd, view, stats); return;
+        case DrawKind::Sprites:
+            ExecuteSprites(cmd, view, stats);
+            return;
+        case DrawKind::Lines:
+            ExecuteLines(cmd, view, stats);
+            return;
+        case DrawKind::Mesh:
+            ExecuteMesh(cmd, view, stats);
+            return;
         }
     }
 
@@ -182,7 +184,7 @@ namespace Tsukino::Renderer {
         m_frameConstants->GetGpu().Apply();
 
         CBufferTransform transform{};
-        transform.world       = cmd.transform;
+        transform.world = cmd.transform;
         // モーションブラーが有効で、前フレームの値があるときだけ速度を出す。
         // それ以外は motionFlags.x = 0 にして、頂点シェーダーに前フレームの位置を計算させない
         const bool writeVelocity = m_motionBlurEnabled && cmd.hasPrevFrame;
@@ -198,8 +200,8 @@ namespace Tsukino::Renderer {
         // マテリアルのテクスチャ。設定されていない枠は、色は白、法線は平らな法線で埋める
         //--------------------------------------------------------------------
         const RenderResources::Gpu& resources = m_resources->GetGpu();
-        const u32 samplerFlags = cmd.material->GetSampler() ? RenderResources::Gpu::GetSamplerFlags(*cmd.material->GetSampler())
-                                                            : BGFX_SAMPLER_NONE;    // 既定は線形・繰り返し
+        const u32                   samplerFlags =
+            cmd.material->GetSampler() ? RenderResources::Gpu::GetSamplerFlags(*cmd.material->GetSampler()) : BGFX_SAMPLER_NONE;    // 既定は線形・繰り返し
         const auto& textures = cmd.material->GetTextures();
         for(size_t slot = 0; slot < textures.size(); ++slot) {
             const RenderResources::Gpu::TextureEntry* entry = resources.FindTexture(textures[slot]);
@@ -249,8 +251,8 @@ namespace Tsukino::Renderer {
     //------------------------------------------------------------------------
     //! 描画コマンドを、影用パイプラインに差し替えてシャドウマップへ描きます。
     //------------------------------------------------------------------------
-    void DrawCommandExecutor::ExecuteShadow(const DrawCommand& cmd, bgfx::ViewId view, const PipelineState* staticPipeline,
-                                            const PipelineState* skeletalPipeline, Renderer::FrameStats& stats) {
+    void DrawCommandExecutor::ExecuteShadow(
+        const DrawCommand& cmd, bgfx::ViewId view, const PipelineState* staticPipeline, const PipelineState* skeletalPipeline, Renderer::FrameStats& stats) {
         // 影を落とすのはメッシュだけ（スプライト・線は形を持たない）
         if(cmd.kind != DrawKind::Mesh || !cmd.mesh || !cmd.mesh->gpu)
             return;
@@ -285,8 +287,8 @@ namespace Tsukino::Renderer {
         static const CBufferMaterial kNoCutoutMaterial{};
         m_materialUniform.Set(cmd.materialData ? *cmd.materialData : kNoCutoutMaterial);
 
-        const RenderResources::Gpu&               resources = m_resources->GetGpu();
-        const RenderResources::Gpu::TextureEntry* albedo    = nullptr;
+        const RenderResources::Gpu&               resources    = m_resources->GetGpu();
+        const RenderResources::Gpu::TextureEntry* albedo       = nullptr;
         u32                                       samplerFlags = BGFX_SAMPLER_NONE;    // 既定は線形・繰り返し
         if(cmd.material) {
             albedo = resources.FindTexture(cmd.material->GetTextures()[static_cast<size_t>(MaterialTextureSlot::Albedo)]);
@@ -296,7 +298,10 @@ namespace Tsukino::Renderer {
         if(!albedo)
             albedo = resources.FindTexture(resources.white);
         if(albedo)
-            bgfx::setTexture(static_cast<u8>(MaterialTextureSlot::Albedo), m_materialSamplers[static_cast<size_t>(MaterialTextureSlot::Albedo)], albedo->texture, samplerFlags);
+            bgfx::setTexture(static_cast<u8>(MaterialTextureSlot::Albedo),
+                             m_materialSamplers[static_cast<size_t>(MaterialTextureSlot::Albedo)],
+                             albedo->texture,
+                             samplerFlags);
 
         // ボーン行列
         u32 boneBytes = 0;
@@ -347,8 +352,7 @@ namespace Tsukino::Renderer {
         const float toClipY = -2.0f / screenHeight;
 
         // straight alpha のブレンド・深度は使わない・カリングなし
-        constexpr u64 kState = BGFX_STATE_WRITE_RGB | BGFX_STATE_WRITE_A
-                               | BGFX_STATE_BLEND_FUNC(BGFX_STATE_BLEND_SRC_ALPHA, BGFX_STATE_BLEND_INV_SRC_ALPHA);
+        constexpr u64 kState = BGFX_STATE_WRITE_RGB | BGFX_STATE_WRITE_A | BGFX_STATE_BLEND_FUNC(BGFX_STATE_BLEND_SRC_ALPHA, BGFX_STATE_BLEND_INV_SRC_ALPHA);
         // サンプラーは線形補間・端で止める（LinearClamp）
         constexpr u32 kSampler = BGFX_SAMPLER_U_CLAMP | BGFX_SAMPLER_V_CLAMP;
 
@@ -367,8 +371,7 @@ namespace Tsukino::Renderer {
             }
 
             u32 runEnd = index + 1;
-            while(runEnd < end && runEnd - index < kMaxSpritesPerSubmit && sprites[runEnd].texture == sprites[index].texture)
-                ++runEnd;
+            while(runEnd < end && runEnd - index < kMaxSpritesPerSubmit && sprites[runEnd].texture == sprites[index].texture) ++runEnd;
 
             u32 count = runEnd - index;
             count     = std::min(count, bgfx::getAvailTransientVertexBuffer(count * 4, m_spriteLayout) / 4);
@@ -414,15 +417,15 @@ namespace Tsukino::Renderer {
                     const float pixelY = sprite.y + localX * sinR + localY * cosR;
 
                     SpriteVertex& vertex = vertices[i * 4 + corner];
-                    vertex.x = pixelX * toClipX - 1.0f;
-                    vertex.y = pixelY * toClipY + 1.0f;
-                    vertex.z = 0.0f;
-                    vertex.r = sprite.color[0];
-                    vertex.g = sprite.color[1];
-                    vertex.b = sprite.color[2];
-                    vertex.a = sprite.color[3];
-                    vertex.u = kCornerX[corner] > 0.0f ? u1 : u0;
-                    vertex.v = kCornerY[corner] > 0.0f ? v1 : v0;
+                    vertex.x             = pixelX * toClipX - 1.0f;
+                    vertex.y             = pixelY * toClipY + 1.0f;
+                    vertex.z             = 0.0f;
+                    vertex.r             = sprite.color[0];
+                    vertex.g             = sprite.color[1];
+                    vertex.b             = sprite.color[2];
+                    vertex.a             = sprite.color[3];
+                    vertex.u             = kCornerX[corner] > 0.0f ? u1 : u0;
+                    vertex.v             = kCornerY[corner] > 0.0f ? v1 : v0;
                 }
 
                 const u16 base     = static_cast<u16>(i * 4);
@@ -442,7 +445,7 @@ namespace Tsukino::Renderer {
             bgfx::submit(view, m_spriteProgram);
 
             stats.triangleCount += static_cast<u64>(count) * 2;
-            index += count;
+            index               += count;
         }
 
         // 1コマンドを1回と数える
@@ -461,8 +464,7 @@ namespace Tsukino::Renderer {
             return;
 
         // 不透明・深度テストと書き込みあり（リバース Z）・カリングなし・線のリスト
-        constexpr u64 kState = BGFX_STATE_WRITE_RGB | BGFX_STATE_WRITE_A | BGFX_STATE_WRITE_Z | BGFX_STATE_DEPTH_TEST_GEQUAL
-                               | BGFX_STATE_PT_LINES;
+        constexpr u64 kState = BGFX_STATE_WRITE_RGB | BGFX_STATE_WRITE_A | BGFX_STATE_WRITE_Z | BGFX_STATE_DEPTH_TEST_GEQUAL | BGFX_STATE_PT_LINES;
 
         //--------------------------------------------------------------------
         // 一時的な頂点バッファに入りきらない分は、何回かに分けて描く
@@ -487,7 +489,7 @@ namespace Tsukino::Renderer {
             bgfx::submit(view, m_lineProgram);
 
             CountDrawCall(cmd.pass, stats);
-            first += count;
+            first     += count;
             remaining -= count;
         }
     }
@@ -496,7 +498,7 @@ namespace Tsukino::Renderer {
     //! コマンドのインスタンスごとのデータとゲーム定義の定数を、次の Submit へ設定します。
     //------------------------------------------------------------------------
     void DrawCommandExecutor::ApplyInstanceAndUserConstants(const DrawCommand& cmd) const {
-        using BufferKind = RenderResources::Gpu::BufferKind;
+        using BufferKind                      = RenderResources::Gpu::BufferKind;
         const RenderResources::Gpu& resources = m_resources->GetGpu();
 
         //--------------------------------------------------------------------
@@ -558,11 +560,19 @@ namespace Tsukino::Renderer {
     //------------------------------------------------------------------------
     void DrawCommandExecutor::CountDrawCall(RenderPass pass, Renderer::FrameStats& stats) {
         switch(pass) {
-        case RenderPass::GBuffer:          ++stats.gbufferDrawCalls; break;
-        case RenderPass::World:            ++stats.worldDrawCalls; break;
+        case RenderPass::GBuffer:
+            ++stats.gbufferDrawCalls;
+            break;
+        case RenderPass::World:
+            ++stats.worldDrawCalls;
+            break;
         case RenderPass::TransparentDepth:
-        case RenderPass::Transparent:      ++stats.transparentDrawCalls; break;
-        case RenderPass::Overlay:          ++stats.overlayDrawCalls; break;
+        case RenderPass::Transparent:
+            ++stats.transparentDrawCalls;
+            break;
+        case RenderPass::Overlay:
+            ++stats.overlayDrawCalls;
+            break;
         }
     }
 

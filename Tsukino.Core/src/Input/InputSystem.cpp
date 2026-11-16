@@ -25,16 +25,14 @@ namespace Tsukino::Input {
         m_previousKeys.fill(false);
 
         // ゲームパッドへスロット番号を割り振る
-        for(u32 i = 0; i < kMaxGamepads; ++i)
-            m_gamepads[i] = Gamepad(i);
+        for(u32 i = 0; i < kMaxGamepads; ++i) m_gamepads[i] = Gamepad(i);
     }
 
     //--------------------------------------------------------------
     //! @brief デストラクタ
     //--------------------------------------------------------------
     InputSystem::~InputSystem() {
-        for(Gamepad& gamepad : m_gamepads)
-            gamepad.Close();
+        for(Gamepad& gamepad : m_gamepads) gamepad.Close();
 
         if(m_gamepadSubsystemReady) {
             SDL_QuitSubSystem(SDL_INIT_GAMEPAD);
@@ -59,8 +57,7 @@ namespace Tsukino::Input {
 
         // 離れた指を消し、残った指の「触れた瞬間」を下ろす
         std::erase_if(m_touches, [](const TouchPoint& touch) { return touch.ended; });
-        for(TouchPoint& touch : m_touches)
-            touch.began = false;
+        for(TouchPoint& touch : m_touches) touch.began = false;
     }
 
     //--------------------------------------------------------------
@@ -237,11 +234,10 @@ namespace Tsukino::Input {
             if(!gamepad.IsConnected())
                 continue;
 
-            const float leftLength  = hlslpp::length(gamepad.GetLeftStick());
-            const float rightLength = hlslpp::length(gamepad.GetRightStick());
-            const bool  stickMoved  = leftLength >= kActivityStickThreshold || rightLength >= kActivityStickThreshold;
-            const bool triggerPulled =
-                gamepad.GetLeftTrigger() >= kActivityTriggerThreshold || gamepad.GetRightTrigger() >= kActivityTriggerThreshold;
+            const float leftLength    = hlslpp::length(gamepad.GetLeftStick());
+            const float rightLength   = hlslpp::length(gamepad.GetRightStick());
+            const bool  stickMoved    = leftLength >= kActivityStickThreshold || rightLength >= kActivityStickThreshold;
+            const bool  triggerPulled = gamepad.GetLeftTrigger() >= kActivityTriggerThreshold || gamepad.GetRightTrigger() >= kActivityTriggerThreshold;
 
             if(gamepad.AnyButtonPressed() || stickMoved || triggerPulled)
                 m_lastInputDevice = InputDevice::Gamepad;
@@ -330,32 +326,28 @@ namespace Tsukino::Input {
     //! 接続されている全てのゲームパッドを振動させます。
     //--------------------------------------------------------------
     void InputSystem::SetGamepadVibration(float lowFrequency, float highFrequency, float durationSeconds) {
-        for(Gamepad& gamepad : m_gamepads)
-            gamepad.SetVibration(lowFrequency, highFrequency, durationSeconds);
+        for(Gamepad& gamepad : m_gamepads) gamepad.SetVibration(lowFrequency, highFrequency, durationSeconds);
     }
 
     //--------------------------------------------------------------
     //! 全てのゲームパッドの振動を止めます。
     //--------------------------------------------------------------
     void InputSystem::StopGamepadVibration() {
-        for(Gamepad& gamepad : m_gamepads)
-            gamepad.StopVibration();
+        for(Gamepad& gamepad : m_gamepads) gamepad.StopVibration();
     }
 
     //--------------------------------------------------------------
     //! 全てのゲームパッドのスティックのデッドゾーンを設定します。
     //--------------------------------------------------------------
     void InputSystem::SetGamepadStickDeadZone(float deadZone) {
-        for(Gamepad& gamepad : m_gamepads)
-            gamepad.SetStickDeadZone(deadZone);
+        for(Gamepad& gamepad : m_gamepads) gamepad.SetStickDeadZone(deadZone);
     }
 
     //--------------------------------------------------------------
     //! 全てのゲームパッドのトリガーのしきい値を設定します。
     //--------------------------------------------------------------
     void InputSystem::SetGamepadTriggerThreshold(float threshold) {
-        for(Gamepad& gamepad : m_gamepads)
-            gamepad.SetTriggerThreshold(threshold);
+        for(Gamepad& gamepad : m_gamepads) gamepad.SetTriggerThreshold(threshold);
     }
 
     //--------------------------------------------------------------

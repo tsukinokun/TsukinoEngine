@@ -43,7 +43,8 @@ namespace Tsukino::Renderer {
     //! 資源を持たない状態で作ります。
     //------------------------------------------------------------------------
     FogPass::FogPass()
-        : m_gpu(std::make_unique<Gpu>()) {}
+        : m_gpu(std::make_unique<Gpu>()) {
+    }
 
     //------------------------------------------------------------------------
     //! 資源を破棄します。
@@ -53,8 +54,11 @@ namespace Tsukino::Renderer {
     //------------------------------------------------------------------------
     //! ユニフォームとプログラムを作成します。
     //------------------------------------------------------------------------
-    bool FogPass::Initialize(GraphicsContext& graphicsContext, RenderResources& resources, FrameConstants& frameConstants,
-                             const FullscreenPass& fullscreenPass, const Tsukino::Asset::ShaderAsset* ps) {
+    bool FogPass::Initialize(GraphicsContext&                   graphicsContext,
+                             RenderResources&                   resources,
+                             FrameConstants&                    frameConstants,
+                             const FullscreenPass&              fullscreenPass,
+                             const Tsukino::Asset::ShaderAsset* ps) {
         m_graphicsContext = &graphicsContext;
         m_resources       = &resources;
         m_frameConstants  = &frameConstants;
@@ -89,8 +93,7 @@ namespace Tsukino::Renderer {
             return;
 
         // 深度は画面と同じ大きさなので点で読む
-        constexpr u32 kPointClamp = BGFX_SAMPLER_U_CLAMP | BGFX_SAMPLER_V_CLAMP | BGFX_SAMPLER_MIN_POINT | BGFX_SAMPLER_MAG_POINT
-                                    | BGFX_SAMPLER_MIP_POINT;
+        constexpr u32 kPointClamp = BGFX_SAMPLER_U_CLAMP | BGFX_SAMPLER_V_CLAMP | BGFX_SAMPLER_MIN_POINT | BGFX_SAMPLER_MAG_POINT | BGFX_SAMPLER_MIP_POINT;
         bgfx::setTexture(BgfxStage::GBufferDepth, m_gpu->depthSampler, m_graphicsContext->GetDepthTexture(), kPointClamp);
 
         // シーン定数（invViewProj・カメラ位置・太陽の向き）と、フォグの定数
@@ -98,8 +101,7 @@ namespace Tsukino::Renderer {
         m_gpu->fog.Set(m_data);
 
         // 深度テストなし・プリマルチプライの over 合成（ONE / INV_SRC_ALPHA）
-        constexpr u64 kState = BGFX_STATE_WRITE_RGB | BGFX_STATE_WRITE_A
-                               | BGFX_STATE_BLEND_FUNC(BGFX_STATE_BLEND_ONE, BGFX_STATE_BLEND_INV_SRC_ALPHA);
+        constexpr u64 kState = BGFX_STATE_WRITE_RGB | BGFX_STATE_WRITE_A | BGFX_STATE_BLEND_FUNC(BGFX_STATE_BLEND_ONE, BGFX_STATE_BLEND_INV_SRC_ALPHA);
         m_fullscreenPass->Submit(BgfxView::Fog, m_gpu->program, kState);
     }
 

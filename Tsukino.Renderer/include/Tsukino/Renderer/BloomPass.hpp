@@ -12,7 +12,6 @@
 
 #include <Tsukino/Renderer/ConstantBuffer.hpp>
 
-
 #include <array>
 
 namespace Tsukino::Asset {
@@ -87,21 +86,20 @@ namespace Tsukino::Renderer {
         //! @param  [in] upsamplePS      拡大（と最後の合成）用ピクセルシェーダー
         //! @return true: 作成成功, false: 作成失敗（パスは何もしなくなる）
         [[nodiscard]]
-        bool Initialize(GraphicsContext& graphicsContext, RenderResources& resources, const FullscreenPass& fullscreenPass,
-                        const Tsukino::Asset::ShaderAsset* prefilterPS, const Tsukino::Asset::ShaderAsset* downsamplePS,
+        bool Initialize(GraphicsContext&                   graphicsContext,
+                        RenderResources&                   resources,
+                        const FullscreenPass&              fullscreenPass,
+                        const Tsukino::Asset::ShaderAsset* prefilterPS,
+                        const Tsukino::Asset::ShaderAsset* downsamplePS,
                         const Tsukino::Asset::ShaderAsset* upsamplePS);
 
         //! ブルームのパラメータを設定します。
         //! @param  [in] params ブルームの効き方
-        void SetParameters(const BloomParameters& params) noexcept {
-            m_params = params;
-        }
+        void SetParameters(const BloomParameters& params) noexcept { m_params = params; }
 
         //! このフレームでブルームを掛けるかを設定します。
         //! @param  [in] enabled true: 掛ける, false: 掛けない
-        void SetEnabled(bool enabled) noexcept {
-            m_enabled = enabled;
-        }
+        void SetEnabled(bool enabled) noexcept { m_enabled = enabled; }
 
         //! このフレームでブルームが有効かを取得します。
         //! @return true: 有効, false: 無効
@@ -113,9 +111,7 @@ namespace Tsukino::Renderer {
         //! 縮小段の数の上限を設定します（描画品質）。
         //! @param  [in] mipLimit 上限（0 でブルームを掛けない。kMaxMipCount を超える値は丸める）
         //! @note   段数を変えると次の Execute で縮小段を作り直す。段を減らすと光の裾が短くなる
-        void SetMipLimit(u32 mipLimit) noexcept {
-            m_mipLimit = (mipLimit < kMaxMipCount) ? mipLimit : kMaxMipCount;
-        }
+        void SetMipLimit(u32 mipLimit) noexcept { m_mipLimit = (mipLimit < kMaxMipCount) ? mipLimit : kMaxMipCount; }
 
         //! ブルームを掛けて、トーンマップの入力になるバッファへ加算します。
         //! @param  [in] sourceIsPostProcess true: モーションブラーが中間バッファへ書いた後,
@@ -125,9 +121,7 @@ namespace Tsukino::Renderer {
         void Execute(bool sourceIsPostProcess);
 
         //! フレームの終わりの処理をします（有効フラグを false へ戻します）。
-        void EndFrame() noexcept {
-            m_enabled = false;
-        }
+        void EndFrame() noexcept { m_enabled = false; }
 
     private:
         //! 縮小段のテクスチャを画面サイズに合わせて作り直します。
@@ -141,13 +135,13 @@ namespace Tsukino::Renderer {
 
         std::unique_ptr<Gpu> m_gpu;    // 描画 API の資源（中身は Renderer の内部で定義）
 
-        u32                                 m_mipCount     = 0;    // 実際に使う縮小段の数
-        u32                                 m_sourceWidth  = 0;    // 縮小段を作ったときの画面幅
-        u32                                 m_sourceHeight = 0;    // 縮小段を作ったときの画面高さ
-        u32                                 m_mipLimit      = kMaxMipCount;    // 縮小段の数の上限（描画品質）
-        u32                                 m_builtMipLimit = 0;               // 縮小段を作ったときの上限
+        u32 m_mipCount      = 0;               // 実際に使う縮小段の数
+        u32 m_sourceWidth   = 0;               // 縮小段を作ったときの画面幅
+        u32 m_sourceHeight  = 0;               // 縮小段を作ったときの画面高さ
+        u32 m_mipLimit      = kMaxMipCount;    // 縮小段の数の上限（描画品質）
+        u32 m_builtMipLimit = 0;               // 縮小段を作ったときの上限
 
-        BloomParameters m_params{};          // ブルームの効き方
+        BloomParameters m_params{};           // ブルームの効き方
         bool            m_enabled = false;    // このフレームで有効か
     };
 }    // namespace Tsukino::Renderer

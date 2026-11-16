@@ -24,9 +24,9 @@ namespace Tsukino::Asset {
         //--------------------------------------------------------------
         [[nodiscard]] AssetType GetType() const override { return AssetType::DynamicFont; }
 
-        std::string           faceName;      // フォントの表示名(デバッグ用)
-        float                 pixelSize = 0;  // グリフをラスタライズする基準ピクセルサイズ
-        std::vector<uint8_t>  fontFileData;   // ttf/otfの生データ
+        std::string          faceName;         // フォントの表示名(デバッグ用)
+        float                pixelSize = 0;    // グリフをラスタライズする基準ピクセルサイズ
+        std::vector<uint8_t> fontFileData;     // ttf/otfの生データ
     };
 
 }    // namespace Tsukino::Asset

@@ -20,7 +20,7 @@ namespace Tsukino::BuiltIn::ECS {
     //!         色や幅（size.x）は作る側が決める
     //-------------------------------------------------------------
     struct ScrollBarComponent {
-        Tsukino::ECS::Entity thumb          = entt::null;                      // つまみのエンティティ
+        Tsukino::ECS::Entity thumb          = entt::null;                    // つまみのエンティティ
         hlslpp::float2       size           = hlslpp::float2(0.0f, 0.0f);    // 溝の大きさ（画面ピクセル。中心は溝のエンティティの位置）
         float                minThumbLength = 24.0f;                         // つまみの最短の長さ（ピクセル）
     };

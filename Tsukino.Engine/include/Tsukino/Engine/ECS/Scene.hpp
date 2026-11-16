@@ -66,7 +66,9 @@ namespace Tsukino::ECS {
         //! @return Registryの参照
         //-------------------------------------------------------------
         [[nodiscard]]
-        Registry& GetRegistry() { return m_registry; }
+        Registry& GetRegistry() {
+            return m_registry;
+        }
 
         //-------------------------------------------------------------
         // システムの追加（ヘルパー関数）
@@ -81,7 +83,9 @@ namespace Tsukino::ECS {
         //! @note   System のコンストラクタに渡して Subscribe させる
         //-------------------------------------------------------------
         [[nodiscard]]
-        EventBus& GetEventBus() { return m_eventBus; }
+        EventBus& GetEventBus() {
+            return m_eventBus;
+        }
 
     private:
         //-------------------------------------------------------------

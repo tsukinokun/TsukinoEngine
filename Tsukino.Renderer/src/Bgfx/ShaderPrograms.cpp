@@ -49,7 +49,7 @@ namespace Tsukino::Renderer {
         // 1本読んで bgfx のシェーダーにする
         auto loadShader = [&folder](const char* name) -> bgfx::ShaderHandle {
             // ゲームのシェーダーと同じ決まりで、ソース（.sc）の隣の変換結果を読む
-            const Tsukino::Core::Path path = Tsukino::Asset::ShaderLoader::ToBinaryPath(folder / (std::string(name) + ".sc"));
+            const Tsukino::Core::Path path   = Tsukino::Asset::ShaderLoader::ToBinaryPath(folder / (std::string(name) + ".sc"));
             const std::vector<u8>     binary = Tsukino::IO::FileSystem::ReadBinary(path);
             if(binary.empty()) {
                 Tsukino::Core::Log::Error("ShaderPrograms: Shader not found: " + path.string());

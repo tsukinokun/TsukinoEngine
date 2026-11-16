@@ -19,8 +19,7 @@ namespace Tsukino::Asset {
         //! @param  [in] rules インポートの規則（nullptr なら規則なし）
         //--------------------------------------------------------------
         explicit TextureLoader(Tsukino::Core::Ref<const TextureImportRules> rules = nullptr)
-            : m_rules(std::move(rules)) {
-        }
+            : m_rules(std::move(rules)) {}
 
         //--------------------------------------------------------------
         // 対応する拡張子か判定する

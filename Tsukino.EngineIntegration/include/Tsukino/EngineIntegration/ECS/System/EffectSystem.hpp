@@ -76,7 +76,12 @@ namespace Tsukino::BuiltIn::ECS {
         //!                         エフェクトを再生するなら100前後）
         //! @return エフェクトハンドル（負値の場合は失敗）
         //-------------------------------------------------------------
-        int PlayEffect(Tsukino::ECS::Registry& registry, Tsukino::Asset::AssetHandle asset, const Tsukino::Core::Path& effectPath, const float* position, bool looping = false, float scale = 1.0f);
+        int PlayEffect(Tsukino::ECS::Registry&     registry,
+                       Tsukino::Asset::AssetHandle asset,
+                       const Tsukino::Core::Path&  effectPath,
+                       const float*                position,
+                       bool                        looping = false,
+                       float                       scale   = 1.0f);
 
         //-------------------------------------------------------------
         //! @brief  指定したハンドルのエフェクトを停止する
@@ -125,7 +130,7 @@ namespace Tsukino::BuiltIn::ECS {
 
         //-------------------------------------------------------------
         //! @brief  Effekseer初期化済みか
-       //! @return true:初期化済み / false:未初期化
+        //! @return true:初期化済み / false:未初期化
         //-------------------------------------------------------------
         [[nodiscard]]
         bool IsInitialized() const {
@@ -169,14 +174,14 @@ namespace Tsukino::BuiltIn::ECS {
         // 読み込み済みエフェクト管理
         std::unordered_map<Tsukino::Asset::AssetHandle, Effekseer::EffectRef> m_loadedEffects;
 
-        Effekseer::ManagerRef              m_manager;
-        EffekseerRenderer::RendererRef     m_renderer;    // Renderer が持つ Effekseer のレンダラー（参照を1つ持つ）
+        Effekseer::ManagerRef          m_manager;
+        EffekseerRenderer::RendererRef m_renderer;    // Renderer が持つ Effekseer のレンダラー（参照を1つ持つ）
 
         Tsukino::ECS::Registry*        m_registry = nullptr;
         Tsukino::ECS::ScopedConnection m_entityDestroyedConn;
 
-        Effekseer::TextureLoaderRef m_textureLoader;
-        Effekseer::FileInterfaceRef                       m_effectFileInterfaceRef;            // Effekseer へ渡すファイルの入口（参照を1つ持つ）
+        Effekseer::TextureLoaderRef                      m_textureLoader;
+        Effekseer::FileInterfaceRef                      m_effectFileInterfaceRef;           // Effekseer へ渡すファイルの入口（参照を1つ持つ）
         Tsukino::EngineIntegration::EffectFileInterface* m_effectFileInterface = nullptr;    // 上と同じもの（探す場所を設定するため。借りている）
 
         bool m_initialized = false;

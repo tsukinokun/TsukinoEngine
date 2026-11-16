@@ -16,7 +16,7 @@ namespace Tsukino::Renderer {
     //! @tparam Tag 資源の種類を区別するための型（テクスチャとバッファを取り違えないため）
     //! @note  既定で作ったものは無効（IsValid() が false）
     //------------------------------------------------------------------------
-    template<typename Tag>
+    template <typename Tag>
     struct GpuHandle {
         static constexpr u16 kInvalidIndex = 0xFFFF;    //!< 無効を表す番号
 

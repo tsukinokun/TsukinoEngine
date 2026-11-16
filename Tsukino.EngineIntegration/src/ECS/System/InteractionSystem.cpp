@@ -41,13 +41,18 @@ namespace Tsukino::BuiltIn::ECS {
         //!         worldMatrix で写した四角と比べるので、親に付いた子スプライトや回転したスプライトでも正しく判定できる
         //! @return テクスチャアセットが取得できた場合は true
         //-------------------------------------------------------------
-        bool ComputeSpriteHit(Tsukino::ECS::Registry& registry, Tsukino::EngineIntegration::EngineContext* ctx, Tsukino::ECS::Entity entity,
-                              const TransformComponent& transform, const SpriteComponent& sprite, const hlslpp::float2& point, bool* outInside) {
+        bool ComputeSpriteHit(Tsukino::ECS::Registry&                    registry,
+                              Tsukino::EngineIntegration::EngineContext* ctx,
+                              Tsukino::ECS::Entity                       entity,
+                              const TransformComponent&                  transform,
+                              const SpriteComponent&                     sprite,
+                              const hlslpp::float2&                      point,
+                              bool*                                      outInside) {
             auto textureAsset = std::static_pointer_cast<Tsukino::Asset::TextureAsset>(ctx->assetManager->Get(sprite.textureHandle));
             if(!textureAsset)
                 return false;
 
-            const hlslpp::float2            textureSize(static_cast<float>(textureAsset->width), static_cast<float>(textureAsset->height));
+            const hlslpp::float2           textureSize(static_cast<float>(textureAsset->width), static_cast<float>(textureAsset->height));
             const UIRectUtility::LocalRect rect = UIRectUtility::Resolve(registry, entity, textureSize);
 
             *outInside = UIRectUtility::Contains(transform.worldMatrix, rect, point);
@@ -111,8 +116,11 @@ namespace Tsukino::BuiltIn::ECS {
         //! @param  input         [in]     入力（左ボタンの押した・押している・離したを見る）
         //! @param  pressedTarget [in,out] 左ボタンを押したときに重なっていたターゲット（離すまで覚えておく）
         //-------------------------------------------------------------
-        void UpdatePointerTargets(Tsukino::ECS::Registry& registry, Tsukino::EngineIntegration::EngineContext* ctx, const hlslpp::float2& mousePos,
-                                  const Tsukino::Input::InputSystem& input, Tsukino::ECS::Entity& pressedTarget) {
+        void UpdatePointerTargets(Tsukino::ECS::Registry&                    registry,
+                                  Tsukino::EngineIntegration::EngineContext* ctx,
+                                  const hlslpp::float2&                      mousePos,
+                                  const Tsukino::Input::InputSystem&         input,
+                                  Tsukino::ECS::Entity&                      pressedTarget) {
             const bool buttonPressed  = input.IsKeyPressed(Input::KeyCode::LButton);
             const bool buttonDown     = input.IsKeyDown(Input::KeyCode::LButton);
             const bool buttonReleased = input.IsKeyReleased(Input::KeyCode::LButton);
@@ -129,9 +137,9 @@ namespace Tsukino::BuiltIn::ECS {
             targetView.each([](PointerTargetComponent& target) {
                 target.hoverExited  = target.hovered;
                 target.hoverEntered = false;
-                target.hovered = false;
-                target.clicked = false;
-                target.pressed = false;
+                target.hovered      = false;
+                target.clicked      = false;
+                target.pressed      = false;
             });
 
             const Tsukino::ECS::Entity hitEntity    = PickTopmostSprite(registry, ctx, mousePos);
@@ -174,7 +182,7 @@ namespace Tsukino::BuiltIn::ECS {
         if(!ctx || !ctx->renderer)
             return;
 
-        auto& input = ctx->inputSystem;
+        auto& input  = ctx->inputSystem;
         i32   mouseX = 0;
         i32   mouseY = 0;
         input->GetMousePosition(&mouseX, &mouseY);

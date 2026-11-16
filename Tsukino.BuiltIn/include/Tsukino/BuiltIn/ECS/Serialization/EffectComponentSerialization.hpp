@@ -16,9 +16,8 @@ namespace Tsukino::BuiltIn::ECS {
     template <class Archive>
     void save(Archive& archive, const EffectComponent& effect) {
         // effectPathはeffectAsset（AssetRef）が持つパスと同じ値になるためJSONへは書かない
-        archive(cereal::make_nvp("effectAsset", effect.effectAsset),
-                cereal::make_nvp("playSpeed",   effect.playSpeed),
-                cereal::make_nvp("looping",     effect.looping));
+        archive(
+            cereal::make_nvp("effectAsset", effect.effectAsset), cereal::make_nvp("playSpeed", effect.playSpeed), cereal::make_nvp("looping", effect.looping));
     }
 
     //--------------------------------------------------------------

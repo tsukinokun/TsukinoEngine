@@ -15,7 +15,7 @@
 #include <vector>
 
 #if defined(__APPLE__)
-#    include <TargetConditionals.h>
+#include <TargetConditionals.h>
 #endif
 
 // 名前空間 : Tsukino::Asset
@@ -47,7 +47,6 @@ namespace Tsukino::Asset {
     //------------------------------------------------------------------------
     class TextureImportRules {
     public:
-
         //! 規則を追加します。
         //! @param  [in] pathPrefix 対象のフォルダ（パスの中にこの文字列を含むテクスチャに効く）
         //! @param  [in] rule       規則
@@ -61,9 +60,7 @@ namespace Tsukino::Asset {
 
         //! 読み込み時に捨てる上位ミップの段数を設定します。
         //! @param  [in] mipSkip 段数（allowMipSkip の規則に当てはまるテクスチャにだけ効く）
-        void SetMipSkip(u32 mipSkip) noexcept {
-            m_mipSkip = mipSkip;
-        }
+        void SetMipSkip(u32 mipSkip) noexcept { m_mipSkip = mipSkip; }
 
         //! 読み込み時に捨てる上位ミップの段数を取得します。
         //! @return 段数
@@ -76,9 +73,7 @@ namespace Tsukino::Asset {
         //! @param  [in] target 合わせる端末
         //! @note   開発機でスマホ向けのキャッシュを作るときに Mobile にする。
         //!         作られるキャッシュの形式が規則と違えば、次に読んだときに作り直される
-        void SetTarget(TextureTarget target) noexcept {
-            m_target = target;
-        }
+        void SetTarget(TextureTarget target) noexcept { m_target = target; }
 
         //! 圧縮をどの端末の GPU に合わせるかを取得します。
         //! @return 合わせる端末
@@ -97,7 +92,7 @@ namespace Tsukino::Asset {
         std::vector<std::pair<std::string, TextureImportRule>> m_rules;          // 対象のフォルダと規則の組
         u32                                                    m_mipSkip = 0;    // 読み込み時に捨てる上位ミップの段数
 #if defined(__ANDROID__) || (defined(__APPLE__) && TARGET_OS_IPHONE)
-        TextureTarget m_target = TextureTarget::Mobile;     // 圧縮を合わせる端末
+        TextureTarget m_target = TextureTarget::Mobile;    // 圧縮を合わせる端末
 #else
         TextureTarget m_target = TextureTarget::Desktop;    // 圧縮を合わせる端末
 #endif

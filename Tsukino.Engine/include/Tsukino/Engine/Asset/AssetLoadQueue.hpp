@@ -32,7 +32,6 @@ namespace Tsukino::Asset {
     //! アセットを裏スレッドで順に読み込むキューです。
     class AssetLoadQueue {
     public:
-
         //! 読み込み先のアセット管理を受け取ります。
         //! @param  [in] assetManager 読み込み先のアセット管理（キューより長く生きていること）
         explicit AssetLoadQueue(AssetManager& assetManager);
@@ -66,20 +65,19 @@ namespace Tsukino::Asset {
         [[nodiscard]] std::vector<AssetHandle> TakeLoaded();
 
     private:
-
         //! 裏スレッドの本体です。積まれたパスを先頭から手分けして読み込みます。
         void Run();
 
-        AssetManager&                   m_assetManager;           // 読み込み先
-        std::vector<Tsukino::Core::Path> m_paths;                 // 読み込むパス（Start 後は読み取りのみ）
-        std::vector<std::thread>        m_threads;                // 読み込みのスレッド
-        std::atomic<size_t>             m_nextIndex = 0;          // 次に読むパスの番号
-        std::atomic<unsigned int>       m_running   = 0;          // まだ動いているスレッドの数
-        std::atomic<size_t>             m_completed = 0;          // 読み終えた件数（失敗を含む）
-        std::atomic<bool>               m_cancel    = false;      // 打ち切りの指示
-        std::atomic<bool>               m_finished  = false;      // 終わったか
-        std::mutex                      m_loadedMutex;            // m_loaded を守る
-        std::vector<AssetHandle>        m_loaded;                 // 本体スレッドへ渡すまでのハンドル
+        AssetManager&                    m_assetManager;         // 読み込み先
+        std::vector<Tsukino::Core::Path> m_paths;                // 読み込むパス（Start 後は読み取りのみ）
+        std::vector<std::thread>         m_threads;              // 読み込みのスレッド
+        std::atomic<size_t>              m_nextIndex = 0;        // 次に読むパスの番号
+        std::atomic<unsigned int>        m_running   = 0;        // まだ動いているスレッドの数
+        std::atomic<size_t>              m_completed = 0;        // 読み終えた件数（失敗を含む）
+        std::atomic<bool>                m_cancel    = false;    // 打ち切りの指示
+        std::atomic<bool>                m_finished  = false;    // 終わったか
+        std::mutex                       m_loadedMutex;          // m_loaded を守る
+        std::vector<AssetHandle>         m_loaded;               // 本体スレッドへ渡すまでのハンドル
     };
 
 }    // namespace Tsukino::Asset

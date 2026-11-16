@@ -50,7 +50,9 @@ namespace Tsukino::IO {
         //! @return 今の値
         //-------------------------------------------------------------
         [[nodiscard]]
-        const T& Get() const noexcept { return m_value; }
+        const T& Get() const noexcept {
+            return m_value;
+        }
 
     private:
         //-------------------------------------------------------------
@@ -65,7 +67,7 @@ namespace Tsukino::IO {
             return true;
         }
 
-        Loader m_loader;      //!< 読み込む関数
+        Loader m_loader;     //!< 読み込む関数
         T      m_value{};    //!< 今の値
     };
 }    // namespace Tsukino::IO

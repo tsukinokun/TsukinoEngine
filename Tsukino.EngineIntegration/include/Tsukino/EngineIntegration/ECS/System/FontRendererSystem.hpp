@@ -66,15 +66,15 @@ namespace Tsukino::BuiltIn::ECS {
         struct DrawEntry {
             Tsukino::Renderer::DynamicFontAtlas* atlas = nullptr;    // 文字を描く動的フォントアトラス（m_dynamicFontCache が持つ）
 
-            std::string    text;                            // 描画する文字列（UTF-8）
-            hlslpp::float2 position     = {0, 0};           // スクリーン座標（左上原点、ピクセル）
-            hlslpp::float2 origin       = {0, 0};           // 揃えを解決済みの原点（スケール適用前）
-            hlslpp::float4 color        = {1, 1, 1, 1};     // 文字色
-            hlslpp::float4 outlineColor = {0, 0, 0, 1};     // 縁取りの色
-            float          outlineWidth = 0.0f;             // 縁取りの太さ（ピクセル）
-            float          scale        = 1.0f;             // 拡大率
-            float          rotation     = 0.0f;             // 回転（ラジアン。画面上で時計回りが正。Transform の Z 回転を親まで合成したもの）
-            int            sortOrder    = 0;                // 描画順
+            std::string    text;                           // 描画する文字列（UTF-8）
+            hlslpp::float2 position     = {0, 0};          // スクリーン座標（左上原点、ピクセル）
+            hlslpp::float2 origin       = {0, 0};          // 揃えを解決済みの原点（スケール適用前）
+            hlslpp::float4 color        = {1, 1, 1, 1};    // 文字色
+            hlslpp::float4 outlineColor = {0, 0, 0, 1};    // 縁取りの色
+            float          outlineWidth = 0.0f;            // 縁取りの太さ（ピクセル）
+            float          scale        = 1.0f;            // 拡大率
+            float          rotation     = 0.0f;            // 回転（ラジアン。画面上で時計回りが正。Transform の Z 回転を親まで合成したもの）
+            int            sortOrder    = 0;               // 描画順
 
             bool                        hasClip = false;    // 祖先の UIClipComponent で切り取るか
             Tsukino::Renderer::ClipRect clipRect;           // 切り取る矩形（hasClip のときだけ有効）

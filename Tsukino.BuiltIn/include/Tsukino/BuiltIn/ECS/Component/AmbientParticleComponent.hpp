@@ -53,12 +53,12 @@ namespace Tsukino::BuiltIn::ECS {
         //!       「大きい＝暗い＝遅い」⇔「小さい＝明るい＝速い」が相関するように
         //!       補間されるため、1回の描画で層のある絵になる。
         hlslpp::float3 color         = hlslpp::float3(1.0f, 1.0f, 1.0f);    // 粒子の色（linear）。暖色で火の粉、寒色で塵や雪になる
-        float          intensity     = 1.0f;                                  // 全体の強度。HDRバッファへ加算するのでトーンマップで自然に丸まる
-        float          minSize       = 0.8f;                                  // 一番小さい粒の半径（明るく速い側）
-        float          maxSize       = 3.5f;                                  // 一番大きい粒の半径（暗く遅い側）
-        float          minBrightness = 0.15f;                                 // 一番暗い粒の輝度倍率
-        float          maxBrightness = 1.6f;                                  // 一番明るい粒の輝度倍率。1を超えるとHDRでにじむ
-        float          twinkle       = 0.6f;                                  // きらめきの強さ。0で明滅なし、1で輝度が0まで落ちる
+        float          intensity     = 1.0f;                                // 全体の強度。HDRバッファへ加算するのでトーンマップで自然に丸まる
+        float          minSize       = 0.8f;                                // 一番小さい粒の半径（明るく速い側）
+        float          maxSize       = 3.5f;                                // 一番大きい粒の半径（暗く遅い側）
+        float          minBrightness = 0.15f;                               // 一番暗い粒の輝度倍率
+        float          maxBrightness = 1.6f;                                // 一番明るい粒の輝度倍率。1を超えるとHDRでにじむ
+        float          twinkle       = 0.6f;                                // きらめきの強さ。0で明滅なし、1で輝度が0まで落ちる
 
         //----------------------------------------------------------
         // 動き

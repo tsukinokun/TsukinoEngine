@@ -25,7 +25,7 @@ namespace Tsukino::Renderer {
         //! G-Buffer と深度のサンプラー（s_gbufferAlbedo・Normal・Material・Emissive・Depth・WorldPos の順）
         std::array<bgfx::UniformHandle, GraphicsContext::kGBufferCount> gbufferSamplers{};
 
-        Gpu() = default;
+        Gpu()                      = default;
         Gpu(const Gpu&)            = delete;
         Gpu& operator=(const Gpu&) = delete;
 

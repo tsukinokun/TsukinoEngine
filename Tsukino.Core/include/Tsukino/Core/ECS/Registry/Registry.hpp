@@ -268,8 +268,8 @@ namespace Tsukino::ECS {
         }
 
     private:
-        entt::registry       registry;         //!< 内部のレジストリ
-        std::vector<Entity>  m_destroyQueue;   //!< 破棄予約されたエンティティ（FlushDestroyQueue でまとめて処理）
+        entt::registry      registry;          //!< 内部のレジストリ
+        std::vector<Entity> m_destroyQueue;    //!< 破棄予約されたエンティティ（FlushDestroyQueue でまとめて処理）
     };
 
 }    // namespace Tsukino::ECS

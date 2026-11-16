@@ -19,13 +19,10 @@ namespace Tsukino::Core {
     //!         持ち主が先に消えるときは Clear で予約を取り消すこと
     class Sequencer {
     public:
-
         //! 処理を予約します。
         //! @param  [in] delay    今から何秒後に呼ぶか
         //! @param  [in] callback 呼ぶ処理
-        void Schedule(float delay, std::function<void()> callback) {
-            m_entries.push_back({m_now + delay, m_order++, std::move(callback)});
-        }
+        void Schedule(float delay, std::function<void()> callback) { m_entries.push_back({m_now + delay, m_order++, std::move(callback)}); }
 
         //! 時間を進め、時刻が来た処理を時刻順（同じ時刻なら予約順）に呼びます。
         //! 呼ばれた処理の中から新たに予約してもかまいません。
@@ -34,9 +31,8 @@ namespace Tsukino::Core {
             m_now += deltaTime;
             for(;;) {
                 // 呼んだ処理の中で予約が増えることがあるため、1件ずつ取り出して呼ぶ
-                auto due = std::min_element(m_entries.begin(), m_entries.end(), [](const Entry& a, const Entry& b) {
-                    return a.time != b.time ? a.time < b.time : a.order < b.order;
-                });
+                auto due = std::min_element(
+                    m_entries.begin(), m_entries.end(), [](const Entry& a, const Entry& b) { return a.time != b.time ? a.time < b.time : a.order < b.order; });
                 if(due == m_entries.end() || due->time > m_now) {
                     return;
                 }
@@ -52,7 +48,9 @@ namespace Tsukino::Core {
         //! 予約が残っているかを返します。
         //! @return 残っていれば true。
         [[nodiscard]]
-        bool IsBusy() const noexcept { return !m_entries.empty(); }
+        bool IsBusy() const noexcept {
+            return !m_entries.empty();
+        }
 
     private:
         //! 予約1件です。

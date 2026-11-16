@@ -88,13 +88,12 @@ namespace Tsukino::BuiltIn::ECS {
         Tsukino::Renderer::CBufferAmbientParticle params{};
         params.volumeParams = hlslpp::float4(volume.x, volume.y, volume.z, m_time);
         params.fadeParams   = hlslpp::float4(edgeFadeStart, std::max(activeParticle->nearFadeDistance, 0.0f), seed, 0.0f);
-        params.sizeParams   = hlslpp::float4(activeParticle->minSize, activeParticle->maxSize, activeParticle->minBrightness,
-                                             activeParticle->maxBrightness);
-        params.driftParams  = hlslpp::float4(activeParticle->driftVelocity.x, activeParticle->driftVelocity.y, activeParticle->driftVelocity.z,
-                                             activeParticle->swayFrequency);
-        params.swayParams   = hlslpp::float4(activeParticle->swayAmplitude, activeParticle->minSpeedScale, activeParticle->maxSpeedScale,
-                                             std::clamp(activeParticle->twinkle, 0.0f, 1.0f));
-        params.colorParams  = hlslpp::float4(activeParticle->color.x, activeParticle->color.y, activeParticle->color.z, activeParticle->intensity);
+        params.sizeParams   = hlslpp::float4(activeParticle->minSize, activeParticle->maxSize, activeParticle->minBrightness, activeParticle->maxBrightness);
+        params.driftParams =
+            hlslpp::float4(activeParticle->driftVelocity.x, activeParticle->driftVelocity.y, activeParticle->driftVelocity.z, activeParticle->swayFrequency);
+        params.swayParams = hlslpp::float4(
+            activeParticle->swayAmplitude, activeParticle->minSpeedScale, activeParticle->maxSpeedScale, std::clamp(activeParticle->twinkle, 0.0f, 1.0f));
+        params.colorParams = hlslpp::float4(activeParticle->color.x, activeParticle->color.y, activeParticle->color.z, activeParticle->intensity);
 
         ctx->renderer->GetAmbientParticles().SetParameters(params, count);
         ctx->renderer->GetAmbientParticles().SetEnabled(true);

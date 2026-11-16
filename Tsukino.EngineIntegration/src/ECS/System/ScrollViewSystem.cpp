@@ -64,8 +64,8 @@ namespace Tsukino::BuiltIn::ECS {
         //-------------------------------------------------------------
         BarGeometry ComputeBarGeometry(Tsukino::ECS::Registry& registry, const ScrollViewComponent& scroll, bool active, float viewSize, float maxOffset) {
             BarGeometry geometry;
-            if(scroll.scrollBar == entt::null || !registry.HasComponent<TransformComponent>(scroll.scrollBar) ||
-               !registry.HasComponent<ScrollBarComponent>(scroll.scrollBar))
+            if(scroll.scrollBar == entt::null || !registry.HasComponent<TransformComponent>(scroll.scrollBar)
+               || !registry.HasComponent<ScrollBarComponent>(scroll.scrollBar))
                 return geometry;
             if(!active || maxOffset <= 0.0f || scroll.contentHeight <= 0.0f)
                 return geometry;
@@ -73,8 +73,8 @@ namespace Tsukino::BuiltIn::ECS {
             const ScrollBarComponent& bar    = registry.GetComponent<ScrollBarComponent>(scroll.scrollBar);
             const hlslpp::float3      center = TU::GetWorldPosition(registry.GetComponent<TransformComponent>(scroll.scrollBar));
 
-            geometry.valid      = true;
-            geometry.centerX    = float(center.x);
+            geometry.valid          = true;
+            geometry.centerX        = float(center.x);
             const float trackWidth  = bar.size.x;
             const float trackLength = bar.size.y;
             geometry.trackSize      = trackLength;
@@ -98,8 +98,11 @@ namespace Tsukino::BuiltIn::ECS {
         //! @param  rect      [in] スプライトの UIRectComponent（無ければ nullptr）
         //! @param  size      [in] 表示する大きさ（0 なら隠す）
         //-------------------------------------------------------------
-        void SetSpriteSize(Tsukino::EngineIntegration::EngineContext* ctx, TransformComponent& transform, const SpriteComponent& sprite, UIRectComponent* rect,
-                           const hlslpp::float2& size) {
+        void SetSpriteSize(Tsukino::EngineIntegration::EngineContext* ctx,
+                           TransformComponent&                        transform,
+                           const SpriteComponent&                     sprite,
+                           UIRectComponent*                           rect,
+                           const hlslpp::float2&                      size) {
             hlslpp::float3 scale(0.0f, 0.0f, 1.0f);
             if(rect) {
                 if(size.x > 0.0f && size.y > 0.0f) {
@@ -122,8 +125,10 @@ namespace Tsukino::BuiltIn::ECS {
         //! @param  scroll   [in] スクロールビュー
         //! @param  geometry [in] スクロールバーの形
         //-------------------------------------------------------------
-        void PlaceScrollBar(Tsukino::ECS::Registry& registry, Tsukino::EngineIntegration::EngineContext* ctx, const ScrollViewComponent& scroll,
-                            const BarGeometry& geometry) {
+        void PlaceScrollBar(Tsukino::ECS::Registry&                    registry,
+                            Tsukino::EngineIntegration::EngineContext* ctx,
+                            const ScrollViewComponent&                 scroll,
+                            const BarGeometry&                         geometry) {
             if(scroll.scrollBar == entt::null || !registry.HasComponent<ScrollBarComponent>(scroll.scrollBar))
                 return;
 
@@ -131,7 +136,8 @@ namespace Tsukino::BuiltIn::ECS {
 
             if(auto* track = registry.try_get<TransformComponent>(scroll.scrollBar)) {
                 if(const auto* sprite = registry.try_get<SpriteComponent>(scroll.scrollBar))
-                    SetSpriteSize(ctx, *track, *sprite, registry.try_get<UIRectComponent>(scroll.scrollBar), geometry.valid ? bar.size : hlslpp::float2(0.0f, 0.0f));
+                    SetSpriteSize(
+                        ctx, *track, *sprite, registry.try_get<UIRectComponent>(scroll.scrollBar), geometry.valid ? bar.size : hlslpp::float2(0.0f, 0.0f));
             }
 
             if(bar.thumb == entt::null || !registry.HasComponent<TransformComponent>(bar.thumb))
@@ -139,7 +145,10 @@ namespace Tsukino::BuiltIn::ECS {
 
             TransformComponent& thumb = registry.GetComponent<TransformComponent>(bar.thumb);
             if(const auto* sprite = registry.try_get<SpriteComponent>(bar.thumb))
-                SetSpriteSize(ctx, thumb, *sprite, registry.try_get<UIRectComponent>(bar.thumb),
+                SetSpriteSize(ctx,
+                              thumb,
+                              *sprite,
+                              registry.try_get<UIRectComponent>(bar.thumb),
                               geometry.valid ? hlslpp::float2(bar.size.x, geometry.thumbSize) : hlslpp::float2(0.0f, 0.0f));
 
             if(geometry.valid) {
@@ -190,8 +199,8 @@ namespace Tsukino::BuiltIn::ECS {
                     BarGeometry bar = ComputeBarGeometry(registry, scroll, active, viewSize, maxOffset);
 
                     // ホイール（上へ回すと正なので、表示位置は上＝小さい方へ）
-                    const bool overBar = bar.valid && mouseX >= bar.trackLeft && mouseX <= bar.trackRight && mouseY >= bar.trackTop &&
-                                         mouseY <= bar.trackTop + bar.trackSize;
+                    const bool overBar =
+                        bar.valid && mouseX >= bar.trackLeft && mouseX <= bar.trackRight && mouseY >= bar.trackTop && mouseY <= bar.trackTop + bar.trackSize;
                     if(wheel != 0.0f && (bounds.Contains(mouse) || overBar))
                         scroll.targetOffset -= wheel * scroll.wheelStep;
 
@@ -257,9 +266,9 @@ namespace Tsukino::BuiltIn::ECS {
                 //-------------------------------------------------------------
                 // 表示位置を目標へなめらかに寄せる（フレームレートによらず同じ速さになるよう指数で寄せる）
                 //-------------------------------------------------------------
-                scroll.targetOffset = std::clamp(scroll.targetOffset, 0.0f, maxOffset);
-                const float blend   = 1.0f - std::exp(-std::max(0.0f, scroll.followSpeed) * std::max(0.0f, deltaTime));
-                scroll.offset += (scroll.targetOffset - scroll.offset) * blend;
+                scroll.targetOffset  = std::clamp(scroll.targetOffset, 0.0f, maxOffset);
+                const float blend    = 1.0f - std::exp(-std::max(0.0f, scroll.followSpeed) * std::max(0.0f, deltaTime));
+                scroll.offset       += (scroll.targetOffset - scroll.offset) * blend;
                 if(std::abs(scroll.targetOffset - scroll.offset) < kSnapDistance)
                     scroll.offset = scroll.targetOffset;
                 scroll.offset = std::clamp(scroll.offset, 0.0f, maxOffset);
@@ -268,7 +277,7 @@ namespace Tsukino::BuiltIn::ECS {
                 // 中身を置き直す。中身の原点（左上）を、枠の左上から表示位置ぶん上へずらした所にする
                 //-------------------------------------------------------------
                 if(scroll.content != entt::null && registry.HasComponent<TransformComponent>(scroll.content)) {
-                    TransformComponent&  content  = registry.GetComponent<TransformComponent>(scroll.content);
+                    TransformComponent&            content  = registry.GetComponent<TransformComponent>(scroll.content);
                     const UIRectUtility::LocalRect local    = UIClipUtility::ResolveLocalRect(clip, rect);
                     const hlslpp::float2           topLeft  = local.center - local.size * 0.5f;
                     const hlslpp::float3           position = hlslpp::float3(topLeft.x, float(topLeft.y) - scroll.offset, float(content.position.z));

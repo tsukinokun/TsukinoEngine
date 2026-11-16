@@ -28,4 +28,4 @@ namespace Tsukino::Asset {
 
         std::vector<uint8_t> binary;    // .efk ファイルのバイナリデータ
     };
-}
+}    // namespace Tsukino::Asset

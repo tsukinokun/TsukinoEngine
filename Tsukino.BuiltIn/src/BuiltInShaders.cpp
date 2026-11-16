@@ -25,9 +25,8 @@ namespace Tsukino::BuiltIn {
         //! @note   Shaders/bgfx/<name>.sc を読む。ゲームのシェーダーと同じ経路で、
         //!         ビルド時に変換した結果（Shaders/bgfx/<形式>/<name>.sc.bin）が読まれる
         //--------------------------------------------------------------
-        Tsukino::Asset::AssetHandle LoadBuiltInShader(Tsukino::Asset::AssetManager& assetManager, const Tsukino::Core::Path& root,
-                                                      const std::string& name) {
-            const Tsukino::Core::Path path = root / ("Tsukino.BuiltIn/Assets/Shaders/bgfx/" + name + ".sc");
+        Tsukino::Asset::AssetHandle LoadBuiltInShader(Tsukino::Asset::AssetManager& assetManager, const Tsukino::Core::Path& root, const std::string& name) {
+            const Tsukino::Core::Path         path   = root / ("Tsukino.BuiltIn/Assets/Shaders/bgfx/" + name + ".sc");
             const Tsukino::Asset::AssetHandle handle = assetManager.Load(path);
             if(!handle.IsValid())
                 Tsukino::Core::Log::Error("BuiltInShaders: Failed to load " + path.string());
@@ -43,26 +42,26 @@ namespace Tsukino::BuiltIn {
         // GetAssetRootPath()ではなくGetEngineAssetRootPath()から解決する
         const Tsukino::Core::Path root = Tsukino::IO::FileSystem::GetEngineAssetRootPath();
 
-        spriteVS       = LoadBuiltInShader(*assetManager, root, "Sprite.vs");
-        spritePS       = LoadBuiltInShader(*assetManager, root, "Sprite.ps");
-        spriteWorldVS  = LoadBuiltInShader(*assetManager, root, "Sprite3D.vs");
-        modelVS        = LoadBuiltInShader(*assetManager, root, "Model.vs");
-        modelPS        = LoadBuiltInShader(*assetManager, root, "Model.ps");
-        screenModelPS  = LoadBuiltInShader(*assetManager, root, "ScreenModel.ps");
-        staticModelVS  = LoadBuiltInShader(*assetManager, root, "ModelStatic.vs");
-        debugVS        = LoadBuiltInShader(*assetManager, root, "DebugLine.vs");
-        debugPS        = LoadBuiltInShader(*assetManager, root, "DebugLine.ps");
-        shadowVS       = LoadBuiltInShader(*assetManager, root, "ShadowMap.vs");
-        shadowStaticVS = LoadBuiltInShader(*assetManager, root, "ShadowMapStatic.vs");
-        shadowPS       = LoadBuiltInShader(*assetManager, root, "ShadowMap.ps");
-        skyVS          = LoadBuiltInShader(*assetManager, root, "Sky.vs");
-        skyPS          = LoadBuiltInShader(*assetManager, root, "Sky.ps");
-        tonemapVS      = LoadBuiltInShader(*assetManager, root, "Tonemap.vs");
-        tonemapPS      = LoadBuiltInShader(*assetManager, root, "Tonemap.ps");
-        gbufferPS      = LoadBuiltInShader(*assetManager, root, "GBuffer.ps");
-        lightingPS     = LoadBuiltInShader(*assetManager, root, "Lighting.ps");
-        motionBlurPS   = LoadBuiltInShader(*assetManager, root, "MotionBlur.ps");
-        fogPS          = LoadBuiltInShader(*assetManager, root, "Fog.ps");
+        spriteVS           = LoadBuiltInShader(*assetManager, root, "Sprite.vs");
+        spritePS           = LoadBuiltInShader(*assetManager, root, "Sprite.ps");
+        spriteWorldVS      = LoadBuiltInShader(*assetManager, root, "Sprite3D.vs");
+        modelVS            = LoadBuiltInShader(*assetManager, root, "Model.vs");
+        modelPS            = LoadBuiltInShader(*assetManager, root, "Model.ps");
+        screenModelPS      = LoadBuiltInShader(*assetManager, root, "ScreenModel.ps");
+        staticModelVS      = LoadBuiltInShader(*assetManager, root, "ModelStatic.vs");
+        debugVS            = LoadBuiltInShader(*assetManager, root, "DebugLine.vs");
+        debugPS            = LoadBuiltInShader(*assetManager, root, "DebugLine.ps");
+        shadowVS           = LoadBuiltInShader(*assetManager, root, "ShadowMap.vs");
+        shadowStaticVS     = LoadBuiltInShader(*assetManager, root, "ShadowMapStatic.vs");
+        shadowPS           = LoadBuiltInShader(*assetManager, root, "ShadowMap.ps");
+        skyVS              = LoadBuiltInShader(*assetManager, root, "Sky.vs");
+        skyPS              = LoadBuiltInShader(*assetManager, root, "Sky.ps");
+        tonemapVS          = LoadBuiltInShader(*assetManager, root, "Tonemap.vs");
+        tonemapPS          = LoadBuiltInShader(*assetManager, root, "Tonemap.ps");
+        gbufferPS          = LoadBuiltInShader(*assetManager, root, "GBuffer.ps");
+        lightingPS         = LoadBuiltInShader(*assetManager, root, "Lighting.ps");
+        motionBlurPS       = LoadBuiltInShader(*assetManager, root, "MotionBlur.ps");
+        fogPS              = LoadBuiltInShader(*assetManager, root, "Fog.ps");
         sphereColorGradePS = LoadBuiltInShader(*assetManager, root, "SphereColorGrade.ps");
 
         bloomPrefilterPS  = LoadBuiltInShader(*assetManager, root, "BloomPrefilter.ps");
@@ -74,6 +73,6 @@ namespace Tsukino::BuiltIn {
 
         iblIrradiancePS        = LoadBuiltInShader(*assetManager, root, "IrradianceConvolve.ps");
         iblSpecularPrefilterPS = LoadBuiltInShader(*assetManager, root, "SpecularPrefilter.ps");
-        iblBRDFLUTPS            = LoadBuiltInShader(*assetManager, root, "BRDFIntegrate.ps");
+        iblBRDFLUTPS           = LoadBuiltInShader(*assetManager, root, "BRDFIntegrate.ps");
     }
 }    // namespace Tsukino::BuiltIn

@@ -28,7 +28,9 @@ namespace Tsukino::BuiltIn::ECS {
         // TransformUtility::SetParent で親を付けた場合は localName が空のため
         // 空文字が書き出される（＝ラウンドトリップでは親が復元されない）点に注意
         //--------------------------------------------------------------
-        archive(cereal::make_nvp("position", transform.position), cereal::make_nvp("rotation", transform.rotation), cereal::make_nvp("scale", transform.scale),
+        archive(cereal::make_nvp("position", transform.position),
+                cereal::make_nvp("rotation", transform.rotation),
+                cereal::make_nvp("scale", transform.scale),
                 cereal::make_nvp("parent", transform.parent));
     }
 

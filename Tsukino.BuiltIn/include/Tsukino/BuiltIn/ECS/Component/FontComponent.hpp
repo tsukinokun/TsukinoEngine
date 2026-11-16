@@ -41,10 +41,10 @@ namespace Tsukino::BuiltIn::ECS {
     //!         maxWidth が 0 なら四角の幅に収める
     //-------------------------------------------------------------
     struct FontComponent {
-        std::string                 text;                     // 描画するテキスト（UTF-8）
-        Tsukino::Asset::AssetRef    fontHandle;               // フォントアセット（未設定なら既定フォント）。Prefab JSONではパス文字列で書ける
-        hlslpp::float4              color  = {1, 1, 1, 1};    // フォントの色（linear）。見た目の色は Core::Math::Color::SrgbToLinear で変換して渡す
-        hlslpp::float2              origin = {0, 0};          // 回転の中心点などの微調整用
+        std::string              text;                     // 描画するテキスト（UTF-8）
+        Tsukino::Asset::AssetRef fontHandle;               // フォントアセット（未設定なら既定フォント）。Prefab JSONではパス文字列で書ける
+        hlslpp::float4           color  = {1, 1, 1, 1};    // フォントの色（linear）。見た目の色は Core::Math::Color::SrgbToLinear で変換して渡す
+        hlslpp::float2           origin = {0, 0};          // 回転の中心点などの微調整用
 
         // 揃え位置。既定値(Left/Top)は従来どおり「描画位置＝文字列の左上」になる。
         // 実際の反映はFontRendererSystemが文字列を計測してoriginへ加算する形で行う

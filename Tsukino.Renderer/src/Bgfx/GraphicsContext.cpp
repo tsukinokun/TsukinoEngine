@@ -9,9 +9,9 @@
 #include <bgfx/bgfx.h>
 
 #if defined(_WIN32)
-    #include <d3d11.h>
-    #include <dxgi1_6.h>
-    #include <wrl/client.h>
+#include <d3d11.h>
+#include <dxgi1_6.h>
+#include <wrl/client.h>
 #endif
 
 #include <algorithm>
@@ -64,8 +64,8 @@ namespace Tsukino::Renderer {
             info.deviceId        = desc.DeviceId;
             info.dedicatedMemory = desc.DedicatedVideoMemory;
             info.sharedMemory    = desc.SharedSystemMemory;
-            info.isSoftware      = (desc.Flags & DXGI_ADAPTER_FLAG_SOFTWARE) != 0
-                              || (desc.VendorId == kBasicRenderVendorId && desc.DeviceId == kBasicRenderDeviceId);
+            info.isSoftware =
+                (desc.Flags & DXGI_ADAPTER_FLAG_SOFTWARE) != 0 || (desc.VendorId == kBasicRenderVendorId && desc.DeviceId == kBasicRenderDeviceId);
 
             // CPU とメモリを共有するかどうか（内蔵 GPU の判定）
             D3D11_FEATURE_DATA_D3D11_OPTIONS2 options2{};
@@ -84,8 +84,8 @@ namespace Tsukino::Renderer {
                 return false;
 
             Microsoft::WRL::ComPtr<IDXGIAdapter1> adapter;
-            for(UINT index = 0; SUCCEEDED(factory->EnumAdapterByGpuPreference(index, DXGI_GPU_PREFERENCE_HIGH_PERFORMANCE,
-                                                                              IID_PPV_ARGS(adapter.ReleaseAndGetAddressOf())));
+            for(UINT index = 0;
+                SUCCEEDED(factory->EnumAdapterByGpuPreference(index, DXGI_GPU_PREFERENCE_HIGH_PERFORMANCE, IID_PPV_ARGS(adapter.ReleaseAndGetAddressOf())));
                 ++index) {
                 DXGI_ADAPTER_DESC1 desc{};
                 if(SUCCEEDED(adapter->GetDesc1(&desc)) && !(desc.Flags & DXGI_ADAPTER_FLAG_SOFTWARE)) {
@@ -155,11 +155,11 @@ namespace Tsukino::Renderer {
         //!         BGFX_RESET_SRGB_BACKBUFFER ではなく、スワップチェーンのフラグで指定する
         bgfx::SwapChain MakeSwapChain(void* windowHandle, u32 width, u32 height) {
             bgfx::SwapChain swapChain;
-            swapChain.nwh    = windowHandle;
-            swapChain.width  = width;
-            swapChain.height = height;
-            swapChain.formatColor = bgfx::TextureFormat::RGBA8;    // R8G8B8A8（書き込みは sRGB のビュー）
-            swapChain.flags |= BGFX_SWAP_CHAIN_SRGB_BACKBUFFER;
+            swapChain.nwh          = windowHandle;
+            swapChain.width        = width;
+            swapChain.height       = height;
+            swapChain.formatColor  = bgfx::TextureFormat::RGBA8;    // R8G8B8A8（書き込みは sRGB のビュー）
+            swapChain.flags       |= BGFX_SWAP_CHAIN_SRGB_BACKBUFFER;
             return swapChain;
         }
     }    // namespace
@@ -229,7 +229,7 @@ namespace Tsukino::Renderer {
         g_bgfxAlive    = true;
         m_windowHandle = windowHandle;
         m_width        = width;
-        m_height      = height;
+        m_height       = height;
 
         Tsukino::Core::Log::Info(std::string("GraphicsContext: bgfx initialized (") + bgfx::getRendererName(bgfx::getRendererType()) + ").");
         QueryAdapterInfo();
@@ -339,10 +339,10 @@ namespace Tsukino::Renderer {
         // どれも 3D を描く大きさ（描画領域 × 内部解像度の倍率。等倍ならバックバッファとぴったり同じ）。
         // 既定のサンプラーは点・端で止める（読む側が線形にしたいときは setTexture で指定する）
         //--------------------------------------------------------------------
-        constexpr u64 kTargetFlags = BGFX_TEXTURE_RT | BGFX_SAMPLER_MIN_POINT | BGFX_SAMPLER_MAG_POINT | BGFX_SAMPLER_MIP_POINT
-                                     | BGFX_SAMPLER_U_CLAMP | BGFX_SAMPLER_V_CLAMP;
-        m_sceneWidth  = std::max(1u, static_cast<u32>(std::lround(static_cast<float>(m_width) * m_renderScale)));
-        m_sceneHeight = std::max(1u, static_cast<u32>(std::lround(static_cast<float>(m_height) * m_renderScale)));
+        constexpr u64 kTargetFlags =
+            BGFX_TEXTURE_RT | BGFX_SAMPLER_MIN_POINT | BGFX_SAMPLER_MAG_POINT | BGFX_SAMPLER_MIP_POINT | BGFX_SAMPLER_U_CLAMP | BGFX_SAMPLER_V_CLAMP;
+        m_sceneWidth     = std::max(1u, static_cast<u32>(std::lround(static_cast<float>(m_width) * m_renderScale)));
+        m_sceneHeight    = std::max(1u, static_cast<u32>(std::lround(static_cast<float>(m_height) * m_renderScale)));
         const u16 width  = static_cast<u16>(m_sceneWidth);
         const u16 height = static_cast<u16>(m_sceneHeight);
 
@@ -357,12 +357,12 @@ namespace Tsukino::Renderer {
             u64                       flags;     // 追加のフラグ
         };
         constexpr GBufferFormat kGBufferFormats[kGBufferCount] = {
-            {bgfx::TextureFormat::RGBA8,   BGFX_TEXTURE_SRGB},    // 0: albedo
-            {bgfx::TextureFormat::RGB10A2, 0},                    // 1: 法線 + ShadingModel
-            {bgfx::TextureFormat::RGBA8,   0},                    // 2: 材質
-            {bgfx::TextureFormat::RG11B10F, 0},                   // 3: 発光
-            {bgfx::TextureFormat::RGBA32F, 0},                    // 4: ワールド座標
-            {bgfx::TextureFormat::RG16F,   0},                    // 5: 速度
+            {bgfx::TextureFormat::RGBA8,    BGFX_TEXTURE_SRGB}, // 0: albedo
+            {bgfx::TextureFormat::RGB10A2,  0                }, // 1: 法線 + ShadingModel
+            {bgfx::TextureFormat::RGBA8,    0                }, // 2: 材質
+            {bgfx::TextureFormat::RG11B10F, 0                }, // 3: 発光
+            {bgfx::TextureFormat::RGBA32F,  0                }, // 4: ワールド座標
+            {bgfx::TextureFormat::RG16F,    0                }, // 5: 速度
         };
         for(u32 i = 0; i < kGBufferCount; ++i)
             m_gbufferTextures[i] = bgfx::createTexture2D(width, height, false, 1, kGBufferFormats[i].format, kTargetFlags | kGBufferFormats[i].flags);
@@ -371,14 +371,13 @@ namespace Tsukino::Renderer {
         // フレームバッファ。テクスチャはこのクラスが持ち、フレームバッファと一緒には破棄しない
         //--------------------------------------------------------------------
         bgfx::TextureHandle gbufferAttachments[kGBufferCount + 1];
-        for(u32 i = 0; i < kGBufferCount; ++i)
-            gbufferAttachments[i] = m_gbufferTextures[i];
+        for(u32 i = 0; i < kGBufferCount; ++i) gbufferAttachments[i] = m_gbufferTextures[i];
         gbufferAttachments[kGBufferCount] = m_depthTexture;
-        m_gbufferFrameBuffer = bgfx::createFrameBuffer(kGBufferCount + 1, gbufferAttachments, false);
+        m_gbufferFrameBuffer              = bgfx::createFrameBuffer(kGBufferCount + 1, gbufferAttachments, false);
 
         const bgfx::TextureHandle hdrAttachments[] = {m_hdrTexture, m_depthTexture};
-        m_hdrFrameBuffer      = bgfx::createFrameBuffer(2, hdrAttachments, false);
-        m_hdrColorFrameBuffer = bgfx::createFrameBuffer(1, &m_hdrTexture, false);
+        m_hdrFrameBuffer                           = bgfx::createFrameBuffer(2, hdrAttachments, false);
+        m_hdrColorFrameBuffer                      = bgfx::createFrameBuffer(1, &m_hdrTexture, false);
 
         // ポストプロセス用の中間バッファ（HDR と同じ形式。モーションブラーが HDR を読んでここへ書く）
         m_postProcessTexture     = bgfx::createTexture2D(width, height, false, 1, bgfx::TextureFormat::RGBA16F, kTargetFlags);
@@ -395,11 +394,11 @@ namespace Tsukino::Renderer {
         // 歪みの背景とソフトパーティクルの深度は、描く前に写す先（blit）として作る
         //--------------------------------------------------------------------
         if(m_effectTargetsEnabled) {
-            constexpr u64 kCopyFlags = BGFX_TEXTURE_BLIT_DST | BGFX_SAMPLER_U_CLAMP | BGFX_SAMPLER_V_CLAMP;
+            constexpr u64 kCopyFlags  = BGFX_TEXTURE_BLIT_DST | BGFX_SAMPLER_U_CLAMP | BGFX_SAMPLER_V_CLAMP;
             m_effectColorTexture      = bgfx::createTexture2D(width, height, false, 1, bgfx::TextureFormat::RGBA8, kTargetFlags);
             m_effectBackgroundTexture = bgfx::createTexture2D(width, height, false, 1, bgfx::TextureFormat::RGBA8, kCopyFlags);
-            m_effectDepthTexture      = bgfx::createTexture2D(width, height, false, 1, bgfx::TextureFormat::D32F,
-                                                              kCopyFlags | BGFX_SAMPLER_MIN_POINT | BGFX_SAMPLER_MAG_POINT | BGFX_SAMPLER_MIP_POINT);
+            m_effectDepthTexture      = bgfx::createTexture2D(
+                width, height, false, 1, bgfx::TextureFormat::D32F, kCopyFlags | BGFX_SAMPLER_MIN_POINT | BGFX_SAMPLER_MAG_POINT | BGFX_SAMPLER_MIP_POINT);
             const bgfx::TextureHandle effectAttachments[] = {m_effectColorTexture, m_depthTexture};
             m_effectFrameBuffer                           = bgfx::createFrameBuffer(2, effectAttachments, false);
             if(!bgfx::isValid(m_effectFrameBuffer) || !bgfx::isValid(m_effectBackgroundTexture) || !bgfx::isValid(m_effectDepthTexture)) {
@@ -451,8 +450,7 @@ namespace Tsukino::Renderer {
         destroyTexture(m_postProcessTexture);
         destroyTexture(m_hdrTexture);
         destroyTexture(m_depthTexture);
-        for(bgfx::TextureHandle& texture : m_gbufferTextures)
-            destroyTexture(texture);
+        for(bgfx::TextureHandle& texture : m_gbufferTextures) destroyTexture(texture);
         m_sceneWidth  = 0;
         m_sceneHeight = 0;
     }

@@ -33,8 +33,8 @@ namespace Tsukino::BuiltIn::ECS {
                 }
 
                 particle.velocity.y -= particle.gravity * deltaTime;
-                particle.velocity *= std::max(0.0f, 1.0f - particle.drag * deltaTime);
-                transform.position += particle.velocity * deltaTime;
+                particle.velocity   *= std::max(0.0f, 1.0f - particle.drag * deltaTime);
+                transform.position  += particle.velocity * deltaTime;
 
                 const float t     = particle.age / particle.life;
                 const float size  = particle.startSize + (particle.endSize - particle.startSize) * t;

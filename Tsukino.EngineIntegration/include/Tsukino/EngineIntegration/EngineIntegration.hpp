@@ -60,9 +60,11 @@ namespace Tsukino::EngineIntegration {
         //! @return true: 初期化成功, false: 初期化失敗
         //------------------------------------------------------------
         [[nodiscard]]
-        bool Initialize(int width, int height, const std::string& title = "TsukinoEngine",
-                         Tsukino::Core::Window::WindowStyle style = Tsukino::Core::Window::WindowStyle::Default,
-                         const Tsukino::Renderer::GraphicsDeviceOptions& deviceOptions = {});
+        bool Initialize(int                                             width,
+                        int                                             height,
+                        const std::string&                              title         = "TsukinoEngine",
+                        Tsukino::Core::Window::WindowStyle              style         = Tsukino::Core::Window::WindowStyle::Default,
+                        const Tsukino::Renderer::GraphicsDeviceOptions& deviceOptions = {});
 
         //------------------------------------------------------------
         //! @brief  エンジン全体で共有されるクラスを取得する関数

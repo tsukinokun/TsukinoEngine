@@ -10,7 +10,6 @@
 
 #include <Tsukino/Renderer/ConstantBuffer.hpp>
 
-
 namespace Tsukino::Asset {
     class ShaderAsset;    // 前方宣言
 }
@@ -63,20 +62,19 @@ namespace Tsukino::Renderer {
         //! @param  [in] ps              フォグ用ピクセルシェーダー（VS はフルスクリーン三角形用を共用）
         //! @return true: 作成成功, false: 作成失敗（パスは何もしなくなる）
         [[nodiscard]]
-        bool Initialize(GraphicsContext& graphicsContext, RenderResources& resources, FrameConstants& frameConstants,
-                        const FullscreenPass& fullscreenPass, const Tsukino::Asset::ShaderAsset* ps);
+        bool Initialize(GraphicsContext&                   graphicsContext,
+                        RenderResources&                   resources,
+                        FrameConstants&                    frameConstants,
+                        const FullscreenPass&              fullscreenPass,
+                        const Tsukino::Asset::ShaderAsset* ps);
 
         //! フォグのパラメータを設定します。
         //! @param  [in] params フォグの定数バッファデータ
-        void SetParameters(const CBufferFog& params) noexcept {
-            m_data = params;
-        }
+        void SetParameters(const CBufferFog& params) noexcept { m_data = params; }
 
         //! このフレームでフォグを掛けるかを設定します。
         //! @param  [in] enabled true: 掛ける, false: 掛けない
-        void SetEnabled(bool enabled) noexcept {
-            m_enabled = enabled;
-        }
+        void SetEnabled(bool enabled) noexcept { m_enabled = enabled; }
 
         //! フォグを HDR バッファへ合成します。
         //! @note   World パスの直後・TransparentDepth パスの直前に呼ぶこと。深度バッファに
@@ -97,9 +95,7 @@ namespace Tsukino::Renderer {
         //! フレームの終わりの処理をします（有効フラグを false へ戻します）。
         //! @note   毎フレーム FogSystem が再度 true にする前提にしておくと、FogSystem を持たない
         //!         シーンへ切り替えたときにフラグが立ちっぱなしで残らない
-        void EndFrame() noexcept {
-            m_enabled = false;
-        }
+        void EndFrame() noexcept { m_enabled = false; }
 
     private:
         GraphicsContext*      m_graphicsContext = nullptr;    // デバイスと深度バッファの取得元（借りている）
@@ -107,8 +103,8 @@ namespace Tsukino::Renderer {
         FrameConstants*       m_frameConstants  = nullptr;    // u_scene の取得元（借りている）
         const FullscreenPass* m_fullscreenPass  = nullptr;    // フルスクリーン三角形の描画（借りている）
 
-        std::unique_ptr<Gpu> m_gpu;    // 描画 API の資源（中身は Renderer の内部で定義）
-        CBufferFog                                m_data{};             // CPU側のフォグパラメータ
-        bool                                      m_enabled = false;    // このフレームで有効か
+        std::unique_ptr<Gpu> m_gpu;                // 描画 API の資源（中身は Renderer の内部で定義）
+        CBufferFog           m_data{};             // CPU側のフォグパラメータ
+        bool                 m_enabled = false;    // このフレームで有効か
     };
 }    // namespace Tsukino::Renderer

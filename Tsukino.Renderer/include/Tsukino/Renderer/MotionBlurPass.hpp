@@ -11,7 +11,6 @@
 
 #include <Tsukino/Renderer/ConstantBuffer.hpp>
 
-
 namespace Tsukino::Asset {
     class ShaderAsset;    // 前方宣言
 }
@@ -64,21 +63,20 @@ namespace Tsukino::Renderer {
         //! @param  [in] ps              モーションブラー用ピクセルシェーダー（VS はフルスクリーン三角形用を共用）
         //! @return true: 作成成功, false: 作成失敗（パスは何もしなくなる）
         [[nodiscard]]
-        bool Initialize(GraphicsContext& graphicsContext, RenderResources& resources, FrameConstants& frameConstants,
-                        const FullscreenPass& fullscreenPass, const Tsukino::Asset::ShaderAsset* ps);
+        bool Initialize(GraphicsContext&                   graphicsContext,
+                        RenderResources&                   resources,
+                        FrameConstants&                    frameConstants,
+                        const FullscreenPass&              fullscreenPass,
+                        const Tsukino::Asset::ShaderAsset* ps);
 
         //! モーションブラーのパラメータを設定します。
         //! @param  [in] params モーションブラーの定数バッファデータ
-        void SetParameters(const CBufferMotionBlur& params) noexcept {
-            m_data = params;
-        }
+        void SetParameters(const CBufferMotionBlur& params) noexcept { m_data = params; }
 
         //! このフレームでモーションブラーを掛けるかを設定します。
         //! @param  [in] enabled true: 掛ける, false: 掛けない
         //! @note   無効なフレームでは、速度バッファ用の前フレームボーン行列（8KB/ドロー）の転送も省かれる
-        void SetEnabled(bool enabled) noexcept {
-            m_enabled = enabled;
-        }
+        void SetEnabled(bool enabled) noexcept { m_enabled = enabled; }
 
         //! このフレームでモーションブラーが有効かを取得します。
         //! @return true: 有効（描画コマンドが速度を書き出す）, false: 無効
@@ -89,9 +87,7 @@ namespace Tsukino::Renderer {
 
         //! 描画品質としてモーションブラーを許すかを設定します。
         //! @param  [in] allowed true: 許す（SetEnabled のとおりに掛かる）, false: 許さない（SetEnabled(true) でも掛からない）
-        void SetAllowed(bool allowed) noexcept {
-            m_allowed = allowed;
-        }
+        void SetAllowed(bool allowed) noexcept { m_allowed = allowed; }
 
         //! モーションブラーを掛けてポストプロセス用の中間バッファへ書きます。
         //! @return true: ブラーを掛けて中間バッファへ書いた
@@ -102,9 +98,7 @@ namespace Tsukino::Renderer {
         //! フレームの終わりの処理をします（有効フラグを false へ戻します）。
         //! @note   毎フレーム MotionBlurSystem が再度 true にする前提にしておくと、MotionBlurSystem を
         //!         持たないシーンへ切り替えたときにフラグが立ちっぱなしで残らない（無駄なフルスクリーンパスの防止）
-        void EndFrame() noexcept {
-            m_enabled = false;
-        }
+        void EndFrame() noexcept { m_enabled = false; }
 
     private:
         GraphicsContext*      m_graphicsContext = nullptr;    // デバイス・HDR バッファ・速度バッファの取得元（借りている）
@@ -112,9 +106,9 @@ namespace Tsukino::Renderer {
         FrameConstants*       m_frameConstants  = nullptr;    // u_scene の取得元（借りている）
         const FullscreenPass* m_fullscreenPass  = nullptr;    // フルスクリーン三角形の描画（借りている）
 
-        std::unique_ptr<Gpu> m_gpu;    // 描画 API の資源（中身は Renderer の内部で定義）
-        CBufferMotionBlur                         m_data{};             // CPU側のモーションブラーパラメータ
-        bool                                      m_enabled = false;    // このフレームで有効か
-        bool                                      m_allowed = true;     // 描画品質として許しているか
+        std::unique_ptr<Gpu> m_gpu;                // 描画 API の資源（中身は Renderer の内部で定義）
+        CBufferMotionBlur    m_data{};             // CPU側のモーションブラーパラメータ
+        bool                 m_enabled = false;    // このフレームで有効か
+        bool                 m_allowed = true;     // 描画品質として許しているか
     };
 }    // namespace Tsukino::Renderer

@@ -31,9 +31,10 @@ namespace Tsukino::BuiltIn::ECS {
     //!       sortOrder で決まる（sortOrder が変わるたびに奥行きを消し直すので、重ね順の違うモデルが互いに隠れ合わない）。
     //!       ModelComponent::opacity は不透明度としてそのまま効く。
     struct ScreenModelComponent {
-        hlslpp::float2          screenPosition = hlslpp::float2(0.0f, 0.0f);    // 描く位置（画面ピクセル。左上が原点、下が +y。画面スプライトと同じ）。anchor があるときは anchor の位置からのずらし量
-        float                   pixelsPerUnit  = 1.0f;                          // モデルの 1unit を何ピクセルで描くか
-        int                     sortOrder      = 0;                             // 画面スプライト・文字との重ね順（小さいほど奥）
-        Tsukino::ECS::EntityRef anchor;                                         // 位置と切り取りの基準にする UI の部品（無ければ screenPosition の位置に描く）
+        hlslpp::float2 screenPosition = hlslpp::float2(
+            0.0f, 0.0f);    // 描く位置（画面ピクセル。左上が原点、下が +y。画面スプライトと同じ）。anchor があるときは anchor の位置からのずらし量
+        float                   pixelsPerUnit = 1.0f;    // モデルの 1unit を何ピクセルで描くか
+        int                     sortOrder     = 0;       // 画面スプライト・文字との重ね順（小さいほど奥）
+        Tsukino::ECS::EntityRef anchor;                  // 位置と切り取りの基準にする UI の部品（無ければ screenPosition の位置に描く）
     };
 }    // namespace Tsukino::BuiltIn::ECS

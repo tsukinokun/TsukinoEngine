@@ -79,7 +79,8 @@ namespace Tsukino::Input {
             }
             return false;
 
-        default: return false;
+        default:
+            return false;
         }
     }
 

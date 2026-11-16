@@ -31,7 +31,7 @@ namespace Tsukino::BuiltIn::ECS {
             return;    // 使っていないシーンでは、マウスの変換も省く
         }
 
-        const Tsukino::Input::InputSystem& input = *context->inputSystem;
+        const Tsukino::Input::InputSystem& input  = *context->inputSystem;
         i32                                mouseX = 0;
         i32                                mouseY = 0;
         input.GetMousePosition(&mouseX, &mouseY);

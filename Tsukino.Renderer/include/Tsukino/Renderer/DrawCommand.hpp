@@ -28,12 +28,12 @@ namespace Tsukino::Renderer {
     //!        （FogPass::BindForwardFogがTransparentの間だけフォグ定数を張る）
     //------------------------------------------------------------
     enum class RenderPass : u8 {
-        GBuffer,            // 不透明3Dモデル（ディファード）。G-Bufferへ書き込む
-        World,              // 深度を書くフォワードの3D（デバッグ線など不透明）。フォグより前
-        TransparentDepth,   // 半透明モデルの深度事前パス（Transparentの直前。色は書かず深度だけ埋める）
-        Transparent,        // 深度を書かない3D（半透明モデル・ワールド空間スプライト・加算の光など）。フォグより後。
-                            // 並べ替えはせず、積んだ順に描く（同じ場所に重ねる物は、下に敷く物から先に積めばよい）
-        Overlay,            // フォント/UI
+        GBuffer,             // 不透明3Dモデル（ディファード）。G-Bufferへ書き込む
+        World,               // 深度を書くフォワードの3D（デバッグ線など不透明）。フォグより前
+        TransparentDepth,    // 半透明モデルの深度事前パス（Transparentの直前。色は書かず深度だけ埋める）
+        Transparent,         // 深度を書かない3D（半透明モデル・ワールド空間スプライト・加算の光など）。フォグより後。
+                             // 並べ替えはせず、積んだ順に描く（同じ場所に重ねる物は、下に敷く物から先に積めばよい）
+        Overlay,             // フォント/UI
     };
 
     //------------------------------------------------------------
@@ -77,16 +77,16 @@ namespace Tsukino::Renderer {
     //!         origin を軸に scale で拡大し、rotation で回す
     //------------------------------------------------------------
     struct SpriteQuad {
-        TextureHandle             texture;                                // 貼るテクスチャ
-        float                     x        = 0.0f;                        // 描く位置 X（ピクセル。左上原点）
-        float                     y        = 0.0f;                        // 描く位置 Y（ピクセル。左上原点）
-        TexelRect                 source;                                 // テクスチャから切り出す矩形
-        float                     color[4] = {1.0f, 1.0f, 1.0f, 1.0f};    // テクスチャに掛ける色（RGBA）
-        float                     rotation = 0.0f;                        // 回転（ラジアン。画面上で時計回りが正）
-        float                     originX  = 0.0f;                        // 回転と拡大の軸 X（切り出した矩形の左上からのテクセル）
-        float                     originY  = 0.0f;                        // 回転と拡大の軸 Y（切り出した矩形の左上からのテクセル）
-        float                     scaleX   = 1.0f;                        // 横の拡大率
-        float                     scaleY   = 1.0f;                        // 縦の拡大率
+        TextureHandle texture;                                // 貼るテクスチャ
+        float         x = 0.0f;                               // 描く位置 X（ピクセル。左上原点）
+        float         y = 0.0f;                               // 描く位置 Y（ピクセル。左上原点）
+        TexelRect     source;                                 // テクスチャから切り出す矩形
+        float         color[4] = {1.0f, 1.0f, 1.0f, 1.0f};    // テクスチャに掛ける色（RGBA）
+        float         rotation = 0.0f;                        // 回転（ラジアン。画面上で時計回りが正）
+        float         originX  = 0.0f;                        // 回転と拡大の軸 X（切り出した矩形の左上からのテクセル）
+        float         originY  = 0.0f;                        // 回転と拡大の軸 Y（切り出した矩形の左上からのテクセル）
+        float         scaleX   = 1.0f;                        // 横の拡大率
+        float         scaleY   = 1.0f;                        // 縦の拡大率
     };
 
     //------------------------------------------------------------
@@ -94,11 +94,11 @@ namespace Tsukino::Renderer {
     //! @brief  描画コマンドを表す構造体
     //------------------------------------------------------------
     struct DrawCommand {
-        Material*                                 material;                            // どう描くか（シェーダー、テクスチャ、ステート）
-        MeshBuffer*                               mesh;                                // 何を描くか（Quad, Cube, Model Mesh など）
-        Tsukino::Core::Math::matrix               transform;                           // どこに描くか（モデル行列）
-        RenderPass                                pass         = RenderPass::World;    // 描画パス
-        CBufferMaterial*                          materialData = nullptr;              // マテリアルの定数データ（存在すれば）
+        Material*                   material;                            // どう描くか（シェーダー、テクスチャ、ステート）
+        MeshBuffer*                 mesh;                                // 何を描くか（Quad, Cube, Model Mesh など）
+        Tsukino::Core::Math::matrix transform;                           // どこに描くか（モデル行列）
+        RenderPass                  pass         = RenderPass::World;    // 描画パス
+        CBufferMaterial*            materialData = nullptr;              // マテリアルの定数データ（存在すれば）
 
         //--------------------------------------------------------
         // 描くものの種類。Sprites / Lines のコマンドは material と mesh を使わず、
@@ -185,8 +185,8 @@ namespace Tsukino::Renderer {
         //
         // 作成・更新は RenderResources::CreateUserConstantBuffer / UpdateUserConstantBuffer を使う
         //--------------------------------------------------------
-        BufferHandle    userConstantBuffer;                                  // ゲーム定義の定数バッファ（不要なら無効なハンドル）
-        UserUniformSlot userConstantSlot = UserUniformSlot::User0;          // 渡す枠（User0 / User1）
+        BufferHandle    userConstantBuffer;                           // ゲーム定義の定数バッファ（不要なら無効なハンドル）
+        UserUniformSlot userConstantSlot = UserUniformSlot::User0;    // 渡す枠（User0 / User1）
 
         //--------------------------------------------------------
         // モーションブラー用の前フレームデータ
@@ -194,9 +194,9 @@ namespace Tsukino::Renderer {
         // 一切読まない（速度ゼロとして扱う）。前フレームの値は
         // MotionVectorSnapshotSystem がフレーム先頭で退避したものを指す。
         //--------------------------------------------------------
-        Tsukino::Core::Math::matrix prevTransform;               // 前フレームのモデル行列
-        const void*                 prevBoneMatrices = nullptr;  // 前フレームのボーン行列配列（boneCount と同じ本数）
-        bool                        hasPrevFrame     = false;    // 前フレームの値が有効か
+        Tsukino::Core::Math::matrix prevTransform;                 // 前フレームのモデル行列
+        const void*                 prevBoneMatrices = nullptr;    // 前フレームのボーン行列配列（boneCount と同じ本数）
+        bool                        hasPrevFrame     = false;      // 前フレームの値が有効か
 
         //--------------------------------------------------------
         // 切り取り（シザー）。

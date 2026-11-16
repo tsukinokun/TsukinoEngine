@@ -30,10 +30,7 @@ namespace Tsukino::Physics {
         //! @param  [in] v1    頂点1（ワールド座標）
         //! @param  [in] v2    頂点2（ワールド座標）
         //! @param  [in] color 色（RGBA。各成分 0.0〜1.0）
-        virtual void DrawTriangle(const hlslpp::float3& v0,
-                                  const hlslpp::float3& v1,
-                                  const hlslpp::float3& v2,
-                                  const hlslpp::float4& color) = 0;
+        virtual void DrawTriangle(const hlslpp::float3& v0, const hlslpp::float3& v1, const hlslpp::float3& v2, const hlslpp::float4& color) = 0;
     };
 
 }    // namespace Tsukino::Physics

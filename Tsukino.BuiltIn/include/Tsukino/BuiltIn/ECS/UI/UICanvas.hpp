@@ -24,9 +24,9 @@ namespace Tsukino::BuiltIn::ECS {
     //! @brief  UI の座標と画面のピクセルの対応（pixel = ui * scale + offset）
     //--------------------------------------------------------------
     struct UICanvas {
-        float          scale  = 1.0f;                            // UI の 1 単位が何ピクセルか
-        hlslpp::float2 offset = hlslpp::float2(0.0f, 0.0f);      // UI の原点 (0, 0) が来る画面のピクセル（真ん中に寄せたときの余白）
-        hlslpp::float2 size   = hlslpp::float2(0.0f, 0.0f);      // UI の基準の大きさ（UI の座標。基準が無ければ画面のピクセル数）
+        float          scale  = 1.0f;                          // UI の 1 単位が何ピクセルか
+        hlslpp::float2 offset = hlslpp::float2(0.0f, 0.0f);    // UI の原点 (0, 0) が来る画面のピクセル（真ん中に寄せたときの余白）
+        hlslpp::float2 size   = hlslpp::float2(0.0f, 0.0f);    // UI の基準の大きさ（UI の座標。基準が無ければ画面のピクセル数）
 
         //! @brief  UI の座標を画面のピクセルにする
         [[nodiscard]] hlslpp::float2 ToPixel(const hlslpp::float2& ui) const noexcept { return ui * scale + offset; }

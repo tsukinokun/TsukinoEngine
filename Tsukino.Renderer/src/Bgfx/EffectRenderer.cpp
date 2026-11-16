@@ -12,7 +12,6 @@
 
 #include <Tsukino/Core/Log.hpp>
 
-
 // 名前空間 : Tsukino::Renderer
 namespace Tsukino::Renderer {
 
@@ -20,7 +19,7 @@ namespace Tsukino::Renderer {
     //! Effekseer の型を持つ中身です。
     //------------------------------------------------------------------------
     struct EffectRenderer::Impl {
-        EffekseerBgfx::RendererImplementedRef      renderer;      // Effekseer のレンダラー
+        EffekseerBgfx::RendererImplementedRef     renderer;      // Effekseer のレンダラー
         Effekseer::RefPtr<EffekseerBgfx::Texture> background;    // 歪みの背景（借りたテクスチャ）
         Effekseer::RefPtr<EffekseerBgfx::Texture> depth;         // ソフトパーティクルの深度（借りたテクスチャ）
     };
@@ -29,7 +28,8 @@ namespace Tsukino::Renderer {
     //! 何も持たずに作ります。
     //------------------------------------------------------------------------
     EffectRenderer::EffectRenderer()
-        : m_impl(std::make_unique<Impl>()) {}
+        : m_impl(std::make_unique<Impl>()) {
+    }
 
     //------------------------------------------------------------------------
     //! レンダラーとプログラムを破棄します。
@@ -86,9 +86,9 @@ namespace Tsukino::Renderer {
         // 歪みの背景（エフェクトを描く前の絵）とソフトパーティクルの深度を写す。
         // bgfx の写し（blit）は、そのビューの描画より先に、前のビューの後で行われる
         //--------------------------------------------------------------------
-        const u32 width  = graphicsContext.GetSceneWidth();
-        const u32 height = graphicsContext.GetSceneHeight();
-        auto copyWhole = [view](bgfx::TextureHandle dst, bgfx::TextureHandle src) {
+        const u32 width     = graphicsContext.GetSceneWidth();
+        const u32 height    = graphicsContext.GetSceneHeight();
+        auto      copyWhole = [view](bgfx::TextureHandle dst, bgfx::TextureHandle src) {
             bgfx::TextureRegion dstRegion;
             bgfx::TextureRegion srcRegion;
             dstRegion.init(dst);

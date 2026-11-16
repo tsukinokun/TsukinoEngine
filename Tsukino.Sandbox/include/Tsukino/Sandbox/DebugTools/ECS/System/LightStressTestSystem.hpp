@@ -45,10 +45,10 @@ namespace Tsukino::Sandbox::DebugTools::ECS {
         //! @brief 切り替えるライト数の並び。F1を押すたびに次へ進む
         static constexpr int kLightCountSteps[] = {0, 1, 16, 64};
 
-        std::vector<Tsukino::ECS::Entity> m_lights;             //!< 生成した点光源エンティティ
-        int                               m_stepIndex   = 0;    //!< kLightCountSteps のインデックス
-        float                             m_orbitPhase  = 0.0f; //!< 公転アニメーションの位相
-        bool                              m_initialized = false;//!< HUD初期化済みか
+        std::vector<Tsukino::ECS::Entity> m_lights;                 //!< 生成した点光源エンティティ
+        int                               m_stepIndex   = 0;        //!< kLightCountSteps のインデックス
+        float                             m_orbitPhase  = 0.0f;     //!< 公転アニメーションの位相
+        bool                              m_initialized = false;    //!< HUD初期化済みか
 
         //---------------------------------------------------------
         // フレーム時間の移動平均（直近1秒）

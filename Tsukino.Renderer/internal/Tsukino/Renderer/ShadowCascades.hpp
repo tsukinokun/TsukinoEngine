@@ -19,8 +19,8 @@ namespace Tsukino::Renderer {
     //! @note  nearPlane[i] と farPlane[i] は同じ稜線（カメラから伸びる辺）の両端
     //------------------------------------------------------------------------
     struct FrustumCorners {
-        std::array<hlslpp::float3, 4> nearPlane;     // near 面の4頂点（ワールド）
-        std::array<hlslpp::float3, 4> farPlane;      // far 面の4頂点（ワールド）
+        std::array<hlslpp::float3, 4> nearPlane;           // near 面の4頂点（ワールド）
+        std::array<hlslpp::float3, 4> farPlane;            // far 面の4頂点（ワールド）
         float                         nearDepth = 0.0f;    // near 面の奥行き（カメラのビュー空間 z）
         float                         farDepth  = 0.0f;    // far 面の奥行き（同上）
     };
@@ -37,8 +37,8 @@ namespace Tsukino::Renderer {
     //! カスケード1枚ぶんの計算結果です。
     //------------------------------------------------------------------------
     struct ShadowCascade {
-        float          splitNear      = 0.0f;    // 受け持つ奥行きの手前（カメラのビュー空間 z）
-        float          splitFar       = 0.0f;    // 受け持つ奥行きの奥（同上）
+        float          splitNear = 0.0f;         // 受け持つ奥行きの手前（カメラのビュー空間 z）
+        float          splitFar  = 0.0f;         // 受け持つ奥行きの奥（同上）
         BoundingSphere bounds;                   // 視錐台の切れ端を包む球。半径がそのまま平行投影の半径になる
         float          texelWorldSize = 0.0f;    // シャドウマップ1テクセルが覆うワールド幅
 
@@ -140,8 +140,8 @@ namespace Tsukino::Renderer::ShadowCascades {
     //! @param  [in] depthAwayFromLight 球の中心から向こう側へ収める奥行き
     //! @return ライト空間の ViewProjection 行列
     [[nodiscard]]
-    Tsukino::Core::Math::matrix ComputeLightViewProj(const hlslpp::float3& lightDir, const BoundingSphere& bounds, u32 mapSize,
-                                                     float depthTowardLight, float depthAwayFromLight);
+    Tsukino::Core::Math::matrix ComputeLightViewProj(
+        const hlslpp::float3& lightDir, const BoundingSphere& bounds, u32 mapSize, float depthTowardLight, float depthAwayFromLight);
 
     //! 影の調整値を使える範囲へ丸めます。
     //! @param  [in] settings 丸める前の調整値

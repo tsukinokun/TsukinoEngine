@@ -92,7 +92,8 @@ namespace Tsukino::BuiltIn::ECS::UIClipUtility {
         if(clipEntity == entt::null)
             return false;
 
-        outBounds = ComputeBounds(registry.GetComponent<TransformComponent>(clipEntity), registry.GetComponent<UIClipComponent>(clipEntity),
+        outBounds = ComputeBounds(registry.GetComponent<TransformComponent>(clipEntity),
+                                  registry.GetComponent<UIClipComponent>(clipEntity),
                                   registry.try_get<UIRectComponent>(clipEntity));
         return true;
     }

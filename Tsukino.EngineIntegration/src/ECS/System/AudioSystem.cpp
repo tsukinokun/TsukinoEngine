@@ -33,8 +33,8 @@ namespace Tsukino::BuiltIn::ECS {
 
             if(audioComp.playTrigger) {
                 if(audioComp.audioHandle.IsValid()) {
-                    Tsukino::Core::Ref<Tsukino::Asset::IAsset> baseAsset = context->assetManager->Get(audioComp.audioHandle);
-                    Tsukino::Core::Ref<Tsukino::Asset::AudioAsset> asset = std::dynamic_pointer_cast<Tsukino::Asset::AudioAsset>(baseAsset);
+                    Tsukino::Core::Ref<Tsukino::Asset::IAsset>     baseAsset = context->assetManager->Get(audioComp.audioHandle);
+                    Tsukino::Core::Ref<Tsukino::Asset::AudioAsset> asset     = std::dynamic_pointer_cast<Tsukino::Asset::AudioAsset>(baseAsset);
                     if(asset) {
                         context->audioManager->Play(*asset, audioComp.loop, audioComp.volume, audioComp.bus);
                         audioComp.isPlaying = true;
@@ -45,8 +45,8 @@ namespace Tsukino::BuiltIn::ECS {
 
             if(audioComp.stopTrigger) {
                 if(audioComp.audioHandle.IsValid()) {
-                    Tsukino::Core::Ref<Tsukino::Asset::IAsset> baseAsset = context->assetManager->Get(audioComp.audioHandle);
-                    Tsukino::Core::Ref<Tsukino::Asset::AudioAsset> asset = std::dynamic_pointer_cast<Tsukino::Asset::AudioAsset>(baseAsset);
+                    Tsukino::Core::Ref<Tsukino::Asset::IAsset>     baseAsset = context->assetManager->Get(audioComp.audioHandle);
+                    Tsukino::Core::Ref<Tsukino::Asset::AudioAsset> asset     = std::dynamic_pointer_cast<Tsukino::Asset::AudioAsset>(baseAsset);
                     if(asset) {
                         context->audioManager->Stop(*asset);
                     }
@@ -57,4 +57,3 @@ namespace Tsukino::BuiltIn::ECS {
         }
     }
 }    // namespace Tsukino::BuiltIn::ECS
-

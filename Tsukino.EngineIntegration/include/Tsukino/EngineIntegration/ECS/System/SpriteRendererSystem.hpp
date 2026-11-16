@@ -49,8 +49,9 @@ namespace Tsukino::BuiltIn::ECS {
     private:
         std::shared_ptr<Tsukino::Renderer::PipelineState> m_pipelineCache;            // パイプラインステートのキャッシュ（Screen空間・Alpha）
         std::shared_ptr<Tsukino::Renderer::PipelineState> m_additivePipelineCache;    // パイプラインステートのキャッシュ（Screen空間・Additive。発光表現用）
-        std::shared_ptr<Tsukino::Renderer::PipelineState> m_worldPipelineCache;            // パイプラインステートのキャッシュ（World空間・Alpha。深度テストあり）
-        std::shared_ptr<Tsukino::Renderer::PipelineState> m_worldAdditivePipelineCache;    // パイプラインステートのキャッシュ（World空間・Additive。深度テストあり）
+        std::shared_ptr<Tsukino::Renderer::PipelineState> m_worldPipelineCache;       // パイプラインステートのキャッシュ（World空間・Alpha。深度テストあり）
+        std::shared_ptr<Tsukino::Renderer::PipelineState>
+            m_worldAdditivePipelineCache;    // パイプラインステートのキャッシュ（World空間・Additive。深度テストあり）
         //-------------------------------------------------------------
         // マテリアル実体と定数データの置き場は DrawCommandQueue へ移した。
         // Renderer::GetDrawQueue().AllocMaterial() / AllocMaterialData() で確保する

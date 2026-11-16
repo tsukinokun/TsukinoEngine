@@ -95,8 +95,8 @@ namespace Tsukino::BuiltIn::ECS {
             // 画面のピクセル → UI の座標（UI のカメラが基準の解像度で拡大していても、同じ所に出る）。ずらす量は UI の単位
             const hlslpp::float2 uiPosition = canvas.ToUI(hlslpp::float2(screenX, screenY));
             transform.position              = hlslpp::float3(float(uiPosition.x) + anchor.screenOffset.x, float(uiPosition.y) + anchor.screenOffset.y, 0.0f);
-            transform.dirty    = true;
-            anchor.visible      = true;
+            transform.dirty                 = true;
+            anchor.visible                  = true;
         });
     }
 }    // namespace Tsukino::BuiltIn::ECS

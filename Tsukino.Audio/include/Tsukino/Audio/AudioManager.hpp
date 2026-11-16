@@ -162,9 +162,9 @@ namespace Tsukino::Audio {
         float GetBusVolume(AudioBus bus) const;
 
     private:
-        std::unique_ptr<AudioContext> m_audioContext;    //!< バックエンド（miniaudio）を隠蔽するコンテキスト
-        float                         m_masterVolume;    //!< 全体の音量
-        std::array<float, kAudioBusCount> m_busVolumes;  //!< バスごとの音量
+        std::unique_ptr<AudioContext>     m_audioContext;    //!< バックエンド（miniaudio）を隠蔽するコンテキスト
+        float                             m_masterVolume;    //!< 全体の音量
+        std::array<float, kAudioBusCount> m_busVolumes;      //!< バスごとの音量
     };
 
 }    // namespace Tsukino::Audio

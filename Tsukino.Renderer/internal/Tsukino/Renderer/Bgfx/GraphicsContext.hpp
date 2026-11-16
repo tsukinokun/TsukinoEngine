@@ -226,30 +226,30 @@ namespace Tsukino::Renderer {
         //! 3D を描く先を破棄します。
         void DestroyRenderTargets();
 
-        bgfx::TextureHandle                    m_hdrTexture   = BGFX_INVALID_HANDLE;    // HDR バッファ（RGBA16F）
-        bgfx::TextureHandle                    m_depthTexture = BGFX_INVALID_HANDLE;    // 深度（D32F。ライティングで読む）
-        bgfx::TextureHandle                    m_gbufferTextures[kGBufferCount] = {BGFX_INVALID_HANDLE, BGFX_INVALID_HANDLE, BGFX_INVALID_HANDLE,
-                                                                                 BGFX_INVALID_HANDLE, BGFX_INVALID_HANDLE, BGFX_INVALID_HANDLE};
-        bgfx::FrameBufferHandle                m_gbufferFrameBuffer  = BGFX_INVALID_HANDLE;    // G-Buffer ＋ 深度
-        bgfx::FrameBufferHandle                m_hdrFrameBuffer      = BGFX_INVALID_HANDLE;    // HDR ＋ 深度
-        bgfx::FrameBufferHandle                m_hdrColorFrameBuffer = BGFX_INVALID_HANDLE;    // HDR だけ
-        bgfx::TextureHandle                    m_postProcessTexture     = BGFX_INVALID_HANDLE;    // ポストプロセス用の中間バッファ（RGBA16F）
-        bgfx::FrameBufferHandle                m_postProcessFrameBuffer = BGFX_INVALID_HANDLE;    // 中間バッファだけ
-        bgfx::TextureHandle                    m_effectColorTexture      = BGFX_INVALID_HANDLE;    // トーンマップした絵（RGBA8）
-        bgfx::FrameBufferHandle                m_effectFrameBuffer       = BGFX_INVALID_HANDLE;    // トーンマップした絵 ＋ 3D の深度
-        bgfx::TextureHandle                    m_effectBackgroundTexture = BGFX_INVALID_HANDLE;    // 歪みの背景（トーンマップした絵の写し）
-        bgfx::TextureHandle                    m_effectDepthTexture      = BGFX_INVALID_HANDLE;    // ソフトパーティクルの深度（3D の深度の写し）
-        bool                                   m_effectTargetsEnabled    = false;                  // エフェクトを描く先を作るか
+        bgfx::TextureHandle m_hdrTexture                     = BGFX_INVALID_HANDLE;    // HDR バッファ（RGBA16F）
+        bgfx::TextureHandle m_depthTexture                   = BGFX_INVALID_HANDLE;    // 深度（D32F。ライティングで読む）
+        bgfx::TextureHandle m_gbufferTextures[kGBufferCount] = {
+            BGFX_INVALID_HANDLE, BGFX_INVALID_HANDLE, BGFX_INVALID_HANDLE, BGFX_INVALID_HANDLE, BGFX_INVALID_HANDLE, BGFX_INVALID_HANDLE};
+        bgfx::FrameBufferHandle m_gbufferFrameBuffer      = BGFX_INVALID_HANDLE;    // G-Buffer ＋ 深度
+        bgfx::FrameBufferHandle m_hdrFrameBuffer          = BGFX_INVALID_HANDLE;    // HDR ＋ 深度
+        bgfx::FrameBufferHandle m_hdrColorFrameBuffer     = BGFX_INVALID_HANDLE;    // HDR だけ
+        bgfx::TextureHandle     m_postProcessTexture      = BGFX_INVALID_HANDLE;    // ポストプロセス用の中間バッファ（RGBA16F）
+        bgfx::FrameBufferHandle m_postProcessFrameBuffer  = BGFX_INVALID_HANDLE;    // 中間バッファだけ
+        bgfx::TextureHandle     m_effectColorTexture      = BGFX_INVALID_HANDLE;    // トーンマップした絵（RGBA8）
+        bgfx::FrameBufferHandle m_effectFrameBuffer       = BGFX_INVALID_HANDLE;    // トーンマップした絵 ＋ 3D の深度
+        bgfx::TextureHandle     m_effectBackgroundTexture = BGFX_INVALID_HANDLE;    // 歪みの背景（トーンマップした絵の写し）
+        bgfx::TextureHandle     m_effectDepthTexture      = BGFX_INVALID_HANDLE;    // ソフトパーティクルの深度（3D の深度の写し）
+        bool                    m_effectTargetsEnabled    = false;                  // エフェクトを描く先を作るか
 
-        bool                m_initialized = false;    // bgfx を初期化したか
-        bool                m_vsync       = true;     // 垂直同期をするか
-        void*               m_windowHandle = nullptr; // 描画先のウィンドウ（作り直すときにも渡す）
-        u32                 m_width       = 0;        // 描画領域の幅
-        u32                 m_height      = 0;        // 描画領域の高さ
-        float               m_renderScale = 1.0f;     // 内部解像度の倍率
-        u32                 m_sceneWidth  = 0;        // 3D を描く幅（描く先を作ったときの大きさ）
-        u32                 m_sceneHeight = 0;        // 3D を描く高さ
-        GraphicsAdapterInfo m_adapterInfo;            // 使っている GPU の情報
+        bool                m_initialized  = false;      // bgfx を初期化したか
+        bool                m_vsync        = true;       // 垂直同期をするか
+        void*               m_windowHandle = nullptr;    // 描画先のウィンドウ（作り直すときにも渡す）
+        u32                 m_width        = 0;          // 描画領域の幅
+        u32                 m_height       = 0;          // 描画領域の高さ
+        float               m_renderScale  = 1.0f;       // 内部解像度の倍率
+        u32                 m_sceneWidth   = 0;          // 3D を描く幅（描く先を作ったときの大きさ）
+        u32                 m_sceneHeight  = 0;          // 3D を描く高さ
+        GraphicsAdapterInfo m_adapterInfo;               // 使っている GPU の情報
     };
 
 }    // namespace Tsukino::Renderer

@@ -13,7 +13,6 @@ namespace Tsukino::Asset {
     //! テクスチャも読み込むため、AssetManager を受け取ります（ModelLoader と同じ）。
     class MaterialLoader : public IAssetLoader {
     public:
-
         //! コンストラクタです。
         //! @param  [in] assetManager テクスチャの読み込みに使う AssetManager
         explicit MaterialLoader(AssetManager* assetManager)

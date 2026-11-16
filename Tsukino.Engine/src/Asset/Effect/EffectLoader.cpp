@@ -28,7 +28,7 @@ namespace Tsukino::Asset {
         }
 
         Tsukino::Core::Ref<EffectAsset> asset = Tsukino::Core::CreateRef<EffectAsset>();
-        asset->binary = std::move(buffer);
+        asset->binary                         = std::move(buffer);
 
         return asset;
     }

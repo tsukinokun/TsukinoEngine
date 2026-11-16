@@ -159,7 +159,10 @@ namespace Tsukino::EngineIntegration {
     //------------------------------------------------------------
     //! @brief  エンジンの初期化関数
     //------------------------------------------------------------
-    bool EngineIntegration::Initialize(int width, int height, const std::string& title, Tsukino::Core::Window::WindowStyle style,
+    bool EngineIntegration::Initialize(int                                             width,
+                                       int                                             height,
+                                       const std::string&                              title,
+                                       Tsukino::Core::Window::WindowStyle              style,
                                        const Tsukino::Renderer::GraphicsDeviceOptions& deviceOptions) {
         //--------------------------------------------------------------
         // BuiltInのCopmonentをPrefabFactoryに登録
@@ -223,15 +226,16 @@ namespace Tsukino::EngineIntegration {
             case InputEventType::MouseWheel:
                 m_inputSystem->NotifyKeyboardMouseActivity();
                 break;
-            case InputEventType::MouseMove: {
-                i32 currentX = 0, currentY = 0;
-                m_inputSystem->GetMousePosition(&currentX, &currentY);
-                const i32 movedX = std::abs(event.x - currentX);
-                const i32 movedY = std::abs(event.y - currentY);
-                if(movedX >= kMouseActivityPixels || movedY >= kMouseActivityPixels)
-                    m_inputSystem->NotifyKeyboardMouseActivity();
-                break;
-            }
+            case InputEventType::MouseMove:
+                {
+                    i32 currentX = 0, currentY = 0;
+                    m_inputSystem->GetMousePosition(&currentX, &currentY);
+                    const i32 movedX = std::abs(event.x - currentX);
+                    const i32 movedY = std::abs(event.y - currentY);
+                    if(movedX >= kMouseActivityPixels || movedY >= kMouseActivityPixels)
+                        m_inputSystem->NotifyKeyboardMouseActivity();
+                    break;
+                }
             default:
                 break;
             }
@@ -242,16 +246,17 @@ namespace Tsukino::EngineIntegration {
             // タッチから作られたクリックは、移動を挟まずに押した位置へ飛ぶため）
             //--------------------------------------------------------------
             case InputEventType::KeyDown:
-            case InputEventType::KeyUp: {
-                const bool isDown        = (event.type == InputEventType::KeyDown);
-                const bool isMouseButton = (event.key == Input::KeyCode::LButton || event.key == Input::KeyCode::RButton ||
-                                            event.key == Input::KeyCode::MButton);
-                if(isMouseButton && event.fromTouch) {
-                    m_inputSystem->SetMousePosition(event.x, event.y);
+            case InputEventType::KeyUp:
+                {
+                    const bool isDown = (event.type == InputEventType::KeyDown);
+                    const bool isMouseButton =
+                        (event.key == Input::KeyCode::LButton || event.key == Input::KeyCode::RButton || event.key == Input::KeyCode::MButton);
+                    if(isMouseButton && event.fromTouch) {
+                        m_inputSystem->SetMousePosition(event.x, event.y);
+                    }
+                    m_inputSystem->SetKeyState(event.key, isDown);
+                    break;
                 }
-                m_inputSystem->SetKeyState(event.key, isDown);
-                break;
-            }
 
             //--------------------------------------------------------------
             // マウス座標とホイール
@@ -290,8 +295,7 @@ namespace Tsukino::EngineIntegration {
             GameSceneBase* scene = m_gameSceneManager->GetCurrentScene();
             if(!scene)
                 return false;
-            return Tsukino::BuiltIn::ECS::InteractionSystem::HitTest(
-                scene->GetScene().GetRegistry(), static_cast<float>(x), static_cast<float>(y));
+            return Tsukino::BuiltIn::ECS::InteractionSystem::HitTest(scene->GetScene().GetRegistry(), static_cast<float>(x), static_cast<float>(y));
         });
 
         //--------------------------------------------------------------
@@ -333,61 +337,53 @@ namespace Tsukino::EngineIntegration {
             }
         });
 
-        auto debugVsAsset   = std::static_pointer_cast<Tsukino::Asset::ShaderAsset>(m_assetManager->Get(m_builtinAssets->shaders.debugVS));
-        auto debugPsAsset   = std::static_pointer_cast<Tsukino::Asset::ShaderAsset>(m_assetManager->Get(m_builtinAssets->shaders.debugPS));
-        auto tonemapVSAsset = std::static_pointer_cast<Tsukino::Asset::ShaderAsset>(m_assetManager->Get(m_builtinAssets->shaders.tonemapVS));
-        auto tonemapPSAsset = std::static_pointer_cast<Tsukino::Asset::ShaderAsset>(m_assetManager->Get(m_builtinAssets->shaders.tonemapPS));
-        auto shadowStaticVSAsset = std::static_pointer_cast<Tsukino::Asset::ShaderAsset>(m_assetManager->Get(m_builtinAssets->shaders.shadowStaticVS));
-        auto shadowSkeletalVSAsset = std::static_pointer_cast<Tsukino::Asset::ShaderAsset>(m_assetManager->Get(m_builtinAssets->shaders.shadowVS));
-        auto shadowPSAsset         = std::static_pointer_cast<Tsukino::Asset::ShaderAsset>(m_assetManager->Get(m_builtinAssets->shaders.shadowPS));
-        auto lightingPSAsset       = std::static_pointer_cast<Tsukino::Asset::ShaderAsset>(m_assetManager->Get(m_builtinAssets->shaders.lightingPS));
-        auto motionBlurPSAsset     = std::static_pointer_cast<Tsukino::Asset::ShaderAsset>(m_assetManager->Get(m_builtinAssets->shaders.motionBlurPS));
-        auto fogPSAsset            = std::static_pointer_cast<Tsukino::Asset::ShaderAsset>(m_assetManager->Get(m_builtinAssets->shaders.fogPS));
-        auto sphereColorGradePSAsset =
-            std::static_pointer_cast<Tsukino::Asset::ShaderAsset>(m_assetManager->Get(m_builtinAssets->shaders.sphereColorGradePS));
-        auto bloomPrefilterPSAsset =
-            std::static_pointer_cast<Tsukino::Asset::ShaderAsset>(m_assetManager->Get(m_builtinAssets->shaders.bloomPrefilterPS));
-        auto bloomDownsamplePSAsset =
-            std::static_pointer_cast<Tsukino::Asset::ShaderAsset>(m_assetManager->Get(m_builtinAssets->shaders.bloomDownsamplePS));
-        auto bloomUpsamplePSAsset =
-            std::static_pointer_cast<Tsukino::Asset::ShaderAsset>(m_assetManager->Get(m_builtinAssets->shaders.bloomUpsamplePS));
-        auto ambientParticleVSAsset =
-            std::static_pointer_cast<Tsukino::Asset::ShaderAsset>(m_assetManager->Get(m_builtinAssets->shaders.ambientParticleVS));
-        auto ambientParticlePSAsset =
-            std::static_pointer_cast<Tsukino::Asset::ShaderAsset>(m_assetManager->Get(m_builtinAssets->shaders.ambientParticlePS));
-        auto iblIrradiancePSAsset =
-            std::static_pointer_cast<Tsukino::Asset::ShaderAsset>(m_assetManager->Get(m_builtinAssets->shaders.iblIrradiancePS));
+        auto debugVsAsset            = std::static_pointer_cast<Tsukino::Asset::ShaderAsset>(m_assetManager->Get(m_builtinAssets->shaders.debugVS));
+        auto debugPsAsset            = std::static_pointer_cast<Tsukino::Asset::ShaderAsset>(m_assetManager->Get(m_builtinAssets->shaders.debugPS));
+        auto tonemapVSAsset          = std::static_pointer_cast<Tsukino::Asset::ShaderAsset>(m_assetManager->Get(m_builtinAssets->shaders.tonemapVS));
+        auto tonemapPSAsset          = std::static_pointer_cast<Tsukino::Asset::ShaderAsset>(m_assetManager->Get(m_builtinAssets->shaders.tonemapPS));
+        auto shadowStaticVSAsset     = std::static_pointer_cast<Tsukino::Asset::ShaderAsset>(m_assetManager->Get(m_builtinAssets->shaders.shadowStaticVS));
+        auto shadowSkeletalVSAsset   = std::static_pointer_cast<Tsukino::Asset::ShaderAsset>(m_assetManager->Get(m_builtinAssets->shaders.shadowVS));
+        auto shadowPSAsset           = std::static_pointer_cast<Tsukino::Asset::ShaderAsset>(m_assetManager->Get(m_builtinAssets->shaders.shadowPS));
+        auto lightingPSAsset         = std::static_pointer_cast<Tsukino::Asset::ShaderAsset>(m_assetManager->Get(m_builtinAssets->shaders.lightingPS));
+        auto motionBlurPSAsset       = std::static_pointer_cast<Tsukino::Asset::ShaderAsset>(m_assetManager->Get(m_builtinAssets->shaders.motionBlurPS));
+        auto fogPSAsset              = std::static_pointer_cast<Tsukino::Asset::ShaderAsset>(m_assetManager->Get(m_builtinAssets->shaders.fogPS));
+        auto sphereColorGradePSAsset = std::static_pointer_cast<Tsukino::Asset::ShaderAsset>(m_assetManager->Get(m_builtinAssets->shaders.sphereColorGradePS));
+        auto bloomPrefilterPSAsset   = std::static_pointer_cast<Tsukino::Asset::ShaderAsset>(m_assetManager->Get(m_builtinAssets->shaders.bloomPrefilterPS));
+        auto bloomDownsamplePSAsset  = std::static_pointer_cast<Tsukino::Asset::ShaderAsset>(m_assetManager->Get(m_builtinAssets->shaders.bloomDownsamplePS));
+        auto bloomUpsamplePSAsset    = std::static_pointer_cast<Tsukino::Asset::ShaderAsset>(m_assetManager->Get(m_builtinAssets->shaders.bloomUpsamplePS));
+        auto ambientParticleVSAsset  = std::static_pointer_cast<Tsukino::Asset::ShaderAsset>(m_assetManager->Get(m_builtinAssets->shaders.ambientParticleVS));
+        auto ambientParticlePSAsset  = std::static_pointer_cast<Tsukino::Asset::ShaderAsset>(m_assetManager->Get(m_builtinAssets->shaders.ambientParticlePS));
+        auto iblIrradiancePSAsset    = std::static_pointer_cast<Tsukino::Asset::ShaderAsset>(m_assetManager->Get(m_builtinAssets->shaders.iblIrradiancePS));
         auto iblSpecularPrefilterPSAsset =
             std::static_pointer_cast<Tsukino::Asset::ShaderAsset>(m_assetManager->Get(m_builtinAssets->shaders.iblSpecularPrefilterPS));
-        auto iblBRDFLUTPSAsset =
-            std::static_pointer_cast<Tsukino::Asset::ShaderAsset>(m_assetManager->Get(m_builtinAssets->shaders.iblBRDFLUTPS));
+        auto iblBRDFLUTPSAsset = std::static_pointer_cast<Tsukino::Asset::ShaderAsset>(m_assetManager->Get(m_builtinAssets->shaders.iblBRDFLUTPS));
 
         //--------------------------------------------------------------
         // レンダラー生成
         //--------------------------------------------------------------
         Tsukino::Renderer::RendererShaderSet shaderSet{};
-        shaderSet.debugVS          = debugVsAsset.get();
-        shaderSet.debugPS          = debugPsAsset.get();
-        shaderSet.tonemapVS        = tonemapVSAsset.get();
-        shaderSet.tonemapPS        = tonemapPSAsset.get();
-        shaderSet.shadowStaticVS   = shadowStaticVSAsset.get();
-        shaderSet.shadowSkeletalVS = shadowSkeletalVSAsset.get();
-        shaderSet.shadowPS         = shadowPSAsset.get();
-        shaderSet.lightingPS       = lightingPSAsset.get();
-        shaderSet.motionBlurPS     = motionBlurPSAsset.get();
-        shaderSet.fogPS            = fogPSAsset.get();
-        shaderSet.sphereColorGradePS = sphereColorGradePSAsset.get();
-        shaderSet.bloomPrefilterPS  = bloomPrefilterPSAsset.get();
-        shaderSet.bloomDownsamplePS = bloomDownsamplePSAsset.get();
-        shaderSet.bloomUpsamplePS   = bloomUpsamplePSAsset.get();
-        shaderSet.ambientParticleVS = ambientParticleVSAsset.get();
-        shaderSet.ambientParticlePS = ambientParticlePSAsset.get();
-        shaderSet.iblIrradiancePS         = iblIrradiancePSAsset.get();
-        shaderSet.iblSpecularPrefilterPS  = iblSpecularPrefilterPSAsset.get();
-        shaderSet.iblBRDFLUTPS            = iblBRDFLUTPSAsset.get();
+        shaderSet.debugVS                = debugVsAsset.get();
+        shaderSet.debugPS                = debugPsAsset.get();
+        shaderSet.tonemapVS              = tonemapVSAsset.get();
+        shaderSet.tonemapPS              = tonemapPSAsset.get();
+        shaderSet.shadowStaticVS         = shadowStaticVSAsset.get();
+        shaderSet.shadowSkeletalVS       = shadowSkeletalVSAsset.get();
+        shaderSet.shadowPS               = shadowPSAsset.get();
+        shaderSet.lightingPS             = lightingPSAsset.get();
+        shaderSet.motionBlurPS           = motionBlurPSAsset.get();
+        shaderSet.fogPS                  = fogPSAsset.get();
+        shaderSet.sphereColorGradePS     = sphereColorGradePSAsset.get();
+        shaderSet.bloomPrefilterPS       = bloomPrefilterPSAsset.get();
+        shaderSet.bloomDownsamplePS      = bloomDownsamplePSAsset.get();
+        shaderSet.bloomUpsamplePS        = bloomUpsamplePSAsset.get();
+        shaderSet.ambientParticleVS      = ambientParticleVSAsset.get();
+        shaderSet.ambientParticlePS      = ambientParticlePSAsset.get();
+        shaderSet.iblIrradiancePS        = iblIrradiancePSAsset.get();
+        shaderSet.iblSpecularPrefilterPS = iblSpecularPrefilterPSAsset.get();
+        shaderSet.iblBRDFLUTPS           = iblBRDFLUTPSAsset.get();
 
-        if(!m_renderer->Initialize(Tsukino::Renderer::NativeWindow{m_window->GetNativeHandle()}, m_window->GetWidth(), m_window->GetHeight(), shaderSet,
-                                   deviceOptions)) {
+        if(!m_renderer->Initialize(
+               Tsukino::Renderer::NativeWindow{m_window->GetNativeHandle()}, m_window->GetWidth(), m_window->GetHeight(), shaderSet, deviceOptions)) {
             return false;
         }
 

@@ -29,14 +29,12 @@ namespace Tsukino::Asset {
         //! @note  GPU へ送ったあとは読まないので、Renderer が転送の直後に呼ぶ。
         //!        CPU 側に残し続けると、GPU と同じ量のメモリを二重に使うことになる
         //--------------------------------------------------------------
-        void ReleasePixels() {
-            std::vector<uint8_t>().swap(pixels);
-        }
+        void ReleasePixels() { std::vector<uint8_t>().swap(pixels); }
 
-        uint32_t             width  = 0;                      // テクスチャの幅
-        uint32_t             height = 0;                      // テクスチャの高さ
+        uint32_t                               width  = 0;                                                  // テクスチャの幅
+        uint32_t                               height = 0;                                                  // テクスチャの高さ
         Tsukino::GraphicsCommon::TextureFormat format = Tsukino::GraphicsCommon::TextureFormat::Unknown;    // テクスチャのフォーマット
-        std::vector<uint8_t> pixels;                          // テクスチャのピクセルデータ。最上段から順に全段を詰めて持つ
+        std::vector<uint8_t>                   pixels;    // テクスチャのピクセルデータ。最上段から順に全段を詰めて持つ
 
         //! ミップマップ1段ぶんの、pixels内の位置と1行のバイト数
         struct MipLevel {

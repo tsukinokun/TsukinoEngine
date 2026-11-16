@@ -71,8 +71,13 @@ namespace Tsukino::Renderer::EffekseerBgfx {
     //------------------------------------------------------------------------
     //! シェーダーを作ります。
     //------------------------------------------------------------------------
-    Shader::Shader(const char* vsName, const char* psName, const Effekseer::Backend::VertexLayoutRef& layout, const char* vsUniform,
-                   u16 vsVec4Count, const char* psUniform, u16 psVec4Count)
+    Shader::Shader(const char*                                vsName,
+                   const char*                                psName,
+                   const Effekseer::Backend::VertexLayoutRef& layout,
+                   const char*                                vsUniform,
+                   u16                                        vsVec4Count,
+                   const char*                                psUniform,
+                   u16                                        psVec4Count)
         : m_vsData(static_cast<size_t>(vsVec4Count) * 4, 0.0f)
         , m_psData(static_cast<size_t>(psVec4Count) * 4, 0.0f) {
         m_program = LoadBuiltInBgfxProgram(vsName, psName);
@@ -124,7 +129,8 @@ namespace Tsukino::Renderer::EffekseerBgfx {
     //! 描画ステートを作ります。
     //------------------------------------------------------------------------
     RenderState::RenderState(bool reversedDepth)
-        : m_reversedDepth(reversedDepth) {}
+        : m_reversedDepth(reversedDepth) {
+    }
 
     //------------------------------------------------------------------------
     //! 次のステートを今のステートにします。
@@ -145,27 +151,26 @@ namespace Tsukino::Renderer::EffekseerBgfx {
         // 合成
         //--------------------------------------------------------------------
         switch(active_.AlphaBlend) {
-            case Effekseer::AlphaBlendType::Opacity:
-                state |= BGFX_STATE_BLEND_FUNC_SEPARATE(BGFX_STATE_BLEND_ONE, BGFX_STATE_BLEND_ZERO, BGFX_STATE_BLEND_ONE, BGFX_STATE_BLEND_ONE)
-                         | BGFX_STATE_BLEND_EQUATION_SEPARATE(BGFX_STATE_BLEND_EQUATION_ADD, BGFX_STATE_BLEND_EQUATION_MAX);
-                break;
-            case Effekseer::AlphaBlendType::Blend:
-                state |= BGFX_STATE_BLEND_FUNC_SEPARATE(BGFX_STATE_BLEND_SRC_ALPHA, BGFX_STATE_BLEND_INV_SRC_ALPHA, BGFX_STATE_BLEND_ONE,
-                                                        BGFX_STATE_BLEND_ONE)
-                         | BGFX_STATE_BLEND_EQUATION_SEPARATE(BGFX_STATE_BLEND_EQUATION_ADD, BGFX_STATE_BLEND_EQUATION_MAX);
-                break;
-            case Effekseer::AlphaBlendType::Add:
-                state |= BGFX_STATE_BLEND_FUNC_SEPARATE(BGFX_STATE_BLEND_SRC_ALPHA, BGFX_STATE_BLEND_ONE, BGFX_STATE_BLEND_ONE, BGFX_STATE_BLEND_ONE)
-                         | BGFX_STATE_BLEND_EQUATION_SEPARATE(BGFX_STATE_BLEND_EQUATION_ADD, BGFX_STATE_BLEND_EQUATION_MAX);
-                break;
-            case Effekseer::AlphaBlendType::Sub:
-                state |= BGFX_STATE_BLEND_FUNC_SEPARATE(BGFX_STATE_BLEND_SRC_ALPHA, BGFX_STATE_BLEND_ONE, BGFX_STATE_BLEND_ZERO, BGFX_STATE_BLEND_ONE)
-                         | BGFX_STATE_BLEND_EQUATION_SEPARATE(BGFX_STATE_BLEND_EQUATION_REVSUB, BGFX_STATE_BLEND_EQUATION_ADD);
-                break;
-            case Effekseer::AlphaBlendType::Mul:
-                state |= BGFX_STATE_BLEND_FUNC_SEPARATE(BGFX_STATE_BLEND_ZERO, BGFX_STATE_BLEND_SRC_COLOR, BGFX_STATE_BLEND_ZERO, BGFX_STATE_BLEND_ONE)
-                         | BGFX_STATE_BLEND_EQUATION_SEPARATE(BGFX_STATE_BLEND_EQUATION_ADD, BGFX_STATE_BLEND_EQUATION_ADD);
-                break;
+        case Effekseer::AlphaBlendType::Opacity:
+            state |= BGFX_STATE_BLEND_FUNC_SEPARATE(BGFX_STATE_BLEND_ONE, BGFX_STATE_BLEND_ZERO, BGFX_STATE_BLEND_ONE, BGFX_STATE_BLEND_ONE)
+                     | BGFX_STATE_BLEND_EQUATION_SEPARATE(BGFX_STATE_BLEND_EQUATION_ADD, BGFX_STATE_BLEND_EQUATION_MAX);
+            break;
+        case Effekseer::AlphaBlendType::Blend:
+            state |= BGFX_STATE_BLEND_FUNC_SEPARATE(BGFX_STATE_BLEND_SRC_ALPHA, BGFX_STATE_BLEND_INV_SRC_ALPHA, BGFX_STATE_BLEND_ONE, BGFX_STATE_BLEND_ONE)
+                     | BGFX_STATE_BLEND_EQUATION_SEPARATE(BGFX_STATE_BLEND_EQUATION_ADD, BGFX_STATE_BLEND_EQUATION_MAX);
+            break;
+        case Effekseer::AlphaBlendType::Add:
+            state |= BGFX_STATE_BLEND_FUNC_SEPARATE(BGFX_STATE_BLEND_SRC_ALPHA, BGFX_STATE_BLEND_ONE, BGFX_STATE_BLEND_ONE, BGFX_STATE_BLEND_ONE)
+                     | BGFX_STATE_BLEND_EQUATION_SEPARATE(BGFX_STATE_BLEND_EQUATION_ADD, BGFX_STATE_BLEND_EQUATION_MAX);
+            break;
+        case Effekseer::AlphaBlendType::Sub:
+            state |= BGFX_STATE_BLEND_FUNC_SEPARATE(BGFX_STATE_BLEND_SRC_ALPHA, BGFX_STATE_BLEND_ONE, BGFX_STATE_BLEND_ZERO, BGFX_STATE_BLEND_ONE)
+                     | BGFX_STATE_BLEND_EQUATION_SEPARATE(BGFX_STATE_BLEND_EQUATION_REVSUB, BGFX_STATE_BLEND_EQUATION_ADD);
+            break;
+        case Effekseer::AlphaBlendType::Mul:
+            state |= BGFX_STATE_BLEND_FUNC_SEPARATE(BGFX_STATE_BLEND_ZERO, BGFX_STATE_BLEND_SRC_COLOR, BGFX_STATE_BLEND_ZERO, BGFX_STATE_BLEND_ONE)
+                     | BGFX_STATE_BLEND_EQUATION_SEPARATE(BGFX_STATE_BLEND_EQUATION_ADD, BGFX_STATE_BLEND_EQUATION_ADD);
+            break;
         }
 
         //--------------------------------------------------------------------
@@ -203,9 +208,14 @@ namespace Tsukino::Renderer::EffekseerBgfx {
             flags |= BGFX_SAMPLER_MIN_POINT | BGFX_SAMPLER_MAG_POINT;
 
         switch(active_.TextureWrapTypes[slot]) {
-            case Effekseer::TextureWrapType::Clamp:  flags |= BGFX_SAMPLER_U_CLAMP | BGFX_SAMPLER_V_CLAMP; break;
-            case Effekseer::TextureWrapType::Mirror: flags |= BGFX_SAMPLER_U_MIRROR | BGFX_SAMPLER_V_MIRROR; break;
-            default:                                 break;
+        case Effekseer::TextureWrapType::Clamp:
+            flags |= BGFX_SAMPLER_U_CLAMP | BGFX_SAMPLER_V_CLAMP;
+            break;
+        case Effekseer::TextureWrapType::Mirror:
+            flags |= BGFX_SAMPLER_U_MIRROR | BGFX_SAMPLER_V_MIRROR;
+            break;
+        default:
+            break;
         }
         return flags;
     }
@@ -263,19 +273,38 @@ namespace Tsukino::Renderer::EffekseerBgfx {
         using EffekseerRenderer::RendererShaderType;
         const auto layout = [this](RendererShaderType type) { return EffekseerRenderer::GetVertexLayout(m_graphicsDevice, type); };
 
-        auto unlit        = std::make_unique<Shader>("Effekseer/SpriteUnlit.vs", "Effekseer/Unlit.ps", layout(RendererShaderType::Unlit), "u_efkSpriteVS",
-                                              kSpriteVSVec4Count, "u_efkPS", kPSVec4Count);
-        auto lit          = std::make_unique<Shader>("Effekseer/SpriteLit.vs", "Effekseer/Lit.ps", layout(RendererShaderType::Lit), "u_efkSpriteVS",
-                                            kSpriteVSVec4Count, "u_efkPS", kPSVec4Count);
-        auto distortion   = std::make_unique<Shader>("Effekseer/SpriteDistortion.vs", "Effekseer/Distortion.ps", layout(RendererShaderType::BackDistortion),
-                                                   "u_efkSpriteVS", kSpriteVSVec4Count, "u_efkDistPS", kDistortionPSVec4Count);
-        auto adUnlit      = std::make_unique<Shader>("Effekseer/SpriteAdUnlit.vs", "Effekseer/AdUnlit.ps", layout(RendererShaderType::AdvancedUnlit),
-                                                "u_efkSpriteVS", kSpriteVSVec4Count, "u_efkPS", kPSVec4Count);
-        auto adLit        = std::make_unique<Shader>("Effekseer/SpriteAdLit.vs", "Effekseer/AdLit.ps", layout(RendererShaderType::AdvancedLit),
-                                              "u_efkSpriteVS", kSpriteVSVec4Count, "u_efkPS", kPSVec4Count);
-        auto adDistortion = std::make_unique<Shader>("Effekseer/SpriteAdDistortion.vs", "Effekseer/AdDistortion.ps",
-                                                     layout(RendererShaderType::AdvancedBackDistortion), "u_efkSpriteVS", kSpriteVSVec4Count,
-                                                     "u_efkDistPS", kDistortionPSVec4Count);
+        auto unlit = std::make_unique<Shader>(
+            "Effekseer/SpriteUnlit.vs", "Effekseer/Unlit.ps", layout(RendererShaderType::Unlit), "u_efkSpriteVS", kSpriteVSVec4Count, "u_efkPS", kPSVec4Count);
+        auto lit = std::make_unique<Shader>(
+            "Effekseer/SpriteLit.vs", "Effekseer/Lit.ps", layout(RendererShaderType::Lit), "u_efkSpriteVS", kSpriteVSVec4Count, "u_efkPS", kPSVec4Count);
+        auto distortion   = std::make_unique<Shader>("Effekseer/SpriteDistortion.vs",
+                                                     "Effekseer/Distortion.ps",
+                                                     layout(RendererShaderType::BackDistortion),
+                                                     "u_efkSpriteVS",
+                                                     kSpriteVSVec4Count,
+                                                     "u_efkDistPS",
+                                                     kDistortionPSVec4Count);
+        auto adUnlit      = std::make_unique<Shader>("Effekseer/SpriteAdUnlit.vs",
+                                                     "Effekseer/AdUnlit.ps",
+                                                     layout(RendererShaderType::AdvancedUnlit),
+                                                     "u_efkSpriteVS",
+                                                     kSpriteVSVec4Count,
+                                                     "u_efkPS",
+                                                     kPSVec4Count);
+        auto adLit        = std::make_unique<Shader>("Effekseer/SpriteAdLit.vs",
+                                                     "Effekseer/AdLit.ps",
+                                                     layout(RendererShaderType::AdvancedLit),
+                                                     "u_efkSpriteVS",
+                                                     kSpriteVSVec4Count,
+                                                     "u_efkPS",
+                                                     kPSVec4Count);
+        auto adDistortion = std::make_unique<Shader>("Effekseer/SpriteAdDistortion.vs",
+                                                     "Effekseer/AdDistortion.ps",
+                                                     layout(RendererShaderType::AdvancedBackDistortion),
+                                                     "u_efkSpriteVS",
+                                                     kSpriteVSVec4Count,
+                                                     "u_efkDistPS",
+                                                     kDistortionPSVec4Count);
         for(const Shader* shader : {unlit.get(), lit.get(), distortion.get(), adUnlit.get(), adLit.get(), adDistortion.get()}) {
             if(!shader->IsValid()) {
                 Tsukino::Core::Log::Error("Effekseer (bgfx): The sprite shaders could not be loaded; effects are not drawn.");
@@ -293,8 +322,7 @@ namespace Tsukino::Renderer::EffekseerBgfx {
         //--------------------------------------------------------------------
         // テクスチャのサンプラー（シェーダーは s_efkTex0〜7 をステージ 0〜7 に置く）
         //--------------------------------------------------------------------
-        for(size_t i = 0; i < m_samplers.size(); ++i)
-            m_samplers[i] = bgfx::createUniform(("s_efkTex" + std::to_string(i)).c_str(), bgfx::UniformType::Sampler);
+        for(size_t i = 0; i < m_samplers.size(); ++i) m_samplers[i] = bgfx::createUniform(("s_efkTex" + std::to_string(i)).c_str(), bgfx::UniformType::Sampler);
 
         m_standardRenderer = std::make_unique<EffekseerRenderer::StandardRenderer<RendererImplemented, Shader>>(this);
 
@@ -409,7 +437,8 @@ namespace Tsukino::Renderer::EffekseerBgfx {
     //------------------------------------------------------------------------
     //! 頂点形式を設定します（頂点形式はシェーダーが持っているので、描くときに使う）。
     //------------------------------------------------------------------------
-    void RendererImplemented::SetLayout(Shader* /*shader*/) {}
+    void RendererImplemented::SetLayout(Shader* /*shader*/) {
+    }
 
     //------------------------------------------------------------------------
     //! 四角を並べて描きます。

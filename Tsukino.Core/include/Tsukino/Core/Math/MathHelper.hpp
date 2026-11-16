@@ -66,7 +66,7 @@ namespace Tsukino::Core::Math {
     //! @return q0からq1への、常に近い方の経路で補間した向き
     //--------------------------------------------------------------
     [[nodiscard]] inline hlslpp::quaternion SlerpShortestPath(const hlslpp::quaternion& q0, const hlslpp::quaternion& q1, float t) {
-        float rotDot = q0.x * q1.x + q0.y * q1.y + q0.z * q1.z + q0.w * q1.w;
+        float              rotDot     = q0.x * q1.x + q0.y * q1.y + q0.z * q1.z + q0.w * q1.w;
         hlslpp::quaternion q1Shortest = (rotDot < 0.0f) ? hlslpp::quaternion(-q1.x, -q1.y, -q1.z, -q1.w) : q1;
         return hlslpp::slerp(q0, q1Shortest, t);
     }

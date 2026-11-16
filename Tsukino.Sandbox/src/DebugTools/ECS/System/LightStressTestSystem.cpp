@@ -118,11 +118,12 @@ namespace Tsukino::Sandbox::DebugTools::ECS {
         auto hudView = registry.View<LightStressTestHudComponent, Tsukino::BuiltIn::ECS::FontComponent>();
         hudView.each([&](entt::entity entity, const LightStressTestHudComponent&, Tsukino::BuiltIn::ECS::FontComponent& font) {
             char buf[128]{};
-            std::snprintf(buf, sizeof(buf),
-                       "[F1] PointLights: %d   %.2f ms (%.0f fps)",
-                       kLightCountSteps[m_stepIndex],
-                       m_avgFrameMs,
-                       (m_avgFrameMs > 0.0f) ? (1000.0f / m_avgFrameMs) : 0.0f);
+            std::snprintf(buf,
+                          sizeof(buf),
+                          "[F1] PointLights: %d   %.2f ms (%.0f fps)",
+                          kLightCountSteps[m_stepIndex],
+                          m_avgFrameMs,
+                          (m_avgFrameMs > 0.0f) ? (1000.0f / m_avgFrameMs) : 0.0f);
             font.text = buf;
         });
     }

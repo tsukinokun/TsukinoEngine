@@ -37,8 +37,19 @@ namespace Tsukino::BuiltIn::ECS {
     //--------------------------------------------------------------
     template <class Archive>
     void load(Archive& archive, RigidbodyComponent& rb) {
-        archive(rb.type, rb.mass, rb.friction, rb.restitution, rb.gravityFactor, rb.linearVelocity, rb.angularVelocity, rb.freezePositionX,
-                rb.freezePositionY, rb.freezePositionZ, rb.freezeRotationX, rb.freezeRotationY, rb.freezeRotationZ);
+        archive(rb.type,
+                rb.mass,
+                rb.friction,
+                rb.restitution,
+                rb.gravityFactor,
+                rb.linearVelocity,
+                rb.angularVelocity,
+                rb.freezePositionX,
+                rb.freezePositionY,
+                rb.freezePositionZ,
+                rb.freezeRotationX,
+                rb.freezeRotationY,
+                rb.freezeRotationZ);
 
         // ロード時は必ず初期化未完了状態にする
         rb.isInitialized = false;

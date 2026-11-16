@@ -74,8 +74,8 @@ namespace Tsukino::Engine::ECS::Prefab {
         //--------------------------------------------------------------
         // コピーおよびムーブの制御（意図しない不正コピーを防ぐ）
         //--------------------------------------------------------------
-        PrefabFactory(const PrefabFactory&)            = delete;
-        PrefabFactory& operator=(const PrefabFactory&) = delete;
+        PrefabFactory(const PrefabFactory&)                = delete;
+        PrefabFactory& operator=(const PrefabFactory&)     = delete;
         PrefabFactory(PrefabFactory&&) noexcept            = default;
         PrefabFactory& operator=(PrefabFactory&&) noexcept = default;
 
@@ -125,7 +125,8 @@ namespace Tsukino::Engine::ECS::Prefab {
             // セーブ対応型（save()が定義されている型）のみ、ラウンドトリップ保存用の関数も登録する
             //--------------------------------------------------------------
             if constexpr(cereal::traits::is_output_serializable<ComponentType, cereal::JSONOutputArchive>::value) {
-                m_savers[typeName] = [typeName](Tsukino::ECS::Registry& registry, entt::entity entity, const std::string& outDir, std::string& outPath) -> bool {
+                m_savers[typeName] = [typeName](
+                                         Tsukino::ECS::Registry& registry, entt::entity entity, const std::string& outDir, std::string& outPath) -> bool {
                     if(!registry.HasComponent<ComponentType>(entity)) {
                         return false;
                     }
@@ -164,9 +165,7 @@ namespace Tsukino::Engine::ECS::Prefab {
         //! @brief     AssetRefフィールドの解決に使うAssetManagerを設定する
         //! @param     assetManager [in] パスからアセットハンドルを解決するために使うAssetManager
         //--------------------------------------------------------------
-        void SetAssetManager(Tsukino::Asset::AssetManager* assetManager) {
-            m_assetManager = assetManager;
-        }
+        void SetAssetManager(Tsukino::Asset::AssetManager* assetManager) { m_assetManager = assetManager; }
 
         //--------------------------------------------------------------
         //! @brief     生成済みエンティティの指定コンポーネントを、任意の値で上書きする
@@ -203,7 +202,7 @@ namespace Tsukino::Engine::ECS::Prefab {
         //--------------------------------------------------------------
         [[nodiscard]]
         PrefabInstance InstantiateGroup(const std::vector<GroupEntry>& entries, Tsukino::ECS::Registry& registry) {
-            PrefabInstance                                              instance;
+            PrefabInstance                                             instance;
             std::unordered_map<entt::entity, std::vector<std::string>> attachedTypesByEntity;
 
             //--------------------------------------------------------------
@@ -218,7 +217,7 @@ namespace Tsukino::Engine::ECS::Prefab {
                     continue;
                 }
 
-                instance[entry.name]         = entity;
+                instance[entry.name]          = entity;
                 attachedTypesByEntity[entity] = std::move(typeNames);
             }
 

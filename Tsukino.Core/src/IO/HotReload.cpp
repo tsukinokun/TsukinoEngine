@@ -34,7 +34,7 @@ namespace Tsukino::IO::HotReload {
         //-------------------------------------------------------------
         struct State {
             FileWatcher       watcher;
-            std::atomic<bool> paused{ false };
+            std::atomic<bool> paused{false};
         };
 
         State& GetState() {
@@ -99,8 +99,8 @@ namespace Tsukino::IO::HotReload {
             if(before->IsArray() && after->IsArray()) {
                 const Json::SizeType count = std::max(before->Size(), after->Size());
                 for(Json::SizeType i = 0; i < count; ++i) {
-                    CollectDiff(path + "[" + std::to_string(i) + "]", i < before->Size() ? &(*before)[i] : nullptr,
-                                i < after->Size() ? &(*after)[i] : nullptr, lines);
+                    CollectDiff(
+                        path + "[" + std::to_string(i) + "]", i < before->Size() ? &(*before)[i] : nullptr, i < after->Size() ? &(*after)[i] : nullptr, lines);
                 }
                 return;
             }
@@ -136,8 +136,7 @@ namespace Tsukino::IO::HotReload {
                 Tsukino::Core::Log::Info("Hot reload changed: " + fileName + "  (no value changed)");
                 return;
             }
-            for(size_t i = 0; i < lines.size() && i < kMaxDiffLines; ++i)
-                Tsukino::Core::Log::Info("Hot reload changed: " + fileName + "  " + lines[i]);
+            for(size_t i = 0; i < lines.size() && i < kMaxDiffLines; ++i) Tsukino::Core::Log::Info("Hot reload changed: " + fileName + "  " + lines[i]);
             if(lines.size() > kMaxDiffLines)
                 Tsukino::Core::Log::Info("Hot reload changed: " + fileName + "  ... and " + std::to_string(lines.size() - kMaxDiffLines) + " more");
         }
@@ -179,8 +178,11 @@ namespace Tsukino::IO::HotReload {
         GetState().paused.store(paused);
     }
 #else
-    void Watch(const Tsukino::Core::Path& /*path*/, std::function<bool()> /*reload*/) {}
-    void Poll() {}
-    void SetPaused(bool /*paused*/) {}
+    void Watch(const Tsukino::Core::Path& /*path*/, std::function<bool()> /*reload*/) {
+    }
+    void Poll() {
+    }
+    void SetPaused(bool /*paused*/) {
+    }
 #endif
 }    // namespace Tsukino::IO::HotReload

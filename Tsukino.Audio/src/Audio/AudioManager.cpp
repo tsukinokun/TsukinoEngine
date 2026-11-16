@@ -29,8 +29,8 @@ namespace Tsukino::Audio {
 
         //! 開いているファイル1つ
         struct MemoryFile {
-            std::vector<u8> data;        //!< ファイルの中身
-            size_t          cursor = 0;  //!< 次に読む位置
+            std::vector<u8> data;          //!< ファイルの中身
+            size_t          cursor = 0;    //!< 次に読む位置
         };
 
         //! miniaudio へ渡す VFS（先頭が ma_vfs_callbacks であること）
@@ -129,10 +129,10 @@ namespace Tsukino::Audio {
         //! @brief  再生中の音1つぶん。どのアセットの音かを覚えておき、Stop / IsPlaying で引き当てる
         //--------------------------------------------------------------
         struct PlayingSound {
-            std::string               filePath;          //!< 鳴らしているファイル（AudioAsset::filePath）
-            std::unique_ptr<ma_sound> sound;             //!< miniaudio の音（初期化した後は動かせないので、ヒープに置く）
-            float                     volume = 1.0f;     //!< Play・SetVolume で指定された音量（バスの音量を掛ける前）
-            AudioBus                  bus    = 0;        //!< 属するバス
+            std::string               filePath;         //!< 鳴らしているファイル（AudioAsset::filePath）
+            std::unique_ptr<ma_sound> sound;            //!< miniaudio の音（初期化した後は動かせないので、ヒープに置く）
+            float                     volume = 1.0f;    //!< Play・SetVolume で指定された音量（バスの音量を掛ける前）
+            AudioBus                  bus    = 0;       //!< 属するバス
         };
 
         EngineVfs vfs{};    //!< ファイルの読み込み（engine より先に作り、後に壊す）
@@ -154,7 +154,7 @@ namespace Tsukino::Audio {
         bool Initialize() {
             vfs.callbacks = {VfsOpen, VfsOpenW, VfsClose, VfsRead, VfsWrite, VfsSeek, VfsTell, VfsInfo};
 
-            ma_engine_config config  = ma_engine_config_init();
+            ma_engine_config config    = ma_engine_config_init();
             config.pResourceManagerVFS = &vfs;
             if(ma_engine_init(&config, &engine) != MA_SUCCESS) {
                 Tsukino::Core::Log::Error("AudioManager: Failed to initialize the audio engine.");
@@ -175,15 +175,12 @@ namespace Tsukino::Audio {
         //! @brief 後始末（音 → バス → エンジンの順）
         //--------------------------------------------------------------
         ~AudioContext() {
-            for(PlayingSound& sound : playing)
-                ma_sound_uninit(sound.sound.get());
+            for(PlayingSound& sound : playing) ma_sound_uninit(sound.sound.get());
             playing.clear();
-            for(auto& [path, sound] : prepared)
-                ma_sound_uninit(sound.get());
+            for(auto& [path, sound] : prepared) ma_sound_uninit(sound.get());
             prepared.clear();
             if(engineReady) {
-                for(ma_sound_group& bus : buses)
-                    ma_sound_group_uninit(&bus);
+                for(ma_sound_group& bus : buses) ma_sound_group_uninit(&bus);
                 ma_engine_uninit(&engine);
             }
         }
@@ -227,8 +224,7 @@ namespace Tsukino::Audio {
         }
 
         SetMasterVolume(m_masterVolume);
-        for(AudioBus bus = 0; bus < kAudioBusCount; ++bus)
-            SetBusVolume(bus, m_busVolumes[bus]);
+        for(AudioBus bus = 0; bus < kAudioBusCount; ++bus) SetBusVolume(bus, m_busVolumes[bus]);
         return true;
     }
 
@@ -255,8 +251,8 @@ namespace Tsukino::Audio {
         // 1回の再生ごとに音を作る（同じ音を重ねて鳴らせるように）。
         // 中身は miniaudio がファイルごとに共有するので、Prepare 済みならすぐに作れる
         auto sound = std::make_unique<ma_sound>();
-        if(ma_sound_init_from_file(&m_audioContext->engine, audioAsset.filePath.c_str(), SoundFlags(audioAsset.filePath),
-                                   &m_audioContext->buses[bus], nullptr, sound.get())
+        if(ma_sound_init_from_file(
+               &m_audioContext->engine, audioAsset.filePath.c_str(), SoundFlags(audioAsset.filePath), &m_audioContext->buses[bus], nullptr, sound.get())
            != MA_SUCCESS) {
             Tsukino::Core::Log::Error("AudioManager::Play - Failed to open: " + audioAsset.filePath);
             return;
@@ -279,8 +275,8 @@ namespace Tsukino::Audio {
 
         // 鳴らさない音を1つ作って持っておく。読み込みは miniaudio の裏のスレッドで進む
         auto sound = std::make_unique<ma_sound>();
-        if(ma_sound_init_from_file(&m_audioContext->engine, audioAsset.filePath.c_str(), SoundFlags(audioAsset.filePath) | MA_SOUND_FLAG_ASYNC,
-                                   nullptr, nullptr, sound.get())
+        if(ma_sound_init_from_file(
+               &m_audioContext->engine, audioAsset.filePath.c_str(), SoundFlags(audioAsset.filePath) | MA_SOUND_FLAG_ASYNC, nullptr, nullptr, sound.get())
            != MA_SUCCESS) {
             Tsukino::Core::Log::Error("AudioManager::Prepare - Failed to open: " + audioAsset.filePath);
             return;
@@ -326,8 +322,7 @@ namespace Tsukino::Audio {
         if(!m_audioContext)
             return;
 
-        for(AudioContext::PlayingSound& sound : m_audioContext->playing)
-            ma_sound_uninit(sound.sound.get());
+        for(AudioContext::PlayingSound& sound : m_audioContext->playing) ma_sound_uninit(sound.sound.get());
         m_audioContext->playing.clear();
     }
 

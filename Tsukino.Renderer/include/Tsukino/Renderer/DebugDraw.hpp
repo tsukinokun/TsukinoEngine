@@ -24,7 +24,6 @@ namespace Tsukino::Renderer {
     //------------------------------------------------------------------------
     class DebugDraw {
     public:
-
         //! 線を1本積みます。
         //! @param  [in] v1 始点
         //! @param  [in] v2 終点

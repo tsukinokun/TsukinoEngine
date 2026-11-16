@@ -30,8 +30,7 @@ namespace Tsukino::Renderer {
         constexpr u64 kOpaqueState = BGFX_STATE_WRITE_RGB | BGFX_STATE_WRITE_A;
 
         //! 足して描くステート（SrcAlpha / One）
-        constexpr u64 kAdditiveState = BGFX_STATE_WRITE_RGB | BGFX_STATE_WRITE_A
-                                       | BGFX_STATE_BLEND_FUNC(BGFX_STATE_BLEND_SRC_ALPHA, BGFX_STATE_BLEND_ONE);
+        constexpr u64 kAdditiveState = BGFX_STATE_WRITE_RGB | BGFX_STATE_WRITE_A | BGFX_STATE_BLEND_FUNC(BGFX_STATE_BLEND_SRC_ALPHA, BGFX_STATE_BLEND_ONE);
     }    // namespace
 
     //------------------------------------------------------------------------
@@ -66,7 +65,8 @@ namespace Tsukino::Renderer {
     //! 資源を持たない状態で作ります。
     //------------------------------------------------------------------------
     BloomPass::BloomPass()
-        : m_gpu(std::make_unique<Gpu>()) {}
+        : m_gpu(std::make_unique<Gpu>()) {
+    }
 
     //------------------------------------------------------------------------
     //! 資源を破棄します。
@@ -76,8 +76,11 @@ namespace Tsukino::Renderer {
     //------------------------------------------------------------------------
     //! ユニフォームとプログラムを作成します。
     //------------------------------------------------------------------------
-    bool BloomPass::Initialize(GraphicsContext& graphicsContext, RenderResources& resources, const FullscreenPass& fullscreenPass,
-                               const Tsukino::Asset::ShaderAsset* prefilterPS, const Tsukino::Asset::ShaderAsset* downsamplePS,
+    bool BloomPass::Initialize(GraphicsContext&                   graphicsContext,
+                               RenderResources&                   resources,
+                               const FullscreenPass&              fullscreenPass,
+                               const Tsukino::Asset::ShaderAsset* prefilterPS,
+                               const Tsukino::Asset::ShaderAsset* downsamplePS,
                                const Tsukino::Asset::ShaderAsset* upsamplePS) {
         m_graphicsContext = &graphicsContext;
         m_resources       = &resources;
@@ -124,8 +127,8 @@ namespace Tsukino::Renderer {
             // そのまま持ち運ぶので、8bit では足りない
             //--------------------------------------------------------------
             Gpu::MipTarget& mip = m_gpu->mips[i];
-            mip.texture         = bgfx::createTexture2D(static_cast<u16>(mipWidth), static_cast<u16>(mipHeight), false, 1,
-                                                        bgfx::TextureFormat::RGBA16F, BGFX_TEXTURE_RT | kLinearClamp);
+            mip.texture         = bgfx::createTexture2D(
+                static_cast<u16>(mipWidth), static_cast<u16>(mipHeight), false, 1, bgfx::TextureFormat::RGBA16F, BGFX_TEXTURE_RT | kLinearClamp);
             if(bgfx::isValid(mip.texture))
                 mip.frameBuffer = bgfx::createFrameBuffer(1, &mip.texture, false);
             if(!bgfx::isValid(mip.texture) || !bgfx::isValid(mip.frameBuffer)) {
@@ -139,7 +142,7 @@ namespace Tsukino::Renderer {
             mip.height = static_cast<u16>(mipHeight);
             ++m_mipCount;
 
-            mipWidth /= 2;
+            mipWidth  /= 2;
             mipHeight /= 2;
         }
 
@@ -160,8 +163,16 @@ namespace Tsukino::Renderer {
             return;
 
         // 定数を送ってフルスクリーン三角形を1枚描く。読む絵の大きさから1テクセルの幅を決める
-        const auto draw = [this](bgfx::ViewId view, bgfx::FrameBufferHandle target, u32 targetWidth, u32 targetHeight, bgfx::TextureHandle source,
-                                 u32 sourceWidth, u32 sourceHeight, bgfx::ProgramHandle program, u64 state, CBufferBloom data) {
+        const auto draw = [this](bgfx::ViewId            view,
+                                 bgfx::FrameBufferHandle target,
+                                 u32                     targetWidth,
+                                 u32                     targetHeight,
+                                 bgfx::TextureHandle     source,
+                                 u32                     sourceWidth,
+                                 u32                     sourceHeight,
+                                 bgfx::ProgramHandle     program,
+                                 u64                     state,
+                                 CBufferBloom            data) {
             data.texelSizeX = 1.0f / static_cast<float>(sourceWidth);
             data.texelSizeY = 1.0f / static_cast<float>(sourceHeight);
 
@@ -181,23 +192,30 @@ namespace Tsukino::Renderer {
         data.radius    = m_params.radius;
 
         // モーションブラーが中間バッファへ書いた後なら、読むのも足し戻すのも中間バッファ。そうでなければ HDR バッファ
-        const bgfx::TextureHandle     scene       = sourceIsPostProcess ? m_graphicsContext->GetPostProcessTexture() : m_graphicsContext->GetHdrTexture();
-        const bgfx::FrameBufferHandle sceneTarget = sourceIsPostProcess ? m_graphicsContext->GetPostProcessFrameBuffer()
-                                                                        : m_graphicsContext->GetHdrColorFrameBuffer();
+        const bgfx::TextureHandle     scene = sourceIsPostProcess ? m_graphicsContext->GetPostProcessTexture() : m_graphicsContext->GetHdrTexture();
+        const bgfx::FrameBufferHandle sceneTarget =
+            sourceIsPostProcess ? m_graphicsContext->GetPostProcessFrameBuffer() : m_graphicsContext->GetHdrColorFrameBuffer();
 
         //----------------------------------------------------------
         // 1) 明部抽出 + 1/2 へ縮小（シーン → mip0）
         //----------------------------------------------------------
-        draw(BgfxView::BloomPrefilter, mips[0].frameBuffer, mips[0].width, mips[0].height, scene, width, height, m_gpu->prefilterProgram,
-             kOpaqueState, data);
+        draw(BgfxView::BloomPrefilter, mips[0].frameBuffer, mips[0].width, mips[0].height, scene, width, height, m_gpu->prefilterProgram, kOpaqueState, data);
 
         //----------------------------------------------------------
         // 2) 縮小（mip[i-1] → mip[i]）
         //----------------------------------------------------------
         for(u32 i = 1; i < m_mipCount; ++i) {
             const bgfx::ViewId view = static_cast<bgfx::ViewId>(BgfxView::BloomDownsample + (i - 1));
-            draw(view, mips[i].frameBuffer, mips[i].width, mips[i].height, mips[i - 1].texture, mips[i - 1].width, mips[i - 1].height,
-                 m_gpu->downsampleProgram, kOpaqueState, data);
+            draw(view,
+                 mips[i].frameBuffer,
+                 mips[i].width,
+                 mips[i].height,
+                 mips[i - 1].texture,
+                 mips[i - 1].width,
+                 mips[i - 1].height,
+                 m_gpu->downsampleProgram,
+                 kOpaqueState,
+                 data);
         }
 
         //----------------------------------------------------------
@@ -207,8 +225,16 @@ namespace Tsukino::Renderer {
         //----------------------------------------------------------
         for(u32 i = m_mipCount - 1; i > 0; --i) {
             const bgfx::ViewId view = static_cast<bgfx::ViewId>(BgfxView::BloomUpsample + (m_mipCount - 1 - i));
-            draw(view, mips[i - 1].frameBuffer, mips[i - 1].width, mips[i - 1].height, mips[i].texture, mips[i].width, mips[i].height,
-                 m_gpu->upsampleProgram, kAdditiveState, data);
+            draw(view,
+                 mips[i - 1].frameBuffer,
+                 mips[i - 1].width,
+                 mips[i - 1].height,
+                 mips[i].texture,
+                 mips[i].width,
+                 mips[i].height,
+                 m_gpu->upsampleProgram,
+                 kAdditiveState,
+                 data);
         }
 
         //----------------------------------------------------------
@@ -219,8 +245,8 @@ namespace Tsukino::Renderer {
         data.tintR     = m_params.tintR;
         data.tintG     = m_params.tintG;
         data.tintB     = m_params.tintB;
-        draw(BgfxView::BloomComposite, sceneTarget, width, height, mips[0].texture, mips[0].width, mips[0].height,
-             m_gpu->upsampleProgram, kAdditiveState, data);
+        draw(
+            BgfxView::BloomComposite, sceneTarget, width, height, mips[0].texture, mips[0].width, mips[0].height, m_gpu->upsampleProgram, kAdditiveState, data);
     }
 
 }    // namespace Tsukino::Renderer

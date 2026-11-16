@@ -98,9 +98,12 @@ namespace Tsukino::BuiltIn::ECS {
                     const UICanvas       fit      = isUICamera ? canvas : UICanvas::Fit(camera.referenceResolution, hlslpp::float2(screenW, screenH));
                     const hlslpp::float2 topLeft  = fit.ToUI(hlslpp::float2(0.0f, 0.0f));
                     const hlslpp::float2 lowRight = fit.ToUI(hlslpp::float2(screenW, screenH));
-                    camera.projectionMatrix       = Tsukino::Core::Math::matrix::orthographicOffCenterLH(float(topLeft.x), float(lowRight.x),    // Left, Right
-                                                                                                         float(topLeft.y), float(lowRight.y),    // Bottom, Top
-                                                                                                         camera.nearZ, camera.farZ);
+                    camera.projectionMatrix       = Tsukino::Core::Math::matrix::orthographicOffCenterLH(float(topLeft.x),
+                                                                                                         float(lowRight.x),    // Left, Right
+                                                                                                         float(topLeft.y),
+                                                                                                         float(lowRight.y),    // Bottom, Top
+                                                                                                         camera.nearZ,
+                                                                                                         camera.farZ);
 
                 } else {
                     // 自作の perspectiveFovLH を使用

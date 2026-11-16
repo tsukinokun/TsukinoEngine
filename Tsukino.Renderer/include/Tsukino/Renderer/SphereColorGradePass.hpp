@@ -11,7 +11,6 @@
 
 #include <Tsukino/Renderer/ConstantBuffer.hpp>
 
-
 namespace Tsukino::Asset {
     class ShaderAsset;    // 前方宣言
 }
@@ -64,29 +63,26 @@ namespace Tsukino::Renderer {
         //! @param  [in] ps              色調補正用ピクセルシェーダー（VS はフルスクリーン三角形用を共用）
         //! @return true: 作成成功, false: 作成失敗（パスは何もしなくなる）
         [[nodiscard]]
-        bool Initialize(GraphicsContext& graphicsContext, RenderResources& resources, FrameConstants& frameConstants,
-                        const FullscreenPass& fullscreenPass, const Tsukino::Asset::ShaderAsset* ps);
+        bool Initialize(GraphicsContext&                   graphicsContext,
+                        RenderResources&                   resources,
+                        FrameConstants&                    frameConstants,
+                        const FullscreenPass&              fullscreenPass,
+                        const Tsukino::Asset::ShaderAsset* ps);
 
         //! 色調補正のパラメータを設定します。
         //! @param  [in] params 定数バッファデータ
-        void SetParameters(const CBufferSphereColorGrade& params) noexcept {
-            m_data = params;
-        }
+        void SetParameters(const CBufferSphereColorGrade& params) noexcept { m_data = params; }
 
         //! このフレームで色調補正を掛けるかを設定します。
         //! @param  [in] enabled true: 掛ける, false: 掛けない
-        void SetEnabled(bool enabled) noexcept {
-            m_enabled = enabled;
-        }
+        void SetEnabled(bool enabled) noexcept { m_enabled = enabled; }
 
         //! 色調補正を HDR バッファへ掛けます。
         //! @note   フォグパスの直後・TransparentDepth パスの直前に呼ぶこと（理由は FogPass::Execute と同じ）
         void Execute();
 
         //! フレームの終わりの処理をします（有効フラグを false へ戻します）。
-        void EndFrame() noexcept {
-            m_enabled = false;
-        }
+        void EndFrame() noexcept { m_enabled = false; }
 
     private:
         GraphicsContext*      m_graphicsContext = nullptr;    // デバイスと深度バッファの取得元（借りている）
@@ -94,8 +90,8 @@ namespace Tsukino::Renderer {
         FrameConstants*       m_frameConstants  = nullptr;    // u_scene の取得元（借りている）
         const FullscreenPass* m_fullscreenPass  = nullptr;    // フルスクリーン三角形の描画（借りている）
 
-        std::unique_ptr<Gpu> m_gpu;    // 描画 API の資源（中身は Renderer の内部で定義）
-        CBufferSphereColorGrade                   m_data{};             // CPU側のパラメータ
-        bool                                      m_enabled = false;    // このフレームで有効か
+        std::unique_ptr<Gpu>    m_gpu;                // 描画 API の資源（中身は Renderer の内部で定義）
+        CBufferSphereColorGrade m_data{};             // CPU側のパラメータ
+        bool                    m_enabled = false;    // このフレームで有効か
     };
 }    // namespace Tsukino::Renderer

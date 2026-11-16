@@ -27,7 +27,7 @@ namespace Tsukino::BuiltIn::ECS {
 
         // ワールドの一点に貼り付けるモード。trueのときtargetは参照されず、
         // 対象エンティティが破棄されても表示位置が壊れない
-        bool           useFixedWorldPosition = false;                              // trueならtargetを無視しfixedWorldPositionへ貼り付ける
+        bool           useFixedWorldPosition = false;                               // trueならtargetを無視しfixedWorldPositionへ貼り付ける
         hlslpp::float3 fixedWorldPosition    = hlslpp::float3(0.0f, 0.0f, 0.0f);    // 貼り付け先のワールド座標
 
         hlslpp::float3 worldOffset  = hlslpp::float3(0.0f, 0.0f, 0.0f);    // 基準ワールド座標からのオフセット（例：頭上）

@@ -59,10 +59,10 @@ namespace Tsukino::BuiltIn::ECS {
         // ノイズによる揺らぎ
         //----------------------------------------------------------
         bool           noiseEnabled   = true;
-        float          noiseScale     = 0.03f;                                // ワールド座標→ノイズ座標のスケール。小さいほど模様が大きい
-        float          noiseIntensity = 0.4f;                                 // 0 = 濃さ一定, 1 = 最大の濃淡
+        float          noiseScale     = 0.03f;                               // ワールド座標→ノイズ座標のスケール。小さいほど模様が大きい
+        float          noiseIntensity = 0.4f;                                // 0 = 濃さ一定, 1 = 最大の濃淡
         hlslpp::float3 windDirection  = hlslpp::float3(1.0f, 0.0f, 0.3f);    // 霧が流れる向き（Systemが正規化して転送する）
-        float          windSpeed      = 0.5f;                                 // 霧が流れる速さ
+        float          windSpeed      = 0.5f;                                // 霧が流れる速さ
 
         //----------------------------------------------------------
         // 距離フォグの基準点（既定はカメラ位置）

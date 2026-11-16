@@ -29,10 +29,10 @@ namespace Tsukino::Input {
 
     //! 2軸の入力（移動など）の割り当てです。
     struct InputAxisBinding {
-        InputBinding up;                              //!< +y へ倒すキー
-        InputBinding down;                            //!< −y へ倒すキー
-        InputBinding left;                            //!< −x へ倒すキー
-        InputBinding right;                           //!< +x へ倒すキー
+        InputBinding up;                            //!< +y へ倒すキー
+        InputBinding down;                          //!< −y へ倒すキー
+        InputBinding left;                          //!< −x へ倒すキー
+        InputBinding right;                         //!< +x へ倒すキー
         GamepadStick stick = GamepadStick::None;    //!< 合わせて読むスティック
     };
 

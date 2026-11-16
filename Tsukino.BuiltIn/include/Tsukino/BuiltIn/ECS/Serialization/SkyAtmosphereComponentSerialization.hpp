@@ -32,7 +32,13 @@ namespace Tsukino::BuiltIn::ECS {
     //--------------------------------------------------------------
     template <class Archive>
     void load(Archive& archive, SkyAtmosphereComponent& sky) {
-        archive(sky.rayleighScattering, sky.mieScattering, sky.mieAnisotropy, sky.atmosphereHeight, sky.planetRadius, sky.sunIntensity, sky.sunDiskSize,
+        archive(sky.rayleighScattering,
+                sky.mieScattering,
+                sky.mieAnisotropy,
+                sky.atmosphereHeight,
+                sky.planetRadius,
+                sky.sunIntensity,
+                sky.sunDiskSize,
                 sky.groundColor);
     }
 

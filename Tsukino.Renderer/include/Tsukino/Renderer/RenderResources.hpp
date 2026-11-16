@@ -82,9 +82,7 @@ namespace Tsukino::Renderer {
         //! @param  [in,out] textureAsset 転送するテクスチャアセット（GPU へ送ったあとピクセルデータを手放す）
         //! @note  読み込み画面などで先に送っておくと、初めて描くフレームで転送の待ちが出ない。
         //!        送ったあとは GetTexture() がキャッシュを返す
-        void UploadTexture(Tsukino::Asset::TextureAsset& textureAsset) {
-            (void)GetTexture(textureAsset);
-        }
+        void UploadTexture(Tsukino::Asset::TextureAsset& textureAsset) { (void)GetTexture(textureAsset); }
 
         //! 白テクスチャのハンドルを取得します。
         //! @return テクスチャのハンドル

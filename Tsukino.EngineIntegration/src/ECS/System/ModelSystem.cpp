@@ -62,8 +62,8 @@ namespace Tsukino::BuiltIn::ECS {
         //! @param  [in] screenHeight  画面の高さ（ピクセル）
         //! @return カメラ行列を詰めたシーン定数（view / projection / viewProj / invViewProj / cameraPos）
         //-------------------------------------------------------------
-        Tsukino::Renderer::CBufferScene MakeScreenModelCamera(const hlslpp::float3& center, const hlslpp::float2& screenPixel, float pixelsPerUnit,
-                                                              float screenWidth, float screenHeight) {
+        Tsukino::Renderer::CBufferScene MakeScreenModelCamera(
+            const hlslpp::float3& center, const hlslpp::float2& screenPixel, float pixelsPerUnit, float screenWidth, float screenHeight) {
             pixelsPerUnit            = std::max(pixelsPerUnit, 1.0e-4f);
             const hlslpp::float3 eye = center + hlslpp::float3(0.0f, 0.0f, kScreenModelDepthHalfRange);
 
@@ -145,9 +145,9 @@ namespace Tsukino::BuiltIn::ECS {
             // そのカメラを作って Overlay パスへ積む（ワールドには描かない）。
             // anchor（UI の部品）があれば、その画面上の位置を基準にし、その祖先の UIClipComponent の枠で切り取る
             //-------------------------------------------------------------
-            const Tsukino::ECS::Entity             screenOwner  = TransformUtility::FindNearestWith<ScreenModelComponent>(registry, entity);
-            const ScreenModelComponent*            screenModel  = (screenOwner != entt::null) ? &registry.GetComponent<ScreenModelComponent>(screenOwner) : nullptr;
-            const Tsukino::Renderer::CBufferScene* screenCamera = nullptr;
+            const Tsukino::ECS::Entity  screenOwner = TransformUtility::FindNearestWith<ScreenModelComponent>(registry, entity);
+            const ScreenModelComponent* screenModel = (screenOwner != entt::null) ? &registry.GetComponent<ScreenModelComponent>(screenOwner) : nullptr;
+            const Tsukino::Renderer::CBufferScene* screenCamera  = nullptr;
             bool                                   screenClipped = false;
             Tsukino::Renderer::ClipRect            screenClip;
             float                                  screenAlpha = 1.0f;    // 自身と anchor の祖先の UICanvasGroupComponent の不透明度
@@ -164,8 +164,8 @@ namespace Tsukino::BuiltIn::ECS {
                 if(screenAlpha < UICanvasGroupUtility::kInvisibleAlpha)
                     return;
 
-                hlslpp::float2       screenPixel = screenModel->screenPosition;
-                const Tsukino::ECS::Entity anchor = screenModel->anchor;
+                hlslpp::float2             screenPixel = screenModel->screenPosition;
+                const Tsukino::ECS::Entity anchor      = screenModel->anchor;
                 if(anchor != entt::null) {
                     if(!registry.IsValid(anchor) || !registry.HasComponent<TransformComponent>(anchor))
                         return;
@@ -176,8 +176,8 @@ namespace Tsukino::BuiltIn::ECS {
                     screenAlpha *= UICanvasGroupUtility::GetAlpha(registry, anchor);
                     if(screenAlpha < UICanvasGroupUtility::kInvisibleAlpha)
                         return;
-                    const hlslpp::float3 anchorPosition = TransformUtility::GetWorldPosition(registry.GetComponent<TransformComponent>(anchor));
-                    screenPixel += hlslpp::float2(anchorPosition.xy);
+                    const hlslpp::float3 anchorPosition  = TransformUtility::GetWorldPosition(registry.GetComponent<TransformComponent>(anchor));
+                    screenPixel                         += hlslpp::float2(anchorPosition.xy);
 
                     UIClipUtility::ClipBounds clip;
                     if(UIClipUtility::TryGetClipBounds(registry, anchor, clip)) {
@@ -197,9 +197,12 @@ namespace Tsukino::BuiltIn::ECS {
 
                 const hlslpp::float3             center = TransformUtility::GetWorldPosition(registry.GetComponent<TransformComponent>(screenOwner));
                 Tsukino::Renderer::CBufferScene& camera = ctx->renderer->GetDrawQueue().AllocSceneData();
-                camera = MakeScreenModelCamera(center, screenPixel, screenModel->pixelsPerUnit * canvas.scale, static_cast<float>(ctx->window->GetWidth()),
-                                               static_cast<float>(ctx->window->GetHeight()));
-                screenCamera = &camera;
+                camera                                  = MakeScreenModelCamera(center,
+                                                                                screenPixel,
+                                                                                screenModel->pixelsPerUnit * canvas.scale,
+                                                                                static_cast<float>(ctx->window->GetWidth()),
+                                                                                static_cast<float>(ctx->window->GetHeight()));
+                screenCamera                            = &camera;
             }
 
             // ノードとメッシュの巡回ループ
@@ -229,7 +232,7 @@ namespace Tsukino::BuiltIn::ECS {
                         finalTransform                            = hlslpp::mul(nodeTransform, transform.worldMatrix);
                         prevFinalTransform                        = hlslpp::mul(nodeTransform, prevWorldMatrix);
 
-                       /* Tsukino::Core::Log::Info("node.translation = (" + std::to_string(node.translation.x) + ", " + std::to_string(node.translation.y) + ", "
+                        /* Tsukino::Core::Log::Info("node.translation = (" + std::to_string(node.translation.x) + ", " + std::to_string(node.translation.y) + ", "
                                                  + std::to_string(node.translation.z) + ")");*/
                     }
 
@@ -242,7 +245,6 @@ namespace Tsukino::BuiltIn::ECS {
                     auto* col = registry.try_get<CollisionComponent>(entity);
                     auto* rb  = registry.try_get<RigidbodyComponent>(entity);
                     if(col && col->isInitialized && rb && rb->type == RigidbodyType::Dynamic) {
-
                         hlslpp::quaternion q = hlslpp::quaternion(col->offsetRotation.x, col->offsetRotation.y, col->offsetRotation.z, col->offsetRotation.w);
                         hlslpp::quaternion conj = hlslpp::quaternion(-q.x, -q.y, -q.z, q.w);
 
@@ -278,11 +280,12 @@ namespace Tsukino::BuiltIn::ECS {
 
                     // 照らし方とトゥーンの値（既定は MaterialData の既定値）
                     Tsukino::GraphicsCommon::MaterialData defaultMaterial;
-                    Tsukino::GraphicsCommon::ShadingModel shadingModel     = defaultMaterial.shadingModel;
-                    float                                 toonThreshold    = defaultMaterial.toonThreshold;
-                    float                                 toonSmoothness   = defaultMaterial.toonSmoothness;
-                    hlslpp::float3                        toonShadeColor   = hlslpp::float3(defaultMaterial.toonShadeColor.x, defaultMaterial.toonShadeColor.y, defaultMaterial.toonShadeColor.z);
-                    float                                 toonSpecularSize = defaultMaterial.toonSpecularSize;
+                    Tsukino::GraphicsCommon::ShadingModel shadingModel   = defaultMaterial.shadingModel;
+                    float                                 toonThreshold  = defaultMaterial.toonThreshold;
+                    float                                 toonSmoothness = defaultMaterial.toonSmoothness;
+                    hlslpp::float3                        toonShadeColor =
+                        hlslpp::float3(defaultMaterial.toonShadeColor.x, defaultMaterial.toonShadeColor.y, defaultMaterial.toonShadeColor.z);
+                    float toonSpecularSize = defaultMaterial.toonSpecularSize;
 
                     // アルファテストのしきい値（0 = 無効）。ModelImporterが自動設定する
                     float alphaCutoff = 0.0f;
@@ -309,10 +312,10 @@ namespace Tsukino::BuiltIn::ECS {
                             cbMat.roughness = matAsset->data.roughness;
                             cbMat.specular  = matAsset->data.specular;
 
-                            shadingModel     = matAsset->data.shadingModel;
-                            toonThreshold    = matAsset->data.toonThreshold;
-                            toonSmoothness   = matAsset->data.toonSmoothness;
-                            toonShadeColor   = hlslpp::float3(matAsset->data.toonShadeColor.x, matAsset->data.toonShadeColor.y, matAsset->data.toonShadeColor.z);
+                            shadingModel   = matAsset->data.shadingModel;
+                            toonThreshold  = matAsset->data.toonThreshold;
+                            toonSmoothness = matAsset->data.toonSmoothness;
+                            toonShadeColor = hlslpp::float3(matAsset->data.toonShadeColor.x, matAsset->data.toonShadeColor.y, matAsset->data.toonShadeColor.z);
                             toonSpecularSize = matAsset->data.toonSpecularSize;
                             alphaCutoff      = matAsset->data.alphaCutoff;
 
@@ -501,8 +504,8 @@ namespace Tsukino::BuiltIn::ECS {
                     if(screenModel) {
                         // UI の層：画面スプライト・文字と同じ Overlay パスへ、sortOrder 付きで積む。
                         // モデル同士の前後は深度で決める（Renderer が最初の1つの前に深度を消す）
-                        auto pipeline = ctx->renderer->GetResources().GetPipelineFactory()->Create(*vsAsset, *psAsset, vertexFormat,
-                                                                                    Tsukino::Renderer::DepthMode::ReadWrite, blendMode, cullMode);
+                        auto pipeline = ctx->renderer->GetResources().GetPipelineFactory()->Create(
+                            *vsAsset, *psAsset, vertexFormat, Tsukino::Renderer::DepthMode::ReadWrite, blendMode, cullMode);
                         if(auto* mat = buildMaterial(pipeline)) {
                             Tsukino::Renderer::DrawCommand cmd{};
                             cmd.mesh           = const_cast<Tsukino::Renderer::MeshBuffer*>(&targetMeshBuffer);
@@ -526,8 +529,7 @@ namespace Tsukino::BuiltIn::ECS {
                         // 続けてその深度と一致する画素だけを1回シェーディングする。
                         // 影・モーションベクタはGBufferパス限定のため、フェード中は失われる
                         auto depthPipeline = ctx->renderer->GetResources().GetPipelineFactory()->Create(
-                            *vsAsset, *psAsset, vertexFormat, Tsukino::Renderer::DepthMode::ReadWrite, Tsukino::Renderer::BlendMode::DepthOnly,
-                            cullMode);
+                            *vsAsset, *psAsset, vertexFormat, Tsukino::Renderer::DepthMode::ReadWrite, Tsukino::Renderer::BlendMode::DepthOnly, cullMode);
                         auto colorPipeline = ctx->renderer->GetResources().GetPipelineFactory()->Create(
                             *vsAsset, *psAsset, vertexFormat, Tsukino::Renderer::DepthMode::EqualReadOnly, blendMode, cullMode);
 
@@ -536,8 +538,8 @@ namespace Tsukino::BuiltIn::ECS {
                         if(auto* colorMat = buildMaterial(colorPipeline))
                             pushDrawCommand(colorMat, Tsukino::Renderer::RenderPass::Transparent);
                     } else {
-                        auto pipeline = ctx->renderer->GetResources().GetPipelineFactory()->Create(*vsAsset, *psAsset, vertexFormat,
-                                                                                    Tsukino::Renderer::DepthMode::ReadWrite, blendMode, cullMode);
+                        auto pipeline = ctx->renderer->GetResources().GetPipelineFactory()->Create(
+                            *vsAsset, *psAsset, vertexFormat, Tsukino::Renderer::DepthMode::ReadWrite, blendMode, cullMode);
                         if(auto* mat = buildMaterial(pipeline)) {
                             // 不透明（PBR/Unlit/Toon）はG-Bufferパスへ回す
                             pushDrawCommand(mat, Tsukino::Renderer::RenderPass::GBuffer);

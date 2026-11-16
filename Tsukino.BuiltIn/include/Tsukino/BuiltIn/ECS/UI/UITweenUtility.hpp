@@ -115,8 +115,12 @@ namespace Tsukino::BuiltIn::ECS::UITweenUtility {
     //! @param  [in] delay    始めるまでの待ち（秒）
     //! @param  [in] seconds  長さ（秒）
     //! @param  [in] ease     動きの緩急（既定は少し行き過ぎて戻る OutBack）
-    inline void SlideIn(Tsukino::ECS::Registry& registry, Tsukino::ECS::Entity entity, const hlslpp::float2& from, float delay = 0.0f,
-                        float seconds = 0.45f, Tsukino::Core::Math::Easing::EaseType ease = Tsukino::Core::Math::Easing::EaseType::OutBack) {
+    inline void SlideIn(Tsukino::ECS::Registry&               registry,
+                        Tsukino::ECS::Entity                  entity,
+                        const hlslpp::float2&                 from,
+                        float                                 delay   = 0.0f,
+                        float                                 seconds = 0.45f,
+                        Tsukino::Core::Math::Easing::EaseType ease    = Tsukino::Core::Math::Easing::EaseType::OutBack) {
         UITween tween;
         tween.duration  = seconds;
         tween.delay     = delay;
@@ -144,8 +148,12 @@ namespace Tsukino::BuiltIn::ECS::UITweenUtility {
     //! @param  [in] delay    始めるまでの待ち（秒）
     //! @param  [in] seconds  長さ（秒）
     //! @param  [in] ease     動きの緩急（既定はだんだん速くなる InCubic）
-    inline void SlideOut(Tsukino::ECS::Registry& registry, Tsukino::ECS::Entity entity, const hlslpp::float2& to, float delay = 0.0f,
-                         float seconds = 0.35f, Tsukino::Core::Math::Easing::EaseType ease = Tsukino::Core::Math::Easing::EaseType::InCubic) {
+    inline void SlideOut(Tsukino::ECS::Registry&               registry,
+                         Tsukino::ECS::Entity                  entity,
+                         const hlslpp::float2&                 to,
+                         float                                 delay   = 0.0f,
+                         float                                 seconds = 0.35f,
+                         Tsukino::Core::Math::Easing::EaseType ease    = Tsukino::Core::Math::Easing::EaseType::InCubic) {
         UITween tween;
         tween.duration  = seconds;
         tween.delay     = delay;

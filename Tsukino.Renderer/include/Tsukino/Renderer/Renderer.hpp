@@ -56,28 +56,28 @@ namespace Tsukino::Renderer {
     //!         各メンバの実体は Tsukino::BuiltIn::BuiltInShaders が読み込んだアセット。
     //------------------------------------------------------------
     struct RendererShaderSet {
-        const Tsukino::Asset::ShaderAsset* debugVS          = nullptr;    //!< デバッグ線用VS
-        const Tsukino::Asset::ShaderAsset* debugPS          = nullptr;    //!< デバッグ線用PS
-        const Tsukino::Asset::ShaderAsset* tonemapVS        = nullptr;    //!< フルスクリーン三角形VS（Tonemap/Lighting共用）
-        const Tsukino::Asset::ShaderAsset* tonemapPS        = nullptr;    //!< トーンマッピング用PS
-        const Tsukino::Asset::ShaderAsset* shadowStaticVS   = nullptr;    //!< シャドウマップ用VS（スタティック）
-        const Tsukino::Asset::ShaderAsset* shadowSkeletalVS = nullptr;    //!< シャドウマップ用VS（スケルタル）
-        const Tsukino::Asset::ShaderAsset* shadowPS         = nullptr;    //!< シャドウマップ用PS
-        const Tsukino::Asset::ShaderAsset* lightingPS       = nullptr;    //!< ディファードLightingパス用PS（VSはtonemapVSを共用）
-        const Tsukino::Asset::ShaderAsset* motionBlurPS     = nullptr;    //!< モーションブラーパス用PS（VSはtonemapVSを共用）
-        const Tsukino::Asset::ShaderAsset* fogPS            = nullptr;    //!< フォグパス用PS（VSはtonemapVSを共用）
+        const Tsukino::Asset::ShaderAsset* debugVS            = nullptr;    //!< デバッグ線用VS
+        const Tsukino::Asset::ShaderAsset* debugPS            = nullptr;    //!< デバッグ線用PS
+        const Tsukino::Asset::ShaderAsset* tonemapVS          = nullptr;    //!< フルスクリーン三角形VS（Tonemap/Lighting共用）
+        const Tsukino::Asset::ShaderAsset* tonemapPS          = nullptr;    //!< トーンマッピング用PS
+        const Tsukino::Asset::ShaderAsset* shadowStaticVS     = nullptr;    //!< シャドウマップ用VS（スタティック）
+        const Tsukino::Asset::ShaderAsset* shadowSkeletalVS   = nullptr;    //!< シャドウマップ用VS（スケルタル）
+        const Tsukino::Asset::ShaderAsset* shadowPS           = nullptr;    //!< シャドウマップ用PS
+        const Tsukino::Asset::ShaderAsset* lightingPS         = nullptr;    //!< ディファードLightingパス用PS（VSはtonemapVSを共用）
+        const Tsukino::Asset::ShaderAsset* motionBlurPS       = nullptr;    //!< モーションブラーパス用PS（VSはtonemapVSを共用）
+        const Tsukino::Asset::ShaderAsset* fogPS              = nullptr;    //!< フォグパス用PS（VSはtonemapVSを共用）
         const Tsukino::Asset::ShaderAsset* sphereColorGradePS = nullptr;    //!< 球形の色調補正パス用PS（VSはtonemapVSを共用）
-        const Tsukino::Asset::ShaderAsset* bloomPrefilterPS  = nullptr;    //!< ブルームの明部抽出用PS（VSはtonemapVSを共用）
-        const Tsukino::Asset::ShaderAsset* bloomDownsamplePS = nullptr;    //!< ブルームの縮小用PS（同上）
-        const Tsukino::Asset::ShaderAsset* bloomUpsamplePS   = nullptr;    //!< ブルームの拡大・合成用PS（同上）
-        const Tsukino::Asset::ShaderAsset* ambientParticleVS = nullptr;    //!< 環境パーティクル用VS（SV_VertexIDだけで板を生成する）
-        const Tsukino::Asset::ShaderAsset* ambientParticlePS = nullptr;    //!< 環境パーティクル用PS
+        const Tsukino::Asset::ShaderAsset* bloomPrefilterPS   = nullptr;    //!< ブルームの明部抽出用PS（VSはtonemapVSを共用）
+        const Tsukino::Asset::ShaderAsset* bloomDownsamplePS  = nullptr;    //!< ブルームの縮小用PS（同上）
+        const Tsukino::Asset::ShaderAsset* bloomUpsamplePS    = nullptr;    //!< ブルームの拡大・合成用PS（同上）
+        const Tsukino::Asset::ShaderAsset* ambientParticleVS  = nullptr;    //!< 環境パーティクル用VS（SV_VertexIDだけで板を生成する）
+        const Tsukino::Asset::ShaderAsset* ambientParticlePS  = nullptr;    //!< 環境パーティクル用PS
 
         //! IBLベイク用PS（VSはtonemapVSを共用）。irradiance畳み込み・スペキュラプレフィルタ・
         //! BRDF LUT生成はいずれもフルスクリーン三角形へのPS一発で完結する
-        const Tsukino::Asset::ShaderAsset* iblIrradiancePS      = nullptr;    //!< 拡散IBL用irradiance畳み込みPS
+        const Tsukino::Asset::ShaderAsset* iblIrradiancePS        = nullptr;    //!< 拡散IBL用irradiance畳み込みPS
         const Tsukino::Asset::ShaderAsset* iblSpecularPrefilterPS = nullptr;    //!< 鏡面IBL用プレフィルタPS
-        const Tsukino::Asset::ShaderAsset* iblBRDFLUTPS         = nullptr;    //!< split-sum用BRDF積分LUT生成PS
+        const Tsukino::Asset::ShaderAsset* iblBRDFLUTPS           = nullptr;    //!< split-sum用BRDF積分LUT生成PS
     };
 
     //------------------------------------------------------------
@@ -111,7 +111,8 @@ namespace Tsukino::Renderer {
         //! @return true: [in] 初期化成功, false: 初期化失敗
         //------------------------------------------------------------
         [[nodiscard]]
-        bool Initialize(const NativeWindow& window, uint32_t width, uint32_t height, const RendererShaderSet& shaders, const GraphicsDeviceOptions& deviceOptions = {});
+        bool Initialize(
+            const NativeWindow& window, uint32_t width, uint32_t height, const RendererShaderSet& shaders, const GraphicsDeviceOptions& deviceOptions = {});
 
         //------------------------------------------------------------
         // 描画処理
@@ -392,31 +393,31 @@ namespace Tsukino::Renderer {
         //!       以降の部品はすべて m_graphicsContext が持つデバイスを借りて資源を作るため、
         //!       デバイスを最後まで生かすよう先頭に置く
         std::unique_ptr<GraphicsContext> m_graphicsContext;    // グラフィックスコンテキスト（描画デバイスと描く先を管理）
-        RenderResources m_resources;          // 描画で共有する資源（ステート・サンプラー・既定テクスチャ・テクスチャキャッシュ等）
-        FrameConstants  m_frameConstants;     // フレーム単位のシーン定数（u_scene）
+        RenderResources                  m_resources;          // 描画で共有する資源（ステート・サンプラー・既定テクスチャ・テクスチャキャッシュ等）
+        FrameConstants                   m_frameConstants;     // フレーム単位のシーン定数（u_scene）
 
         std::unique_ptr<DrawCommandExecutor> m_commandExecutor;    // 描画コマンドの実行（上の3つを借りるので、その後に宣言する）
         DebugDraw                            m_debugDraw;          // デバッグ用の線と三角形（同上）
-        std::unique_ptr<FullscreenPass>      m_fullscreenPass;     // フルスクリーン三角形の描画（ライティング・フォグ・モーションブラー・トーンマップ・IBLで共用）
-        std::unique_ptr<TonemapPass>         m_tonemapPass;        // トーンマップパス（m_fullscreenPass を借りるので、その後に宣言する）
-        std::unique_ptr<ShadowPass>          m_shadowPass;         // シャドウマップパス（m_commandExecutor を借りる）
-        std::unique_ptr<GpuProfiler>         m_gpuProfiler;        // パス単位のGPUの時間（bgfx のビューごとの統計から読む）
-        SkyPass                              m_skyPass;            // スカイ（大気散乱）パス
-        IBLBaker                             m_iblBaker;           // スカイ由来の環境光（m_fullscreenPass と m_skyPass を借りるので、その後に宣言する）
-        LightingPass                         m_lightingPass;       // ディファードライティング（m_shadowPass と m_iblBaker を借りるので、その後に宣言する）
-        AmbientParticlePass                  m_ambientParticlePass;    // 環境パーティクル
-        FogPass                              m_fogPass;                // フォグ（m_fullscreenPass を借りる）
-        SphereColorGradePass                 m_sphereColorGradePass;   // 球形の色調補正（同上）
-        MotionBlurPass                       m_motionBlurPass;         // モーションブラー（同上）
-        BloomPass                            m_bloomPass;              // ブルーム（同上）
-        std::unique_ptr<EffectRenderer>      m_effectRenderer;         // Effekseer を描く部品（GetEffectRenderer() で作る。デバイスを借りるので後ろに置く）
+        std::unique_ptr<FullscreenPass> m_fullscreenPass;    // フルスクリーン三角形の描画（ライティング・フォグ・モーションブラー・トーンマップ・IBLで共用）
+        std::unique_ptr<TonemapPass>    m_tonemapPass;       // トーンマップパス（m_fullscreenPass を借りるので、その後に宣言する）
+        std::unique_ptr<ShadowPass>     m_shadowPass;        // シャドウマップパス（m_commandExecutor を借りる）
+        std::unique_ptr<GpuProfiler>    m_gpuProfiler;       // パス単位のGPUの時間（bgfx のビューごとの統計から読む）
+        SkyPass                         m_skyPass;           // スカイ（大気散乱）パス
+        IBLBaker                        m_iblBaker;          // スカイ由来の環境光（m_fullscreenPass と m_skyPass を借りるので、その後に宣言する）
+        LightingPass                    m_lightingPass;      // ディファードライティング（m_shadowPass と m_iblBaker を借りるので、その後に宣言する）
+        AmbientParticlePass             m_ambientParticlePass;     // 環境パーティクル
+        FogPass                         m_fogPass;                 // フォグ（m_fullscreenPass を借りる）
+        SphereColorGradePass            m_sphereColorGradePass;    // 球形の色調補正（同上）
+        MotionBlurPass                  m_motionBlurPass;          // モーションブラー（同上）
+        BloomPass                       m_bloomPass;               // ブルーム（同上）
+        std::unique_ptr<EffectRenderer> m_effectRenderer;          // Effekseer を描く部品（GetEffectRenderer() で作る。デバイスを借りるので後ろに置く）
 
         std::array<float, 4> m_clearColor = {0.5f, 0.5f, 0.5f, 1.0f};    // 描画領域のクリアカラー (デフォルトはグレー)
 
         FrameStats m_frameStats;    // 1フレーム分の描画統計（Render()の先頭でリセットする）
 
-        RenderQualitySettings m_quality{};              // 描画品質
-        bool                  m_qualityDirty = false;   // 次の Render() の先頭で適用するか
+        RenderQualitySettings m_quality{};               // 描画品質
+        bool                  m_qualityDirty = false;    // 次の Render() の先頭で適用するか
 
         DrawCommandQueue m_drawQueue;    // 描画コマンドキュー
 
@@ -426,6 +427,5 @@ namespace Tsukino::Renderer {
         //! として弾かれるため（SpriteRenderSystem/FontRendererSystemと同じ理由）。
         //! メンバに持たせてclear()で使い回し、毎フレームの確保を避ける
         std::vector<u32> m_overlayOrder;
-
     };
 }    // namespace Tsukino::Renderer

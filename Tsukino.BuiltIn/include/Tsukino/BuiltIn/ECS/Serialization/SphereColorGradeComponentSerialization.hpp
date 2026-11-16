@@ -33,8 +33,16 @@ namespace Tsukino::BuiltIn::ECS {
     //--------------------------------------------------------------
     template <class Archive>
     void load(Archive& archive, SphereColorGradeComponent& grade) {
-        archive(grade.enabled, grade.center, grade.radius, grade.edgeSoftness, grade.tint, grade.strength, grade.fogColor, grade.fogDensity,
-                grade.edgeColor, grade.edgeWidth);
+        archive(grade.enabled,
+                grade.center,
+                grade.radius,
+                grade.edgeSoftness,
+                grade.tint,
+                grade.strength,
+                grade.fogColor,
+                grade.fogDensity,
+                grade.edgeColor,
+                grade.edgeWidth);
     }
 
 }    // namespace Tsukino::BuiltIn::ECS

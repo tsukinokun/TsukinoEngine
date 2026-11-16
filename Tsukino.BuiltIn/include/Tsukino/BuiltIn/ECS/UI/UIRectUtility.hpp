@@ -105,7 +105,7 @@ namespace Tsukino::BuiltIn::ECS::UIRectUtility {
     //! @param  outMax      [out] 右下
     //--------------------------------------------------------------
     inline void WorldBounds(const hlslpp::float4x4& worldMatrix, const LocalRect& local, hlslpp::float2& outMin, hlslpp::float2& outMax) {
-        const hlslpp::float2 half = local.size * 0.5f;
+        const hlslpp::float2 half       = local.size * 0.5f;
         const hlslpp::float2 corners[4] = {
             LocalToWorld(worldMatrix, local.center + hlslpp::float2(-half.x, -half.y)),
             LocalToWorld(worldMatrix, local.center + hlslpp::float2(half.x, -half.y)),

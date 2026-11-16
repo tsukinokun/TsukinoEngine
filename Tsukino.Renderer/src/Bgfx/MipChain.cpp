@@ -79,8 +79,7 @@ namespace Tsukino::Renderer {
 
         // いちばん上の段は、行のすき間を詰めて写すだけ
         const size_t topPitch = static_cast<size_t>(width) * channels;
-        for(u32 y = 0; y < height; ++y)
-            std::memcpy(result.data() + topPitch * y, top + static_cast<size_t>(rowPitch) * y, topPitch);
+        for(u32 y = 0; y < height; ++y) std::memcpy(result.data() + topPitch * y, top + static_cast<size_t>(rowPitch) * y, topPitch);
 
         // 4成分のときは最後の1つ（アルファ）を線形のまま平均する
         const u32 colorChannels = (srgb && channels == 4) ? 3 : (srgb ? channels : 0);
@@ -102,8 +101,8 @@ namespace Tsukino::Renderer {
                 const u32 y0 = std::min(y * 2, srcHeight - 1);
                 const u32 y1 = std::min(y * 2 + 1, srcHeight - 1);
                 for(u32 x = 0; x < dstWidth; ++x) {
-                    const u32 x0 = std::min(x * 2, srcWidth - 1);
-                    const u32 x1 = std::min(x * 2 + 1, srcWidth - 1);
+                    const u32 x0   = std::min(x * 2, srcWidth - 1);
+                    const u32 x1   = std::min(x * 2 + 1, srcWidth - 1);
                     const u8* p[4] = {
                         src + (static_cast<size_t>(y0) * srcWidth + x0) * channels,
                         src + (static_cast<size_t>(y0) * srcWidth + x1) * channels,

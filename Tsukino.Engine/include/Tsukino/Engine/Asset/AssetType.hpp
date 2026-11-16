@@ -12,16 +12,16 @@ namespace Tsukino::Asset {
     //! @brief  アセットの種類を定義する列挙型
     //--------------------------------------------------------------
     enum class AssetType : u8 {
-        None = 0,    // 無効なアセット
-        Texture,     // テクスチャ
-        Shader,      // シェーダー
-        Mesh,        // メッシュ
-        Model,       // モデル
-        Material,    // マテリアル
-        DynamicFont, // 動的フォント（オンデマンドグリフラスタライズ）
-        Audio,       // オーディオ
-        Cubemap,     // キューブマップ
-        Effect,      // エフェクト
+        None = 0,       // 無効なアセット
+        Texture,        // テクスチャ
+        Shader,         // シェーダー
+        Mesh,           // メッシュ
+        Model,          // モデル
+        Material,       // マテリアル
+        DynamicFont,    // 動的フォント（オンデマンドグリフラスタライズ）
+        Audio,          // オーディオ
+        Cubemap,        // キューブマップ
+        Effect,         // エフェクト
     };
 
 }    // namespace Tsukino::Asset

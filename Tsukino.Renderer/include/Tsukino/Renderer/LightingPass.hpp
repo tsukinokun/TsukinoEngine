@@ -10,7 +10,6 @@
 
 #include <Tsukino/Renderer/ConstantBuffer.hpp>
 
-
 #include <hlsl++.h>
 
 namespace Tsukino::Asset {
@@ -101,8 +100,8 @@ namespace Tsukino::Renderer {
         const ShadowPass*     m_shadowPass      = nullptr;    // シャドウマップ（借りている）
         IBLBaker*             m_iblBaker        = nullptr;    // スカイ由来の環境光（借りている）
 
-        std::unique_ptr<Gpu> m_gpu;    // 描画 API の資源（中身は Renderer の内部で定義）
-        CBufferLights                             m_lightsData{};              // CPU側のライト配列（毎フレームGPUへ転送）
-        bool                                      m_lightOverflowWarned = false;    // MAX_LIGHTS 超過の警告を1回だけ出すためのフラグ
+        std::unique_ptr<Gpu> m_gpu;                            // 描画 API の資源（中身は Renderer の内部で定義）
+        CBufferLights        m_lightsData{};                   // CPU側のライト配列（毎フレームGPUへ転送）
+        bool                 m_lightOverflowWarned = false;    // MAX_LIGHTS 超過の警告を1回だけ出すためのフラグ
     };
 }    // namespace Tsukino::Renderer

@@ -104,9 +104,9 @@ namespace Tsukino::Input {
                 Tsukino::Core::Log::Info("Gamepad " + std::to_string(m_userIndex) + " disconnected.");
 
             Close();
-            m_connected      = false;
-            m_reconnectTimer = kReconnectIntervalSeconds;
-            m_vibrating      = false;
+            m_connected          = false;
+            m_reconnectTimer     = kReconnectIntervalSeconds;
+            m_vibrating          = false;
             m_vibrationRemaining = 0.0f;
             // 抜けた瞬間に押していたボタンが「離した」と判定されるよう、前フレームは残して今だけ空にする
             m_currentButtons.fill(false);

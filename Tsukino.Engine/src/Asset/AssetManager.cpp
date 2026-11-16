@@ -37,8 +37,8 @@ namespace Tsukino::Asset {
     //--------------------------------------------------------------
     AssetManager::~AssetManager() {
         StopAsyncWorkers();    // 裏のスレッドが m_assets を触らなくなってから片付ける
-        m_assets.clear();     // AssetMapをクリア
-        m_loaders.clear();    // ローダーリストをクリア
+        m_assets.clear();      // AssetMapをクリア
+        m_loaders.clear();     // ローダーリストをクリア
     }
 
     //--------------------------------------------------------------
@@ -48,29 +48,29 @@ namespace Tsukino::Asset {
         //--------------------------------------------------------------
         // ローダー登録
         //--------------------------------------------------------------
-        RegisterLoader(Tsukino::Core::CreateRef<ShaderLoader>());       // シェーダローダーを登録
+        RegisterLoader(Tsukino::Core::CreateRef<ShaderLoader>());                   // シェーダローダーを登録
         RegisterLoader(Tsukino::Core::CreateRef<TextureLoader>(m_textureRules));    // テクスチャローダーを登録
-        RegisterLoader(Tsukino::Core::CreateRef<DynamicFontLoader>());  // 動的フォントローダーを登録
-        RegisterLoader(Tsukino::Core::CreateRef<AudioLoader>());        // オーディオローダーを登録
-        RegisterLoader(Tsukino::Core::CreateRef<ModelLoader>(this));    // モデルローダーを登録
-        RegisterLoader(Tsukino::Core::CreateRef<MaterialLoader>(this)); // マテリアルローダー（.tmat）を登録
-        RegisterLoader(Tsukino::Core::CreateRef<CubemapLoader>());      // キューブマップローダーを登録
-        RegisterLoader(Tsukino::Core::CreateRef<EffectLoader>());       // エフェクトローダーを登録
+        RegisterLoader(Tsukino::Core::CreateRef<DynamicFontLoader>());              // 動的フォントローダーを登録
+        RegisterLoader(Tsukino::Core::CreateRef<AudioLoader>());                    // オーディオローダーを登録
+        RegisterLoader(Tsukino::Core::CreateRef<ModelLoader>(this));                // モデルローダーを登録
+        RegisterLoader(Tsukino::Core::CreateRef<MaterialLoader>(this));             // マテリアルローダー（.tmat）を登録
+        RegisterLoader(Tsukino::Core::CreateRef<CubemapLoader>());                  // キューブマップローダーを登録
+        RegisterLoader(Tsukino::Core::CreateRef<EffectLoader>());                   // エフェクトローダーを登録
 
         //--------------------------------------------------------------
         // インポーター登録
         //--------------------------------------------------------------
         // シェーダーはビルド時に変換済み（tsukino_shaders()）なので、インポーターは無い
         RegisterImporter(AssetType::Texture, Tsukino::Core::CreateRef<TextureImporter>(m_textureRules));    // テクスチャインポーターを登録
-        RegisterImporter(AssetType::DynamicFont, Tsukino::Core::CreateRef<DynamicFontImporter>());    // 動的フォントインポーターの登録
+        RegisterImporter(AssetType::DynamicFont, Tsukino::Core::CreateRef<DynamicFontImporter>());          // 動的フォントインポーターの登録
 #if !defined(TSUKINO_WITHOUT_MODEL_IMPORTER)
-        RegisterImporter(AssetType::Model, Tsukino::Core::CreateRef<ModelImporter>(m_textureRules));        // モデルインポーターの登録
+        RegisterImporter(AssetType::Model, Tsukino::Core::CreateRef<ModelImporter>(m_textureRules));    // モデルインポーターの登録
 #else
         // Assimp の無いビルド（スマホなど）は .fbx / .obj を取り込めない。開発機で作ったキャッシュ（.tsm）を同梱して読む
 #endif
-        RegisterImporter(AssetType::Material, Tsukino::Core::CreateRef<MaterialImporter>());  // マテリアルインポーター（.tmat）の登録
+        RegisterImporter(AssetType::Material, Tsukino::Core::CreateRef<MaterialImporter>());                // マテリアルインポーター（.tmat）の登録
         RegisterImporter(AssetType::Cubemap, Tsukino::Core::CreateRef<CubemapImporter>(m_textureRules));    // キューブマップインポーターを登録
-        RegisterImporter(AssetType::Effect, Tsukino::Core::CreateRef<EffectImporter>());      // エフェクトインポーターを登録
+        RegisterImporter(AssetType::Effect, Tsukino::Core::CreateRef<EffectImporter>());                    // エフェクトインポーターを登録
     }
 
     //--------------------------------------------------------------
@@ -330,7 +330,7 @@ namespace Tsukino::Asset {
     //--------------------------------------------------------------
     Tsukino::Core::Ref<IAsset> AssetManager::Get(AssetHandle handle) {
         std::lock_guard lock(m_mutex);
-        auto it = m_assets.find(handle.Value());
+        auto            it = m_assets.find(handle.Value());
         return it != m_assets.end() ? it->second : nullptr;
     }
 
@@ -407,35 +407,35 @@ namespace Tsukino::Asset {
     //--------------------------------------------------------------
     AssetType AssetManager::GetAssetTypeFromExtension(const std::string& ext) {
         static const std::unordered_map<std::string, AssetType> extensionToAssetType = {
-            {".png",     AssetType::Texture},
-            {".jpg",     AssetType::Texture},
-            {".jpeg",    AssetType::Texture},
-            {".bmp",     AssetType::Texture},
-            {".tga",     AssetType::Texture},
-            {".dds",     AssetType::Texture},
-            {".ktx",     AssetType::Texture},
+            {".png",     AssetType::Texture    },
+            {".jpg",     AssetType::Texture    },
+            {".jpeg",    AssetType::Texture    },
+            {".bmp",     AssetType::Texture    },
+            {".tga",     AssetType::Texture    },
+            {".dds",     AssetType::Texture    },
+            {".ktx",     AssetType::Texture    },
 
-            {".sc",      AssetType::Shader },    // bgfx のシェーダー（ビルド時に変換済み）
+            {".sc",      AssetType::Shader     }, // bgfx のシェーダー（ビルド時に変換済み）
 
-            {".obj",     AssetType::Model  },
-            {".fbx",     AssetType::Model  },
-            {".gltf",    AssetType::Model  },
-            {".glb",     AssetType::Model  },
-            {".tsm",     AssetType::Model  },
+            {".obj",     AssetType::Model      },
+            {".fbx",     AssetType::Model      },
+            {".gltf",    AssetType::Model      },
+            {".glb",     AssetType::Model      },
+            {".tsm",     AssetType::Model      },
 
-            {".wav",     AssetType::Audio  },
-            {".mp3",     AssetType::Audio  },
-            {".flac",    AssetType::Audio  },
+            {".wav",     AssetType::Audio      },
+            {".mp3",     AssetType::Audio      },
+            {".flac",    AssetType::Audio      },
 
             {".dfont",   AssetType::DynamicFont},
 
-            {".tmat",    AssetType::Material},
+            {".tmat",    AssetType::Material   },
 
-            {".cubemap", AssetType::Cubemap},
-            {".tcc",     AssetType::Cubemap},
+            {".cubemap", AssetType::Cubemap    },
+            {".tcc",     AssetType::Cubemap    },
 
-            {".efk",     AssetType::Effect },
-            {".efkefc",  AssetType::Effect },
+            {".efk",     AssetType::Effect     },
+            {".efkefc",  AssetType::Effect     },
         };
 
         if(auto it = extensionToAssetType.find(ext); it != extensionToAssetType.end())
@@ -449,26 +449,26 @@ namespace Tsukino::Asset {
     //--------------------------------------------------------------
     Tsukino::Core::Path AssetManager::ConvertToCachePath(const Tsukino::Core::Path& sourcePath) {
         static const std::unordered_map<std::string, std::string> extensionMap = {
-            {".png",     ".ktx"       },
-            {".jpg",     ".ktx"       },
-            {".jpeg",    ".ktx"       },
-            {".tga",     ".ktx"       },
-            {".bmp",     ".ktx"       },
-            {".dds",     ".ktx"       },
-            {".ktx",     ".ktx"       },
+            {".png",     ".ktx"   },
+            {".jpg",     ".ktx"   },
+            {".jpeg",    ".ktx"   },
+            {".tga",     ".ktx"   },
+            {".bmp",     ".ktx"   },
+            {".dds",     ".ktx"   },
+            {".ktx",     ".ktx"   },
 
-            {".obj",     ".tsm"       },
-            {".fbx",     ".tsm"       },
-            {".gltf",    ".tsm"       },
-            {".glb",     ".tsm"       },
-            {".tsm",     ".tsm"       },
+            {".obj",     ".tsm"   },
+            {".fbx",     ".tsm"   },
+            {".gltf",    ".tsm"   },
+            {".glb",     ".tsm"   },
+            {".tsm",     ".tsm"   },
 
             // Cubemap
-            {".cubemap", ".tcc"       },
-            {".tcc",     ".tcc"       },
+            {".cubemap", ".tcc"   },
+            {".tcc",     ".tcc"   },
 
-            {".efk",     ".efk"       },
-            {".efkefc",  ".efkefc"    },
+            {".efk",     ".efk"   },
+            {".efkefc",  ".efkefc"},
         };
 
         auto [sourceBase, sourceFragment] = Tsukino::Core::Path::SplitPathAndFragment(sourcePath.string());
