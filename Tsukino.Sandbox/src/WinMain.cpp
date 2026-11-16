@@ -1,6 +1,6 @@
 ﻿//--------------------------------------------------------------
 //! @file	WinMain.cpp
-//! @brief	Sandboxのエントリポイント
+//! @brief	Sandboxのエントリポイント（どの OS でも SDL の main から始まる）
 //! @author 山﨑愛
 //--------------------------------------------------------------
 #include <Tsukino/EngineIntegration/EngineAPI.hpp>
@@ -9,7 +9,10 @@
 #include <Tsukino/Sandbox/Scene/SampleScene1.hpp>
 #include <Tsukino/Sandbox/Scene/DeferredLightSampleScene.hpp>
 
-#include <Windows.h>
+// SDL_main.h は main を取り込むファイルで1回だけ取り込む（Windows では WinMain、
+// iOS・Android ではそれぞれの起動の仕組みから main を呼ぶようにしてくれる）
+#include <SDL3/SDL_main.h>
+
 #include <algorithm>
 #include <chrono>
 #include <cstdlib>
@@ -19,7 +22,7 @@
 namespace {
     //--------------------------------------------------------------
     //! @brief  コマンドライン引数から起動するサンプルシーンを選ぶ
-    //! @param  commandLine [in] WinMain が受け取るコマンドライン文字列
+    //! @param  commandLine [in] 起動引数（空白でつないだもの）
     //! @return 生成したシーン
     //! @note   以前は ChangeScene の呼び出しをコメントアウトで切り替えていたが、
     //!         サンプルを見るたびに再ビルドが要るうえ、どれが既定なのかも
@@ -41,15 +44,18 @@ namespace {
 
 //--------------------------------------------------------------
 // アプリケーションのエントリポイント
-//! @param hInstance アプリケーションインスタンス
-//! @param hPrevInstance 非推奨（常にNULL）
-//! @param lpCmdLine コマンドライン引数
-//! @param nCmdShow ウィンドウ表示状態（例：SW_SHOW）
+//! @param argc 引数の数
+//! @param argv 引数（UTF-8。argv[0] は実行ファイル）
 //! @return 終了コード（通常は0）
+//! @note   画面の拡大率（DPI）への対応は SDL が行う
 //--------------------------------------------------------------
-int WINAPI WinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ LPSTR lpCmdLine, _In_ int) {
-    // DPIスケーリングの無効化
-    SetProcessDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2);
+int main(int argc, char* argv[]) {
+    std::string commandLine;
+    for(int i = 1; i < argc; ++i) {
+        if(!commandLine.empty())
+            commandLine += ' ';
+        commandLine += argv[i];
+    }
     //--------------------------------------------------------------
     // ログをファイルへ出す。
     // これを呼ばないとLogはOutputDebugStringAにしか出ず、デバッガの外で
@@ -76,7 +82,7 @@ int WINAPI WinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ LPSTR lpCmdLine, _In
     //   Tsukino.Sandbox.exe            多光源ショーケース（既定。lights でも可）
     //   Tsukino.Sandbox.exe api        エンジンAPIの動作確認シーン
     //--------------------------------------------------------------
-    engineAPI.ChangeScene(CreateSceneFromCommandLine(lpCmdLine));
+    engineAPI.ChangeScene(CreateSceneFromCommandLine(commandLine.c_str()));
 
     //--------------------------------------------------------------
     // メインループ

@@ -112,12 +112,7 @@ namespace Tsukino::EngineIntegration {
 
     //------------------------------------------------------------
     //! @brief デストラクタ
-    //! @note  デストラクタは「本体 → メンバの破棄」の順に走る。本体で
-    //!        CoUninitialize() を呼ぶだけでは、まだ生きている Renderer /
-    //!        AudioManager より先に COM を落とすことになる（以前のコメントは
-    //!        破棄順を逆に書いていた）。
-    //!        そのため宣言の逆順＝暗黙の破棄順と同じ並びで明示的に解放し、
-    //!        COM 利用者が全ていなくなってから CoUninitialize() する。
+    //! @note  宣言の逆順＝暗黙の破棄順と同じ並びで明示的に解放する（ウィンドウは最後）
     //------------------------------------------------------------
     EngineIntegration::~EngineIntegration() {
         //------------------------------------------------------------
@@ -147,7 +142,7 @@ namespace Tsukino::EngineIntegration {
 
         //------------------------------------------------------------
         // 宣言の逆順で明示的に解放する（暗黙の破棄順とまったく同じ並び。
-        // CoUninitialize() をこの後に持ってくるためだけに明示している）
+        // 順を読み手に見えるようにするために明示している）
         //------------------------------------------------------------
         m_gameSceneManager.reset();
         m_prefabFactory.reset();
@@ -158,13 +153,6 @@ namespace Tsukino::EngineIntegration {
         m_assetManager.reset();
         m_renderer.reset();
         m_window.reset();
-
-#if defined(_WIN32)
-        if(m_comInitialized) {
-            CoUninitialize();
-            m_comInitialized = false;
-        }
-#endif
     }
 
     //------------------------------------------------------------
@@ -172,23 +160,6 @@ namespace Tsukino::EngineIntegration {
     //------------------------------------------------------------
     bool EngineIntegration::Initialize(int width, int height, const std::string& title, Tsukino::Core::Window::WindowStyle style,
                                        const Tsukino::Renderer::GraphicsDeviceOptions& deviceOptions) {
-#if defined(_WIN32)
-        //--------------------------------------------------------------
-        // COM初期化（WIC・XAudio2 などが使う。Windows のみ）
-        //
-        // SDL もウィンドウを作るときに COM を初期化するが、先にここで
-        // マルチスレッドで初期化しておけば、SDL はそれをそのまま使う
-        //--------------------------------------------------------------
-        HRESULT hr = CoInitializeEx(nullptr, COINIT_MULTITHREADED);
-        // COMの初期化に失敗した場合はエラーログを出力して終了
-        if(FAILED(hr)) {
-            Tsukino::Core::Log::Error("Failed to initialize COM library.");
-            return false;
-        }
-        // 成功した場合のみ、デストラクタで対になる CoUninitialize を呼ぶ
-        m_comInitialized = true;
-#endif
-
         //--------------------------------------------------------------
         // BuiltInのCopmonentをPrefabFactoryに登録
         //--------------------------------------------------------------

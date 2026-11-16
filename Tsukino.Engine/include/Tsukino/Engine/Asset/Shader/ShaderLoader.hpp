@@ -57,7 +57,7 @@ namespace Tsukino::Asset {
 
         //--------------------------------------------------------------
         //! この環境で読む、変換済みのシェーダーの形式のフォルダ名を返します。
-        //! @return フォルダ名（Windows の Direct3D 11 は "dxbc"）
+        //! @return フォルダ名（Windows の Direct3D 11 は "dxbc"、Apple の Metal は "metal"、Android の Vulkan は "spirv"）
         //! @note   名前は bgfx.cmake の決まりに合わせる（Tools/Shaders/CMakeLists.txt の出力先）
         //--------------------------------------------------------------
         [[nodiscard]]

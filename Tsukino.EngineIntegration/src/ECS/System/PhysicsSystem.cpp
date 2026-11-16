@@ -20,6 +20,7 @@
 
 #include <Tsukino/Renderer/Renderer.hpp>
 #include <Tsukino/EngineIntegration/EngineContext.hpp>
+#include <Tsukino/Core/Input/InputSystem.hpp>
 #include <Tsukino/EngineIntegration/Physics/RendererPhysicsDebugDraw.hpp>
 
 #include <Tsukino/Core/ECS/Event/EventBus.hpp>
@@ -28,8 +29,6 @@
 
 #include <hlsl++.h>
 #include <entt/entt.hpp>
-
-#include <windows.h>
 
 #include <string>
 #include <vector>
@@ -540,11 +539,11 @@ namespace Tsukino::BuiltIn::ECS {
 
         // デバッグ描画
 #ifdef TSUKINO_DEBUG_COLLISION_DRAW
-        bool f5IsDown = (::GetAsyncKeyState(VK_F5) & 0x8000) != 0;
-        if(f5IsDown && !m_f5WasDown) {
+        // F5 でデバッグ描画を切り替える
+        if(auto* inputCtx = registry.GetContext<Tsukino::EngineIntegration::EngineContext*>();
+           inputCtx && inputCtx->inputSystem && inputCtx->inputSystem->IsKeyPressed(Tsukino::Input::KeyCode::F5)) {
             m_isDebugDrawEnabled = !m_isDebugDrawEnabled;
         }
-        m_f5WasDown = f5IsDown;
 
         if(m_isDebugDrawEnabled) {
             auto* ctx = registry.GetContext<Tsukino::EngineIntegration::EngineContext*>();

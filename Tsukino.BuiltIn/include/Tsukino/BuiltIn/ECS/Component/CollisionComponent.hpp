@@ -7,7 +7,6 @@
 #include <functional>
 #include <entt/entt.hpp>
 #include <Tsukino/Physics/BodyHandle.hpp>
-#include <DirectXMath.h>
 
 #include <hlsl++.h>
 // 名前空間 : Tsukino::BuiltIn::ECS

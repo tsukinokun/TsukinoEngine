@@ -13,9 +13,6 @@
 // SDL のウィンドウ（定義は <SDL3/SDL_video.h>。公開ヘッダから SDL を取り込まないための前方宣言）
 struct SDL_Window;
 
-// Windows のウィンドウハンドル（windows.h の HWND と同じ型。公開ヘッダから windows.h を取り込まないための前方宣言）
-struct HWND__;
-
 // 名前空間 : Tsukino::Core
 namespace Tsukino::Core {
     //--------------------------------------------------------------
@@ -140,21 +137,12 @@ namespace Tsukino::Core {
         }
 
         //--------------------------------------------------------------
-        // OS のウィンドウハンドルを取得する関数
-        //! @return Windows では HWND。それ以外の環境と生成前は nullptr
+        // OS のウィンドウハンドルを取得する関数（描画の初期化に渡す）
+        //! @return Windows は HWND、macOS は NSWindow、iOS は CAMetalLayer、Android は ANativeWindow。
+        //!         生成前は nullptr
         //--------------------------------------------------------------
         [[nodiscard]]
         void* GetNativeHandle() const;
-
-        //--------------------------------------------------------------
-        // Rendererが必要とするHWND
-        //! @return ウィンドウのハンドル。Windows 以外の環境と生成前は nullptr
-        //! @note   これまでのコードのために残している。新しいコードは GetNativeHandle() を使う
-        //--------------------------------------------------------------
-        [[nodiscard]]
-        HWND__* GetHWND() const {
-            return static_cast<HWND__*>(GetNativeHandle());
-        }
 
         //--------------------------------------------------------------
         // ウィンドウの幅を取得する関数
@@ -287,7 +275,8 @@ namespace Tsukino::Core {
 
         std::vector<Tsukino::Input::InputEvent> m_inputQueue;    // フックから積まれた未処理の入力
 
-        SDL_Window* m_window = nullptr;    // SDL のウィンドウ
+        SDL_Window* m_window    = nullptr;    // SDL のウィンドウ
+        void*       m_metalView = nullptr;    // iOS で描画に使う Metal のビュー（SDL_MetalView。ほかの OS では nullptr）
 
         void* m_icon      = nullptr;    // exe に埋め込まれた大きいアイコン（HICON。無ければ nullptr）
         void* m_iconSmall = nullptr;    // exe に埋め込まれた小さいアイコン（HICON。無ければ nullptr）

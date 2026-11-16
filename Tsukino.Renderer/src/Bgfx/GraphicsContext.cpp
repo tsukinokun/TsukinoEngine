@@ -193,9 +193,17 @@ namespace Tsukino::Renderer {
         //--------------------------------------------------------------------
         bgfx::renderFrame();
 
+        //--------------------------------------------------------------
+        // 描画 API は OS ごとに1つに決める（シェーダーもその形式だけを作って同梱する。
+        // ShaderLoader::GetBinaryDirectoryName と揃えること）
+        //--------------------------------------------------------------
         bgfx::Init init;
 #if defined(_WIN32)
         init.type = bgfx::RendererType::Direct3D11;
+#elif defined(__APPLE__)
+        init.type = bgfx::RendererType::Metal;
+#elif defined(__ANDROID__)
+        init.type = bgfx::RendererType::Vulkan;
 #endif
         init.swapChain = MakeSwapChain(windowHandle, width, height);
         init.reset     = ResetFlags(m_vsync);

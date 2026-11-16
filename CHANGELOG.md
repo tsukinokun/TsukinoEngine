@@ -410,6 +410,19 @@ carve-out for `Tsukino.Renderer` described under **API stability** in the README
 
 ### Changed
 
+- **The engine no longer needs Windows-only code outside a few guarded features.**
+  - Breaking: `Window::GetHWND()` is removed; use `GetNativeHandle()`, which now returns the handle bgfx needs on each OS
+    (Windows `HWND`, macOS `NSWindow`, iOS `CAMetalLayer` of an SDL Metal view, Android `ANativeWindow`). Apple windows
+    are created with `SDL_WINDOW_METAL`.
+  - The renderer picks one graphics API per OS (Direct3D 11 / Metal / Vulkan) and `ShaderLoader::GetBinaryDirectoryName()`
+    returns the matching compiled-shader folder (`dxbc` / `metal` / `spirv`).
+  - `EngineIntegration` no longer initialises COM (it was for WIC and XAudio2, which are gone; miniaudio initialises COM
+    itself).
+  - `WindowsLean.hpp` does nothing outside Windows, and the module `pch.h` files include it instead of `<Windows.h>`.
+  - The physics debug-draw toggle (F5, `TSUKINO_DEBUG_COLLISION_DRAW`) reads the engine `InputSystem` instead of
+    `GetAsyncKeyState`. `CollisionComponent.hpp` no longer includes `DirectXMath.h`.
+  - The Sandbox entry point is a standard `main(argc, argv)` through `SDL3/SDL_main.h` (SDL supplies `WinMain` on Windows
+    and the platform entry on iOS / Android); applications should do the same.
 - **Textures are decoded, mipmapped and compressed with bimg instead of DirectXTex / WIC, and cached as KTX.**
   - `.png` / `.jpg` / `.tga` / `.bmp` / `.dds` / `.ktx` sources are imported to `Cache/<path>.ktx`; `TextureLoader` reads
     `.ktx`. KTX keeps the colour space, mips and block format, and also holds the mobile formats (ASTC / ETC2) later.

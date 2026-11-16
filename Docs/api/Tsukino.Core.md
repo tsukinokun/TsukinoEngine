@@ -66,7 +66,6 @@
 | `void SetHitTestCallback(HitTestCallback callback)` |  |
 | `SDL_Window * GetSDLWindow() const` |  |
 | `void * GetNativeHandle() const` | OS のウィンドウハンドルを取得する関数 |
-| `HWND__ * GetHWND() const` |  |
 | `int GetWidth() const` |  |
 | `int GetHeight() const` |  |
 | `void SetTopmost(bool enable)` | 動的に最前面表示を切り替える関数 |
@@ -228,7 +227,7 @@
 - **Tsukino::Core::Sequencer::Entry** — `Tsukino.Core/include/Tsukino/Core/Time/Sequencer.hpp`
   - time, order, callback
 - **Tsukino::Core::Window** — `Tsukino.Core/include/Tsukino/Core/Window.hpp`
-  - Window(), ~Window(), Window(), operator=(), Create(), ProcessMessages(), SetInputCallback(), SetResizeCallback(), SetFocusLostCallback(), SetHitTestCallback(), GetSDLWindow(), GetNativeHandle(), GetHWND(), GetWidth(), GetHeight(), SetTopmost(), IsTopmost(), SetUpdateMode(), SetClickThroughEnabled(), UpdateClickThroughFromHitTest(), EnqueueInput(), SetFullscreen(), SetCursorVisible(), IsFocused(), CenterCursor()
+  - Window(), ~Window(), Window(), operator=(), Create(), ProcessMessages(), SetInputCallback(), SetResizeCallback(), SetFocusLostCallback(), SetHitTestCallback(), GetSDLWindow(), GetNativeHandle(), GetWidth(), GetHeight(), SetTopmost(), IsTopmost(), SetUpdateMode(), SetClickThroughEnabled(), UpdateClickThroughFromHitTest(), EnqueueInput(), SetFullscreen(), SetCursorVisible(), IsFocused(), CenterCursor()
 - **Tsukino::ECS::EntityRef** — `Tsukino.Core/include/Tsukino/Core/ECS/EntityRef/EntityRef.hpp`
   - entity, localName, EntityRef(), EntityRef(), operator=(), operator=(), operator Entity(), operator==(), operator!=(), operator==(), operator!=()
 - **Tsukino::ECS::EntityRefResolverArchive** — `Tsukino.Core/include/Tsukino/Core/ECS/EntityRef/EntityRefResolverArchive.hpp`

@@ -8,7 +8,7 @@
 
 // Windows API
 #define NOMINMAX
-#include <Windows.h>
+#include <Tsukino/Core/WindowsLean.hpp>    // Windows のときだけ windows.h を取り込む
 
 // 標準ライブラリ
 #include <string>

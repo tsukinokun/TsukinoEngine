@@ -147,9 +147,6 @@ namespace Tsukino::BuiltIn::ECS {
         bool m_isDebugDrawEnabled = false;
 #endif    // TSUKINO_DEBUG_COLLISION_DRAW_ALWAYS_ON
 
-        //! 直前フレームでF5キーが押されていたか
-        bool m_f5WasDown = false;
-
         //! シグナル購読済みのレジストリ。デストラクタで購読解除するために保持する
         //! （System は Registry より先に破棄されるため、解除しないと
         //!   破棄済みの this へコールバックが飛ぶ）

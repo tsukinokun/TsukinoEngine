@@ -1,6 +1,7 @@
 //--------------------------------------------------------------
 //! @file   WindowsLean.hpp
 //! @brief  <windows.h> を安全な設定で取り込むための共通ヘッダ
+//! @note   Windows 以外では何もしない（Windows だけの処理の前に、OS を問わず取り込んでよい）
 //--------------------------------------------------------------
 #pragma once
 
@@ -16,12 +17,14 @@
 //!
 //! 既に定義済みなら上書きしない（取り込み側の設定を尊重する）。
 //--------------------------------------------------------------
-#ifndef NOMINMAX
-#    define NOMINMAX
-#endif
+#if defined(_WIN32)
+#    ifndef NOMINMAX
+#        define NOMINMAX
+#    endif
 
-#ifndef WIN32_LEAN_AND_MEAN
-#    define WIN32_LEAN_AND_MEAN
-#endif
+#    ifndef WIN32_LEAN_AND_MEAN
+#        define WIN32_LEAN_AND_MEAN
+#    endif
 
-#include <windows.h>
+#    include <windows.h>
+#endif

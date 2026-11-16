@@ -7,7 +7,7 @@
 #pragma once
 #define NOMINMAX
 // Windows API
-#include <Windows.h>    // Windows APIの基本的な機能を提供するヘッダーファイル
+#include <Tsukino/Core/WindowsLean.hpp>    // Windows のときだけ windows.h を取り込む
 
 // STL（Renderer が頻繁に使うものだけ）
 #include <memory>    // スマートポインタを使用するための標準ライブラリ

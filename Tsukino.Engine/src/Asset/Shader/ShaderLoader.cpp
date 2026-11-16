@@ -80,9 +80,17 @@ namespace Tsukino::Asset {
     //! この環境で読む、変換済みのシェーダーの形式のフォルダ名を返します。
     //--------------------------------------------------------------
     const char* ShaderLoader::GetBinaryDirectoryName() {
-        // 今の bgfx 版は Windows の Direct3D 11（shaderc の s_5_0）だけ。
-        // 他の OS（Metal・SPIR-V・GLES）は、その OS へ移すときに足す
-        return "dxbc";
+        // OS ごとに描画 API を1つに決めている（Tsukino.Renderer の GraphicsContext と揃える）。
+        // フォルダ名は bgfx.cmake の決まり（Tools/Shaders/CMakeLists.txt の出力先）
+#if defined(_WIN32)
+        return "dxbc";     // Direct3D 11（shaderc の s_5_0）
+#elif defined(__APPLE__)
+        return "metal";    // Metal（macOS・iOS）
+#elif defined(__ANDROID__)
+        return "spirv";    // Vulkan
+#else
+        return "spirv";
+#endif
     }
 
 }    // namespace Tsukino::Asset

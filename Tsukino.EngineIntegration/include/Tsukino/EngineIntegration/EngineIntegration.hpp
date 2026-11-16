@@ -39,13 +39,11 @@ namespace Tsukino::EngineIntegration {
 
         //------------------------------------------------------------
         //! @brief デストラクタ
-        //! @note  Initialize() で呼んだ CoInitializeEx と対にするため、
-        //!        全メンバの破棄後に CoUninitialize() を呼ぶ必要がある。
         //------------------------------------------------------------
         ~EngineIntegration();
 
         //------------------------------------------------------------
-        // COM とウィンドウを握るためコピー・ムーブ禁止
+        // ウィンドウと描画を握るためコピー・ムーブ禁止
         //------------------------------------------------------------
         EngineIntegration(const EngineIntegration&)            = delete;
         EngineIntegration& operator=(const EngineIntegration&) = delete;
@@ -107,7 +105,5 @@ namespace Tsukino::EngineIntegration {
         std::unique_ptr<GameSceneManager>                            m_gameSceneManager;    // 最初に破棄する
 
         EngineContext m_ctx;    // エンジン全体で共有されるクラスのポインタを集めた構造体
-
-        bool m_comInitialized = false;    // CoInitializeEx に成功したか（対になる CoUninitialize の要否判定用）
     };
 }    // namespace Tsukino::EngineIntegration

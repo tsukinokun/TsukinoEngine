@@ -5,6 +5,10 @@
 //--------------------------------------------------------------
 #include "Tsukino/Core/Window.hpp"
 
+#include <SDL3/SDL_metal.h>
+#if defined(__APPLE__)
+#    include <TargetConditionals.h>
+#endif
 #include <SDL3/SDL.h>
 
 // SDL_SetMainReady() のためだけに取り込む（main を SDL_main に置き換えさせない）
@@ -224,6 +228,10 @@ namespace Tsukino::Core {
         m_focusLostCallback = nullptr;
         m_hitTestCallback   = nullptr;
 
+        if(m_metalView) {
+            SDL_Metal_DestroyView(static_cast<SDL_MetalView>(m_metalView));
+            m_metalView = nullptr;
+        }
         if(m_window) {
             SDL_DestroyWindow(m_window);
             m_window = nullptr;
@@ -252,7 +260,7 @@ namespace Tsukino::Core {
         //--------------------------------------------------------------
         // SDL の初期化
         //
-        // main は自前（WinMain など）なので、SDL_main を使わないことを先に伝える。
+        // アプリの main を SDL_main.h なしで書いた場合にも動くよう、main の準備ができたことを伝える（二重に呼んでも害は無い）。
         // IME の変換中の文字列はゲーム側で描く（OS 標準の変換窓は出さない。候補の窓は OS に任せる）
         //--------------------------------------------------------------
         SDL_SetMainReady();
@@ -271,6 +279,9 @@ namespace Tsukino::Core {
         case WindowStyle::Popup: flags |= SDL_WINDOW_BORDERLESS; break;
         case WindowStyle::ClickThrough: flags |= SDL_WINDOW_BORDERLESS | SDL_WINDOW_ALWAYS_ON_TOP; break;
         }
+#if defined(__APPLE__)
+        flags |= SDL_WINDOW_METAL;    // Apple の OS では Metal で描く
+#endif
 
         //--------------------------------------------------------------
         // ウィンドウ作成
@@ -281,6 +292,11 @@ namespace Tsukino::Core {
             SDL_QuitSubSystem(SDL_INIT_VIDEO);
             return false;
         }
+
+#if defined(__APPLE__) && TARGET_OS_IPHONE
+        // iOS では、描画の初期化へ渡す CAMetalLayer を持つビューを作る
+        m_metalView = SDL_Metal_CreateView(m_window);
+#endif
 
         // 描画に使う大きさは、画面の拡大率を掛けたピクセル数
         SDL_GetWindowSizeInPixels(m_window, &m_width, &m_height);
@@ -450,12 +466,21 @@ namespace Tsukino::Core {
     //! @brief OS のウィンドウハンドルを取得する関数
     //--------------------------------------------------------------
     void* Window::GetNativeHandle() const {
+        if(!m_window)
+            return nullptr;
+
+        [[maybe_unused]] const SDL_PropertiesID properties = SDL_GetWindowProperties(m_window);
 #if defined(_WIN32)
-        if(m_window) {
-            return SDL_GetPointerProperty(SDL_GetWindowProperties(m_window), SDL_PROP_WINDOW_WIN32_HWND_POINTER, nullptr);
-        }
-#endif
+        return SDL_GetPointerProperty(properties, SDL_PROP_WINDOW_WIN32_HWND_POINTER, nullptr);
+#elif defined(__APPLE__) && TARGET_OS_IPHONE
+        return m_metalView ? SDL_Metal_GetLayer(static_cast<SDL_MetalView>(m_metalView)) : nullptr;
+#elif defined(__APPLE__)
+        return SDL_GetPointerProperty(properties, SDL_PROP_WINDOW_COCOA_WINDOW_POINTER, nullptr);
+#elif defined(__ANDROID__)
+        return SDL_GetPointerProperty(properties, SDL_PROP_WINDOW_ANDROID_WINDOW_POINTER, nullptr);
+#else
         return nullptr;
+#endif
     }
 
     //--------------------------------------------------------------
