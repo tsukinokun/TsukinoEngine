@@ -1,0 +1,3 @@
+// TsukinoEngine の Android 用 Gradle プロジェクト（雛形）
+// 使い方は README.md を参照
+include ':app'

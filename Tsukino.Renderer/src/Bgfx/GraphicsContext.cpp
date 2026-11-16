@@ -312,6 +312,16 @@ namespace Tsukino::Renderer {
     }
 
     //------------------------------------------------------------------------
+    //! 描画先のウィンドウを付け直し、バックバッファを作り直します。
+    //------------------------------------------------------------------------
+    void GraphicsContext::SetWindowHandle(void* windowHandle) {
+        if(windowHandle == nullptr || windowHandle == m_windowHandle)
+            return;
+        m_windowHandle = windowHandle;
+        ApplyReset();
+    }
+
+    //------------------------------------------------------------------------
     //! 今の大きさと垂直同期の設定で、bgfx のバックバッファを作り直します。
     //------------------------------------------------------------------------
     void GraphicsContext::ApplyReset() {

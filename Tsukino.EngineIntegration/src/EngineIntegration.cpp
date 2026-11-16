@@ -137,6 +137,7 @@ namespace Tsukino::EngineIntegration {
             m_window->SetInputCallback(nullptr);
             m_window->SetResizeCallback(nullptr);
             m_window->SetFocusLostCallback(nullptr);
+            m_window->SetLifecycleCallback(nullptr);
             m_window->SetHitTestCallback(nullptr);
         }
 
@@ -298,6 +299,27 @@ namespace Tsukino::EngineIntegration {
         // （キーを押したまま Alt+Tab したときの押しっぱなし対策）
         //--------------------------------------------------------------
         m_window->SetFocusLostCallback([this]() { m_inputSystem->ClearAllKeys(); });
+
+        //--------------------------------------------------------------
+        // アプリが裏へ回ったら音を止め、表へ戻ったら描画先を付け直して音を戻す（主にスマホ）。
+        // 裏にいる間の描画は EngineAPI::Render が飛ばす
+        //--------------------------------------------------------------
+        m_window->SetLifecycleCallback([this](Tsukino::Core::Window::AppLifecycle event) {
+            using Lifecycle = Tsukino::Core::Window::AppLifecycle;
+            if(event == Lifecycle::WillEnterBackground) {
+                m_inputSystem->ClearAllKeys();
+                if(m_audioManager) {
+                    m_audioManager->Suspend();
+                }
+            } else if(event == Lifecycle::DidEnterForeground) {
+                if(m_renderer) {
+                    m_renderer->SetNativeWindow(m_window->GetNativeHandle());
+                }
+                if(m_audioManager) {
+                    m_audioManager->Resume();
+                }
+            }
+        });
 
         //--------------------------------------------------------------
         // ウィンドウのリサイズをスワップチェインへ伝える

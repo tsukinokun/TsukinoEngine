@@ -20,6 +20,9 @@
 
 #include <Tsukino/Core/Log.hpp>
 
+#include <bimg/bimg.h>
+#include <bx/allocator.h>
+
 #include <algorithm>
 #include <cmath>
 #include <cstring>
@@ -493,6 +496,44 @@ namespace Tsukino::Renderer {
         return MakeMesh(meshData);
     }
 
+    namespace {
+        //--------------------------------------------------------------------
+        //! この GPU が読めない圧縮形式のテクスチャを、RGBA8 に展開して置き換えます。
+        //! @param  [in,out] textureAsset 置き換えるテクスチャ（画素・段・形式が変わる）
+        //! @param  [in]     info         今の形式の bgfx での情報
+        //! @return 展開したら true
+        //! @note   スマホの GPU は BC 圧縮を読めないことが多い（iOS・多くの Android）。
+        //!         メモリは増えるが、白いテクスチャにするより見た目を保つ方を選ぶ
+        //--------------------------------------------------------------------
+        bool DecompressIfUnsupported(Tsukino::Asset::TextureAsset& textureAsset, const BgfxFormatInfo& info) {
+            const bgfx::Caps* caps = bgfx::getCaps();
+            if(!caps)
+                return false;
+            const u16 needed = info.srgb ? BGFX_CAPS_FORMAT_TEXTURE_2D_SRGB : BGFX_CAPS_FORMAT_TEXTURE_2D;
+            const auto source = static_cast<bimg::TextureFormat::Enum>(info.format);    // bgfx と bimg の形式の番号は同じ
+            if((caps->formats[info.format] & needed) != 0 || !bimg::isCompressed(source))
+                return false;
+
+            static bx::DefaultAllocator allocator;
+            std::vector<u8>             pixels;
+            std::vector<Tsukino::Asset::TextureAsset::MipLevel> mips;
+            for(size_t mip = 0; mip < textureAsset.mips.size(); ++mip) {
+                const u32 width  = std::max(1u, textureAsset.width >> mip);
+                const u32 height = std::max(1u, textureAsset.height >> mip);
+                const size_t offset = pixels.size();
+                pixels.resize(offset + static_cast<size_t>(width) * height * 4);
+                bimg::imageDecodeToRgba8(&allocator, pixels.data() + offset, textureAsset.pixels.data() + textureAsset.mips[mip].offset, width,
+                                         height, width * 4, source);
+                mips.push_back({offset, width * 4});
+            }
+
+            textureAsset.pixels = std::move(pixels);
+            textureAsset.mips   = std::move(mips);
+            textureAsset.format = info.srgb ? Tsukino::GraphicsCommon::TextureFormat::RGBA8_sRGB : Tsukino::GraphicsCommon::TextureFormat::RGBA8;
+            return true;
+        }
+    }    // namespace
+
     //------------------------------------------------------------------------
     //! テクスチャアセットを GPU へ送り、ハンドルを取得します。
     //------------------------------------------------------------------------
@@ -501,7 +542,10 @@ namespace Tsukino::Renderer {
         if(auto it = m_gpu->textureCache.find(key); it != m_gpu->textureCache.end())
             return it->second;
 
-        const BgfxFormatInfo info = ToBgfxFormat(textureAsset.format);
+        BgfxFormatInfo info = ToBgfxFormat(textureAsset.format);
+        if(info.format != bgfx::TextureFormat::Unknown && !textureAsset.pixels.empty() && DecompressIfUnsupported(textureAsset, info)) {
+            info = ToBgfxFormat(textureAsset.format);
+        }
         if(info.format == bgfx::TextureFormat::Unknown || textureAsset.width == 0 || textureAsset.height == 0
            || textureAsset.pixels.empty()) {
             Tsukino::Core::Log::Error("RenderResources: Unsupported or empty texture; the white texture is used instead.");

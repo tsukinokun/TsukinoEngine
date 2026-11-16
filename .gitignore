@@ -64,3 +64,10 @@ Tsukino.BuiltIn/Assets/Shaders/bgfx/**/essl/
 Tsukino.BuiltIn/Assets/Shaders/bgfx/**/glsl/
 Tsukino.BuiltIn/Assets/Shaders/bgfx/**/pssl/
 Tsukino.BuiltIn/Assets/Shaders/bgfx/**/wgsl/
+
+# Android の Gradle の生成物
+Platforms/Android/.gradle/
+Platforms/Android/app/build/
+Platforms/Android/app/.cxx/
+Platforms/Android/build/
+Platforms/Android/local.properties

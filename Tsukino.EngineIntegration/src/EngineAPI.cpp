@@ -92,6 +92,10 @@ namespace Tsukino::EngineIntegration {
     //! @brief 描画関数
     //------------------------------------------------------------
     void EngineAPI::Render() {
+        // アプリが裏に回っている間は描かない（スマホでは描画先が無い・描くと OS に止められる）
+        if(m_context.window && m_context.window->IsInBackground()) {
+            return;
+        }
         m_context.renderer->Render(m_context.effectSystem);
     }
 }    // namespace Tsukino::EngineIntegration

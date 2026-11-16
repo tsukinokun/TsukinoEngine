@@ -41,6 +41,10 @@ namespace Tsukino::Renderer {
         //! @param  [in] enabled true で垂直同期あり
         void SetVSyncEnabled(bool enabled);
 
+        //! 描画先のウィンドウを付け直し、バックバッファを作り直します。
+        //! @param  [in] windowHandle 新しい OS のウィンドウ
+        void SetWindowHandle(void* windowHandle);
+
         //! 垂直同期が有効かを返します。
         //! @return 有効なら true
         [[nodiscard]]

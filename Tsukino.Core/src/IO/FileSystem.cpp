@@ -10,6 +10,21 @@
 #include <SDL3/SDL_stdinc.h>
 
 #include <filesystem>
+
+#if defined(__APPLE__)
+#    include <TargetConditionals.h>
+#endif
+
+//-------------------------------------------------------------
+// アセットをソースの場所から読むか（デスクトップの Debug だけ）。
+// スマホでは開発機のパスが見えないので、Debug でも同梱したアセット（.app の中・APK）を読む
+//-------------------------------------------------------------
+#if defined(_DEBUG) && !defined(__ANDROID__) && !(defined(__APPLE__) && TARGET_OS_IPHONE)
+#    define TSUKINO_ASSETS_FROM_SOURCE_TREE 1
+#else
+#    define TSUKINO_ASSETS_FROM_SOURCE_TREE 0
+#endif
+
 // 名前空間 : Tsukino::IO
 namespace Tsukino::IO {
     namespace {
@@ -167,13 +182,16 @@ namespace Tsukino::IO {
     //! @brief  アセットのルートパスを取得する
     //---------------------------------------------------------
     Tsukino::Core::Path FileSystem::GetAssetRootPath() {
-#ifdef _DEBUG
-        // デバッグ時はプロジェクトルート（Premakeのdebugdir設定に依存）
+#if TSUKINO_ASSETS_FROM_SOURCE_TREE
+        // デバッグ時はプロジェクトルート（Premakeのdebugdir・CMakeの作業フォルダ設定に依存）
         std::error_code ec;
         return Tsukino::Core::Path(std::filesystem::current_path(ec));
+#elif defined(__ANDROID__)
+        // Android はアセットを APK の直下に入れる。SDL は相対パスを APK の中から読むので、ルートは空にする
+        return Tsukino::Core::Path("");
 #else
         // リリース時は実行ファイル (.exe) の場所を基準にする。
-        // SDL_GetBasePath は UTF-8 で、末尾に区切り文字が付く（macOS の .app では Resources フォルダを指す）
+        // SDL_GetBasePath は UTF-8 で、末尾に区切り文字が付く（macOS の .app では Resources フォルダ、iOS は .app を指す）
         const char* basePath = SDL_GetBasePath();
         if(!basePath) {
             std::error_code ec;
@@ -191,7 +209,7 @@ namespace Tsukino::IO {
     //! @brief  エンジン自身のリソースのルートパスを取得する
     //---------------------------------------------------------
     Tsukino::Core::Path FileSystem::GetEngineAssetRootPath() {
-#ifdef _DEBUG
+#if TSUKINO_ASSETS_FROM_SOURCE_TREE
         // デバッグ時：エンジン自身のソースツリー上の絶対パス（Premakeがコンパイル時に注入）を直接参照する。
         // 取り込み側リポジトリのルートへTools/やTsukino.BuiltIn/Assetsをコピー・リンクする必要がなくなる。
         return Tsukino::Core::Path(TSUKINO_ENGINE_ROOT);

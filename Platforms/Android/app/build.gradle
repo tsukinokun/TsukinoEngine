@@ -1,0 +1,54 @@
+// TsukinoEngine の Android アプリ（SDL の Java の層 + アプリの CMake のビルド）
+plugins {
+    id 'com.android.application'
+}
+
+def engineRoot = file('../../..').canonicalPath
+def cmakeLists = file(project.property('tsukino.cmakeLists')).canonicalPath
+def assetRoot  = file(project.property('tsukino.assetRoot')).canonicalPath
+def shaderc    = project.property('tsukino.shaderc')
+
+android {
+    namespace = 'jp.tsukino.engine'
+    compileSdk 35
+
+    defaultConfig {
+        applicationId project.property('tsukino.appId')
+        // Vulkan と AAudio（miniaudio の既定の出力）がそろう 8.0 以上
+        minSdk 26
+        targetSdk 35
+        versionCode 1
+        versionName '1.0'
+
+        externalNativeBuild {
+            cmake {
+                arguments '-DANDROID_STL=c++_static', "-DTSUKINO_SHADERC=${shaderc}"
+                abiFilters 'arm64-v8a'
+            }
+        }
+    }
+
+    externalNativeBuild {
+        cmake {
+            path cmakeLists
+            version '3.31.6'
+        }
+    }
+
+    sourceSets.main {
+        // SDL の Java の層（SDLActivity ほか）はエンジンの submodule のものをそのまま使う
+        java.srcDirs += "${engineRoot}/External/SDL/android-project/app/src/main/java"
+        // アセットは、デスクトップの作業フォルダと同じ相対パスで読めるように APK の直下へ入れる
+        assets.srcDirs = [assetRoot]
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+        }
+    }
+
+    lint {
+        abortOnError = false
+    }
+}

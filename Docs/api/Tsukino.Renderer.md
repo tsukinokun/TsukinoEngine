@@ -27,6 +27,7 @@
 | `bool Initialize(const NativeWindow &window, uint32_t width, uint32_t height, const RendererShaderSet &shaders, const GraphicsDeviceOptions &deviceOptions={})` | レンダラーを初期化します。 |
 | `void Render(IPostWorldPass *postWorldPass=nullptr)` | 1フレームを描きます。 |
 | `void Resize(uint32_t width, uint32_t height)` | 描画領域のリサイズ |
+| `void SetNativeWindow(void *window)` | 描画先のウィンドウを付け直します。 |
 | `void SetClearColor(float r, float g, float b, float a)` | 背景色を設定します。 |
 | `DrawCommandQueue & GetDrawQueue() noexcept` | このフレームの描画コマンドキューを取得する |
 | `void SetShadowCullingEnabled(bool enabled)` | シャドウパスでカスケードの範囲外を間引くかを設定する関数 |
@@ -164,7 +165,7 @@
 - **Tsukino::Renderer::GraphicsAdapterInfo** — `Tsukino.Renderer/include/Tsukino/Renderer/RenderQuality.hpp`
   - name, vendorId, deviceId, isSoftware, isUnifiedMemory, dedicatedMemory, sharedMemory
 - **Tsukino::Renderer::GraphicsContext** — `Tsukino.Renderer/internal/Tsukino/Renderer/Bgfx/GraphicsContext.hpp`
-  - kGBufferCount, ~GraphicsContext(), Initialize(), Resize(), SetVSyncEnabled(), IsVSyncEnabled(), GetAdapterInfo(), GetWidth(), GetHeight(), SetRenderScale(), GetSceneWidth(), GetSceneHeight(), GetGBufferFrameBuffer(), GetHdrFrameBuffer(), GetHdrColorFrameBuffer(), GetHdrTexture(), GetPostProcessTexture(), GetPostProcessFrameBuffer(), GetGBufferTexture(), GetDepthTexture(), EnableEffectTargets(), HasEffectTargets(), GetEffectFrameBuffer(), GetEffectColorTexture(), GetEffectBackgroundTexture(), GetEffectDepthTexture(), IsBgfxAlive()
+  - kGBufferCount, ~GraphicsContext(), Initialize(), Resize(), SetVSyncEnabled(), SetWindowHandle(), IsVSyncEnabled(), GetAdapterInfo(), GetWidth(), GetHeight(), SetRenderScale(), GetSceneWidth(), GetSceneHeight(), GetGBufferFrameBuffer(), GetHdrFrameBuffer(), GetHdrColorFrameBuffer(), GetHdrTexture(), GetPostProcessTexture(), GetPostProcessFrameBuffer(), GetGBufferTexture(), GetDepthTexture(), EnableEffectTargets(), HasEffectTargets(), GetEffectFrameBuffer(), GetEffectColorTexture(), GetEffectBackgroundTexture(), GetEffectDepthTexture(), IsBgfxAlive()
 - **Tsukino::Renderer::GraphicsDeviceOptions** — `Tsukino.Renderer/include/Tsukino/Renderer/RenderQuality.hpp`
   - preference
 - **Tsukino::Renderer::IBLBaker** — `Tsukino.Renderer/include/Tsukino/Renderer/IBLBaker.hpp`
@@ -210,7 +211,7 @@
 - **Tsukino::Renderer::RenderResources::Gpu::TextureEntry** — `Tsukino.Renderer/internal/Tsukino/Renderer/Bgfx/RenderResourcesGpu.hpp`
   - texture, width, height, format
 - **Tsukino::Renderer::Renderer** — `Tsukino.Renderer/include/Tsukino/Renderer/Renderer.hpp`
-  - kEffectSquareMaxCount, Renderer(), ~Renderer(), Initialize(), Render(), Resize(), SetClearColor(), GetDrawQueue(), SetShadowCullingEnabled(), SetShadowSettings(), GetShadowSettings(), GetFrameStats(), SetVSyncEnabled(), IsVSyncEnabled(), SetQuality(), GetQuality(), GetAdapterInfo(), GetDebugDraw(), GetResources(), GetFrameConstants(), GetEffectRenderer(), GetLighting(), GetSky(), GetIBL(), GetAmbientParticles(), GetFog(), GetSphereColorGrade(), GetMotionBlur(), GetBloom()
+  - kEffectSquareMaxCount, Renderer(), ~Renderer(), Initialize(), Render(), Resize(), SetNativeWindow(), SetClearColor(), GetDrawQueue(), SetShadowCullingEnabled(), SetShadowSettings(), GetShadowSettings(), GetFrameStats(), SetVSyncEnabled(), IsVSyncEnabled(), SetQuality(), GetQuality(), GetAdapterInfo(), GetDebugDraw(), GetResources(), GetFrameConstants(), GetEffectRenderer(), GetLighting(), GetSky(), GetIBL(), GetAmbientParticles(), GetFog(), GetSphereColorGrade(), GetMotionBlur(), GetBloom()
 - **Tsukino::Renderer::Renderer::FrameStats** — `Tsukino.Renderer/include/Tsukino/Renderer/Renderer.hpp`
   - commandCount, shadowDrawCalls, gbufferDrawCalls, worldDrawCalls, transparentDrawCalls, overlayDrawCalls, skinnedDrawCalls, triangleCount, boneBytesUploaded, gpu, TotalDrawCalls()
 - **Tsukino::Renderer::RendererShaderSet** — `Tsukino.Renderer/include/Tsukino/Renderer/Renderer.hpp`

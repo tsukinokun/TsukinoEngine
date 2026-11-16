@@ -9,6 +9,28 @@ carve-out for `Tsukino.Renderer` described under **API stability** in the README
 
 ### Added
 
+- **CMake build for Windows, macOS, iOS and Android.** The root `CMakeLists.txt` builds every engine module, the vendored
+  libraries (SDL3, bgfx / bimg / bx and `shaderc`, Jolt, Effekseer, miniaudio) and the Sandbox. A game adds the engine
+  with `add_subdirectory` and links `Tsukino::Engine`; `cmake/Tsukino.cmake` provides `tsukino_add_app` (executable, app
+  bundle or Android `libmain.so`, with the assets copied next to it in Release) and `tsukino_add_shaders` (compiles a
+  folder of `.sc` files for this OS at build time). See `Platforms/README.md`. The premake build keeps working on Windows.
+  - Shaders compile for any format from any host: `cmake/TsukinoShaders.cmake` calls `shaderc` with the target OS of each
+    format (`s_5_0` → `dxbc`, `metal`, `spirv`, `300_es` → `essl`). Every built-in shader (50, Effekseer included)
+    compiles for all four with `--Werror`. `Tools/Shaders/CMakeLists.txt` (used by premake) shares the same function;
+    it also fixes a folder's own `varying.def.sc` being ignored.
+  - Cross builds (iOS, Android) take a host `shaderc` through `TSUKINO_SHADERC`.
+  - Assimp is optional: a CMake package (vcpkg, Homebrew) or, on Windows, premake's NuGet `AssimpCpp`. Without it the
+    model importer is left out (`TSUKINO_WITHOUT_MODEL_IMPORTER`); ship the `.tsm` / `.ktx` caches instead.
+  - `Platforms/Android` is a Gradle project (SDL's Java layer + the app's CMake build, Vulkan, arm64-v8a).
+- **Mobile support in the engine (not yet tried on a device).**
+  - `Window::SetLifecycleCallback` / `IsInBackground()` (`AppLifecycle::WillEnterBackground`, `DidEnterForeground`,
+    `LowMemory`). `EngineIntegration` suspends audio and `EngineAPI::Render` skips frames while in the background, and
+    `Renderer::SetNativeWindow` re-attaches the window when the app returns (Android recreates it).
+  - `Window::GetSafeArea()` returns the rectangle not covered by notches or the home bar, in pixels.
+  - Textures in a block-compressed format the GPU cannot sample (BC on most phones) are decoded to RGBA8 on upload.
+  - On Android assets are read from the APK root, and on phones Debug builds also read the packaged assets (desktop
+    Debug still reads the source tree).
+
 - **bgfx as an optional rendering backend (work in progress).** `premake5 vs2022 --renderer=bgfx` (or the
   `TSUKINO_RENDERER=bgfx` environment variable for build scripts that run premake without arguments) builds
   `Tsukino.Renderer` from `src/Bgfx` instead of `src/DX11`, builds bgfx / bimg / bx with CMake through a `bgfx-cmake`

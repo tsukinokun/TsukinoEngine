@@ -75,6 +75,9 @@ build.bat            Debug をビルド
 build.bat Release
 ```
 
+全 OS 共通のビルドは CMake（ルートの `CMakeLists.txt`。手順は `Platforms/README.md`）。
+Windows では premake の `build.bat` も使える（ゲームの ChronoSort は今 premake でビルドしている）。
+
 **MSBuild を直接叩かない。** 静音フラグを忘れると数千行出る。`build.bat` は成功時 0 行、
 失敗時はエラー行だけを返し、NuGet の復元も必要なときだけ自動で走る。
 

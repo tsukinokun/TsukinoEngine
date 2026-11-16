@@ -21,7 +21,9 @@
 #include <Tsukino/Engine/Asset/Texture/TextureImporter.hpp>
 #include <Tsukino/Engine/Asset/Font/DynamicFontImporter.hpp>
 #include <Tsukino/Engine/Asset/Material/MaterialImporter.hpp>
+#if !defined(TSUKINO_WITHOUT_MODEL_IMPORTER)
 #include <Tsukino/Engine/Asset/Model/ModelImporter.hpp>
+#endif
 #include <Tsukino/Engine/Asset/Cubemap/CubemapImporter.hpp>
 
 #include <Tsukino/Core/IO/FileSystem.hpp>
@@ -61,7 +63,11 @@ namespace Tsukino::Asset {
         // シェーダーはビルド時に変換済み（tsukino_shaders()）なので、インポーターは無い
         RegisterImporter(AssetType::Texture, Tsukino::Core::CreateRef<TextureImporter>(m_textureRules));    // テクスチャインポーターを登録
         RegisterImporter(AssetType::DynamicFont, Tsukino::Core::CreateRef<DynamicFontImporter>());    // 動的フォントインポーターの登録
+#if !defined(TSUKINO_WITHOUT_MODEL_IMPORTER)
         RegisterImporter(AssetType::Model, Tsukino::Core::CreateRef<ModelImporter>());        // モデルインポーターの登録
+#else
+        // Assimp の無いビルド（スマホなど）は .fbx / .obj を取り込めない。開発機で作ったキャッシュ（.tsm）を同梱して読む
+#endif
         RegisterImporter(AssetType::Material, Tsukino::Core::CreateRef<MaterialImporter>());  // マテリアルインポーター（.tmat）の登録
         RegisterImporter(AssetType::Cubemap, Tsukino::Core::CreateRef<CubemapImporter>());    // キューブマップインポーターを登録
         RegisterImporter(AssetType::Effect, Tsukino::Core::CreateRef<EffectImporter>());      // エフェクトインポーターを登録

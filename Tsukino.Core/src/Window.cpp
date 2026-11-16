@@ -226,6 +226,7 @@ namespace Tsukino::Core {
         m_inputCallback     = nullptr;
         m_resizeCallback    = nullptr;
         m_focusLostCallback = nullptr;
+        m_lifecycleCallback = nullptr;
         m_hitTestCallback   = nullptr;
 
         if(m_metalView) {
@@ -451,6 +452,32 @@ namespace Tsukino::Core {
                 }
                 break;
 
+            //--------------------------------------------------------------
+            // アプリの状態（スマホ）。裏に回っている間は描画しない
+            // （iOS は裏で Metal に描くと落とされる。Android は描画先のウィンドウが消える）
+            //--------------------------------------------------------------
+            case SDL_EVENT_WILL_ENTER_BACKGROUND:
+                m_inBackground = true;
+                if(m_lifecycleCallback) {
+                    m_lifecycleCallback(AppLifecycle::WillEnterBackground);
+                }
+                break;
+
+            case SDL_EVENT_DID_ENTER_FOREGROUND:
+                m_inBackground = false;
+                if(m_lifecycleCallback) {
+                    m_lifecycleCallback(AppLifecycle::DidEnterForeground);
+                }
+                break;
+
+            case SDL_EVENT_LOW_MEMORY:
+                if(m_lifecycleCallback) {
+                    m_lifecycleCallback(AppLifecycle::LowMemory);
+                }
+                break;
+
+            case SDL_EVENT_TERMINATING: return false;
+
             default: break;
             }
         }
@@ -460,6 +487,25 @@ namespace Tsukino::Core {
 
         // メッセージの処理が完了したら true を返す（アプリケーションは継続）
         return true;
+    }
+
+    //--------------------------------------------------------------
+    //! @brief UI を置いてよい四角を取得する関数
+    //--------------------------------------------------------------
+    Window::SafeArea Window::GetSafeArea() const {
+        SafeArea area{0, 0, m_width, m_height};
+        SDL_Rect rect{};
+        if(!m_window || !SDL_GetWindowSafeArea(m_window, &rect))
+            return area;
+
+        // SDL はウィンドウ座標（OS の拡大率で縮んだ座標）で返すので、ピクセルへ直す
+        const float density = SDL_GetWindowPixelDensity(m_window);
+        const float scale   = (density > 0.0f) ? density : 1.0f;
+        area.x      = static_cast<int>(std::lround(static_cast<float>(rect.x) * scale));
+        area.y      = static_cast<int>(std::lround(static_cast<float>(rect.y) * scale));
+        area.width  = static_cast<int>(std::lround(static_cast<float>(rect.w) * scale));
+        area.height = static_cast<int>(std::lround(static_cast<float>(rect.h) * scale));
+        return area;
     }
 
     //--------------------------------------------------------------

@@ -1,0 +1,17 @@
+// TsukinoEngine の Android 用 Gradle プロジェクト（全体の設定）
+buildscript {
+    repositories {
+        mavenCentral()
+        google()
+    }
+    dependencies {
+        classpath 'com.android.tools.build:gradle:8.7.3'
+    }
+}
+
+allprojects {
+    repositories {
+        mavenCentral()
+        google()
+    }
+}

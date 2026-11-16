@@ -10,9 +10,7 @@
 #include <cmath>
 #include <cstring>
 #include <cwchar>
-
-#define WIN32_LEAN_AND_MEAN
-#include <windows.h>
+#include <Tsukino/Core/WindowsLean.hpp>    // _wassert の回避策（Windows だけ）が使う
 
 #include <Tsukino/Core/Log.hpp>
 #include <Tsukino/Core/Path.hpp>
@@ -48,7 +46,7 @@ namespace Tsukino::Asset {
         hlslpp::interop::float2 texcoord;
     };
 
-#ifdef _DEBUG
+#if defined(_WIN32) && defined(_DEBUG)    // Windows の NuGet 版 Assimp のデバッグ DLL だけの回避策
     //--------------------------------------------------------------
     //! @brief  Assimp デバッグ DLL の既知の誤アサート対策
     //!
@@ -172,15 +170,15 @@ namespace Tsukino::Asset {
             (void)installed;
         }
     }    // namespace
-#endif    // _DEBUG
+#endif    // defined(_WIN32) && defined(_DEBUG)
 
     //--------------------------------------------------------------
     //! @brief  モデルのインポート関数
     //--------------------------------------------------------------
     bool ModelImporter::Import(const Tsukino::Core::Path& inputPath, const Tsukino::Core::Path& outputDirectory) {
-#ifdef _DEBUG
+#if defined(_WIN32) && defined(_DEBUG)    // Windows の NuGet 版 Assimp のデバッグ DLL だけの回避策
         EnsureAssimpAssertWorkaround();
-#endif    // _DEBUG
+#endif    // defined(_WIN32) && defined(_DEBUG)
 
         Tsukino::Core::Log::Info("sizeof(Vertex) = " + std::to_string(sizeof(Vertex)));
         Tsukino::Core::Log::Info("offsetof texcoord = " + std::to_string(offsetof(Vertex, texcoord)));
