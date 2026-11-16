@@ -97,7 +97,7 @@ endfunction()
 
 #-----------------------------------------------------------------------------
 # 実行ファイルを作る（Android では SDL が読み込む共有ライブラリ libmain.so）
-#   tsukino_add_app(<name> SOURCES ... [ASSET_DIRS <dir>...] [WORKING_DIR <dir>] [BUNDLE_ID <id>])
+#   tsukino_add_app(<name> SOURCES ... [ASSET_DIRS <dir>...] [WORKING_DIR <dir>] [BUNDLE_ID <id>] [ICON <app.ico>])
 #
 # アセットは WORKING_DIR（既定はこの CMakeLists.txt のフォルダ）からの相対パスで読む。
 #   Debug   : 作業フォルダを WORKING_DIR にして、ソースのアセットをそのまま読む（エンジンの組み込みアセットも
@@ -106,7 +106,7 @@ endfunction()
 # Android のアセットは、Gradle のプロジェクトが APK へ入れる（このフォルダの相対パスのまま assets/ へ）
 #-----------------------------------------------------------------------------
 function(tsukino_add_app NAME)
-	cmake_parse_arguments(ARG "" "WORKING_DIR;BUNDLE_ID" "SOURCES;ASSET_DIRS" ${ARGN})
+	cmake_parse_arguments(ARG "" "WORKING_DIR;BUNDLE_ID;ICON" "SOURCES;ASSET_DIRS" ${ARGN})
 	if(NOT ARG_WORKING_DIR)
 		set(ARG_WORKING_DIR "${CMAKE_CURRENT_SOURCE_DIR}")
 	endif()
@@ -133,6 +133,14 @@ function(tsukino_add_app NAME)
 		endif()
 	elseif(WIN32)
 		add_executable(${NAME} WIN32 ${ARG_SOURCES})    # SDL_main.h が WinMain を用意する
+		if(ARG_ICON)
+			# exe とウィンドウのアイコン（リソース名は Window.cpp が読む TSUKINO_APP_ICON）
+			set(rc "${CMAKE_CURRENT_BINARY_DIR}/${NAME}_icon.rc")
+			file(TO_CMAKE_PATH "${ARG_ICON}" icon_path)
+			file(CONFIGURE OUTPUT "${rc}" CONTENT "TSUKINO_APP_ICON ICON \"${icon_path}\"
+")
+			target_sources(${NAME} PRIVATE "${rc}")
+		endif()
 	else()
 		add_executable(${NAME} ${ARG_SOURCES})
 	endif()
