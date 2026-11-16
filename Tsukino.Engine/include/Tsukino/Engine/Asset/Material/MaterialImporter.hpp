@@ -33,10 +33,10 @@ namespace Tsukino::Asset {
     public:
 
         //! マテリアルファイルをインポートします。
-        //! @param  [in] inPutPath       インポートする .tmat ファイルのパス
-        //! @param  [in] outPutDirectory 出力先ディレクトリ
+        //! @param  [in] inputPath       インポートする .tmat ファイルのパス
+        //! @param  [in] outputDirectory 出力先ディレクトリ
         //! @return 成功した場合は true
         [[nodiscard]]
-        bool Import(const Tsukino::Core::Path& inPutPath, const Tsukino::Core::Path& outPutDirectory) override;
+        bool Import(const Tsukino::Core::Path& inputPath, const Tsukino::Core::Path& outputDirectory) override;
     };
 }    // namespace Tsukino::Asset

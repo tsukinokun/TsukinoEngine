@@ -55,9 +55,7 @@ namespace Tsukino::BuiltIn::ECS {
             //-----------------------------------------------------
             const Tsukino::ECS::Entity parent = transform.parent;
 
-            if(parent == entt::null || !registry.HasComponent<TransformComponent>(parent)) {
-                m_rootEntities.push_back(entity);
-            } else if(HasCycle(registry, entity)) {
+            if(parent == entt::null || !registry.HasComponent<TransformComponent>(parent) || HasCycle(registry, entity)) {
                 m_rootEntities.push_back(entity);
             } else {
                 m_childrenByParent[static_cast<std::uint32_t>(parent)].push_back(entity);

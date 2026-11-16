@@ -236,12 +236,12 @@ namespace Tsukino::Sandbox {
 
         // アニメーションを再生・制御するコンポーネント
         Tsukino::BuiltIn::ECS::AnimationPlayerComponent& animPlayer = registry.AddComponent<Tsukino::BuiltIn::ECS::AnimationPlayerComponent>(modelEntity);
-        animPlayer.current_clip_id                                  = animationHandle;    // ロー等速再生ドした testAnim.fbx のハンドルを渡す
-        animPlayer.animation_index                                  = 1;                  // 再生するアニメーションのインデックスを指定
-        animPlayer.elapsed_time                                     = 2.2f;               // 0秒からスタート
-        animPlayer.playback_speed                                   = 0.5f;               //
-        animPlayer.is_looping                                       = true;               // ループさせる
-        animPlayer.is_playing                                       = true;               // 再生状態にする
+        animPlayer.currentClipId                                  = animationHandle;    // ロー等速再生ドした testAnim.fbx のハンドルを渡す
+        animPlayer.animationIndex                                  = 1;                  // 再生するアニメーションのインデックスを指定
+        animPlayer.elapsedTime                                     = 2.2f;               // 0秒からスタート
+        animPlayer.playbackSpeed                                   = 0.5f;               //
+        animPlayer.isLooping                                       = true;               // ループさせる
+        animPlayer.isPlaying                                       = true;               // 再生状態にする
 
         Tsukino::BuiltIn::ECS::SpringBoneComponent& springBone = registry.AddComponent<Tsukino::BuiltIn::ECS::SpringBoneComponent>(modelEntity);
 

@@ -134,6 +134,7 @@ namespace Tsukino::BuiltIn::ECS::TransformUtility {
 
     //--------------------------------------------------------------
     //! @brief  親を設定する
+    //! @param  registry          [in,out] 親子を書き込むレジストリ
     //! @param  child             [in] 子にするエンティティ
     //! @param  parent            [in] 親にするエンティティ（entt::nullで親子解除）
     //! @param  keepWorldPosition [in] trueなら見た目のワールド位置を維持するよう

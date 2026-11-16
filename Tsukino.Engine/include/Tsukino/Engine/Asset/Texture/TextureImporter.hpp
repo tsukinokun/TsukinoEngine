@@ -33,12 +33,12 @@ namespace Tsukino::Asset {
 
         //--------------------------------------------------------------
         //! @brief  テクスチャアセットをインポートする関数
-        //! @param  path            [in] インポートするテクスチャアセットのパス
-        //! @param  outPutDirectory [in] 出力先ディレクトリ
-        //! @return インポートされたテクスチャアセットの参照
+        //! @param  inputPath       [in] インポートするテクスチャアセットのパス
+        //! @param  outputDirectory [in] 出力先ディレクトリ
+        //! @return 書き出せたら true
         //--------------------------------------------------------------
         [[nodiscard]]
-        bool Import(const Tsukino::Core::Path& inPutPath, const Tsukino::Core::Path& outPutDirectory) override;
+        bool Import(const Tsukino::Core::Path& inputPath, const Tsukino::Core::Path& outputDirectory) override;
 
     private:
         Tsukino::Core::Ref<const TextureImportRules> m_rules;    // インポートの規則（AssetManager と共有する）

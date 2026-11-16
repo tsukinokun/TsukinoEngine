@@ -103,8 +103,8 @@
 | `~PrefabFactory()=default` | デストラクタ |
 | `PrefabFactory(const PrefabFactory &)=delete` |  |
 | `PrefabFactory & operator=(const PrefabFactory &)=delete` |  |
-| `PrefabFactory(PrefabFactory &&)=default` |  |
-| `PrefabFactory & operator=(PrefabFactory &&)=default` |  |
+| `PrefabFactory(PrefabFactory &&) noexcept=default` |  |
+| `PrefabFactory & operator=(PrefabFactory &&) noexcept=default` |  |
 | `template <typename ComponentType> void RegisterComponent(const std::string &typeName)` | コンポーネントの型名とロード処理を工場に登録する |
 | `void SetAssetManager(Tsukino::Asset::AssetManager *assetManager)` | AssetRefフィールドの解決に使うAssetManagerを設定する |
 | `template <typename T> void ApplyOverride(Tsukino::ECS::Registry &registry, entt::entity entity, const T &overrideValue)` | 生成済みエンティティの指定コンポーネントを、任意の値で上書きする |
@@ -134,11 +134,11 @@
 - **Tsukino::Asset::AssetRefResolverArchive** — `Tsukino.Engine/include/Tsukino/Engine/Asset/AssetRefResolverArchive.hpp`
   - AssetRefResolverArchive(), operator()()
 - **Tsukino::Asset::AudioAsset** — `Tsukino.Engine/include/Tsukino/Engine/Asset/Audio/AudioAsset.hpp`
-  - filePath, GetHandle(), SetHandle(), GetType()
+  - filePath, GetType()
 - **Tsukino::Asset::AudioLoader** — `Tsukino.Engine/include/Tsukino/Engine/Asset/Audio/AudioLoader.hpp`
   - AudioLoader(), CanLoad(), Load()
 - **Tsukino::Asset::CubemapAsset** — `Tsukino.Engine/include/Tsukino/Engine/Asset/Cubemap/CubemapAsset.hpp`
-  - data, width, height, GetHandle(), GetType(), SetHandle()
+  - data, width, height, GetType()
 - **Tsukino::Asset::CubemapDesc** — `Tsukino.Engine/include/Tsukino/Engine/Asset/Cubemap/CubemapDesc.hpp`
   - px, nx, py, ny, pz, nz, serialize()
 - **Tsukino::Asset::CubemapImporter** — `Tsukino.Engine/include/Tsukino/Engine/Asset/Cubemap/CubemapImporter.hpp`
@@ -154,13 +154,13 @@
 - **Tsukino::Asset::Detail::TextureFileData::Mip** — `Tsukino.Engine/src/Asset/Texture/ImageCodec.hpp`
   - offset, size, width, height, rowPitch
 - **Tsukino::Asset::DynamicFontAsset** — `Tsukino.Engine/include/Tsukino/Engine/Asset/Font/DynamicFontAsset.hpp`
-  - m_faceName, m_pixelSize, m_fontFileData, GetHandle(), GetType(), SetHandle()
+  - faceName, pixelSize, fontFileData, GetType()
 - **Tsukino::Asset::DynamicFontImporter** — `Tsukino.Engine/include/Tsukino/Engine/Asset/Font/DynamicFontImporter.hpp`
   - Import()
 - **Tsukino::Asset::DynamicFontLoader** — `Tsukino.Engine/include/Tsukino/Engine/Asset/Font/DynamicFontLoader.hpp`
   - DynamicFontLoader(), CanLoad(), Load()
 - **Tsukino::Asset::EffectAsset** — `Tsukino.Engine/include/Tsukino/Engine/Asset/Effect/EffectAsset.hpp`
-  - binary, GetHandle(), GetType(), SetHandle()
+  - binary, GetType()
 - **Tsukino::Asset::EffectImporter** — `Tsukino.Engine/include/Tsukino/Engine/Asset/Effect/EffectImporter.hpp`
   - EffectImporter(), Import()
 - **Tsukino::Asset::EffectLoader** — `Tsukino.Engine/include/Tsukino/Engine/Asset/Effect/EffectLoader.hpp`
@@ -172,15 +172,15 @@
 - **Tsukino::Asset::IAssetLoader** — `Tsukino.Engine/include/Tsukino/Engine/Asset/IAssetLoader.hpp`
   - ~IAssetLoader(), CanLoad(), Load()
 - **Tsukino::Asset::MaterialAsset** — `Tsukino.Engine/include/Tsukino/Engine/Asset/Material/MaterialAsset.hpp`
-  - data, albedoHandle, normalHandle, metallicRoughnessHandle, emissiveHandle, aoHandle, vertexShaderHandle, pixelShaderHandle, GetHandle(), GetType(), SetHandle()
+  - data, albedoHandle, normalHandle, metallicRoughnessHandle, emissiveHandle, aoHandle, vertexShaderHandle, pixelShaderHandle, GetType()
 - **Tsukino::Asset::MaterialImporter** — `Tsukino.Engine/include/Tsukino/Engine/Asset/Material/MaterialImporter.hpp`
   - Import()
 - **Tsukino::Asset::MaterialLoader** — `Tsukino.Engine/include/Tsukino/Engine/Asset/Material/MaterialLoader.hpp`
   - MaterialLoader(), CanLoad(), Load()
 - **Tsukino::Asset::MeshAsset** — `Tsukino.Engine/include/Tsukino/Engine/Asset/Mesh/MeshAsset.hpp`
-  - data, MeshAsset(), GetHandle(), GetType(), SetHandle()
+  - data, MeshAsset(), GetType()
 - **Tsukino::Asset::ModelAsset** — `Tsukino.Engine/include/Tsukino/Engine/Asset/Model/ModelAsset.hpp`
-  - modelData, materialHandles, ModelAsset(), GetHandle(), GetType(), SetHandle()
+  - modelData, materialHandles, ModelAsset(), GetType()
 - **Tsukino::Asset::ModelImporter** — `Tsukino.Engine/include/Tsukino/Engine/Asset/Model/ModelImporter.hpp`
   - ModelImporter(), Import()
 - **Tsukino::Asset::ModelLoader** — `Tsukino.Engine/include/Tsukino/Engine/Asset/Model/ModelLoader.hpp`
@@ -188,11 +188,11 @@
 - **Tsukino::Asset::ScopedAssetRefResolver** — `Tsukino.Engine/include/Tsukino/Engine/Asset/AssetRef.hpp`
   - ScopedAssetRefResolver(), ~ScopedAssetRefResolver(), ScopedAssetRefResolver(), operator=(), Current()
 - **Tsukino::Asset::ShaderAsset** — `Tsukino.Engine/include/Tsukino/Engine/Asset/Shader/ShaderAsset.hpp`
-  - shaderStage, binary, filePath, ShaderAsset(), GetHandle(), GetType(), SetHandle()
+  - shaderStage, binary, filePath, ShaderAsset(), GetType()
 - **Tsukino::Asset::ShaderLoader** — `Tsukino.Engine/include/Tsukino/Engine/Asset/Shader/ShaderLoader.hpp`
   - ShaderLoader(), CanLoad(), Load(), DetectStage(), ToBinaryPath(), GetBinaryDirectoryName()
 - **Tsukino::Asset::TextureAsset** — `Tsukino.Engine/include/Tsukino/Engine/Asset/Texture/TextureAsset.hpp`
-  - width, height, format, pixels, mips, generateMips, GetHandle(), GetType(), SetHandle(), ReleasePixels()
+  - width, height, format, pixels, mips, generateMips, GetType(), ReleasePixels()
 - **Tsukino::Asset::TextureAsset::MipLevel** — `Tsukino.Engine/include/Tsukino/Engine/Asset/Texture/TextureAsset.hpp`
   - offset, rowPitch
 - **Tsukino::Asset::TextureImportRule** — `Tsukino.Engine/include/Tsukino/Engine/Asset/Texture/TextureImportRules.hpp`

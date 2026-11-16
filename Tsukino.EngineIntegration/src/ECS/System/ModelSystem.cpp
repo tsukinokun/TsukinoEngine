@@ -122,7 +122,7 @@ namespace Tsukino::BuiltIn::ECS {
             const auto& meshBuffers = meshCacheIt->second;
 
             auto* skeletonOut = registry.try_get<SkeletonOutputComponent>(entity);
-            bool  isSkeletal  = skeletonOut && skeletonOut->bone_count > 0;
+            bool  isSkeletal  = skeletonOut && skeletonOut->boneCount > 0;
 
             //--------------------------------------------------------------
             // モーションブラー用の前フレームデータ
@@ -135,7 +135,7 @@ namespace Tsukino::BuiltIn::ECS {
             //--------------------------------------------------------------
             auto* motionVec = registry.try_get<MotionVectorComponent>(entity);
             bool  hasPrev   = motionVec && motionVec->valid;
-            if(hasPrev && isSkeletal && motionVec->prevBoneCount != skeletonOut->bone_count)
+            if(hasPrev && isSkeletal && motionVec->prevBoneCount != skeletonOut->boneCount)
                 hasPrev = false;
 
             const Tsukino::Core::Math::matrix prevWorldMatrix = hasPrev ? motionVec->prevWorld : transform.worldMatrix;
@@ -264,7 +264,7 @@ namespace Tsukino::BuiltIn::ECS {
                     cbMat.specular  = 0.5f;
 
                     //--------------------------------------------------------------
-                    // マテリアルテクスチャ（t0〜t4）の解決
+                    // マテリアルテクスチャ（MaterialTextureSlot の5枠）の解決
                     // 未設定のスロットはここでは nullptr のままにしておき、
                     // Material構築時にデフォルトテクスチャへフォールバックさせる。
                     // 空のテクスチャをそのままバインドするとサンプル結果が0になり、
@@ -402,7 +402,7 @@ namespace Tsukino::BuiltIn::ECS {
                     Tsukino::Renderer::BlendMode blendMode = Tsukino::Renderer::BlendMode::Opaque;
 
                     // opacityフェード中は半透明フォワードへ切り替える。
-                    // Model.ps.scはt0（アルベド）しかサンプルしないため、フェード中だけ
+                    // Model.ps.scはアルベドしかサンプルしないため、フェード中だけ
                     // 法線/MR/エミッシブ/AOマップは効かなくなる
                     if(isFading) {
                         psHandle  = ctx->builtinAssets->shaders.modelPS;
@@ -428,7 +428,7 @@ namespace Tsukino::BuiltIn::ECS {
                         isSkeletal ? Tsukino::GraphicsCommon::VertexFormat::Skinned : Tsukino::GraphicsCommon::VertexFormat::PositionNormalUV;
 
                     //--------------------------------------------------------------
-                    // t0〜t4 をバインド。未設定はデフォルトへフォールバックする。
+                    // マテリアルテクスチャの5枠を設定する。未設定はデフォルトへフォールバックする。
                     //   白        : シェーダー側で cbuffer 定数との乗算になるため恒等元
                     //   フラット法線: 適用しても頂点法線がそのまま保たれる
                     //--------------------------------------------------------------
@@ -444,11 +444,11 @@ namespace Tsukino::BuiltIn::ECS {
                         Tsukino::Renderer::Material& mat = ctx->renderer->GetDrawQueue().AllocMaterial();
                         mat.SetPipeline(pipeline.get());
                         mat.SetSampler(Tsukino::GraphicsCommon::SamplerType::AnisotropicWrap);
-                        mat.SetTexture(Tsukino::Renderer::SRVSlot::Albedo, albedoTexture.IsValid() ? albedoTexture : whiteTexture);
-                        mat.SetTexture(Tsukino::Renderer::SRVSlot::Normal, normalTexture.IsValid() ? normalTexture : flatNormalTexture);
-                        mat.SetTexture(Tsukino::Renderer::SRVSlot::MetallicRoughness, mrTexture.IsValid() ? mrTexture : whiteTexture);
-                        mat.SetTexture(Tsukino::Renderer::SRVSlot::Emissive, emissiveTexture.IsValid() ? emissiveTexture : whiteTexture);
-                        mat.SetTexture(Tsukino::Renderer::SRVSlot::AO, aoTexture.IsValid() ? aoTexture : whiteTexture);
+                        mat.SetTexture(Tsukino::Renderer::MaterialTextureSlot::Albedo, albedoTexture.IsValid() ? albedoTexture : whiteTexture);
+                        mat.SetTexture(Tsukino::Renderer::MaterialTextureSlot::Normal, normalTexture.IsValid() ? normalTexture : flatNormalTexture);
+                        mat.SetTexture(Tsukino::Renderer::MaterialTextureSlot::MetallicRoughness, mrTexture.IsValid() ? mrTexture : whiteTexture);
+                        mat.SetTexture(Tsukino::Renderer::MaterialTextureSlot::Emissive, emissiveTexture.IsValid() ? emissiveTexture : whiteTexture);
+                        mat.SetTexture(Tsukino::Renderer::MaterialTextureSlot::AO, aoTexture.IsValid() ? aoTexture : whiteTexture);
 
                         return &mat;
                     };
@@ -462,8 +462,8 @@ namespace Tsukino::BuiltIn::ECS {
                         cmd.material     = material;
                         cmd.materialData = pCbMat;
                         if(isSkeletal) {
-                            cmd.boneMatrices = skeletonOut->local_matrices;
-                            cmd.boneCount    = skeletonOut->bone_count;
+                            cmd.boneMatrices = skeletonOut->localMatrices;
+                            cmd.boneCount    = skeletonOut->boneCount;
                         }
 
                         //--------------------------------------------------------------
@@ -516,8 +516,8 @@ namespace Tsukino::BuiltIn::ECS {
                             cmd.hasClipRect    = screenClipped;
                             cmd.clipRect       = screenClip;
                             if(isSkeletal) {
-                                cmd.boneMatrices = skeletonOut->local_matrices;
-                                cmd.boneCount    = skeletonOut->bone_count;
+                                cmd.boneMatrices = skeletonOut->localMatrices;
+                                cmd.boneCount    = skeletonOut->boneCount;
                             }
                             ctx->renderer->GetDrawQueue().Push(cmd);
                         }

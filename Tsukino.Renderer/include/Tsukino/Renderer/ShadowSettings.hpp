@@ -16,7 +16,7 @@ namespace Tsukino::Renderer {
     //! @note  既定値は「1ユニット = 1m」で、一般的な一人称・三人称のカメラを想定した値。
     //!        ワールドのスケールやカメラの距離が違うゲームでは distance / splitStart / casterMargin を
     //!        そのスケールに合わせて設定すること（いずれも長さの次元を持つ）。
-    //!        カスケードの枚数は b0 のレイアウトとシェーダーに直結するため、ここでは変えられない
+    //!        カスケードの枚数は u_scene のレイアウトとシェーダーに直結するため、ここでは変えられない
     //!        （kShadowCascadeCount）
     //------------------------------------------------------------------------
     struct ShadowSettings {
@@ -42,7 +42,7 @@ namespace Tsukino::Renderer {
         float casterMargin = 100.0f;
 
         static constexpr u32 kMinMapSize = 512;     //!< mapSize の下限
-        static constexpr u32 kMaxMapSize = 8192;    //!< mapSize の上限（D3D11 のテクスチャの一辺の上限は16384だが、4枚ぶんのメモリを考えて抑える）
+        static constexpr u32 kMaxMapSize = 8192;    //!< mapSize の上限（多くの GPU はテクスチャの一辺が16384まで扱えるが、4枚ぶんのメモリを考えて抑える）
     };
 
 }    // namespace Tsukino::Renderer

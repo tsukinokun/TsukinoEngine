@@ -134,7 +134,7 @@ static VKAPI_ATTR VkBool32 VKAPI_CALL DebugCallback(...)
 ログメッセージは**英語**で、原因と影響が分かるように書く（コメントは日本語、ログは英語）。
 
 ```cpp
-MessageBoxA(nullptr, "Failed to load shader.", "Error", MB_OK);
+Tsukino::Core::Log::Error("Failed to load shader: " + path.string());
 ```
 
 ## 罫線について

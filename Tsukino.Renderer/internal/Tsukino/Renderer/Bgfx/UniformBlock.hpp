@@ -4,7 +4,7 @@
 //! @detail C++ の定数の構造体1つを、bgfx の vec4 配列のユニフォーム1つで送ります。
 //!         C++ の構造体（ConstantBuffer.hpp）は変えず、そのままのバイト列を送ります。
 //!         シェーダー（.sc）の側は、同じ名前の `uniform vec4 u_xxx[N]` を宣言し、
-//!         メンバーは #define で配列の要素へ当てて読みます（Shaders/bgfx/Scene.sh など）。
+//!         メンバーは `#define` で配列の要素へ当てて読みます（Shaders/bgfx/Scene.sh など）。
 //----------------------------------------------------------------------------
 #pragma once
 #include <Tsukino/Core/typedef.hpp>

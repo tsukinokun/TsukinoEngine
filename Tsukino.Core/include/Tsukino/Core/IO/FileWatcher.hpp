@@ -64,6 +64,6 @@ namespace Tsukino::IO {
         std::mutex                            m_mutex;                                       //!< m_entries を守る
         std::vector<Entry>                    m_entries;                                     //!< 監視中のファイル
         std::chrono::milliseconds             m_interval = std::chrono::milliseconds(500);  //!< 確認の間隔
-        std::chrono::steady_clock::time_point m_lastPoll{};                                  //!< 前回確認した時刻
+        std::chrono::steady_clock::time_point m_lastPoll;                                  //!< 前回確認した時刻
     };
 }    // namespace Tsukino::IO

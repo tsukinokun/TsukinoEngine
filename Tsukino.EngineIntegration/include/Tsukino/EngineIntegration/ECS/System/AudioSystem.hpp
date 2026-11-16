@@ -1,5 +1,4 @@
-﻿#pragma once
-//--------------------------------------------------------------
+﻿//--------------------------------------------------------------
 //! @file   AudioSystem.hpp
 //! @brief  オーディオコンポーネントを処理するシステムの定義
 //! @author 山﨑愛
@@ -24,4 +23,4 @@ namespace Tsukino::BuiltIn::ECS {
         //--------------------------------------------------------------
         void Update(Tsukino::ECS::Registry& registry, float deltaTime) override;
     };
-}
+}    // namespace Tsukino::BuiltIn::ECS

@@ -30,17 +30,17 @@ namespace Tsukino::Asset {
     //--------------------------------------------------------------
     //! @brief  動的フォントのインポート関数
     //--------------------------------------------------------------
-    bool DynamicFontImporter::Import(const Tsukino::Core::Path& inPutPath, const Tsukino::Core::Path& outPutDirectory) {
+    bool DynamicFontImporter::Import(const Tsukino::Core::Path& inputPath, const Tsukino::Core::Path& outputDirectory) {
         //--------------------------------------------------------------
         // 絶対パスを取得
         //--------------------------------------------------------------
         Tsukino::Core::Path baseDir           = Tsukino::IO::FileSystem::GetAssetRootPath();
-        Tsukino::Core::Path absoluteInputPath = baseDir / inPutPath;
+        Tsukino::Core::Path absoluteInputPath = baseDir / inputPath;
 
         //--------------------------------------------------------------
         // 拡張子チェック
         //--------------------------------------------------------------
-        std::string ext = inPutPath.extension();
+        std::string ext = inputPath.extension();
         std::transform(ext.begin(), ext.end(), ext.begin(), ::tolower);
         if(ext != ".dfont")
             return false;
@@ -97,7 +97,7 @@ namespace Tsukino::Asset {
         // (.dfont はソースとキャッシュで拡張子が変わらないため、そのまま
         //  outputDirectory / inputPath の相対パスへ書き出す)
         //--------------------------------------------------------------
-        Tsukino::Core::Path outputPath = outPutDirectory / Tsukino::IO::FileSystem::ToEngineRelativePath(inPutPath);
+        Tsukino::Core::Path outputPath = outputDirectory / Tsukino::IO::FileSystem::ToEngineRelativePath(inputPath);
         // 出力先を作れないまま書き込みへ進むと、失敗が原因から遠い場所で
         // 「キャッシュが無い」として現れるため、ここで止める
         if(!Tsukino::IO::FileSystem::CreateDirectories(outputPath.parent_path())) {

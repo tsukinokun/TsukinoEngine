@@ -76,8 +76,8 @@ namespace Tsukino::Engine::ECS::Prefab {
         //--------------------------------------------------------------
         PrefabFactory(const PrefabFactory&)            = delete;
         PrefabFactory& operator=(const PrefabFactory&) = delete;
-        PrefabFactory(PrefabFactory&&)                 = default;
-        PrefabFactory& operator=(PrefabFactory&&)      = default;
+        PrefabFactory(PrefabFactory&&) noexcept            = default;
+        PrefabFactory& operator=(PrefabFactory&&) noexcept = default;
 
         //--------------------------------------------------------------
         //! @brief     コンポーネントの型名とロード処理を工場に登録する
@@ -305,6 +305,7 @@ namespace Tsukino::Engine::ECS::Prefab {
         //! @tparam T  ロードしたい構造体の型（例: CameraComponent）
         //! @param     jsonPath  [in] JSONファイルへの相対/絶対パス
         //! @param     keyName   [in] JSON内のルートキー名（例: "CameraPrefab"）
+        //! @param     outData   [out] 読み込んだ値の書き込み先
         //! @return    ロードに成功したか（ファイルが開けたらtrue）
         //--------------------------------------------------------------
         template <typename T>

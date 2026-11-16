@@ -122,20 +122,19 @@ namespace Tsukino::Renderer {
 
         //--------------------------------------------------------
         // インスタンス描画。
-        // instanceCount が 1 のときは従来どおり DrawIndexed を通るため、
+        // instanceCount が 1 のときは通常の描画を通るため、
         // 既存の描画コマンドは1つも影響を受けない（既定値が 1 なのはそのため）。
         //
-        // 1インスタンスあたりのデータは頂点バッファではなく StructuredBuffer で
-        // 渡す。頂点バッファ方式にすると入力レイアウトをフォーマットごとに
-        // 増やす羽目になり、VertexFormat が PipelineKey に含まれている以上、
-        // パイプラインのキャッシュが倍々に膨らむため。
+        // 1インスタンスあたりのデータはモデルの頂点とは別のインスタンスバッファで渡し、
+        // 頂点シェーダーの i_data0〜i_data15 で受ける（1インスタンス 256 バイトまで）。
+        // 頂点の形式とは別のバッファなので、VertexFormat ごとにパイプラインを増やさずに済む。
         //
-        // instanceData は必須ではない。インスタンスごとの値を SV_InstanceID の
+        // instanceData は必須ではない。インスタンスごとの値を gl_InstanceID の
         // ハッシュから毎フレーム計算する使い方（草など）では無効なハンドルのままでよい。
         // 作成・更新は RenderResources::CreateInstanceBuffer / UpdateInstanceBuffer を使う
         //--------------------------------------------------------
         u32          instanceCount = 1;    // 描画するインスタンス数（1 なら非インスタンス描画）
-        BufferHandle instanceData;         // 1インスタンスあたりのデータ（頂点シェーダーの t スロットへバインドされる）
+        BufferHandle instanceData;         // 1インスタンスあたりのデータ（頂点シェーダーの i_data0〜i_data15 に届く）
 
         //--------------------------------------------------------
         // 影を落とすか。
@@ -153,14 +152,14 @@ namespace Tsukino::Renderer {
         // 1 で普通に描き、0 に近いほど 4×4 の網点で多くの画素を抜く（0 で全部抜ける）。
         // 描画距離の端で物を急に出し入れせず、少しずつ現すために使う（LOD の切り替えも同じ）。
         // 半透明にはしないので、ディファードのまま描けて影とも両立する。
-        // GBuffer パスとシャドウパスの両方で効く（GBuffer.ps.sc / ShadowMap.ps.sc が b1 の motionFlags.y から読む）
+        // GBuffer パスとシャドウパスの両方で効く（GBuffer.ps.sc / ShadowMap.ps.sc が u_transform の motionFlags.y から読む）
         //--------------------------------------------------------
         float ditherFade = 1.0f;
 
         //--------------------------------------------------------
         // 遮り抜きの対象か（FrameConstants::SetOcclusionCutout）。
         // true の物は、注目している物より手前にあって画面上の円の中に入る画素が網点で抜ける。
-        // GBuffer パスだけで効き、影（シャドウパス）は抜かない（b1 の motionFlags.z で渡す）
+        // GBuffer パスだけで効き、影（シャドウパス）は抜かない（u_transform の motionFlags.z で渡す）
         //--------------------------------------------------------
         bool occlusionCutout = false;
 
@@ -170,24 +169,24 @@ namespace Tsukino::Renderer {
         // 動かない形で影が描かれてしまう。同じ動きをする影用の頂点シェーダーで作った
         // パイプラインをここへ渡すと、影も本体と一緒に動く。
         // ピクセルシェーダーは組み込みの ShadowMap.ps.sc を使えば、くり抜きと網点フェードもそのまま効く。
-        // 影の描画でも b1・b12（userConstantBuffer）は束ねられるので、本体と同じパラメータが読める
+        // 影の描画でもモデル行列と userConstantBuffer は渡るので、本体と同じパラメータが読める
         //--------------------------------------------------------
         const PipelineState* shadowPipeline = nullptr;
 
         //--------------------------------------------------------
         // ゲーム定義の定数バッファ。
         // ゲームが自前のシェーダーで描くとき、そのシェーダーへ
-        // パラメータを渡すための口。VS / PS の両方へバインドされる。
+        // パラメータを渡すための口。VS / PS の両方から読める。
         //
-        // エンジンが使う b0〜b9 とは別枠（CBSlot::User0 / User1）なので、
+        // エンジンが使う定数とは別枠（UserUniformSlot）なので、
         // ゲームが何を入れてもエンジン側の描画とは衝突しない。
-        // 時間や解像度は b0（CBufferScene）から取れるので、それだけで
+        // 時間や解像度はシーンの定数（CBufferScene）から取れるので、それだけで
         // 足りる演出はこの枠を使う必要すら無い。
         //
         // 作成・更新は RenderResources::CreateUserConstantBuffer / UpdateUserConstantBuffer を使う
         //--------------------------------------------------------
-        BufferHandle userConstantBuffer;                      // ゲーム定義の定数バッファ（不要なら無効なハンドル）
-        CBSlot       userConstantSlot   = CBSlot::User0;      // バインド先（User0 / User1）
+        BufferHandle    userConstantBuffer;                                  // ゲーム定義の定数バッファ（不要なら無効なハンドル）
+        UserUniformSlot userConstantSlot = UserUniformSlot::User0;          // 渡す枠（User0 / User1）
 
         //--------------------------------------------------------
         // モーションブラー用の前フレームデータ
@@ -210,7 +209,7 @@ namespace Tsukino::Renderer {
 
         //--------------------------------------------------------
         // カメラの差し替え（Overlay パスに 3D モデルを積むとき。ScreenModelComponent 参照）。
-        // nullptr でないコマンドは、b0 のカメラ（view / projection / viewProj / invViewProj / cameraPos）を
+        // nullptr でないコマンドは、u_scene のカメラ（view / projection / viewProj / invViewProj / cameraPos）を
         // これに替えて描く。ライトなどほかの値はワールドのまま使う。
         // Overlay パスでこれを持つコマンドが来たときだけ深度バッファを使う（その最初の1回で深度を消す）。
         // 既定は nullptr なので、既存の描画コマンドは今までどおり描かれる。

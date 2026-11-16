@@ -58,10 +58,10 @@ namespace Tsukino::Renderer {
             return *m_gpu;
         }
 
-        //! ライト配列の定数バッファ（b6）とピクセルシェーダーを作成します。
+        //! ライト配列のユニフォーム（u_lights）とピクセルシェーダーを作成します。
         //! @param  [in] graphicsContext デバイスと G-Buffer の取得元
         //! @param  [in] resources       共通ステートとサンプラーの取得元
-        //! @param  [in] frameConstants  b0 の取得元・ディレクショナルライトの書き込み先
+        //! @param  [in] frameConstants  u_scene の取得元・ディレクショナルライトの書き込み先
         //! @param  [in] fullscreenPass  フルスクリーン三角形の描画
         //! @param  [in] shadowPass      シャドウマップ
         //! @param  [in] iblBaker        スカイ由来の環境光
@@ -96,7 +96,7 @@ namespace Tsukino::Renderer {
     private:
         GraphicsContext*      m_graphicsContext = nullptr;    // デバイスと G-Buffer の取得元（借りている）
         RenderResources*      m_resources       = nullptr;    // 共通ステートとサンプラーの取得元（借りている）
-        FrameConstants*       m_frameConstants  = nullptr;    // b0 の取得元（借りている）
+        FrameConstants*       m_frameConstants  = nullptr;    // u_scene の取得元（借りている）
         const FullscreenPass* m_fullscreenPass  = nullptr;    // フルスクリーン三角形の描画（借りている）
         const ShadowPass*     m_shadowPass      = nullptr;    // シャドウマップ（借りている）
         IBLBaker*             m_iblBaker        = nullptr;    // スカイ由来の環境光（借りている）

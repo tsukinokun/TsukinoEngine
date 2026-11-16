@@ -581,6 +581,7 @@ project "Tsukino.EngineIntegration"
 
     files {
         "Tsukino.EngineIntegration/src/**.cpp",
+        "Tsukino.EngineIntegration/src/**.hpp",
         "Tsukino.EngineIntegration/include/**.hpp",
         "Tsukino.EngineIntegration/pch.cpp",
         "External/hlslpp/include/hlsl++.natvis",

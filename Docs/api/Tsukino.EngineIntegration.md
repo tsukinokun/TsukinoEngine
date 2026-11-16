@@ -108,6 +108,8 @@
   - animation, skeleton, operator==()
 - **Tsukino::BuiltIn::ECS::AnimationSystem::ChannelTableKeyHash** — `Tsukino.EngineIntegration/include/Tsukino/EngineIntegration/ECS/System/AnimationSystem.hpp`
   - operator()()
+- **Tsukino::BuiltIn::ECS::AudioSystem** — `Tsukino.EngineIntegration/include/Tsukino/EngineIntegration/ECS/System/AudioSystem.hpp`
+  - Update()
 - **Tsukino::BuiltIn::ECS::BloomSystem** — `Tsukino.EngineIntegration/include/Tsukino/EngineIntegration/ECS/System/BloomSystem.hpp`
   - Update()
 - **Tsukino::BuiltIn::ECS::BoneFollowColliderSystem** — `Tsukino.EngineIntegration/include/Tsukino/EngineIntegration/ECS/System/BoneFollowColliderSystem.hpp`
@@ -164,10 +166,10 @@
   - Update()
 - **Tsukino::BuiltIn::ECS::WorldAnchorSystem** — `Tsukino.EngineIntegration/include/Tsukino/EngineIntegration/ECS/System/WorldAnchorSystem.hpp`
   - Update()
-- **Tsukino::EngineIntegration::EffectFileInterface** — `Tsukino.EngineIntegration/include/Tsukino/EngineIntegration/IO/EffectFileInterface.hpp`
-  - EffectFileInterface(), ~EffectFileInterface(), SetBaseDirectory(), OpenRead(), OpenWrite()
-- **Tsukino::EngineIntegration::EffectFileReader** — `Tsukino.EngineIntegration/include/Tsukino/EngineIntegration/IO/EffectFileInterface.hpp`
-  - EffectFileReader(), Read(), Seek(), GetPosition(), GetLength(), GetData()
+- **Tsukino::EngineIntegration::EffectFileInterface** — `Tsukino.EngineIntegration/src/IO/EffectFileInterface.hpp`
+  - SetBaseDirectory(), OpenRead(), OpenWrite()
+- **Tsukino::EngineIntegration::EffectFileReader** — `Tsukino.EngineIntegration/src/IO/EffectFileInterface.hpp`
+  - EffectFileReader(), Read(), Seek(), GetPosition(), GetLength()
 - **Tsukino::EngineIntegration::EngineAPI** — `Tsukino.EngineIntegration/include/Tsukino/EngineIntegration/EngineAPI.hpp`
   - EngineAPI(), ChangeScene(), RegisterScene(), ChangeScene(), ProcessMessages(), Update(), Render()
 - **Tsukino::EngineIntegration::EngineContext** — `Tsukino.EngineIntegration/include/Tsukino/EngineIntegration/EngineContext.hpp`

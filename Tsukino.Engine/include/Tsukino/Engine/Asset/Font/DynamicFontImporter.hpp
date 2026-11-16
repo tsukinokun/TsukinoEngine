@@ -17,12 +17,12 @@ namespace Tsukino::Asset {
     public:
         //--------------------------------------------------------------
         //! @brief  動的フォントアセットをインポートする関数
-        //! @param  inPutPath       [in] インポートする.dfontファイルのパス
-        //! @param  outPutDirectory [in] 出力先ディレクトリ
+        //! @param  inputPath       [in] インポートする.dfontファイルのパス
+        //! @param  outputDirectory [in] 出力先ディレクトリ
         //! @return 成功した場合は true
         //--------------------------------------------------------------
         [[nodiscard]]
-        bool Import(const Tsukino::Core::Path& inPutPath, const Tsukino::Core::Path& outPutDirectory) override;
+        bool Import(const Tsukino::Core::Path& inputPath, const Tsukino::Core::Path& outputDirectory) override;
     };
 
 }    // namespace Tsukino::Asset

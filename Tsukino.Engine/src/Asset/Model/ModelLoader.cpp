@@ -35,7 +35,7 @@ namespace Tsukino::Asset {
     //! @brief モデルファイルを読み込み ModelAsset を生成する関数
     //--------------------------------------------------------------
     Tsukino::Core::Ref<IAsset> ModelLoader::Load(const Tsukino::Core::Path& path) {
-        const std::string filePath = path.string();
+        const std::string& filePath = path.string();
 
         const std::vector<std::uint8_t> bytes = Tsukino::IO::FileSystem::ReadBinary(path);
         if(bytes.empty()) {

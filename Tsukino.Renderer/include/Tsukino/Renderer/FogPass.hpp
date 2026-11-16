@@ -2,7 +2,7 @@
 //! @file   FogPass.hpp
 //! @brief  フォグパスの宣言
 //! @detail 深度バッファだけを読み、距離フォグ・高さフォグを HDR バッファへプリマルチプライの
-//!         over 合成で書き込みます。HDR を SRV として読まないので中間バッファを消費しません。
+//!         over 合成で書き込みます。HDR を読まないので中間バッファを消費しません。
 //----------------------------------------------------------------------------
 #pragma once
 #include <memory>
@@ -55,10 +55,10 @@ namespace Tsukino::Renderer {
             return *m_gpu;
         }
 
-        //! 定数バッファ（b8。フォグパス用と半透明モデル用の2つ）とピクセルシェーダーを作成します。
+        //! ユニフォーム（u_fog。フォグパス用と半透明モデル用の2つ）とピクセルシェーダーを作成します。
         //! @param  [in] graphicsContext デバイスと深度バッファの取得元
         //! @param  [in] resources       共通ステートとサンプラーの取得元
-        //! @param  [in] frameConstants  b0 の取得元
+        //! @param  [in] frameConstants  u_scene の取得元
         //! @param  [in] fullscreenPass  フルスクリーン三角形の描画
         //! @param  [in] ps              フォグ用ピクセルシェーダー（VS はフルスクリーン三角形用を共用）
         //! @return true: 作成成功, false: 作成失敗（パスは何もしなくなる）
@@ -81,13 +81,12 @@ namespace Tsukino::Renderer {
         //! フォグを HDR バッファへ合成します。
         //! @note   World パスの直後・TransparentDepth パスの直前に呼ぶこと。深度バッファに
         //!         不透明の深度しか無いうちに掛けないと、半透明モデルが重なった画素の奥の景色へ
-        //!         そのモデルの距離でフォグが掛かってしまう（ほぼ素通しになる）。
-        //!         終わると DSV が外れているので、続けて3Dを描くなら HDR＋DSV を張り直すこと
+        //!         そのモデルの距離でフォグが掛かってしまう（ほぼ素通しになる）
         void Execute();
 
         //! 半透明モデルのフォワード描画で、シェーダーの中でフォグを掛けさせます。
         //! @note   Transparent パスの直前に呼び、終わったら UnbindForwardFog() で外すこと。
-        //!         distanceParams.w を1にした定数を b8 へ張る（ForwardModel.sh がこれを見る）。
+        //!         distanceParams.w を1にした定数を u_fog へ張る（ForwardModel.sh がこれを見る）。
         //!         このフレームでフォグが無効なら何も張らない（＝シェーダーは何もしない）
         void BindForwardFog();
 
@@ -105,7 +104,7 @@ namespace Tsukino::Renderer {
     private:
         GraphicsContext*      m_graphicsContext = nullptr;    // デバイスと深度バッファの取得元（借りている）
         RenderResources*      m_resources       = nullptr;    // 共通ステートとサンプラーの取得元（借りている）
-        FrameConstants*       m_frameConstants  = nullptr;    // b0 の取得元（借りている）
+        FrameConstants*       m_frameConstants  = nullptr;    // u_scene の取得元（借りている）
         const FullscreenPass* m_fullscreenPass  = nullptr;    // フルスクリーン三角形の描画（借りている）
 
         std::unique_ptr<Gpu> m_gpu;    // 描画 API の資源（中身は Renderer の内部で定義）

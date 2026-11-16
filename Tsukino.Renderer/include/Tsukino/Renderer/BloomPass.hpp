@@ -121,7 +121,7 @@ namespace Tsukino::Renderer {
         //! @param  [in] sourceIsPostProcess true: モーションブラーが中間バッファへ書いた後,
         //!                                  false: HDR バッファがそのまま最新
         //! @note   モーションブラーパスの直後・トーンマップパスの直前に呼ぶこと。
-        //!         読み書きする先は同じバッファ（加算で足し戻す）なので、トーンマップへ渡す SRV は変わらない
+        //!         読み書きする先は同じバッファ（加算で足し戻す）なので、トーンマップが読むテクスチャは変わらない
         void Execute(bool sourceIsPostProcess);
 
         //! フレームの終わりの処理をします（有効フラグを false へ戻します）。

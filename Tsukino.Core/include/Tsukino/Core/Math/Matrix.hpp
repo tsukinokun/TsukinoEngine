@@ -33,41 +33,41 @@ namespace Tsukino::Core::Math {
         //--------------------------------------------------------------
         //@brief  単位行列
         //--------------------------------------------------------------
-        static [[nodiscard]] matrix identity();
+        [[nodiscard]] static matrix identity();
 
         //--------------------------------------------------------------
         // 平行移動行列
         //! @param  [in]    v   移動ベクトル
         //--------------------------------------------------------------
-        static [[nodiscard]] matrix translate(const hlslpp::float3& v);
-        static [[nodiscard]] matrix translate(float x, float y, float z);
+        [[nodiscard]] static matrix translate(const hlslpp::float3& v);
+        [[nodiscard]] static matrix translate(float x, float y, float z);
 
         //--------------------------------------------------------------
         // スケール行列
         //! @param  [in]    s   スケール値
         //--------------------------------------------------------------
-        static [[nodiscard]] matrix scale(const hlslpp::float3& s);
-        static [[nodiscard]] matrix scale(float sx, float sy, float sz);
-        static [[nodiscard]] matrix scale(float s);
+        [[nodiscard]] static matrix scale(const hlslpp::float3& s);
+        [[nodiscard]] static matrix scale(float sx, float sy, float sz);
+        [[nodiscard]] static matrix scale(float s);
 
         //--------------------------------------------------------------
         // X軸中心の回転行列
         //! @param  [in]    radian  回転角度
         //! @see https://ja.wikipedia.org/wiki/%E5%9B%9E%E8%BB%A2%E8%A1%8C%E5%88%97
         //--------------------------------------------------------------
-        static [[nodiscard]] matrix rotateX(float radian);
+        [[nodiscard]] static matrix rotateX(float radian);
 
         //--------------------------------------------------------------
         // Y軸中心の回転行列
         //! @param  [in]    radian  回転角度
         //--------------------------------------------------------------
-        static [[nodiscard]] matrix rotateY(float radian);
+        [[nodiscard]] static matrix rotateY(float radian);
 
         //--------------------------------------------------------------
         // Z軸中心の回転行列
         //! @param  [in]    radian  回転角度
         //--------------------------------------------------------------
-        static [[nodiscard]] matrix rotateZ(float radian);
+        [[nodiscard]] static matrix rotateZ(float radian);
 
         //---------------------------------------------------------------------------
         // X軸、Y軸、Z軸中心の回転行列
@@ -75,24 +75,24 @@ namespace Tsukino::Core::Math {
         //! @param  [in]    ry  Y軸回転角度
         //! @param  [in]    rz  Z軸回転角度
         //---------------------------------------------------------------------------
-        static [[nodiscard]] matrix rotateXYZ(float rx, float ry, float rz);
+        [[nodiscard]] static matrix rotateXYZ(float rx, float ry, float rz);
 
         //--------------------------------------------------------------
         // 任意軸中心の回転行列
         //! @param  [in]    axis    回転の中心軸
         //! @param  [in]    radian  回転角度
         //--------------------------------------------------------------
-        static [[nodiscard]] matrix rotateAxis(const hlslpp::float3& axis, float radian);
+        [[nodiscard]] static matrix rotateAxis(const hlslpp::float3& axis, float radian);
 
         //--------------------------------------------------------------
         // [左手座標系] ビュー行列
         //! @param  [in]    eye         視点座標
-        //! @param  [in]    look_at     注視点
-        //! @param  [in]    world_up    世界の上方向のベクトル(default:(0.0f, 1.0f, 0.0f))
+        //! @param  [in]    lookAt      注視点
+        //! @param  [in]    worldUp     世界の上方向のベクトル(default:(0.0f, 1.0f, 0.0f))
         //--------------------------------------------------------------
-        static [[nodiscard]] matrix lookAtLH(const hlslpp::float3& eye,
-                                             const hlslpp::float3& look_at,
-                                             const hlslpp::float3& world_up = hlslpp::float3(0.0f, 1.0f, 0.0f));
+        [[nodiscard]] static matrix lookAtLH(const hlslpp::float3& eye,
+                                             const hlslpp::float3& lookAt,
+                                             const hlslpp::float3& worldUp = hlslpp::float3(0.0f, 1.0f, 0.0f));
 
         //--------------------------------------------------------------
         // [左手座標系] 投影行列
@@ -102,7 +102,7 @@ namespace Tsukino::Core::Math {
         //! @param  [in]    far_z           遠クリップZ値
         //! @note InverseZにしたい場合はnearZの値とfarZの値を交換して指定。
         //--------------------------------------------------------------
-        static [[nodiscard]] matrix perspectiveFovLH(float fovy, float aspect_ratio, float near_z, float far_z);
+        [[nodiscard]] static matrix perspectiveFovLH(float fovy, float aspect_ratio, float near_z, float far_z);
 
         //--------------------------------------------------------------
         // [左手座標系] 無限遠投影行列
@@ -117,7 +117,7 @@ namespace Tsukino::Core::Math {
         //! @see GDC'07 「Projection Matrix Tricks」
         //! @attention InverseZ前提の投影にになるため注意。
         //--------------------------------------------------------------
-        static [[nodiscard]] matrix perspectiveFovInfiniteFarPlaneLH(float fovy, float aspect_ratio, float near_z);
+        [[nodiscard]] static matrix perspectiveFovInfiniteFarPlaneLH(float fovy, float aspect_ratio, float near_z);
 
         //--------------------------------------------------------------
         // [左手座標系] 平行投影行列
@@ -129,19 +129,19 @@ namespace Tsukino::Core::Math {
         //! @param  [in]    far_z       遠クリップZ値
         //! @note InverseZにしたい場合はnearZの値とfarZの値を交換して指定。
         //--------------------------------------------------------------
-        static [[nodiscard]] matrix orthographicOffCenterLH(float left, float right, float bottom, float top, float near_z, float far_z);
+        [[nodiscard]] static matrix orthographicOffCenterLH(float left, float right, float bottom, float top, float near_z, float far_z);
 
         //--------------------------------------------------------------
         // [左手座標系] クォータニオンからの回転行列
         //! @param  [in]    q   クォータニオン
         //--------------------------------------------------------------
-        static [[nodiscard]] matrix fromQuaternion(const hlslpp::quaternion& q);
+        [[nodiscard]] static matrix fromQuaternion(const hlslpp::quaternion& q);
 
         //--------------------------------------------------------------
         // [左手座標系] クォータニオンからの回転行列
         //! @param  [in]    q   クォータニオン
         //--------------------------------------------------------------
-        static [[nodiscard]] matrix rotate(const hlslpp::quaternion& q);
+        [[nodiscard]] static matrix rotate(const hlslpp::quaternion& q);
         //@}
 
         //--------------------------------------------------------------

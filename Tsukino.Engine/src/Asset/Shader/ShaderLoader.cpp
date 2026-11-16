@@ -22,7 +22,7 @@ namespace Tsukino::Asset {
     //! @brief シェーダファイルを読み込みShaderAssetを生成する関数
     //--------------------------------------------------------------
     Tsukino::Core::Ref<IAsset> ShaderLoader::Load(const Tsukino::Core::Path& path) {
-        std::string filePath = path.string();
+        const std::string& filePath = path.string();
 
         // バイナリファイルを開く
         std::vector<u8> binary = Tsukino::IO::FileSystem::ReadBinary(path);

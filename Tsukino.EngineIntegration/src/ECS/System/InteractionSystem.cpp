@@ -175,7 +175,8 @@ namespace Tsukino::BuiltIn::ECS {
             return;
 
         auto& input = ctx->inputSystem;
-        i32   mouseX, mouseY;
+        i32   mouseX = 0;
+        i32   mouseY = 0;
         input->GetMousePosition(&mouseX, &mouseY);
         // マウスは画面のピクセル。スプライトは UI の座標で置かれているので、UI の座標にしてから比べる
         hlslpp::float2 mousePos = GetUICanvas(registry).ToUI(hlslpp::float2((float)mouseX, (float)mouseY));

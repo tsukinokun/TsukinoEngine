@@ -24,12 +24,12 @@ namespace Tsukino::Asset {
 
         //--------------------------------------------------------------
         //! @brief  アセットをインポートする関数
-        //! @param  path            [in] インポートするアセットのパス
-        //! @param  outPutDirectory [in] インポートされたアセットの出力先ディレクトリ
-        //! @return インポートされたアセットの参照
+        //! @param  inputPath       [in] インポートするアセットのパス
+        //! @param  outputDirectory [in] インポートされたアセットの出力先ディレクトリ
+        //! @return 書き出せたら true
         //--------------------------------------------------------------
         [[nodiscard]]
-        virtual bool Import(const Tsukino::Core::Path& inPutPath, const Tsukino::Core::Path& outPutDirectory) = 0;
+        virtual bool Import(const Tsukino::Core::Path& inputPath, const Tsukino::Core::Path& outputDirectory) = 0;
 
         //--------------------------------------------------------------
         //! ソース以外に、このアセットの中身を左右するファイルを列挙します。
@@ -37,7 +37,7 @@ namespace Tsukino::Asset {
         //! @return 依存ファイルの絶対パス一覧。既定では空
         //! @note   AssetManagerはキャッシュの作り直しを「ソースとキャッシュの
         //!         更新日時の比較」で決めるが、それだけではソース本体を直したときしか
-        //!         気付けない。共通の定義を #include するファイルのように、ソースが取り込んでいる
+        //!         気付けない。共通の定義を `#include` するファイルのように、ソースが取り込んでいる
         //!         別ファイルを直した場合は日時が変わらず、古いキャッシュが
         //!         使われ続けてしまう（コンパイルエラーも出ないので発見が難しい）。
         //!         ここで申告されたファイルも比較対象に加わる

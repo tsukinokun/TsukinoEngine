@@ -1,5 +1,5 @@
 ﻿//--------------------------------------------------------------
-//! @file	IAsset.hpp
+//! @file   IAsset.hpp
 //! @brief  アセットの共通インターフェース
 //! @author 山﨑愛
 //--------------------------------------------------------------
@@ -9,8 +9,10 @@
 // 名前空間 : Tsukino::Asset
 namespace Tsukino::Asset {
     //--------------------------------------------------------------
-    //! @class IAsset
-    //! @brief アセットの共通インターフェース
+    //! @class  IAsset
+    //! @brief  アセットの共通インターフェース
+    //! @note   ハンドルの持ち方はどのアセットでも同じなので、ここで持つ。
+    //!         派生クラスは種類（GetType）と中身だけを書く
     //--------------------------------------------------------------
     class IAsset {
     public:
@@ -21,16 +23,21 @@ namespace Tsukino::Asset {
 
         //--------------------------------------------------------------
         //! @brief  アセットのハンドルを取得する関数
-        //! @return アセットのハンドル
+        //! @return アセットのハンドル（AssetManager が登録するまでは無効）
         //--------------------------------------------------------------
         [[nodiscard]]
-        virtual AssetHandle GetHandle() const = 0;
+        AssetHandle GetHandle() const noexcept {
+            return m_handle;
+        }
 
         //--------------------------------------------------------------
         //! @brief  アセットのハンドルを設定する関数
         //! @param  handle  [in] 設定するアセットのハンドル
+        //! @note   AssetManager とローダーが、登録するときに呼ぶ
         //--------------------------------------------------------------
-        virtual void SetHandle(const AssetHandle& h) = 0;
+        void SetHandle(const AssetHandle& handle) noexcept {
+            m_handle = handle;
+        }
 
         //--------------------------------------------------------------
         //! @brief  アセットの種類を取得する関数
@@ -38,5 +45,8 @@ namespace Tsukino::Asset {
         //--------------------------------------------------------------
         [[nodiscard]]
         virtual AssetType GetType() const = 0;
+
+    private:
+        AssetHandle m_handle;    // アセットのハンドル（既定は無効）
     };
 }    // namespace Tsukino::Asset

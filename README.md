@@ -27,18 +27,18 @@ A C++20 game engine built from scratch on SDL3 and bgfx, driven by an EnTT-based
 
 ## Overview
 
-TsukinoEngine is a personal game engine project targeting Windows. It combines a deferred renderer on [bgfx](https://github.com/bkaradzic/bgfx), an Entity Component System (ECS) built on [EnTT](https://github.com/skypjack/entt), and a set of engine modules (core, rendering, physics, audio, and asset pipeline) organized as independent static-library projects, all wired together with [Premake5](https://premake.github.io/).
+TsukinoEngine is a personal game engine project. It is developed and verified on Windows; CMake builds for macOS, iOS and Android are prepared but not yet verified on those platforms. It combines a deferred renderer on [bgfx](https://github.com/bkaradzic/bgfx), an Entity Component System (ECS) built on [EnTT](https://github.com/skypjack/entt), and a set of engine modules (core, rendering, physics, audio, and asset pipeline) organized as independent static-library projects, built with [CMake](https://cmake.org/) on every platform or with [Premake5](https://premake.github.io/) on Windows.
 
 ## Features
 
 - **ECS Architecture** — Gameplay logic is built on top of [EnTT](https://github.com/skypjack/entt) for cache-friendly, data-oriented entity management.
-- **bgfx Renderer** — Custom deferred rendering pipeline (`Tsukino.Renderer`) on bgfx (Direct3D 11 on Windows). Shaders are written in bgfx's shader language (`.sc`) and compiled at build time.
+- **bgfx Renderer** — Custom deferred rendering pipeline (`Tsukino.Renderer`) on bgfx (Direct3D 11 on Windows, Metal on macOS and iOS, Vulkan on Android). Shaders are written in bgfx's shader language (`.sc`) and compiled at build time.
 - **Physics** — Integrated with [JoltPhysics](https://github.com/jrouwe/JoltPhysics) for rigid body simulation.
 - **Visual Effects** — Particle and effect playback powered by [Effekseer](https://github.com/tsukinokun/Effekseer).
 - **Audio** — Dedicated audio module (`Tsukino.Audio`) built on [miniaudio](https://github.com/mackron/miniaudio); `.wav` / `.mp3` / `.flac` are played as they are.
 - **Asset Pipeline** — Model import via [Assimp](https://github.com/assimp/assimp) and texture decoding, mipmapping and block compression via [bimg](https://github.com/bkaradzic/bimg); textures are cached as KTX.
 - **Serialization** — Scene and asset data serialization powered by [cereal](https://github.com/USCiLab/cereal).
-- **Modular Build** — Each subsystem (`Tsukino.Core`, `Tsukino.GraphicsCommon`, `Tsukino.Engine`, `Tsukino.Renderer`, `Tsukino.Physics`, `Tsukino.Audio`, `Tsukino.BuiltIn`, `Tsukino.EngineIntegration`) is a separate Premake project, and `Tsukino.Sandbox` ties them together as a runnable executable.
+- **Modular Build** — Each subsystem (`Tsukino.Core`, `Tsukino.GraphicsCommon`, `Tsukino.Engine`, `Tsukino.Renderer`, `Tsukino.Physics`, `Tsukino.Audio`, `Tsukino.BuiltIn`, `Tsukino.EngineIntegration`) is a separate static library (a CMake target and a Premake project), and `Tsukino.Sandbox` ties them together as a runnable executable.
 
 ## Getting Started
 
@@ -96,8 +96,9 @@ release build). It prints nothing on success and only the error lines on failure
 
 ### Two things that will otherwise cost you an afternoon
 
-**Call `Log::SetLogFile()` first.** `Tsukino::Core::Log` writes only to
-`OutputDebugStringA` until you do, so running outside a debugger hides everything —
+**Call `Log::SetLogFile()` first.** `Tsukino::Core::Log` writes only to the debugger
+output (`OutputDebugStringA` on Windows, `SDL_Log` elsewhere) until you do, so running
+outside a debugger hides everything —
 including fatal warnings like `Prefab file not found` and
 `Unknown component type written in Prefab`, which do not stop execution. Every sample
 starts with:

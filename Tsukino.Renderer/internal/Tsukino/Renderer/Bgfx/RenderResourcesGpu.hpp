@@ -9,6 +9,7 @@
 #include <Tsukino/Renderer/MeshBuffer.hpp>
 #include <Tsukino/Renderer/PipelineFactory.hpp>
 #include <Tsukino/Renderer/RenderResources.hpp>
+#include <Tsukino/Renderer/ShaderSlots.hpp>
 
 #include <Tsukino/GraphicsCommon/Mesh/PrimitiveType.hpp>
 #include <Tsukino/GraphicsCommon/State/SamplerType.hpp>
@@ -94,8 +95,8 @@ namespace Tsukino::Renderer {
         //! ゲーム定義の定数バッファ1本の上限（vec4 の数。1024 バイト）
         static constexpr u16 kMaxUserConstantVec4Count = 64;
 
-        //! ゲーム定義の定数バッファの枠の数（CBSlot::User0 / User1）
-        static constexpr u32 kUserConstantSlotCount = 2;
+        //! ゲーム定義の定数バッファの枠の数（UserUniformSlot）
+        static constexpr u32 kUserConstantSlotCount = static_cast<u32>(UserUniformSlot::Count);
 
         std::optional<PipelineFactory> pipelineFactory;    // パイプラインの生成器
         std::array<MeshBuffer, static_cast<size_t>(Tsukino::GraphicsCommon::PrimitiveType::Count)> primitiveMeshes;    // プリミティブ

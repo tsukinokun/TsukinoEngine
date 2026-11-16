@@ -63,7 +63,7 @@ namespace Tsukino::Renderer {
 // 名前空間 : Tsukino::Renderer::ShadowCascades
 namespace Tsukino::Renderer::ShadowCascades {
 
-    //! カスケードの枚数。b0のcascadeViewProjの要素数と同じでなければならない
+    //! カスケードの枚数。u_scene の cascadeViewProjの要素数と同じでなければならない
     inline constexpr u32 kCascadeCount = kShadowCascadeCount;
 
     //! スキンメッシュのバウンドを膨らませる倍率。

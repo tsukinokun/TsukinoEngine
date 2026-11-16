@@ -53,10 +53,10 @@ namespace Tsukino::Renderer {
             return *m_gpu;
         }
 
-        //! スカイの定数バッファ（b4）を作成します。
+        //! スカイのユニフォーム（u_sky）を作成します。
         //! @param  [in] graphicsContext デバイスとデバイスコンテキストの取得元
         //! @param  [in] resources       共通ステートの取得元
-        //! @param  [in] frameConstants  b0 の取得元
+        //! @param  [in] frameConstants  u_scene の取得元
         //! @return true: 作成成功, false: 作成失敗
         [[nodiscard]]
         bool Initialize(GraphicsContext& graphicsContext, RenderResources& resources, FrameConstants& frameConstants);
@@ -79,7 +79,7 @@ namespace Tsukino::Renderer {
             return m_hasPipeline;
         }
 
-        //! スカイを描きます（パラメータを b4 へ転送してから描きます）。
+        //! スカイを描きます（パラメータを u_sky へ転送してから描きます）。
         void Execute();
 
         //! 描画品質として空を描くかを設定します。
@@ -95,7 +95,7 @@ namespace Tsukino::Renderer {
     private:
         GraphicsContext* m_graphicsContext = nullptr;    // デバイスとデバイスコンテキストの取得元（借りている）
         RenderResources* m_resources       = nullptr;    // 共通ステートの取得元（借りている）
-        FrameConstants*  m_frameConstants  = nullptr;    // b0 の取得元（借りている）
+        FrameConstants*  m_frameConstants  = nullptr;    // u_scene の取得元（借りている）
 
         std::unique_ptr<Gpu> m_gpu;    // 描画 API の資源（中身は Renderer の内部で定義）
         CBufferSky                                 m_data{};    // スカイパラメータ

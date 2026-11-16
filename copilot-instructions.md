@@ -7,7 +7,7 @@
 # コード規約
 
 - ファイル名はすべてPascal Case
-- 文字コードは UTF8 crlf
+- 文字コードは UTF-8（C++ は BOM 付き、シェーダーは BOM なし）。リポジトリの中の改行は LF（Windows の作業ツリーは git の設定で CRLF になってよい）
 - stdはusingしません。
 - C++20 までの記述（エンジン各モジュールの cppdialect に合わせる）
 - 簡潔に記述できる場合はなるべくSTLを活用
@@ -101,18 +101,16 @@ namespace Tsukino::Asset{ ... }
 
 - ログメッセージは英語で、原因と影響が分かるように書く
 ```cpp
-MessageBoxA(nullptr, "Failed to load shader.", "Error", MB_OK);
+Tsukino::Core::Log::Error("Failed to load shader: " + path.string() + ". The material is drawn with the default shader.");
 ```
 
 
 # シェーダーファイル名の規約
 
-- ファイル名はすべて小文字の Snake case
-- シェーダーの種類によって先頭に接頭辞を追加 (vs_, ps_, gs_, cs_, ms_, as_ など)
-- 拡張子は fx
+- bgfx のシェーダー言語で書く。ファイル名は Pascal Case で、頂点は `<名前>.vs.sc`、ピクセルは `<名前>.ps.sc`
+- 共通部分は `.sh`、頂点の入出力は同じフォルダの `varying.def.sc` に書く
 - エントリーポイント関数名は main
-- シェーダーファイルを新規追加する場合はプロジェクトに追加しないようにしてください。
-    - 又はビルドから除外する設定にする場合は追加しても構いません
+- 変換はビルド時に行う（CMake は `tsukino_add_shaders`、Premake は `tsukino_shaders()`）。プロジェクトに手で足さない
 
 # コメント文の規約
 

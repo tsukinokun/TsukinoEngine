@@ -19,7 +19,7 @@ namespace Tsukino::Core::DebugTools {
     //!        差分はPresentのVSync待ちかドライバ側の時間である
     //-------------------------------------------------------------
     enum class ProfileSlot : int {
-        Frame = 0,    //!< メインループ1周（WinMainが計測するdeltaTime）
+        Frame = 0,    //!< メインループ1周（アプリのメインループが計測するdeltaTime）
         Update,       //!< EngineAPI::Update（＝全システムのUpdate）
         Render,       //!< EngineAPI::Render（＝描画コマンドのサブミット）
 
@@ -30,7 +30,7 @@ namespace Tsukino::Core::DebugTools {
     //! @class FrameProfiler
     //! @brief フレーム時間を区間ごとに集計し、移動平均で保持するシングルトン
     //! @note  TSUKINO_ENABLE_FRAME_PROFILER が未定義のときは全ての関数が空実装になり、
-    //!        呼び出し側に #ifdef を書かなくても実行時コストがゼロになる
+    //!        呼び出し側に `#ifdef` を書かなくても実行時コストがゼロになる
     //-------------------------------------------------------------
     class FrameProfiler {
     public:

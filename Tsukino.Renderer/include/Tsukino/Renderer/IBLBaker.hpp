@@ -66,17 +66,17 @@ namespace Tsukino::Renderer {
             m_baked = false;
         }
 
-        //! 定数バッファ（b10 と、ベイク中だけ使う b11）を作成します。
+        //! ユニフォーム（u_ibl と、ベイク中だけ使う u_iblBake）を作成します。
         //! @param  [in] graphicsContext 描画デバイスの持ち主
         //! @return true: 作成成功, false: 作成失敗
-        //! @note   IBL を使わないときもライティングが b10 を読むため、Initialize() の成否に関わらず必要
+        //! @note   IBL を使わないときもライティングが u_ibl を読むため、Initialize() の成否に関わらず必要
         [[nodiscard]]
         bool CreateConstantBuffers(const GraphicsContext& graphicsContext);
 
         //! キューブマップ・BRDF LUT・ベイク用シェーダーを作成し、BRDF LUT を焼きます。
         //! @param  [in] graphicsContext        デバイスとデバイスコンテキストの取得元
         //! @param  [in] resources              共通ステートとサンプラーの取得元
-        //! @param  [in] frameConstants         b0 の取得元（キャプチャの視点を差し替えて書き込む）
+        //! @param  [in] frameConstants         u_scene の取得元（キャプチャの視点を差し替えて書き込む）
         //! @param  [in] fullscreenPass         フルスクリーン三角形の描画
         //! @param  [in] skyPass                キャプチャで使うスカイのシェーダーと定数
         //! @param  [in] irradiancePS           拡散IBL用 irradiance 畳み込み PS
@@ -95,18 +95,15 @@ namespace Tsukino::Renderer {
 
         //! まだ焼いていなければベイクします（キャプチャ → irradiance → スペキュラプレフィルタ）。
         //! @return true: 焼いた, false: 何もしていない
-        //! @note   スカイパスの直後に呼ぶこと（スカイの b4 がこのフレームの値で転送済みである必要がある）。
-        //!         ビューポートは画面サイズへ戻すが、面ごとに書き換えた b0 は戻さないので、
+        //! @note   スカイパスの直後に呼ぶこと（スカイの u_sky がこのフレームの値で転送済みである必要がある）。
+        //!         ビューポートは画面サイズへ戻すが、面ごとに書き換えた u_scene は戻さないので、
         //!         呼び出し側が直後に FrameConstants::UploadWorld() で本来のカメラ値へ戻すこと
         bool BakeIfNeeded();
 
-        //! IBL の結果（b10, t17〜t19, s10）をピクセルシェーダーへバインドします。
+        //! IBL の結果（u_ibl とテクスチャ3枚）をピクセルシェーダーへバインドします。
         //! @note  ディファードの Lighting パスと、フォワードの World/TransparentDepth/Transparent パスの
         //!        両方から呼ぶ（EvaluateIBL を呼ぶシェーダーがその2系統だけのため）
         void Bind();
-
-        //! Bind() で張った SRV を解除します。
-        void Unbind();
 
     private:
 
@@ -139,7 +136,7 @@ namespace Tsukino::Renderer {
 
         GraphicsContext*      m_graphicsContext = nullptr;    // デバイスとデバイスコンテキストの取得元（借りている）
         RenderResources*      m_resources       = nullptr;    // 共通ステートとサンプラーの取得元（借りている）
-        FrameConstants*       m_frameConstants  = nullptr;    // b0 の取得元（借りている）
+        FrameConstants*       m_frameConstants  = nullptr;    // u_scene の取得元（借りている）
         const FullscreenPass* m_fullscreenPass  = nullptr;    // フルスクリーン三角形の描画（借りている）
         const SkyPass*        m_skyPass         = nullptr;    // スカイのシェーダーと定数（借りている）
 

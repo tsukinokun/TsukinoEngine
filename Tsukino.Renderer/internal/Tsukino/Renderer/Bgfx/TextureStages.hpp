@@ -5,12 +5,14 @@
 //!         シェーダー側の Shaders/bgfx/TextureStages.sh と必ず揃えてください。
 //----------------------------------------------------------------------------
 #pragma once
+#include <Tsukino/Renderer/ShaderSlots.hpp>
+
 #include <Tsukino/Core/typedef.hpp>
 
 // 名前空間 : Tsukino::Renderer
 namespace Tsukino::Renderer::BgfxStage {
 
-    // マテリアル（SRVSlot と同じ番号）
+    // マテリアル（MaterialTextureSlot と同じ番号。下の static_assert で確かめる）
     inline constexpr u8 Albedo            = 0;
     inline constexpr u8 NormalMap         = 1;
     inline constexpr u8 MetallicRoughness = 2;
@@ -35,5 +37,11 @@ namespace Tsukino::Renderer::BgfxStage {
 
     // IBL のベイク中だけ読むキャプチャキューブ
     inline constexpr u8 IBLCaptureSource = 15;
+
+    // マテリアルのテクスチャは枠の番号をそのままステージにして渡すので、並びが揃っていなければならない
+    static_assert(Albedo == static_cast<u8>(MaterialTextureSlot::Albedo) && NormalMap == static_cast<u8>(MaterialTextureSlot::Normal)
+                      && MetallicRoughness == static_cast<u8>(MaterialTextureSlot::MetallicRoughness)
+                      && EmissiveMap == static_cast<u8>(MaterialTextureSlot::Emissive) && AOMap == static_cast<u8>(MaterialTextureSlot::AO),
+                  "The material texture stages must follow MaterialTextureSlot.");
 
 }    // namespace Tsukino::Renderer::BgfxStage

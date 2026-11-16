@@ -17,37 +17,37 @@ namespace Tsukino::Renderer {
     //--------------------------------------------------------------
     //! @class  Material
     //! @brief  マテリアルクラス
-    //! @note   テクスチャは t0〜t4（Albedo/Normal/MetallicRoughness/Emissive/AO）の
-    //!         5枚まで保持できる。未設定のスロットは空のまま SetMaterial が
+    //! @note   テクスチャは MaterialTextureSlot の5枠（Albedo/Normal/MetallicRoughness/Emissive/AO）を
+    //!         保持できる。未設定のスロットは空のまま SetMaterial が
     //!         バインドするが、空のスロットはサンプル結果が0になり法線マップ等が破綻するため、
     //!         デフォルトテクスチャへの差し替えは積む側（ModelSystem）の責務とする。
     //--------------------------------------------------------------
     class Material {
     public:
-        //! @brief マテリアルテクスチャのスロット数（t0〜t4）
-        static constexpr size_t TextureSlotCount = 5;
+        //! @brief マテリアルテクスチャの枠の数
+        static constexpr size_t TextureSlotCount = static_cast<size_t>(MaterialTextureSlot::Count);
 
         //--------------------------------------------------------------
         //! @brief  パイプラインステートを設定する関数
         //! @param  p [in] パイプラインステートへのポインタ
         //--------------------------------------------------------------
-        void SetPipeline(PipelineState* p) { pipeline = p; }
+        void SetPipeline(PipelineState* p) { m_pipeline = p; }
 
         //--------------------------------------------------------------
-        //! @brief  テクスチャを設定する関数（アルベド = t0 固定の簡易版）
+        //! @brief  アルベドのテクスチャを設定する関数（簡易版）
         //! @param  texture [in] テクスチャのハンドル
         //--------------------------------------------------------------
-        void SetTexture(TextureHandle texture) { SetTexture(SRVSlot::Albedo, texture); }
+        void SetTexture(TextureHandle texture) { SetTexture(MaterialTextureSlot::Albedo, texture); }
 
         //--------------------------------------------------------------
         //! @brief  指定スロットにテクスチャを設定する関数
-        //! @param  slot    [in] マテリアルテクスチャスロット (t0〜t4)
+        //! @param  slot    [in] マテリアルテクスチャの枠
         //! @param  texture [in] テクスチャのハンドル
         //--------------------------------------------------------------
-        void SetTexture(SRVSlot slot, TextureHandle texture) {
-            size_t index = static_cast<size_t>(slot);
+        void SetTexture(MaterialTextureSlot slot, TextureHandle texture) {
+            const size_t index = static_cast<size_t>(slot);
             if(index < TextureSlotCount) {
-                textures[index] = texture;
+                m_textures[index] = texture;
             }
         }
 
@@ -55,7 +55,7 @@ namespace Tsukino::Renderer {
         //! @brief  サンプラーを設定する関数
         //! @param  type [in] サンプラーの種類
         //--------------------------------------------------------------
-        void SetSampler(Tsukino::GraphicsCommon::SamplerType type) { sampler = type; }
+        void SetSampler(Tsukino::GraphicsCommon::SamplerType type) { m_sampler = type; }
 
         //--------------------------------------------------------------
         //! @brief  パイプラインステートを取得する関数
@@ -63,25 +63,25 @@ namespace Tsukino::Renderer {
         //--------------------------------------------------------------
         [[nodiscard]]
         PipelineState* GetPipeline() const {
-            return pipeline;
+            return m_pipeline;
         }
 
         //--------------------------------------------------------------
-        //! @brief  アルベド(t0)テクスチャを取得する関数
+        //! @brief  アルベドのテクスチャを取得する関数
         //! @return テクスチャのハンドル（未設定なら無効なハンドル）
         //--------------------------------------------------------------
         [[nodiscard]]
         TextureHandle GetTexture() const {
-            return textures[static_cast<size_t>(SRVSlot::Albedo)];
+            return m_textures[static_cast<size_t>(MaterialTextureSlot::Albedo)];
         }
 
         //--------------------------------------------------------------
-        //! @brief  全マテリアルテクスチャ（t0〜t4）を取得する関数
+        //! @brief  全マテリアルテクスチャを取得する関数（MaterialTextureSlot の順）
         //! @return テクスチャのハンドルの配列（未設定は無効なハンドル）
         //--------------------------------------------------------------
         [[nodiscard]]
         const std::array<TextureHandle, TextureSlotCount>& GetTextures() const {
-            return textures;
+            return m_textures;
         }
 
         //--------------------------------------------------------------
@@ -90,12 +90,12 @@ namespace Tsukino::Renderer {
         //--------------------------------------------------------------
         [[nodiscard]]
         std::optional<Tsukino::GraphicsCommon::SamplerType> GetSampler() const {
-            return sampler;
+            return m_sampler;
         }
 
     private:
-        PipelineState*                                      pipeline = nullptr;    // パイプラインステートへのポインタ
-        std::array<TextureHandle, TextureSlotCount>         textures{};            // t0〜t4のテクスチャ（未設定は無効なハンドル）
-        std::optional<Tsukino::GraphicsCommon::SamplerType> sampler;               // サンプラーの種類（未設定は空）
+        PipelineState*                                      m_pipeline = nullptr;    // パイプラインステートへのポインタ
+        std::array<TextureHandle, TextureSlotCount>         m_textures{};            // マテリアルテクスチャ（未設定は無効なハンドル）
+        std::optional<Tsukino::GraphicsCommon::SamplerType> m_sampler;               // サンプラーの種類（未設定は空）
     };
 }    // namespace Tsukino::Renderer

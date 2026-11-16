@@ -161,7 +161,7 @@ namespace Tsukino::ECS {
         //! @brief  コンポーネントの存在確認
         //! @tparam T コンポーネントの型
         //! @param  entity [in] コンポーネントを確認するエンティティ
-        //! @param  entity [in] コンポーネントがいるか否か
+        //! @return コンポーネントを持っていれば true
         //--------------------------------------------------------------------
         template <typename T>
         [[nodiscard]]

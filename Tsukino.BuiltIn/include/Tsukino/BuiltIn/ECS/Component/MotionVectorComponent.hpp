@@ -4,6 +4,8 @@
 //! @author 山﨑愛
 //--------------------------------------------------------------
 #pragma once
+#include <Tsukino/BuiltIn/ECS/Component/SkeletonOutputComponent.hpp>
+
 #include <Tsukino/Core/Math/Matrix.hpp>
 #include <Tsukino/Core/typedef.hpp>
 // 名前空間 : Tsukino::BuiltIn::ECS
@@ -24,10 +26,10 @@ namespace Tsukino::BuiltIn::ECS {
     //!         対象外とし、PrefabFactory には登録しない。
     //--------------------------------------------------------------
     struct MotionVectorComponent {
-        static constexpr int MAX_BONES = 128;    // SkeletonOutputComponent::MAX_BONES と一致させること
+        static constexpr int kMaxBones = SkeletonOutputComponent::kMaxBones;    // ボーン行列の上限（スケルトンの出力と同じ）
 
         Tsukino::Core::Math::matrix prevWorld;                     // 前フレームのワールド行列
-        alignas(16) float prevBones[MAX_BONES][16]{};              // 前フレームのボーン行列（スキンメッシュのみ）
+        alignas(16) float prevBones[kMaxBones][16]{};              // 前フレームのボーン行列（スキンメッシュのみ）
         u32  prevBoneCount = 0;                                    // 前フレームのボーン数
         bool valid         = false;                                // 初回フレームは false（速度ゼロ扱い）
     };

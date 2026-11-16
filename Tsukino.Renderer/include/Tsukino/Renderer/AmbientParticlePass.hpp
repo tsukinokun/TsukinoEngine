@@ -3,7 +3,7 @@
 //! @brief  環境パーティクル（火の粉・灰）パスの宣言
 //! @detail 頂点バッファもインデックスバッファも持たず、1回の Draw で粒子数×6頂点を出します。
 //!         粒子の属性はすべて頂点シェーダーが SV_VertexID のハッシュから作るため、送るのは
-//!         b10 のパラメータだけです。深度テストありの HDR バッファ描画なので世界の物体に隠れ、
+//!         u_ambientParticle のパラメータだけです。深度テストありの HDR バッファ描画なので世界の物体に隠れ、
 //!         フォグとトーンマップの両方が乗ります。
 //----------------------------------------------------------------------------
 #pragma once
@@ -56,10 +56,10 @@ namespace Tsukino::Renderer {
             return *m_gpu;
         }
 
-        //! 定数バッファ（b10）とシェーダーを作成します。
+        //! ユニフォーム（u_ambientParticle）とシェーダーを作成します。
         //! @param  [in] graphicsContext デバイスの取得元
         //! @param  [in] resources       共通ステートの取得元
-        //! @param  [in] frameConstants  b0 の取得元
+        //! @param  [in] frameConstants  u_scene の取得元
         //! @param  [in] vs              環境パーティクル用の頂点シェーダー
         //! @param  [in] ps              環境パーティクル用のピクセルシェーダー
         //! @return true: 作成成功, false: 作成失敗（パスは何もしなくなる）
@@ -93,7 +93,7 @@ namespace Tsukino::Renderer {
     private:
         GraphicsContext* m_graphicsContext = nullptr;    // デバイスの取得元（借りている）
         RenderResources* m_resources       = nullptr;    // 共通ステートの取得元（借りている）
-        FrameConstants*  m_frameConstants  = nullptr;    // b0 の取得元（借りている）
+        FrameConstants*  m_frameConstants  = nullptr;    // u_scene の取得元（借りている）
 
         std::unique_ptr<Gpu> m_gpu;    // 描画 API の資源（中身は Renderer の内部で定義）
         CBufferAmbientParticle                     m_data{};             // CPU側の環境パーティクルパラメータ

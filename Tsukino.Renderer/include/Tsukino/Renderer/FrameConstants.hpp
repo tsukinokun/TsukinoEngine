@@ -1,8 +1,8 @@
 ﻿//----------------------------------------------------------------------------
 //! @file   FrameConstants.hpp
-//! @brief  フレーム単位のシーン定数（b0）の宣言
+//! @brief  フレーム単位のシーン定数（u_scene）の宣言
 //! @detail カメラ行列・ディレクショナルライト・経過時間・前フレームの ViewProjection を持ち、
-//!         b0（CBufferScene）へ転送します。ワールド（メインカメラ）とオーバーレイ（UIカメラ）の
+//!         u_scene（CBufferScene）へ転送します。ワールド（メインカメラ）とオーバーレイ（UIカメラ）の
 //!         2組を保持し、描画パスに応じてどちらかを転送します。
 //----------------------------------------------------------------------------
 #pragma once
@@ -22,7 +22,7 @@ namespace Tsukino::Renderer {
     class GraphicsContext;    // 前方宣言
 
     //------------------------------------------------------------------------
-    //! フレーム単位のシーン定数（b0）を持つクラスです。
+    //! フレーム単位のシーン定数（u_scene）を持つクラスです。
     //! @note  Renderer が1つだけ所有し、Renderer::GetFrameConstants() で借りる。
     //!        ゲーム側から触るのは SetWorldCamera / SetOverlayCamera / AdvanceTime の3つで、
     //!        残りは描画パスが使う
@@ -60,7 +60,7 @@ namespace Tsukino::Renderer {
         [[nodiscard]]
         bool Initialize(const GraphicsContext& graphicsContext);
 
-        //! シャドウマップの解像度と平行投影の奥行きを設定します（b0 の shadowParams へ配る）。
+        //! シャドウマップの解像度と平行投影の奥行きを設定します（u_scene の shadowParams へ配る）。
         //! @param  [in] shadowMapSize    シャドウマップの一辺（ピクセル）
         //! @param  [in] shadowDepthRange シャドウの平行投影の奥行き（ワールド距離。逆数をshadowParams.wへ配る）
         //! @note   ShadowPass がカスケードを作るたびに呼ぶ。奥行きはカスケードの大きさで変わる
@@ -80,7 +80,7 @@ namespace Tsukino::Renderer {
 
         //! フレームの経過時間を進めます。
         //! @param  [in] deltaTime 前フレームからの経過秒
-        //! @note   ここで進めた時間は b0 の timeParams として全シェーダーへ配られる。
+        //! @note   ここで進めた時間は u_scene の timeParams として全シェーダーへ配られる。
         //!         演出ごとに自前の時間を持たずに済むよう、エンジンが1箇所で数える
         //!         （UnityのTime / UEのView.GameTimeと同じ考え方）。毎フレーム1回だけ呼ぶこと
         void AdvanceTime(float deltaTime);
@@ -133,23 +133,23 @@ namespace Tsukino::Renderer {
             return m_worldSceneData;
         }
 
-        //! ワールドのシーン定数を b0 へ転送してバインドします。
+        //! ワールドのシーン定数を u_scene へ転送してバインドします。
         void UploadWorld() {
             Upload(m_worldSceneData, false);
         }
 
-        //! 影を 3x3 で滑らかにするかを設定します（描画品質。b0 の qualityParams へ配る）。
+        //! 影を 3x3 で滑らかにするかを設定します（描画品質。u_scene の qualityParams へ配る）。
         //! @param  [in] enabled true: 3x3, false: 1タップ
         void SetShadowSoftFilter(bool enabled) noexcept {
             m_shadowSoftFilter = enabled ? 1.0f : 0.0f;
         }
 
-        //! オーバーレイのシーン定数を b0 へ転送してバインドします。
+        //! オーバーレイのシーン定数を u_scene へ転送してバインドします。
         void UploadOverlay() {
             Upload(m_overlaySceneData, true);
         }
 
-        //! ワールドのシーン定数のカメラだけを差し替えて b0 へ転送してバインドします。
+        //! ワールドのシーン定数のカメラだけを差し替えて u_scene へ転送してバインドします。
         //! @param  [in] camera カメラ行列を詰めたシーン定数。view / projection / viewProj / invViewProj / cameraPos だけを使う
         //! @note   ライトなどほかの値はワールドのまま。Overlay パスに積んだ 3D モデル（DrawCommand::cameraOverride）を描くときに使う
         void UploadWorldWithCamera(const CBufferScene& camera);
@@ -166,7 +166,7 @@ namespace Tsukino::Renderer {
 
     private:
 
-        //! シーン定数へフレーム共通の値を差し込んで b0 へ転送し、VS と PS にバインドします。
+        //! シーン定数へフレーム共通の値を差し込んで u_scene へ転送し、VS と PS にバインドします。
         //! @param  [in] sceneData        転送するシーン定数
         //! @param  [in] targetBackBuffer true: バックバッファへ描くパス（UI）, false: 内部解像度で描くパス
         void Upload(const CBufferScene& sceneData, bool targetBackBuffer);
@@ -174,17 +174,17 @@ namespace Tsukino::Renderer {
     private:
         const GraphicsContext*               m_graphicsContext = nullptr;    // デバイスと画面サイズの取得元（借りている）
         std::unique_ptr<Gpu> m_gpu;    // 描画 API の資源（中身は Renderer の内部で定義）
-        float                                m_shadowMapSize = 0.0f;         // シャドウマップの一辺（b0 の shadowParams へ配る）
+        float                                m_shadowMapSize = 0.0f;         // シャドウマップの一辺（u_scene の shadowParams へ配る）
         float                                m_shadowDepthRange     = 1.0f;  // シャドウの平行投影の奥行き（shadowParams.wはその逆数）
         float                                m_shadowSoftFilter     = 1.0f;  // 影を3x3で滑らかにするか（qualityParams.x）
 
         CBufferScene m_worldSceneData{};      // 3D（メインカメラ）用
         CBufferScene m_overlaySceneData{};    // 2D（UIカメラ）用
 
-        //! 前フレームのワールドの ViewProjection 行列（速度バッファ生成用に b0 の prevViewProj へ配る）
+        //! 前フレームのワールドの ViewProjection 行列（速度バッファ生成用に u_scene の prevViewProj へ配る）
         Tsukino::Core::Math::matrix m_prevWorldViewProj = Tsukino::Core::Math::matrix::identity();
 
-        float m_elapsedTime    = 0.0f;    // 起動からの経過秒（b0 の timeParams.x へ配る）
+        float m_elapsedTime    = 0.0f;    // 起動からの経過秒（u_scene の timeParams.x へ配る）
         float m_frameDeltaTime = 0.0f;    // 前フレームからの経過秒（同 timeParams.y）
     };
 }    // namespace Tsukino::Renderer

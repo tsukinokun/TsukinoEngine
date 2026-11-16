@@ -24,7 +24,7 @@ namespace Tsukino::Renderer {
     //------------------------------------------------------------------------
     class ShadowPass {
     public:
-        //! カスケードの枚数。b0のcascadeViewProjの要素数と同じでなければならない
+        //! カスケードの枚数。u_scene の cascadeViewProjの要素数と同じでなければならない
         static constexpr u32 kCascadeCount = ShadowCascades::kCascadeCount;
 
         //! 資源を持たない状態で作ります。

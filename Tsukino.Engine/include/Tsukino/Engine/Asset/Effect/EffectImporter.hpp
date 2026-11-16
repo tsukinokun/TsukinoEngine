@@ -20,12 +20,12 @@ namespace Tsukino::Asset {
 
         //--------------------------------------------------------------
         //! @brief ソースの .efk を出力先ディレクトリにコピーする
-        //! @param  inPutPath        [in] インポート元のパス
-        //! @param  outPutDirectory  [in] 出力先ディレクトリ（Cache/）
+        //! @param  inputPath        [in] インポート元のパス
+        //! @param  outputDirectory  [in] 出力先ディレクトリ（Cache/）
         //! @return 成功時 true
         //--------------------------------------------------------------
         [[nodiscard]]
-        bool Import(const Tsukino::Core::Path& inPutPath, const Tsukino::Core::Path& outPutDirectory) override;
+        bool Import(const Tsukino::Core::Path& inputPath, const Tsukino::Core::Path& outputDirectory) override;
     };
 
 }    // namespace Tsukino::Asset

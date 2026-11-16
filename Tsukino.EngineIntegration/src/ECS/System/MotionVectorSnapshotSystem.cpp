@@ -34,12 +34,12 @@ namespace Tsukino::BuiltIn::ECS {
             //------------------------------------------------------
             // ボーン行列の退避（スキンメッシュのみ）
             // AnimationSystem がまだ走っていないので、ここで読める
-            // local_matrices も前フレームの値
+            // localMatrices も前フレームの値
             //------------------------------------------------------
             auto* skeletonOut = registry.try_get<SkeletonOutputComponent>(entity);
-            if(skeletonOut && skeletonOut->bone_count > 0) {
-                const u32 copyCount = std::min<u32>(skeletonOut->bone_count, MotionVectorComponent::MAX_BONES);
-                std::memcpy(motionVec.prevBones, skeletonOut->local_matrices, sizeof(float) * 16 * copyCount);
+            if(skeletonOut && skeletonOut->boneCount > 0) {
+                const u32 copyCount = std::min<u32>(skeletonOut->boneCount, MotionVectorComponent::kMaxBones);
+                std::memcpy(motionVec.prevBones, skeletonOut->localMatrices, sizeof(float) * 16 * copyCount);
                 motionVec.prevBoneCount = copyCount;
             } else {
                 motionVec.prevBoneCount = 0;

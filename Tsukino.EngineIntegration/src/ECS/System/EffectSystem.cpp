@@ -5,7 +5,7 @@
 //--------------------------------------------------------------
 #include <Tsukino/EngineIntegration/ECS/System/EffectSystem.hpp>
 #include <Tsukino/EngineIntegration/EngineContext.hpp>
-#include <Tsukino/EngineIntegration/IO/EffectFileInterface.hpp>
+#include "../../IO/EffectFileInterface.hpp"
 #include <Tsukino/Engine/Asset/AssetManager.hpp>
 #include <Tsukino/Engine/Asset/Effect/EffectAsset.hpp>
 #include <Tsukino/BuiltIn/ECS/Component/EffectComponent.hpp>
@@ -63,8 +63,6 @@ namespace Tsukino::BuiltIn::ECS {
 
     //--------------------------------------------------------------
     //! @brief  Effekseerを初期化する
-    //! @param  registry      [in] ECS レジストリ
-    //! @param  maxParticles  [in] 最大パーティクル数
     //--------------------------------------------------------------
     void EffectSystem::Initialize(Tsukino::ECS::Registry& registry, Tsukino::ECS::EventBus& eventBus, int maxParticles) {
         if(m_initialized) {
@@ -103,8 +101,9 @@ namespace Tsukino::BuiltIn::ECS {
         m_manager->SetTrackRenderer(m_renderer->CreateTrackRenderer());
         m_manager->SetModelRenderer(m_renderer->CreateModelRenderer());
 
-        m_effectFileInterfaceRef = Effekseer::MakeRefPtr<Tsukino::EngineIntegration::EffectFileInterface>();
-        m_effectFileInterface    = m_effectFileInterfaceRef.Get();
+        auto fileInterface       = Effekseer::MakeRefPtr<Tsukino::EngineIntegration::EffectFileInterface>();
+        m_effectFileInterface    = fileInterface.Get();
+        m_effectFileInterfaceRef = fileInterface;
         m_textureLoader          = EffekseerRenderer::CreateTextureLoader(m_renderer->GetGraphicsDevice(), m_effectFileInterfaceRef);
         m_manager->SetTextureLoader(m_textureLoader);
 
@@ -160,13 +159,6 @@ namespace Tsukino::BuiltIn::ECS {
 
     //--------------------------------------------------------------
     //! @brief  エフェクトを再生する
-    //! @param  registry   [in] ECS レジストリ
-    //! @param  asset      [in] 再生するエフェクトアセット
-    //! @param  effectPath [in] エフェクトファイルのパス
-    //! @param  position   [in] 再生位置 (x, y, z)
-    //! @param  looping    [in] ループ再生するか
-    //! @param  scale      [in] 再生スケール（等倍=1.0）
-    //! @return エフェクトハンドル（負値の場合は失敗）
     //--------------------------------------------------------------
     int EffectSystem::PlayEffect(
         Tsukino::ECS::Registry& registry, Tsukino::Asset::AssetHandle asset, const Tsukino::Core::Path& effectPath, const float* position, bool looping, float scale) {
@@ -440,8 +432,8 @@ namespace Tsukino::BuiltIn::ECS {
 
         ::Effekseer::Matrix44 efkView{};
         ::Effekseer::Matrix44 efkProj{};
-        std::memcpy(efkView.Values, &view, sizeof(Tsukino::Core::Math::matrix));
-        std::memcpy(efkProj.Values, &projection, sizeof(Tsukino::Core::Math::matrix));
+        hlslpp::store(&efkView.Values[0][0], view);
+        hlslpp::store(&efkProj.Values[0][0], projection);
 
         m_renderer->SetCameraMatrix(efkView);
         m_renderer->SetProjectionMatrix(efkProj);

@@ -15,11 +15,11 @@ namespace Tsukino::Asset {
     //--------------------------------------------------------------
     //! @brief ソースの .efk を出力先ディレクトリにコピーする
     //--------------------------------------------------------------
-    bool EffectImporter::Import(const Tsukino::Core::Path& inPutPath, const Tsukino::Core::Path& outPutDirectory) {
+    bool EffectImporter::Import(const Tsukino::Core::Path& inputPath, const Tsukino::Core::Path& outputDirectory) {
         Tsukino::Core::Path baseDir           = Tsukino::IO::FileSystem::GetAssetRootPath();
-        Tsukino::Core::Path absoluteInputPath = baseDir / inPutPath;
+        Tsukino::Core::Path absoluteInputPath = baseDir / inputPath;
 
-        Tsukino::Core::Path outputPath = outPutDirectory / inPutPath;
+        Tsukino::Core::Path outputPath = outputDirectory / inputPath;
 
         // 出力先を作れないまま書き込みへ進むと、失敗が原因から遠い場所で
         // 「キャッシュが無い」として現れるため、ここで止める

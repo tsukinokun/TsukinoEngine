@@ -1,0 +1,64 @@
+---
+# TsukinoEngine の静的解析の設定（clang-tidy）
+#
+# 流し方（Windows。Visual Studio の「C++ Clang tools」が入っていること）:
+#   1. CMake を Ninja で構成して compile_commands.json を作る
+#        cmake -S . -B .build/tidy -G Ninja -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
+#   2. エンジンの .cpp を流す（hlsl++ の SSE 版は clang の組み込みヘッダを要るので、スカラー版で解析する）
+#        clang-tidy -p .build/tidy --extra-arg=-DHLSLPP_SCALAR Tsukino.Core/src/Window.cpp
+#
+# 新しい警告は増やさない。見送るときは下に理由を書いて外すか、その行に NOLINT(チェック名) と理由を書く。
+#
+# 外しているチェックと理由:
+#   bugprone-easily-swappable-parameters          同じ型の引数を並べる API（座標・色など）が多く、ほぼ全部に出る
+#   bugprone-narrowing-conversions                描画の計算で float と整数を行き来するのは意図どおりで、誤検知が多い
+#   bugprone-implicit-widening-of-multiplication-result  画素数などの掛け算は範囲が小さいことが分かっている
+#   bugprone-reserved-identifier                  外部ライブラリの決まりの名前（_DEBUG など）に出る
+#   bugprone-exception-escape                     エンジンは例外で失敗を伝えない（戻り値とログ）
+#   performance-enum-size                         列挙型の大きさはシリアライズの形式と合わせて決めている
+#   performance-no-int-to-ptr                     Win32 API はハンドルやポインタを整数（LPARAM など）で渡す
+#   readability-redundant-string-cstr             Jolt・Effekseer の文字列は設定によって独自アロケータの別の型になり、
+#                                                 c_str() を外すと他の設定でビルドが通らない
+Checks: >
+  -*,
+  bugprone-*,
+  -bugprone-easily-swappable-parameters,
+  -bugprone-narrowing-conversions,
+  -bugprone-implicit-widening-of-multiplication-result,
+  -bugprone-reserved-identifier,
+  -bugprone-exception-escape,
+  performance-*,
+  -performance-enum-size,
+  -performance-no-int-to-ptr,
+  cppcoreguidelines-init-variables,
+  cppcoreguidelines-slicing,
+  cppcoreguidelines-virtual-class-destructor,
+  misc-redundant-expression,
+  misc-unused-using-decls,
+  modernize-make-shared,
+  modernize-make-unique,
+  modernize-redundant-void-arg,
+  modernize-use-emplace,
+  modernize-use-equals-default,
+  modernize-use-equals-delete,
+  modernize-use-nullptr,
+  modernize-use-override,
+  modernize-use-using,
+  readability-container-size-empty,
+  readability-delete-null-pointer,
+  readability-duplicate-include,
+  readability-inconsistent-declaration-parameter-name,
+  readability-misleading-indentation,
+  readability-redundant-member-init,
+  readability-redundant-smartptr-get,
+  readability-static-accessed-through-instance
+WarningsAsErrors: ''
+# 外部ライブラリ（External/）のヘッダは見ない
+HeaderFilterRegex: 'TsukinoEngine[/\\]Tsukino\.'
+CheckOptions:
+  # hlsl++ のベクトル・行列は SIMD のレジスタに収まる小さな値なので、値で渡す
+  - key: performance-unnecessary-value-param.AllowedTypes
+    value: 'hlslpp::.*;Tsukino::Core::Math::matrix'
+  - key: performance-unnecessary-copy-initialization.AllowedTypes
+    value: 'hlslpp::.*;Tsukino::Core::Math::matrix'
+...

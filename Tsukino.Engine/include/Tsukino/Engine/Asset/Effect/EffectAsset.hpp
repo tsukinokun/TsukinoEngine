@@ -18,15 +18,6 @@ namespace Tsukino::Asset {
     class EffectAsset : public IAsset {
     public:
         //--------------------------------------------------------------
-        //! @brief ハンドルを取得する関数
-        //! @return アセットのハンドル
-        //--------------------------------------------------------------
-        [[nodiscard]]
-        AssetHandle GetHandle() const override {
-            return m_handle;
-        }
-
-        //--------------------------------------------------------------
         //! @brief アセットの種類を取得
         //! @return アセットの種類
         //--------------------------------------------------------------
@@ -35,15 +26,6 @@ namespace Tsukino::Asset {
             return AssetType::Effect;
         }
 
-        //--------------------------------------------------------------
-        //! @brief  ローダー側から設定されるハンドル
-        //! @param handle [in] 設定するハンドル
-        //--------------------------------------------------------------
-        void SetHandle(const AssetHandle& h) { m_handle = h; }
-
         std::vector<uint8_t> binary;    // .efk ファイルのバイナリデータ
-
-    private:
-        AssetHandle m_handle = AssetHandle::Invalid();    // アセットのハンドル
     };
 }

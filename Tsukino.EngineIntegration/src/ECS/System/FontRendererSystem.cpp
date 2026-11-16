@@ -196,7 +196,7 @@ namespace Tsukino::BuiltIn::ECS {
                     std::static_pointer_cast<Tsukino::Asset::DynamicFontAsset>(asset);
 
                 atlas = std::make_unique<Tsukino::Renderer::DynamicFontAtlas>(
-                    ctx->renderer->GetResources(), dynamicAsset->m_fontFileData.data(), dynamicAsset->m_fontFileData.size(), dynamicAsset->m_pixelSize);
+                    ctx->renderer->GetResources(), dynamicAsset->fontFileData.data(), dynamicAsset->fontFileData.size(), dynamicAsset->pixelSize);
             }
 
             // 描画情報には DynamicFontAtlas の生ポインタを持たせる（キャッシュが所有する）

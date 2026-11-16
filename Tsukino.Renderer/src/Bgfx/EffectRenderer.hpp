@@ -15,7 +15,7 @@
 
 // 前方宣言
 namespace EffekseerRenderer {
-    class Renderer;
+    class Renderer;    // NOLINT(cppcoreguidelines-virtual-class-destructor) Effekseer の型。参照カウントで破棄する作り
 }
 
 // 名前空間 : Tsukino::Renderer

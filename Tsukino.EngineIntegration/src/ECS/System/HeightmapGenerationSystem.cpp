@@ -243,7 +243,9 @@ namespace Tsukino::BuiltIn::ECS {
 
                     for(uint32_t v = 0; v < mesh.vertexCount; ++v) {
                         const uint8_t* raw = mesh.vertexData.data() + (size_t)v * mesh.vertexStride;
-                        float          px, py, pz;
+                        float          px = 0.0f;
+                        float          py = 0.0f;
+                        float          pz = 0.0f;
                         std::memcpy(&px, raw + 0, sizeof(float));
                         std::memcpy(&py, raw + 4, sizeof(float));
                         std::memcpy(&pz, raw + 8, sizeof(float));

@@ -5,7 +5,7 @@
 
 ## 1. 対象と前提
 - **対象言語:** ``C++20``（エンジン各モジュールの `cppdialect`。同梱の
-  JoltPhysics のみ ``C++17``）、``Premake`` の``ビルドスクリプト``、``シェーダ``、``スクリプト類``
+  JoltPhysics のみ ``C++17``）、``CMake`` / ``Premake`` の``ビルドスクリプト``、``シェーダ``、``スクリプト類``
 - **対象範囲:**  
 	- **エンジン本体コード**
 	- ``サンプル`` / ``テストコード``
@@ -36,7 +36,10 @@
 - 本プロジェクトのコードスタイルは**clang-formatによって自動整形される**
 - ``インデント``は**4スペース**（``.clang-format`` の ``UseTab: Never`` / ``IndentWidth: 4``、``BasedOnStyle: Google``）
 - ``.clang-format``が唯一の正しいスタイル定義であり、手動整形は行わない
-- ``UTF-8`` / ``CRLF``。コメントは日本語で書く
+- C++ は ``UTF-8``（BOM 付き）、シェーダーは ``UTF-8``（BOM なし）。リポジトリの中の改行は ``LF``（``.editorconfig``。
+  Windows の作業ツリーでは git の ``core.autocrlf`` で ``CRLF`` になってよい）。コメントは日本語で書く
+- 静的解析は ``clang-tidy``（ルートの ``.clang-tidy``）。新しい警告を増やさない。
+  見送る指摘は ``.clang-tidy`` に理由を書いて外すか、その行に ``NOLINT(チェック名)`` と理由を書く
 
 # 4.命名規則
 
@@ -184,24 +187,25 @@ hlslpp::mul(q, v);   // 逆回転（_hlslpp_quat_mul_vec_inv_ps）
 
 - ログメッセージは英語で、原因と影響が分かるように書く
 ```cpp
-MessageBoxA(nullptr, "Failed to load shader.", "Error", MB_OK);
+Tsukino::Core::Log::Error("Failed to load shader: " + path.string() + ". The material is drawn with the default shader.");
 ```
 
 # 7. アセットとパスの扱い
 - コード中に``絶対パス``を書かない
 - アセットは**プロジェクトルート配下**の``Assets/``に配置する
-- 実行時は``bin/<Config>/``からの``相対パス``でアクセスすることを前提とする。
+- アセットのパスは、アセットのルートからの``相対パス``で書く（Debug はソースのフォルダ、Release は実行ファイルの隣、
+  Android は APK の中がルートになる。切り替えは ``FileSystem`` が行う）。
 ```cpp
 Tsukino::Core::Path         path("Assets/Shaders/test.ps.sc");
 ```
-- ビルドスクリプト(``Premake``)で
-    - ``Assets/``を``bin/<Config>/``にコピーするルールを定義する
+- ビルドスクリプト（CMake の ``tsukino_add_app`` の ``ASSET_DIRS``、Premake の ``tsukino.lua``）で
+    - Release のとき ``Assets/`` を実行ファイルの隣へ写す
 - パスには``Core``の``Path``クラスを使用し、``OS``依存の記述を避ける
 - **一時ログ・調査用の出力は``Logs/``配下に出す。** デバッグ用の``std::ofstream``を
   カレントディレクトリ直下に開かないこと。リポジトリを汚し、``git diff``や``git log -p``を
   膨らませる（``Logs/``は``.gitignore``済み）
 - 実行結果をファイルで確認したいときは``Log::SetLogFile("Logs/Tsukino.log")``を呼ぶ。
-  呼ばない限り``Log``は``OutputDebugStringA``にしか出ない
+  呼ばない限り``Log``はデバッガの出力（Windows は``OutputDebugStringA``、それ以外は``SDL_Log``）にしか出ない
 
 # 8. ドキュメントとコメント
 - **なぜそうしているか**をコメントに書く

@@ -59,8 +59,8 @@ namespace Tsukino::Asset {
     //----------------------------------------------------------------------------
     //! マテリアルファイルをインポートします。
     //----------------------------------------------------------------------------
-    bool MaterialImporter::Import(const Tsukino::Core::Path& inPutPath, const Tsukino::Core::Path& outPutDirectory) {
-        const Tsukino::Core::Path absoluteInputPath = Tsukino::IO::FileSystem::GetAssetRootPath() / inPutPath;
+    bool MaterialImporter::Import(const Tsukino::Core::Path& inputPath, const Tsukino::Core::Path& outputDirectory) {
+        const Tsukino::Core::Path absoluteInputPath = Tsukino::IO::FileSystem::GetAssetRootPath() / inputPath;
 
         if(!Tsukino::IO::FileSystem::Exists(absoluteInputPath)) {
             Tsukino::Core::Log::Error("MaterialImporter: Failed to open " + absoluteInputPath.string());
@@ -72,10 +72,10 @@ namespace Tsukino::Asset {
         // 「キー = 値」を1行ずつ読む。読めない値・知らないキーは警告して既定値のままにする
         //--------------------------------------------------------------
         Tsukino::GraphicsCommon::MaterialData data;
-        data.name = inPutPath.filename();
+        data.name = inputPath.filename();
 
         auto warn = [&](int lineNumber, const std::string& text) {
-            Tsukino::Core::Log::Warn("MaterialImporter: " + text + " (" + inPutPath.string() + " line " + std::to_string(lineNumber) + "). The default value is used.");
+            Tsukino::Core::Log::Warn("MaterialImporter: " + text + " (" + inputPath.string() + " line " + std::to_string(lineNumber) + "). The default value is used.");
         };
 
         std::string line;
@@ -165,7 +165,7 @@ namespace Tsukino::Asset {
         //--------------------------------------------------------------
         // キャッシュへ書き出す（ソースと同じ相対パス。中身は MaterialData の cereal バイナリ）
         //--------------------------------------------------------------
-        const Tsukino::Core::Path outputPath = outPutDirectory / Tsukino::IO::FileSystem::ToEngineRelativePath(inPutPath);
+        const Tsukino::Core::Path outputPath = outputDirectory / Tsukino::IO::FileSystem::ToEngineRelativePath(inputPath);
         if(!Tsukino::IO::FileSystem::CreateDirectories(outputPath.parent_path())) {
             Tsukino::Core::Log::Error("MaterialImporter: Failed to create the output directory: " + outputPath.parent_path().string());
             return false;

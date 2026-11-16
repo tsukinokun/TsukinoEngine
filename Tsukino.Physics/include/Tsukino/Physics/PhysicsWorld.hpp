@@ -13,6 +13,7 @@
 #include <hlsl++.h>
 
 #include <cstdint>
+#include <memory>
 #include <vector>
 
 // 名前空間 : Tsukino::Physics
@@ -233,7 +234,7 @@ namespace Tsukino::Physics {
 
     private:
         struct Impl;
-        Impl* m_impl;
+        std::unique_ptr<Impl> m_impl;    // Jolt の型を隠す実装（PhysicsWorld.cpp で定義）
     };
 
 }    // namespace Tsukino::Physics

@@ -17,16 +17,14 @@ namespace Tsukino::Core::Math {
     //--------------------------------------------------------------
     //! @brief 度数法を弧度法に変換する関数
     //--------------------------------------------------------------
-    inline [[nodiscard]]
-    float ToRadians(float degrees) {
+    [[nodiscard]] inline float ToRadians(float degrees) {
         return degrees * Deg2Rad;
     }
 
     //--------------------------------------------------------------
     //! @brief 弧度法を度数法に変換する関数
     //--------------------------------------------------------------
-    inline [[nodiscard]]
-    float ToDegrees(float radians) {
+    [[nodiscard]] inline float ToDegrees(float radians) {
         return radians * Rad2Deg;
     }
 
@@ -38,8 +36,7 @@ namespace Tsukino::Core::Math {
     //! @param [in] size2 矩形2のサイズ
     //! @return 重なっている場合はtrue、そうでない場合はfalse
     //--------------------------------------------------------------
-    inline [[nodiscard]]
-    bool Intersects(const hlslpp::float2& min1, const hlslpp::float2& size1, const hlslpp::float2& min2, const hlslpp::float2& size2) {
+    [[nodiscard]] inline bool Intersects(const hlslpp::float2& min1, const hlslpp::float2& size1, const hlslpp::float2& min2, const hlslpp::float2& size2) {
         return (min1.x < min2.x + size2.x) && (min1.x + size1.x > min2.x) && (min1.y < min2.y + size2.y) && (min1.y + size1.y > min2.y);
     }
 
@@ -50,8 +47,7 @@ namespace Tsukino::Core::Math {
     //! @param [in] size 矩形のサイズ
     //! @return 点が矩形内にある場合はtrue、そうでない場合はfalse
     //--------------------------------------------------------------
-    inline [[nodiscard]]
-    bool IsPointInRect(const hlslpp::float2& point, const hlslpp::float2& center, const hlslpp::float2& size) {
+    [[nodiscard]] inline bool IsPointInRect(const hlslpp::float2& point, const hlslpp::float2& center, const hlslpp::float2& size) {
         hlslpp::float2 halfSize = size * 0.5f;
         return (point.x >= center.x - halfSize.x) && (point.x <= center.x + halfSize.x) && (point.y >= center.y - halfSize.y)
                && (point.y <= center.y + halfSize.y);
@@ -69,8 +65,7 @@ namespace Tsukino::Core::Math {
     //! @param  [in] t  補間係数（0〜1）
     //! @return q0からq1への、常に近い方の経路で補間した向き
     //--------------------------------------------------------------
-    inline [[nodiscard]]
-    hlslpp::quaternion SlerpShortestPath(const hlslpp::quaternion& q0, const hlslpp::quaternion& q1, float t) {
+    [[nodiscard]] inline hlslpp::quaternion SlerpShortestPath(const hlslpp::quaternion& q0, const hlslpp::quaternion& q1, float t) {
         float rotDot = q0.x * q1.x + q0.y * q1.y + q0.z * q1.z + q0.w * q1.w;
         hlslpp::quaternion q1Shortest = (rotDot < 0.0f) ? hlslpp::quaternion(-q1.x, -q1.y, -q1.z, -q1.w) : q1;
         return hlslpp::slerp(q0, q1Shortest, t);

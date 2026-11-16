@@ -255,7 +255,7 @@ namespace Tsukino::BuiltIn::ECS {
             else
                 material.SetPipeline(isAdditive ? m_additivePipelineCache.get() : m_pipelineCache.get());
 
-            // tintColorをb2(CBufferMaterial::baseColor)経由でSprite.ps.scへ渡す
+            // tintColorをu_material（CBufferMaterial::baseColor）経由でSprite.ps.scへ渡す
             Tsukino::Renderer::CBufferMaterial& materialData = ctx->renderer->GetDrawQueue().AllocMaterialData();
             materialData.baseColor                            = sprite.tintColor;
             materialData.baseColor.w                          = sprite.tintColor.w * groupAlpha;

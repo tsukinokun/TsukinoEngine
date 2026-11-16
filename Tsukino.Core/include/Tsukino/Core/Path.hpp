@@ -143,8 +143,9 @@ namespace Tsukino::Core {
         }
 
         //--------------------------------------------------------------
-        //! @brief  パスを正規化して小文字に変換する関数
-        //! @param  path [in] 正規化して小文字に変換する
+        //! @brief  文字列を小文字に変換する関数（ASCII のみ）
+        //! @param  value [in] 変換する文字列
+        //! @return 小文字にした文字列
         //--------------------------------------------------------------
         [[nodiscard]]
         static std::string ToLower(std::string value) {

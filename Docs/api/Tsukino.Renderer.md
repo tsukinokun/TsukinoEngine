@@ -41,7 +41,7 @@
 | `const GraphicsAdapterInfo & GetAdapterInfo() const noexcept` | 作成したデバイスのアダプタ情報を取得する関数 |
 | `DebugDraw & GetDebugDraw() noexcept` | デバッグ用の線と三角形の描画を取得する |
 | `RenderResources & GetResources() noexcept` | 描画で共有する資源を取得する |
-| `FrameConstants & GetFrameConstants() noexcept` | フレーム単位のシーン定数（b0）を取得する |
+| `FrameConstants & GetFrameConstants() noexcept` | フレーム単位のシーン定数（u_scene）を取得する |
 | `::EffekseerRenderer::Renderer * GetEffectRenderer()` |  |
 | `LightingPass & GetLighting() noexcept` | ディファードライティングパスを取得する |
 | `SkyPass & GetSky() noexcept` | スカイ（大気散乱）パスを取得する |
@@ -169,7 +169,7 @@
 - **Tsukino::Renderer::GraphicsDeviceOptions** — `Tsukino.Renderer/include/Tsukino/Renderer/RenderQuality.hpp`
   - preference
 - **Tsukino::Renderer::IBLBaker** — `Tsukino.Renderer/include/Tsukino/Renderer/IBLBaker.hpp`
-  - IBLBaker(), ~IBLBaker(), IBLBaker(), operator=(), GetGpu(), GetGpu(), RequestRecapture(), CreateConstantBuffers(), Initialize(), BakeIfNeeded(), Bind(), Unbind()
+  - IBLBaker(), ~IBLBaker(), IBLBaker(), operator=(), GetGpu(), GetGpu(), RequestRecapture(), CreateConstantBuffers(), Initialize(), BakeIfNeeded(), Bind()
 - **Tsukino::Renderer::IBLBaker::Gpu** — `Tsukino.Renderer/internal/Tsukino/Renderer/Bgfx/IBLBakerGpu.hpp`
   - kFaceCount, kSpecularMipCount, capture, irradiance, specular, brdfLut, captureFaces, irradianceFaces, specularFaces, brdfLutFrameBuffer, irradianceProgram, specularProgram, brdfLutProgram, iblUniform, irradianceSampler, specularSampler, brdfLutSampler, bakeUniform, captureSampler, specularMipCount, intensity, Gpu(), Gpu(), operator=(), ~Gpu(), CreatePlaceholder(), CreateBakeTargets(), Bind()
 - **Tsukino::Renderer::IPostWorldPass** — `Tsukino.Renderer/include/Tsukino/Renderer/IPostWorldPass.hpp`

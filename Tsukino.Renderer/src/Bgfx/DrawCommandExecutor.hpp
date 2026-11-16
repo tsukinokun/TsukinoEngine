@@ -126,7 +126,7 @@ namespace Tsukino::Renderer {
         CBufferMaterial                m_lastMaterial{};      // 最後に送ったマテリアルの定数（materialData の無いコマンドが引き継ぐ）
         UniformBlock<CBufferMaterial>  m_materialUniform;     // マテリアルの定数（u_material）
 
-        //! マテリアルのテクスチャ（t0〜t4）のサンプラーのユニフォーム。シェーダーの SAMPLER2D の名前と揃える
+        //! マテリアルのテクスチャ（MaterialTextureSlot の5枠）のサンプラーのユニフォーム。シェーダーの SAMPLER2D の名前と揃える
         std::array<bgfx::UniformHandle, 5> m_materialSamplers{};
 
         bgfx::UniformHandle m_bonesUniform     = BGFX_INVALID_HANDLE;    // ボーン行列（u_bones）

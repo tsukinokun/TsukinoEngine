@@ -19,26 +19,11 @@ namespace Tsukino::Asset {
     class AudioAsset : public IAsset {
     public:
         //--------------------------------------------------------------
-        //! @brief  ハンドルを取得する関数
-        //! @return アセットのハンドル
-        //--------------------------------------------------------------
-        AssetHandle GetHandle() const override { return m_handle; }
-
-        //--------------------------------------------------------------
-        //! @brief  ハンドルを設定する関数
-        //! @return アセットの種類
-        //--------------------------------------------------------------
-        void SetHandle(const AssetHandle& h) override { m_handle = h; }
-
-        //--------------------------------------------------------------
         //! @brief  タイプを取得する関数
         //! @return アセットの種類
         //--------------------------------------------------------------
         AssetType GetType() const override { return AssetType::Audio; }
 
         std::string filePath;    // 音のファイルのパス（UTF-8）。AudioManager がここから読む
-
-    private:
-        AssetHandle m_handle;    // アセットハンドル
     };
 }    // namespace Tsukino::Asset

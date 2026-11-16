@@ -101,7 +101,7 @@ namespace Tsukino::Renderer {
         m_lastMaterial    = DefaultMaterial();
 
         //--------------------------------------------------------------------
-        // 定数バッファ（b1・b2）の代わりのユニフォームと、マテリアルのテクスチャのサンプラー。
+        // モデルごとの定数（u_transform）とマテリアルの定数（u_material）のユニフォームと、マテリアルのテクスチャのサンプラー。
         // 名前は Shaders/bgfx の .sh・.sc と揃える
         //--------------------------------------------------------------------
         if(!m_transformUniform.Create("u_transform") || !m_materialUniform.Create("u_material")) {
@@ -195,7 +195,7 @@ namespace Tsukino::Renderer {
         m_materialUniform.Set(m_lastMaterial);
 
         //--------------------------------------------------------------------
-        // テクスチャ（t0〜t4）。設定されていない枠は、色は白、法線は平らな法線で埋める
+        // マテリアルのテクスチャ。設定されていない枠は、色は白、法線は平らな法線で埋める
         //--------------------------------------------------------------------
         const RenderResources::Gpu& resources = m_resources->GetGpu();
         const u32 samplerFlags = cmd.material->GetSampler() ? RenderResources::Gpu::GetSamplerFlags(*cmd.material->GetSampler())
@@ -204,7 +204,7 @@ namespace Tsukino::Renderer {
         for(size_t slot = 0; slot < textures.size(); ++slot) {
             const RenderResources::Gpu::TextureEntry* entry = resources.FindTexture(textures[slot]);
             if(!entry)
-                entry = resources.FindTexture(slot == static_cast<size_t>(SRVSlot::Normal) ? resources.flatNormal : resources.white);
+                entry = resources.FindTexture(slot == static_cast<size_t>(MaterialTextureSlot::Normal) ? resources.flatNormal : resources.white);
             if(entry)
                 bgfx::setTexture(static_cast<u8>(slot), m_materialSamplers[slot], entry->texture, samplerFlags);
         }
@@ -289,14 +289,14 @@ namespace Tsukino::Renderer {
         const RenderResources::Gpu::TextureEntry* albedo    = nullptr;
         u32                                       samplerFlags = BGFX_SAMPLER_NONE;    // 既定は線形・繰り返し
         if(cmd.material) {
-            albedo = resources.FindTexture(cmd.material->GetTextures()[static_cast<size_t>(SRVSlot::Albedo)]);
+            albedo = resources.FindTexture(cmd.material->GetTextures()[static_cast<size_t>(MaterialTextureSlot::Albedo)]);
             if(cmd.material->GetSampler())
                 samplerFlags = RenderResources::Gpu::GetSamplerFlags(*cmd.material->GetSampler());
         }
         if(!albedo)
             albedo = resources.FindTexture(resources.white);
         if(albedo)
-            bgfx::setTexture(static_cast<u8>(SRVSlot::Albedo), m_materialSamplers[static_cast<size_t>(SRVSlot::Albedo)], albedo->texture, samplerFlags);
+            bgfx::setTexture(static_cast<u8>(MaterialTextureSlot::Albedo), m_materialSamplers[static_cast<size_t>(MaterialTextureSlot::Albedo)], albedo->texture, samplerFlags);
 
         // ボーン行列
         u32 boneBytes = 0;
@@ -346,10 +346,10 @@ namespace Tsukino::Renderer {
         const float toClipX = 2.0f / screenWidth;
         const float toClipY = -2.0f / screenHeight;
 
-        // straight alpha のブレンド・深度は使わない・カリングなし（DirectXTK の NonPremultiplied と同じ）
+        // straight alpha のブレンド・深度は使わない・カリングなし
         constexpr u64 kState = BGFX_STATE_WRITE_RGB | BGFX_STATE_WRITE_A
                                | BGFX_STATE_BLEND_FUNC(BGFX_STATE_BLEND_SRC_ALPHA, BGFX_STATE_BLEND_INV_SRC_ALPHA);
-        // サンプラーは SpriteBatch の既定と同じ LinearClamp
+        // サンプラーは線形補間・端で止める（LinearClamp）
         constexpr u32 kSampler = BGFX_SAMPLER_U_CLAMP | BGFX_SAMPLER_V_CLAMP;
 
         const RenderResources::Gpu& resources = m_resources->GetGpu();
@@ -391,7 +391,7 @@ namespace Tsukino::Renderer {
                 const SpriteQuad& sprite = sprites[index + i];
 
                 //------------------------------------------------------------
-                // 置き方は SpriteBatch と同じ。切り出した矩形の origin の点が (x, y) に来るように置き、
+                // 切り出した矩形の origin の点が (x, y) に来るように置き、
                 // origin を軸に scale で拡大し、rotation（画面上で時計回りが正）で回す
                 //------------------------------------------------------------
                 const float sourceWidth  = static_cast<float>(sprite.source.right - sprite.source.left);
@@ -500,12 +500,11 @@ namespace Tsukino::Renderer {
         const RenderResources::Gpu& resources = m_resources->GetGpu();
 
         //--------------------------------------------------------------------
-        // ゲーム定義の定数。ゲーム予約枠（User0 / User1）以外を指定されたら何もしない。
-        // シェーダーは uniform vec4 u_user0[N] / u_user1[N] で受ける
+        // ゲーム定義の定数。シェーダーは uniform vec4 u_user0[N] / u_user1[N] で受ける
         //--------------------------------------------------------------------
-        if(cmd.userConstantSlot == CBSlot::User0 || cmd.userConstantSlot == CBSlot::User1) {
+        const size_t slot = static_cast<size_t>(cmd.userConstantSlot);
+        if(slot < resources.userConstantUniforms.size()) {
             if(const RenderResources::Gpu::BufferEntry* constants = resources.FindBuffer(cmd.userConstantBuffer, BufferKind::UserConstant)) {
-                const size_t slot = (cmd.userConstantSlot == CBSlot::User1) ? 1 : 0;
                 bgfx::setUniform(resources.userConstantUniforms[slot], constants->data.data(), static_cast<u16>(constants->capacity));
             }
         }
@@ -561,7 +560,7 @@ namespace Tsukino::Renderer {
         switch(pass) {
         case RenderPass::GBuffer:          ++stats.gbufferDrawCalls; break;
         case RenderPass::World:            ++stats.worldDrawCalls; break;
-        case RenderPass::TransparentDepth: ++stats.transparentDrawCalls; break;
+        case RenderPass::TransparentDepth:
         case RenderPass::Transparent:      ++stats.transparentDrawCalls; break;
         case RenderPass::Overlay:          ++stats.overlayDrawCalls; break;
         }

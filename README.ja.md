@@ -27,18 +27,18 @@ EnTTベースのECSアーキテクチャを採用した、C++20 / SDL3 / bgfx �
 
 ## 概要
 
-TsukinoEngineは、Windows向けの個人開発ゲームエンジンです。[bgfx](https://github.com/bkaradzic/bgfx) の上に作ったディファードレンダラーと、[EnTT](https://github.com/skypjack/entt)によるECS(Entity Component System)を軸に、コア・描画・物理・オーディオ・アセットパイプラインといった各エンジンモジュールを独立した静的ライブラリとして構成し、[Premake5](https://premake.github.io/)でビルドします。
+TsukinoEngineは、個人開発のゲームエンジンです。Windows で開発・動作確認をしています（macOS・iOS・Android 向けの CMake のビルドは用意してありますが、それらの OS ではまだ確かめていません）。[bgfx](https://github.com/bkaradzic/bgfx) の上に作ったディファードレンダラーと、[EnTT](https://github.com/skypjack/entt)によるECS(Entity Component System)を軸に、コア・描画・物理・オーディオ・アセットパイプラインといった各エンジンモジュールを独立した静的ライブラリとして構成し、どの OS でも [CMake](https://cmake.org/)、Windows では [Premake5](https://premake.github.io/) でもビルドできます。
 
 ## 特徴
 
 - **ECSアーキテクチャ** — [EnTT](https://github.com/skypjack/entt)を用いたデータ指向設計により、キャッシュ効率の高いエンティティ管理を実現。
-- **bgfx レンダラー** — bgfx（Windows では Direct3D 11）の上の独自のディファード描画パイプライン(`Tsukino.Renderer`)。シェーダーは bgfx のシェーダー言語（`.sc`）で書き、ビルド時に変換します。
+- **bgfx レンダラー** — bgfx（Windows では Direct3D 11、macOS・iOS では Metal、Android では Vulkan）の上の独自のディファード描画パイプライン(`Tsukino.Renderer`)。シェーダーは bgfx のシェーダー言語（`.sc`）で書き、ビルド時に変換します。
 - **物理演算** — [JoltPhysics](https://github.com/jrouwe/JoltPhysics)を統合し、剛体シミュレーションに対応。
 - **視覚エフェクト** — [Effekseer](https://github.com/tsukinokun/Effekseer)によるパーティクル・エフェクト再生。
 - **オーディオ** — [miniaudio](https://github.com/mackron/miniaudio) をベースとした専用オーディオモジュール(`Tsukino.Audio`)。`.wav` / `.mp3` / `.flac` を変換せずに鳴らします。
 - **アセットパイプライン** — [Assimp](https://github.com/assimp/assimp)によるモデル読み込みと、[bimg](https://github.com/bkaradzic/bimg)によるテクスチャ処理。
 - **シリアライズ** — [cereal](https://github.com/USCiLab/cereal)を用いたシーン・アセットデータのシリアライズ。
-- **モジュール構成** — `Tsukino.Core` / `Tsukino.GraphicsCommon` / `Tsukino.Engine` / `Tsukino.Renderer` / `Tsukino.Physics` / `Tsukino.Audio` / `Tsukino.BuiltIn` / `Tsukino.EngineIntegration` の各サブシステムを個別のPremakeプロジェクトとして分離し、`Tsukino.Sandbox`が実行可能ファイルとしてそれらを統合します。
+- **モジュール構成** — `Tsukino.Core` / `Tsukino.GraphicsCommon` / `Tsukino.Engine` / `Tsukino.Renderer` / `Tsukino.Physics` / `Tsukino.Audio` / `Tsukino.BuiltIn` / `Tsukino.EngineIntegration` の各サブシステムを個別の静的ライブラリ（CMake のターゲット・Premake のプロジェクト）として分離し、`Tsukino.Sandbox`が実行可能ファイルとしてそれらを統合します。
 
 ## セットアップ
 
@@ -92,7 +92,7 @@ Tsukino.Sandbox.exe api        エンジンAPIの動作確認（PrefabFactoryの
 ### 先に知っておくべきこと
 
 **最初に `Log::SetLogFile()` を呼んでください。** これを呼ぶまで
-`Tsukino::Core::Log` は `OutputDebugStringA` にしか出力しません。
+`Tsukino::Core::Log` はデバッガの出力（Windows は `OutputDebugStringA`、それ以外は `SDL_Log`）にしか出力しません。
 つまりデバッガの外で実行すると何も見えず、
 `Prefab file not found` や `Unknown component type written in Prefab` といった
 **実行は継続してしまう致命的な警告**が完全に不可視になります。

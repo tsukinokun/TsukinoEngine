@@ -8,8 +8,6 @@
 
 #include <Tsukino/Core/Log.hpp>
 
-#include <objbase.h>
-
 #include <algorithm>
 
 // 名前空間 : Tsukino::Asset
@@ -101,9 +99,6 @@ namespace Tsukino::Asset {
     //! 裏スレッドの本体です。
     //----------------------------------------------------------------------------
     void AssetLoadQueue::Run() {
-        // テクスチャの変換は WIC（COM）を使うため、このスレッドでも COM を初期化しておく
-        const HRESULT comResult = CoInitializeEx(nullptr, COINIT_MULTITHREADED);
-
         for(size_t index = m_nextIndex++; index < m_paths.size(); index = m_nextIndex++) {
             if(m_cancel.load()) {
                 break;
@@ -118,10 +113,6 @@ namespace Tsukino::Asset {
                 Tsukino::Core::Log::Warn("AssetLoadQueue: Failed to load " + path.string());
             }
             ++m_completed;
-        }
-
-        if(SUCCEEDED(comResult)) {
-            CoUninitialize();
         }
 
         // 最後に抜けるスレッドが終わりの印を立てる

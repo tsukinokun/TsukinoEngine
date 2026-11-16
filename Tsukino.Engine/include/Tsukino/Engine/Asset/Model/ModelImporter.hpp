@@ -26,12 +26,12 @@ namespace Tsukino::Asset {
 
         //--------------------------------------------------------------
         //! @brief  モデルアセットをインポートする関数
-        //! @param  path            [in] インポートするモデルアセットのパス
-        //! @param  outPutDirectory [in] 出力先ディレクトリ
-        //! @return インポートされたモデルアセットの参照
+        //! @param  inputPath       [in] インポートするモデルアセットのパス
+        //! @param  outputDirectory [in] 出力先ディレクトリ
+        //! @return 書き出せたら true
         //--------------------------------------------------------------
         [[nodiscard]]
-        bool Import(const Tsukino::Core::Path& inPutPath, const Tsukino::Core::Path& outPutDirectory) override;
+        bool Import(const Tsukino::Core::Path& inputPath, const Tsukino::Core::Path& outputDirectory) override;
 
     private:
         Tsukino::Core::Ref<const TextureImportRules> m_rules;    // 圧縮を合わせる端末を知るため（AssetManager と共有する）

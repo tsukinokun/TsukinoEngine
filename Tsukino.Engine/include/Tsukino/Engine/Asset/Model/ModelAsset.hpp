@@ -26,31 +26,16 @@ namespace Tsukino::Asset {
         ModelAsset() = default;
 
         //--------------------------------------------------------------
-        //! @brief  引数付きコンストラクタ
-        //! @param  handle  アセットのハンドル
-        //--------------------------------------------------------------
-        [[nodiscard]] AssetHandle GetHandle() const override { return m_handle; }
-
-        //--------------------------------------------------------------
         //! @brief  アセットの種類を取得する関数
         //! @return アセットの種類
         //--------------------------------------------------------------
         [[nodiscard]] AssetType GetType() const override { return AssetType::Model; }
-
-        //--------------------------------------------------------------
-        //! @brief  ハンドルを設定する関数
-        //! @param  handle  設定するハンドル
-        //--------------------------------------------------------------
-        void SetHandle(const AssetHandle& h) { m_handle = h; }
 
         // モデルデータ（メッシュ・スケルトン・アニメーション・マテリアルパス）
         Tsukino::GraphicsCommon::ModelData modelData;
 
         // マテリアルのランタイムハンドル（modelData.materials と同インデックス）
         std::vector<AssetHandle> materialHandles;
-
-    private:
-        AssetHandle m_handle;    // アセットのハンドル
     };
 
 }    // namespace Tsukino::Asset

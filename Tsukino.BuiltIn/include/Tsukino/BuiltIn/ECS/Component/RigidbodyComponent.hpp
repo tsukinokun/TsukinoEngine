@@ -9,7 +9,7 @@
 namespace Tsukino::BuiltIn::ECS {
 
     //-------------------------------------------------------------
-    //! @enum class RigidbodyType
+    //! @enum   RigidbodyType
     //! @brief  剛体の種類を定義する列挙型
     //-------------------------------------------------------------
     enum class RigidbodyType {

@@ -125,7 +125,7 @@ namespace Tsukino::Physics {
         //--------------------------------------------------------------------
         void JoltTrace(const char* inFMT, ...) {
             char    buffer[1024];
-            va_list args;
+            va_list args;    // NOLINT(cppcoreguidelines-init-variables) va_start が初期化する
             va_start(args, inFMT);
             vsnprintf(buffer, sizeof(buffer), inFMT, args);
             va_end(args);
@@ -168,18 +168,22 @@ namespace Tsukino::Physics {
     //------------------------------------------------------------------------
     //! @struct PhysicsWorld::Impl
     //! 物理ワールドの実装を隠蔽する構造体
+    //! @note   【この宣言順は破棄順序の設計であり、並べ替えてはならない】
+    //!         メンバは宣言の逆順に破棄される。キャラクターとハイトフィールドは PhysicsSystem を、
+    //!         PhysicsSystem はリスナー・フィルタ・ジョブシステム・一時アロケータを参照するので、
+    //!         参照される側ほど上に置く
     //------------------------------------------------------------------------
     struct PhysicsWorld::Impl {
-        JPH::TempAllocatorImpl*           tempAllocator = nullptr;    //!< 物理計算用一時アロケータ
-        JPH::JobSystemThreadPool*         jobSystem     = nullptr;    //!< 物理シミュレーション用ジョブシステム
+        std::unique_ptr<JPH::TempAllocatorImpl>   tempAllocator;    //!< 物理計算用一時アロケータ
+        std::unique_ptr<JPH::JobSystemThreadPool> jobSystem;        //!< 物理シミュレーション用ジョブシステム
         BPLayerInterfaceImpl              bpLayerInterface;           //!< ブロードフェーズインターフェース
         ObjectVsBroadPhaseLayerFilterImpl objVsBpFilter;              //!< オブジェクト対ブロードフェーズ層フィルタ
         ObjectLayerPairFilterImpl         objPairFilter;              //!< オブジェクト層間フィルタ
 
-        JPH::PhysicsSystem*  physicsSystem   = nullptr;    //!< Jolt 物理システム本体
-        ContactListenerImpl* contactListener = nullptr;    //!< 衝突イベントリスナー
+        std::unique_ptr<JPH::PhysicsSystem>  physicsSystem;      //!< Jolt 物理システム本体
+        std::unique_ptr<ContactListenerImpl> contactListener;    //!< 衝突イベントリスナー
 #ifdef JPH_DEBUG_RENDERER
-        JoltDebugRenderer*   debugRenderer   = nullptr;    //!< デバッグ描画インターフェース
+        std::unique_ptr<JoltDebugRenderer> debugRenderer;    //!< デバッグ描画インターフェース
 #endif
 
         //! ハイトフィールド用キャッシュ（Shape を直接保持して使い回す）
@@ -264,22 +268,22 @@ namespace Tsukino::Physics {
     //! コンストラクタ
     //------------------------------------------------------------------------
     PhysicsWorld::PhysicsWorld() {
-        m_impl = new Impl();
+        m_impl = std::make_unique<Impl>();
 
         EnsureJoltInitialized();
 
         // 1ステップ中の作業領域。接触の上限（下の cMaxContactConstraints）ぶんの領域もここから取られるため、
         // 上限を上げたら合わせて広げること（足りないと Jolt が Trace を出して止まる）
-        m_impl->tempAllocator = new JPH::TempAllocatorImpl(32 * 1024 * 1024);
+        m_impl->tempAllocator = std::make_unique<JPH::TempAllocatorImpl>(32 * 1024 * 1024);
 
         // hardware_concurrency() は情報を取得できないとき 0 を返す。
         // 符号なしのまま 1 を引くと巨大な値になりワーカースレッドの確保が破綻するため、下限を 1 で押さえる。
         const unsigned int hardwareThreads = std::thread::hardware_concurrency();
         const int          workerThreads   = static_cast<int>(hardwareThreads > 1 ? hardwareThreads - 1 : 1);
 
-        m_impl->jobSystem = new JPH::JobSystemThreadPool(JPH::cMaxPhysicsJobs, JPH::cMaxPhysicsBarriers, workerThreads);
+        m_impl->jobSystem = std::make_unique<JPH::JobSystemThreadPool>(JPH::cMaxPhysicsJobs, JPH::cMaxPhysicsBarriers, workerThreads);
 
-        m_impl->physicsSystem                 = new JPH::PhysicsSystem();
+        m_impl->physicsSystem = std::make_unique<JPH::PhysicsSystem>();
         //--------------------------------------------------------------------
         // 同時に扱える上限。超えると Jolt は接触を捨て（Debug ではアサートで停止する）。
         // ボディ数より接触の数のほうが先に尽きる: 小物をたくさん敷き詰めて押し合わせる場面では
@@ -293,38 +297,19 @@ namespace Tsukino::Physics {
         m_impl->physicsSystem->Init(
             cMaxBodies, cNumBodyMutexes, cMaxBodyPairs, cMaxContactConstraints, m_impl->bpLayerInterface, m_impl->objVsBpFilter, m_impl->objPairFilter);
 
-        m_impl->contactListener = new ContactListenerImpl();
-        m_impl->physicsSystem->SetContactListener(m_impl->contactListener);
-        m_impl->characterContactListener.physicsSystem = m_impl->physicsSystem;
+        m_impl->contactListener = std::make_unique<ContactListenerImpl>();
+        m_impl->physicsSystem->SetContactListener(m_impl->contactListener.get());
+        m_impl->characterContactListener.physicsSystem = m_impl->physicsSystem.get();
 
 #ifdef JPH_DEBUG_RENDERER
-        m_impl->debugRenderer = new JoltDebugRenderer();
+        m_impl->debugRenderer = std::make_unique<JoltDebugRenderer>();
 #endif
     }
 
     //------------------------------------------------------------------------
-    //! デストラクタ
+    //! デストラクタ（Impl のメンバの宣言順で、参照する側から破棄される）
     //------------------------------------------------------------------------
-    PhysicsWorld::~PhysicsWorld() {
-        if(!m_impl)
-            return;
-
-        //--------------------------------------------------------------------
-        // CharacterVirtual は PhysicsSystem を参照しているため、先に手放す
-        //--------------------------------------------------------------------
-        m_impl->characters.clear();
-        m_impl->heightfieldCache.clear();
-
-#ifdef JPH_DEBUG_RENDERER
-        delete m_impl->debugRenderer;
-#endif
-        delete m_impl->contactListener;
-        delete m_impl->physicsSystem;
-        delete m_impl->jobSystem;
-        delete m_impl->tempAllocator;
-        delete m_impl;
-        m_impl = nullptr;
-    }
+    PhysicsWorld::~PhysicsWorld() = default;
 
     //------------------------------------------------------------------------
     //! ボディを生成してワールドへ追加します。
@@ -622,7 +607,7 @@ namespace Tsukino::Physics {
         if(!m_impl || !m_impl->physicsSystem)
             return;
 
-        m_impl->physicsSystem->Update(deltaTime, 1, m_impl->tempAllocator, m_impl->jobSystem);
+        m_impl->physicsSystem->Update(deltaTime, 1, m_impl->tempAllocator.get(), m_impl->jobSystem.get());
     }
 
     //------------------------------------------------------------------------
@@ -708,7 +693,7 @@ namespace Tsukino::Physics {
         settings.mSupportingVolume                     = JPH::Plane(JPH::Vec3::sAxisY(), -desc.radius);
 
         JPH::Ref<JPH::CharacterVirtual> character = new JPH::CharacterVirtual(
-            &settings, ToJoltRVec3(desc.position), ToJoltQuat(desc.rotation), desc.userData, m_impl->physicsSystem);
+            &settings, ToJoltRVec3(desc.position), ToJoltQuat(desc.rotation), desc.userData, m_impl->physicsSystem.get());
 
         character->SetListener(&m_impl->characterContactListener);
 
@@ -814,7 +799,7 @@ namespace Tsukino::Physics {
         const JPH::Body& body = lock.GetBody();
 
         m_impl->debugRenderer->SetSink(&sink);
-        body.GetShape()->Draw(m_impl->debugRenderer, body.GetCenterOfMassTransform(), JPH::Vec3::sReplicate(1.0f), JPH::Color::sGreen, false, false);
+        body.GetShape()->Draw(m_impl->debugRenderer.get(), body.GetCenterOfMassTransform(), JPH::Vec3::sReplicate(1.0f), JPH::Color::sGreen, false, false);
         m_impl->debugRenderer->SetSink(nullptr);
 #endif
     }
@@ -844,7 +829,7 @@ namespace Tsukino::Physics {
             // ではなく GetCenterOfMassTransform() を使う
             // （centerOffset=0 の場合は同じ結果になる）
             //----------------------------------------------------------------
-            character->GetShape()->Draw(m_impl->debugRenderer, character->GetCenterOfMassTransform(), JPH::Vec3::sReplicate(1.0f), color, false, false);
+            character->GetShape()->Draw(m_impl->debugRenderer.get(), character->GetCenterOfMassTransform(), JPH::Vec3::sReplicate(1.0f), color, false, false);
         }
 
         m_impl->debugRenderer->SetSink(nullptr);

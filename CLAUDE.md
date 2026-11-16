@@ -90,8 +90,8 @@ Windows では premake の `build.bat` も使える（ゲームの ChronoSort �
 
 ## ログ
 
-`Tsukino::Core::Log::{Info, Warn, Error}` は既定で `OutputDebugStringA` にのみ出力する
-（＝デバッガの外からは何も見えない）。
+`Tsukino::Core::Log::{Info, Warn, Error}` は既定でデバッガの出力にのみ出す
+（Windows は `OutputDebugStringA`、それ以外は `SDL_Log`。＝デバッガの外からは何も見えない）。
 
 `Log::SetLogFile("Logs/Tsukino.log")` を呼ぶとファイルにも追記される。
 実行して結果を確認したいときは必ずこれを有効にすること。

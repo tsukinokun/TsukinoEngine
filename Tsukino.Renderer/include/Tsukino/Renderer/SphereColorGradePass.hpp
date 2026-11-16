@@ -2,9 +2,8 @@
 //! @file   SphereColorGradePass.hpp
 //! @brief  球形の色調補正パスの宣言
 //! @detail 深度からワールド座標を復元し、指定した球の内側だけ HDR バッファの色を補正します
-//!         （Unreal の Post Process Volume＋SphereMask、Unity の Local Volume に相当）。
-//!         HDR は SRV として読まず、デュアルソースブレンド（dest * src1 + src0）で
-//!         乗算と加算を1回の描画で済ませるので、中間バッファを消費しません。
+//!         HDR は読まず、乗算のブレンドと加算のブレンドの2回の描画で補正するので、
+//!         中間バッファを消費しません。
 //----------------------------------------------------------------------------
 #pragma once
 #include <memory>
@@ -57,10 +56,10 @@ namespace Tsukino::Renderer {
             return *m_gpu;
         }
 
-        //! 定数バッファ（b8）・ブレンドステート・ピクセルシェーダーを作成します。
+        //! ユニフォーム（u_sphereColorGrade）・ブレンドステート・ピクセルシェーダーを作成します。
         //! @param  [in] graphicsContext デバイスと深度バッファの取得元
         //! @param  [in] resources       共通ステートとサンプラーの取得元
-        //! @param  [in] frameConstants  b0 の取得元
+        //! @param  [in] frameConstants  u_scene の取得元
         //! @param  [in] fullscreenPass  フルスクリーン三角形の描画
         //! @param  [in] ps              色調補正用ピクセルシェーダー（VS はフルスクリーン三角形用を共用）
         //! @return true: 作成成功, false: 作成失敗（パスは何もしなくなる）
@@ -81,8 +80,7 @@ namespace Tsukino::Renderer {
         }
 
         //! 色調補正を HDR バッファへ掛けます。
-        //! @note   フォグパスの直後・TransparentDepth パスの直前に呼ぶこと（理由は FogPass::Execute と同じ）。
-        //!         終わると DSV が外れているので、続けて3Dを描くなら HDR＋DSV を張り直すこと
+        //! @note   フォグパスの直後・TransparentDepth パスの直前に呼ぶこと（理由は FogPass::Execute と同じ）
         void Execute();
 
         //! フレームの終わりの処理をします（有効フラグを false へ戻します）。
@@ -93,7 +91,7 @@ namespace Tsukino::Renderer {
     private:
         GraphicsContext*      m_graphicsContext = nullptr;    // デバイスと深度バッファの取得元（借りている）
         RenderResources*      m_resources       = nullptr;    // 共通ステートとサンプラーの取得元（借りている）
-        FrameConstants*       m_frameConstants  = nullptr;    // b0 の取得元（借りている）
+        FrameConstants*       m_frameConstants  = nullptr;    // u_scene の取得元（借りている）
         const FullscreenPass* m_fullscreenPass  = nullptr;    // フルスクリーン三角形の描画（借りている）
 
         std::unique_ptr<Gpu> m_gpu;    // 描画 API の資源（中身は Renderer の内部で定義）

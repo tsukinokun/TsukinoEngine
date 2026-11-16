@@ -8,7 +8,7 @@
 // 名前空間 Tsukino::GraphicsCommon
 namespace Tsukino::GraphicsCommon {
     //--------------------------------------------------------------
-    //! @enum class PrimitiveType
+    //! @enum   PrimitiveType
     //! @brief  プリミティブの種類を表す列挙型
     //--------------------------------------------------------------
     enum class PrimitiveType {

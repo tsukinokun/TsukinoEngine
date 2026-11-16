@@ -19,29 +19,14 @@ namespace Tsukino::Asset {
     class DynamicFontAsset : public IAsset {
     public:
         //--------------------------------------------------------------
-        //! @brief ハンドルを取得する関数
-        //! @return アセットのハンドル
-        //--------------------------------------------------------------
-        [[nodiscard]] AssetHandle GetHandle() const override { return m_handle; }
-
-        //--------------------------------------------------------------
         //! @brief タイプを取得する関数
         //! @return アセットの種類
         //--------------------------------------------------------------
         [[nodiscard]] AssetType GetType() const override { return AssetType::DynamicFont; }
 
-        //--------------------------------------------------------------
-        //! @brief ハンドル設定用のセッター
-        //! @param h [in] 設定するハンドル
-        //--------------------------------------------------------------
-        void SetHandle(const AssetHandle& h) override { m_handle = h; }
-
-        std::string           m_faceName;      // フォントの表示名(デバッグ用)
-        float                 m_pixelSize = 0;  // グリフをラスタライズする基準ピクセルサイズ
-        std::vector<uint8_t>  m_fontFileData;   // ttf/otfの生データ
-
-    private:
-        AssetHandle m_handle;    // アセットハンドル
+        std::string           faceName;      // フォントの表示名(デバッグ用)
+        float                 pixelSize = 0;  // グリフをラスタライズする基準ピクセルサイズ
+        std::vector<uint8_t>  fontFileData;   // ttf/otfの生データ
     };
 
 }    // namespace Tsukino::Asset

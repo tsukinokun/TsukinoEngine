@@ -12,7 +12,6 @@
 
 #include <Tsukino/Core/Log.hpp>
 
-#include <cstring>
 
 // 名前空間 : Tsukino::Renderer
 namespace Tsukino::Renderer {
@@ -108,7 +107,7 @@ namespace Tsukino::Renderer {
         // 深度を距離へ戻すための射影行列の要素（Effekseer の決まりの名前。34 と 43 は行と列が逆の位置）
         //--------------------------------------------------------------------
         float values[4][4];
-        std::memcpy(values, &projection, sizeof(values));
+        hlslpp::store(&values[0][0], projection);
 
         EffekseerRenderer::DepthReconstructionParameter reconstruction;
         reconstruction.DepthBufferScale   = 1.0f;

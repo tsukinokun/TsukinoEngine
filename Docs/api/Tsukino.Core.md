@@ -44,7 +44,7 @@
 | `Path operator/(const Path &rhs) const` | パスを結合する演算子 |
 | `void replace_extension(const std::string &newExt)` | 拡張子を置き換える関数 |
 | `std::pair< std::string, std::string > SplitPathAndFragment(const std::string &rawPath)` | フラグメントなしとフラグメントを分割して取得する関数 |
-| `std::string ToLower(std::string value)` | パスを正規化して小文字に変換する関数 |
+| `std::string ToLower(std::string value)` | 文字列を小文字に変換する関数（ASCII のみ） |
 
 ### Tsukino::Core::Window
 

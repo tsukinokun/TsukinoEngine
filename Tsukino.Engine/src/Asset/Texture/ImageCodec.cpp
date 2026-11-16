@@ -440,9 +440,9 @@ namespace Tsukino::Asset::Detail {
             return false;
 
         out.pixels.resize(total);
-        for(u8 lod = 0; lod < out.mips.size(); ++lod) {
+        for(size_t lod = 0; lod < out.mips.size(); ++lod) {
             bimg::ImageMip mip{};
-            bimg::imageGetRawData(*container, 0, lod, container->m_data, container->m_size, mip);
+            bimg::imageGetRawData(*container, 0, static_cast<u8>(lod), container->m_data, container->m_size, mip);
             std::memcpy(out.pixels.data() + out.mips[lod].offset, mip.m_data, mip.m_size);
         }
         return true;

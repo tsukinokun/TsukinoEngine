@@ -383,7 +383,7 @@ namespace Tsukino::Asset {
             Tsukino::Core::Log::Warn(std::format("AssetManager::RegisterImporter - Importer for AssetType {} is already registered. Overwriting.", (int)type));
         }
 
-        m_importers[type] = importer;
+        m_importers[type] = std::move(importer);
         Tsukino::Core::Log::Info(std::format("Registered importer for AssetType {}", (int)type));
     }
 
@@ -392,14 +392,14 @@ namespace Tsukino::Asset {
     //--------------------------------------------------------------
     void AssetManager::RegisterAsset(AssetHandle handle, Tsukino::Core::Ref<IAsset> asset) {
         std::lock_guard lock(m_mutex);
-        m_assets.insert({handle.Value(), asset});
+        m_assets.insert({handle.Value(), std::move(asset)});
     }
 
     //--------------------------------------------------------------
     //! @brief ローダーを登録する関数
     //--------------------------------------------------------------
     void AssetManager::RegisterLoader(Tsukino::Core::Ref<IAssetLoader> loader) {
-        m_loaders.push_back(loader);
+        m_loaders.push_back(std::move(loader));
     }
 
     //--------------------------------------------------------------

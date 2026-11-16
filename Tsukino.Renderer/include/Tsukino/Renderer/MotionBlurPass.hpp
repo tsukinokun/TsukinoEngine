@@ -56,10 +56,10 @@ namespace Tsukino::Renderer {
             return *m_gpu;
         }
 
-        //! 定数バッファ（b8）とピクセルシェーダーを作成します。
+        //! ユニフォーム（u_motionBlur）とピクセルシェーダーを作成します。
         //! @param  [in] graphicsContext デバイス・HDR バッファ・速度バッファの取得元
         //! @param  [in] resources       共通ステートとサンプラーの取得元
-        //! @param  [in] frameConstants  b0 の取得元
+        //! @param  [in] frameConstants  u_scene の取得元
         //! @param  [in] fullscreenPass  フルスクリーン三角形の描画
         //! @param  [in] ps              モーションブラー用ピクセルシェーダー（VS はフルスクリーン三角形用を共用）
         //! @return true: 作成成功, false: 作成失敗（パスは何もしなくなる）
@@ -109,7 +109,7 @@ namespace Tsukino::Renderer {
     private:
         GraphicsContext*      m_graphicsContext = nullptr;    // デバイス・HDR バッファ・速度バッファの取得元（借りている）
         RenderResources*      m_resources       = nullptr;    // 共通ステートとサンプラーの取得元（借りている）
-        FrameConstants*       m_frameConstants  = nullptr;    // b0 の取得元（借りている）
+        FrameConstants*       m_frameConstants  = nullptr;    // u_scene の取得元（借りている）
         const FullscreenPass* m_fullscreenPass  = nullptr;    // フルスクリーン三角形の描画（借りている）
 
         std::unique_ptr<Gpu> m_gpu;    // 描画 API の資源（中身は Renderer の内部で定義）

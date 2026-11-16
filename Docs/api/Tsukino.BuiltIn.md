@@ -17,13 +17,15 @@
 - **Tsukino::BuiltIn::ECS::AmbientParticleComponent** — `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/AmbientParticleComponent.hpp`
   - enabled, count, volumeSize, seed, color, intensity, minSize, maxSize, minBrightness, maxBrightness, twinkle, driftVelocity, swayAmplitude, swayFrequency, minSpeedScale, maxSpeedScale, edgeFadeStart, nearFadeDistance
 - **Tsukino::BuiltIn::ECS::AnimationControllerComponent** — `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/AnimationControllerComponent.hpp`
-  - blend_alpha, is_transitioning, next, outgoing
+  - blendAlpha, isTransitioning, next, outgoing
 - **Tsukino::BuiltIn::ECS::AnimationControllerComponent::NextAnimation** — `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/AnimationControllerComponent.hpp`
-  - clip, animation_index, fade_time, immediate, is_looping, clip_start_time, clip_end_time, in_place
+  - clip, animationIndex, fadeTime, immediate, isLooping, clipStartTime, clipEndTime, inPlace
 - **Tsukino::BuiltIn::ECS::AnimationControllerComponent::OutgoingAnimation** — `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/AnimationControllerComponent.hpp`
-  - clip, animation_index, elapsed_time, is_looping, clip_start_time, clip_end_time, in_place
+  - clip, animationIndex, elapsedTime, isLooping, clipStartTime, clipEndTime, inPlace
 - **Tsukino::BuiltIn::ECS::AnimationPlayerComponent** — `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/AnimationPlayerComponent.hpp`
-  - current_clip_id, animation_index, elapsed_time, playback_speed, is_looping, is_playing, is_finished, clip_start_time, clip_end_time, in_place, root_motion_node_name, root_motion_node_index, root_motion_resolved, root_motion_lock_active, root_motion_lock_x, root_motion_lock_z
+  - currentClipId, animationIndex, elapsedTime, playbackSpeed, isLooping, isPlaying, isFinished, clipStartTime, clipEndTime, inPlace, rootMotionNodeName, rootMotionNodeIndex, rootMotionResolved, rootMotionLockActive, rootMotionLockX, rootMotionLockZ
+- **Tsukino::BuiltIn::ECS::AudioComponent** — `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/AudioComponent.hpp`
+  - audioHandle, playOnAwake, loop, volume, pitch, pan, bus, isPlaying, playTrigger, stopTrigger
 - **Tsukino::BuiltIn::ECS::BloomComponent** — `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/BloomComponent.hpp`
   - enabled, threshold, softKnee, intensity, radius, tint
 - **Tsukino::BuiltIn::ECS::BoneFollowColliderComponent** — `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/BoneFollowColliderComponent.hpp`
@@ -69,7 +71,7 @@
 - **Tsukino::BuiltIn::ECS::MotionBlurComponent** — `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/MotionBlurComponent.hpp`
   - enabled, strength, maxBlurRadius, sampleCount, targetFps
 - **Tsukino::BuiltIn::ECS::MotionVectorComponent** — `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/MotionVectorComponent.hpp`
-  - MAX_BONES, prevWorld, prevBones, prevBoneCount, valid
+  - kMaxBones, prevWorld, prevBones, prevBoneCount, valid
 - **Tsukino::BuiltIn::ECS::NodeWorldMatrixComponent** — `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/NodeWorldMatrixComponent.hpp`
   - matrices
 - **Tsukino::BuiltIn::ECS::NodeWorldPoseComponent** — `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/NodeWorldPoseComponent.hpp`
@@ -85,7 +87,7 @@
 - **Tsukino::BuiltIn::ECS::RimGlowComponent** — `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/RimGlowComponent.hpp`
   - active, rimColor, rimIntensity, rimPower, glow
 - **Tsukino::BuiltIn::ECS::RootMotionComponent** — `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/RootMotionComponent.hpp`
-  - delta_position, delta_rotation
+  - deltaPosition, deltaRotation
 - **Tsukino::BuiltIn::ECS::ScreenModelComponent** — `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/ScreenModelComponent.hpp`
   - screenPosition, pixelsPerUnit, sortOrder, anchor
 - **Tsukino::BuiltIn::ECS::ScrollBarComponent** — `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/ScrollBarComponent.hpp`
@@ -93,7 +95,7 @@
 - **Tsukino::BuiltIn::ECS::ScrollViewComponent** — `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/ScrollViewComponent.hpp`
   - content, scrollBar, contentHeight, enabled, wheelStep, keyStep, followSpeed, dragThreshold, offset, targetOffset, pointerDown, dragScrolling, pressPointerY, pressOffset, thumbDragging, thumbGrabOffset, ScrollTo(), ScrollToTop()
 - **Tsukino::BuiltIn::ECS::SkeletonOutputComponent** — `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/SkeletonOutputComponent.hpp`
-  - MAX_BONES, local_matrices, bone_count
+  - kMaxBones, localMatrices, boneCount
 - **Tsukino::BuiltIn::ECS::SkyAtmosphereComponent** — `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/SkyAtmosphereComponent.hpp`
   - rayleighScattering, mieScattering, mieAnisotropy, atmosphereHeight, planetRadius, sunIntensity, sunDiskSize, groundColor
 - **Tsukino::BuiltIn::ECS::SphereColorGradeComponent** — `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/SphereColorGradeComponent.hpp`

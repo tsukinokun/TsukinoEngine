@@ -14,7 +14,7 @@ namespace Tsukino::BuiltIn::ECS {
     //-------------------------------------------------------------
     struct CameraComponent {
         //-------------------------------------------------------------
-        //! @enum   投影タイプ
+        //! @enum   ProjectionType
         //! @brief  カメラの投影方法を指定 (Perspective: 3D用、Orthographic: 2D用)
         //-------------------------------------------------------------
         enum class ProjectionType {

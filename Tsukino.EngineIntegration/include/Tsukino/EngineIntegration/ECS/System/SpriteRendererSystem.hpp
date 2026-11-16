@@ -1,5 +1,5 @@
 ﻿//-------------------------------------------------------------
-//! @file   SpriteRenderSystem.hpp
+//! @file   SpriteRendererSystem.hpp
 //! @brief  SpriteRenderSystemクラスの宣言
 //! @author 山﨑愛
 //-------------------------------------------------------------

@@ -19,22 +19,10 @@ namespace Tsukino::Asset {
     class TextureAsset : public IAsset {
     public:
         //--------------------------------------------------------------
-        //! @brief ハンドルを取得する関数
-        //! @return アセットのハンドル
-        //--------------------------------------------------------------
-        AssetHandle GetHandle() const override { return m_handle; }
-
-        //--------------------------------------------------------------
         //! @brief アセットの種類を取得する関数
         //! @return アセットの種類
         //--------------------------------------------------------------
         AssetType GetType() const override { return AssetType::Texture; }
-
-        //--------------------------------------------------------------
-        //! @brief  ローダー側から設定されるハンドル
-        //! @param handle [in] 設定するハンドル
-        //--------------------------------------------------------------
-        void SetHandle(const AssetHandle& h) { m_handle = h; }
 
         //--------------------------------------------------------------
         //! ピクセルデータを手放します。
@@ -61,13 +49,10 @@ namespace Tsukino::Asset {
         std::vector<MipLevel> mips;
 
         //! GPUへ送るときにミップマップ（1/2ずつ縮めた絵の段）を作るか。
-        //! pixelsは最上段だけを持つ形のまま、縮小はRendererがGPUで作る。
-        //! GPUが縮められるフォーマット（非圧縮のRGBA8系など）のときだけ効く（ブロック圧縮は1段のまま）。
+        //! pixelsは最上段だけを持つ形のまま、縮小はRendererがGPUへ送る前に作る。
+        //! 非圧縮の8bitのフォーマット（RGBA8系など）のときだけ効く（ブロック圧縮は1段のまま）。
         //! 細かい線や模様を、縮めて描いたときにちらつかせないために使う（TextureLoaderは1段だけのファイルで立てる）
         bool generateMips = false;
-
-    private:
-        AssetHandle m_handle = AssetHandle::Invalid();    // アセットのハンドル
     };
 
 }    // namespace Tsukino::Asset

@@ -35,12 +35,12 @@
 
 // 前方宣言（Effekseer の描画部品。使う側は EffekseerRendererCommon/EffekseerRenderer.Renderer.h を include する）
 namespace EffekseerRenderer {
-    class Renderer;
+    class Renderer;    // NOLINT(cppcoreguidelines-virtual-class-destructor) Effekseer の型。参照カウントで破棄する作り
 }
 
 // 名前空間 : Tsukino::Renderer
 namespace Tsukino::Renderer {
-    class GraphicsContext;        // 前方宣言（Device, DeviceContext, SwapChain の持ち主。Tsukino.Renderer の内部専用）
+    class GraphicsContext;        // 前方宣言（描画デバイスと描く先の持ち主。Tsukino.Renderer の内部専用）
     class IPostWorldPass;         // 前方宣言（Worldパスの後に差し込む描画。実体は上位層が持つ）
     class DrawCommandExecutor;    // 前方宣言（描画コマンドの実行。Tsukino.Renderer の内部専用）
     class FullscreenPass;         // 前方宣言（フルスクリーン三角形の描画。同上）
@@ -83,7 +83,7 @@ namespace Tsukino::Renderer {
     //------------------------------------------------------------
     //! @class	 Renderer
     //! @brief	 レンダラークラス
-    //! @details DirectX11を使用してウィンドウに描画を行うクラス。
+    //! @details bgfx でウィンドウに描画を行うクラス（描画 API は OS ごとに bgfx が選ぶ）。
     //!          各パスと共有資源を所有し、Render() でパスの順番を回す。
     //!          パスごとの設定は Get*() で担当のクラスを借りて行う
     //!          （例: GetFog().SetParameters()、GetLighting().SetLights()）
@@ -288,7 +288,7 @@ namespace Tsukino::Renderer {
         }
 
         //------------------------------------------------------------
-        //! @brief  フレーム単位のシーン定数（b0）を取得する
+        //! @brief  フレーム単位のシーン定数（u_scene）を取得する
         //! @return カメラ行列・ライト・経過時間を持つ FrameConstants
         //------------------------------------------------------------
         [[nodiscard]]
@@ -388,20 +388,19 @@ namespace Tsukino::Renderer {
         //------------------------------------------------------------
         void ApplyQuality();
 
-        // DirectX 11の主要なインターフェース
         //! @note 【この宣言順は破棄順序の設計であり、並べ替えてはならない】
         //!       以降の部品はすべて m_graphicsContext が持つデバイスを借りて資源を作るため、
         //!       デバイスを最後まで生かすよう先頭に置く
-        std::unique_ptr<GraphicsContext> m_graphicsContext;    // グラフィックスコンテキスト（Device, DeviceContext, SwapChainを管理）
+        std::unique_ptr<GraphicsContext> m_graphicsContext;    // グラフィックスコンテキスト（描画デバイスと描く先を管理）
         RenderResources m_resources;          // 描画で共有する資源（ステート・サンプラー・既定テクスチャ・テクスチャキャッシュ等）
-        FrameConstants  m_frameConstants;     // フレーム単位のシーン定数（b0）
+        FrameConstants  m_frameConstants;     // フレーム単位のシーン定数（u_scene）
 
         std::unique_ptr<DrawCommandExecutor> m_commandExecutor;    // 描画コマンドの実行（上の3つを借りるので、その後に宣言する）
         DebugDraw                            m_debugDraw;          // デバッグ用の線と三角形（同上）
         std::unique_ptr<FullscreenPass>      m_fullscreenPass;     // フルスクリーン三角形の描画（ライティング・フォグ・モーションブラー・トーンマップ・IBLで共用）
         std::unique_ptr<TonemapPass>         m_tonemapPass;        // トーンマップパス（m_fullscreenPass を借りるので、その後に宣言する）
         std::unique_ptr<ShadowPass>          m_shadowPass;         // シャドウマップパス（m_commandExecutor を借りる）
-        std::unique_ptr<GpuProfiler>         m_gpuProfiler;        // パス単位のGPUタイマー（デバイスのクエリを持つ）
+        std::unique_ptr<GpuProfiler>         m_gpuProfiler;        // パス単位のGPUの時間（bgfx のビューごとの統計から読む）
         SkyPass                              m_skyPass;            // スカイ（大気散乱）パス
         IBLBaker                             m_iblBaker;           // スカイ由来の環境光（m_fullscreenPass と m_skyPass を借りるので、その後に宣言する）
         LightingPass                         m_lightingPass;       // ディファードライティング（m_shadowPass と m_iblBaker を借りるので、その後に宣言する）

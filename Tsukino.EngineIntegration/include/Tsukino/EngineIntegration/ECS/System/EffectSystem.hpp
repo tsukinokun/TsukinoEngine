@@ -20,11 +20,14 @@
 #include <Effekseer.h>
 #include <EffekseerRendererCommon/EffekseerRendererCommon/EffekseerRenderer.Renderer.h>
 #include <EffekseerRendererCommon/EffekseerRendererCommon/TextureLoader.h>
-#include <Tsukino/EngineIntegration/IO/EffectFileInterface.hpp>
 #include <unordered_map>
 #include <functional>
 #include <vector>
 #include <memory>
+
+namespace Tsukino::EngineIntegration {
+    class EffectFileInterface;    // 前方宣言（Effekseer のファイルの入口。EngineIntegration の内部用）
+}
 
 // 名前空間 : Tsukino::BuiltIn::ECS
 namespace Tsukino::BuiltIn::ECS {
@@ -132,6 +135,7 @@ namespace Tsukino::BuiltIn::ECS {
         //-------------------------------------------------------------
         //! @brief  Effekseerを初期化する
         //! @param  registry      [in] ECS レジストリ
+        //! @param  eventBus      [in] エンティティの破棄を受け取るイベントバス
         //! @param  maxParticles  [in] 最大パーティクル数
         //-------------------------------------------------------------
         void Initialize(Tsukino::ECS::Registry& registry, Tsukino::ECS::EventBus& eventBus, int maxParticles = 20000);
@@ -172,8 +176,8 @@ namespace Tsukino::BuiltIn::ECS {
         Tsukino::ECS::ScopedConnection m_entityDestroyedConn;
 
         Effekseer::TextureLoaderRef m_textureLoader;
-        Tsukino::EngineIntegration::EffectFileInterface* m_effectFileInterface = nullptr;
-        Effekseer::RefPtr<Tsukino::EngineIntegration::EffectFileInterface> m_effectFileInterfaceRef;
+        Effekseer::FileInterfaceRef                       m_effectFileInterfaceRef;            // Effekseer へ渡すファイルの入口（参照を1つ持つ）
+        Tsukino::EngineIntegration::EffectFileInterface* m_effectFileInterface = nullptr;    // 上と同じもの（探す場所を設定するため。借りている）
 
         bool m_initialized = false;
     };

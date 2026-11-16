@@ -286,8 +286,8 @@ namespace Tsukino::BuiltIn::ECS {
         auto view = registry.View<AnimationPlayerComponent, SkeletonOutputComponent>();
 
         view.each([&](entt::entity entity, AnimationPlayerComponent& player, SkeletonOutputComponent& skeletonOut) {
-            if(player.is_playing) {
-                player.elapsed_time += deltaTime * player.playback_speed;
+            if(player.isPlaying) {
+                player.elapsedTime += deltaTime * player.playbackSpeed;
             }
 
             AnimationControllerComponent* controller = nullptr;
@@ -297,57 +297,57 @@ namespace Tsukino::BuiltIn::ECS {
 
             if(controller && controller->next.clip.IsValid()) {
                 if(controller->next.immediate) {
-                    player.current_clip_id       = controller->next.clip;
-                    player.animation_index       = controller->next.animation_index;
-                    player.elapsed_time          = 0.0f;
-                    player.is_looping            = controller->next.is_looping;
-                    player.clip_start_time       = controller->next.clip_start_time;
-                    player.clip_end_time         = controller->next.clip_end_time;
-                    player.in_place              = controller->next.in_place;
-                    controller->is_transitioning = false;
-                    controller->blend_alpha      = 0.0f;
+                    player.currentClipId       = controller->next.clip;
+                    player.animationIndex       = controller->next.animationIndex;
+                    player.elapsedTime          = 0.0f;
+                    player.isLooping            = controller->next.isLooping;
+                    player.clipStartTime       = controller->next.clipStartTime;
+                    player.clipEndTime         = controller->next.clipEndTime;
+                    player.inPlace              = controller->next.inPlace;
+                    controller->isTransitioning = false;
+                    controller->blendAlpha      = 0.0f;
                 } else {
                     // 新クリップを即座に時間0から再生開始し、旧クリップ（現在playerが指していたもの）は
                     // outgoingとしてスナップショットして自分の経過時間を保ったまま並行フェードアウトさせる。
                     // 遷移中に更に別の遷移が来た場合も、その時点でplayerが指しているクリップが新たなoutgoingに
                     // なるだけなので同じロジックで自然に処理される。
-                    controller->outgoing.clip            = player.current_clip_id;
-                    controller->outgoing.animation_index = player.animation_index;
-                    controller->outgoing.elapsed_time    = player.elapsed_time;
-                    controller->outgoing.is_looping       = player.is_looping;
-                    controller->outgoing.clip_start_time = player.clip_start_time;
-                    controller->outgoing.clip_end_time   = player.clip_end_time;
-                    controller->outgoing.in_place         = player.in_place;
+                    controller->outgoing.clip            = player.currentClipId;
+                    controller->outgoing.animationIndex = player.animationIndex;
+                    controller->outgoing.elapsedTime    = player.elapsedTime;
+                    controller->outgoing.isLooping       = player.isLooping;
+                    controller->outgoing.clipStartTime = player.clipStartTime;
+                    controller->outgoing.clipEndTime   = player.clipEndTime;
+                    controller->outgoing.inPlace         = player.inPlace;
 
-                    player.current_clip_id = controller->next.clip;
-                    player.animation_index = controller->next.animation_index;
-                    player.elapsed_time    = 0.0f;
-                    player.is_looping      = controller->next.is_looping;
-                    player.clip_start_time = controller->next.clip_start_time;
-                    player.clip_end_time   = controller->next.clip_end_time;
-                    player.in_place        = controller->next.in_place;
+                    player.currentClipId = controller->next.clip;
+                    player.animationIndex = controller->next.animationIndex;
+                    player.elapsedTime    = 0.0f;
+                    player.isLooping      = controller->next.isLooping;
+                    player.clipStartTime = controller->next.clipStartTime;
+                    player.clipEndTime   = controller->next.clipEndTime;
+                    player.inPlace        = controller->next.inPlace;
 
-                    controller->is_transitioning = true;
-                    controller->blend_alpha      = 0.0f;
+                    controller->isTransitioning = true;
+                    controller->blendAlpha      = 0.0f;
                 }
-                controller->next.clip = Tsukino::Asset::AssetHandle{};    // 消費済み（fade_timeはブレンド中に参照するため残す）
+                controller->next.clip = Tsukino::Asset::AssetHandle{};    // 消費済み（fadeTimeはブレンド中に参照するため残す）
             }
 
-            if(controller && controller->is_transitioning) {
-                controller->blend_alpha += deltaTime / std::max(controller->next.fade_time, 0.0001f);
-                if(player.is_playing) {
-                    controller->outgoing.elapsed_time += deltaTime * player.playback_speed;
+            if(controller && controller->isTransitioning) {
+                controller->blendAlpha += deltaTime / std::max(controller->next.fadeTime, 0.0001f);
+                if(player.isPlaying) {
+                    controller->outgoing.elapsedTime += deltaTime * player.playbackSpeed;
                 }
-                if(controller->blend_alpha >= 1.0f) {
-                    controller->blend_alpha      = 1.0f;
-                    controller->is_transitioning = false;
+                if(controller->blendAlpha >= 1.0f) {
+                    controller->blendAlpha      = 1.0f;
+                    controller->isTransitioning = false;
                 }
             }
 
-            if(!player.current_clip_id.IsValid())
+            if(!player.currentClipId.IsValid())
                 return;
 
-            auto animAsset = ctx->assetManager->Get(player.current_clip_id);
+            auto animAsset = ctx->assetManager->Get(player.currentClipId);
             if(!animAsset || animAsset->GetType() != Tsukino::Asset::AssetType::Model)
                 return;
 
@@ -355,40 +355,40 @@ namespace Tsukino::BuiltIn::ECS {
             if(modelAss->modelData.animations.empty())
                 return;
 
-            u32 animIndex = player.animation_index;
+            u32 animIndex = player.animationIndex;
             if(animIndex >= modelAss->modelData.animations.size()) {
                 animIndex = 0;    // Fallback
             }
             const auto& animData = modelAss->modelData.animations[animIndex];
 
-            // Convert to ticks（clip_start_time/clip_end_timeで指定されたレンジ内で評価する）
-            float animTime = EvaluateClipTicks(animData, player.elapsed_time, player.clip_start_time,
-                                               player.clip_end_time, player.is_looping, player.is_finished);
+            // Convert to ticks（clipStartTime/clipEndTimeで指定されたレンジ内で評価する）
+            float animTime = EvaluateClipTicks(animData, player.elapsedTime, player.clipStartTime,
+                                               player.clipEndTime, player.isLooping, player.isFinished);
 
             // Outgoing anim blend logic: 遷移中は、フェードアウトしていくoutgoingクリップを
-            // 自分自身の経過時間(controller->outgoing.elapsed_time)で独立して評価する
+            // 自分自身の経過時間(controller->outgoing.elapsedTime)で独立して評価する
             float                                         finalBlendAlpha = 0.0f;
             const Tsukino::GraphicsCommon::AnimationData* blendAnimData   = nullptr;
             float                                         blendAnimTime   = 0.0f;
 
-            if(controller && controller->is_transitioning && controller->outgoing.clip.IsValid()) {
+            if(controller && controller->isTransitioning && controller->outgoing.clip.IsValid()) {
                 auto outAsset = ctx->assetManager->Get(controller->outgoing.clip);
                 if(outAsset && outAsset->GetType() == Tsukino::Asset::AssetType::Model) {
                     auto outModelAss = std::static_pointer_cast<Tsukino::Asset::ModelAsset>(outAsset);
                     if(!outModelAss->modelData.animations.empty()) {
-                        u32 outAnimIndex = controller->outgoing.animation_index;
+                        u32 outAnimIndex = controller->outgoing.animationIndex;
                         if(outAnimIndex >= outModelAss->modelData.animations.size()) {
                             outAnimIndex = 0;
                         }
                         blendAnimData = &outModelAss->modelData.animations[outAnimIndex];
 
-                        bool outFinished;    // outgoing側は既に再生完了扱いのため使わない（フェードアウト目的のみ）
-                        blendAnimTime = EvaluateClipTicks(*blendAnimData, controller->outgoing.elapsed_time,
-                                                          controller->outgoing.clip_start_time,
-                                                          controller->outgoing.clip_end_time,
-                                                          controller->outgoing.is_looping, outFinished);
+                        bool outFinished = false;    // outgoing側は既に再生完了扱いのため使わない（フェードアウト目的のみ）
+                        blendAnimTime = EvaluateClipTicks(*blendAnimData, controller->outgoing.elapsedTime,
+                                                          controller->outgoing.clipStartTime,
+                                                          controller->outgoing.clipEndTime,
+                                                          controller->outgoing.isLooping, outFinished);
 
-                        finalBlendAlpha = controller->blend_alpha;
+                        finalBlendAlpha = controller->blendAlpha;
                     }
                 }
             }
@@ -399,7 +399,7 @@ namespace Tsukino::BuiltIn::ECS {
             // クリップアセット（modelAss）自身のnodes/skeletonは使わない：Mixamo等から
             // 「アニメーションのみ」（メッシュ・スキン無し）でエクスポートしたFBXは
             // skeleton.bonesが空になる（ModelImporterがaiMesh->mBonesからしか
-            // ボーン一覧を作れないため）。そのままではbone_count=0になり再生できない。
+            // ボーン一覧を作れないため）。そのままではboneCount=0になり再生できない。
             //
             // 代わりに、エンティティ本体のModelComponentが指すキャラクターモデル
             // （描画に使われている実メッシュ）のnodes/skeletonを正とする。これは
@@ -425,41 +425,41 @@ namespace Tsukino::BuiltIn::ECS {
             // ModelComponentのモデルを実行中に差し替えると古いままになる点はSpringBoneの
             // resolvedフラグと同じ制約
             //-------------------------------------------------------------
-            if(!player.root_motion_resolved) {
-                player.root_motion_node_index = ResolveRootMotionNode(skeletonModelAss->modelData, player.root_motion_node_name);
-                player.root_motion_resolved   = true;
+            if(!player.rootMotionResolved) {
+                player.rootMotionNodeIndex = ResolveRootMotionNode(skeletonModelAss->modelData, player.rootMotionNodeName);
+                player.rootMotionResolved   = true;
 #if defined(_DEBUG)
-                const std::string resolvedName = (player.root_motion_node_index < skeletonModelAss->modelData.nodes.size())
-                                                      ? skeletonModelAss->modelData.nodes[player.root_motion_node_index].name
+                const std::string resolvedName = (player.rootMotionNodeIndex < skeletonModelAss->modelData.nodes.size())
+                                                      ? skeletonModelAss->modelData.nodes[player.rootMotionNodeIndex].name
                                                       : "(none)";
                 Tsukino::Core::Log::Info("AnimationSystem: root motion node resolved to index="
-                                         + std::to_string(player.root_motion_node_index) + " (" + resolvedName + ")");
+                                         + std::to_string(player.rootMotionNodeIndex) + " (" + resolvedName + ")");
 #endif
             }
 
             // In Place：現在クリップ／ブレンド元(outgoing)クリップのうち、どちらかがIn Place対象か
-            bool applyInPlace      = player.in_place && player.root_motion_node_index != UINT32_MAX;
-            bool applyBlendInPlace = controller && controller->outgoing.in_place && blendAnimData
-                                     && player.root_motion_node_index != UINT32_MAX;
+            bool applyInPlace      = player.inPlace && player.rootMotionNodeIndex != UINT32_MAX;
+            bool applyBlendInPlace = controller && controller->outgoing.inPlace && blendAnimData
+                                     && player.rootMotionNodeIndex != UINT32_MAX;
             bool needsRootLock = applyInPlace || applyBlendInPlace;
 
             // 「非In Place → In Place」に切り替わった最初のフレームでだけ、現在の生のHips位置を
             // 凍結基準として記録する。以後、In Placeが有効な間（連撃の各段のようにクリップが
             // 切り替わり続けても）はこの基準を使い続けるため、段ごとに元モーションの前進量ぶん
             // 位置がジャンプすることがない
-            if(needsRootLock && !player.root_motion_lock_active) {
+            if(needsRootLock && !player.rootMotionLockActive) {
                 const auto* srcChannels = applyInPlace ? &animData.channels : &blendAnimData->channels;
                 const float srcTime     = applyInPlace ? animTime : blendAnimTime;
                 for(const auto& channel : *srcChannels) {
-                    if(channel.nodeName == skeletonModelAss->modelData.nodes[player.root_motion_node_index].name) {
+                    if(channel.nodeName == skeletonModelAss->modelData.nodes[player.rootMotionNodeIndex].name) {
                         hlslpp::float3 rawPos      = LerpVector(channel.positionKeys, srcTime);
-                        player.root_motion_lock_x = rawPos.x;
-                        player.root_motion_lock_z = rawPos.z;
+                        player.rootMotionLockX = rawPos.x;
+                        player.rootMotionLockZ = rawPos.z;
                         break;
                     }
                 }
             }
-            player.root_motion_lock_active = needsRootLock;
+            player.rootMotionLockActive = needsRootLock;
 
             //-------------------------------------------------------------
             // ノード→チャンネルの対応表を引く（初回のみ構築、以後キャッシュ）。
@@ -532,8 +532,8 @@ namespace Tsukino::BuiltIn::ECS {
                 }
 
                 // In Place：ルートノードの水平移動だけ固定する（Yはアニメのまま残す）
-                if(applyInPlace && i == player.root_motion_node_index && channelFound) {
-                    pos = hlslpp::float3(player.root_motion_lock_x, pos.y, player.root_motion_lock_z);
+                if(applyInPlace && i == player.rootMotionNodeIndex && channelFound) {
+                    pos = hlslpp::float3(player.rootMotionLockX, pos.y, player.rootMotionLockZ);
                 }
 
                 // ブレンド処理の適用
@@ -557,8 +557,8 @@ namespace Tsukino::BuiltIn::ECS {
 
                     // In Place：ブレンド元（outgoing）側のルートノードも、current側と同じ凍結基準で固定する。
                     // これをしないとクロスフェード中だけ移動が復活したり、段ごとの基準ズレでジャンプする
-                    if(applyBlendInPlace && i == player.root_motion_node_index && blendChannelFound) {
-                        blendPos = hlslpp::float3(player.root_motion_lock_x, blendPos.y, player.root_motion_lock_z);
+                    if(applyBlendInPlace && i == player.rootMotionNodeIndex && blendChannelFound) {
+                        blendPos = hlslpp::float3(player.rootMotionLockX, blendPos.y, player.rootMotionLockZ);
                     }
 
                     if(channelFound || blendChannelFound) {
@@ -766,8 +766,8 @@ namespace Tsukino::BuiltIn::ECS {
             //-------------------------------------------------------------
             // ボーン行列の計算
             //-------------------------------------------------------------
-            skeletonOut.bone_count = 0;
-            for(u32 idx = 0; idx < skeletonModelAss->modelData.skeleton.bones.size() && idx < SkeletonOutputComponent::MAX_BONES; ++idx) {
+            skeletonOut.boneCount = 0;
+            for(u32 idx = 0; idx < skeletonModelAss->modelData.skeleton.bones.size() && idx < SkeletonOutputComponent::kMaxBones; ++idx) {
                 const auto& boneInfo = skeletonModelAss->modelData.skeleton.bones[idx];
 
                 Tsukino::Core::Math::matrix globalNodeMat = Tsukino::Core::Math::matrix::identity();
@@ -781,8 +781,8 @@ namespace Tsukino::BuiltIn::ECS {
                 Tsukino::Core::Math::matrix finalBoneMat = hlslpp::mul(boneInfo.inverseBindPose, globalNodeMat);
 
                 // SkeletonOutput に書き出し
-                std::memcpy(skeletonOut.local_matrices[idx], &finalBoneMat, sizeof(float) * 16);
-                skeletonOut.bone_count++;
+                hlslpp::store(skeletonOut.localMatrices[idx], finalBoneMat);
+                skeletonOut.boneCount++;
             }
         });
     }

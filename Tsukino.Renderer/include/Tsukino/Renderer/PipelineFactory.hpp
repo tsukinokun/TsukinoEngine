@@ -34,14 +34,19 @@ namespace Tsukino::Renderer {
     //! @brief パイプラインステートのハッシュ関数
     //--------------------------------------------------------------
     struct PipelineHash {
-        std::size_t operator()(const PipelineKey& key) const {
-            auto h1 = std::hash<Tsukino::u64>()(std::get<0>(key));
-            auto h2 = std::hash<Tsukino::u64>()(std::get<1>(key));
-            auto h3 = std::hash<int>()(static_cast<int>(std::get<2>(key)));
-            auto h4 = std::hash<int>()(static_cast<int>(std::get<3>(key)));
-            auto h5 = std::hash<int>()(static_cast<int>(std::get<4>(key)));
-            auto h6 = std::hash<int>()(static_cast<int>(std::get<5>(key)));
-            return h1 ^ (h2 << 1) ^ (h3 << 2) ^ (h4 << 3) ^ (h5 << 4) ^ (h6 << 5);
+        std::size_t operator()(const PipelineKey& key) const noexcept {
+            std::size_t seed = 0;
+            const auto  combine = [&seed](std::size_t value) {
+                // 要素ごとに混ぜてからずらして足す（XOR を並べるだけでは、似た値の組がぶつかりやすい）
+                seed ^= value + 0x9e3779b97f4a7c15ull + (seed << 6) + (seed >> 2);
+            };
+            combine(std::hash<Tsukino::u64>()(std::get<0>(key)));
+            combine(std::hash<Tsukino::u64>()(std::get<1>(key)));
+            combine(static_cast<std::size_t>(std::get<2>(key)));
+            combine(static_cast<std::size_t>(std::get<3>(key)));
+            combine(static_cast<std::size_t>(std::get<4>(key)));
+            combine(static_cast<std::size_t>(std::get<5>(key)));
+            return seed;
         }
     };
 
@@ -53,17 +58,16 @@ namespace Tsukino::Renderer {
     public:
         //--------------------------------------------------------------
         //! @brief 引数付きコンストラクタ
-        //! @param device [in] DirectXのデバイス
+        //! @param graphicsContext [in] パイプラインを作る描画デバイスの持ち主（借りる）
         //--------------------------------------------------------------
         explicit PipelineFactory(const GraphicsContext& graphicsContext)
             : m_graphicsContext(&graphicsContext) {}
 
         //--------------------------------------------------------------
         // パイプラインステートを作成する関数
-        //! @param  vsAsset      [in] 頂点シェーダーアセット
-        //! @param  psAsset      [in] ピクセルシェーダーアセット
-        //! @param  layout       [in] 入力レイアウトの配列
-        //! @param  layoutCount  [in] 入力レイアウトの数
+        //! @param  vs           [in] 頂点シェーダーアセット
+        //! @param  ps           [in] ピクセルシェーダーアセット
+        //! @param  format       [in] 頂点の形式
         //! @param  depthMode    [in] デプスステンシルステートの設定
         //! @param  blendMode    [in] ブレンドステートの設定
         //! @param  cullMode     [in] 面カリングの設定（既定は両面描画）
@@ -78,10 +82,9 @@ namespace Tsukino::Renderer {
                                               CullMode                              cullMode  = CullMode::None);
 
     private:
-        // DirectXのデバイス
         const GraphicsContext* m_graphicsContext = nullptr;    // パイプラインを作る描画デバイスの持ち主（借りている）
 
-        // キャッシュ用コンテナ (Key: <VSハンドル, PSハンドル>, Value: PipelineState)
+        // キャッシュ（キー: シェーダー2つと頂点の形式とステート、値: PipelineState）
         std::unordered_map<PipelineKey, std::shared_ptr<PipelineState>, PipelineHash> m_cache;
     };
 

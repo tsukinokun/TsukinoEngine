@@ -189,7 +189,7 @@ namespace Tsukino::Renderer {
                               rasterScale, rasterScale, metrics.glyphIndex);
 
         // 白RGB + カバレッジ値のアルファへ展開する
-        // (SpriteBatchの既定シェーダーはRGBA全チャンネルをサンプルして頂点色を乗算するため、
+        // (スプライトのシェーダー（SpriteBatch.ps.sc）はRGBA全チャンネルをサンプルして頂点色を乗算するため、
         //  単チャンネルフォーマットのままではカラーが正しく乗らない)
         std::vector<uint8_t> rgbaBuffer(static_cast<size_t>(width) * height * 4);
         for(size_t i = 0; i < static_cast<size_t>(width) * height; ++i) {

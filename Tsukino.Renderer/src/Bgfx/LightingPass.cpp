@@ -17,7 +17,6 @@
 #include <Tsukino/Core/Log.hpp>
 
 #include <algorithm>
-#include <cstring>
 #include <string>
 
 // 名前空間 : Tsukino::Renderer
@@ -107,7 +106,7 @@ namespace Tsukino::Renderer {
 
         m_lightsData.lightCount = copyCount;
         if(copyCount > 0)
-            std::memcpy(m_lightsData.lights, lights, sizeof(GPULight) * copyCount);
+            std::copy_n(lights, copyCount, m_lightsData.lights);
     }
 
     //------------------------------------------------------------------------
