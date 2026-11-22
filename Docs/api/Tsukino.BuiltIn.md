@@ -9,9 +9,11 @@
 メンバ名のみ。詳細が要るときはヘッダを開く。
 
 - **Tsukino::BuiltIn::BuiltInAssets** — `Tsukino.BuiltIn/include/Tsukino/BuiltIn/BuiltInAssets.hpp`
-  - shaders, fonts, Initialize()
+  - shaders, fonts, models, Initialize()
 - **Tsukino::BuiltIn::BuiltInFonts** — `Tsukino.BuiltIn/include/Tsukino/BuiltIn/BuiltInFonts.hpp`
   - defaultFont, Initialize()
+- **Tsukino::BuiltIn::BuiltInModels** — `Tsukino.BuiltIn/include/Tsukino/BuiltIn/BuiltInModels.hpp`
+  - cube, plane, sphere, Initialize()
 - **Tsukino::BuiltIn::BuiltInShaders** — `Tsukino.BuiltIn/include/Tsukino/BuiltIn/BuiltInShaders.hpp`
   - spriteVS, spritePS, spriteWorldVS, modelVS, modelPS, screenModelPS, staticModelVS, debugVS, debugPS, shadowVS, shadowStaticVS, shadowPS, skyVS, skyPS, tonemapVS, tonemapPS, gbufferPS, lightingPS, motionBlurPS, bloomPrefilterPS, bloomDownsamplePS, bloomUpsamplePS, fogPS, sphereColorGradePS, ambientParticleVS, ambientParticlePS, iblIrradiancePS, iblSpecularPrefilterPS, iblBRDFLUTPS, Initialize()
 - **Tsukino::BuiltIn::ECS::AmbientParticleComponent** — `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/AmbientParticleComponent.hpp`
@@ -46,6 +48,8 @@
   - bodyID, type, extent, offsetPosition, offsetRotation, heightfieldSamples, heightfieldSize, heightfieldOffset, heightfieldScale, isSensor, isInitialized, onCollisionEnter, IsValid()
 - **Tsukino::BuiltIn::ECS::CollisionEnterEvent** — `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Event/CollisionEnterEvent.hpp`
   - self, other, normal
+- **Tsukino::BuiltIn::ECS::CustomShaderComponent** — `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/CustomShaderComponent.hpp`
+  - pixelShader, vertexShader, params
 - **Tsukino::BuiltIn::ECS::DebugCameraComponent** — `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/DebugCameraComponent.hpp`
   - moveSpeed, sprintSpeed, mouseSens, yaw, pitch, isActive
 - **Tsukino::BuiltIn::ECS::DebugCameraTag** — `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/DebugCameraTag.hpp`

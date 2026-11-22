@@ -3,6 +3,16 @@
 自作の C++20 ゲームエンジン。ゲーム側リポジトリに submodule として取り込み、
 ルートの `premake5.lua` から `include "External/TsukinoEngine"` して使う。
 
+## ゲームを作るときは、まずレシピ
+
+物を置く・物理・衝突・音・参照・自作シェーダー・生成と破棄といった、やりたいことごとの
+実際にビルドされる短いお手本と、実装を読まないと分からない挙動（システムの順番、当たり判定の大きさ、
+衝突イベントの届き方、破棄のタイミングなど）を `Tsukino.Sandbox/Recipes/README.md` にまとめてある。
+**ヘッダや実装（.cpp）を読む前に、まずこれを読み、必要なレシピの .cpp だけを開く。**
+
+- 立方体・平面・球は組み込みモデル（`EngineContext::builtinAssets->models`）がある。モデルのファイルを作らない。
+- 自作シェーダーは `CustomShaderComponent` を ModelComponent に付けるだけで描ける。描画コマンドを自分で積まない。
+
 ## 最重要ルール
 
 ### 探索してはいけない場所
@@ -22,7 +32,8 @@
 
 | ファイル | 内容 |
 |---|---|
-| `Docs/api-index.md` | 全公開型 → モジュール → ヘッダパスの1行索引。**まずここ** |
+| `Tsukino.Sandbox/Recipes/README.md` | やりたいことごとのお手本と挙動の説明。**まずここ** |
+| `Docs/api-index.md` | 全公開型 → モジュール → ヘッダパスの1行索引（レシピに無い型を探すとき） |
 | `Docs/api/<Module>.md` | モジュール単位の公開API。必要な1本だけ読む |
 | `Docs/components.md` | 全コンポーネントと Prefab JSON のフィールド一覧 |
 | `Docs/agent-manifest.json` | 上記の機械可読版（外部ツール用の契約ファイル。**エージェントは読まない**） |

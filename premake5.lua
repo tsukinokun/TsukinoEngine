@@ -674,6 +674,9 @@ project "Tsukino.Sandbox"
         "Tsukino.Sandbox/pch.cpp",
     }
 
+    -- サンプルのシェーダー（レシピの自作シェーダーなど）。CMake の tsukino_add_shaders(Tsukino.Sandbox ...) と揃える
+    tsukino_shaders("Tsukino.Sandbox/Assets/Shaders")
+
     -- エンジンのinclude・lib・NuGetをまとめて設定する。
     -- ゲーム側リポジトリの実行ファイルも同じ関数を呼ぶ
     tsukino_link()

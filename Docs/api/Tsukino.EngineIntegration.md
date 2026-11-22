@@ -137,7 +137,7 @@
 - **Tsukino::BuiltIn::ECS::LightSystem** — `Tsukino.EngineIntegration/include/Tsukino/EngineIntegration/ECS/System/LightSystem.hpp`
   - Update()
 - **Tsukino::BuiltIn::ECS::ModelSystem** — `Tsukino.EngineIntegration/include/Tsukino/EngineIntegration/ECS/System/ModelSystem.hpp`
-  - Update()
+  - ~ModelSystem(), Update()
 - **Tsukino::BuiltIn::ECS::MotionBlurSystem** — `Tsukino.EngineIntegration/include/Tsukino/EngineIntegration/ECS/System/MotionBlurSystem.hpp`
   - Update()
 - **Tsukino::BuiltIn::ECS::MotionVectorSnapshotSystem** — `Tsukino.EngineIntegration/include/Tsukino/EngineIntegration/ECS/System/MotionVectorSnapshotSystem.hpp`

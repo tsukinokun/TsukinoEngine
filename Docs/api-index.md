@@ -18,6 +18,7 @@
 
 - `Tsukino::BuiltIn::BuiltInAssets` — `Tsukino.BuiltIn/include/Tsukino/BuiltIn/BuiltInAssets.hpp`
 - `Tsukino::BuiltIn::BuiltInFonts` — `Tsukino.BuiltIn/include/Tsukino/BuiltIn/BuiltInFonts.hpp`
+- `Tsukino::BuiltIn::BuiltInModels` — `Tsukino.BuiltIn/include/Tsukino/BuiltIn/BuiltInModels.hpp`
 - `Tsukino::BuiltIn::BuiltInShaders` — `Tsukino.BuiltIn/include/Tsukino/BuiltIn/BuiltInShaders.hpp`
 - `Tsukino::BuiltIn::ECS::AmbientParticleComponent` — `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/AmbientParticleComponent.hpp`
 - `Tsukino::BuiltIn::ECS::AnimationControllerComponent` — `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/AnimationControllerComponent.hpp`
@@ -35,6 +36,7 @@
 - `Tsukino::BuiltIn::ECS::CharacterControllerComponent` — `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/CharacterControllerComponent.hpp`
 - `Tsukino::BuiltIn::ECS::CollisionComponent` — `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/CollisionComponent.hpp`
 - `Tsukino::BuiltIn::ECS::CollisionEnterEvent` — `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Event/CollisionEnterEvent.hpp`
+- `Tsukino::BuiltIn::ECS::CustomShaderComponent` — `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/CustomShaderComponent.hpp`
 - `Tsukino::BuiltIn::ECS::DebugCameraComponent` — `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/DebugCameraComponent.hpp`
 - `Tsukino::BuiltIn::ECS::DebugCameraTag` — `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/DebugCameraTag.hpp`
 - `Tsukino::BuiltIn::ECS::DirectionalLightComponent` — `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/DirectionalLightComponent.hpp`

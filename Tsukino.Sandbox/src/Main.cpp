@@ -8,6 +8,7 @@
 #include <Tsukino/Core/Log.hpp>
 #include <Tsukino/Sandbox/Scene/SampleScene1.hpp>
 #include <Tsukino/Sandbox/Scene/DeferredLightSampleScene.hpp>
+#include <Tsukino/Sandbox/Recipes/RecipeScene.hpp>
 
 // SDL_main.h は main を取り込むファイルで1回だけ取り込む（Windows では WinMain、
 // iOS・Android ではそれぞれの起動の仕組みから main を呼ぶようにしてくれる）
@@ -34,6 +35,11 @@ namespace {
         // エンジンAPIの動作確認シーン。PrefabFactory のテストを実行してログへ結果を出す
         if(argument.find("api") != std::string::npos) {
             return std::make_unique<Tsukino::Sandbox::SampleScene1>();
+        }
+
+        // レシピ（Tsukino.Sandbox/Recipes/README.md）を全部まとめて動かすシーン
+        if(argument.find("recipes") != std::string::npos) {
+            return std::make_unique<Tsukino::Sandbox::Recipes::RecipeScene>();
         }
 
         // 既定（"lights" 指定時も）はディファードレンダリングの多光源ショーケース
@@ -81,8 +87,15 @@ int main(int argc, char* argv[]) {
     //
     //   Tsukino.Sandbox.exe            多光源ショーケース（既定。lights でも可）
     //   Tsukino.Sandbox.exe api        エンジンAPIの動作確認シーン
+    //   Tsukino.Sandbox.exe recipes    レシピをまとめたシーン
+    //   ... --frames=N                 N フレームで終了する（ログを確かめる自動実行用）
     //--------------------------------------------------------------
     engineAPI.ChangeScene(CreateSceneFromCommandLine(commandLine.c_str()));
+
+    long long maxFrames = -1;    // -1: ウィンドウが閉じられるまで続ける
+    if(const size_t pos = commandLine.find("--frames="); pos != std::string::npos)
+        maxFrames = std::atoll(commandLine.c_str() + pos + std::string("--frames=").size());
+    long long frameCount = 0;
 
     //--------------------------------------------------------------
     // メインループ
@@ -94,6 +107,9 @@ int main(int argc, char* argv[]) {
     auto lastTime = std::chrono::steady_clock::now();
 
     while(engineAPI.ProcessMessages()) {
+        if(maxFrames >= 0 && frameCount++ >= maxFrames)
+            break;
+
         auto  currentTime = std::chrono::steady_clock::now();
         float deltaTime   = std::chrono::duration<float>(currentTime - lastTime).count();
         lastTime          = currentTime;

@@ -7,6 +7,7 @@
 #include <Tsukino/Core/Log.hpp>
 
 #include <bgfx/bgfx.h>
+#include <bx/debug.h>
 
 #if defined(_WIN32)
 #include <d3d11.h>
@@ -16,6 +17,9 @@
 
 #include <algorithm>
 #include <cmath>
+#include <cstdarg>
+#include <cstdio>
+#include <cstdlib>
 #include <string>
 
 // 名前空間 : Tsukino::Renderer
@@ -23,6 +27,55 @@ namespace Tsukino::Renderer {
 
     namespace {
         bool g_bgfxAlive = false;    // bgfx が初期化されていて、まだ後始末されていないか
+
+        //! bgfx からの通知の受け口です。
+        //! @note  既定の受け口は、Debug ビルドの bgfx のトレース（対応していないテクスチャ形式の一覧など、
+        //!        起動のたびに数十行）を標準出力にも流す。ゲームを実行して出力を読む人やツールには
+        //!        役に立たない行なので、トレースはデバッガの出力にだけ回す。
+        //!        致命的なエラーはログへ残したうえで、既定と同じく止める。それ以外は既定と同じく何もしない
+        class BgfxCallback final : public bgfx::CallbackI {
+        public:
+            ~BgfxCallback() override = default;
+
+            void fatal(const char* filePath, uint16_t line, bgfx::Fatal::Enum code, const char* message) override {
+                Tsukino::Core::Log::Error(std::string("bgfx fatal error: ") + (message ? message : "") + " (" + (filePath ? filePath : "?") + ":"
+                                          + std::to_string(line) + ")");
+                if(code == bgfx::Fatal::DebugCheck) {
+                    bx::debugBreak();
+                } else {
+                    std::abort();
+                }
+            }
+
+            void traceVargs(const char* filePath, uint16_t line, const char* format, va_list argList) override {
+#if defined(_WIN32)
+                char buffer[2048];
+                int  length = std::snprintf(buffer, sizeof(buffer), "%s (%u): ", filePath ? filePath : "?", static_cast<unsigned>(line));
+                if(length < 0 || length >= static_cast<int>(sizeof(buffer)))
+                    return;
+                std::vsnprintf(buffer + length, sizeof(buffer) - static_cast<size_t>(length), format, argList);
+                OutputDebugStringA(buffer);
+#else
+                (void)filePath;
+                (void)line;
+                (void)format;
+                (void)argList;
+#endif
+            }
+
+            void profilerBegin(const char*, uint32_t, const char*, uint16_t) override {}
+            void profilerBeginLiteral(const char*, uint32_t, const char*, uint16_t) override {}
+            void profilerEnd() override {}
+            uint32_t cacheReadSize(uint64_t) override { return 0; }
+            bool     cacheRead(uint64_t, void*, uint32_t) override { return false; }
+            void     cacheWrite(uint64_t, const void*, uint32_t) override {}
+            void     screenShot(const char*, uint32_t, uint32_t, uint32_t, bgfx::TextureFormat::Enum, const void*, uint32_t, bool) override {}
+            void     captureBegin(uint32_t, uint32_t, uint32_t, bgfx::TextureFormat::Enum, bool) override {}
+            void     captureEnd() override {}
+            void     captureFrame(const void*, uint32_t) override {}
+        };
+
+        BgfxCallback g_bgfxCallback;    // bgfx の後始末より長く生きるよう、プロセスと同じ寿命にする
 
 #if defined(_WIN32)
         // Microsoft Basic Render Driver（WARP）のベンダー ID とデバイス ID
@@ -207,6 +260,7 @@ namespace Tsukino::Renderer {
 #endif
         init.swapChain = MakeSwapChain(windowHandle, width, height);
         init.reset     = ResetFlags(m_vsync);
+        init.callback  = &g_bgfxCallback;
         SelectAdapter(deviceOptions.preference, init);
 
         bool initialized = bgfx::init(init);

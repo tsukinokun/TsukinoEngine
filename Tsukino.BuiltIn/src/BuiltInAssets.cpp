@@ -14,5 +14,6 @@ namespace Tsukino::BuiltIn {
     void BuiltInAssets::Initialize(Tsukino::Asset::AssetManager* assetManager) {
         shaders.Initialize(assetManager);
         fonts.Initialize(assetManager);
+        models.Initialize(assetManager);
     }
 }    // namespace Tsukino::BuiltIn

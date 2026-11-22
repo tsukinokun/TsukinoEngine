@@ -6,6 +6,7 @@
 #pragma once
 #include <Tsukino/BuiltIn/BuiltInShaders.hpp>
 #include <Tsukino/BuiltIn/BuiltInFonts.hpp>
+#include <Tsukino/BuiltIn/BuiltInModels.hpp>
 
 // 名前空間 : Tsukino::Asset
 namespace Tsukino::Asset {
@@ -28,5 +29,6 @@ namespace Tsukino::BuiltIn {
 
         BuiltInShaders shaders;    // ビルトインシェーダー集約クラスのインスタンス
         BuiltInFonts   fonts;      // ビルトインフォント集約クラスのインスタンス
+        BuiltInModels  models;     // ビルトインモデル（立方体・平面・球）集約クラスのインスタンス
     };
 }    // namespace Tsukino::BuiltIn
