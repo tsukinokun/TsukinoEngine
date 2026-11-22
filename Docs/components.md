@@ -4,7 +4,7 @@
 
 再生成: `vendor\premake5.exe gen-manifest`（または `generate-docs.bat`）
 
-コンポーネント 54 個（Prefab 登録済み 36 個 / シリアライズ定義あり 23 個）
+コンポーネント 55 個（Prefab 登録済み 36 個 / シリアライズ定義あり 23 個）
 
 ## 読み方
 
@@ -427,6 +427,7 @@
 | `BoxCollider2DComponent` | — | — | `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/BoxCollider2DComponent.hpp` |
 | `BurstParticleComponent` | — | — | `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/BurstParticleComponent.hpp` |
 | `CharacterControllerComponent` | — | — | `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/CharacterControllerComponent.hpp` |
+| `CustomShaderComponent` | — | — | `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/CustomShaderComponent.hpp` |
 | `DebugCameraTag` | `DebugCameraTag` | — | `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/DebugCameraTag.hpp` |
 | `DraggableComponent` | `DraggableComponent` | — | `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/DraggableComponent.hpp` |
 | `ImpulseRequestComponent` | — | — | `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/ImpulseRequestComponent.hpp` |

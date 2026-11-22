@@ -10,7 +10,7 @@
         "pathBase": "working directory (Debug: repository root / Release: next to the exe)"
     },
     "stats": {
-        "components": 54,
+        "components": 55,
         "registered": 36,
         "serializable": 23
     },
@@ -434,6 +434,17 @@
                     "default": "false"
                 }
             ]
+        },
+        {
+            "name": "CustomShaderComponent",
+            "typeName": "Tsukino::BuiltIn::ECS::CustomShaderComponent",
+            "registered": false,
+            "registeredName": null,
+            "serializable": false,
+            "header": "Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/CustomShaderComponent.hpp",
+            "serializationHeader": null,
+            "registrationSite": null,
+            "fields": []
         },
         {
             "name": "DebugCameraComponent",
