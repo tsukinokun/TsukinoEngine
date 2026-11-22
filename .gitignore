@@ -64,6 +64,15 @@ Tsukino.BuiltIn/Assets/Shaders/bgfx/**/metal/
 Tsukino.BuiltIn/Assets/Shaders/bgfx/**/essl/
 Tsukino.BuiltIn/Assets/Shaders/bgfx/**/glsl/
 Tsukino.BuiltIn/Assets/Shaders/bgfx/**/pssl/
+
+# Sandbox のシェーダー（レシピの自作シェーダーなど）の変換結果。上と同じ決まり
+Tsukino.Sandbox/Assets/Shaders/**/dxbc/
+Tsukino.Sandbox/Assets/Shaders/**/dxil/
+Tsukino.Sandbox/Assets/Shaders/**/spirv/
+Tsukino.Sandbox/Assets/Shaders/**/metal/
+Tsukino.Sandbox/Assets/Shaders/**/essl/
+Tsukino.Sandbox/Assets/Shaders/**/glsl/
+Tsukino.Sandbox/Assets/Shaders/**/pssl/
 Tsukino.BuiltIn/Assets/Shaders/bgfx/**/wgsl/
 
 # Android の Gradle の生成物
