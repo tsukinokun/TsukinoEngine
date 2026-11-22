@@ -16,6 +16,7 @@
 #include <Tsukino/BuiltIn/ECS/Component/RimGlowComponent.hpp>
 #include <Tsukino/BuiltIn/ECS/Component/OcclusionCutoutComponent.hpp>
 #include <Tsukino/BuiltIn/ECS/Component/MaterialPropertyBlockComponent.hpp>
+#include <Tsukino/BuiltIn/ECS/Component/CustomShaderComponent.hpp>
 #include <Tsukino/BuiltIn/ECS/Component/ScreenModelComponent.hpp>
 #include <Tsukino/BuiltIn/ECS/Transform/TransformUtility.hpp>
 #include <Tsukino/BuiltIn/ECS/UI/UICanvas.hpp>
@@ -32,6 +33,8 @@
 #include <Tsukino/Renderer/ConstantBuffer.hpp>
 #include <Tsukino/Renderer/Renderer.hpp>
 #include <Tsukino/Renderer/MeshBuffer.hpp>
+#include <Tsukino/Renderer/RenderResources.hpp>
+#include <Tsukino/Renderer/PipelineFactory.hpp>
 #include <Tsukino/Renderer/ShaderSlots.hpp>
 #include <Tsukino/GraphicsCommon/Model/ModelData.hpp>
 #include <Tsukino/GraphicsCommon/Vertex/VertexFormat.hpp>
@@ -93,6 +96,13 @@ namespace Tsukino::BuiltIn::ECS {
         Tsukino::EngineIntegration::EngineContext* ctx = registry.GetContext<Tsukino::EngineIntegration::EngineContext*>();
         if(!ctx || !ctx->renderer)
             return;
+
+        // 自作シェーダーの定数バッファは、どの破棄の経路でも発火する OnDestroy で返す（初回だけ購読する）
+        if(m_registry == nullptr) {
+            m_registry = &registry;
+            m_context  = ctx;
+            registry.OnDestroy<CustomShaderComponent>().connect<&ModelSystem::OnCustomShaderDestroyed>(*this);
+        }
 
         auto view = registry.View<TransformComponent, ModelComponent>();
 
@@ -203,6 +213,42 @@ namespace Tsukino::BuiltIn::ECS {
                                                                                 static_cast<float>(ctx->window->GetWidth()),
                                                                                 static_cast<float>(ctx->window->GetHeight()));
                 screenCamera                            = &camera;
+            }
+
+            //-------------------------------------------------------------
+            // 自作シェーダー（CustomShaderComponent）。ピクセルシェーダーが読めていれば、
+            // 通常のディファード描画の代わりに、そのシェーダーで深度を書くフォワード（World パス）に描く。
+            // 読めていなければ（読み込み失敗は AssetManager がログに出す）通常どおりに描く。
+            // UI の層に描くモデル（ScreenModelComponent）には効かない
+            //-------------------------------------------------------------
+            std::shared_ptr<Tsukino::Asset::ShaderAsset> customPS;
+            std::shared_ptr<Tsukino::Asset::ShaderAsset> customVS;
+            Tsukino::Renderer::BufferHandle              customConstants;
+            if(const auto* custom = registry.try_get<CustomShaderComponent>(entity); custom && custom->pixelShader.IsValid() && !screenModel) {
+                auto asShader = [&](const Tsukino::Asset::AssetRef& ref) -> std::shared_ptr<Tsukino::Asset::ShaderAsset> {
+                    if(!ref.IsValid())
+                        return nullptr;
+                    auto base = ctx->assetManager->Get(ref);
+                    if(!base || base->GetType() != Tsukino::Asset::AssetType::Shader)
+                        return nullptr;
+                    return std::static_pointer_cast<Tsukino::Asset::ShaderAsset>(base);
+                };
+                customPS = asShader(custom->pixelShader);
+                customVS = asShader(custom->vertexShader);
+                if(customPS) {
+                    customConstants = AcquireCustomShaderConstants(*ctx, entity);
+                    if(customConstants.IsValid()) {
+                        float constants[16];
+                        for(size_t i = 0; i < custom->params.size(); ++i) {
+                            const hlslpp::float4& p = custom->params[i];
+                            constants[i * 4 + 0]    = p.x;
+                            constants[i * 4 + 1]    = p.y;
+                            constants[i * 4 + 2]    = p.z;
+                            constants[i * 4 + 3]    = p.w;
+                        }
+                        ctx->renderer->GetResources().UpdateUserConstantBuffer(customConstants, constants, sizeof(constants));
+                    }
+                }
             }
 
             // ノードとメッシュの巡回ループ
@@ -501,7 +547,31 @@ namespace Tsukino::BuiltIn::ECS {
                         cullMode              = isMirrored ? Tsukino::Renderer::CullMode::Front : Tsukino::Renderer::CullMode::Back;
                     }
 
-                    if(screenModel) {
+                    if(customPS) {
+                        // 自作シェーダー：頂点シェーダーの指定が無ければ、組み込みのモデル用（スキンの有無で切り替え済み）を使う
+                        auto pipeline = ctx->renderer->GetResources().GetPipelineFactory()->Create(customVS ? *customVS : *vsAsset,
+                                                                                                    *customPS,
+                                                                                                    vertexFormat,
+                                                                                                    Tsukino::Renderer::DepthMode::ReadWrite,
+                                                                                                    Tsukino::Renderer::BlendMode::Opaque,
+                                                                                                    cullMode);
+                        if(auto* mat = buildMaterial(pipeline)) {
+                            Tsukino::Renderer::DrawCommand cmd{};
+                            cmd.mesh               = const_cast<Tsukino::Renderer::MeshBuffer*>(&targetMeshBuffer);
+                            cmd.transform          = finalTransform;
+                            cmd.material           = mat;
+                            cmd.materialData       = pCbMat;
+                            cmd.pass               = Tsukino::Renderer::RenderPass::World;
+                            cmd.castsShadow        = false;    // 影の描画は GBuffer パスの物しか見ないので、落とせない
+                            cmd.userConstantBuffer = customConstants;
+                            cmd.userConstantSlot   = Tsukino::Renderer::UserUniformSlot::User0;
+                            if(isSkeletal) {
+                                cmd.boneMatrices = skeletonOut->localMatrices;
+                                cmd.boneCount    = skeletonOut->boneCount;
+                            }
+                            ctx->renderer->GetDrawQueue().Push(cmd);
+                        }
+                    } else if(screenModel) {
                         // UI の層：画面スプライト・文字と同じ Overlay パスへ、sortOrder 付きで積む。
                         // モデル同士の前後は深度で決める（Renderer が最初の1つの前に深度を消す）
                         auto pipeline = ctx->renderer->GetResources().GetPipelineFactory()->Create(
@@ -548,6 +618,50 @@ namespace Tsukino::BuiltIn::ECS {
                 }
             }
         });
+    }
+
+    //-------------------------------------------------------------
+    //! @brief 自作シェーダー用の定数バッファを返し、破棄シグナルの購読を解除します。
+    //-------------------------------------------------------------
+    ModelSystem::~ModelSystem() {
+        if(m_registry == nullptr)
+            return;
+
+        // System は Registry より先に破棄されるため、解除しないと破棄済みの this へシグナルが飛ぶ
+        m_registry->OnDestroy<CustomShaderComponent>().disconnect(this);
+
+        // 残っている分はここで返す（シーンの切り替えでは Renderer がまだ生きている）
+        if(m_context != nullptr && m_context->renderer != nullptr) {
+            for(const auto& [entity, buffer] : m_customShaderConstants)
+                m_context->renderer->GetResources().DestroyBuffer(buffer);
+        }
+        m_customShaderConstants.clear();
+    }
+
+    //-------------------------------------------------------------
+    //! @brief CustomShaderComponent のエンティティの定数バッファを取得します（無ければ作る）。
+    //-------------------------------------------------------------
+    Tsukino::Renderer::BufferHandle ModelSystem::AcquireCustomShaderConstants(Tsukino::EngineIntegration::EngineContext& ctx, entt::entity entity) {
+        if(auto it = m_customShaderConstants.find(entity); it != m_customShaderConstants.end())
+            return it->second;
+
+        // CustomShaderComponent::params（float4 x 4）を u_user0[0]〜[3] へ渡す
+        const Tsukino::Renderer::BufferHandle buffer = ctx.renderer->GetResources().CreateUserConstantBuffer(sizeof(float) * 16);
+        if(buffer.IsValid())
+            m_customShaderConstants.emplace(entity, buffer);
+        return buffer;
+    }
+
+    //-------------------------------------------------------------
+    //! @brief CustomShaderComponent が外されたとき（エンティティの破棄を含む）に定数バッファを返します。
+    //-------------------------------------------------------------
+    void ModelSystem::OnCustomShaderDestroyed(entt::registry& /*registry*/, entt::entity entity) {
+        auto it = m_customShaderConstants.find(entity);
+        if(it == m_customShaderConstants.end())
+            return;
+        if(m_context != nullptr && m_context->renderer != nullptr)
+            m_context->renderer->GetResources().DestroyBuffer(it->second);
+        m_customShaderConstants.erase(it);
     }
 
 }    // namespace Tsukino::BuiltIn::ECS
