@@ -225,3 +225,44 @@
   - PrefabFactory(), ~PrefabFactory(), PrefabFactory(), operator=(), PrefabFactory(), operator=(), RegisterComponent(), SetAssetManager(), ApplyOverride(), Instantiate(), InstantiateGroup(), InstantiateGroup(), CaptureEntity(), Load(), Save()
 - **Tsukino::Engine::ECS::Prefab::PrefabFactory::GroupEntry** — `Tsukino.Engine/include/Tsukino/Engine/ECS/Prefab/PrefabFactory.hpp`
   - name, prefabPath
+
+## 列挙型
+
+- **Tsukino::Asset::AssetType** — `Tsukino.Engine/include/Tsukino/Engine/Asset/AssetType.hpp` — アセットの種類を定義する列挙型
+  - `None = 0`
+  - `Texture`
+  - `Shader`
+  - `Mesh`
+  - `Model`
+  - `Material`
+  - `DynamicFont`
+  - `Audio`
+  - `Cubemap`
+  - `Effect`
+- **Tsukino::Asset::TextureTarget** — `Tsukino.Engine/include/Tsukino/Engine/Asset/Texture/TextureImportRules.hpp` — テクスチャを圧縮するときに、どの端末の GPU に合わせるかです。
+  - `Desktop` — パソコン（BC 圧縮）
+  - `Mobile` — スマホ（ASTC 圧縮。BC1 → ASTC 6×6、BC3 / BC4 / BC5 / BC7 → ASTC 4×4）
+- **Tsukino::Shader::ShaderStage** — `Tsukino.Engine/include/Tsukino/Engine/Asset/Shader/ShaderStage.hpp` — シェーダーステージ種別
+  - `Unknown = 0`
+  - `Vertex`
+  - `Pixel`
+
+## 型の別名
+
+- `using Tsukino::Asset::AssetMap = std::unordered_map<u64, Tsukino::Core::Ref<IAsset>>` — `Tsukino.Engine/include/Tsukino/Engine/Asset/AssetMap.hpp`
+
+## 名前空間の関数
+
+### Tsukino::Asset — `Tsukino.Engine/include/Tsukino/Engine/Asset/AssetRef.hpp`
+
+| シグネチャ | 説明 |
+|---|---|
+| `AssetHandle ResolveAssetRefPath(AssetManager &assetManager, const std::string &path)` | パスからアセットを読んでハンドルを得る（AssetManager::Loadへの転送） |
+| `template <class Archive> void load_minimal(const Archive &, AssetRef &ref, const std::string &value)` | cereal用：読み込み処理 |
+| `template <class Archive> std::string save_minimal(const Archive &, const AssetRef &ref)` | cereal用：保存処理（pathのみを書き出す） |
+
+### Tsukino::Asset — `Tsukino.Engine/include/Tsukino/Engine/Asset/Material/MaterialAssetBuilder.hpp`
+
+| シグネチャ | 説明 |
+|---|---|
+| `Tsukino::Core::Ref< MaterialAsset > BuildMaterialAsset(AssetManager &assetManager, const Tsukino::GraphicsCommon::MaterialData &data)` | マテリアルデータからマテリアルアセットを組み立てます。 |

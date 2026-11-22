@@ -4,8 +4,8 @@
 
 再生成: `generate-docs.bat`（doxygen で XML を出してから gen-api-digest）
 
-エンジンのヘッダを直接読む前に、まずここで型の在処を引く。
-シグネチャが要るときだけ `api/<モジュール>.md` を1本だけ開く（全部は開かない）。
+エンジンのヘッダを直接読む前に、まずここで型・列挙型・型の別名・関数の在処を引く。
+列挙型の値や関数のシグネチャが要るときだけ `api/<モジュール>.md` を1本だけ開く（全部は開かない）。
 コンポーネントと Prefab JSON のフィールドは `components.md` を見る。
 
 ## Tsukino.Audio — [`api/Tsukino.Audio.md`](api/Tsukino.Audio.md)
@@ -13,6 +13,8 @@
 - `Tsukino::Audio::AudioContext` — `Tsukino.Audio/src/Audio/AudioManager.cpp`
 - `Tsukino::Audio::AudioContext::PlayingSound` — `Tsukino.Audio/src/Audio/AudioManager.cpp`
 - `Tsukino::Audio::AudioManager` — `Tsukino.Audio/include/Tsukino/Audio/AudioManager.hpp`
+- `Tsukino::Audio::AudioBus`（型の別名）— `Tsukino.Audio/include/Tsukino/Audio/AudioManager.hpp`
+- `Tsukino::Audio::` の定数 kAudioBusCount — `Tsukino.Audio/include/Tsukino/Audio/AudioManager.hpp`
 
 ## Tsukino.BuiltIn — [`api/Tsukino.BuiltIn.md`](api/Tsukino.BuiltIn.md)
 
@@ -88,6 +90,56 @@
 - `Tsukino::BuiltIn::ECS::UIVisibilityComponent` — `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/UIVisibilityComponent.hpp`
 - `Tsukino::BuiltIn::ECS::UnscaledTimeContext` — `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/UI/UnscaledTimeContext.hpp`
 - `Tsukino::BuiltIn::ECS::WorldAnchorComponent` — `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/WorldAnchorComponent.hpp`
+- `Tsukino::BuiltIn::ECS::CameraComponent::ProjectionType`（列挙型）— `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/CameraComponent.hpp`
+- `Tsukino::BuiltIn::ECS::ColliderType`（列挙型）— `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/CollisionComponent.hpp`
+- `Tsukino::BuiltIn::ECS::HorizontalAlign`（列挙型）— `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/FontComponent.hpp`
+- `Tsukino::BuiltIn::ECS::RigidbodyType`（列挙型）— `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/RigidbodyComponent.hpp`
+- `Tsukino::BuiltIn::ECS::SpriteBlendMode`（列挙型）— `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/SpriteComponent.hpp`
+- `Tsukino::BuiltIn::ECS::SpriteFillMode`（列挙型）— `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/SpriteComponent.hpp`
+- `Tsukino::BuiltIn::ECS::SpriteSpace`（列挙型）— `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/SpriteComponent.hpp`
+- `Tsukino::BuiltIn::ECS::TerrainNoiseType`（列挙型）— `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/TerrainGenerationRequestComponent.hpp`
+- `Tsukino::BuiltIn::ECS::UITweenLoop`（列挙型）— `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/UITweenComponent.hpp`
+- `Tsukino::BuiltIn::ECS::UITweenProperty`（列挙型）— `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/UITweenComponent.hpp`
+- `Tsukino::BuiltIn::ECS::VerticalAlign`（列挙型）— `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/FontComponent.hpp`
+- `Tsukino::BuiltIn::ECS::BurstEmitter::` の関数 Emit() — `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Particle/BurstEmitter.hpp`
+- `Tsukino::BuiltIn::ECS::CameraUtility::` の関数 IntersectPlane(), IntersectRect(), ScreenPointToRay(), WorldToScreenPoint() — `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Camera/CameraUtility.hpp`
+- `Tsukino::BuiltIn::ECS::TransformUtility::` の関数 DestroyHierarchy(), FindNearestWith(), GetParentWorldMatrix(), GetWorldPosition(), GetWorldScale2D(), IsAncestorOf(), SetParent(), SetWorldPosition() — `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Transform/TransformUtility.hpp`
+- `Tsukino::BuiltIn::ECS::UICanvasGroupUtility::` の関数 GetAlpha(), IsInvisible() — `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/UI/UICanvasGroupUtility.hpp`
+- `Tsukino::BuiltIn::ECS::UIClipUtility::` の関数 ComputeBounds(), ResolveLocalRect(), TryGetClipBounds() — `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/UI/UIClipUtility.hpp`
+- `Tsukino::BuiltIn::ECS::UIMotionUtility::` の関数 IsIdentity(), MakeMatrix(), ResolvePivot() — `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/UI/UIMotionUtility.hpp`
+- `Tsukino::BuiltIn::ECS::UIRectUtility::` の関数 Contains(), FromRect(), LocalToWorld(), Resolve(), ToMatrix(), WorldBounds() — `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/UI/UIRectUtility.hpp`
+- `Tsukino::BuiltIn::ECS::UIToggleUtility::` の関数 GetSelected(), Select() — `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/UI/UIToggleUtility.hpp`
+- `Tsukino::BuiltIn::ECS::UITweenUtility::` の関数 FadeIn(), FadeOut(), IsPlaying(), Play(), Punch(), SlideIn(), SlideOut(), Stop() — `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/UI/UITweenUtility.hpp`
+- `Tsukino::BuiltIn::ECS::UIVisibilityUtility::` の関数 IsHidden() — `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/UI/UIVisibilityUtility.hpp`
+- `Tsukino::BuiltIn::ECS::` の関数 load(), save() — `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Serialization/AmbientParticleComponentSerialization.hpp`
+- `Tsukino::BuiltIn::ECS::` の関数 load(), save() — `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Serialization/BloomComponentSerialization.hpp`
+- `Tsukino::BuiltIn::ECS::` の関数 load(), save() — `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Serialization/BoneFollowColliderComponentSerialization.hpp`
+- `Tsukino::BuiltIn::ECS::` の関数 load(), save() — `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Serialization/BurstParamsSerialization.hpp`
+- `Tsukino::BuiltIn::ECS::` の関数 load(), save() — `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Serialization/CameraComponentSerialization.hpp`
+- `Tsukino::BuiltIn::ECS::` の関数 load(), save() — `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Serialization/CollisionComponentSerialization.hpp`
+- `Tsukino::BuiltIn::ECS::` の関数 load(), save() — `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Serialization/DebugCameraComponentSerialization.hpp`
+- `Tsukino::BuiltIn::ECS::` の関数 load(), save() — `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Serialization/DirectionalLightComponentSerialization.hpp`
+- `Tsukino::BuiltIn::ECS::` の関数 load(), save() — `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Serialization/EffectComponentSerialization.hpp`
+- `Tsukino::BuiltIn::ECS::` の関数 load(), save() — `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Serialization/FogComponentSerialization.hpp`
+- `Tsukino::BuiltIn::ECS::` の関数 load(), save() — `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Serialization/FontComponentSerialization.hpp`
+- `Tsukino::BuiltIn::ECS::` の関数 load(), save() — `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Serialization/ModelComponentSerialization.hpp`
+- `Tsukino::BuiltIn::ECS::` の関数 load(), save() — `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Serialization/MotionBlurComponentSerialization.hpp`
+- `Tsukino::BuiltIn::ECS::` の関数 load(), save() — `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Serialization/OcclusionCutoutComponentSerialization.hpp`
+- `Tsukino::BuiltIn::ECS::` の関数 load(), save() — `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Serialization/PointLightComponentSerialization.hpp`
+- `Tsukino::BuiltIn::ECS::` の関数 load(), save() — `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Serialization/RigidbodyComponentSerialization.hpp`
+- `Tsukino::BuiltIn::ECS::` の関数 load(), save() — `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Serialization/SkyAtmosphereComponentSerialization.hpp`
+- `Tsukino::BuiltIn::ECS::` の関数 load(), save() — `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Serialization/SphereColorGradeComponentSerialization.hpp`
+- `Tsukino::BuiltIn::ECS::` の関数 load(), save() — `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Serialization/SpotLightComponentSerialization.hpp`
+- `Tsukino::BuiltIn::ECS::` の関数 load(), save() — `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Serialization/SpriteComponentSerialization.hpp`
+- `Tsukino::BuiltIn::ECS::` の関数 load(), save() — `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Serialization/TerrainGenerationRequestComponentSerialization.hpp`
+- `Tsukino::BuiltIn::ECS::` の関数 load(), save() — `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Serialization/TransformComponentSerialization.hpp`
+- `Tsukino::BuiltIn::ECS::` の関数 load(), save() — `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Serialization/UIButtonSoundComponentSerialization.hpp`
+- `Tsukino::BuiltIn::ECS::` の関数 load(), save() — `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Serialization/UIRectComponentSerialization.hpp`
+- `Tsukino::BuiltIn::ECS::` の関数 GetUICanvas() — `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/UI/UICanvas.hpp`
+- `Tsukino::Renderer::` の関数 load(), save() — `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Serialization/DirectionalLightComponentSerialization.hpp`
+- `Tsukino::BuiltIn::ECS::TransformUtility::` の定数 kMaxHierarchyDepth — `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Transform/TransformUtility.hpp`
+- `Tsukino::BuiltIn::ECS::UICanvasGroupUtility::` の定数 kInvisibleAlpha — `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/UI/UICanvasGroupUtility.hpp`
+- `Tsukino::BuiltIn::ECS::UITweenUtility::Tag::` の定数 kFade, kPunch, kSlideX, kSlideY — `Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/UI/UITweenUtility.hpp`
 
 ## Tsukino.Core — [`api/Tsukino.Core.md`](api/Tsukino.Core.md)
 
@@ -120,6 +172,44 @@
 - `Tsukino::Input::InputSystem` — `Tsukino.Core/include/Tsukino/Core/Input/InputSystem.hpp`
 - `Tsukino::Input::TextInputSystem` — `Tsukino.Core/include/Tsukino/Core/Input/TextInputSystem.hpp`
 - `Tsukino::Input::TouchPoint` — `Tsukino.Core/include/Tsukino/Core/Input/InputSystem.hpp`
+- `Tsukino::Core::DebugTools::ProfileSlot`（列挙型）— `Tsukino.Core/include/Tsukino/Core/DebugTools/FrameProfiler.hpp`
+- `Tsukino::Core::Math::Easing::EaseType`（列挙型）— `Tsukino.Core/include/Tsukino/Core/Math/Easing.hpp`
+- `Tsukino::Core::Window::AppLifecycle`（列挙型）— `Tsukino.Core/include/Tsukino/Core/Window.hpp`
+- `Tsukino::Core::Window::UpdateMode`（列挙型）— `Tsukino.Core/include/Tsukino/Core/Window.hpp`
+- `Tsukino::Core::Window::WindowStyle`（列挙型）— `Tsukino.Core/include/Tsukino/Core/Window.hpp`
+- `Tsukino::Input::GamepadButton`（列挙型）— `Tsukino.Core/include/Tsukino/Core/Input/GamepadCodes.hpp`
+- `Tsukino::Input::GamepadStick`（列挙型）— `Tsukino.Core/include/Tsukino/Core/Input/GamepadCodes.hpp`
+- `Tsukino::Input::InputDevice`（列挙型）— `Tsukino.Core/include/Tsukino/Core/Input/GamepadCodes.hpp`
+- `Tsukino::Input::InputEventType`（列挙型）— `Tsukino.Core/include/Tsukino/Core/Input/InputEvent.hpp`
+- `Tsukino::Input::KeyCode`（列挙型）— `Tsukino.Core/include/Tsukino/Core/Input/KeyCodes.hpp`
+- `Tsukino::Input::MouseButton`（列挙型）— `Tsukino.Core/include/Tsukino/Core/Input/KeyCodes.hpp`
+- `Tsukino::i16`（型の別名）— `Tsukino.Core/include/Tsukino/Core/typedef.hpp`
+- `Tsukino::i32`（型の別名）— `Tsukino.Core/include/Tsukino/Core/typedef.hpp`
+- `Tsukino::i64`（型の別名）— `Tsukino.Core/include/Tsukino/Core/typedef.hpp`
+- `Tsukino::i8`（型の別名）— `Tsukino.Core/include/Tsukino/Core/typedef.hpp`
+- `Tsukino::u16`（型の別名）— `Tsukino.Core/include/Tsukino/Core/typedef.hpp`
+- `Tsukino::u32`（型の別名）— `Tsukino.Core/include/Tsukino/Core/typedef.hpp`
+- `Tsukino::u64`（型の別名）— `Tsukino.Core/include/Tsukino/Core/typedef.hpp`
+- `Tsukino::u8`（型の別名）— `Tsukino.Core/include/Tsukino/Core/typedef.hpp`
+- `Tsukino::Core::Ref`（型の別名）— `Tsukino.Core/include/Tsukino/Core/Memory.hpp`
+- `Tsukino::ECS::Entity`（型の別名）— `Tsukino.Core/include/Tsukino/Core/ECS/Entity/Entity.hpp`
+- `Tsukino::Core::Math::Color::` の関数 FromSrgb8(), LinearToSrgb(), SrgbToLinear() — `Tsukino.Core/include/Tsukino/Core/Math/Color.hpp`
+- `Tsukino::Core::Math::Easing::` の関数 Clamp01(), Damp(), Evaluate(), InCubic(), InOutCubic(), InOutQuad(), InOutSine(), InQuad(), Linear(), OutBack(), OutBounce(), OutCubic(), OutElastic(), OutQuad(), Punch() — `Tsukino.Core/include/Tsukino/Core/Math/Easing.hpp`
+- `Tsukino::Core::Math::Spring::` の関数 Step() — `Tsukino.Core/include/Tsukino/Core/Math/Spring.hpp`
+- `Tsukino::Core::Math::` の関数 Intersects(), IsPointInRect(), SlerpShortestPath(), ToDegrees(), ToRadians() — `Tsukino.Core/include/Tsukino/Core/Math/MathHelper.hpp`
+- `Tsukino::Core::Utf8::` の関数 Append(), CountCodepoints(), DecodeNext(), PopBack() — `Tsukino.Core/include/Tsukino/Core/Utf8.hpp`
+- `Tsukino::Core::` の関数 CreateRef() — `Tsukino.Core/include/Tsukino/Core/Memory.hpp`
+- `Tsukino::ECS::` の関数 load_minimal(), save_minimal() — `Tsukino.Core/include/Tsukino/Core/ECS/EntityRef/EntityRef.hpp`
+- `Tsukino::IO::HotReload::` の関数 Poll(), SetPaused(), Watch() — `Tsukino.Core/include/Tsukino/Core/IO/HotReload.hpp`
+- `Tsukino::IO::` の関数 LoadOptional() — `Tsukino.Core/include/Tsukino/Core/IO/CerealOptional.hpp`
+- `Tsukino::IO::` の関数 TryLoadJson(), TrySaveJson() — `Tsukino.Core/include/Tsukino/Core/IO/JsonFile.hpp`
+- `Tsukino::Input::` の関数 GetBindingDisplayName(), IsBindingDown(), IsBindingPressed(), IsBindingReleased(), ReadAxis() — `Tsukino.Core/include/Tsukino/Core/Input/InputActionMap.hpp`
+- `Tsukino::Input::` の関数 GamepadButtonFromName(), GetGamepadButtonDisplayName(), GetKeyDisplayName(), KeyCodeFromName() — `Tsukino.Core/include/Tsukino/Core/Input/InputNames.hpp`
+- `Tsukino::Core::Math::Easing::` の定数 kDefaultOvershoot — `Tsukino.Core/include/Tsukino/Core/Math/Easing.hpp`
+- `Tsukino::Core::Math::Spring::` の定数 kTwoPi — `Tsukino.Core/include/Tsukino/Core/Math/Spring.hpp`
+- `Tsukino::Core::Math::` の定数 Deg2Rad, HALF_PI, PI, Rad2Deg, TWO_PI — `Tsukino.Core/include/Tsukino/Core/Math/MathHelper.hpp`
+- `Tsukino::Core::Utf8::` の定数 kReplacementCharacter — `Tsukino.Core/include/Tsukino/Core/Utf8.hpp`
+- `Tsukino::Input::` の定数 kGamepadButtonCount, kMaxGamepads — `Tsukino.Core/include/Tsukino/Core/Input/GamepadCodes.hpp`
 
 ## Tsukino.Engine — [`api/Tsukino.Engine.md`](api/Tsukino.Engine.md)
 
@@ -176,6 +266,12 @@
 - `Tsukino::ECS::SystemManager::SystemProfile` — `Tsukino.Engine/include/Tsukino/Engine/ECS/SystemManager.hpp`
 - `Tsukino::Engine::ECS::Prefab::PrefabFactory` — `Tsukino.Engine/include/Tsukino/Engine/ECS/Prefab/PrefabFactory.hpp`
 - `Tsukino::Engine::ECS::Prefab::PrefabFactory::GroupEntry` — `Tsukino.Engine/include/Tsukino/Engine/ECS/Prefab/PrefabFactory.hpp`
+- `Tsukino::Asset::AssetType`（列挙型）— `Tsukino.Engine/include/Tsukino/Engine/Asset/AssetType.hpp`
+- `Tsukino::Asset::TextureTarget`（列挙型）— `Tsukino.Engine/include/Tsukino/Engine/Asset/Texture/TextureImportRules.hpp`
+- `Tsukino::Shader::ShaderStage`（列挙型）— `Tsukino.Engine/include/Tsukino/Engine/Asset/Shader/ShaderStage.hpp`
+- `Tsukino::Asset::AssetMap`（型の別名）— `Tsukino.Engine/include/Tsukino/Engine/Asset/AssetMap.hpp`
+- `Tsukino::Asset::` の関数 ResolveAssetRefPath(), load_minimal(), save_minimal() — `Tsukino.Engine/include/Tsukino/Engine/Asset/AssetRef.hpp`
+- `Tsukino::Asset::` の関数 BuildMaterialAsset() — `Tsukino.Engine/include/Tsukino/Engine/Asset/Material/MaterialAssetBuilder.hpp`
 
 ## Tsukino.EngineIntegration — [`api/Tsukino.EngineIntegration.md`](api/Tsukino.EngineIntegration.md)
 
@@ -220,6 +316,8 @@
 - `Tsukino::EngineIntegration::GameSceneBase` — `Tsukino.EngineIntegration/include/Tsukino/EngineIntegration/Scene/GameSceneBase.hpp`
 - `Tsukino::EngineIntegration::GameSceneManager` — `Tsukino.EngineIntegration/include/Tsukino/EngineIntegration/Scene/GameSceneManager.hpp`
 - `Tsukino::EngineIntegration::RendererPhysicsDebugDraw` — `Tsukino.EngineIntegration/include/Tsukino/EngineIntegration/Physics/RendererPhysicsDebugDraw.hpp`
+- `Tsukino::BuiltIn::ECS::DirectionalLightSystem`（型の別名）— `Tsukino.EngineIntegration/include/Tsukino/EngineIntegration/ECS/System/LightSystem.hpp`
+- `Tsukino::BuiltIn::ECS::` の関数 ResolveBoneNodeIndex() — `Tsukino.EngineIntegration/include/Tsukino/EngineIntegration/ECS/BoneLookup.hpp`
 
 ## Tsukino.GraphicsCommon — [`api/Tsukino.GraphicsCommon.md`](api/Tsukino.GraphicsCommon.md)
 
@@ -241,6 +339,12 @@
 - `Tsukino::GraphicsCommon::VectorKey` — `Tsukino.GraphicsCommon/include/Tsukino/GraphicsCommon/Model/ModelData.hpp`
 - `Tsukino::GraphicsCommon::VertexPNUV` — `Tsukino.GraphicsCommon/include/Tsukino/GraphicsCommon/Vertex/VertexPNUV.hpp`
 - `Tsukino::GraphicsCommon::VertexPUV` — `Tsukino.GraphicsCommon/include/Tsukino/GraphicsCommon/Vertex/VertexPUV.hpp`
+- `Tsukino::GraphicsCommon::PrimitiveType`（列挙型）— `Tsukino.GraphicsCommon/include/Tsukino/GraphicsCommon/Mesh/PrimitiveType.hpp`
+- `Tsukino::GraphicsCommon::SamplerType`（列挙型）— `Tsukino.GraphicsCommon/include/Tsukino/GraphicsCommon/State/SamplerType.hpp`
+- `Tsukino::GraphicsCommon::ShadingModel`（列挙型）— `Tsukino.GraphicsCommon/include/Tsukino/GraphicsCommon/Material/MaterialData.hpp`
+- `Tsukino::GraphicsCommon::TextureFormat`（列挙型）— `Tsukino.GraphicsCommon/include/Tsukino/GraphicsCommon/Texture/TextureFormat.hpp`
+- `Tsukino::GraphicsCommon::VertexFormat`（列挙型）— `Tsukino.GraphicsCommon/include/Tsukino/GraphicsCommon/Vertex/VertexFormat.hpp`
+- `Tsukino::GraphicsCommon::` の関数 CreatePrimitiveMeshData(), CreateQuadMeshData() — `Tsukino.GraphicsCommon/include/Tsukino/GraphicsCommon/Mesh/MeshPrimitives.hpp`
 
 ## Tsukino.Physics — [`api/Tsukino.Physics.md`](api/Tsukino.Physics.md)
 
@@ -267,6 +371,14 @@
 - `Tsukino::Physics::SpringBoneSettings` — `Tsukino.Physics/include/Tsukino/Physics/SpringBone/SpringBoneData.hpp`
 - `Tsukino::Physics::SpringColliderSphere` — `Tsukino.Physics/include/Tsukino/Physics/SpringBone/SpringBoneData.hpp`
 - `Tsukino::Physics::WorldPose` — `Tsukino.Physics/include/Tsukino/Physics/SpringBone/SpringBoneData.hpp`
+- `Tsukino::Physics::DofMask`（列挙型）— `Tsukino.Physics/include/Tsukino/Physics/PhysicsTypes.hpp`
+- `Tsukino::Physics::MotionType`（列挙型）— `Tsukino.Physics/include/Tsukino/Physics/PhysicsTypes.hpp`
+- `Tsukino::Physics::ShapeType`（列挙型）— `Tsukino.Physics/include/Tsukino/Physics/PhysicsTypes.hpp`
+- `Tsukino::Physics::SpringBonePhysics::` の関数 BuildChainFromHierarchy(), BuildChainFromRoot(), InitializeChain(), UpdateChain() — `Tsukino.Physics/include/Tsukino/Physics/SpringBone/SpringBonePhysics.hpp`
+- `Tsukino::Physics::` の関数 ComposeTransform() — `Tsukino.Physics/include/Tsukino/Physics/PhysicsMath.hpp`
+- `Tsukino::Physics::` の関数 operator&(), operator&=(), operator|(), operator~() — `Tsukino.Physics/include/Tsukino/Physics/PhysicsTypes.hpp`
+- `Tsukino::Physics::` の関数 NLerpDirection(), QuatFromToRotation() — `Tsukino.Physics/include/Tsukino/Physics/SpringBone/SpringBoneMath.hpp`
+- `Tsukino::Physics::` の定数 cInvalidHandleValue — `Tsukino.Physics/include/Tsukino/Physics/BodyHandle.hpp`
 
 ## Tsukino.Renderer — [`api/Tsukino.Renderer.md`](api/Tsukino.Renderer.md)
 
@@ -363,3 +475,21 @@
 - `Tsukino::Renderer::TexelRect` — `Tsukino.Renderer/include/Tsukino/Renderer/DrawCommand.hpp`
 - `Tsukino::Renderer::TonemapPass` — `Tsukino.Renderer/src/Bgfx/TonemapPass.hpp`
 - `Tsukino::Renderer::UniformBlock` — `Tsukino.Renderer/internal/Tsukino/Renderer/Bgfx/UniformBlock.hpp`
+- `Tsukino::Renderer::BlendMode`（列挙型）— `Tsukino.Renderer/include/Tsukino/Renderer/BlendMode.hpp`
+- `Tsukino::Renderer::CullMode`（列挙型）— `Tsukino.Renderer/include/Tsukino/Renderer/CullMode.hpp`
+- `Tsukino::Renderer::DepthMode`（列挙型）— `Tsukino.Renderer/include/Tsukino/Renderer/DepthMode.hpp`
+- `Tsukino::Renderer::DrawKind`（列挙型）— `Tsukino.Renderer/include/Tsukino/Renderer/DrawCommand.hpp`
+- `Tsukino::Renderer::GpuPass`（列挙型）— `Tsukino.Renderer/include/Tsukino/Renderer/GpuTiming.hpp`
+- `Tsukino::Renderer::GraphicsDevicePreference`（列挙型）— `Tsukino.Renderer/include/Tsukino/Renderer/RenderQuality.hpp`
+- `Tsukino::Renderer::MaterialTextureSlot`（列挙型）— `Tsukino.Renderer/include/Tsukino/Renderer/ShaderSlots.hpp`
+- `Tsukino::Renderer::RenderPass`（列挙型）— `Tsukino.Renderer/include/Tsukino/Renderer/DrawCommand.hpp`
+- `Tsukino::Renderer::RenderQualityLevel`（列挙型）— `Tsukino.Renderer/include/Tsukino/Renderer/RenderQuality.hpp`
+- `Tsukino::Renderer::RenderResources::Gpu::BufferKind`（列挙型）— `Tsukino.Renderer/internal/Tsukino/Renderer/Bgfx/RenderResourcesGpu.hpp`
+- `Tsukino::Renderer::UserUniformSlot`（列挙型）— `Tsukino.Renderer/include/Tsukino/Renderer/ShaderSlots.hpp`
+- `Tsukino::Renderer::BufferHandle`（型の別名）— `Tsukino.Renderer/include/Tsukino/Renderer/GpuHandles.hpp`
+- `Tsukino::Renderer::PipelineKey`（型の別名）— `Tsukino.Renderer/include/Tsukino/Renderer/PipelineFactory.hpp`
+- `Tsukino::Renderer::TextureHandle`（型の別名）— `Tsukino.Renderer/include/Tsukino/Renderer/GpuHandles.hpp`
+- `Tsukino::Renderer::` の関数 GetGpuPassName() — `Tsukino.Renderer/include/Tsukino/Renderer/GpuTiming.hpp`
+- `Tsukino::Renderer::` の関数 GetRenderQualityName(), GetRenderQualityPreset(), RecommendRenderQuality() — `Tsukino.Renderer/include/Tsukino/Renderer/RenderQuality.hpp`
+- `Tsukino::Renderer::` の定数 MAX_LIGHTS, kMaxAmbientParticles, kMotionBlurMaxSamples, kShadowCascadeCount — `Tsukino.Renderer/include/Tsukino/Renderer/ConstantBuffer.hpp`
+- `Tsukino::Renderer::` の定数 kGpuPassCount — `Tsukino.Renderer/include/Tsukino/Renderer/GpuTiming.hpp`

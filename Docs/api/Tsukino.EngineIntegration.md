@@ -182,3 +182,15 @@
   - GameSceneManager(), ~GameSceneManager(), GameSceneManager(), operator=(), GameSceneManager(), operator=(), Initialize(), ChangeScene(), RegisterScene(), ChangeScene(), Update(), GetCurrentScene()
 - **Tsukino::EngineIntegration::RendererPhysicsDebugDraw** — `Tsukino.EngineIntegration/include/Tsukino/EngineIntegration/Physics/RendererPhysicsDebugDraw.hpp`
   - RendererPhysicsDebugDraw(), DrawLine(), DrawTriangle()
+
+## 型の別名
+
+- `using Tsukino::BuiltIn::ECS::DirectionalLightSystem = LightSystem` — `Tsukino.EngineIntegration/include/Tsukino/EngineIntegration/ECS/System/LightSystem.hpp` — 旧名（DirectionalLightSystem）のエイリアス
+
+## 名前空間の関数
+
+### Tsukino::BuiltIn::ECS — `Tsukino.EngineIntegration/include/Tsukino/EngineIntegration/ECS/BoneLookup.hpp`
+
+| シグネチャ | 説明 |
+|---|---|
+| `void ResolveBoneNodeIndex(Tsukino::EngineIntegration::EngineContext *ctx, Tsukino::ECS::Registry &registry, Tsukino::ECS::Entity modelEntity, const std::string &boneName, Tsukino::Asset::AssetHandle &resolvedAgainstModel, Tsukino::u32 &outNodeIndex)` | エンティティのModelComponentが指すモデルに対し、名前でボーンのnodeIndexを解決する。 resolvedAgainstModelが対象モデルと一致していれば何もしない（毎フレームの名前検索を避ける） |

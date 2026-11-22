@@ -54,3 +54,65 @@
   - attachNodeIndex, localOffset, radius, serialize()
 - **Tsukino::Physics::WorldPose** — `Tsukino.Physics/include/Tsukino/Physics/SpringBone/SpringBoneData.hpp`
   - position, rotation
+
+## 列挙型
+
+- **Tsukino::Physics::DofMask** — `Tsukino.Physics/include/Tsukino/Physics/PhysicsTypes.hpp` — 移動・回転の許可軸を表すビットマスク
+  - `None = 0` — 全軸を凍結
+  - `TranslationX = 1 << 0` — X 方向の移動を許可
+  - `TranslationY = 1 << 1` — Y 方向の移動を許可
+  - `TranslationZ = 1 << 2` — Z 方向の移動を許可
+  - `RotationX = 1 << 3` — X 軸まわりの回転を許可
+  - `RotationY = 1 << 4` — Y 軸まわりの回転を許可
+  - `RotationZ = 1 << 5` — Z 軸まわりの回転を許可
+  - `All = 0x3f` — 全軸を許可
+- **Tsukino::Physics::MotionType** — `Tsukino.Physics/include/Tsukino/Physics/PhysicsTypes.hpp` — ボディの運動タイプ
+  - `Static` — 動かない。他から押されもしない
+  - `Kinematic` — 位置を外部から与える。物理演算では動かない
+  - `Dynamic` — 物理演算で動く
+- **Tsukino::Physics::ShapeType** — `Tsukino.Physics/include/Tsukino/Physics/PhysicsTypes.hpp` — 衝突判定に使用する形状の種類
+  - `Box` — 直方体
+  - `Sphere` — 球
+  - `Capsule` — カプセル
+  - `Heightfield` — ハイトフィールド（地形）
+
+## 名前空間の関数
+
+### Tsukino::Physics::SpringBonePhysics — `Tsukino.Physics/include/Tsukino/Physics/SpringBone/SpringBonePhysics.hpp`
+
+| シグネチャ | 説明 |
+|---|---|
+| `SpringBoneChain BuildChainFromHierarchy(const std::string &name, u32 anchorNodeIndex, const std::vector< GraphicsCommon::NodeData > &nodes, const std::unordered_set< std::string > &excludeNodeNames, u32 maxDepth, const SpringBoneSettings &settings)` | ノード階層をDFSで辿り、揺れ物チェーンを構築する |
+| `SpringBoneChain BuildChainFromRoot(const std::string &name, u32 rootNodeIndex, const std::vector< GraphicsCommon::NodeData > &nodes, const std::unordered_set< std::string > &excludeNodeNames, u32 maxDepth, const SpringBoneSettings &settings)` | 特定の1本のボーン(rootNodeIndex)を起点にチェーンを構築する。 その親を「動かないアンカー」として自動的に使うが、 アンカーの他の子（兄弟ボーン）は一切巻き込まない。 胸のように「特定の1本だけを、共通の親を基準に揺らしたい」 ケース向け（BuildChainFromHierarchyだと親の子を全部拾ってしまう）。 |
+| `void InitializeChain(SpringBoneChain &chain, const std::vector< WorldPose > &animatedPoses)` | 現在の姿勢でシミュレーション状態を初期化する （SpringBoneComponent登録直後、物理を破綻させないために Update()の前に一度呼ぶ） |
+| `void UpdateChain(SpringBoneChain &chain, float deltaTime, const std::vector< WorldPose > &animatedPoses)` | 1チェーン分の物理を1フレーム進める |
+
+### Tsukino::Physics — `Tsukino.Physics/include/Tsukino/Physics/PhysicsMath.hpp`
+
+| シグネチャ | 説明 |
+|---|---|
+| `void ComposeTransform(const hlslpp::float3 &position, const hlslpp::quaternion &rotation, const hlslpp::float3 &offsetPosition, const hlslpp::quaternion &offsetRotation, hlslpp::float3 &outPosition, hlslpp::quaternion &outRotation)` | 親の姿勢へローカルオフセットを合成した姿勢を求めます。 |
+
+### Tsukino::Physics — `Tsukino.Physics/include/Tsukino/Physics/PhysicsTypes.hpp`
+
+| シグネチャ | 説明 |
+|---|---|
+| `DofMask operator&(DofMask lhs, DofMask rhs)` |  |
+| `DofMask & operator&=(DofMask &lhs, DofMask rhs)` |  |
+| `DofMask operator\|(DofMask lhs, DofMask rhs)` |  |
+| `DofMask operator~(DofMask mask)` |  |
+
+### Tsukino::Physics — `Tsukino.Physics/include/Tsukino/Physics/SpringBone/SpringBoneMath.hpp`
+
+| シグネチャ | 説明 |
+|---|---|
+| `hlslpp::float3 NLerpDirection(const hlslpp::float3 &from, const hlslpp::float3 &to, float t)` | 方向ベクトルの簡易球面補間（角度制限のクランプ用途） |
+| `hlslpp::quaternion QuatFromToRotation(const hlslpp::float3 &from, const hlslpp::float3 &to)` | 正規化済み2ベクトル間の最短回転クォータニオンを求める |
+
+## 名前空間の定数・変数
+
+### Tsukino::Physics — `Tsukino.Physics/include/Tsukino/Physics/BodyHandle.hpp`
+
+| シグネチャ | 説明 |
+|---|---|
+| `uint32_t cInvalidHandleValue = 0xffffffffu` | 無効なハンドルを表す値（Jolt の cInvalidBodyID と同一） |

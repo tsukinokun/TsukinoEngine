@@ -48,3 +48,15 @@
   - filePath, sound, volume, bus
 - **Tsukino::Audio::AudioManager** — `Tsukino.Audio/include/Tsukino/Audio/AudioManager.hpp`
   - AudioManager(), ~AudioManager(), AudioManager(), operator=(), AudioManager(), operator=(), Initialize(), Update(), Play(), Prepare(), IsPrepared(), Stop(), StopAll(), Suspend(), Resume(), IsPlaying(), SetVolume(), SetMasterVolume(), GetMasterVolume(), SetBusVolume(), GetBusVolume()
+
+## 型の別名
+
+- `using Tsukino::Audio::AudioBus = u8` — `Tsukino.Audio/include/Tsukino/Audio/AudioManager.hpp`
+
+## 名前空間の定数・変数
+
+### Tsukino::Audio — `Tsukino.Audio/include/Tsukino/Audio/AudioManager.hpp`
+
+| シグネチャ | 説明 |
+|---|---|
+| `AudioBus kAudioBusCount = 8` | バスの数 |
