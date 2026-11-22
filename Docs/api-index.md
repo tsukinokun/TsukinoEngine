@@ -297,6 +297,9 @@
 - `Tsukino::BuiltIn::ECS::MotionBlurSystem` — `Tsukino.EngineIntegration/include/Tsukino/EngineIntegration/ECS/System/MotionBlurSystem.hpp`
 - `Tsukino::BuiltIn::ECS::MotionVectorSnapshotSystem` — `Tsukino.EngineIntegration/include/Tsukino/EngineIntegration/ECS/System/MotionVectorSnapshotSystem.hpp`
 - `Tsukino::BuiltIn::ECS::PhysicsSystem` — `Tsukino.EngineIntegration/include/Tsukino/EngineIntegration/ECS/System/PhysicsSystem.hpp`
+- `Tsukino::BuiltIn::ECS::ScriptComponent` — `Tsukino.EngineIntegration/include/Tsukino/EngineIntegration/ECS/Script/ScriptComponent.hpp`
+- `Tsukino::BuiltIn::ECS::ScriptContext` — `Tsukino.EngineIntegration/include/Tsukino/EngineIntegration/ECS/Script/ScriptComponent.hpp`
+- `Tsukino::BuiltIn::ECS::ScriptSystem` — `Tsukino.EngineIntegration/include/Tsukino/EngineIntegration/ECS/System/ScriptSystem.hpp`
 - `Tsukino::BuiltIn::ECS::ScrollViewSystem` — `Tsukino.EngineIntegration/include/Tsukino/EngineIntegration/ECS/System/ScrollViewSystem.hpp`
 - `Tsukino::BuiltIn::ECS::SkyAtmosphereSystem` — `Tsukino.EngineIntegration/include/Tsukino/EngineIntegration/ECS/System/SkyAtmosphereSystem.hpp`
 - `Tsukino::BuiltIn::ECS::SphereColorGradeSystem` — `Tsukino.EngineIntegration/include/Tsukino/EngineIntegration/ECS/System/SphereColorGradeSystem.hpp`
@@ -316,8 +319,11 @@
 - `Tsukino::EngineIntegration::GameSceneBase` — `Tsukino.EngineIntegration/include/Tsukino/EngineIntegration/Scene/GameSceneBase.hpp`
 - `Tsukino::EngineIntegration::GameSceneManager` — `Tsukino.EngineIntegration/include/Tsukino/EngineIntegration/Scene/GameSceneManager.hpp`
 - `Tsukino::EngineIntegration::RendererPhysicsDebugDraw` — `Tsukino.EngineIntegration/include/Tsukino/EngineIntegration/Physics/RendererPhysicsDebugDraw.hpp`
+- `Tsukino::EngineIntegration::PhysicsBody`（列挙型）— `Tsukino.EngineIntegration/include/Tsukino/EngineIntegration/Scene/SceneHelpers.hpp`
+- `Tsukino::EngineIntegration::PrimitiveShape`（列挙型）— `Tsukino.EngineIntegration/include/Tsukino/EngineIntegration/Scene/SceneHelpers.hpp`
 - `Tsukino::BuiltIn::ECS::DirectionalLightSystem`（型の別名）— `Tsukino.EngineIntegration/include/Tsukino/EngineIntegration/ECS/System/LightSystem.hpp`
 - `Tsukino::BuiltIn::ECS::` の関数 ResolveBoneNodeIndex() — `Tsukino.EngineIntegration/include/Tsukino/EngineIntegration/ECS/BoneLookup.hpp`
+- `Tsukino::EngineIntegration::` の関数 AddCamera(), AddDefaultSystems(), AddDirectionalLight(), AttachPrimitive(), CreatePrimitive(), GetEngineContext(), LoadAsset(), PlayAudio() — `Tsukino.EngineIntegration/include/Tsukino/EngineIntegration/Scene/SceneHelpers.hpp`
 
 ## Tsukino.GraphicsCommon — [`api/Tsukino.GraphicsCommon.md`](api/Tsukino.GraphicsCommon.md)
 
