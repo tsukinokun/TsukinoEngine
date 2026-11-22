@@ -1,0 +1,6 @@
+{
+  "Entities": [
+    { "key": "Center", "value": "Tsukino.Sandbox/Assets/Prefabs/Recipe/Center.json" },
+    { "key": "Orbiter", "value": "Tsukino.Sandbox/Assets/Prefabs/Recipe/Orbiter.json" }
+  ]
+}

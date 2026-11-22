@@ -1,0 +1,5 @@
+{
+  "Components": [
+    { "key": "TransformComponent", "value": "Tsukino.Sandbox/Assets/Prefabs/Recipe/Center_Transform.json" }
+  ]
+}
