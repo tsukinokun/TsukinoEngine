@@ -242,3 +242,107 @@
   - ~TonemapPass(), Initialize(), Execute()
 - **Tsukino::Renderer::UniformBlock** — `Tsukino.Renderer/internal/Tsukino/Renderer/Bgfx/UniformBlock.hpp`
   - kVec4Count, UniformBlock(), UniformBlock(), operator=(), ~UniformBlock(), Create(), Destroy(), Set(), IsValid()
+
+## 列挙型
+
+- **Tsukino::Renderer::BlendMode** — `Tsukino.Renderer/include/Tsukino/Renderer/BlendMode.hpp` — パイプラインのブレンドモード
+  - `Opaque` — 不透明（デフォルト）
+  - `Alpha` — アルファブレンド（半透明）
+  - `Additive` — 加算合成
+  - `DepthOnly` — 色を書かず深度のみ埋める（半透明モデルの自己重なり対策用の事前パス）
+- **Tsukino::Renderer::CullMode** — `Tsukino.Renderer/include/Tsukino/Renderer/CullMode.hpp` — 面カリングの種類を表す列挙型です。
+  - `None`
+  - `Back`
+  - `Front`
+- **Tsukino::Renderer::DepthMode** — `Tsukino.Renderer/include/Tsukino/Renderer/DepthMode.hpp` — 深度モードの列挙型
+  - `None`
+  - `ReadWrite`
+  - `ReadOnly`
+  - `EqualReadOnly`
+- **Tsukino::Renderer::DrawKind** — `Tsukino.Renderer/include/Tsukino/Renderer/DrawCommand.hpp` — 描画コマンドが何を描くか
+  - `Mesh`
+  - `Sprites`
+  - `Lines`
+- **Tsukino::Renderer::GpuPass** — `Tsukino.Renderer/include/Tsukino/Renderer/GpuTiming.hpp`
+  - `Shadow` — シャドウマップ
+  - `Sky` — スカイ（大気散乱）
+  - `GBuffer` — GBuffer（不透明3Dモデル）
+  - `Lighting` — ディファードライティング
+  - `World` — フォワード不透明と環境パーティクル
+  - `Fog` — フォグ
+  - `ColorGrade` — 球形の色調補正
+  - `Transparent` — 半透明（深度事前パスを含む）
+  - `MotionBlur` — モーションブラー
+  - `Bloom` — ブルーム
+  - `Tonemap` — トーンマップ
+  - `Effects` — エフェクト（IPostWorldPass）
+  - `Overlay` — UI・フォント・画面上の3Dモデル
+  - `Count`
+- **Tsukino::Renderer::GraphicsDevicePreference** — `Tsukino.Renderer/include/Tsukino/Renderer/RenderQuality.hpp` — グラフィックスデバイスの選び方です。
+  - `Auto` — 高性能なハードウェアを優先し、作れなければ WARP（ソフトウェア描画）へ落とす
+  - `ForceSoftware` — 最初から WARP で作る（GPU が無い環境の確認用）
+- **Tsukino::Renderer::MaterialTextureSlot** — `Tsukino.Renderer/include/Tsukino/Renderer/ShaderSlots.hpp` — マテリアルが持つテクスチャの枠
+  - `Albedo = 0` — アルベド
+  - `Normal` — 法線マップ
+  - `MetallicRoughness` — メタリック・ラフネス（G = roughness、B = metallic）
+  - `Emissive` — 発光
+  - `AO` — アンビエントオクルージョン
+  - `Count` — 枠の数
+- **Tsukino::Renderer::RenderPass** — `Tsukino.Renderer/include/Tsukino/Renderer/DrawCommand.hpp` — 描画パス
+  - `GBuffer`
+  - `World`
+  - `TransparentDepth`
+  - `Transparent`
+  - `Overlay`
+- **Tsukino::Renderer::RenderQualityLevel** — `Tsukino.Renderer/include/Tsukino/Renderer/RenderQuality.hpp` — 描画品質の段階です（上が高品質）。
+  - `High` — 等倍解像度・全カスケード・全段ブルーム（品質を下げない）
+  - `Medium` — 影とブルームを少し抑える
+  - `Low` — 内部解像度を下げ、影を簡略化する（内蔵 GPU 向け）
+  - `Minimum` — ブルームを切り、影を最小にする（ソフトウェア描画向け）
+- **Tsukino::Renderer::RenderResources::Gpu::BufferKind** — `Tsukino.Renderer/internal/Tsukino/Renderer/Bgfx/RenderResourcesGpu.hpp` — バッファの種類
+  - `None`
+  - `Instance`
+  - `UserConstant`
+- **Tsukino::Renderer::UserUniformSlot** — `Tsukino.Renderer/include/Tsukino/Renderer/ShaderSlots.hpp` — ゲームが自前のシェーダーへ渡す定数の枠
+  - `User0 = 0` — 1本目（u_user0）
+  - `User1` — 2本目（u_user1）
+  - `Count` — 枠の数
+
+## 型の別名
+
+- `using Tsukino::Renderer::BufferHandle = GpuHandle<BufferHandleTag>` — `Tsukino.Renderer/include/Tsukino/Renderer/GpuHandles.hpp` — バッファ（インスタンス・ゲーム定義の定数）を指すハンドル
+- `using Tsukino::Renderer::PipelineKey = std::tuple<u64, u64, Tsukino::GraphicsCommon::VertexFormat, DepthMode, BlendMode, CullMode>` — `Tsukino.Renderer/include/Tsukino/Renderer/PipelineFactory.hpp`
+- `using Tsukino::Renderer::TextureHandle = GpuHandle<TextureHandleTag>` — `Tsukino.Renderer/include/Tsukino/Renderer/GpuHandles.hpp` — テクスチャを指すハンドル
+
+## 名前空間の関数
+
+### Tsukino::Renderer — `Tsukino.Renderer/include/Tsukino/Renderer/GpuTiming.hpp`
+
+| シグネチャ | 説明 |
+|---|---|
+| `const char * GetGpuPassName(GpuPass pass) noexcept` |  |
+
+### Tsukino::Renderer — `Tsukino.Renderer/include/Tsukino/Renderer/RenderQuality.hpp`
+
+| シグネチャ | 説明 |
+|---|---|
+| `const char * GetRenderQualityName(RenderQualityLevel level) noexcept` |  |
+| `RenderQualitySettings GetRenderQualityPreset(RenderQualityLevel level) noexcept` |  |
+| `RenderQualityLevel RecommendRenderQuality(const GraphicsAdapterInfo &adapter) noexcept` |  |
+
+## 名前空間の定数・変数
+
+### Tsukino::Renderer — `Tsukino.Renderer/include/Tsukino/Renderer/ConstantBuffer.hpp`
+
+| シグネチャ | 説明 |
+|---|---|
+| `unsigned int MAX_LIGHTS = 64` | 同時に扱える点光源・スポットライトの上限数 |
+| `unsigned int kMaxAmbientParticles = 65536` |  |
+| `int kMotionBlurMaxSamples = 16` | モーションブラーのサンプル数上限（MotionBlur.ps.sc と一致させること） |
+| `unsigned int kShadowCascadeCount = 4` |  |
+
+### Tsukino::Renderer — `Tsukino.Renderer/include/Tsukino/Renderer/GpuTiming.hpp`
+
+| シグネチャ | 説明 |
+|---|---|
+| `std::size_t kGpuPassCount = static_cast<std::size_t>(GpuPass::Count)` | 計測するパスの数 |

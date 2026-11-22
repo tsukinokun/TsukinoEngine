@@ -271,3 +271,310 @@
   - Attach(), Begin(), End(), IsActive(), HandleEvent(), GetText(), SetText(), GetComposition(), SetCandidatePosition()
 - **Tsukino::Input::TouchPoint** — `Tsukino.Core/include/Tsukino/Core/Input/InputSystem.hpp`
   - id, x, y, began, ended
+
+## 列挙型
+
+- **Tsukino::Core::DebugTools::ProfileSlot** — `Tsukino.Core/include/Tsukino/Core/DebugTools/FrameProfiler.hpp` — フレーム内の計測区間
+  - `Frame = 0` — メインループ1周（アプリのメインループが計測するdeltaTime）
+  - `Update` — EngineAPI::Update（＝全システムのUpdate）
+  - `Render` — EngineAPI::Render（＝描画コマンドのサブミット）
+  - `Count`
+- **Tsukino::Core::Math::Easing::EaseType** — `Tsukino.Core/include/Tsukino/Core/Math/Easing.hpp` — イージングの種類です。
+  - `Linear`
+  - `InQuad`
+  - `OutQuad`
+  - `InOutQuad`
+  - `InCubic`
+  - `OutCubic`
+  - `InOutCubic`
+  - `OutBack`
+  - `OutElastic`
+  - `OutBounce`
+  - `InOutSine`
+  - `Punch`
+- **Tsukino::Core::Window::AppLifecycle** — `Tsukino.Core/include/Tsukino/Core/Window.hpp` — アプリの状態の変化（主にスマホ）です。
+  - `WillEnterBackground` — 裏へ回る（スマホのホーム画面へ戻ったときなど）。音と描画を止める
+  - `DidEnterForeground` — 表へ戻った。描画先を付け直して再開する
+  - `LowMemory` — OS からメモリが足りないと知らされた
+- **Tsukino::Core::Window::UpdateMode** — `Tsukino.Core/include/Tsukino/Core/Window.hpp` — ウィンドウ更新モードの列挙型
+  - `ActiveOnly`
+  - `AlwaysResident`
+- **Tsukino::Core::Window::WindowStyle** — `Tsukino.Core/include/Tsukino/Core/Window.hpp` — ウィンドウスタイルの列挙型
+  - `Default`
+  - `Popup`
+  - `ClickThrough`
+- **Tsukino::Input::GamepadButton** — `Tsukino.Core/include/Tsukino/Core/Input/GamepadCodes.hpp` — ゲームパッドのボタンの列挙型です。
+  - `DPadUp = 0`
+  - `DPadDown`
+  - `DPadLeft`
+  - `DPadRight`
+  - `Start`
+  - `Back`
+  - `LeftThumb`
+  - `RightThumb`
+  - `LeftShoulder`
+  - `RightShoulder`
+  - `A`
+  - `B`
+  - `X`
+  - `Y`
+  - `LeftTrigger`
+  - `RightTrigger`
+  - `LeftStickUp`
+  - `LeftStickDown`
+  - `LeftStickLeft`
+  - `LeftStickRight`
+  - `Count`
+- **Tsukino::Input::GamepadStick** — `Tsukino.Core/include/Tsukino/Core/Input/GamepadCodes.hpp` — スティックの種類の列挙型です。
+  - `None = 0`
+  - `Left`
+  - `Right`
+- **Tsukino::Input::InputDevice** — `Tsukino.Core/include/Tsukino/Core/Input/GamepadCodes.hpp` — 入力機器の種類の列挙型です。
+  - `KeyboardMouse = 0`
+  - `Gamepad`
+- **Tsukino::Input::InputEventType** — `Tsukino.Core/include/Tsukino/Core/Input/InputEvent.hpp` — 入力の出来事の種類です。
+  - `KeyDown`
+  - `KeyUp`
+  - `MouseMove`
+  - `MouseWheel`
+  - `TextInput`
+  - `TextEditing`
+  - `TouchDown`
+  - `TouchMove`
+  - `TouchUp`
+- **Tsukino::Input::KeyCode** — `Tsukino.Core/include/Tsukino/Core/Input/KeyCodes.hpp` — キーコードの列挙型
+  - `None = 0x00`
+  - `LButton = 0x01`
+  - `RButton = 0x02`
+  - `MButton = 0x04`
+  - `Backspace = 0x08`
+  - `Tab = 0x09`
+  - `Enter = 0x0D`
+  - `Shift = 0x10`
+  - `Control = 0x11`
+  - `Alt = 0x12`
+  - `Escape = 0x1B`
+  - `Space = 0x20`
+  - `PageUp = 0x21`
+  - `PageDown = 0x22`
+  - `End = 0x23`
+  - `Home = 0x24`
+  - `Left = 0x25`
+  - `Up = 0x26`
+  - `Right = 0x27`
+  - `Down = 0x28`
+  - `D0 = 0x30`
+  - `D1`
+  - `D2`
+  - `D3`
+  - `D4`
+  - `D5`
+  - `D6`
+  - `D7`
+  - `D8`
+  - `D9`
+  - `A = 0x41`
+  - `B`
+  - `C`
+  - `D`
+  - `E`
+  - `F`
+  - `G`
+  - `H`
+  - `I`
+  - `J`
+  - `K`
+  - `L`
+  - `M`
+  - `N`
+  - `O`
+  - `P`
+  - `Q`
+  - `R`
+  - `S`
+  - `T`
+  - `U`
+  - `V`
+  - `W`
+  - `X`
+  - `Y`
+  - `Z`
+  - `F1 = 0x70`
+  - `F2`
+  - `F3`
+  - `F4`
+  - `F5`
+  - `F6`
+  - `F7`
+  - `F8`
+  - `F9`
+  - `F10`
+  - `F11`
+  - `F12`
+- **Tsukino::Input::MouseButton** — `Tsukino.Core/include/Tsukino/Core/Input/KeyCodes.hpp` — マウスボタンの列挙型
+  - `Left = 0`
+  - `Right = 1`
+  - `Middle = 2`
+  - `Max = 3`
+
+## 型の別名
+
+- `using Tsukino::i16 = int16_t` — `Tsukino.Core/include/Tsukino/Core/typedef.hpp`
+- `using Tsukino::i32 = int32_t` — `Tsukino.Core/include/Tsukino/Core/typedef.hpp`
+- `using Tsukino::i64 = int64_t` — `Tsukino.Core/include/Tsukino/Core/typedef.hpp`
+- `using Tsukino::i8 = int8_t` — `Tsukino.Core/include/Tsukino/Core/typedef.hpp`
+- `using Tsukino::u16 = uint16_t` — `Tsukino.Core/include/Tsukino/Core/typedef.hpp`
+- `using Tsukino::u32 = uint32_t` — `Tsukino.Core/include/Tsukino/Core/typedef.hpp`
+- `using Tsukino::u64 = uint64_t` — `Tsukino.Core/include/Tsukino/Core/typedef.hpp`
+- `using Tsukino::u8 = uint8_t` — `Tsukino.Core/include/Tsukino/Core/typedef.hpp`
+- `using Tsukino::Core::Ref = std::shared_ptr<T>` — `Tsukino.Core/include/Tsukino/Core/Memory.hpp`
+- `using Tsukino::ECS::Entity = entt::entity` — `Tsukino.Core/include/Tsukino/Core/ECS/Entity/Entity.hpp`
+
+## 名前空間の関数
+
+### Tsukino::Core::Math::Color — `Tsukino.Core/include/Tsukino/Core/Math/Color.hpp`
+
+| シグネチャ | 説明 |
+|---|---|
+| `hlslpp::float4 FromSrgb8(int r, int g, int b, float alpha=1.0f)` |  |
+| `float LinearToSrgb(float c)` |  |
+| `hlslpp::float4 LinearToSrgb(const hlslpp::float4 &color)` |  |
+| `float SrgbToLinear(float c)` |  |
+| `hlslpp::float3 SrgbToLinear(const hlslpp::float3 &color)` |  |
+| `hlslpp::float4 SrgbToLinear(const hlslpp::float4 &color)` |  |
+
+### Tsukino::Core::Math::Easing — `Tsukino.Core/include/Tsukino/Core/Math/Easing.hpp`
+
+| シグネチャ | 説明 |
+|---|---|
+| `float Clamp01(float t)` |  |
+| `double Damp(double current, double target, float speed, float deltaTime)` |  |
+| `float Damp(float current, float target, float speed, float deltaTime)` |  |
+| `float Evaluate(EaseType type, float t)` |  |
+| `float InCubic(float t)` |  |
+| `float InOutCubic(float t)` |  |
+| `float InOutQuad(float t)` |  |
+| `float InOutSine(float t)` |  |
+| `float InQuad(float t)` |  |
+| `float Linear(float t)` |  |
+| `float OutBack(float t, float overshoot=kDefaultOvershoot)` |  |
+| `float OutBounce(float t)` |  |
+| `float OutCubic(float t)` |  |
+| `float OutElastic(float t)` |  |
+| `float OutQuad(float t)` |  |
+| `float Punch(float t)` |  |
+
+### Tsukino::Core::Math::Spring — `Tsukino.Core/include/Tsukino/Core/Math/Spring.hpp`
+
+| シグネチャ | 説明 |
+|---|---|
+| `template <typename T> void Step(T &position, T &velocity, const T &target, float frequency, float damping, float deltaTime)` |  |
+
+### Tsukino::Core::Math — `Tsukino.Core/include/Tsukino/Core/Math/MathHelper.hpp`
+
+| シグネチャ | 説明 |
+|---|---|
+| `bool Intersects(const hlslpp::float2 &min1, const hlslpp::float2 &size1, const hlslpp::float2 &min2, const hlslpp::float2 &size2)` | 2つの矩形（AABB）が重なっているかを判定する |
+| `bool IsPointInRect(const hlslpp::float2 &point, const hlslpp::float2 &center, const hlslpp::float2 &size)` | 中心点とサイズから、点が矩形内にあるか判定する関数 |
+| `hlslpp::quaternion SlerpShortestPath(const hlslpp::quaternion &q0, const hlslpp::quaternion &q1, float t)` | 最短経路を保証したslerp |
+| `float ToDegrees(float radians)` | 弧度法を度数法に変換する関数 |
+| `float ToRadians(float degrees)` | 度数法を弧度法に変換する関数 |
+
+### Tsukino::Core::Utf8 — `Tsukino.Core/include/Tsukino/Core/Utf8.hpp`
+
+| シグネチャ | 説明 |
+|---|---|
+| `void Append(std::string &text, char32_t codepoint)` | 1文字を UTF-8 にして末尾へ足します。 |
+| `std::size_t CountCodepoints(std::string_view text) noexcept` | 文字数（コードポイントの数）を数えます。 |
+| `char32_t DecodeNext(std::string_view text, std::size_t &index) noexcept` | 1文字を読み、位置を次の文字へ進めます。 |
+| `void PopBack(std::string &text) noexcept` | 末尾の1文字を消します（文字の途中で切らない）。 |
+
+### Tsukino::Core — `Tsukino.Core/include/Tsukino/Core/Memory.hpp`
+
+| シグネチャ | 説明 |
+|---|---|
+| `template <typename T, typename... Args> Ref< T > CreateRef(Args &&... args)` | Ref<T> を作成する関数 |
+
+### Tsukino::ECS — `Tsukino.Core/include/Tsukino/Core/ECS/EntityRef/EntityRef.hpp`
+
+| シグネチャ | 説明 |
+|---|---|
+| `template <class Archive> void load_minimal(const Archive &, EntityRef &ref, const std::string &value)` | cereal用：読み込み処理（localNameのみを読み込む。entityの解決はEntityRefResolverArchiveが行う） |
+| `template <class Archive> std::string save_minimal(const Archive &, const EntityRef &ref)` | cereal用：保存処理（localNameのみを書き出す） |
+
+### Tsukino::IO::HotReload — `Tsukino.Core/include/Tsukino/Core/IO/HotReload.hpp`
+
+| シグネチャ | 説明 |
+|---|---|
+| `void Poll()` |  |
+| `void SetPaused(bool paused)` |  |
+| `void Watch(const Tsukino::Core::Path &path, std::function< bool()> reload)` |  |
+
+### Tsukino::IO — `Tsukino.Core/include/Tsukino/Core/IO/CerealOptional.hpp`
+
+| シグネチャ | 説明 |
+|---|---|
+| `template <class Archive, class T> bool LoadOptional(Archive &archive, const char *name, T &value)` |  |
+
+### Tsukino::IO — `Tsukino.Core/include/Tsukino/Core/IO/JsonFile.hpp`
+
+| シグネチャ | 説明 |
+|---|---|
+| `template <class T> bool TryLoadJson(const std::string &path, const char *key, T &out)` |  |
+| `template <class T> bool TrySaveJson(const std::string &path, const char *key, const T &value)` |  |
+
+### Tsukino::Input — `Tsukino.Core/include/Tsukino/Core/Input/InputActionMap.hpp`
+
+| シグネチャ | 説明 |
+|---|---|
+| `std::string GetBindingDisplayName(const InputBinding &binding, InputDevice device)` | 割り当てを画面に出すときの表記を得ます。 |
+| `bool IsBindingDown(const InputSystem &input, const InputBinding &binding)` | 割り当てのキーまたはボタンが押されているかを返します（押しっぱなし）。 |
+| `bool IsBindingPressed(const InputSystem &input, const InputBinding &binding)` | 割り当てのキーまたはボタンが押された瞬間かを返します。 |
+| `bool IsBindingReleased(const InputSystem &input, const InputBinding &binding)` | 割り当てのキーまたはボタンが離された瞬間かを返します。 |
+| `hlslpp::float2 ReadAxis(const InputSystem &input, const InputAxisBinding &binding)` | 2軸の入力を読みます。 |
+
+### Tsukino::Input — `Tsukino.Core/include/Tsukino/Core/Input/InputNames.hpp`
+
+| シグネチャ | 説明 |
+|---|---|
+| `GamepadButton GamepadButtonFromName(std::string_view name)` | 設定ファイルの綴りからゲームパッドのボタンを得ます。 |
+| `const char * GetGamepadButtonDisplayName(GamepadButton button)` | ゲームパッドのボタンを画面に出すときの表記を得ます。 |
+| `const char * GetKeyDisplayName(KeyCode code)` | キーを画面に出すときの表記を得ます。 |
+| `KeyCode KeyCodeFromName(std::string_view name)` | 設定ファイルの綴りからキーコードを得ます。 |
+
+## 名前空間の定数・変数
+
+### Tsukino::Core::Math::Easing — `Tsukino.Core/include/Tsukino/Core/Math/Easing.hpp`
+
+| シグネチャ | 説明 |
+|---|---|
+| `float kDefaultOvershoot = 1.70158f` | OutBack の既定の行き過ぎの強さです。 |
+
+### Tsukino::Core::Math::Spring — `Tsukino.Core/include/Tsukino/Core/Math/Spring.hpp`
+
+| シグネチャ | 説明 |
+|---|---|
+| `float kTwoPi = 6.28318531f` | 円周率の2倍（Hz から角周波数への変換に使う） |
+
+### Tsukino::Core::Math — `Tsukino.Core/include/Tsukino/Core/Math/MathHelper.hpp`
+
+| シグネチャ | 説明 |
+|---|---|
+| `float Deg2Rad = PI / 180.0f` |  |
+| `float HALF_PI = PI * 0.5f` |  |
+| `float PI = 3.1415926535f` |  |
+| `float Rad2Deg = 180.0f / PI` |  |
+| `float TWO_PI = PI * 2.0f` |  |
+
+### Tsukino::Core::Utf8 — `Tsukino.Core/include/Tsukino/Core/Utf8.hpp`
+
+| シグネチャ | 説明 |
+|---|---|
+| `char32_t kReplacementCharacter = 0xFFFD` | 読めなかったバイト列の代わりに返す文字（U+FFFD） |
+
+### Tsukino::Input — `Tsukino.Core/include/Tsukino/Core/Input/GamepadCodes.hpp`
+
+| シグネチャ | 説明 |
+|---|---|
+| `u32 kGamepadButtonCount = static_cast<u32>(GamepadButton::Count)` | ボタンの総数です。 |
+| `u32 kMaxGamepads = 4` | 同時に扱えるゲームパッドの最大数です（XInput の上限）。 |
