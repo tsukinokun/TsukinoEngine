@@ -1,0 +1,20 @@
+{
+  "Entities": {
+    "Anchor": {
+      "Components": {
+        "TransformComponent": {
+          "position": { "x": 1.0, "y": 2.0, "z": 3.0 },
+          "rotation": { "x": 0.0, "y": 0.0, "z": 0.0, "w": 1.0 },
+          "scale": { "x": 1.0, "y": 1.0, "z": 1.0 }
+        }
+      }
+    },
+    "Linker": {
+      "Components": {
+        "TransformComponent": {},
+        "TestLinkComponent": { "target": "#Anchor" }
+      }
+    },
+    "FromFile": "Tsukino.Sandbox/Assets/Prefabs/EntityRefTest/Anchor/Prefab.json"
+  }
+}

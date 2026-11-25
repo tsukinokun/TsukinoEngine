@@ -15,13 +15,17 @@
 
 #include <cereal/cereal.hpp>
 #include <cereal/archives/json.hpp>
+#include <cereal/external/rapidjson/stringbuffer.h>
+#include <cereal/external/rapidjson/writer.h>
 #include <cereal/types/map.hpp>
 #include <entt/entt.hpp>
 
+#include <exception>
 #include <string>
 #include <sstream>
 #include <unordered_map>
 #include <functional>
+#include <utility>
 #include <vector>
 
 // 名前空間 : Tsukino::Engine::ECS::Prefab
@@ -30,13 +34,27 @@ namespace Tsukino::Engine::ECS::Prefab {
     //--------------------------------------------------------------
     //! @class  PrefabFactory
     //! @brief  データ駆動のためのPrefabロード＆エンティティ生成システム
+    //! @note   JSON は2つの書き方を読める。
+    //!         - 分割形式：Prefab は {"Components":[{"key":"型名","value":"コンポーネントのJSONパス"}, …]}、
+    //!           グループは {"Entities":[{"key":"名前","value":"PrefabのJSONパス"}, …]}（CaptureEntity もこの形で書く）
+    //!         - 1ファイル形式：Prefab は {"Components":{"型名":{中身}, …}}、
+    //!           グループは {"Entities":{"名前":{"Components":{…}}, …}}。値に文字列を書けば分割形式と同じくパスとして読む
     //--------------------------------------------------------------
     class PrefabFactory {
     public:
         //--------------------------------------------------------------
-        // 動的ロード関数の型定義 (ラッパーレジストリ、ターゲットエンティティ、コンポーネント単体のJSONパス)
+        //! @struct ComponentSource
+        //! @brief  コンポーネント1つ分の読み込み元（ファイルか、Prefab に直接書かれた中身）
         //--------------------------------------------------------------
-        using ComponentLoader = std::function<void(Tsukino::ECS::Registry&, entt::entity, const std::string&)>;
+        struct ComponentSource {
+            std::string path;          // コンポーネント単体の JSON ファイル（"null" か空なら初期値のまま）
+            std::string inlineJson;    // 1ファイル形式で直接書かれた中身（{"型名": {…}} の形）。空でなければこちらを読む
+        };
+
+        //--------------------------------------------------------------
+        // 動的ロード関数の型定義 (ラッパーレジストリ、ターゲットエンティティ、コンポーネントの読み込み元)
+        //--------------------------------------------------------------
+        using ComponentLoader = std::function<void(Tsukino::ECS::Registry&, entt::entity, const ComponentSource&)>;
 
         //--------------------------------------------------------------
         // 動的セーブ関数の型定義（コンポーネントが付いていればJSONへ書き出し、書き出し先パスを返す。付いていなければfalse）
@@ -54,6 +72,7 @@ namespace Tsukino::Engine::ECS::Prefab {
         struct GroupEntry {
             std::string name;          // バッチ内でEntityRefから参照するための名前
             std::string prefabPath;    // Prefab（目次）JSONパス
+            std::string prefabJson;    // 1ファイル形式で直接書かれた Prefab の中身（{"Components": …}）。空でなければ prefabPath の代わりに使う
         };
 
         //--------------------------------------------------------------
@@ -86,7 +105,7 @@ namespace Tsukino::Engine::ECS::Prefab {
         //--------------------------------------------------------------
         template <typename ComponentType>
         void RegisterComponent(const std::string& typeName) {
-            m_loaders[typeName] = [typeName](Tsukino::ECS::Registry& registry, entt::entity entity, const std::string& compJsonPath) {
+            m_loaders[typeName] = [typeName](Tsukino::ECS::Registry& registry, entt::entity entity, const ComponentSource& source) {
                 //--------------------------------------------------------------
                 // まずはアタッチ（これで初期値が入る）
                 //--------------------------------------------------------------
@@ -95,9 +114,10 @@ namespace Tsukino::Engine::ECS::Prefab {
                 }
 
                 //--------------------------------------------------------------
-                // "null" か空ならロードをスキップ
+                // 中身が無い（パスが "null" か空で、直接書かれた中身も無い）ならロードをスキップ
                 //--------------------------------------------------------------
-                if(compJsonPath == "null" || compJsonPath.empty()) {
+                const bool isInline = !source.inlineJson.empty();
+                if(!isInline && (source.path == "null" || source.path.empty())) {
                     return;
                 }
 
@@ -112,11 +132,23 @@ namespace Tsukino::Engine::ECS::Prefab {
                 auto& component = registry.GetComponent<ComponentType>(entity);
                 if constexpr(cereal::traits::is_input_serializable<ComponentType, cereal::JSONInputArchive>::value) {
                     std::istringstream is;
-                    if(ReadJsonText(compJsonPath, is)) {
+                    if(isInline) {
+                        is.str(source.inlineJson);
+                    } else if(!ReadJsonText(source.path, is)) {
+                        Tsukino::Core::Log::Warn("Component JSON not found: " + source.path);
+                        return;
+                    }
+
+                    //--------------------------------------------------------------
+                    // load() が読む項目が JSON に無いと cereal は例外を投げる。
+                    // Prefab の書き間違いでゲームごと落ちないよう、どの型のどこが悪いかをログに出して続ける
+                    //--------------------------------------------------------------
+                    try {
                         cereal::JSONInputArchive archive(is);
                         archive(cereal::make_nvp(typeName, component));
-                    } else {
-                        Tsukino::Core::Log::Warn("Component JSON not found: " + compJsonPath);
+                    } catch(const std::exception& e) {
+                        Tsukino::Core::Log::Error("Failed to load " + typeName + " from " + (isInline ? std::string("the Prefab JSON") : source.path) +
+                                                  ": " + e.what() + " (every field read by load() must be written)");
                     }
                 }
             };
@@ -211,9 +243,11 @@ namespace Tsukino::Engine::ECS::Prefab {
             //--------------------------------------------------------------
             for(const auto& entry : entries) {
                 std::vector<std::string> typeNames;
-                entt::entity             entity = InstantiateInternal(entry.prefabPath, registry, &typeNames);
+                entt::entity             entity = entry.prefabJson.empty() ? InstantiateInternal(entry.prefabPath, registry, &typeNames)
+                                                                           : InstantiateFromText(entry.prefabJson, "'" + entry.name + "'", registry, &typeNames);
                 if(entity == entt::null) {
-                    Tsukino::Core::Log::Error("InstantiateGroup: failed to instantiate '" + entry.name + "' from " + entry.prefabPath);
+                    Tsukino::Core::Log::Error("InstantiateGroup: failed to instantiate '" + entry.name + "'" +
+                                              (entry.prefabJson.empty() ? " from " + entry.prefabPath : std::string()));
                     continue;
                 }
 
@@ -240,29 +274,41 @@ namespace Tsukino::Engine::ECS::Prefab {
         }
 
         //--------------------------------------------------------------
-        //! @brief     グループ定義JSON（"Entities": {名前: Prefabパス} のマップ）からバッチ生成を行う
+        //! @brief     グループ定義JSONからバッチ生成を行う
         //! @param     groupJsonPath [in] グループ定義JSONファイルパス
         //! @param     registry      [in] アタッチ先となるラッパーレジストリ
         //! @return    名前 -> 生成されたエンティティ の対応表
+        //! @note      "Entities" は分割形式（[{"key":名前,"value":Prefabパス}, …]）と
+        //!            1ファイル形式（{名前: Prefabの中身 か Prefabパス, …}）のどちらでもよい
         //--------------------------------------------------------------
         [[nodiscard]]
         PrefabInstance InstantiateGroup(const std::string& groupJsonPath, Tsukino::ECS::Registry& registry) {
-            std::map<std::string, std::string> entityList;
-            {
-                std::istringstream is;
-                if(!ReadJsonText(groupJsonPath, is)) {
-                    Tsukino::Core::Log::Error("Prefab group file not found: " + groupJsonPath);
-                    return {};
-                }
+            std::istringstream is;
+            if(!ReadJsonText(groupJsonPath, is)) {
+                Tsukino::Core::Log::Error("Prefab group file not found: " + groupJsonPath);
+                return {};
+            }
 
-                cereal::JSONInputArchive archive(is);
-                archive(cereal::make_nvp("Entities", entityList));
+            JsonDocument document;
+            if(!ParseJson(is.str(), groupJsonPath, document)) {
+                return {};
+            }
+            if(!document.HasMember("Entities")) {
+                Tsukino::Core::Log::Error("Prefab group has no \"Entities\": " + groupJsonPath);
+                return {};
             }
 
             std::vector<GroupEntry> entries;
-            entries.reserve(entityList.size());
-            for(const auto& [name, prefabPath] : entityList) {
-                entries.push_back(GroupEntry{name, prefabPath});
+            if(!ReadNamedEntries(document["Entities"], groupJsonPath, "Entities", [&entries, &groupJsonPath](const std::string& name, const JsonValue& value) {
+                   if(value.IsObject()) {
+                       entries.push_back(GroupEntry{name, std::string(), ToJsonText(value)});
+                   } else if(value.IsString()) {
+                       entries.push_back(GroupEntry{name, std::string(value.GetString(), value.GetStringLength()), std::string()});
+                   } else {
+                       Tsukino::Core::Log::Error("InstantiateGroup: '" + name + "' in " + groupJsonPath + " has no Prefab (null)");
+                   }
+               })) {
+                return {};
             }
 
             return InstantiateGroup(entries, registry);
@@ -371,27 +417,139 @@ namespace Tsukino::Engine::ECS::Prefab {
             return true;
         }
 
+        // cereal が同梱している rapidjson の型（cereal の JSON アーカイブと同じものを使う）
+        using JsonDocument = CEREAL_RAPIDJSON_NAMESPACE::Document;
+        using JsonValue    = CEREAL_RAPIDJSON_NAMESPACE::Value;
+
         //--------------------------------------------------------------
-        //! @brief     Instantiate/InstantiateGroup共通の内部実装
+        //! @brief     JSON の文字列をパースする
+        //! @param     text     [in]  JSON の文字列
+        //! @param     where    [in]  エラーに出す場所の名前（ファイルパスなど）
+        //! @param     document [out] パースした結果
+        //! @return    ルートがオブジェクトとして読めたら true（読めなければエラーをログへ出す）
+        //--------------------------------------------------------------
+        static bool ParseJson(const std::string& text, const std::string& where, JsonDocument& document) {
+            document.Parse(text.c_str(), text.size());
+            if(document.HasParseError()) {
+                Tsukino::Core::Log::Error("Invalid JSON in " + where + " (near byte " + std::to_string(document.GetErrorOffset()) + ")");
+                return false;
+            }
+            if(!document.IsObject()) {
+                Tsukino::Core::Log::Error("The root of " + where + " must be a JSON object");
+                return false;
+            }
+            return true;
+        }
+
+        //--------------------------------------------------------------
+        //! @brief     JSON の値を1行の文字列に戻す
+        //! @param     value [in] 値
+        //! @return    JSON の文字列
+        //--------------------------------------------------------------
+        static std::string ToJsonText(const JsonValue& value) {
+            CEREAL_RAPIDJSON_NAMESPACE::StringBuffer                                 buffer;
+            CEREAL_RAPIDJSON_NAMESPACE::Writer<CEREAL_RAPIDJSON_NAMESPACE::StringBuffer> writer(buffer);
+            value.Accept(writer);
+            return std::string(buffer.GetString(), buffer.GetSize());
+        }
+
+        //--------------------------------------------------------------
+        //! @brief     「名前 → 値」の並びを、分割形式・1ファイル形式のどちらからでも読む
+        //! @param     list     [in] "Components" か "Entities" の値
+        //! @param     where    [in] エラーに出す場所の名前
+        //! @param     listName [in] エラーに出す項目名
+        //! @param     visit    [in] 1件ごとに (名前, 値) で呼ぶ関数。値は文字列（パス）・オブジェクト（中身）・null のいずれか
+        //! @return    形が正しければ true（正しくなければエラーをログへ出す）
+        //! @note      分割形式は cereal が std::map を書き出す形（[{"key":…,"value":…}, …]）
+        //--------------------------------------------------------------
+        template <typename Visitor>
+        static bool ReadNamedEntries(const JsonValue& list, const std::string& where, const char* listName, Visitor&& visit) {
+            const auto isUsable = [](const JsonValue& value) { return value.IsString() || value.IsObject() || value.IsNull(); };
+
+            if(list.IsObject()) {
+                for(auto it = list.MemberBegin(); it != list.MemberEnd(); ++it) {
+                    if(!isUsable(it->value)) {
+                        Tsukino::Core::Log::Error(std::string("\"") + listName + "\" entry '" + it->name.GetString() + "' in " + where +
+                                                  " must be an object or a file path");
+                        return false;
+                    }
+                    visit(std::string(it->name.GetString(), it->name.GetStringLength()), it->value);
+                }
+                return true;
+            }
+
+            if(list.IsArray()) {
+                for(const JsonValue& element : list.GetArray()) {
+                    if(!element.IsObject() || !element.HasMember("key") || !element["key"].IsString() || !element.HasMember("value") ||
+                       !isUsable(element["value"])) {
+                        Tsukino::Core::Log::Error(std::string("\"") + listName + "\" in " + where + " must hold {\"key\": name, \"value\": …} entries");
+                        return false;
+                    }
+                    visit(std::string(element["key"].GetString(), element["key"].GetStringLength()), element["value"]);
+                }
+                return true;
+            }
+
+            Tsukino::Core::Log::Error(std::string("\"") + listName + "\" in " + where + " must be an object or an array");
+            return false;
+        }
+
+        //--------------------------------------------------------------
+        //! @brief     Instantiate/InstantiateGroup共通の内部実装（Prefab のファイルから作る）
         //! @param     prefabJsonPath  [in]  Prefab（目次）のJSONファイルパス
         //! @param     registry        [in]  アタッチ先となるラッパーレジストリ
         //! @param     outTypeNames    [out] 非null時、アタッチされたコンポーネントの型名一覧を書き出す
         //! @return    生成されたエンティティ（失敗時は entt::null）
         //--------------------------------------------------------------
         entt::entity InstantiateInternal(const std::string& prefabJsonPath, Tsukino::ECS::Registry& registry, std::vector<std::string>* outTypeNames) {
-            //--------------------------------------------------------------
-            // メタデータ（コンポーネント名とパスのマップ）をJSONから読み込む
-            //--------------------------------------------------------------
-            std::map<std::string, std::string> componentList;
-            {
-                std::istringstream is;
-                if(!ReadJsonText(prefabJsonPath, is)) {
-                    Tsukino::Core::Log::Error("Prefab file not found: " + prefabJsonPath);
-                    return entt::null;
-                }
+            std::istringstream is;
+            if(!ReadJsonText(prefabJsonPath, is)) {
+                Tsukino::Core::Log::Error("Prefab file not found: " + prefabJsonPath);
+                return entt::null;
+            }
+            return InstantiateFromText(is.str(), prefabJsonPath, registry, outTypeNames);
+        }
 
-                cereal::JSONInputArchive archive(is);
-                archive(cereal::make_nvp("Components", componentList));
+        //--------------------------------------------------------------
+        //! @brief     Prefab の中身（JSON の文字列）からエンティティを作る
+        //! @param     prefabJson   [in]  Prefab の JSON（{"Components": …}）
+        //! @param     where        [in]  エラーに出す場所の名前
+        //! @param     registry     [in]  アタッチ先となるラッパーレジストリ
+        //! @param     outTypeNames [out] 非null時、アタッチされたコンポーネントの型名一覧を書き出す
+        //! @return    生成されたエンティティ（失敗時は entt::null）
+        //--------------------------------------------------------------
+        entt::entity InstantiateFromText(const std::string&        prefabJson,
+                                         const std::string&        where,
+                                         Tsukino::ECS::Registry&   registry,
+                                         std::vector<std::string>* outTypeNames) {
+            //--------------------------------------------------------------
+            // コンポーネントの一覧（型名 → 読み込み元）をJSONから読み込む
+            //--------------------------------------------------------------
+            JsonDocument document;
+            if(!ParseJson(prefabJson, where, document)) {
+                return entt::null;
+            }
+            if(!document.HasMember("Components")) {
+                Tsukino::Core::Log::Error("Prefab has no \"Components\": " + where);
+                return entt::null;
+            }
+
+            std::vector<std::pair<std::string, ComponentSource>> componentList;
+            const bool                                           listOk =
+                ReadNamedEntries(document["Components"], where, "Components", [&componentList](const std::string& typeName, const JsonValue& value) {
+                    ComponentSource source;
+                    if(value.IsObject()) {
+                        // 空のオブジェクトは「初期値のまま付ける」（"null" と同じ）
+                        if(value.MemberCount() > 0) {
+                            source.inlineJson = "{\"" + typeName + "\":" + ToJsonText(value) + "}";
+                        }
+                    } else if(value.IsString()) {
+                        source.path = std::string(value.GetString(), value.GetStringLength());
+                    }
+                    componentList.emplace_back(typeName, std::move(source));
+                });
+            if(!listOk) {
+                return entt::null;
             }
 
             //--------------------------------------------------------------
@@ -410,11 +568,11 @@ namespace Tsukino::Engine::ECS::Prefab {
             //--------------------------------------------------------------
             // JSONに書かれていたコンポーネントをループで自動アタッチ＆ロード
             //--------------------------------------------------------------
-            for(const auto& [typeName, compJsonPath] : componentList) {
+            for(const auto& [typeName, source] : componentList) {
                 auto it = m_loaders.find(typeName);
                 if(it != m_loaders.end()) {
                     // 登録されていたラムダを実行
-                    it->second(registry, newEntity, compJsonPath);
+                    it->second(registry, newEntity, source);
                     if(outTypeNames) {
                         outTypeNames->push_back(typeName);
                     }

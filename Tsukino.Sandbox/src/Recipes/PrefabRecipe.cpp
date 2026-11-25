@@ -1,7 +1,7 @@
 ﻿//--------------------------------------------------------------
 //! @file   PrefabRecipe.cpp
 //! @brief  レシピ: Prefab JSON で複数のエンティティを作り、自作コンポーネントの EntityRef（"#名前"）で互いを参照する
-//! @note   JSON は Tsukino.Sandbox/Assets/Prefabs/Recipe/。形式の説明は GAMEDEV.md
+//! @note   JSON は1ファイル（Tsukino.Sandbox/Assets/Prefabs/Recipe/OrbitGroup.json）。形式の説明は GAMEDEV.md
 //--------------------------------------------------------------
 #include <Tsukino/Sandbox/Recipes/Recipes.hpp>
 
