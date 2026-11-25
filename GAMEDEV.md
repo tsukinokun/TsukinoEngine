@@ -47,6 +47,7 @@ private:
 - 他のエンティティを触るなら、その `Entity` をラムダに値で持たせる（`[ball](ScriptContext& ctx, float) {…}`）。
   消えているかもしれないので `ctx.registry.IsValid(ball)` で確かめてから使う。
 - ラムダの中でエンティティを作る・コンポーネントを足す・破棄（予約）してよい。
+- ヘッダで `Tsukino::ECS::Entity` だけ使うなら `#include <Tsukino/Core/ECS/Entity/Entity.hpp>`。ソースは BOM なしの UTF-8 でよい（`/utf-8` 指定済み）。
 
 ## よく使う API（ヘッダは `Tsukino.EngineIntegration/include/Tsukino/EngineIntegration/Scene/SceneHelpers.hpp`）
 
@@ -60,7 +61,8 @@ private:
 | コンポーネント | `registry.GetComponent<T>(e)` / `HasComponent<T>(e)` / `try_get<T>(e)`（無ければ nullptr）/ `RemoveComponent<T>(e)` |
 | 全部回す | `for(auto e : registry.View<A, B>()) { … }`（回している最中に A・B を足し外ししない。集めてから後で） |
 | 破棄 | `scene.DestroyEntity(e)`（予約。全システムの更新の後に消える）。時間で消すなら `LifetimeComponent::remaining`（秒） |
-| アセット | `LoadAsset(scene, "Assets/…")`（モデル・音・テクスチャ・シェーダー。失敗は無効なハンドル＋ログ） |
+| アセット | `LoadAsset(scene, "Assets/…")`（モデル・音・テクスチャ・シェーダー。失敗は無効なハンドル＋ログ。確かめるなら `handle.IsValid()`） |
+| 色を変える（シェーダー不要） | `registry.AddComponent<MaterialPropertyBlockComponent>(e).baseColor = hlslpp::float4(1, 0, 0, 1);`（`std::optional`。`emissive` `metallic` `roughness` も同様） |
 | 音 | `PlayAudio(scene, handle, 音量 = 1, ループ = false)` |
 | エンジンの機能 | `GetEngineContext(scene)` または `ctx.engine`：`assetManager` `audioManager` `renderer` `inputSystem` `prefabFactory` `builtinAssets` |
 | キー入力 | `ctx.engine.inputSystem->IsKeyDown(Tsukino::Input::KeyCode::Space)`（`IsKeyPressed` は押した瞬間。`Tsukino/Core/Input/InputSystem.hpp`） |
@@ -89,7 +91,8 @@ private:
 
 ## 自作シェーダー（`CustomShaderComponent`）
 
-1. `Assets/Shaders/<名前>.ps.sc` を置く（ゲームの `premake5.lua` の `tsukino_shaders("Assets/Shaders")` がビルド時に変換。足したらビルドし直すだけ）。
+1. `Assets/Shaders/<名前>.ps.sc` を置き、ゲームの `premake5.lua` の `project "Game"` の直下（filter の外。`tsukino_link()` の次の行など）に
+   `tsukino_shaders("Assets/Shaders")` を1行書く。ビルド時に変換され、シェーダーの文法エラーはビルドのエラーとして出る。
 2. 中身の最小形：
    ```glsl
    $input v_worldPos, v_normal, v_texcoord0, v_curClip, v_prevClip
@@ -99,7 +102,8 @@ private:
    ```
 3. ModelComponent を持つエンティティに `registry.AddComponent<CustomShaderComponent>(e).pixelShader = LoadAsset(scene, "Assets/Shaders/<名前>.ps.sc");`。
    `params[0〜3]`（float4）が `u_user0[0〜3]` に届く（毎フレーム書き換えてよい）。ライティングと影は掛からない。
-- 色だけ変えたいならシェーダー不要：`MaterialPropertyBlockComponent::baseColor`。
+   時間で変えるなら ScriptComponent の onUpdate で `ctx.time` から計算して `params` に入れる
+   （シェーダー側で `#include "Scene.sh"` して `timeParams.x`（秒）を読んでもよい）。
 
 ## Prefab（JSON）
 
@@ -108,9 +112,19 @@ private:
 - Prefab：`{"Components":[{"key":"TransformComponent","value":"Assets/Prefabs/X_Transform.json"}, …]}`。
 - コンポーネント：`{"TransformComponent":{"position":{"x":0,"y":1,"z":0},"rotation":{"x":0,"y":0,"z":0,"w":1},"scale":{"x":1,"y":1,"z":1}}}`。
   組み込みは型名がキー。フィールドは `Docs/components.md`。
-- 自作コンポーネントは cereal の `load`（と `save`）を**同じ名前空間に**書き、`prefabFactory->RegisterComponent<T>("キー名")` で登録する。
-  `Tsukino::ECS::EntityRef` のフィールドは JSON で `"#名前"` と書くと、InstantiateGroup の後で同じグループの Entity に解決される（Entity として使える）。
-  例：`Tsukino.Sandbox/src/Recipes/PrefabRecipe.cpp` と `Tsukino.Sandbox/Assets/Prefabs/Recipe/`。
+- 自作コンポーネント（参照を持つ例。JSON は `{"OrbitComponent":{"center":"#Center","radius":1.5}}`）：
+  ```cpp
+  #include <Tsukino/Core/ECS/EntityRef/EntityRef.hpp>
+  #include <cereal/cereal.hpp>
+  struct OrbitComponent { Tsukino::ECS::EntityRef center; float radius = 1.0f; };
+  template <class Archive> void load(Archive& archive, OrbitComponent& c) {   // OrbitComponent と同じ名前空間に置く
+      archive(cereal::make_nvp("center", c.center), cereal::make_nvp("radius", c.radius));  // ここで読む項目は JSON に全部書く
+  }
+  // InstantiateGroup より前に：GetEngineContext(scene).prefabFactory->RegisterComponent<OrbitComponent>("OrbitComponent");
+  ```
+  `EntityRef` の項目は JSON で `"#名前"` と書くと、InstantiateGroup の後で同じグループの Entity に解決される（`load` があるときだけ）。
+  `Entity` へ暗黙に変換でき（`registry.IsValid(c.center)` などにそのまま渡せる）、コードからは `c.center = entity;` で入れる。
+  動く全体：`Tsukino.Sandbox/src/Recipes/PrefabRecipe.cpp`。
 
 ## その先を調べる順
 
