@@ -10,7 +10,7 @@
         "pathBase": "working directory (Debug: repository root / Release: next to the exe)"
     },
     "stats": {
-        "components": 55,
+        "components": 56,
         "registered": 36,
         "serializable": 23
     },
@@ -1156,6 +1156,17 @@
             "registeredName": null,
             "serializable": false,
             "header": "Tsukino.BuiltIn/include/Tsukino/BuiltIn/ECS/Component/ScreenModelComponent.hpp",
+            "serializationHeader": null,
+            "registrationSite": null,
+            "fields": []
+        },
+        {
+            "name": "ScriptComponent",
+            "typeName": "Tsukino::EngineIntegration::ScriptComponent",
+            "registered": false,
+            "registeredName": null,
+            "serializable": false,
+            "header": "Tsukino.EngineIntegration/include/Tsukino/EngineIntegration/ECS/Script/ScriptComponent.hpp",
             "serializationHeader": null,
             "registrationSite": null,
             "fields": []

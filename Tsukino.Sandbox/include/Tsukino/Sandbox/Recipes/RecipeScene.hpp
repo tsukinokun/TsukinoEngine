@@ -9,7 +9,7 @@
 namespace Tsukino::Sandbox::Recipes {
     //--------------------------------------------------------------
     //! @class  RecipeScene
-    //! @brief  床・落ちる球・衝突音・追いかける物・自作シェーダーの立方体・生成器を1つに並べたシーン
+    //! @brief  レシピ（衝突音・追従・自作シェーダー・生成と破棄・センサー・Prefab）を1つに並べたシーン
     //--------------------------------------------------------------
     class RecipeScene : public Tsukino::EngineIntegration::GameSceneBase {
     public:

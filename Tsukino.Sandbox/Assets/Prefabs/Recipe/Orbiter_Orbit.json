@@ -1,0 +1,7 @@
+{
+  "OrbitComponent": {
+    "center": "#Center",
+    "radius": 1.5,
+    "speed": 2.0
+  }
+}

@@ -144,6 +144,12 @@
   - Update()
 - **Tsukino::BuiltIn::ECS::PhysicsSystem** — `Tsukino.EngineIntegration/include/Tsukino/EngineIntegration/ECS/System/PhysicsSystem.hpp`
   - PhysicsSystem(), ~PhysicsSystem(), Update(), OverlapCapsule(), SetDebugDrawEnabled(), SetUnitsPerMeter(), SetContactTolerances()
+- **Tsukino::BuiltIn::ECS::ScriptComponent** — `Tsukino.EngineIntegration/include/Tsukino/EngineIntegration/ECS/Script/ScriptComponent.hpp`
+  - onStart, onUpdate, onCollisionEnter, started
+- **Tsukino::BuiltIn::ECS::ScriptContext** — `Tsukino.EngineIntegration/include/Tsukino/EngineIntegration/ECS/Script/ScriptComponent.hpp`
+  - scene, registry, engine, entity, time, Get(), TryGet(), Destroy(), DestroySelf()
+- **Tsukino::BuiltIn::ECS::ScriptSystem** — `Tsukino.EngineIntegration/include/Tsukino/EngineIntegration/ECS/System/ScriptSystem.hpp`
+  - ScriptSystem(), Update()
 - **Tsukino::BuiltIn::ECS::ScrollViewSystem** — `Tsukino.EngineIntegration/include/Tsukino/EngineIntegration/ECS/System/ScrollViewSystem.hpp`
   - Update()
 - **Tsukino::BuiltIn::ECS::SkyAtmosphereSystem** — `Tsukino.EngineIntegration/include/Tsukino/EngineIntegration/ECS/System/SkyAtmosphereSystem.hpp`
@@ -183,6 +189,18 @@
 - **Tsukino::EngineIntegration::RendererPhysicsDebugDraw** — `Tsukino.EngineIntegration/include/Tsukino/EngineIntegration/Physics/RendererPhysicsDebugDraw.hpp`
   - RendererPhysicsDebugDraw(), DrawLine(), DrawTriangle()
 
+## 列挙型
+
+- **Tsukino::EngineIntegration::PhysicsBody** — `Tsukino.EngineIntegration/include/Tsukino/EngineIntegration/Scene/SceneHelpers.hpp` — CreatePrimitive で付ける物理の種類
+  - `None` — 見た目だけ（当たり判定も剛体も付けない）
+  - `Static` — 動かない（床・壁）
+  - `Dynamic` — 重力と衝突で動く。位置は物理が毎フレーム上書きする
+  - `Kinematic` — 自分で TransformComponent::position を書き換えて動かす。物理はそこへ付いてくる
+- **Tsukino::EngineIntegration::PrimitiveShape** — `Tsukino.EngineIntegration/include/Tsukino/EngineIntegration/Scene/SceneHelpers.hpp` — CreatePrimitive で置く形（組み込みモデル。いずれも原点中心・大きさ 1）
+  - `Cube` — 立方体（1 x 1 x 1）
+  - `Plane` — 平面（XZ の 1 x 1、Y = 0、+Y 向き）
+  - `Sphere` — 球（直径 1）
+
 ## 型の別名
 
 - `using Tsukino::BuiltIn::ECS::DirectionalLightSystem = LightSystem` — `Tsukino.EngineIntegration/include/Tsukino/EngineIntegration/ECS/System/LightSystem.hpp` — 旧名（DirectionalLightSystem）のエイリアス
@@ -194,3 +212,16 @@
 | シグネチャ | 説明 |
 |---|---|
 | `void ResolveBoneNodeIndex(Tsukino::EngineIntegration::EngineContext *ctx, Tsukino::ECS::Registry &registry, Tsukino::ECS::Entity modelEntity, const std::string &boneName, Tsukino::Asset::AssetHandle &resolvedAgainstModel, Tsukino::u32 &outNodeIndex)` | エンティティのModelComponentが指すモデルに対し、名前でボーンのnodeIndexを解決する。 resolvedAgainstModelが対象モデルと一致していれば何もしない（毎フレームの名前検索を避ける） |
+
+### Tsukino::EngineIntegration — `Tsukino.EngineIntegration/include/Tsukino/EngineIntegration/Scene/SceneHelpers.hpp`
+
+| シグネチャ | 説明 |
+|---|---|
+| `Tsukino::ECS::Entity AddCamera(Tsukino::ECS::Scene &scene, const hlslpp::float3 &eye, const hlslpp::float3 &target)` | 注視点を見るメインカメラを置きます。 |
+| `void AddDefaultSystems(Tsukino::ECS::Scene &scene)` | 3D ゲームに要る組み込みシステムを、正しい順番でまとめて登録します。 |
+| `Tsukino::ECS::Entity AddDirectionalLight(Tsukino::ECS::Scene &scene, const hlslpp::float3 &direction=hlslpp::float3(0.4f, -1.0f, 0.6f), float intensity=3.0f)` | 影を落とすディレクショナルライトを置きます（無いと通常のモデルは真っ暗）。 |
+| `void AttachPrimitive(Tsukino::ECS::Scene &scene, Tsukino::ECS::Entity entity, PrimitiveShape shape, PhysicsBody body=PhysicsBody::None)` | 既にあるエンティティ（Prefab から作ったものなど）に、基本図形の見た目と物理を付けます。 |
+| `Tsukino::ECS::Entity CreatePrimitive(Tsukino::ECS::Scene &scene, PrimitiveShape shape, const hlslpp::float3 &position, const hlslpp::float3 &scale=hlslpp::float3(1.0f, 1.0f, 1.0f), PhysicsBody body=PhysicsBody::None)` | 基本図形を置きます（Unity の GameObject.CreatePrimitive に当たる）。 |
+| `EngineContext & GetEngineContext(Tsukino::ECS::Scene &scene)` | シーンのエンジンコンテキスト（AssetManager・AudioManager など）を取得します。 |
+| `Tsukino::Asset::AssetHandle LoadAsset(Tsukino::ECS::Scene &scene, const std::string &path)` | アセットを読み込みます（モデル・音・テクスチャ・シェーダーなど、拡張子で種類が決まる）。 |
+| `bool PlayAudio(Tsukino::ECS::Scene &scene, Tsukino::Asset::AssetHandle sound, float volume=1.0f, bool loop=false)` | 読み込んだ音を鳴らします。 |
