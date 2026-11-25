@@ -265,6 +265,7 @@
 - `Tsukino::ECS::SystemManager::SystemEntry` — `Tsukino.Engine/include/Tsukino/Engine/ECS/SystemManager.hpp`
 - `Tsukino::ECS::SystemManager::SystemProfile` — `Tsukino.Engine/include/Tsukino/Engine/ECS/SystemManager.hpp`
 - `Tsukino::Engine::ECS::Prefab::PrefabFactory` — `Tsukino.Engine/include/Tsukino/Engine/ECS/Prefab/PrefabFactory.hpp`
+- `Tsukino::Engine::ECS::Prefab::PrefabFactory::ComponentSource` — `Tsukino.Engine/include/Tsukino/Engine/ECS/Prefab/PrefabFactory.hpp`
 - `Tsukino::Engine::ECS::Prefab::PrefabFactory::GroupEntry` — `Tsukino.Engine/include/Tsukino/Engine/ECS/Prefab/PrefabFactory.hpp`
 - `Tsukino::Asset::AssetType`（列挙型）— `Tsukino.Engine/include/Tsukino/Engine/Asset/AssetType.hpp`
 - `Tsukino::Asset::TextureTarget`（列挙型）— `Tsukino.Engine/include/Tsukino/Engine/Asset/Texture/TextureImportRules.hpp`

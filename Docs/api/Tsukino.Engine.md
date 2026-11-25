@@ -110,7 +110,7 @@
 | `template <typename T> void ApplyOverride(Tsukino::ECS::Registry &registry, entt::entity entity, const T &overrideValue)` | 生成済みエンティティの指定コンポーネントを、任意の値で上書きする |
 | `entt::entity Instantiate(const std::string &prefabJsonPath, Tsukino::ECS::Registry &registry)` | PrefabのJSON（目次）から動的にコンポーネントを組み立ててエンティティを生成する |
 | `PrefabInstance InstantiateGroup(const std::vector< GroupEntry > &entries, Tsukino::ECS::Registry &registry)` | 複数のPrefabを名前付きでまとめて生成し、コンポーネント内のEntityRefフィールドを バッチ内の他エンティティへ解決する |
-| `PrefabInstance InstantiateGroup(const std::string &groupJsonPath, Tsukino::ECS::Registry &registry)` | グループ定義JSON（"Entities": {名前: Prefabパス} のマップ）からバッチ生成を行う |
+| `PrefabInstance InstantiateGroup(const std::string &groupJsonPath, Tsukino::ECS::Registry &registry)` | グループ定義JSONからバッチ生成を行う |
 | `bool CaptureEntity(Tsukino::ECS::Registry &registry, entt::entity entity, const std::string &outDir)` | 生成済みエンティティが持つ、セーブ対応済みコンポーネントをすべてJSONへ書き出し、 それらをまとめるPrefab（目次）JSONも生成する（開発者向けブートストラップ用途） |
 | `template <typename T> bool Load(const std::string &jsonPath, const std::string &keyName, T &outData)` | 任意のComponent（T）をJSONファイルからロードする（個別用） |
 | `template <typename T> bool Save(const std::string &jsonPath, const std::string &keyName, const T &desc)` | 任意のComponent（T）をJSONファイルにセーブする（個別用） |
@@ -223,8 +223,10 @@
   - name, averageMs
 - **Tsukino::Engine::ECS::Prefab::PrefabFactory** — `Tsukino.Engine/include/Tsukino/Engine/ECS/Prefab/PrefabFactory.hpp`
   - PrefabFactory(), ~PrefabFactory(), PrefabFactory(), operator=(), PrefabFactory(), operator=(), RegisterComponent(), SetAssetManager(), ApplyOverride(), Instantiate(), InstantiateGroup(), InstantiateGroup(), CaptureEntity(), Load(), Save()
+- **Tsukino::Engine::ECS::Prefab::PrefabFactory::ComponentSource** — `Tsukino.Engine/include/Tsukino/Engine/ECS/Prefab/PrefabFactory.hpp`
+  - path, inlineJson
 - **Tsukino::Engine::ECS::Prefab::PrefabFactory::GroupEntry** — `Tsukino.Engine/include/Tsukino/Engine/ECS/Prefab/PrefabFactory.hpp`
-  - name, prefabPath
+  - name, prefabPath, prefabJson
 
 ## 列挙型
 
