@@ -1,6 +1,23 @@
 {
-  "Entities": [
-    { "key": "Center", "value": "Tsukino.Sandbox/Assets/Prefabs/Recipe/Center.json" },
-    { "key": "Orbiter", "value": "Tsukino.Sandbox/Assets/Prefabs/Recipe/Orbiter.json" }
-  ]
+  "Entities": {
+    "Center": {
+      "Components": {
+        "TransformComponent": {
+          "position": { "x": 4.0, "y": 1.0, "z": 3.0 },
+          "rotation": { "x": 0.0, "y": 0.0, "z": 0.0, "w": 1.0 },
+          "scale": { "x": 0.6, "y": 0.6, "z": 0.6 }
+        }
+      }
+    },
+    "Orbiter": {
+      "Components": {
+        "TransformComponent": {
+          "position": { "x": 5.5, "y": 1.0, "z": 3.0 },
+          "rotation": { "x": 0.0, "y": 0.0, "z": 0.0, "w": 1.0 },
+          "scale": { "x": 0.3, "y": 0.3, "z": 0.3 }
+        },
+        "OrbitComponent": { "center": "#Center", "radius": 1.5, "speed": 2.0 }
+      }
+    }
+  }
 }
