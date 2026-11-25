@@ -412,6 +412,37 @@ namespace Tsukino::Sandbox {
         Tsukino::Core::Log::Info("=== [PrefabFactory] InstantiateGroup EntityRef Test End ===");
 
         //--------------------------------------------------------------
+        //! @brief     PrefabFactory の1ファイル形式のテスト：
+        //!            グループ・Prefab・コンポーネントの中身を1つの JSON に書いても、
+        //!            値が読め、EntityRef が解決され、パスで書いた Prefab も混ぜられることを確認する
+        //--------------------------------------------------------------
+        Tsukino::Core::Log::Info("=== [PrefabFactory] Compact (single-file) Group Test Start ===");
+        {
+            Tsukino::Engine::ECS::Prefab::PrefabFactory::PrefabInstance group =
+                context->prefabFactory->InstantiateGroup("Tsukino.Sandbox/Assets/Prefabs/CompactGroupTest.json", registry);
+
+            const auto anchorIt   = group.find("Anchor");
+            const auto linkerIt   = group.find("Linker");
+            const auto fromFileIt = group.find("FromFile");
+            if(anchorIt == group.end() || linkerIt == group.end() || fromFileIt == group.end()) {
+                Tsukino::Core::Log::Error("Compact group FAILED: missing named entity");
+            } else {
+                const auto& anchorTransform = registry.GetComponent<Tsukino::BuiltIn::ECS::TransformComponent>(anchorIt->second);
+                const bool  valueOk         = float(anchorTransform.position.x) == 1.0f && float(anchorTransform.position.y) == 2.0f &&
+                                     float(anchorTransform.position.z) == 3.0f;
+                const auto* link      = registry.try_get<Tsukino::Sandbox::TestLinkComponent>(linkerIt->second);
+                const bool  resolveOk = link && link->target.entity == anchorIt->second;
+                const bool  defaultOk = registry.HasComponent<Tsukino::BuiltIn::ECS::TransformComponent>(linkerIt->second);
+                const bool  fileOk    = registry.HasComponent<Tsukino::BuiltIn::ECS::TransformComponent>(fromFileIt->second);
+                Tsukino::Core::Log::Info(valueOk && resolveOk && defaultOk && fileOk
+                                             ? "Compact group OK"
+                                             : "Compact group FAILED (value=" + std::to_string(valueOk) + " resolve=" + std::to_string(resolveOk) +
+                                                   " default=" + std::to_string(defaultOk) + " file=" + std::to_string(fileOk) + ")");
+            }
+        }
+        Tsukino::Core::Log::Info("=== [PrefabFactory] Compact (single-file) Group Test End ===");
+
+        //--------------------------------------------------------------
         // デバッグカメラエンティティの生成 (デバッグビルドのみ)
         //--------------------------------------------------------------
 #ifdef _DEBUG

@@ -1,6 +1,0 @@
-{
-  "Components": [
-    { "key": "TransformComponent", "value": "Tsukino.Sandbox/Assets/Prefabs/Recipe/Orbiter_Transform.json" },
-    { "key": "OrbitComponent", "value": "Tsukino.Sandbox/Assets/Prefabs/Recipe/Orbiter_Orbit.json" }
-  ]
-}
