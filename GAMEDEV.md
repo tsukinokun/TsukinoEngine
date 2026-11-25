@@ -42,6 +42,7 @@ void MyScene::OnInitialize(Tsukino::EngineIntegration::EngineAPI&) {
 ## 関数（`Tsukino/EngineIntegration/Scene/SceneHelpers.hpp`、namespace `Tsukino::EngineIntegration`）
 
 型の名前空間：`Scene` `Entity` `Registry` `EntityRef` は `Tsukino::ECS`、`AssetHandle` `AssetRef` は `Tsukino::Asset`、`float3` `float4` `quaternion` は `hlslpp`。
+hlslpp の成分は `float(v.x)` で取り出し、`hlslpp::float4(r, g, b, a)` で作る（`hlslpp::store` などは使わなくてよい）。
 
 ```cpp
 void           AddDefaultSystems(Scene&);   // Script -1 → Physics 0 → Transform 1 → Camera 2 → Model 3 → Light 4 → Audio 5 → Lifetime 6
