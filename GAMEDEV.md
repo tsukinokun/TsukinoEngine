@@ -49,25 +49,50 @@ private:
 - ラムダの中でエンティティを作る・コンポーネントを足す・破棄（予約）してよい。
 - ヘッダで `Tsukino::ECS::Entity` だけ使うなら `#include <Tsukino/Core/ECS/Entity/Entity.hpp>`。ソースは BOM なしの UTF-8 でよい（`/utf-8` 指定済み）。
 
-## よく使う API（ヘッダは `Tsukino.EngineIntegration/include/Tsukino/EngineIntegration/Scene/SceneHelpers.hpp`）
+## よく使う書き方
 
 | やること | 書き方 |
 |---|---|
-| 組み込みシステムを全部 | `AddDefaultSystems(scene)`（Script -1 → Physics 0 → Transform 1 → Camera 2 → Model 3 → Light 4 → Audio 5 → Lifetime 6） |
+| 組み込みシステムの順 | `AddDefaultSystems(scene)`（Script -1 → Physics 0 → Transform 1 → Camera 2 → Model 3 → Light 4 → Audio 5 → Lifetime 6） |
 | 自作システムを足す | `scene.AddSystem(std::make_shared<MySystem>(), 優先度)`（`Tsukino::ECS::ISystem` の `Update(Registry&, float)`。小さいほど先） |
-| 立方体・平面・球 | `CreatePrimitive(scene, PrimitiveShape::Cube/Plane/Sphere, 位置, 大きさ = 1, PhysicsBody::None/Static/Dynamic/Kinematic)` |
-| 既存エンティティに見た目と物理 | `AttachPrimitive(scene, entity, shape, body)`（Prefab で作った物に。Transform の scale を使う） |
 | 空のエンティティ | `scene.CreateEntity()`、`registry.AddComponent<T>(e)` |
 | コンポーネント | `registry.GetComponent<T>(e)` / `HasComponent<T>(e)` / `try_get<T>(e)`（無ければ nullptr）/ `RemoveComponent<T>(e)` |
 | 全部回す | `for(auto e : registry.View<A, B>()) { … }`（回している最中に A・B を足し外ししない。集めてから後で） |
 | 破棄 | `scene.DestroyEntity(e)`（予約。全システムの更新の後に消える）。時間で消すなら `LifetimeComponent::remaining`（秒） |
 | アセット | `LoadAsset(scene, "Assets/…")`（モデル・音・テクスチャ・シェーダー。失敗は無効なハンドル＋ログ。確かめるなら `handle.IsValid()`） |
 | 色を変える（シェーダー不要） | `registry.AddComponent<MaterialPropertyBlockComponent>(e).baseColor = hlslpp::float4(1, 0, 0, 1);`（`std::optional`。`emissive` `metallic` `roughness` も同様） |
-| 音 | `PlayAudio(scene, handle, 音量 = 1, ループ = false)` |
 | エンジンの機能 | `GetEngineContext(scene)` または `ctx.engine`：`assetManager` `audioManager` `renderer` `inputSystem` `prefabFactory` `builtinAssets` |
 | キー入力 | `ctx.engine.inputSystem->IsKeyDown(Tsukino::Input::KeyCode::Space)`（`IsKeyPressed` は押した瞬間。`Tsukino/Core/Input/InputSystem.hpp`） |
 | 背景色 | `GetEngineContext(scene).renderer->SetClearColor(r, g, b, 1)` |
 | ログ | `Tsukino::Core::Log::Info/Warn/Error(std::string)`。ファイルに出すのは `Log::SetLogFile("Logs/x.log")` を呼んでから |
+
+## 関数と主なコンポーネント（ここに無いものだけヘッダを見る）
+
+```cpp
+// Tsukino/EngineIntegration/Scene/SceneHelpers.hpp（namespace Tsukino::EngineIntegration）
+void                        AddDefaultSystems(Scene&);
+Entity                      AddCamera(Scene&, const float3& eye, const float3& target);
+Entity                      AddDirectionalLight(Scene&, const float3& direction = {0.4,-1,0.6}, float intensity = 3);
+Entity                      CreatePrimitive(Scene&, PrimitiveShape, const float3& position, const float3& scale = {1,1,1}, PhysicsBody = None);
+void                        AttachPrimitive(Scene&, Entity, PrimitiveShape, PhysicsBody = None);
+EngineContext&              GetEngineContext(Scene&);
+Tsukino::Asset::AssetHandle LoadAsset(Scene&, const std::string& path);
+bool                        PlayAudio(Scene&, Tsukino::Asset::AssetHandle sound, float volume = 1, bool loop = false);  // 鳴らせたら true
+```
+
+組み込みコンポーネントのヘッダは `Tsukino/BuiltIn/ECS/Component/<型名>.hpp`（namespace `Tsukino::BuiltIn::ECS`）。
+
+| 型 | 主な項目 |
+|---|---|
+| `TransformComponent` | `float3 position` `quaternion rotation` `float3 scale` `EntityRef parent` `bool dirty` `matrix worldMatrix`（読み取り用） |
+| `ModelComponent` | `AssetRef modelHandle` `bool visible` `float opacity` |
+| `CollisionComponent` | `ColliderType type`（`Box` / `Sphere` / `Capsule`）`float3 extent`（半分の大きさ）`float3 offsetPosition` `bool isSensor` |
+| `RigidbodyComponent` | `RigidbodyType type`（`Static` / `Dynamic` / `Kinematic`）`mass` `friction` `restitution` `gravityFactor` `float3 force` `freezeRotationX/Y/Z` `bool isGrounded`（読み取り） |
+| `ImpulseRequestComponent` | `float3 impulse` `float3 angularImpulse`（付けると次の物理更新で1回加わって外れる） |
+| `LifetimeComponent` | `float remaining`（秒。0 で破棄） |
+| `CustomShaderComponent` | `AssetRef pixelShader` `AssetRef vertexShader` `std::array<float4, 4> params`（`AssetRef` には `LoadAsset` の戻り値をそのまま入れる） |
+| `MaterialPropertyBlockComponent` | `std::optional<float4> baseColor` `std::optional<float3> emissive` `metallic` `roughness` |
+| `AudioComponent` | 置いた物に音を鳴らさせるとき（`PlayAudio` で足りるなら不要） |
 
 ## 実装を読まないと分からない挙動
 
