@@ -41,6 +41,9 @@ void MyScene::OnInitialize(Tsukino::EngineIntegration::EngineAPI&) {
 
 ## 関数（`Tsukino/EngineIntegration/Scene/SceneHelpers.hpp`、namespace `Tsukino::EngineIntegration`）
 
+型の名前空間：`Scene` `Entity` `Registry` `EntityRef` は `Tsukino::ECS`、`AssetHandle` `AssetRef` は `Tsukino::Asset`、`float3` `float4` `quaternion` は `hlslpp`。
+hlslpp の成分は `float(v.x)` で取り出し、`hlslpp::float4(r, g, b, a)` で作る（`hlslpp::store` などは使わなくてよい）。
+
 ```cpp
 void           AddDefaultSystems(Scene&);   // Script -1 → Physics 0 → Transform 1 → Camera 2 → Model 3 → Light 4 → Audio 5 → Lifetime 6
 Entity         AddCamera(Scene&, const float3& eye, const float3& target);
@@ -118,6 +121,7 @@ Assets/Prefabs/Pair/Mover_Orbit.json       {"OrbitComponent":{"center":"#Center"
 コード：
 
 ```cpp
+#include <Tsukino/Engine/ECS/Prefab/PrefabFactory.hpp>   // prefabFactory を使うのに要る（EngineContext は前方宣言だけ）
 #include <Tsukino/Core/ECS/EntityRef/EntityRef.hpp>
 #include <cereal/cereal.hpp>
 struct OrbitComponent { Tsukino::ECS::EntityRef center; float radius = 1.0f; };
